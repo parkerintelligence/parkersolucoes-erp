@@ -1,11 +1,10 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Server, Database, HardDrive, FileText, Save, TestTube } from 'lucide-react';
+import { Server, Database, HardDrive, FileText, Save, TestTube, Calendar } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export const AdminApiPanel = () => {
@@ -33,11 +32,12 @@ export const AdminApiPanel = () => {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="glpi" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="glpi">GLPI</TabsTrigger>
             <TabsTrigger value="zabbix">Zabbix</TabsTrigger>
             <TabsTrigger value="backup">Backup FTP</TabsTrigger>
             <TabsTrigger value="googledrive">Google Drive</TabsTrigger>
+            <TabsTrigger value="googlecalendar">Google Calendar</TabsTrigger>
           </TabsList>
 
           <TabsContent value="glpi" className="space-y-4">
@@ -274,6 +274,72 @@ export const AdminApiPanel = () => {
                 <div className="flex items-center gap-2 mt-4">
                   <Badge className="bg-green-100 text-green-800 border-green-200">Conectado</Badge>
                   <span className="text-sm text-gray-600">2.5 GB de 15 GB usados</span>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="googlecalendar" className="space-y-4">
+            <Card className="border-slate-200">
+              <CardHeader>
+                <CardTitle className="text-slate-900 flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Configuração Google Calendar
+                </CardTitle>
+                <CardDescription>
+                  Configure a integração com Google Calendar para sincronização automática da agenda
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="gcal-client-id">Client ID</Label>
+                    <Input id="gcal-client-id" placeholder="Google Calendar Client ID" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="gcal-client-secret">Client Secret</Label>
+                    <Input id="gcal-client-secret" type="password" placeholder="Google Calendar Client Secret" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="gcal-redirect-uri">Redirect URI</Label>
+                    <Input id="gcal-redirect-uri" placeholder="https://app.empresa.com/auth/callback" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="gcal-refresh-token">Refresh Token</Label>
+                    <Input id="gcal-refresh-token" type="password" placeholder="Token de atualização" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gcal-calendar-id">ID do Calendário</Label>
+                  <Input id="gcal-calendar-id" placeholder="primary ou ID específico do calendário" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="gcal-sync-interval">Intervalo de Sincronização (minutos)</Label>
+                    <Input id="gcal-sync-interval" placeholder="15" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="gcal-reminder-days">Lembrete (dias antes)</Label>
+                    <Input id="gcal-reminder-days" placeholder="7" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gcal-timezone">Fuso Horário</Label>
+                  <Input id="gcal-timezone" placeholder="America/Sao_Paulo" />
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleSaveSettings} className="bg-blue-600 hover:bg-blue-700">
+                    <Save className="mr-2 h-4 w-4" />
+                    Salvar Configurações
+                  </Button>
+                  <Button variant="outline" onClick={() => handleTestConnection('Google Calendar')}>
+                    <TestTube className="mr-2 h-4 w-4" />
+                    Testar Conexão
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2 mt-4">
+                  <Badge className="bg-green-100 text-green-800 border-green-200">Conectado</Badge>
+                  <span className="text-sm text-gray-600">Última sincronização: 2 min atrás</span>
                 </div>
               </CardContent>
             </Card>

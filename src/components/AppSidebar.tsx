@@ -10,7 +10,8 @@ import {
   Link,
   FileText,
   Settings,
-  Shield
+  Shield,
+  Calendar
 } from 'lucide-react';
 
 import {
@@ -34,6 +35,7 @@ const menuItems = [
   { title: 'Senhas', url: '/passwords', icon: Lock, role: 'user' },
   { title: 'Links', url: '/links', icon: Link, role: 'user' },
   { title: 'Documentos', url: '/documents', icon: FileText, role: 'user' },
+  { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
   { title: 'Administração', url: '/admin', icon: Settings, role: 'master' },
 ];
 
