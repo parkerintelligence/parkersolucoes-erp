@@ -5,19 +5,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import type { ScheduleItem } from '@/pages/Schedule';
+import { ScheduleItem } from '@/hooks/useScheduleItems';
 
 interface ScheduleFormProps {
-  onSubmit: (item: Omit<ScheduleItem, 'id' | 'createdAt' | 'status'>) => void;
+  onSubmit: (item: Omit<ScheduleItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'status'>) => void;
 }
 
 export const ScheduleForm = ({ onSubmit }: ScheduleFormProps) => {
   const [formData, setFormData] = useState({
     title: '',
     type: '' as 'certificate' | 'license' | 'system_update' | '',
-    dueDate: '',
+    due_date: '',
     description: '',
     company: ''
   });
@@ -25,7 +25,7 @@ export const ScheduleForm = ({ onSubmit }: ScheduleFormProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.type || !formData.dueDate || !formData.company) {
+    if (!formData.title || !formData.type || !formData.due_date || !formData.company) {
       toast({
         title: "Erro no formulário",
         description: "Preencha todos os campos obrigatórios.",
@@ -34,26 +34,15 @@ export const ScheduleForm = ({ onSubmit }: ScheduleFormProps) => {
       return;
     }
 
-    onSubmit(formData as Omit<ScheduleItem, 'id' | 'createdAt' | 'status'>);
+    onSubmit(formData as Omit<ScheduleItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'status'>);
     
     setFormData({
       title: '',
       type: '',
-      dueDate: '',
+      due_date: '',
       description: '',
       company: ''
     });
-
-    toast({
-      title: "Agendamento criado!",
-      description: "O item foi adicionado à agenda com sucesso.",
-    });
-  };
-
-  const typeLabels = {
-    certificate: 'Certificado',
-    license: 'Licença',
-    system_update: 'Atualização de Sistema'
   };
 
   return (
@@ -93,12 +82,12 @@ export const ScheduleForm = ({ onSubmit }: ScheduleFormProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="dueDate">Data de Vencimento *</Label>
+        <Label htmlFor="due_date">Data de Vencimento *</Label>
         <Input
-          id="dueDate"
+          id="due_date"
           type="date"
-          value={formData.dueDate}
-          onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+          value={formData.due_date}
+          onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
         />
       </div>
 

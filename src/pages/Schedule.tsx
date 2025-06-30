@@ -3,77 +3,51 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { ScheduleForm } from '@/components/ScheduleForm';
-import { ScheduleList } from '@/components/ScheduleList';
+import { ScheduleGrid } from '@/components/ScheduleGrid';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, Clock, AlertTriangle } from 'lucide-react';
-import { useState } from 'react';
-
-export interface ScheduleItem {
-  id: string;
-  title: string;
-  type: 'certificate' | 'license' | 'system_update';
-  dueDate: string;
-  description: string;
-  company: string;
-  status: 'pending' | 'completed' | 'overdue';
-  createdAt: string;
-}
+import { useScheduleItems, useCreateScheduleItem, useUpdateScheduleItem, useDeleteScheduleItem } from '@/hooks/useScheduleItems';
 
 const Schedule = () => {
   const { isAuthenticated } = useAuth();
-  const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([
-    {
-      id: '1',
-      title: 'Renovação Certificado SSL',
-      type: 'certificate',
-      dueDate: '2024-08-15',
-      description: 'Renovar certificado SSL do site principal',
-      company: 'Empresa ABC',
-      status: 'pending',
-      createdAt: '2024-01-15'
-    },
-    {
-      id: '2',
-      title: 'Licença Office 365',
-      type: 'license',
-      dueDate: '2024-07-30',
-      description: 'Renovação da licença Office 365',
-      company: 'Empresa XYZ',
-      status: 'pending',
-      createdAt: '2024-01-10'
-    }
-  ]);
+  const { data: scheduleItems = [], isLoading } = useScheduleItems();
+  const createScheduleItem = useCreateScheduleItem();
+  const updateScheduleItem = useUpdateScheduleItem();
+  const deleteScheduleItem = useDeleteScheduleItem();
 
   if (!isAuthenticated) {
     return <Navigate to="/" />;
   }
 
-  const addScheduleItem = (item: Omit<ScheduleItem, 'id' | 'createdAt' | 'status'>) => {
-    const newItem: ScheduleItem = {
-      ...item,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      status: 'pending'
-    };
-    setScheduleItems([...scheduleItems, newItem]);
+  const handleAddScheduleItem = (item: Parameters<typeof createScheduleItem.mutate>[0]) => {
+    createScheduleItem.mutate(item);
   };
 
-  const updateScheduleItem = (id: string, updates: Partial<ScheduleItem>) => {
-    setScheduleItems(scheduleItems.map(item => 
-      item.id === id ? { ...item, ...updates } : item
-    ));
+  const handleUpdateScheduleItem = (id: string, updates: Parameters<typeof updateScheduleItem.mutate>[0]['updates']) => {
+    updateScheduleItem.mutate({ id, updates });
   };
 
-  const deleteScheduleItem = (id: string) => {
-    setScheduleItems(scheduleItems.filter(item => item.id !== id));
+  const handleDeleteScheduleItem = (id: string) => {
+    deleteScheduleItem.mutate(id);
   };
 
   const pendingCount = scheduleItems.filter(item => item.status === 'pending').length;
   const overdueCount = scheduleItems.filter(item => {
     const today = new Date();
-    const dueDate = new Date(item.dueDate);
-    return dueDate < today && item.status === 'pending';
+    const dueDate = new Date(item.due_date);
+    const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays <= 30 && item.status === 'pending';
   }).length;
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center h-96">
+          <div className="text-slate-600">Carregando agendamentos...</div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -105,7 +79,7 @@ const Schedule = () => {
                 <AlertTriangle className="h-5 w-5 text-red-500" />
                 <div>
                   <p className="text-2xl font-bold text-red-900">{overdueCount}</p>
-                  <p className="text-sm text-red-600">Vencidos</p>
+                  <p className="text-sm text-red-600">Críticos (≤30 dias)</p>
                 </div>
               </div>
             </CardContent>
@@ -123,36 +97,27 @@ const Schedule = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Formulário de Cadastro */}
-          <Card className="border-slate-200">
-            <CardHeader>
-              <CardTitle className="text-slate-900">Novo Agendamento</CardTitle>
-              <CardDescription>
-                Cadastre um novo item na agenda de vencimentos
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScheduleForm onSubmit={addScheduleItem} />
-            </CardContent>
-          </Card>
+        {/* Formulário de Cadastro */}
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-slate-900">Novo Agendamento</CardTitle>
+            <CardDescription>
+              Cadastre um novo item na agenda de vencimentos
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScheduleForm onSubmit={handleAddScheduleItem} />
+          </CardContent>
+        </Card>
 
-          {/* Lista de Agendamentos */}
-          <Card className="border-slate-200">
-            <CardHeader>
-              <CardTitle className="text-slate-900">Próximos Vencimentos</CardTitle>
-              <CardDescription>
-                Lista de certificados, licenças e atualizações agendadas
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScheduleList 
-                items={scheduleItems}
-                onUpdate={updateScheduleItem}
-                onDelete={deleteScheduleItem}
-              />
-            </CardContent>
-          </Card>
+        {/* Grid de Agendamentos */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-slate-900">Agendamentos</h2>
+          <ScheduleGrid 
+            items={scheduleItems}
+            onUpdate={handleUpdateScheduleItem}
+            onDelete={handleDeleteScheduleItem}
+          />
         </div>
       </div>
     </Layout>
