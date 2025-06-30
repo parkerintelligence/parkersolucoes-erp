@@ -1,9 +1,11 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import GLPI from "./pages/GLPI";
@@ -12,35 +14,41 @@ import Backups from "./pages/Backups";
 import Passwords from "./pages/Passwords";
 import Links from "./pages/Links";
 import Documents from "./pages/Documents";
+import Companies from "./pages/Companies";
+import WhatsApp from "./pages/WhatsApp";
+import Schedule from "./pages/Schedule";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
-import Schedule from "./pages/Schedule";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/glpi" element={<GLPI />} />
-            <Route path="/zabbix" element={<Zabbix />} />
-            <Route path="/backups" element={<Backups />} />
-            <Route path="/passwords" element={<Passwords />} />
-            <Route path="/links" element={<Links />} />
-            <Route path="/documents" element={<Documents />} />
-            <Route path="/schedule" element={<Schedule />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
+    <AuthProvider>
+      <SidebarProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/glpi" element={<GLPI />} />
+              <Route path="/zabbix" element={<Zabbix />} />
+              <Route path="/backups" element={<Backups />} />
+              <Route path="/passwords" element={<Passwords />} />
+              <Route path="/links" element={<Links />} />
+              <Route path="/documents" element={<Documents />} />
+              <Route path="/companies" element={<Companies />} />
+              <Route path="/whatsapp" element={<WhatsApp />} />
+              <Route path="/schedule" element={<Schedule />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </SidebarProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

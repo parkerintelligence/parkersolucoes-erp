@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
-import { CompanyForm } from '@/components/CompanyForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,37 +10,29 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Plus, Link as LinkIcon, Building, Filter, Lock, Eye, EyeOff, Key } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-
-interface LinkItem {
-  id: string;
-  company: string;
-  name: string;
-  url: string;
-  service: string;
-  hasPassword?: boolean;
-  username?: string;
-  password?: string;
-}
+import { useAuth } from '@/contexts/AuthContext';
+import { Navigate } from 'react-router-dom';
+import { useCompanies } from '@/hooks/useCompanies';
+import { useCompanyLinks, useCreateCompanyLink, useUpdateCompanyLink, useDeleteCompanyLink } from '@/hooks/useCompanyLinks';
 
 const Links = () => {
-  const [links, setLinks] = useState<LinkItem[]>([
-    { id: '1', company: 'Empresa A', name: 'Sistema ERP', url: 'https://erp.empresaa.com', service: 'ERP', hasPassword: true, username: 'admin', password: 'erp123' },
-    { id: '2', company: 'Empresa A', name: 'Email Corporativo', url: 'https://mail.empresaa.com', service: 'Email' },
-    { id: '3', company: 'Empresa B', name: 'Painel Admin', url: 'https://admin.empresab.com', service: 'Administração', hasPassword: true, username: 'root', password: 'admin456' },
-    { id: '4', company: 'Empresa B', name: 'Sistema Vendas', url: 'https://vendas.empresab.com', service: 'Vendas' },
-  ]);
+  const { isAuthenticated } = useAuth();
+  const { data: companies = [] } = useCompanies();
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+  const { data: links = [] } = useCompanyLinks(selectedCompanyId);
+  const createLink = useCreateCompanyLink();
+  const updateLink = useUpdateCompanyLink();
+  const deleteLink = useDeleteCompanyLink();
 
-  const [selectedCompany, setSelectedCompany] = useState<string>('');
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isMasterPasswordDialogOpen, setIsMasterPasswordDialogOpen] = useState(false);
   const [currentLinkForPassword, setCurrentLinkForPassword] = useState<string>('');
   const [masterPasswordInput, setMasterPasswordInput] = useState('');
   const [showPasswords, setShowPasswords] = useState<{ [key: string]: boolean }>({});
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated2, setIsAuthenticated2] = useState(false);
 
   const [linkFormData, setLinkFormData] = useState({
-    company: '',
     name: '',
     url: '',
     service: ''
@@ -52,37 +43,33 @@ const Links = () => {
     password: ''
   });
 
-  const companies = ['Empresa A', 'Empresa B', 'Empresa C'];
   const services = ['ERP', 'Email', 'Administração', 'Vendas', 'Financeiro', 'RH', 'Backup', 'Monitoramento'];
 
-  // Filtrar links por empresa selecionada
-  const filteredLinks = selectedCompany 
-    ? links.filter(link => link.company === selectedCompany)
-    : [];
+  if (!isAuthenticated) {
+    return <Navigate to="/" />;
+  }
+
+  const selectedCompany = companies.find(c => c.id === selectedCompanyId);
 
   const handleSaveLink = () => {
-    if (!linkFormData.company || !linkFormData.name || !linkFormData.url) {
+    if (!linkFormData.name || !linkFormData.url || !selectedCompanyId) {
       toast({
         title: "Erro",
-        description: "Empresa, nome e URL são obrigatórios.",
+        description: "Nome, URL e empresa são obrigatórios.",
         variant: "destructive"
       });
       return;
     }
 
-    const newLink: LinkItem = {
-      id: Date.now().toString(),
-      ...linkFormData
-    };
-
-    setLinks([...links, newLink]);
-    setLinkFormData({ company: '', name: '', url: '', service: '' });
-    setIsLinkDialogOpen(false);
-    
-    toast({
-      title: "Sucesso!",
-      description: "Link cadastrado com sucesso.",
+    createLink.mutate({
+      ...linkFormData,
+      company_id: selectedCompanyId,
+      username: null,
+      password: null
     });
+
+    setLinkFormData({ name: '', url: '', service: '' });
+    setIsLinkDialogOpen(false);
   };
 
   const handleSavePassword = () => {
@@ -95,25 +82,21 @@ const Links = () => {
       return;
     }
 
-    setLinks(links.map(link => 
-      link.id === currentLinkForPassword 
-        ? { ...link, hasPassword: true, username: passwordFormData.username, password: passwordFormData.password }
-        : link
-    ));
+    updateLink.mutate({
+      id: currentLinkForPassword,
+      updates: {
+        username: passwordFormData.username,
+        password: passwordFormData.password
+      }
+    });
 
     setPasswordFormData({ username: '', password: '' });
     setIsPasswordDialogOpen(false);
     setCurrentLinkForPassword('');
-    
-    toast({
-      title: "Sucesso!",
-      description: "Senha cadastrada com sucesso.",
-    });
   };
 
-  const handleCompanyFilterChange = (company: string) => {
-    setSelectedCompany(company);
-    setLinkFormData(prev => ({ ...prev, company }));
+  const handleCompanyFilterChange = (companyId: string) => {
+    setSelectedCompanyId(companyId);
   };
 
   const openPasswordDialog = (linkId: string) => {
@@ -133,7 +116,7 @@ const Links = () => {
       return;
     }
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated2) {
       setCurrentLinkForPassword(linkId);
       setIsMasterPasswordDialogOpen(true);
       return;
@@ -149,7 +132,7 @@ const Links = () => {
     const masterPassword = localStorage.getItem('systemMasterPassword');
     
     if (masterPasswordInput === masterPassword) {
-      setIsAuthenticated(true);
+      setIsAuthenticated2(true);
       setShowPasswords(prev => ({
         ...prev,
         [currentLinkForPassword]: true
@@ -159,7 +142,7 @@ const Links = () => {
       
       // Desautenticar após 5 minutos
       setTimeout(() => {
-        setIsAuthenticated(false);
+        setIsAuthenticated2(false);
         setShowPasswords({});
       }, 300000);
       
@@ -176,6 +159,10 @@ const Links = () => {
     }
   };
 
+  const handleDeleteLink = (linkId: string) => {
+    deleteLink.mutate(linkId);
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -183,14 +170,11 @@ const Links = () => {
           <div>
             <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
               <LinkIcon className="h-8 w-8" />
-              Gerenciador de Links e Empresas
+              Gerenciador de Links
             </h1>
-            <p className="text-blue-600">Cadastre empresas e organize links de acesso aos sistemas</p>
+            <p className="text-blue-600">Organize links de acesso aos sistemas das empresas</p>
           </div>
         </div>
-
-        {/* Cadastro de Empresas */}
-        <CompanyForm />
 
         {/* Filtro por Empresa */}
         <Card className="border-blue-200">
@@ -204,19 +188,19 @@ const Links = () => {
             <div className="flex gap-4 items-end">
               <div className="flex-1">
                 <Label htmlFor="company-filter">Selecione uma empresa para ver seus links</Label>
-                <Select value={selectedCompany} onValueChange={handleCompanyFilterChange}>
+                <Select value={selectedCompanyId} onValueChange={handleCompanyFilterChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione uma empresa" />
                   </SelectTrigger>
                   <SelectContent>
                     {companies.map((company) => (
-                      <SelectItem key={company} value={company}>{company}</SelectItem>
+                      <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <Button 
-                onClick={() => setSelectedCompany('')}
+                onClick={() => setSelectedCompanyId('')}
                 variant="outline"
                 className="border-blue-200 text-blue-700 hover:bg-blue-50"
               >
@@ -227,13 +211,13 @@ const Links = () => {
         </Card>
 
         {/* Links da Empresa Selecionada */}
-        {selectedCompany && (
+        {selectedCompanyId && selectedCompany && (
           <Card className="border-blue-200">
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle className="text-blue-900 flex items-center gap-2">
                   <Building className="h-5 w-5" />
-                  Links - {selectedCompany}
+                  Links - {selectedCompany.name}
                 </CardTitle>
                 <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
                   <DialogTrigger asChild>
@@ -246,7 +230,7 @@ const Links = () => {
                     <DialogHeader>
                       <DialogTitle>Cadastrar Novo Link</DialogTitle>
                       <DialogDescription>
-                        Adicione um link para {selectedCompany}
+                        Adicione um link para {selectedCompany.name}
                       </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -295,84 +279,100 @@ const Links = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredLinks.map((link) => (
-                  <Card key={link.id} className="border-blue-100 hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <h4 className="font-medium text-blue-900">{link.name}</h4>
-                        <div className="flex gap-1">
-                          {link.service && (
-                            <Badge className="text-xs bg-blue-100 text-blue-800 border-blue-200">
-                              {link.service}
-                            </Badge>
-                          )}
-                          {link.hasPassword && (
-                            <Badge className="text-xs bg-green-100 text-green-800 border-green-200">
-                              <Lock className="h-3 w-3 mr-1" />
-                              Senha
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <p className="text-sm text-gray-600 mb-3 truncate">{link.url}</p>
-                      
-                      {/* Mostrar senha se existir */}
-                      {link.hasPassword && (
-                        <div className="mb-3 p-2 bg-gray-50 rounded border">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium text-gray-700">Usuário:</span>
-                            <span className="text-xs text-gray-600">{link.username}</span>
+              {links.length === 0 ? (
+                <div className="text-center py-8 text-slate-500">
+                  <LinkIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>Nenhum link cadastrado para esta empresa</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {links.map((link) => (
+                    <Card key={link.id} className="border-blue-100 hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="font-medium text-blue-900 line-clamp-2">{link.name}</h4>
+                          <div className="flex gap-1 flex-shrink-0 ml-2">
+                            {link.service && (
+                              <Badge className="text-xs bg-blue-100 text-blue-800 border-blue-200">
+                                {link.service}
+                              </Badge>
+                            )}
+                            {link.username && link.password && (
+                              <Badge className="text-xs bg-green-100 text-green-800 border-green-200">
+                                <Lock className="h-3 w-3 mr-1" />
+                                Senha
+                              </Badge>
+                            )}
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium text-gray-700">Senha:</span>
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs text-gray-600 font-mono">
-                                {showPasswords[link.id] ? link.password : '••••••••'}
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0"
-                                onClick={() => handleShowPassword(link.id)}
-                              >
-                                {showPasswords[link.id] ? 
-                                  <EyeOff className="h-3 w-3" /> : 
-                                  <Eye className="h-3 w-3" />
-                                }
-                              </Button>
+                        </div>
+                        
+                        <p className="text-sm text-gray-600 mb-3 truncate" title={link.url}>{link.url}</p>
+                        
+                        {/* Mostrar senha se existir */}
+                        {link.username && link.password && (
+                          <div className="mb-3 p-2 bg-gray-50 rounded border">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-gray-700">Usuário:</span>
+                              <span className="text-xs text-gray-600">{link.username}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-gray-700">Senha:</span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs text-gray-600 font-mono">
+                                  {showPasswords[link.id] ? link.password : '••••••••'}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => handleShowPassword(link.id)}
+                                >
+                                  {showPasswords[link.id] ? 
+                                    <EyeOff className="h-3 w-3" /> : 
+                                    <Eye className="h-3 w-3" />
+                                  }
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
-                      
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
-                          onClick={() => window.open(link.url, '_blank')}
-                        >
-                          <ExternalLink className="mr-2 h-3 w-3" />
-                          Acessar
-                        </Button>
+                        )}
                         
-                        {!link.hasPassword && (
+                        <div className="flex gap-2">
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="border-green-200 text-green-700 hover:bg-green-50"
-                            onClick={() => openPasswordDialog(link.id)}
+                            className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
+                            onClick={() => window.open(link.url, '_blank')}
                           >
-                            <Key className="h-3 w-3" />
+                            <ExternalLink className="mr-2 h-3 w-3" />
+                            Acessar
                           </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                          
+                          {!(link.username && link.password) && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="border-green-200 text-green-700 hover:bg-green-50"
+                              onClick={() => openPasswordDialog(link.id)}
+                            >
+                              <Key className="h-3 w-3" />
+                            </Button>
+                          )}
+                          
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="border-red-200 text-red-700 hover:bg-red-50"
+                            onClick={() => handleDeleteLink(link.id)}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -450,15 +450,15 @@ const Links = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Resumo só aparece quando empresa estiver selecionada */}
-        {selectedCompany && (
+        {/* Estatísticas só aparece quando empresa estiver selecionada */}
+        {selectedCompanyId && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="border-blue-200">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2">
                   <LinkIcon className="h-5 w-5 text-blue-500" />
                   <div>
-                    <p className="text-2xl font-bold text-blue-900">{filteredLinks.length}</p>
+                    <p className="text-2xl font-bold text-blue-900">{links.length}</p>
                     <p className="text-sm text-blue-600">Links da Empresa</p>
                   </div>
                 </div>
@@ -470,7 +470,7 @@ const Links = () => {
                   <Lock className="h-5 w-5 text-green-500" />
                   <div>
                     <p className="text-2xl font-bold text-blue-900">
-                      {filteredLinks.filter(l => l.hasPassword).length}
+                      {links.filter(l => l.username && l.password).length}
                     </p>
                     <p className="text-sm text-blue-600">Com Senhas</p>
                   </div>
@@ -483,7 +483,7 @@ const Links = () => {
                   <ExternalLink className="h-5 w-5 text-purple-500" />
                   <div>
                     <p className="text-2xl font-bold text-blue-900">
-                      {[...new Set(filteredLinks.map(l => l.service))].filter(Boolean).length}
+                      {[...new Set(links.map(l => l.service))].filter(Boolean).length}
                     </p>
                     <p className="text-sm text-blue-600">Tipos de Serviços</p>
                   </div>

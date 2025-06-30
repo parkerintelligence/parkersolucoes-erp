@@ -9,9 +9,138 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      companies: {
+        Row: {
+          address: string | null
+          cnpj: string | null
+          contact: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          cnpj?: string | null
+          contact?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          cnpj?: string | null
+          contact?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      company_links: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          password: string | null
+          service: string | null
+          updated_at: string
+          url: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          password?: string | null
+          service?: string | null
+          updated_at?: string
+          url: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          password?: string | null
+          service?: string | null
+          updated_at?: string
+          url?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_links_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integrations: {
+        Row: {
+          api_token: string
+          base_url: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+          phone_number: string | null
+          type: string
+          updated_at: string
+          user_id: string
+          webhook_url: string | null
+        }
+        Insert: {
+          api_token: string
+          base_url: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          phone_number?: string | null
+          type: string
+          updated_at?: string
+          user_id: string
+          webhook_url?: string | null
+        }
+        Update: {
+          api_token?: string
+          base_url?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          phone_number?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
       schedule_items: {
         Row: {
           company: string
+          company_id: string | null
           created_at: string
           description: string | null
           due_date: string
@@ -24,6 +153,7 @@ export type Database = {
         }
         Insert: {
           company: string
+          company_id?: string | null
           created_at?: string
           description?: string | null
           due_date: string
@@ -36,6 +166,7 @@ export type Database = {
         }
         Update: {
           company?: string
+          company_id?: string | null
           created_at?: string
           description?: string | null
           due_date?: string
@@ -46,7 +177,65 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "schedule_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_conversations: {
+        Row: {
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          id: string
+          integration_id: string
+          last_message: string | null
+          last_message_time: string | null
+          status: string | null
+          unread_count: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_name: string
+          contact_phone: string
+          created_at?: string
+          id?: string
+          integration_id: string
+          last_message?: string | null
+          last_message_time?: string | null
+          status?: string | null
+          unread_count?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_name?: string
+          contact_phone?: string
+          created_at?: string
+          id?: string
+          integration_id?: string
+          last_message?: string | null
+          last_message_time?: string | null
+          status?: string | null
+          unread_count?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversations_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

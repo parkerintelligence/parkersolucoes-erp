@@ -11,7 +11,9 @@ import {
   FileText,
   Settings,
   Shield,
-  Calendar
+  Calendar,
+  Building,
+  MessageCircle
 } from 'lucide-react';
 
 import {
@@ -35,6 +37,8 @@ const menuItems = [
   { title: 'Senhas', url: '/passwords', icon: Lock, role: 'user' },
   { title: 'Links', url: '/links', icon: Link, role: 'user' },
   { title: 'Documentos', url: '/documents', icon: FileText, role: 'user' },
+  { title: 'Empresas', url: '/companies', icon: Building, role: 'user' },
+  { title: 'WhatsApp', url: '/whatsapp', icon: MessageCircle, role: 'user' },
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
   { title: 'Administração', url: '/admin', icon: Settings, role: 'master' },
 ];

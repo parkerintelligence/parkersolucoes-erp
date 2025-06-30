@@ -8,18 +8,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { ScheduleItem } from '@/hooks/useScheduleItems';
+import { useCompanies } from '@/hooks/useCompanies';
 
 interface ScheduleFormProps {
   onSubmit: (item: Omit<ScheduleItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'status'>) => void;
 }
 
 export const ScheduleForm = ({ onSubmit }: ScheduleFormProps) => {
+  const { data: companies = [] } = useCompanies();
   const [formData, setFormData] = useState({
     title: '',
     type: '' as 'certificate' | 'license' | 'system_update' | '',
     due_date: '',
     description: '',
-    company: ''
+    company: '',
+    company_id: ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -34,14 +37,31 @@ export const ScheduleForm = ({ onSubmit }: ScheduleFormProps) => {
       return;
     }
 
-    onSubmit(formData as Omit<ScheduleItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'status'>);
+    onSubmit({
+      title: formData.title,
+      type: formData.type,
+      due_date: formData.due_date,
+      description: formData.description,
+      company: formData.company,
+      company_id: formData.company_id || null
+    } as Omit<ScheduleItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'status'>);
     
     setFormData({
       title: '',
       type: '',
       due_date: '',
       description: '',
-      company: ''
+      company: '',
+      company_id: ''
+    });
+  };
+
+  const handleCompanyChange = (companyId: string) => {
+    const selectedCompany = companies.find(c => c.id === companyId);
+    setFormData({
+      ...formData,
+      company_id: companyId,
+      company: selectedCompany?.name || ''
     });
   };
 
@@ -73,12 +93,18 @@ export const ScheduleForm = ({ onSubmit }: ScheduleFormProps) => {
 
       <div className="space-y-2">
         <Label htmlFor="company">Empresa *</Label>
-        <Input
-          id="company"
-          value={formData.company}
-          onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-          placeholder="Nome da empresa"
-        />
+        <Select value={formData.company_id} onValueChange={handleCompanyChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione a empresa" />
+          </SelectTrigger>
+          <SelectContent>
+            {companies.map((company) => (
+              <SelectItem key={company.id} value={company.id}>
+                {company.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">
