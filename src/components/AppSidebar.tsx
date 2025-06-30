@@ -36,12 +36,13 @@ const menuItems = [
 ];
 
 export function AppSidebar() {
-  const { collapsed } = useSidebar();
+  const { state } = useSidebar();
   const { isMaster } = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
 
   const isActive = (path: string) => currentPath === path;
+  const isCollapsed = state === 'collapsed';
   
   const filteredItems = menuItems.filter(item => 
     item.role === 'user' || (item.role === 'master' && isMaster)
@@ -61,7 +62,7 @@ export function AppSidebar() {
           <div className="bg-blue-600 p-2 rounded-lg">
             <Shield className="h-6 w-6 text-white" />
           </div>
-          {!collapsed && (
+          {!isCollapsed && (
             <div>
               <h2 className="font-bold text-blue-900">Gestão TI</h2>
               <p className="text-xs text-blue-600">Sistema Integrado</p>
@@ -73,7 +74,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-blue-800 font-medium">
-            {!collapsed && "Menu Principal"}
+            {!isCollapsed && "Menu Principal"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
@@ -85,7 +86,7 @@ export function AppSidebar() {
                       className={getNavClass(isActive(item.url))}
                     >
                       <item.icon className="h-4 w-4 flex-shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
+                      {!isCollapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
