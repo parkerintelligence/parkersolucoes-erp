@@ -39,6 +39,8 @@ const menuItems = [
   { title: 'Documentos', url: '/documents', icon: FileText, role: 'user' },
   { title: 'Empresas', url: '/companies', icon: Building, role: 'user' },
   { title: 'WhatsApp', url: '/whatsapp', icon: MessageCircle, role: 'user' },
+  { title: 'Wasabi', url: '/wasabi', icon: HardDrive, role: 'user' },
+  { title: 'Monitoramento', url: '/monitoring', icon: Activity, role: 'user' },
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
   { title: 'Administração', url: '/admin', icon: Settings, role: 'master' },
 ];

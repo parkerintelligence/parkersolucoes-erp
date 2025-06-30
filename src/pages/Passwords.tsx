@@ -1,18 +1,24 @@
+
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Plus, Eye, EyeOff, Edit, Trash2, ExternalLink, Building } from 'lucide-react';
+import { Lock, Plus, Eye, EyeOff, Edit, Trash2, Building, Search } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const Passwords = () => {
   const [showPassword, setShowPassword] = useState<{ [key: string]: boolean }>({});
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingPassword, setEditingPassword] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCompany, setSelectedCompany] = useState('');
   
   const passwords = [
     { id: '1', client: 'Empresa A', system: 'ERP Sistema', url: 'https://erp.empresaa.com', username: 'admin', password: 'SecurePass123!', category: 'Sistema' },
@@ -21,11 +27,15 @@ const Passwords = () => {
     { id: '4', client: 'Empresa C', system: 'Banco de Dados', url: 'mysql://db.empresac.com', username: 'dbadmin', password: 'DbPass321$', category: 'Database' },
   ];
 
-  const links = [
-    { id: '1', client: 'Empresa A', name: 'Portal Administrativo', url: 'https://admin.empresaa.com', description: 'Painel principal de administração' },
-    { id: '2', client: 'Empresa B', name: 'Sistema de Vendas', url: 'https://vendas.empresab.com', description: 'Sistema de gestão de vendas' },
-    { id: '3', client: 'Empresa C', name: 'Monitoramento', url: 'https://monitor.empresac.com', description: 'Dashboard de monitoramento' },
-  ];
+  const companies = ['Empresa A', 'Empresa B', 'Empresa C'];
+
+  const filteredPasswords = passwords.filter(password => {
+    const matchesSearch = password.system.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         password.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         password.username.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCompany = selectedCompany === '' || password.client === selectedCompany;
+    return matchesSearch && matchesCompany;
+  });
 
   const togglePasswordVisibility = (id: string) => {
     setShowPassword(prev => ({
@@ -52,6 +62,20 @@ const Passwords = () => {
     });
   };
 
+  const handleEditPassword = (password: any) => {
+    setEditingPassword(password);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    toast({
+      title: "Senha atualizada!",
+      description: "A senha foi atualizada com sucesso.",
+    });
+    setIsEditDialogOpen(false);
+    setEditingPassword(null);
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -59,9 +83,9 @@ const Passwords = () => {
           <div>
             <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
               <Lock className="h-8 w-8" />
-              Gerenciador de Senhas e Acessos
+              Gerenciador de Senhas por Empresa
             </h1>
-            <p className="text-blue-600">Cofre seguro para senhas e links de acesso organizados por empresa</p>
+            <p className="text-blue-600">Cofre seguro para senhas organizadas por empresa</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -78,7 +102,16 @@ const Passwords = () => {
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="client">Empresa Cliente</Label>
-                  <Input id="client" placeholder="Nome da empresa" />
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a empresa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.map((company) => (
+                        <SelectItem key={company} value={company}>{company}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="system">Sistema</Label>
@@ -96,6 +129,20 @@ const Passwords = () => {
                   <Label htmlFor="password">Senha</Label>
                   <Input id="password" type="password" placeholder="Senha segura" />
                 </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="category">Categoria</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Sistema">Sistema</SelectItem>
+                      <SelectItem value="Email">Email</SelectItem>
+                      <SelectItem value="Hosting">Hosting</SelectItem>
+                      <SelectItem value="Database">Database</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setIsDialogOpen(false)}>
@@ -110,7 +157,7 @@ const Passwords = () => {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="border-blue-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
@@ -125,20 +172,9 @@ const Passwords = () => {
           <Card className="border-blue-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <ExternalLink className="h-5 w-5 text-green-500" />
-                <div>
-                  <p className="text-2xl font-bold text-blue-900">{links.length}</p>
-                  <p className="text-sm text-blue-600">Links de Acesso</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-blue-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
                 <Building className="h-5 w-5 text-purple-500" />
                 <div>
-                  <p className="text-2xl font-bold text-blue-900">3</p>
+                  <p className="text-2xl font-bold text-blue-900">{companies.length}</p>
                   <p className="text-sm text-blue-600">Empresas Clientes</p>
                 </div>
               </div>
@@ -156,6 +192,36 @@ const Passwords = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Filtros */}
+        <Card className="border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                  <Input
+                    placeholder="Buscar senhas..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+              <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filtrar por empresa" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todas as empresas</SelectItem>
+                  {companies.map((company) => (
+                    <SelectItem key={company} value={company}>{company}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Passwords Table */}
         <Card className="border-blue-200">
@@ -177,13 +243,12 @@ const Passwords = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {passwords.map((item) => (
+                {filteredPasswords.map((item) => (
                   <TableRow key={item.id} className="hover:bg-blue-50">
                     <TableCell className="font-medium">{item.client}</TableCell>
                     <TableCell>{item.system}</TableCell>
                     <TableCell>
-                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                        <ExternalLink className="h-3 w-3" />
+                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
                         Acessar
                       </a>
                     </TableCell>
@@ -212,7 +277,11 @@ const Passwords = () => {
                     <TableCell>{getCategoryBadge(item.category)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleEditPassword(item)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
@@ -224,40 +293,78 @@ const Passwords = () => {
                 ))}
               </TableBody>
             </Table>
+            {filteredPasswords.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                Nenhuma senha encontrada com os filtros aplicados.
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Links Table */}
-        <Card className="border-blue-200">
-          <CardHeader>
-            <CardTitle className="text-blue-900">Links de Acesso Rápido por Empresa</CardTitle>
-            <CardDescription>Links organizados para acesso rápido aos sistemas por empresa</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {links.map((link) => (
-                <Card key={link.id} className="border-blue-100 hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-medium text-blue-900">{link.name}</h4>
-                      <Badge variant="outline" className="text-xs">{link.client}</Badge>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-3">{link.description}</p>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => window.open(link.url, '_blank')}
-                    >
-                      <ExternalLink className="mr-2 h-3 w-3" />
-                      Acessar
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Editar Senha</DialogTitle>
+              <DialogDescription>Atualize as informações da senha.</DialogDescription>
+            </DialogHeader>
+            {editingPassword && (
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-client">Empresa Cliente</Label>
+                  <Select defaultValue={editingPassword.client}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.map((company) => (
+                        <SelectItem key={company} value={company}>{company}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-system">Sistema</Label>
+                  <Input id="edit-system" defaultValue={editingPassword.system} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-url">URL</Label>
+                  <Input id="edit-url" defaultValue={editingPassword.url} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-username">Usuário</Label>
+                  <Input id="edit-username" defaultValue={editingPassword.username} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-password">Senha</Label>
+                  <Input id="edit-password" type="password" defaultValue={editingPassword.password} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-category">Categoria</Label>
+                  <Select defaultValue={editingPassword.category}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Sistema">Sistema</SelectItem>
+                      <SelectItem value="Email">Email</SelectItem>
+                      <SelectItem value="Hosting">Hosting</SelectItem>
+                      <SelectItem value="Database">Database</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSaveEdit}>
+                Salvar Alterações
+              </Button>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancelar
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +15,8 @@ import Links from "./pages/Links";
 import Documents from "./pages/Documents";
 import Companies from "./pages/Companies";
 import WhatsApp from "./pages/WhatsApp";
+import Wasabi from "./pages/Wasabi";
+import Monitoring from "./pages/Monitoring";
 import Schedule from "./pages/Schedule";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
@@ -41,6 +42,8 @@ const App = () => (
               <Route path="/documents" element={<Documents />} />
               <Route path="/companies" element={<Companies />} />
               <Route path="/whatsapp" element={<WhatsApp />} />
+              <Route path="/wasabi" element={<Wasabi />} />
+              <Route path="/monitoring" element={<Monitoring />} />
               <Route path="/schedule" element={<Schedule />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />

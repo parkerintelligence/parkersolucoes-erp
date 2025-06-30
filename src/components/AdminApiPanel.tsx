@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Server, Database, HardDrive, Calendar, Shield } from 'lucide-react';
+import { Server, Database, HardDrive, Calendar, Shield, Activity } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export const AdminApiPanel = () => {
@@ -53,6 +53,28 @@ export const AdminApiPanel = () => {
     return localStorage.getItem('googleCalendarId') || '';
   });
 
+  // Estados para as configurações do Wasabi
+  const [wasabiEndpoint, setWasabiEndpoint] = useState(() => {
+    return localStorage.getItem('wasabiEndpoint') || '';
+  });
+  const [wasabiAccessKey, setWasabiAccessKey] = useState(() => {
+    return localStorage.getItem('wasabiAccessKey') || '';
+  });
+  const [wasabiSecretKey, setWasabiSecretKey] = useState(() => {
+    return localStorage.getItem('wasabiSecretKey') || '';
+  });
+  const [wasabiBucket, setWasabiBucket] = useState(() => {
+    return localStorage.getItem('wasabiBucket') || '';
+  });
+
+  // Estados para as configurações do Grafana
+  const [grafanaUrl, setGrafanaUrl] = useState(() => {
+    return localStorage.getItem('grafanaUrl') || '';
+  });
+  const [grafanaApiKey, setGrafanaApiKey] = useState(() => {
+    return localStorage.getItem('grafanaApiKey') || '';
+  });
+
   // Handlers para salvar as configurações do GLPI
   const handleSaveGlpiConfig = () => {
     localStorage.setItem('glpiUrl', glpiUrl);
@@ -97,6 +119,28 @@ export const AdminApiPanel = () => {
     });
   };
 
+  // Handler para salvar as configurações do Wasabi
+  const handleSaveWasabiConfig = () => {
+    localStorage.setItem('wasabiEndpoint', wasabiEndpoint);
+    localStorage.setItem('wasabiAccessKey', wasabiAccessKey);
+    localStorage.setItem('wasabiSecretKey', wasabiSecretKey);
+    localStorage.setItem('wasabiBucket', wasabiBucket);
+    toast({
+      title: "Sucesso!",
+      description: "Configurações do Wasabi salvas com sucesso",
+    });
+  };
+
+  // Handler para salvar as configurações do Grafana
+  const handleSaveGrafanaConfig = () => {
+    localStorage.setItem('grafanaUrl', grafanaUrl);
+    localStorage.setItem('grafanaApiKey', grafanaApiKey);
+    toast({
+      title: "Sucesso!",
+      description: "Configurações do Grafana salvas com sucesso",
+    });
+  };
+
   // Adicionar estado para senha master
   const [masterPassword, setMasterPassword] = useState(() => {
     return localStorage.getItem('systemMasterPassword') || '';
@@ -131,11 +175,13 @@ export const AdminApiPanel = () => {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="glpi" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="glpi">GLPI</TabsTrigger>
             <TabsTrigger value="zabbix">Zabbix</TabsTrigger>
             <TabsTrigger value="backup">Backup FTP</TabsTrigger>
             <TabsTrigger value="calendar">Google Calendar</TabsTrigger>
+            <TabsTrigger value="wasabi">Wasabi</TabsTrigger>
+            <TabsTrigger value="grafana">Grafana</TabsTrigger>
             <TabsTrigger value="system">Sistema</TabsTrigger>
           </TabsList>
 
@@ -329,6 +375,102 @@ export const AdminApiPanel = () => {
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 Salvar Configurações do Google Calendar
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="wasabi" className="space-y-4">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <HardDrive className="h-5 w-5 text-blue-600" />
+                <h3 className="text-lg font-semibold text-blue-900">Configurações do Wasabi</h3>
+              </div>
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="wasabiEndpoint">Endpoint do Wasabi</Label>
+                  <Input
+                    id="wasabiEndpoint"
+                    placeholder="https://s3.wasabisys.com"
+                    value={wasabiEndpoint}
+                    onChange={(e) => setWasabiEndpoint(e.target.value)}
+                    className="border-blue-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="wasabiAccessKey">Access Key</Label>
+                  <Input
+                    id="wasabiAccessKey"
+                    value={wasabiAccessKey}
+                    onChange={(e) => setWasabiAccessKey(e.target.value)}
+                    placeholder="Access Key do Wasabi"
+                    className="border-blue-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="wasabiSecretKey">Secret Key</Label>
+                  <Input
+                    id="wasabiSecretKey"
+                    type="password"
+                    value={wasabiSecretKey}
+                    onChange={(e) => setWasabiSecretKey(e.target.value)}
+                    placeholder="Secret Key do Wasabi"
+                    className="border-blue-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="wasabiBucket">Nome do Bucket</Label>
+                  <Input
+                    id="wasabiBucket"
+                    value={wasabiBucket}
+                    onChange={(e) => setWasabiBucket(e.target.value)}
+                    placeholder="Nome do bucket"
+                    className="border-blue-200"
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={handleSaveWasabiConfig}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Salvar Configurações do Wasabi
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="grafana" className="space-y-4">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Activity className="h-5 w-5 text-blue-600" />
+                <h3 className="text-lg font-semibold text-blue-900">Configurações do Grafana</h3>
+              </div>
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="grafanaUrl">URL do Grafana</Label>
+                  <Input
+                    id="grafanaUrl"
+                    placeholder="https://grafana.example.com"
+                    value={grafanaUrl}
+                    onChange={(e) => setGrafanaUrl(e.target.value)}
+                    className="border-blue-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="grafanaApiKey">API Key do Grafana</Label>
+                  <Input
+                    id="grafanaApiKey"
+                    type="password"
+                    value={grafanaApiKey}
+                    onChange={(e) => setGrafanaApiKey(e.target.value)}
+                    placeholder="API Key do Grafana"
+                    className="border-blue-200"
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={handleSaveGrafanaConfig}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Salvar Configurações do Grafana
               </Button>
             </div>
           </TabsContent>
