@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Plus, Eye, EyeOff, Edit, Trash2, ExternalLink } from 'lucide-react';
+import { Lock, Plus, Eye, EyeOff, Edit, Trash2, ExternalLink, Building } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const Passwords = () => {
@@ -16,16 +15,16 @@ const Passwords = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   const passwords = [
-    { id: '1', client: 'Cliente A', system: 'ERP Sistema', url: 'https://erp.clientea.com', username: 'admin', password: 'SecurePass123!', category: 'Sistema' },
-    { id: '2', client: 'Cliente A', system: 'Email Corporativo', url: 'https://mail.clientea.com', username: 'admin@clientea.com', password: 'EmailPass456@', category: 'Email' },
-    { id: '3', client: 'Cliente B', system: 'Painel Hospedagem', url: 'https://cpanel.clienteb.com', username: 'root', password: 'HostPass789#', category: 'Hosting' },
-    { id: '4', client: 'Cliente C', system: 'Banco de Dados', url: 'mysql://db.clientec.com', username: 'dbadmin', password: 'DbPass321$', category: 'Database' },
+    { id: '1', client: 'Empresa A', system: 'ERP Sistema', url: 'https://erp.empresaa.com', username: 'admin', password: 'SecurePass123!', category: 'Sistema' },
+    { id: '2', client: 'Empresa A', system: 'Email Corporativo', url: 'https://mail.empresaa.com', username: 'admin@empresaa.com', password: 'EmailPass456@', category: 'Email' },
+    { id: '3', client: 'Empresa B', system: 'Painel Hospedagem', url: 'https://cpanel.empresab.com', username: 'root', password: 'HostPass789#', category: 'Hosting' },
+    { id: '4', client: 'Empresa C', system: 'Banco de Dados', url: 'mysql://db.empresac.com', username: 'dbadmin', password: 'DbPass321$', category: 'Database' },
   ];
 
   const links = [
-    { id: '1', client: 'Cliente A', name: 'Portal Administrativo', url: 'https://admin.clientea.com', description: 'Painel principal de administração' },
-    { id: '2', client: 'Cliente B', name: 'Sistema de Vendas', url: 'https://vendas.clienteb.com', description: 'Sistema de gestão de vendas' },
-    { id: '3', client: 'Cliente C', name: 'Monitoramento', url: 'https://monitor.clientec.com', description: 'Dashboard de monitoramento' },
+    { id: '1', client: 'Empresa A', name: 'Portal Administrativo', url: 'https://admin.empresaa.com', description: 'Painel principal de administração' },
+    { id: '2', client: 'Empresa B', name: 'Sistema de Vendas', url: 'https://vendas.empresab.com', description: 'Sistema de gestão de vendas' },
+    { id: '3', client: 'Empresa C', name: 'Monitoramento', url: 'https://monitor.empresac.com', description: 'Dashboard de monitoramento' },
   ];
 
   const togglePasswordVisibility = (id: string) => {
@@ -62,7 +61,7 @@ const Passwords = () => {
               <Lock className="h-8 w-8" />
               Gerenciador de Senhas e Acessos
             </h1>
-            <p className="text-blue-600">Cofre seguro para senhas e links de acesso</p>
+            <p className="text-blue-600">Cofre seguro para senhas e links de acesso organizados por empresa</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -78,8 +77,8 @@ const Passwords = () => {
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="client">Cliente</Label>
-                  <Input id="client" placeholder="Nome do cliente" />
+                  <Label htmlFor="client">Empresa Cliente</Label>
+                  <Input id="client" placeholder="Nome da empresa" />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="system">Sistema</Label>
@@ -137,10 +136,10 @@ const Passwords = () => {
           <Card className="border-blue-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Badge className="h-5 w-5 text-purple-500" />
+                <Building className="h-5 w-5 text-purple-500" />
                 <div>
                   <p className="text-2xl font-bold text-blue-900">3</p>
-                  <p className="text-sm text-blue-600">Clientes Ativos</p>
+                  <p className="text-sm text-blue-600">Empresas Clientes</p>
                 </div>
               </div>
             </CardContent>
@@ -161,14 +160,14 @@ const Passwords = () => {
         {/* Passwords Table */}
         <Card className="border-blue-200">
           <CardHeader>
-            <CardTitle className="text-blue-900">Cofre de Senhas</CardTitle>
-            <CardDescription>Senhas armazenadas de forma segura e criptografada</CardDescription>
+            <CardTitle className="text-blue-900">Cofre de Senhas por Empresa</CardTitle>
+            <CardDescription>Senhas organizadas por empresa cliente</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cliente</TableHead>
+                  <TableHead>Empresa</TableHead>
                   <TableHead>Sistema</TableHead>
                   <TableHead>URL</TableHead>
                   <TableHead>Usuário</TableHead>
@@ -231,8 +230,8 @@ const Passwords = () => {
         {/* Links Table */}
         <Card className="border-blue-200">
           <CardHeader>
-            <CardTitle className="text-blue-900">Links de Acesso Rápido</CardTitle>
-            <CardDescription>Links organizados para acesso rápido aos sistemas</CardDescription>
+            <CardTitle className="text-blue-900">Links de Acesso Rápido por Empresa</CardTitle>
+            <CardDescription>Links organizados para acesso rápido aos sistemas por empresa</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

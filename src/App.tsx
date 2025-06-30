@@ -11,6 +11,7 @@ import GLPI from "./pages/GLPI";
 import Zabbix from "./pages/Zabbix";
 import Backups from "./pages/Backups";
 import Passwords from "./pages/Passwords";
+import Links from "./pages/Links";
 import Documents from "./pages/Documents";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/zabbix" element={<Zabbix />} />
             <Route path="/backups" element={<Backups />} />
             <Route path="/passwords" element={<Passwords />} />
+            <Route path="/links" element={<Links />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
