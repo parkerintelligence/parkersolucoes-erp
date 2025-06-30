@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ExternalLink, Plus, Link as LinkIcon, Building } from 'lucide-react';
+import { ExternalLink, Plus, Link as LinkIcon, Building, Filter } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface LinkItem {
@@ -27,6 +27,7 @@ const Links = () => {
     { id: '4', company: 'Empresa B', name: 'Sistema Vendas', url: 'https://vendas.empresab.com', service: 'Vendas' },
   ]);
 
+  const [selectedCompany, setSelectedCompany] = useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     company: '',
@@ -37,6 +38,11 @@ const Links = () => {
 
   const companies = ['Empresa A', 'Empresa B', 'Empresa C'];
   const services = ['ERP', 'Email', 'Administração', 'Vendas', 'Financeiro', 'RH', 'Backup', 'Monitoramento'];
+
+  // Filtrar links por empresa selecionada
+  const filteredLinks = selectedCompany 
+    ? links.filter(link => link.company === selectedCompany)
+    : links;
 
   const handleSave = () => {
     if (!formData.company || !formData.name || !formData.url) {
@@ -63,7 +69,13 @@ const Links = () => {
     });
   };
 
-  const groupedLinks = links.reduce((acc, link) => {
+  // Atualizar formulário quando empresa for selecionada no filtro
+  const handleCompanyFilterChange = (company: string) => {
+    setSelectedCompany(company);
+    setFormData(prev => ({ ...prev, company }));
+  };
+
+  const groupedLinks = filteredLinks.reduce((acc, link) => {
     if (!acc[link.company]) {
       acc[link.company] = [];
     }
@@ -87,6 +99,41 @@ const Links = () => {
         {/* Cadastro de Empresas */}
         <CompanyForm />
 
+        {/* Filtro por Empresa */}
+        <Card className="border-blue-200">
+          <CardHeader>
+            <CardTitle className="text-blue-900 flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filtrar por Empresa
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4 items-end">
+              <div className="flex-1">
+                <Label htmlFor="company-filter">Selecione uma empresa</Label>
+                <Select value={selectedCompany} onValueChange={handleCompanyFilterChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas as empresas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todas as empresas</SelectItem>
+                    {companies.map((company) => (
+                      <SelectItem key={company} value={company}>{company}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button 
+                onClick={() => setSelectedCompany('')}
+                variant="outline"
+                className="border-blue-200 text-blue-700 hover:bg-blue-50"
+              >
+                Limpar Filtro
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Cadastro de Links */}
         <Card className="border-blue-200">
           <CardHeader>
@@ -94,6 +141,11 @@ const Links = () => {
               <CardTitle className="text-blue-900 flex items-center gap-2">
                 <LinkIcon className="h-5 w-5" />
                 Links de Acesso
+                {selectedCompany && (
+                  <span className="text-sm font-normal text-blue-600">
+                    - {selectedCompany}
+                  </span>
+                )}
               </CardTitle>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
@@ -105,12 +157,20 @@ const Links = () => {
                 <DialogContent className="sm:max-w-[425px]">
                   <DialogHeader>
                     <DialogTitle>Cadastrar Novo Link</DialogTitle>
-                    <DialogDescription>Adicione um link de acesso para uma empresa.</DialogDescription>
+                    <DialogDescription>
+                      {selectedCompany 
+                        ? `Adicione um link para ${selectedCompany}`
+                        : "Adicione um link de acesso para uma empresa."
+                      }
+                    </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                       <Label htmlFor="company">Empresa *</Label>
-                      <Select value={formData.company} onValueChange={(value) => setFormData({...formData, company: value})}>
+                      <Select 
+                        value={formData.company} 
+                        onValueChange={(value) => setFormData({...formData, company: value})}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione a empresa" />
                         </SelectTrigger>
@@ -215,8 +275,12 @@ const Links = () => {
               <div className="flex items-center gap-2">
                 <Building className="h-5 w-5 text-blue-500" />
                 <div>
-                  <p className="text-2xl font-bold text-blue-900">{Object.keys(groupedLinks).length}</p>
-                  <p className="text-sm text-blue-600">Empresas Cadastradas</p>
+                  <p className="text-2xl font-bold text-blue-900">
+                    {selectedCompany ? 1 : Object.keys(groupedLinks).length}
+                  </p>
+                  <p className="text-sm text-blue-600">
+                    {selectedCompany ? 'Empresa Selecionada' : 'Empresas Cadastradas'}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -226,8 +290,10 @@ const Links = () => {
               <div className="flex items-center gap-2">
                 <LinkIcon className="h-5 w-5 text-green-500" />
                 <div>
-                  <p className="text-2xl font-bold text-blue-900">{links.length}</p>
-                  <p className="text-sm text-blue-600">Links Cadastrados</p>
+                  <p className="text-2xl font-bold text-blue-900">{filteredLinks.length}</p>
+                  <p className="text-sm text-blue-600">
+                    {selectedCompany ? 'Links da Empresa' : 'Links Cadastrados'}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -238,7 +304,7 @@ const Links = () => {
                 <ExternalLink className="h-5 w-5 text-purple-500" />
                 <div>
                   <p className="text-2xl font-bold text-blue-900">
-                    {[...new Set(links.map(l => l.service))].filter(Boolean).length}
+                    {[...new Set(filteredLinks.map(l => l.service))].filter(Boolean).length}
                   </p>
                   <p className="text-sm text-blue-600">Tipos de Serviços</p>
                 </div>
