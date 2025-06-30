@@ -49,23 +49,23 @@ export function AppSidebar() {
   );
 
   const getNavClass = (active: boolean) =>
-    `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-blue-100 ${
+    `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-slate-700 ${
       active 
-        ? 'bg-blue-100 text-blue-900 font-medium' 
-        : 'text-blue-700 hover:text-blue-900'
+        ? 'bg-slate-700 text-white font-medium' 
+        : 'text-slate-200 hover:text-white'
     }`;
 
   return (
-    <Sidebar className="border-r border-blue-200 bg-gradient-to-b from-blue-50 to-blue-100">
-      <SidebarHeader className="p-4 border-b border-blue-200">
+    <Sidebar className="border-r border-slate-700 bg-slate-900">
+      <SidebarHeader className="p-4 border-b border-slate-700">
         <div className="flex items-center gap-2">
           <div className="bg-blue-600 p-2 rounded-lg">
             <Shield className="h-6 w-6 text-white" />
           </div>
           {!isCollapsed && (
             <div>
-              <h2 className="font-bold text-blue-900">Gestão TI</h2>
-              <p className="text-xs text-blue-600">Sistema Integrado</p>
+              <h2 className="font-bold text-white">Gestão TI</h2>
+              <p className="text-xs text-slate-300">Sistema Integrado</p>
             </div>
           )}
         </div>
@@ -73,7 +73,7 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-blue-800 font-medium">
+          <SidebarGroupLabel className="text-slate-300 font-medium">
             {!isCollapsed && "Menu Principal"}
           </SidebarGroupLabel>
           <SidebarGroupContent>

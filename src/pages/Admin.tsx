@@ -36,11 +36,11 @@ const Admin = () => {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
+          <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
             <Settings className="h-8 w-8" />
             Painel de Administração
           </h1>
-          <p className="text-blue-600">Configurações avançadas do sistema - Acesso Master</p>
+          <p className="text-slate-600">Configurações avançadas do sistema - Acesso Master</p>
         </div>
 
         <Tabs defaultValue="glpi" className="w-full">
@@ -48,13 +48,13 @@ const Admin = () => {
             <TabsTrigger value="glpi">GLPI</TabsTrigger>
             <TabsTrigger value="zabbix">Zabbix</TabsTrigger>
             <TabsTrigger value="backup">Backup FTP</TabsTrigger>
-            <TabsTrigger value="owncloud">OwnCloud</TabsTrigger>
+            <TabsTrigger value="googledrive">Google Drive</TabsTrigger>
           </TabsList>
 
           <TabsContent value="glpi" className="space-y-4">
-            <Card className="border-blue-200">
+            <Card className="border-slate-200">
               <CardHeader>
-                <CardTitle className="text-blue-900 flex items-center gap-2">
+                <CardTitle className="text-slate-900 flex items-center gap-2">
                   <Server className="h-5 w-5" />
                   Configuração GLPI
                 </CardTitle>
@@ -66,7 +66,7 @@ const Admin = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="glpi-url">URL do GLPI</Label>
-                    <Input id="glpi-url" placeholder="https://glpi.empresa.com" defaultValue="https://glpi.empresa.com" />
+                    <Input id="glpi-url" placeholder="https://glpi.empresa.com" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="glpi-token">Token de API</Label>
@@ -100,9 +100,9 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="zabbix" className="space-y-4">
-            <Card className="border-blue-200">
+            <Card className="border-slate-200">
               <CardHeader>
-                <CardTitle className="text-blue-900 flex items-center gap-2">
+                <CardTitle className="text-slate-900 flex items-center gap-2">
                   <Database className="h-5 w-5" />
                   Configuração Zabbix
                 </CardTitle>
@@ -114,7 +114,7 @@ const Admin = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="zabbix-url">URL do Zabbix</Label>
-                    <Input id="zabbix-url" placeholder="https://zabbix.empresa.com" defaultValue="https://zabbix.empresa.com" />
+                    <Input id="zabbix-url" placeholder="https://zabbix.empresa.com" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="zabbix-user">Usuário</Label>
@@ -152,9 +152,9 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="backup" className="space-y-4">
-            <Card className="border-blue-200">
+            <Card className="border-slate-200">
               <CardHeader>
-                <CardTitle className="text-blue-900 flex items-center gap-2">
+                <CardTitle className="text-slate-900 flex items-center gap-2">
                   <HardDrive className="h-5 w-5" />
                   Configuração Backup FTP
                 </CardTitle>
@@ -164,15 +164,15 @@ const Admin = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-4">
-                  <h4 className="font-medium text-blue-900">Servidor FTP Principal</h4>
+                  <h4 className="font-medium text-slate-900">Servidor FTP Principal</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="ftp1-host">Servidor</Label>
-                      <Input id="ftp1-host" placeholder="ftp.empresa.com" defaultValue="backup.empresa.com" />
+                      <Input id="ftp1-host" placeholder="ftp.empresa.com" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="ftp1-port">Porta</Label>
-                      <Input id="ftp1-port" placeholder="21" defaultValue="21" />
+                      <Input id="ftp1-port" placeholder="21" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="ftp1-user">Usuário</Label>
@@ -186,15 +186,15 @@ const Admin = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="font-medium text-blue-900">Servidor FTP Secundário</h4>
+                  <h4 className="font-medium text-slate-900">Servidor FTP Secundário</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="ftp2-host">Servidor</Label>
-                      <Input id="ftp2-host" placeholder="ftp2.empresa.com" defaultValue="backup2.empresa.com" />
+                      <Input id="ftp2-host" placeholder="ftp2.empresa.com" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="ftp2-port">Porta</Label>
-                      <Input id="ftp2-port" placeholder="21" defaultValue="21" />
+                      <Input id="ftp2-port" placeholder="21" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="ftp2-user">Usuário</Label>
@@ -209,7 +209,7 @@ const Admin = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="backup-schedule">Horário de Verificação</Label>
-                  <Input id="backup-schedule" placeholder="08:00" defaultValue="08:00" />
+                  <Input id="backup-schedule" placeholder="08:00" />
                 </div>
 
                 <div className="flex gap-2">
@@ -234,57 +234,57 @@ const Admin = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="owncloud" className="space-y-4">
-            <Card className="border-blue-200">
+          <TabsContent value="googledrive" className="space-y-4">
+            <Card className="border-slate-200">
               <CardHeader>
-                <CardTitle className="text-blue-900 flex items-center gap-2">
+                <CardTitle className="text-slate-900 flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Configuração OwnCloud
+                  Configuração Google Drive
                 </CardTitle>
                 <CardDescription>
-                  Configure a integração com OwnCloud para gerenciamento de documentos
+                  Configure a integração com Google Drive para gerenciamento de documentos
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="owncloud-url">URL do OwnCloud</Label>
-                    <Input id="owncloud-url" placeholder="https://cloud.empresa.com" defaultValue="https://cloud.empresa.com" />
+                    <Label htmlFor="gdrive-client-id">Client ID</Label>
+                    <Input id="gdrive-client-id" placeholder="Google Client ID" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="owncloud-user">Usuário</Label>
-                    <Input id="owncloud-user" placeholder="admin" />
+                    <Label htmlFor="gdrive-client-secret">Client Secret</Label>
+                    <Input id="gdrive-client-secret" type="password" placeholder="Google Client Secret" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="owncloud-password">Senha</Label>
-                    <Input id="owncloud-password" type="password" placeholder="Senha do usuário" />
+                    <Label htmlFor="gdrive-redirect-uri">Redirect URI</Label>
+                    <Input id="gdrive-redirect-uri" placeholder="https://app.empresa.com/callback" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="owncloud-token">App Password</Label>
-                    <Input id="owncloud-token" type="password" placeholder="Token de aplicação" />
+                    <Label htmlFor="gdrive-refresh-token">Refresh Token</Label>
+                    <Input id="gdrive-refresh-token" type="password" placeholder="Token de atualização" />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="owncloud-folder">Pasta Raiz</Label>
-                  <Input id="owncloud-folder" placeholder="/Documentos_TI" defaultValue="/Documentos_TI" />
+                  <Label htmlFor="gdrive-folder-id">ID da Pasta Principal</Label>
+                  <Input id="gdrive-folder-id" placeholder="1AbCdEfGhIjKlMnOpQrStUvWxYz" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="owncloud-sync">Intervalo de Sincronização (minutos)</Label>
-                  <Input id="owncloud-sync" placeholder="15" defaultValue="15" />
+                  <Label htmlFor="gdrive-sync-interval">Intervalo de Sincronização (minutos)</Label>
+                  <Input id="gdrive-sync-interval" placeholder="30" />
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={handleSaveSettings} className="bg-blue-600 hover:bg-blue-700">
                     <Save className="mr-2 h-4 w-4" />
                     Salvar Configurações
                   </Button>
-                  <Button variant="outline" onClick={() => handleTestConnection('OwnCloud')}>
+                  <Button variant="outline" onClick={() => handleTestConnection('Google Drive')}>
                     <TestTube className="mr-2 h-4 w-4" />
                     Testar Conexão
                   </Button>
                 </div>
                 <div className="flex items-center gap-2 mt-4">
                   <Badge className="bg-green-100 text-green-800 border-green-200">Conectado</Badge>
-                  <span className="text-sm text-gray-600">1.2 GB de 5 GB usados</span>
+                  <span className="text-sm text-gray-600">2.5 GB de 15 GB usados</span>
                 </div>
               </CardContent>
             </Card>

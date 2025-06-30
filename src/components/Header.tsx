@@ -16,27 +16,27 @@ export const Header = () => {
   const { user, logout, isMaster } = useAuth();
 
   return (
-    <header className="border-b border-blue-200 bg-white px-4 py-3">
+    <header className="border-b border-slate-200 bg-white px-4 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <SidebarTrigger className="text-blue-600 hover:text-blue-800" />
-          <h1 className="text-xl font-semibold text-blue-900">
+          <SidebarTrigger className="text-slate-600 hover:text-slate-800" />
+          <h1 className="text-xl font-semibold text-slate-900">
             Sistema de Gestão de TI
           </h1>
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 text-blue-700 hover:text-blue-900 hover:bg-blue-50">
+            <Button variant="ghost" className="flex items-center gap-2 text-slate-700 hover:text-slate-900 hover:bg-slate-50">
               {isMaster ? <Crown className="h-4 w-4" /> : <User className="h-4 w-4" />}
               <span>{user?.username}</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 bg-white border border-blue-200">
+          <DropdownMenuContent align="end" className="w-56 bg-white border border-slate-200">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium text-blue-900">{user?.username}</p>
-                <p className="text-xs text-blue-600">
+                <p className="text-sm font-medium text-slate-900">{user?.username}</p>
+                <p className="text-xs text-slate-600">
                   {isMaster ? 'Administrador Master' : 'Usuário'}
                 </p>
               </div>
