@@ -1,10 +1,9 @@
-
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, Calendar, CheckCircle, Clock, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import type { ScheduleItem } from '@/pages/Schedule';
+import type { ScheduleItem } from '@/hooks/useScheduleItems';
 
 interface ScheduleListProps {
   items: ScheduleItem[];
@@ -13,11 +12,11 @@ interface ScheduleListProps {
 }
 
 export const ScheduleList = ({ items, onUpdate, onDelete }: ScheduleListProps) => {
-  const sortedItems = items.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+  const sortedItems = items.sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
 
   const getStatusColor = (item: ScheduleItem) => {
     const today = new Date();
-    const dueDate = new Date(item.dueDate);
+    const dueDate = new Date(item.due_date);
     
     if (item.status === 'completed') return 'bg-green-100 text-green-800';
     if (dueDate < today) return 'bg-red-100 text-red-800';
@@ -30,7 +29,7 @@ export const ScheduleList = ({ items, onUpdate, onDelete }: ScheduleListProps) =
 
   const getStatusText = (item: ScheduleItem) => {
     const today = new Date();
-    const dueDate = new Date(item.dueDate);
+    const dueDate = new Date(item.due_date);
     
     if (item.status === 'completed') return 'Concluído';
     if (dueDate < today) return 'Vencido';
@@ -106,7 +105,7 @@ export const ScheduleList = ({ items, onUpdate, onDelete }: ScheduleListProps) =
                   <span>{item.company}</span>
                 </div>
                 <div className="text-xs text-slate-600">
-                  Vencimento: {new Date(item.dueDate).toLocaleDateString('pt-BR')}
+                  Vencimento: {new Date(item.due_date).toLocaleDateString('pt-BR')}
                 </div>
                 {item.description && (
                   <p className="text-xs text-slate-500">{item.description}</p>
