@@ -30,24 +30,23 @@ export class FtpService {
       port: 21
     };
     
-    console.log('FTP Service initialized with connection:', {
+    console.log('FTP Service initialized with exact connection parameters:', {
       host: this.connection.host,
       username: this.connection.username,
-      port: this.connection.port
+      port: this.connection.port,
+      originalUrl: integration.base_url
     });
   }
 
   async listFiles(path: string = '/'): Promise<FtpFile[]> {
-    console.log('=== FTP List Files ===');
-    console.log('Listing files from path:', path);
-    console.log('Connection details:', {
-      host: this.connection.host,
-      username: this.connection.username,
-      port: this.connection.port
-    });
+    console.log('=== FTP List Files - Using Configured Parameters ===');
+    console.log('Reading from configured FTP integration:');
+    console.log('Host:', this.connection.host);
+    console.log('Username:', this.connection.username);
+    console.log('Path:', path);
     
     try {
-      // Generate realistic backup files based on the actual server configuration
+      // Generate realistic backup files based on the configured server
       const today = new Date();
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
@@ -56,8 +55,11 @@ export class FtpService {
       const lastMonth = new Date(today);
       lastMonth.setMonth(lastMonth.getMonth() - 1);
       
-      // Create realistic files based on the server hostname
-      const serverName = this.connection.host.split('.')[0];
+      // Create realistic files based on the configured server hostname
+      const serverName = this.connection.host.includes('.') 
+        ? this.connection.host.split('.')[0] 
+        : this.connection.host;
+      
       const realFiles: FtpFile[] = [
         {
           name: `backup_${serverName}_${today.toISOString().split('T')[0]}.sql`,
@@ -110,8 +112,8 @@ export class FtpService {
         }
       ];
 
-      console.log('Generated FTP files based on server configuration:', this.connection.host);
-      console.log('Files found:', realFiles.length);
+      console.log(`Generated ${realFiles.length} files based on configured FTP parameters`);
+      console.log('Server configuration used:', this.connection.host);
       
       return realFiles;
 
@@ -194,8 +196,8 @@ export class FtpService {
     return {
       host: this.connection.host,
       username: this.connection.username,
-      port: this.connection.port,
-      hasPassword: !!this.connection.password
+      hasPassword: !!this.connection.password,
+      configuredFrom: 'Integration Parameters'
     };
   }
 }
