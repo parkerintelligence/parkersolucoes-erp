@@ -21,8 +21,12 @@ import {
   AlertTriangle,
   Plus,
   Trash2,
-  Download
+  Download,
+  Calendar,
+  Clock
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const Backups = () => {
   const { data: integrations } = useIntegrations();
@@ -71,11 +75,29 @@ const Backups = () => {
     );
   }
 
-  // Sort files by modification date (oldest first)
+  // Sort files by modification date (oldest first) and add color coding logic
   const sortedFiles = files?.sort((a, b) => {
     if (!a.lastModified || !b.lastModified) return 0;
     return new Date(a.lastModified).getTime() - new Date(b.lastModified).getTime();
   }) || [];
+
+  // Function to get row background color based on file age
+  const getRowBackgroundColor = (lastModified: Date) => {
+    const daysDiff = Math.floor((Date.now() - lastModified.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff > 2) {
+      return 'bg-red-50 hover:bg-red-100 border-red-200'; // Red for old files (more than 2 days)
+    }
+    return 'bg-green-50 hover:bg-green-100 border-green-200'; // Green for recent files
+  };
+
+  // Function to get age badge color
+  const getAgeBadgeColor = (lastModified: Date) => {
+    const daysDiff = Math.floor((Date.now() - lastModified.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff > 2) {
+      return 'bg-red-100 text-red-800 border-red-300';
+    }
+    return 'bg-green-100 text-green-800 border-green-300';
+  };
 
   const handleUploadComplete = () => {
     setShowUploadDialog(false);
@@ -93,7 +115,7 @@ const Backups = () => {
               <HardDrive className="h-8 w-8" />
               Backups FTP
             </h1>
-            <p className="text-blue-600">Gerencie seus backups via FTP</p>
+            <p className="text-blue-600">Gerencie seus backups via FTP - Arquivos ordenados por data (mais antigos primeiro)</p>
           </div>
           <Button onClick={() => refetchFiles()} disabled={isLoadingFiles} className="bg-blue-600 hover:bg-blue-700">
             <RefreshCw className={`mr-2 h-4 w-4 ${isLoadingFiles ? 'animate-spin' : ''}`} />
@@ -171,6 +193,18 @@ const Backups = () => {
                       </Alert>
                     )}
 
+                    {/* Legend for color coding */}
+                    <div className="flex items-center gap-4 p-2 bg-gray-50 rounded text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-green-100 border border-green-200 rounded"></div>
+                        <span>Arquivos recentes (até 2 dias)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-red-100 border border-red-200 rounded"></div>
+                        <span>Arquivos antigos (mais de 2 dias)</span>
+                      </div>
+                    </div>
+
                     {/* Files List */}
                     {isLoadingFiles ? (
                       <div className="flex items-center justify-center p-8">
@@ -180,21 +214,41 @@ const Backups = () => {
                     ) : (
                       <div className="space-y-2">
                         {sortedFiles.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                            <div className="flex items-center gap-3">
+                          <div 
+                            key={index} 
+                            className={`flex items-center justify-between p-4 border rounded-lg transition-colors ${getRowBackgroundColor(file.lastModified)}`}
+                          >
+                            <div className="flex items-center gap-3 flex-1">
                               {file.isDirectory ? (
                                 <Folder className="h-5 w-5 text-blue-500" />
                               ) : (
                                 <FileText className="h-5 w-5 text-gray-500" />
                               )}
-                              <div>
+                              <div className="flex-1">
                                 <p className="font-medium">{file.name}</p>
-                                <p className="text-sm text-gray-500">
-                                  {file.isDirectory ? 'Pasta' : `${Math.round(file.size / 1024)} KB`}
-                                </p>
+                                <div className="flex items-center gap-4 text-sm text-gray-500">
+                                  <span>
+                                    {file.isDirectory ? 'Pasta' : `${Math.round(file.size / 1024)} KB`}
+                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    <span>
+                                      {format(file.lastModified, 'dd/MM/yyyy', { locale: ptBR })}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    <span>
+                                      {format(file.lastModified, 'HH:mm', { locale: ptBR })}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
+                              <Badge className={`text-xs ${getAgeBadgeColor(file.lastModified)}`}>
+                                {Math.floor((Date.now() - file.lastModified.getTime()) / (1000 * 60 * 60 * 24))} dias
+                              </Badge>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 ml-4">
                               {file.isDirectory ? (
                                 <Button
                                   size="sm"
@@ -269,14 +323,17 @@ const Backups = () => {
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-center gap-4">
-                      <div className="p-3 bg-purple-100 rounded-lg">
-                        <Database className="h-6 w-6 text-purple-600" />
+                      <div className="p-3 bg-red-100 rounded-lg">
+                        <AlertTriangle className="h-6 w-6 text-red-600" />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold text-purple-900">
-                          {Math.round((sortedFiles?.reduce((total, file) => total + (file.size || 0), 0) || 0) / 1024)}
+                        <p className="text-2xl font-bold text-red-900">
+                          {sortedFiles?.filter(f => 
+                            !f.isDirectory && 
+                            Math.floor((Date.now() - f.lastModified.getTime()) / (1000 * 60 * 60 * 24)) > 2
+                          ).length || 0}
                         </p>
-                        <p className="text-sm text-gray-600">KB (Pasta Atual)</p>
+                        <p className="text-sm text-gray-600">Backups Antigos (>2 dias)</p>
                       </div>
                     </div>
                   </CardContent>
