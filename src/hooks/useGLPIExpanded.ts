@@ -287,7 +287,7 @@ const PRIORITY_MAP: Record<number, string> = {
 };
 
 export const useGLPIExpanded = () => {
-  const { data: integrations } = useIntegrations();
+  const { data: integrations, updateIntegration } = useIntegrations();
   const queryClient = useQueryClient();
   
   const glpiIntegration = integrations?.find(int => int.type === 'glpi');
@@ -311,42 +311,88 @@ export const useGLPIExpanded = () => {
     });
 
     if (!response.ok) {
+      // Se token expirou, tentar renovar
+      if (response.status === 401) {
+        console.log('Session token expirado, tentando renovar...');
+        const newToken = await initializeSession();
+        if (newToken) {
+          // Repetir a requisição com o novo token
+          return fetch(url, {
+            ...options,
+            headers: {
+              'Content-Type': 'application/json',
+              'App-Token': glpiIntegration.api_token || '',
+              'Session-Token': newToken,
+              ...options.headers,
+            },
+          }).then(res => {
+            if (!res.ok) {
+              throw new Error(`GLPI API Error: ${res.status} ${res.statusText}`);
+            }
+            return res.json();
+          });
+        }
+      }
       throw new Error(`GLPI API Error: ${response.status} ${response.statusText}`);
     }
 
     return response.json();
   };
 
-  // Initialize GLPI session
-  const initSession = useMutation({
-    mutationFn: async () => {
-      if (!glpiIntegration) {
-        throw new Error('GLPI não configurado');
-      }
+  // Função para inicializar sessão e salvar token
+  const initializeSession = async (): Promise<string | null> => {
+    if (!glpiIntegration) {
+      throw new Error('GLPI não configurado');
+    }
 
+    try {
       const baseUrl = glpiIntegration.base_url.replace(/\/$/, '');
       const response = await fetch(`${baseUrl}/apirest.php/initSession`, {
-        method: 'POST',
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'App-Token': glpiIntegration.api_token || '',
-          'Authorization': `Basic ${btoa(`${glpiIntegration.username}:${glpiIntegration.password}`)}`,
+          'Authorization': `user_token ${glpiIntegration.password}`,
         },
       });
 
       if (!response.ok) {
+        console.error('Erro ao inicializar sessão:', response.status, response.statusText);
         throw new Error(`Erro ao inicializar sessão GLPI: ${response.status}`);
       }
 
       const data = await response.json();
-      return data.session_token;
-    },
+      const sessionToken = data.session_token;
+
+      console.log('Nova sessão GLPI inicializada:', sessionToken);
+
+      // Salvar o session token na integração
+      if (sessionToken && glpiIntegration.id) {
+        await updateIntegration.mutateAsync({
+          id: glpiIntegration.id,
+          updates: { webhook_url: sessionToken }
+        });
+        console.log('Session token salvo na integração');
+      }
+
+      return sessionToken;
+    } catch (error) {
+      console.error('Erro ao inicializar sessão GLPI:', error);
+      throw error;
+    }
+  };
+
+  // Initialize GLPI session
+  const initSession = useMutation({
+    mutationFn: initializeSession,
     onSuccess: (sessionToken) => {
-      console.log('Sessão GLPI inicializada:', sessionToken);
+      console.log('Sessão GLPI inicializada com sucesso:', sessionToken);
       toast({
         title: "Conectado ao GLPI",
         description: "Sessão inicializada com sucesso!",
       });
+      // Invalidar todas as queries para recarregar com novo token
+      queryClient.invalidateQueries({ queryKey: ['glpi-'] });
     },
     onError: (error) => {
       console.error('Erro ao inicializar sessão GLPI:', error);
@@ -358,103 +404,138 @@ export const useGLPIExpanded = () => {
     },
   });
 
+  // Verificar se temos uma sessão válida
+  const hasValidSession = !!glpiIntegration?.webhook_url;
+  const isEnabled = !!glpiIntegration && hasValidSession;
+
+  console.log('GLPI Integration status:', {
+    hasIntegration: !!glpiIntegration,
+    hasSessionToken: hasValidSession,
+    isEnabled,
+    baseUrl: glpiIntegration?.base_url,
+    sessionToken: glpiIntegration?.webhook_url ? 'presente' : 'ausente'
+  });
+
   // Fetch all data types
   const tickets = useQuery({
     queryKey: ['glpi-tickets'],
-    queryFn: () => makeGLPIRequest('Ticket?range=0-100&expand_dropdowns=true'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    queryFn: () => {
+      console.log('Buscando tickets GLPI...');
+      return makeGLPIRequest('Ticket?range=0-100&expand_dropdowns=true');
+    },
+    enabled: isEnabled,
     refetchInterval: 30000,
+    retry: 1,
+    onError: (error) => {
+      console.error('Erro ao buscar tickets:', error);
+    },
+    onSuccess: (data) => {
+      console.log('Tickets GLPI carregados:', data?.length || 0, 'tickets');
+    }
   });
 
   const problems = useQuery({
     queryKey: ['glpi-problems'],
     queryFn: () => makeGLPIRequest('Problem?range=0-50&expand_dropdowns=true'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: isEnabled,
     refetchInterval: 60000,
+    retry: 1,
   });
 
   const changes = useQuery({
     queryKey: ['glpi-changes'],
     queryFn: () => makeGLPIRequest('Change?range=0-50&expand_dropdowns=true'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: isEnabled,
     refetchInterval: 60000,
+    retry: 1,
   });
 
   const computers = useQuery({
     queryKey: ['glpi-computers'],
     queryFn: () => makeGLPIRequest('Computer?range=0-100&expand_dropdowns=true'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: isEnabled,
     refetchInterval: 300000, // 5 minutes
+    retry: 1,
   });
 
   const monitors = useQuery({
     queryKey: ['glpi-monitors'],
     queryFn: () => makeGLPIRequest('Monitor?range=0-100&expand_dropdowns=true'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: isEnabled,
     refetchInterval: 300000,
+    retry: 1,
   });
 
   const printers = useQuery({
     queryKey: ['glpi-printers'],
     queryFn: () => makeGLPIRequest('Printer?range=0-100&expand_dropdowns=true'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: isEnabled,
     refetchInterval: 300000,
+    retry: 1,
   });
 
   const networkEquipment = useQuery({
     queryKey: ['glpi-network-equipment'],
     queryFn: () => makeGLPIRequest('NetworkEquipment?range=0-100&expand_dropdowns=true'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: isEnabled,
     refetchInterval: 300000,
+    retry: 1,
   });
 
   const software = useQuery({
     queryKey: ['glpi-software'],
     queryFn: () => makeGLPIRequest('Software?range=0-100&expand_dropdowns=true'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: isEnabled,
     refetchInterval: 300000,
+    retry: 1,
   });
 
   const suppliers = useQuery({
     queryKey: ['glpi-suppliers'],
     queryFn: () => makeGLPIRequest('Supplier?range=0-50&expand_dropdowns=true'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: isEnabled,
     refetchInterval: 300000,
+    retry: 1,
   });
 
   const contracts = useQuery({
     queryKey: ['glpi-contracts'],
     queryFn: () => makeGLPIRequest('Contract?range=0-50&expand_dropdowns=true'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: isEnabled,
     refetchInterval: 300000,
+    retry: 1,
   });
 
   const users = useQuery({
     queryKey: ['glpi-users'],
     queryFn: () => makeGLPIRequest('User?range=0-100&expand_dropdowns=true'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: isEnabled,
     refetchInterval: 300000,
+    retry: 1,
   });
 
   const entities = useQuery({
     queryKey: ['glpi-entities'],
     queryFn: () => makeGLPIRequest('Entity?range=0-50&expand_dropdowns=true'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: isEnabled,
     refetchInterval: 300000,
+    retry: 1,
   });
 
   const locations = useQuery({
     queryKey: ['glpi-locations'],
     queryFn: () => makeGLPIRequest('Location?range=0-100&expand_dropdowns=true'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: isEnabled,
     refetchInterval: 300000,
+    retry: 1,
   });
 
   const groups = useQuery({
     queryKey: ['glpi-groups'],
     queryFn: () => makeGLPIRequest('Group?range=0-50&expand_dropdowns=true'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: isEnabled,
     refetchInterval: 300000,
+    retry: 1,
   });
 
   // Create ticket
@@ -511,6 +592,8 @@ export const useGLPIExpanded = () => {
   return {
     glpiIntegration,
     initSession,
+    hasValidSession,
+    isEnabled,
     tickets: {
       ...tickets,
       data: tickets.data || [],

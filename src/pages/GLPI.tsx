@@ -14,12 +14,14 @@ import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { GLPIDashboard } from '@/components/GLPIDashboard';
 import { GLPITicketsGrid } from '@/components/GLPITicketsGrid';
 import { GLPIInventory } from '@/components/GLPIInventory';
+import { GLPIConnectionStatus } from '@/components/GLPIConnectionStatus';
 
 const GLPI = () => {
   const { 
     glpiIntegration, 
     createTicket, 
     initSession,
+    hasValidSession,
     problems,
     changes,
     suppliers,
@@ -103,10 +105,12 @@ const GLPI = () => {
             <p className="text-blue-600">Gestão integrada de TI - Chamados, Ativos, Inventário e muito mais</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => initSession.mutate()}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Reconectar
-            </Button>
+            {!hasValidSession && (
+              <Button variant="outline" onClick={() => initSession.mutate()}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Iniciar Sessão
+              </Button>
+            )}
             <Dialog open={isCreatingTicket} onOpenChange={setIsCreatingTicket}>
               <DialogTrigger asChild>
                 <Button className="bg-blue-600 hover:bg-blue-700">
@@ -207,6 +211,9 @@ const GLPI = () => {
             </Dialog>
           </div>
         </div>
+
+        {/* Status da Conexão */}
+        <GLPIConnectionStatus />
 
         {/* Interface Principal com Abas */}
         <Tabs defaultValue="dashboard" className="w-full">
