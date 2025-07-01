@@ -100,6 +100,15 @@ export const FtpFileExplorer = ({
     return 'bg-red-100 text-red-800';
   };
 
+  // Nova função para determinar a cor de fundo da linha baseada na data
+  const getRowBackgroundColor = (lastModified: Date) => {
+    const daysDiff = Math.floor((Date.now() - lastModified.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff > 2) {
+      return 'bg-pink-50 hover:bg-pink-100'; // Rosa para arquivos antigos (mais de 2 dias)
+    }
+    return 'bg-green-50 hover:bg-green-100'; // Verde claro para arquivos recentes
+  };
+
   const handleSelectFile = (fileName: string) => {
     const newSelection = selectedFiles.includes(fileName) 
       ? selectedFiles.filter(f => f !== fileName)
@@ -148,7 +157,7 @@ export const FtpFileExplorer = ({
               className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
                 selectedFiles.includes(file.name) 
                   ? 'border-blue-500 bg-blue-50' 
-                  : 'border-gray-200 hover:border-gray-300'
+                  : `border-gray-200 hover:border-gray-300 ${getRowBackgroundColor(file.lastModified)}`
               }`}
               onClick={() => handleSelectFile(file.name)}
             >
@@ -197,8 +206,10 @@ export const FtpFileExplorer = ({
           {files.map((file, index) => (
             <TableRow 
               key={index} 
-              className={`hover:bg-gray-50 transition-colors ${
-                selectedFiles.includes(file.name) ? 'bg-blue-50' : ''
+              className={`transition-colors ${
+                selectedFiles.includes(file.name) 
+                  ? 'bg-blue-50' 
+                  : getRowBackgroundColor(file.lastModified)
               }`}
             >
               <TableCell>

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +16,8 @@ import {
   Search,
   Settings,
   Calendar,
-  CheckCircle2
+  CheckCircle2,
+  BarChart3
 } from 'lucide-react';
 import { useRealFtp } from '@/hooks/useRealFtp';
 import { FtpUploadDialog } from '@/components/FtpUploadDialog';
@@ -45,6 +45,8 @@ const Backups = () => {
   );
 
   const totalSize = files.reduce((acc, file) => acc + file.size, 0);
+  const totalFiles = files.filter(f => !f.isDirectory).length;
+  const totalDirectories = files.filter(f => f.isDirectory).length;
   
   // Corrigir o cálculo de arquivos recentes - garantir que lastModified é Date
   const recentFiles = files.filter(file => {
@@ -52,6 +54,18 @@ const Backups = () => {
       const fileDate = file.lastModified instanceof Date ? file.lastModified : new Date(file.lastModified);
       const daysDiff = Math.floor((Date.now() - fileDate.getTime()) / (1000 * 60 * 60 * 24));
       return daysDiff <= 1;
+    } catch (error) {
+      console.error('Error calculating file age:', error);
+      return false;
+    }
+  }).length;
+
+  // Calcular arquivos antigos (mais de 2 dias)
+  const oldFiles = files.filter(file => {
+    try {
+      const fileDate = file.lastModified instanceof Date ? file.lastModified : new Date(file.lastModified);
+      const daysDiff = Math.floor((Date.now() - fileDate.getTime()) / (1000 * 60 * 60 * 24));
+      return daysDiff > 2;
     } catch (error) {
       console.error('Error calculating file age:', error);
       return false;
@@ -143,6 +157,15 @@ const Backups = () => {
     }
   };
 
+  // Nova função para determinar a cor de fundo da linha baseada na data
+  const getRowBackgroundColor = (lastModified: Date) => {
+    const daysDiff = Math.floor((Date.now() - lastModified.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff > 2) {
+      return 'bg-pink-50 hover:bg-pink-100'; // Rosa para arquivos antigos (mais de 2 dias)
+    }
+    return 'bg-green-50 hover:bg-green-100'; // Verde claro para arquivos recentes
+  };
+
   if (!ftpIntegration) {
     return (
       <Layout>
@@ -195,22 +218,6 @@ const Backups = () => {
         </div>
         
         <div className="flex items-center space-x-3">
-          <div className="text-sm text-gray-600 bg-gray-50 px-4 py-2 rounded-lg border">
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1">
-                <File className="h-4 w-4" />
-                {files.length} arquivos
-              </span>
-              <span className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                {recentFiles} recentes
-              </span>
-              <span className="flex items-center gap-1">
-                <HardDrive className="h-4 w-4" />
-                {formatFileSize(totalSize)}
-              </span>
-            </div>
-          </div>
           <Button
             variant="outline"
             size="sm"
@@ -222,6 +229,68 @@ const Backups = () => {
             Atualizar Servidor
           </Button>
         </div>
+      </div>
+
+      {/* Resumo do Espaço Total */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <HardDrive className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Espaço Total</p>
+                <p className="text-lg font-semibold text-gray-900">{formatFileSize(totalSize)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <File className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Total de Arquivos</p>
+                <p className="text-lg font-semibold text-gray-900">{totalFiles}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Folder className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Diretórios</p>
+                <p className="text-lg font-semibold text-gray-900">{totalDirectories}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <Calendar className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Arquivos Recentes</p>
+                <p className="text-lg font-semibold text-gray-900">{recentFiles}</p>
+                {oldFiles > 0 && (
+                  <p className="text-xs text-pink-600">{oldFiles} antigos</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Card principal do explorador FTP */}
@@ -345,12 +414,15 @@ const Backups = () => {
           ) : (
             <div>
               <div className="bg-green-50 p-3 border-b border-green-200">
-                <p className="text-sm text-green-800 font-medium text-center">
+                <p className="text-sm text-green-800 font-medium text-center flex items-center justify-center gap-2">
                   ✅ Exibindo {filteredFiles.length} itens do servidor FTP real: {ftpIntegration.base_url}
+                  <Badge className="bg-pink-100 text-pink-800 text-xs">
+                    {oldFiles} arquivos antigos
+                  </Badge>
                 </p>
               </div>
-              
-              {/* Cabeçalho da tabela */}
+
+              {/* ... keep existing code (cabeçalho da tabela) */}
               <div className="flex items-center p-4 bg-gray-50 border-b text-sm font-medium text-gray-700">
                 <div className="w-12 flex items-center">
                   <input
@@ -367,10 +439,17 @@ const Backups = () => {
                 <div className="w-24 text-center">Ações</div>
               </div>
 
-              {/* Lista de arquivos */}
+              {/* Lista de arquivos com cores baseadas na data */}
               <div className="divide-y">
                 {filteredFiles.map((file, index) => (
-                  <div key={index} className="flex items-center p-4 hover:bg-gray-50 transition-colors">
+                  <div 
+                    key={index} 
+                    className={`flex items-center p-4 transition-colors ${
+                      selectedFiles.includes(file.name) 
+                        ? 'bg-blue-50' 
+                        : getRowBackgroundColor(file.lastModified)
+                    }`}
+                  >
                     <div className="w-12 flex items-center">
                       <input
                         type="checkbox"
