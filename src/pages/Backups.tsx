@@ -1,12 +1,16 @@
-
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { HardDrive, CheckCircle, XCircle, Clock, RefreshCw, AlertTriangle } from 'lucide-react';
+import { HardDrive, CheckCircle, XCircle, Clock, RefreshCw, AlertTriangle, Download, Server } from 'lucide-react';
+import { useFtp } from '@/hooks/useFtp';
+import { format, isToday } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const Backups = () => {
+  const { files, isLoadingFiles, ftpIntegration, testConnection, downloadFile } = useFtp();
+
   const backupStatus = [
     { client: 'Cliente A', lastBackup: '2024-06-30 02:00', status: 'Success', size: '2.3 GB', location: '/backups/clienteA/' },
     { client: 'Cliente B', lastBackup: '2024-06-30 02:15', status: 'Success', size: '1.8 GB', location: '/backups/clienteB/' },
@@ -52,6 +56,26 @@ const Backups = () => {
   const failedCount = backupStatus.filter(backup => backup.status === 'Failed').length;
   const warningCount = backupStatus.filter(backup => backup.status === 'Warning').length;
 
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getFileRowClass = (lastModified: Date) => {
+    const today = isToday(lastModified);
+    const daysDiff = Math.floor((Date.now() - lastModified.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (today) {
+      return 'bg-green-50 hover:bg-green-100 border-green-200';
+    } else if (daysDiff >= 2) {
+      return 'bg-pink-50 hover:bg-pink-100 border-pink-200';
+    }
+    return 'hover:bg-blue-50';
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -63,10 +87,23 @@ const Backups = () => {
             </h1>
             <p className="text-blue-600">Monitoramento automático de backups via FTP</p>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Verificar Agora
-          </Button>
+          <div className="flex gap-2">
+            {ftpIntegration && (
+              <Button 
+                variant="outline" 
+                onClick={() => testConnection.mutate()}
+                disabled={testConnection.isPending}
+                className="flex items-center gap-2"
+              >
+                <Server className="h-4 w-4" />
+                {testConnection.isPending ? 'Testando...' : 'Testar FTP'}
+              </Button>
+            )}
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Verificar Agora
+            </Button>
+          </div>
         </div>
 
         {/* Summary Cards */}
@@ -109,13 +146,118 @@ const Backups = () => {
               <div className="flex items-center gap-2">
                 <HardDrive className="h-5 w-5 text-blue-500" />
                 <div>
-                  <p className="text-2xl font-bold text-blue-900">{backupStatus.length}</p>
-                  <p className="text-sm text-blue-600">Total Clientes</p>
+                  <p className="text-2xl font-bold text-blue-900">{files.length}</p>
+                  <p className="text-sm text-blue-600">Arquivos FTP</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* FTP Files Grid */}
+        {ftpIntegration ? (
+          <Card className="border-blue-200">
+            <CardHeader>
+              <CardTitle className="text-blue-900 flex items-center gap-2">
+                <Server className="h-5 w-5" />
+                Arquivos de Backup - Servidor FTP
+              </CardTitle>
+              <CardDescription>
+                Arquivos encontrados no servidor FTP configurado
+                <div className="flex gap-4 mt-2 text-xs">
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-green-200 rounded"></div>
+                    <span>Backup de hoje</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-pink-200 rounded"></div>
+                    <span>Backup desatualizado (2+ dias)</span>
+                  </div>
+                </div>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingFiles ? (
+                <div className="text-center py-8">
+                  <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
+                  <p className="text-gray-600">Carregando arquivos do FTP...</p>
+                </div>
+              ) : files.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome do Arquivo</TableHead>
+                      <TableHead>Tamanho</TableHead>
+                      <TableHead>Última Modificação</TableHead>
+                      <TableHead>Localização</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {files.map((file, index) => (
+                      <TableRow 
+                        key={index} 
+                        className={getFileRowClass(file.lastModified)}
+                      >
+                        <TableCell className="font-medium flex items-center gap-2">
+                          <HardDrive className="h-4 w-4 text-blue-500" />
+                          {file.name}
+                        </TableCell>
+                        <TableCell>{formatFileSize(file.size)}</TableCell>
+                        <TableCell>
+                          {format(file.lastModified, 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                        </TableCell>
+                        <TableCell className="text-gray-600 font-mono text-sm">
+                          {file.path}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => downloadFile.mutate(file.name)}
+                            disabled={downloadFile.isPending}
+                            className="flex items-center gap-1"
+                          >
+                            <Download className="h-3 w-3" />
+                            {downloadFile.isPending ? 'Baixando...' : 'Download'}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8">
+                  <Server className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-600">Nenhum arquivo encontrado no servidor FTP</p>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Verifique se a conexão FTP está configurada corretamente
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-yellow-200">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+                  Integração FTP não configurada
+                </h3>
+                <p className="text-yellow-700 mb-4">
+                  Para visualizar os arquivos de backup, configure uma integração FTP no Painel de Administração.
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="border-yellow-300 text-yellow-800 hover:bg-yellow-50"
+                >
+                  Configurar FTP
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Backup Status Table */}
         <Card className="border-blue-200">

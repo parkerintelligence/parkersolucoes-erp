@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -28,7 +27,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 
 const formSchema = z.object({
-  type: z.enum(['chatwoot', 'evolution_api', 'wasabi', 'grafana', 'bomcontrole', 'zabbix']),
+  type: z.enum(['chatwoot', 'evolution_api', 'wasabi', 'grafana', 'bomcontrole', 'zabbix', 'ftp']),
   name: z.string().min(2, {
     message: "Nome precisa ter ao menos 2 caracteres.",
   }),
@@ -43,7 +42,7 @@ const formSchema = z.object({
 })
 
 const AdminApiPanel = () => {
-  const [selectedType, setSelectedType] = useState<"chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix">("chatwoot");
+  const [selectedType, setSelectedType] = useState<"chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix" | "ftp">("chatwoot");
   const { createIntegration, updateIntegration, deleteIntegration, data: integrations, isLoading, isError } = useIntegrations();
   const [editingIntegrationId, setEditingIntegrationId] = useState<string | null>(null);
 
@@ -128,6 +127,8 @@ const AdminApiPanel = () => {
         return getBomControleFields();
       case "zabbix":
         return getZabbixFields();
+      case "ftp":
+        return getFtpFields();
       default:
         return null;
     }
@@ -338,6 +339,49 @@ const AdminApiPanel = () => {
     </>
   );
 
+  const getFtpFields = () => (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Usuário FTP *</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="usuario_ftp" 
+                  {...field}
+                  value={field.value || ''}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Senha FTP *</FormLabel>
+              <FormControl>
+                <Input 
+                  type="password"
+                  placeholder="Senha do FTP" 
+                  {...field}
+                  value={field.value || ''}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    </>
+  );
+
   return (
     <div className="container max-w-4xl mx-auto p-4">
       <Card>
@@ -356,6 +400,7 @@ const AdminApiPanel = () => {
               <TabsTrigger value="grafana">Grafana</TabsTrigger>
               <TabsTrigger value="bomcontrole">BomControle</TabsTrigger>
               <TabsTrigger value="zabbix">Zabbix</TabsTrigger>
+              <TabsTrigger value="ftp">FTP</TabsTrigger>
             </TabsList>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -366,7 +411,7 @@ const AdminApiPanel = () => {
                     <FormItem>
                       <FormLabel>Tipo de Integração</FormLabel>
                       <Select onValueChange={(value) => {
-                        const newType = value as "chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix";
+                        const newType = value as "chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix" | "ftp";
                         form.setValue("type", newType);
                         setSelectedType(newType);
                       }} value={field.value}>
@@ -382,6 +427,7 @@ const AdminApiPanel = () => {
                           <SelectItem value="grafana">Grafana</SelectItem>
                           <SelectItem value="bomcontrole">BomControle</SelectItem>
                           <SelectItem value="zabbix">Zabbix</SelectItem>
+                          <SelectItem value="ftp">FTP</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
