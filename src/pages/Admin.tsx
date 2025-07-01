@@ -4,13 +4,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { AdminApiPanel } from '@/components/AdminApiPanel';
+import { AdminCompaniesPanel } from '@/components/AdminCompaniesPanel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Settings, Users, Shield, Database, Key, DollarSign, Activity, MessageCircle, HardDrive } from 'lucide-react';
+import { Settings, Users, Database, Key, Building, Activity, DollarSign, MessageCircle, HardDrive, Monitor } from 'lucide-react';
 
 const Admin = () => {
   const { isMaster } = useAuth();
-  const [activeSection, setActiveSection] = useState<string>('integrations');
+  const [activeSection, setActiveSection] = useState<string>('overview');
 
   if (!isMaster) {
     return <Navigate to="/dashboard" />;
@@ -20,6 +21,8 @@ const Admin = () => {
     switch (activeSection) {
       case 'integrations':
         return <AdminApiPanel />;
+      case 'companies':
+        return <AdminCompaniesPanel />;
       case 'users':
         return (
           <Card className="border-blue-200">
@@ -41,65 +44,122 @@ const Admin = () => {
             </CardContent>
           </Card>
         );
-      case 'financial':
-        return (
-          <Card className="border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-blue-900 flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                Configurações Financeiras
-              </CardTitle>
-              <CardDescription>
-                Integração com Bom Controle e outras ferramentas financeiras
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Configurações financeiras em desenvolvimento.</p>
-                <p className="text-sm mt-2">Em breve você poderá integrar com o Bom Controle.</p>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      case 'monitoring':
-        return (
-          <Card className="border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-blue-900 flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Configurações de Monitoramento
-              </CardTitle>
-              <CardDescription>
-                Configurações do Grafana, Zabbix e outras ferramentas de monitoramento
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Configurações de monitoramento em desenvolvimento.</p>
-                <p className="text-sm mt-2">Em breve você poderá configurar credenciais do Grafana.</p>
-              </div>
-            </CardContent>
-          </Card>
-        );
+      case 'overview':
       default:
-        return <AdminApiPanel />;
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Card className="border-blue-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('integrations')}>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="bg-blue-100 p-3 rounded-lg">
+                    <Key className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-blue-900">Integrações & APIs</h3>
+                    <p className="text-sm text-blue-600">Configure WhatsApp, Wasabi, Grafana, Bom Controle, Zabbix</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-green-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('companies')}>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="bg-green-100 p-3 rounded-lg">
+                    <Building className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-green-900">Empresas</h3>
+                    <p className="text-sm text-green-600">Gerenciar cadastro de empresas</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-purple-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('users')}>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="bg-purple-100 p-3 rounded-lg">
+                    <Users className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-purple-900">Usuários</h3>
+                    <p className="text-sm text-purple-600">Controle de acesso e permissions</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-orange-200">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="bg-orange-100 p-3 rounded-lg">
+                    <Database className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-orange-900">Banco de Dados</h3>
+                    <p className="text-sm text-orange-600">Backup e configurações</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-indigo-200">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="bg-indigo-100 p-3 rounded-lg">
+                    <Monitor className="h-6 w-6 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-indigo-900">Monitoramento</h3>
+                    <p className="text-sm text-indigo-600">Status do sistema</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-red-200">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="bg-red-100 p-3 rounded-lg">
+                    <Settings className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-red-900">Configurações</h3>
+                    <p className="text-sm text-red-600">Parâmetros gerais</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
     }
   };
 
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
-            <Settings className="h-8 w-8" />
-            Painel de Administração
-          </h1>
-          <p className="text-slate-600">Configurações avançadas do sistema - Acesso Master</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
+              <Settings className="h-8 w-8" />
+              Painel de Administração Master
+            </h1>
+            <p className="text-slate-600">Configurações e gerenciamento do sistema</p>
+          </div>
+          {activeSection !== 'overview' && (
+            <Button 
+              variant="outline" 
+              onClick={() => setActiveSection('overview')}
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Voltar ao Menu
+            </Button>
+          )}
         </div>
 
-        {/* Estatísticas Administrativas */}
+        {/* Estatísticas Rápidas */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="border-blue-200">
             <CardContent className="p-4">
@@ -112,95 +172,55 @@ const Admin = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-blue-200">
+          <Card className="border-green-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-green-500" />
+                <Key className="h-5 w-5 text-green-500" />
                 <div>
-                  <p className="text-2xl font-bold text-blue-900">4</p>
-                  <p className="text-sm text-blue-600">APIs Conectadas</p>
+                  <p className="text-2xl font-bold text-green-900">4</p>
+                  <p className="text-sm text-green-600">APIs Ativas</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-blue-200">
+          <Card className="border-purple-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Database className="h-5 w-5 text-purple-500" />
+                <Building className="h-5 w-5 text-purple-500" />
                 <div>
-                  <p className="text-2xl font-bold text-blue-900">98%</p>
-                  <p className="text-sm text-blue-600">Uptime Sistema</p>
+                  <p className="text-2xl font-bold text-purple-900">12</p>
+                  <p className="text-sm text-purple-600">Empresas</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-blue-200">
+          <Card className="border-orange-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Settings className="h-5 w-5 text-orange-500" />
+                <Database className="h-5 w-5 text-orange-500" />
                 <div>
-                  <p className="text-2xl font-bold text-blue-900">12</p>
-                  <p className="text-sm text-blue-600">Configurações</p>
+                  <p className="text-2xl font-bold text-orange-900">98%</p>
+                  <p className="text-sm text-orange-600">Uptime</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Botões de Navegação */}
-        <Card className="border-blue-200">
-          <CardHeader>
-            <CardTitle className="text-blue-900">Configurações do Sistema</CardTitle>
-            <CardDescription>Selecione o tipo de configuração que deseja gerenciar</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Button
-                variant={activeSection === 'integrations' ? 'default' : 'outline'}
-                onClick={() => setActiveSection('integrations')}
-                className="h-24 flex flex-col items-center justify-center gap-2"
-              >
-                <div className="flex items-center gap-2">
-                  <Key className="h-6 w-6" />
-                  <MessageCircle className="h-5 w-5" />
-                  <HardDrive className="h-5 w-5" />
-                </div>
-                <span className="font-medium">Integrações</span>
-                <span className="text-xs text-gray-500">WhatsApp, Wasabi, APIs</span>
-              </Button>
-
-              <Button
-                variant={activeSection === 'users' ? 'default' : 'outline'}
-                onClick={() => setActiveSection('users')}
-                className="h-24 flex flex-col items-center justify-center gap-2"
-              >
-                <Users className="h-6 w-6" />
-                <span className="font-medium">Usuários</span>
-                <span className="text-xs text-gray-500">Gerenciar Acessos</span>
-              </Button>
-
-              <Button
-                variant={activeSection === 'financial' ? 'default' : 'outline'}
-                onClick={() => setActiveSection('financial')}
-                className="h-24 flex flex-col items-center justify-center gap-2"
-              >
-                <DollarSign className="h-6 w-6" />
-                <span className="font-medium">Bom Controle</span>
-                <span className="text-xs text-gray-500">Sistema Financeiro</span>
-              </Button>
-
-              <Button
-                variant={activeSection === 'monitoring' ? 'default' : 'outline'}
-                onClick={() => setActiveSection('monitoring')}
-                className="h-24 flex flex-col items-center justify-center gap-2"
-              >
-                <Activity className="h-6 w-6" />
-                <span className="font-medium">Grafana</span>
-                <span className="text-xs text-gray-500">Monitoramento</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Navegação por Breadcrumb */}
+        {activeSection !== 'overview' && (
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <button onClick={() => setActiveSection('overview')} className="hover:text-blue-600">
+              Painel
+            </button>
+            <span>/</span>
+            <span className="font-medium text-slate-900">
+              {activeSection === 'integrations' && 'Integrações & APIs'}
+              {activeSection === 'companies' && 'Empresas'}
+              {activeSection === 'users' && 'Usuários'}
+            </span>
+          </div>
+        )}
 
         {/* Conteúdo da Seção Ativa */}
         {renderContent()}

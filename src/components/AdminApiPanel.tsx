@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,7 +43,7 @@ export function AdminApiPanel() {
     }
     
     // Validações específicas por tipo
-    if ((formData.type === 'grafana' || formData.type === 'bomcontrole') && 
+    if ((formData.type === 'grafana' || formData.type === 'bomcontrole' || formData.type === 'zabbix') && 
         (!formData.username.trim() || !formData.password.trim())) {
       toast({
         title: "Campos obrigatórios",
@@ -52,7 +53,7 @@ export function AdminApiPanel() {
       return;
     }
 
-    if ((formData.type !== 'grafana' && formData.type !== 'bomcontrole') && 
+    if ((formData.type !== 'grafana' && formData.type !== 'bomcontrole' && formData.type !== 'zabbix') && 
         !formData.api_token.trim()) {
       toast({
         title: "Campo obrigatório",
@@ -171,10 +172,10 @@ export function AdminApiPanel() {
           <div>
             <CardTitle className="text-blue-900 flex items-center gap-2">
               <Key className="h-5 w-5" />
-              Configurações de API
+              Configurações de Integrações & APIs
             </CardTitle>
             <CardDescription>
-              Configure integrações com APIs externas (WhatsApp, Wasabi, Grafana, Bom Controle, Zabbix)
+              Configure todas as integrações: WhatsApp, Wasabi, Grafana, Bom Controle, Zabbix e outras APIs
             </CardDescription>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -190,7 +191,7 @@ export function AdminApiPanel() {
                   {editingIntegration ? 'Editar Integração' : 'Configurar Nova Integração'}
                 </DialogTitle>
                 <DialogDescription>
-                  Configure uma nova integração com APIs externas
+                  Configure uma nova integração com APIs externas ou sistemas de monitoramento
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -201,12 +202,12 @@ export function AdminApiPanel() {
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="chatwoot">Chatwoot - WhatsApp</SelectItem>
-                      <SelectItem value="evolution_api">Evolution API - WhatsApp</SelectItem>
-                      <SelectItem value="wasabi">Wasabi Cloud Storage</SelectItem>
-                      <SelectItem value="grafana">Grafana Monitoring</SelectItem>
-                      <SelectItem value="bomcontrole">Bom Controle - Financeiro</SelectItem>
-                      <SelectItem value="zabbix">Zabbix Monitoring</SelectItem>
+                      <SelectItem value="chatwoot">📱 Chatwoot - WhatsApp</SelectItem>
+                      <SelectItem value="evolution_api">📱 Evolution API - WhatsApp</SelectItem>
+                      <SelectItem value="wasabi">☁️ Wasabi Cloud Storage</SelectItem>
+                      <SelectItem value="grafana">📊 Grafana Monitoring</SelectItem>
+                      <SelectItem value="bomcontrole">💰 Bom Controle - Financeiro</SelectItem>
+                      <SelectItem value="zabbix">🖥️ Zabbix Monitoring</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -217,17 +218,17 @@ export function AdminApiPanel() {
                     id="name" 
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    placeholder="Ex: WhatsApp Principal, Zabbix Server, etc." 
+                    placeholder="Ex: WhatsApp Principal, Grafana Server, etc." 
                   />
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="base_url">URL Base da API</Label>
+                  <Label htmlFor="base_url">URL Base da API/Sistema</Label>
                   <Input 
                     id="base_url" 
                     value={formData.base_url}
                     onChange={(e) => setFormData({...formData, base_url: e.target.value})}
-                    placeholder="https://api.example.com" 
+                    placeholder="https://api.example.com ou https://grafana.empresa.com" 
                   />
                 </div>
 
@@ -239,7 +240,7 @@ export function AdminApiPanel() {
                         id="username" 
                         value={formData.username}
                         onChange={(e) => setFormData({...formData, username: e.target.value})}
-                        placeholder="Usuário de acesso" 
+                        placeholder="Usuário de acesso ao sistema" 
                       />
                     </div>
                     <div className="grid gap-2">
@@ -249,7 +250,7 @@ export function AdminApiPanel() {
                         type="password"
                         value={formData.password}
                         onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        placeholder="Senha de acesso" 
+                        placeholder="Senha de acesso ao sistema" 
                       />
                     </div>
                   </>
@@ -263,7 +264,7 @@ export function AdminApiPanel() {
                       type="password"
                       value={formData.api_token}
                       onChange={(e) => setFormData({...formData, api_token: e.target.value})}
-                      placeholder="Token de acesso" 
+                      placeholder="Token de acesso da API" 
                     />
                   </div>
                 )}
@@ -312,7 +313,7 @@ export function AdminApiPanel() {
           <div className="text-center py-8 text-gray-500">
             <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Nenhuma integração configurada ainda.</p>
-            <p className="text-sm mt-2">Configure suas APIs para habilitar as funcionalidades do sistema.</p>
+            <p className="text-sm mt-2">Configure suas integrações para habilitar as funcionalidades do sistema.</p>
           </div>
         ) : (
           <Table>

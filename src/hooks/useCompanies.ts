@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -19,12 +20,22 @@ export const useCompanies = () => {
   return useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('Fetching companies...');
       
-      if (authError || !user) {
-        console.error('User not authenticated:', authError);
-        throw new Error('User not authenticated');
+      // Primeiro verificar se temos uma sessão válida
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw new Error('Erro de sessão');
       }
+
+      if (!session?.user) {
+        console.error('No user session found');
+        throw new Error('Usuário não autenticado');
+      }
+
+      console.log('User authenticated:', session.user.id);
 
       const { data, error } = await supabase
         .from('companies')
@@ -36,6 +47,7 @@ export const useCompanies = () => {
         throw error;
       }
 
+      console.log('Companies fetched:', data?.length || 0);
       return data as Company[];
     },
   });
@@ -46,16 +58,24 @@ export const useCreateCompany = () => {
 
   return useMutation({
     mutationFn: async (company: Omit<Company, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('Creating company...');
       
-      if (authError || !user) {
-        console.error('User not authenticated:', authError);
-        throw new Error('User not authenticated');
+      // Verificar sessão antes de criar
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error during create:', sessionError);
+        throw new Error('Erro de sessão ao criar empresa');
+      }
+
+      if (!session?.user) {
+        console.error('No user session found during create');
+        throw new Error('Usuário não autenticado para criar empresa');
       }
 
       const companyData = {
         ...company,
-        user_id: user.id
+        user_id: session.user.id
       };
 
       console.log('Creating company with data:', companyData);
@@ -71,6 +91,7 @@ export const useCreateCompany = () => {
         throw error;
       }
 
+      console.log('Company created successfully:', data);
       return data;
     },
     onSuccess: () => {
@@ -96,11 +117,11 @@ export const useUpdateCompany = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Company> }) => {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (authError || !user) {
-        console.error('User not authenticated:', authError);
-        throw new Error('User not authenticated');
+      if (sessionError || !session?.user) {
+        console.error('User not authenticated:', sessionError);
+        throw new Error('Usuário não autenticado');
       }
 
       const { data, error } = await supabase
@@ -140,11 +161,11 @@ export const useDeleteCompany = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (authError || !user) {
-        console.error('User not authenticated:', authError);
-        throw new Error('User not authenticated');
+      if (sessionError || !session?.user) {
+        console.error('User not authenticated:', sessionError);
+        throw new Error('Usuário não autenticado');
       }
 
       const { error } = await supabase
