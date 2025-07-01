@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,10 +33,17 @@ export function AdminApiPanel() {
   });
 
   const handleSave = () => {
-    if (!formData.name || !formData.base_url) return;
+    if (!formData.name.trim() || !formData.base_url.trim()) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Nome e URL Base são obrigatórios.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     // Para Grafana e Bom Controle, username/password são obrigatórios
-    if ((formData.type === 'grafana' || formData.type === 'bomcontrole') && (!formData.username || !formData.password)) {
+    if ((formData.type === 'grafana' || formData.type === 'bomcontrole') && (!formData.username.trim() || !formData.password.trim())) {
       toast({
         title: "Campos obrigatórios",
         description: "Username e Password são obrigatórios para Grafana e Bom Controle.",
@@ -44,15 +52,25 @@ export function AdminApiPanel() {
       return;
     }
 
+    // Para outros tipos, api_token é obrigatório se não for Grafana/Bom Controle
+    if ((formData.type !== 'grafana' && formData.type !== 'bomcontrole') && !formData.api_token.trim()) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Token da API é obrigatório para este tipo de integração.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const integrationData = {
       type: formData.type,
-      name: formData.name,
-      base_url: formData.base_url,
-      api_token: formData.api_token || '',
-      webhook_url: formData.webhook_url || null,
-      phone_number: formData.phone_number || null,
-      username: formData.username || null,
-      password: formData.password || null,
+      name: formData.name.trim(),
+      base_url: formData.base_url.trim(),
+      api_token: formData.api_token.trim() || null,
+      webhook_url: formData.webhook_url.trim() || null,
+      phone_number: formData.phone_number.trim() || null,
+      username: formData.username.trim() || null,
+      password: formData.password.trim() || null,
       is_active: formData.is_active
     };
 
@@ -245,7 +263,8 @@ export function AdminApiPanel() {
                   </div>
                 )}
 
-                {(formData.type === 'chatwoot' || formData.type === 'evolution_api') && (
+                {// ... keep existing code (conditional fields for WhatsApp and info panels)
+                (formData.type === 'chatwoot' || formData.type === 'evolution_api') && (
                   <>
                     <div className="grid gap-2">
                       <Label htmlFor="phone_number">Número do WhatsApp</Label>
@@ -288,7 +307,11 @@ export function AdminApiPanel() {
                 )}
               </div>
               <div className="flex gap-2">
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSave}>
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700" 
+                  onClick={handleSave}
+                  disabled={createIntegration.isPending || updateIntegration.isPending}
+                >
                   {editingIntegration ? 'Atualizar' : 'Salvar'}
                 </Button>
                 <Button variant="outline" onClick={resetForm}>
@@ -300,7 +323,8 @@ export function AdminApiPanel() {
         </div>
       </CardHeader>
       <CardContent>
-        {integrations.length === 0 ? (
+        {// ... keep existing code (table and empty state)
+        integrations.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Nenhuma integração configurada ainda.</p>

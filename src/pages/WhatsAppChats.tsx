@@ -24,7 +24,9 @@ const WhatsAppChats = () => {
     { id: '5', contactName: 'Carlos Lima', contactPhone: '+5511555555555', lastMessage: 'O servidor está funcionando bem', lastMessageTime: '3h atrás', unreadCount: 0, status: 'archived', integrationId: '2' },
   ];
 
-  const activeIntegrations = integrations.filter(i => i.is_active);
+  const whatsappIntegrations = integrations.filter(i => 
+    (i.type === 'chatwoot' || i.type === 'evolution_api') && i.is_active
+  );
   
   const filteredConversations = conversations.filter(conv => {
     const matchesSearch = conv.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -45,7 +47,7 @@ const WhatsAppChats = () => {
       'archived': 'Arquivado',
       'blocked': 'Bloqueado',
     };
-    return <Badge className={colors[status] || 'bg-gray-100 text-gray-800 border-gray-200'}>{labels[status] || status}</Badge>;
+    return <Badge className={colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800 border-gray-200'}>{labels[status as keyof typeof labels] || status}</Badge>;
   };
 
   const getIntegrationName = (integrationId: string) => {
@@ -110,7 +112,7 @@ const WhatsAppChats = () => {
               <div className="flex items-center gap-2">
                 <MessageCircle className="h-5 w-5 text-purple-500" />
                 <div>
-                  <p className="text-2xl font-bold text-purple-900">{activeIntegrations.length}</p>
+                  <p className="text-2xl font-bold text-purple-900">{whatsappIntegrations.length}</p>
                   <p className="text-sm text-purple-600">Integrações Ativas</p>
                 </div>
               </div>
@@ -139,7 +141,7 @@ const WhatsAppChats = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Todas as integrações</SelectItem>
-                  {activeIntegrations.map((integration) => (
+                  {whatsappIntegrations.map((integration) => (
                     <SelectItem key={integration.id} value={integration.id}>
                       {integration.name} - {integration.phone_number}
                     </SelectItem>
@@ -213,8 +215,8 @@ const WhatsAppChats = () => {
               <div className="text-center py-8 text-gray-500">
                 <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Nenhuma conversa encontrada com os filtros aplicados.</p>
-                {activeIntegrations.length === 0 && (
-                  <p className="text-sm mt-2">Configure uma integração no menu Administração primeiro.</p>
+                {whatsappIntegrations.length === 0 && (
+                  <p className="text-sm mt-2">Configure uma integração WhatsApp no menu Administração primeiro.</p>
                 )}
               </div>
             )}

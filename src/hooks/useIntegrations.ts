@@ -8,7 +8,7 @@ export interface Integration {
   type: 'chatwoot' | 'evolution_api' | 'wasabi' | 'grafana' | 'bomcontrole';
   name: string;
   base_url: string;
-  api_token: string;
+  api_token: string | null;
   webhook_url: string | null;
   phone_number: string | null;
   username: string | null;
@@ -46,12 +46,23 @@ export const useCreateIntegration = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // Garantir que campos obrigatórios não sejam undefined
+      const integrationData = {
+        type: integration.type,
+        name: integration.name,
+        base_url: integration.base_url,
+        api_token: integration.api_token || null,
+        webhook_url: integration.webhook_url || null,
+        phone_number: integration.phone_number || null,
+        username: integration.username || null,
+        password: integration.password || null,
+        is_active: integration.is_active ?? true,
+        user_id: user.id
+      };
+
       const { data, error } = await supabase
         .from('integrations')
-        .insert([{
-          ...integration,
-          user_id: user.id
-        }])
+        .insert([integrationData])
         .select()
         .single();
 
@@ -85,9 +96,19 @@ export const useUpdateIntegration = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Integration> }) => {
+      // Garantir que campos sejam null em vez de undefined
+      const updateData = {
+        ...updates,
+        api_token: updates.api_token || null,
+        webhook_url: updates.webhook_url || null,
+        phone_number: updates.phone_number || null,
+        username: updates.username || null,
+        password: updates.password || null,
+      };
+
       const { data, error } = await supabase
         .from('integrations')
-        .update(updates)
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
