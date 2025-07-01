@@ -9,6 +9,104 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      budget_items: {
+        Row: {
+          budget_id: string
+          created_at: string
+          discount_percent: number | null
+          id: string
+          quantity: number
+          service_id: string
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          budget_id: string
+          created_at?: string
+          discount_percent?: number | null
+          id?: string
+          quantity?: number
+          service_id: string
+          total_price: number
+          unit_price: number
+        }
+        Update: {
+          budget_id?: string
+          created_at?: string
+          discount_percent?: number | null
+          id?: string
+          quantity?: number
+          service_id?: string
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_items_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_items_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budgets: {
+        Row: {
+          budget_number: string
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          status: string | null
+          title: string
+          total_amount: number | null
+          updated_at: string
+          user_id: string
+          valid_until: string | null
+        }
+        Insert: {
+          budget_number: string
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          status?: string | null
+          title: string
+          total_amount?: number | null
+          updated_at?: string
+          user_id: string
+          valid_until?: string | null
+        }
+        Update: {
+          budget_number?: string
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          status?: string | null
+          title?: string
+          total_amount?: number | null
+          updated_at?: string
+          user_id?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
@@ -88,6 +186,72 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "company_links_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contracts: {
+        Row: {
+          budget_id: string | null
+          company_id: string
+          content: string
+          contract_number: string
+          created_at: string
+          end_date: string | null
+          id: string
+          signed_date: string | null
+          start_date: string | null
+          status: string | null
+          title: string
+          total_value: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget_id?: string | null
+          company_id: string
+          content: string
+          contract_number: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          signed_date?: string | null
+          start_date?: string | null
+          status?: string | null
+          title: string
+          total_value?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget_id?: string | null
+          company_id?: string
+          content?: string
+          contract_number?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          signed_date?: string | null
+          start_date?: string | null
+          status?: string | null
+          title?: string
+          total_value?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -186,6 +350,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      services: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          unit: string | null
+          unit_price: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          unit?: string | null
+          unit_price?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          unit?: string | null
+          unit_price?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       whatsapp_conversations: {
         Row: {

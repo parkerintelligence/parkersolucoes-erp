@@ -1,4 +1,3 @@
-
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
@@ -36,14 +35,23 @@ const Companies = () => {
   }
 
   const handleSave = () => {
-    if (!formData.name) {
+    if (!formData.name.trim()) {
       return;
     }
 
+    const companyData = {
+      name: formData.name.trim(),
+      cnpj: formData.cnpj.trim() || null,
+      contact: formData.contact.trim() || null,
+      email: formData.email.trim() || null,
+      phone: formData.phone.trim() || null,
+      address: formData.address.trim() || null
+    };
+
     if (editingCompany) {
-      updateCompany.mutate({ id: editingCompany, updates: formData });
+      updateCompany.mutate({ id: editingCompany, updates: companyData });
     } else {
-      createCompany.mutate(formData);
+      createCompany.mutate(companyData);
     }
 
     setFormData({ name: '', cnpj: '', contact: '', email: '', phone: '', address: '' });

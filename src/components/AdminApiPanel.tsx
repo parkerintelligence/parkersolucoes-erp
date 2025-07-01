@@ -1,514 +1,301 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Server, Database, HardDrive, Calendar, Shield, Activity } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { Settings, Plus, Edit, Trash2, Key, MessageCircle, HardDrive, Activity } from 'lucide-react';
+import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
 
-export const AdminApiPanel = () => {
-  // Estados para as configurações do GLPI
-  const [glpiUrl, setGlpiUrl] = useState(() => {
-    return localStorage.getItem('glpiUrl') || '';
-  });
-  const [glpiAppToken, setGlpiAppToken] = useState(() => {
-    return localStorage.getItem('glpiAppToken') || '';
-  });
-  const [glpiUserToken, setGlpiUserToken] = useState(() => {
-    return localStorage.getItem('glpiUserToken') || '';
-  });
+export function AdminApiPanel() {
+  const { data: integrations = [], isLoading } = useIntegrations();
+  const createIntegration = useCreateIntegration();
+  const updateIntegration = useUpdateIntegration();
+  const deleteIntegration = useDeleteIntegration();
 
-  // Estados para as configurações do Zabbix
-  const [zabbixApiUrl, setZabbixApiUrl] = useState(() => {
-    return localStorage.getItem('zabbixApiUrl') || '';
-  });
-  const [zabbixUser, setZabbixUser] = useState(() => {
-    return localStorage.getItem('zabbixUser') || '';
-  });
-  const [zabbixPassword, setZabbixPassword] = useState(() => {
-    return localStorage.getItem('zabbixPassword') || '';
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingIntegration, setEditingIntegration] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    type: 'chatwoot' as 'chatwoot' | 'evolution_api' | 'wasabi' | 'grafana',
+    name: '',
+    base_url: '',
+    api_token: '',
+    webhook_url: '',
+    phone_number: '',
+    is_active: true
   });
 
-  // Estados para as configurações do Backup FTP
-  const [ftpHost, setFtpHost] = useState(() => {
-    return localStorage.getItem('ftpHost') || '';
-  });
-  const [ftpPort, setFtpPort] = useState(() => {
-    return localStorage.getItem('ftpPort') || '21';
-  });
-  const [ftpUser, setFtpUser] = useState(() => {
-    return localStorage.getItem('ftpUser') || '';
-  });
-  const [ftpPassword, setFtpPassword] = useState(() => {
-    return localStorage.getItem('ftpPassword') || '';
-  });
+  const handleSave = () => {
+    if (!formData.name || !formData.base_url || !formData.api_token) return;
 
-  // Estados para as configurações do Google Calendar
-  const [googleCalendarApiKey, setGoogleCalendarApiKey] = useState(() => {
-    return localStorage.getItem('googleCalendarApiKey') || '';
-  });
-  const [googleCalendarId, setGoogleCalendarId] = useState(() => {
-    return localStorage.getItem('googleCalendarId') || '';
-  });
-
-  // Estados para as configurações do Wasabi
-  const [wasabiEndpoint, setWasabiEndpoint] = useState(() => {
-    return localStorage.getItem('wasabiEndpoint') || '';
-  });
-  const [wasabiAccessKey, setWasabiAccessKey] = useState(() => {
-    return localStorage.getItem('wasabiAccessKey') || '';
-  });
-  const [wasabiSecretKey, setWasabiSecretKey] = useState(() => {
-    return localStorage.getItem('wasabiSecretKey') || '';
-  });
-  const [wasabiBucket, setWasabiBucket] = useState(() => {
-    return localStorage.getItem('wasabiBucket') || '';
-  });
-
-  // Estados para as configurações do Grafana
-  const [grafanaUrl, setGrafanaUrl] = useState(() => {
-    return localStorage.getItem('grafanaUrl') || '';
-  });
-  const [grafanaApiKey, setGrafanaApiKey] = useState(() => {
-    return localStorage.getItem('grafanaApiKey') || '';
-  });
-
-  // Handlers para salvar as configurações do GLPI
-  const handleSaveGlpiConfig = () => {
-    localStorage.setItem('glpiUrl', glpiUrl);
-    localStorage.setItem('glpiAppToken', glpiAppToken);
-    localStorage.setItem('glpiUserToken', glpiUserToken);
-    toast({
-      title: "Sucesso!",
-      description: "Configurações do GLPI salvas com sucesso",
-    });
-  };
-
-  // Handlers para salvar as configurações do Zabbix
-  const handleSaveZabbixConfig = () => {
-    localStorage.setItem('zabbixApiUrl', zabbixApiUrl);
-    localStorage.setItem('zabbixUser', zabbixUser);
-    localStorage.setItem('zabbixPassword', zabbixPassword);
-    toast({
-      title: "Sucesso!",
-      description: "Configurações do Zabbix salvas com sucesso",
-    });
-  };
-
-  // Handlers para salvar as configurações do Backup FTP
-  const handleSaveFtpConfig = () => {
-    localStorage.setItem('ftpHost', ftpHost);
-    localStorage.setItem('ftpPort', ftpPort);
-    localStorage.setItem('ftpUser', ftpUser);
-    localStorage.setItem('ftpPassword', ftpPassword);
-    toast({
-      title: "Sucesso!",
-      description: "Configurações do Backup FTP salvas com sucesso",
-    });
-  };
-
-  // Handlers para salvar as configurações do Google Calendar
-  const handleSaveGoogleCalendarConfig = () => {
-    localStorage.setItem('googleCalendarApiKey', googleCalendarApiKey);
-    localStorage.setItem('googleCalendarId', googleCalendarId);
-    toast({
-      title: "Sucesso!",
-      description: "Configurações do Google Calendar salvas com sucesso",
-    });
-  };
-
-  // Handler para salvar as configurações do Wasabi
-  const handleSaveWasabiConfig = () => {
-    localStorage.setItem('wasabiEndpoint', wasabiEndpoint);
-    localStorage.setItem('wasabiAccessKey', wasabiAccessKey);
-    localStorage.setItem('wasabiSecretKey', wasabiSecretKey);
-    localStorage.setItem('wasabiBucket', wasabiBucket);
-    toast({
-      title: "Sucesso!",
-      description: "Configurações do Wasabi salvas com sucesso",
-    });
-  };
-
-  // Handler para salvar as configurações do Grafana
-  const handleSaveGrafanaConfig = () => {
-    localStorage.setItem('grafanaUrl', grafanaUrl);
-    localStorage.setItem('grafanaApiKey', grafanaApiKey);
-    toast({
-      title: "Sucesso!",
-      description: "Configurações do Grafana salvas com sucesso",
-    });
-  };
-
-  // Adicionar estado para senha master
-  const [masterPassword, setMasterPassword] = useState(() => {
-    return localStorage.getItem('systemMasterPassword') || '';
-  });
-
-  // Adicionar handler para senha master
-  const handleSaveMasterPassword = () => {
-    if (!masterPassword.trim()) {
-      toast({
-        title: "Erro",
-        description: "A senha master não pode estar vazia",
-        variant: "destructive"
-      });
-      return;
+    if (editingIntegration) {
+      updateIntegration.mutate({ id: editingIntegration, updates: formData });
+    } else {
+      createIntegration.mutate(formData);
     }
 
-    localStorage.setItem('systemMasterPassword', masterPassword);
-    toast({
-      title: "Sucesso!",
-      description: "Senha master salva com sucesso",
+    setFormData({
+      type: 'chatwoot',
+      name: '',
+      base_url: '',
+      api_token: '',
+      webhook_url: '',
+      phone_number: '',
+      is_active: true
     });
+    setIsDialogOpen(false);
+    setEditingIntegration(null);
   };
+
+  const handleEdit = (integration: any) => {
+    setFormData({
+      type: integration.type,
+      name: integration.name,
+      base_url: integration.base_url,
+      api_token: integration.api_token,
+      webhook_url: integration.webhook_url || '',
+      phone_number: integration.phone_number || '',
+      is_active: integration.is_active ?? true
+    });
+    setEditingIntegration(integration.id);
+    setIsDialogOpen(true);
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'chatwoot':
+      case 'evolution_api':
+        return MessageCircle;
+      case 'wasabi':
+        return HardDrive;
+      case 'grafana':
+        return Activity;
+      default:
+        return Settings;
+    }
+  };
+
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case 'chatwoot':
+        return 'Chatwoot';
+      case 'evolution_api':
+        return 'Evolution API';
+      case 'wasabi':
+        return 'Wasabi';
+      case 'grafana':
+        return 'Grafana';
+      default:
+        return type;
+    }
+  };
+
+  if (isLoading) {
+    return <div className="text-center py-4">Carregando configurações...</div>;
+  }
 
   return (
     <Card className="border-blue-200">
       <CardHeader>
-        <CardTitle className="text-blue-900 flex items-center gap-2">
-          <Server className="h-6 w-6" />
-          Configurações de Integração e Sistema
-        </CardTitle>
-        <CardDescription>Configure as integrações com sistemas externos e parâmetros do sistema</CardDescription>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="text-blue-900 flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              Configurações de API
+            </CardTitle>
+            <CardDescription>
+              Configure integrações com APIs externas (WhatsApp, Wasabi, Grafana)
+            </CardDescription>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Integração
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingIntegration ? 'Editar Integração' : 'Configurar Nova Integração'}
+                </DialogTitle>
+                <DialogDescription>
+                  Configure uma nova integração com APIs externas
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="type">Tipo de Integração</Label>
+                  <Select value={formData.type} onValueChange={(value: any) => setFormData({...formData, type: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="chatwoot">Chatwoot - WhatsApp</SelectItem>
+                      <SelectItem value="evolution_api">Evolution API - WhatsApp</SelectItem>
+                      <SelectItem value="wasabi">Wasabi Cloud Storage</SelectItem>
+                      <SelectItem value="grafana">Grafana Monitoring</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Nome da Integração</Label>
+                  <Input 
+                    id="name" 
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    placeholder="Ex: WhatsApp Principal, Wasabi Backup, etc." 
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="base_url">URL Base da API</Label>
+                  <Input 
+                    id="base_url" 
+                    value={formData.base_url}
+                    onChange={(e) => setFormData({...formData, base_url: e.target.value})}
+                    placeholder="https://api.example.com" 
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="api_token">Token/Chave da API</Label>
+                  <Input 
+                    id="api_token" 
+                    type="password"
+                    value={formData.api_token}
+                    onChange={(e) => setFormData({...formData, api_token: e.target.value})}
+                    placeholder="Token de acesso" 
+                  />
+                </div>
+                {(formData.type === 'chatwoot' || formData.type === 'evolution_api') && (
+                  <>
+                    <div className="grid gap-2">
+                      <Label htmlFor="phone_number">Número do WhatsApp</Label>
+                      <Input 
+                        id="phone_number" 
+                        value={formData.phone_number}
+                        onChange={(e) => setFormData({...formData, phone_number: e.target.value})}
+                        placeholder="+5511999999999" 
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="webhook_url">URL do Webhook (opcional)</Label>
+                      <Input 
+                        id="webhook_url" 
+                        value={formData.webhook_url}
+                        onChange={(e) => setFormData({...formData, webhook_url: e.target.value})}
+                        placeholder="https://webhook.example.com" 
+                      />
+                    </div>
+                  </>
+                )}
+                {formData.type === 'wasabi' && (
+                  <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded">
+                    <strong>Wasabi:</strong> Configure as credenciais de acesso ao bucket do Wasabi. 
+                    O token deve conter as chaves de acesso (Access Key e Secret Key).
+                  </div>
+                )}
+                {formData.type === 'grafana' && (
+                  <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded">
+                    <strong>Grafana:</strong> Configure a URL do Grafana e um token de API com permissões de leitura para visualizar dashboards.
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSave}>
+                  {editingIntegration ? 'Atualizar' : 'Salvar'}
+                </Button>
+                <Button variant="outline" onClick={() => {
+                  setIsDialogOpen(false);
+                  setEditingIntegration(null);
+                  setFormData({
+                    type: 'chatwoot',
+                    name: '',
+                    base_url: '',
+                    api_token: '',
+                    webhook_url: '',
+                    phone_number: '',
+                    is_active: true
+                  });
+                }}>
+                  Cancelar
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="glpi" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="glpi">GLPI</TabsTrigger>
-            <TabsTrigger value="zabbix">Zabbix</TabsTrigger>
-            <TabsTrigger value="backup">Backup FTP</TabsTrigger>
-            <TabsTrigger value="calendar">Google Calendar</TabsTrigger>
-            <TabsTrigger value="wasabi">Wasabi</TabsTrigger>
-            <TabsTrigger value="grafana">Grafana</TabsTrigger>
-            <TabsTrigger value="system">Sistema</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="glpi" className="space-y-4">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Database className="h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-semibold text-blue-900">Configurações do GLPI</h3>
-              </div>
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="glpiUrl">URL do GLPI</Label>
-                  <Input
-                    id="glpiUrl"
-                    placeholder="https://glpi.example.com"
-                    value={glpiUrl}
-                    onChange={(e) => setGlpiUrl(e.target.value)}
-                    className="border-blue-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="glpiAppToken">App Token</Label>
-                  <Input
-                    id="glpiAppToken"
-                    type="password"
-                    value={glpiAppToken}
-                    onChange={(e) => setGlpiAppToken(e.target.value)}
-                    placeholder="GLPI App Token"
-                    className="border-blue-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="glpiUserToken">User Token</Label>
-                  <Input
-                    id="glpiUserToken"
-                    type="password"
-                    value={glpiUserToken}
-                    onChange={(e) => setGlpiUserToken(e.target.value)}
-                    placeholder="GLPI User Token"
-                    className="border-blue-200"
-                  />
-                </div>
-              </div>
-              <Button
-                onClick={handleSaveGlpiConfig}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Salvar Configurações do GLPI
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="zabbix" className="space-y-4">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Shield className="h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-semibold text-blue-900">Configurações do Zabbix</h3>
-              </div>
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="zabbixApiUrl">URL da API do Zabbix</Label>
-                  <Input
-                    id="zabbixApiUrl"
-                    placeholder="https://zabbix.example.com/api_jsonrpc.php"
-                    value={zabbixApiUrl}
-                    onChange={(e) => setZabbixApiUrl(e.target.value)}
-                    className="border-blue-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="zabbixUser">Usuário do Zabbix</Label>
-                  <Input
-                    id="zabbixUser"
-                    value={zabbixUser}
-                    onChange={(e) => setZabbixUser(e.target.value)}
-                    placeholder="Usuário Zabbix"
-                    className="border-blue-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="zabbixPassword">Senha do Zabbix</Label>
-                  <Input
-                    id="zabbixPassword"
-                    type="password"
-                    value={zabbixPassword}
-                    onChange={(e) => setZabbixPassword(e.target.value)}
-                    placeholder="Senha Zabbix"
-                    className="border-blue-200"
-                  />
-                </div>
-              </div>
-              <Button
-                onClick={handleSaveZabbixConfig}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Salvar Configurações do Zabbix
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="backup" className="space-y-4">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                <HardDrive className="h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-semibold text-blue-900">Configurações do Backup FTP</h3>
-              </div>
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="ftpHost">Host FTP</Label>
-                  <Input
-                    id="ftpHost"
-                    placeholder="ftp.example.com"
-                    value={ftpHost}
-                    onChange={(e) => setFtpHost(e.target.value)}
-                    className="border-blue-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="ftpPort">Porta FTP</Label>
-                  <Input
-                    id="ftpPort"
-                    type="number"
-                    value={ftpPort}
-                    onChange={(e) => setFtpPort(e.target.value)}
-                    placeholder="21"
-                    className="border-blue-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="ftpUser">Usuário FTP</Label>
-                  <Input
-                    id="ftpUser"
-                    value={ftpUser}
-                    onChange={(e) => setFtpUser(e.target.value)}
-                    placeholder="Usuário FTP"
-                    className="border-blue-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="ftpPassword">Senha FTP</Label>
-                  <Input
-                    id="ftpPassword"
-                    type="password"
-                    value={ftpPassword}
-                    onChange={(e) => setFtpPassword(e.target.value)}
-                    placeholder="Senha FTP"
-                    className="border-blue-200"
-                  />
-                </div>
-              </div>
-              <Button
-                onClick={handleSaveFtpConfig}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Salvar Configurações do Backup FTP
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="calendar" className="space-y-4">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Calendar className="h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-semibold text-blue-900">Configurações do Google Calendar</h3>
-              </div>
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="googleCalendarApiKey">API Key do Google Calendar</Label>
-                  <Input
-                    id="googleCalendarApiKey"
-                    type="password"
-                    value={googleCalendarApiKey}
-                    onChange={(e) => setGoogleCalendarApiKey(e.target.value)}
-                    placeholder="API Key do Google Calendar"
-                    className="border-blue-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="googleCalendarId">Calendar ID</Label>
-                  <Input
-                    id="googleCalendarId"
-                    value={googleCalendarId}
-                    onChange={(e) => setGoogleCalendarId(e.target.value)}
-                    placeholder="Calendar ID"
-                    className="border-blue-200"
-                  />
-                </div>
-              </div>
-              <Button
-                onClick={handleSaveGoogleCalendarConfig}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Salvar Configurações do Google Calendar
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="wasabi" className="space-y-4">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                <HardDrive className="h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-semibold text-blue-900">Configurações do Wasabi</h3>
-              </div>
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="wasabiEndpoint">Endpoint do Wasabi</Label>
-                  <Input
-                    id="wasabiEndpoint"
-                    placeholder="https://s3.wasabisys.com"
-                    value={wasabiEndpoint}
-                    onChange={(e) => setWasabiEndpoint(e.target.value)}
-                    className="border-blue-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="wasabiAccessKey">Access Key</Label>
-                  <Input
-                    id="wasabiAccessKey"
-                    value={wasabiAccessKey}
-                    onChange={(e) => setWasabiAccessKey(e.target.value)}
-                    placeholder="Access Key do Wasabi"
-                    className="border-blue-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="wasabiSecretKey">Secret Key</Label>
-                  <Input
-                    id="wasabiSecretKey"
-                    type="password"
-                    value={wasabiSecretKey}
-                    onChange={(e) => setWasabiSecretKey(e.target.value)}
-                    placeholder="Secret Key do Wasabi"
-                    className="border-blue-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="wasabiBucket">Nome do Bucket</Label>
-                  <Input
-                    id="wasabiBucket"
-                    value={wasabiBucket}
-                    onChange={(e) => setWasabiBucket(e.target.value)}
-                    placeholder="Nome do bucket"
-                    className="border-blue-200"
-                  />
-                </div>
-              </div>
-              <Button
-                onClick={handleSaveWasabiConfig}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Salvar Configurações do Wasabi
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="grafana" className="space-y-4">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Activity className="h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-semibold text-blue-900">Configurações do Grafana</h3>
-              </div>
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="grafanaUrl">URL do Grafana</Label>
-                  <Input
-                    id="grafanaUrl"
-                    placeholder="https://grafana.example.com"
-                    value={grafanaUrl}
-                    onChange={(e) => setGrafanaUrl(e.target.value)}
-                    className="border-blue-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="grafanaApiKey">API Key do Grafana</Label>
-                  <Input
-                    id="grafanaApiKey"
-                    type="password"
-                    value={grafanaApiKey}
-                    onChange={(e) => setGrafanaApiKey(e.target.value)}
-                    placeholder="API Key do Grafana"
-                    className="border-blue-200"
-                  />
-                </div>
-              </div>
-              <Button
-                onClick={handleSaveGrafanaConfig}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Salvar Configurações do Grafana
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="system" className="space-y-4">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Shield className="h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-semibold text-blue-900">Configurações do Sistema</h3>
-              </div>
-              
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="masterPassword">Senha Master do Sistema</Label>
-                  <Input
-                    id="masterPassword"
-                    type="password"
-                    value={masterPassword}
-                    onChange={(e) => setMasterPassword(e.target.value)}
-                    placeholder="Digite a senha master para visualização de senhas"
-                    className="border-blue-200"
-                  />
-                  <p className="text-sm text-gray-600">
-                    Esta senha será solicitada para visualizar senhas no sistema
-                  </p>
-                </div>
-              </div>
-
-              <Button 
-                onClick={handleSaveMasterPassword}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Salvar Configurações do Sistema
-              </Button>
-            </div>
-          </TabsContent>
-        </Tabs>
+        {integrations.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Nenhuma integração configurada ainda.</p>
+            <p className="text-sm mt-2">Configure suas APIs para habilitar as funcionalidades do sistema.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>URL Base</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Detalhes</TableHead>
+                <TableHead>Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {integrations.map((integration) => {
+                const Icon = getTypeIcon(integration.type);
+                return (
+                  <TableRow key={integration.id} className="hover:bg-blue-50">
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4" />
+                        <span className="font-medium">{integration.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getTypeLabel(integration.type)}</TableCell>
+                    <TableCell className="max-w-xs truncate">{integration.base_url}</TableCell>
+                    <TableCell>
+                      <Badge variant={integration.is_active ? "default" : "secondary"}>
+                        {integration.is_active ? 'Ativo' : 'Inativo'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-600">
+                      {integration.phone_number && `Tel: ${integration.phone_number}`}
+                      {integration.webhook_url && 'Webhook configurado'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleEdit(integration)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => deleteIntegration.mutate(integration.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );
-};
+}
