@@ -26,6 +26,9 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { validateZabbixConnection } from '@/hooks/useZabbixValidation';
+import { toast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   type: z.enum(['chatwoot', 'evolution_api', 'wasabi', 'grafana', 'bomcontrole', 'zabbix', 'ftp']),
@@ -51,6 +54,7 @@ const AdminApiPanel = () => {
   const [selectedType, setSelectedType] = useState<"chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix" | "ftp">("chatwoot");
   const { createIntegration, updateIntegration, deleteIntegration, data: integrations, isLoading, isError } = useIntegrations();
   const [editingIntegrationId, setEditingIntegrationId] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -73,8 +77,46 @@ const AdminApiPanel = () => {
     },
   })
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     console.log('Dados do formulário:', values);
+    
+    // Validate Zabbix connection before saving
+    if (values.type === 'zabbix') {
+      if (!values.base_url || !values.username || !values.password) {
+        toast({
+          title: "Campos obrigatórios",
+          description: "URL Base, Nome de Usuário e Senha são obrigatórios para o Zabbix.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setIsValidating(true);
+      console.log('Validating Zabbix connection before saving...');
+      
+      const validation = await validateZabbixConnection(
+        values.base_url,
+        values.username,
+        values.password
+      );
+
+      setIsValidating(false);
+
+      if (!validation.isValid) {
+        console.error('Zabbix validation failed:', validation);
+        toast({
+          title: `Erro de Conexão: ${validation.error}`,
+          description: validation.details,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Conexão validada!",
+        description: "Conexão com o Zabbix estabelecida com sucesso.",
+      });
+    }
     
     // Ensure all required fields are present with proper defaults
     const integrationData = {
@@ -627,8 +669,17 @@ const AdminApiPanel = () => {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" disabled={createIntegration.isPending || updateIntegration.isPending}>
-                  {editingIntegrationId ? 
+                <Button 
+                  type="submit" 
+                  disabled={createIntegration.isPending || updateIntegration.isPending || isValidating}
+                  className="w-full"
+                >
+                  {isValidating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Validando conexão...
+                    </>
+                  ) : editingIntegrationId ? 
                     (updateIntegration.isPending ? "Atualizando..." : "Atualizar Integração") : 
                     (createIntegration.isPending ? "Criando..." : "Criar Integração")
                   }

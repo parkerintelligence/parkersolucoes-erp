@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { useIntegrations } from './useIntegrations';
 
@@ -56,61 +55,95 @@ export interface ZabbixTrigger {
 }
 
 const makeZabbixRequest = async (url: string, token: string, method: string, params: any) => {
-  const response = await fetch(`${url}/api_jsonrpc.php`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      method: method,
-      params: params,
-      auth: token,
-      id: 1,
-    }),
-  });
+  try {
+    console.log(`Making Zabbix request: ${method}`);
+    const response = await fetch(`${url}/api_jsonrpc.php`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: method,
+        params: params,
+        auth: token,
+        id: 1,
+      }),
+    });
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    console.log(`Zabbix ${method} response status:`, response.status);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log(`Zabbix ${method} response:`, data);
+    
+    if (data.error) {
+      console.error(`Zabbix ${method} API error:`, data.error);
+      throw new Error(data.error.message || `Zabbix ${method} API error`);
+    }
+
+    return data.result;
+  } catch (error) {
+    console.error(`Error in makeZabbixRequest (${method}):`, error);
+    throw error;
   }
-
-  const data = await response.json();
-  
-  if (data.error) {
-    throw new Error(data.error.message || 'Zabbix API error');
-  }
-
-  return data.result;
 };
 
 const authenticateZabbix = async (url: string, username: string, password: string) => {
-  const response = await fetch(`${url}/api_jsonrpc.php`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      method: 'user.login',
-      params: {
-        user: username,
-        password: password,
+  try {
+    console.log('Authenticating with Zabbix...', { url, username });
+    
+    const cleanUrl = url.replace(/\/$/, '');
+    const response = await fetch(`${cleanUrl}/api_jsonrpc.php`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      id: 1,
-    }),
-  });
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'user.login',
+        params: {
+          user: username,
+          password: password,
+        },
+        id: 1,
+      }),
+    });
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    console.log('Zabbix auth response status:', response.status);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('Zabbix auth response:', data);
+    
+    if (data.error) {
+      console.error('Zabbix authentication error:', data.error);
+      
+      if (data.error.message?.includes('Login name or password is incorrect')) {
+        throw new Error('Nome de usuário ou senha incorretos');
+      } else if (data.error.code === -32500) {
+        throw new Error('Credenciais de login inválidas');
+      } else {
+        throw new Error(data.error.message || 'Falha na autenticação');
+      }
+    }
+
+    if (!data.result) {
+      throw new Error('Não foi possível obter token de autenticação');
+    }
+
+    console.log('Zabbix authentication successful');
+    return data.result;
+  } catch (error) {
+    console.error('Error in authenticateZabbix:', error);
+    throw error;
   }
-
-  const data = await response.json();
-  
-  if (data.error) {
-    throw new Error(data.error.message || 'Authentication failed');
-  }
-
-  return data.result;
 };
 
 export const useZabbix = () => {
@@ -124,10 +157,10 @@ export const useZabbix = () => {
     queryKey: ['zabbix-auth', zabbixIntegration?.id],
     queryFn: async () => {
       if (!zabbixIntegration?.base_url || !zabbixIntegration?.username || !zabbixIntegration?.password) {
-        throw new Error('Zabbix integration not configured');
+        throw new Error('Integração do Zabbix não está configurada corretamente. Verifique URL Base, Nome de Usuário e Senha.');
       }
       
-      console.log('Authenticating with Zabbix...');
+      console.log('Starting Zabbix authentication...');
       return await authenticateZabbix(
         zabbixIntegration.base_url,
         zabbixIntegration.username,
@@ -136,7 +169,10 @@ export const useZabbix = () => {
     },
     enabled: !!zabbixIntegration,
     staleTime: 10 * 60 * 1000, // 10 minutes
-    retry: 2,
+    retry: (failureCount, error) => {
+      console.log(`Auth retry attempt ${failureCount}, error:`, error);
+      return failureCount < 2; // Only retry twice
+    },
   });
 
   const hostsQuery = useQuery({
@@ -248,6 +284,7 @@ export const useZabbix = () => {
     isLoading: authQuery.isLoading || hostsQuery.isLoading || problemsQuery.isLoading,
     error: authQuery.error || hostsQuery.error || problemsQuery.error,
     refetch: () => {
+      console.log('Refetching all Zabbix data...');
       authQuery.refetch();
       hostsQuery.refetch();
       problemsQuery.refetch();
