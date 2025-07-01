@@ -7,12 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { MessageCircle, Plus, Smartphone, Settings, Play, Pause, BarChart3 } from 'lucide-react';
-import { useIntegrations, useCreateIntegration } from '@/hooks/useIntegrations';
+import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
 const WhatsApp = () => {
-  const { data: integrations = [] } = useIntegrations();
-  const createIntegration = useCreateIntegration();
+  const { data: integrations = [], createIntegration } = useIntegrations();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     type: 'chatwoot' as 'chatwoot' | 'evolution_api',
@@ -46,7 +45,9 @@ const WhatsApp = () => {
       webhook_url: formData.webhook_url,
       phone_number: formData.phone_number,
       username: null,
-      password: null
+      password: null,
+      region: null,
+      bucket_name: null
     });
 
     setFormData({
