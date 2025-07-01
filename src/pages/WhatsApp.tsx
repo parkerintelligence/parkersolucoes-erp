@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,16 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Plus, Settings, RefreshCw, Send } from 'lucide-react';
+import { MessageCircle, Plus, Smartphone, Settings, Play, Pause, BarChart3 } from 'lucide-react';
 import { useIntegrations, useCreateIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
 const WhatsApp = () => {
+  const { data: integrations = [] } = useIntegrations();
+  const createIntegration = useCreateIntegration();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedIntegration, setSelectedIntegration] = useState<string>('');
   const [formData, setFormData] = useState({
     type: 'chatwoot' as 'chatwoot' | 'evolution_api',
     name: '',
@@ -25,30 +23,32 @@ const WhatsApp = () => {
     phone_number: ''
   });
 
-  const { data: integrations, isLoading } = useIntegrations();
-  const createIntegration = useCreateIntegration();
+  const whatsappIntegrations = integrations.filter(integration => 
+    integration.type === 'chatwoot' || integration.type === 'evolution_api'
+  );
 
-  const conversations = [
-    { id: '1', contactName: 'João Silva', contactPhone: '+5511999999999', lastMessage: 'Olá, preciso de ajuda', lastMessageTime: '2 min atrás', unreadCount: 3, status: 'active' },
-    { id: '2', contactName: 'Maria Santos', contactPhone: '+5511888888888', lastMessage: 'Obrigada pelo atendimento', lastMessageTime: '15 min atrás', unreadCount: 0, status: 'active' },
-    { id: '3', contactName: 'Pedro Costa', contactPhone: '+5511777777777', lastMessage: 'Quando fica pronto?', lastMessageTime: '1h atrás', unreadCount: 2, status: 'active' },
-  ];
-
-  const handleSubmit = () => {
-    if (!formData.name || !formData.base_url || !formData.api_token || !formData.type) {
+  const handleSave = () => {
+    if (!formData.name || !formData.base_url || !formData.api_token) {
       toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
+        title: "Campos obrigatórios",
+        description: "Preencha todos os campos obrigatórios.",
         variant: "destructive"
       });
       return;
     }
 
     createIntegration.mutate({
-      ...formData,
-      is_active: true
+      is_active: true,
+      type: formData.type,
+      name: formData.name,
+      base_url: formData.base_url,
+      api_token: formData.api_token,
+      webhook_url: formData.webhook_url,
+      phone_number: formData.phone_number,
+      username: null,
+      password: null
     });
-    setIsDialogOpen(false);
+
     setFormData({
       type: 'chatwoot',
       name: '',
@@ -57,15 +57,7 @@ const WhatsApp = () => {
       webhook_url: '',
       phone_number: ''
     });
-  };
-
-  const getStatusBadge = (status: string) => {
-    const colors = {
-      'active': 'bg-green-100 text-green-800 border-green-200',
-      'archived': 'bg-gray-100 text-gray-800 border-gray-200',
-      'blocked': 'bg-red-100 text-red-800 border-red-200',
-    };
-    return <Badge className={colors[status] || 'bg-gray-100 text-gray-800 border-gray-200'}>{status}</Badge>;
+    setIsDialogOpen(false);
   };
 
   return (
@@ -73,28 +65,30 @@ const WhatsApp = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
               <MessageCircle className="h-8 w-8" />
-              WhatsApp - Conversas
+              WhatsApp Business
             </h1>
-            <p className="text-blue-600">Gerencie conversas e integrações do WhatsApp</p>
+            <p className="text-slate-600">Gerencie suas integrações de WhatsApp</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="bg-green-600 hover:bg-green-700">
                 <Plus className="mr-2 h-4 w-4" />
-                Nova Integração
+                Adicionar Integração
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent>
               <DialogHeader>
-                <DialogTitle>Configurar Integração</DialogTitle>
-                <DialogDescription>Configure uma nova integração com Chatwoot ou Evolution API</DialogDescription>
+                <DialogTitle>Nova Integração WhatsApp</DialogTitle>
+                <DialogDescription>
+                  Configure uma nova integração com Chatwoot ou Evolution API
+                </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="type">Tipo de Integração</Label>
-                  <Select value={formData.type} onValueChange={(value: 'chatwoot' | 'evolution_api') => setFormData({...formData, type: value})}>
+                  <Select value={formData.type} onValueChange={(value: any) => setFormData({...formData, type: value})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
@@ -104,6 +98,7 @@ const WhatsApp = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                
                 <div className="grid gap-2">
                   <Label htmlFor="name">Nome da Integração</Label>
                   <Input 
@@ -113,15 +108,17 @@ const WhatsApp = () => {
                     placeholder="Ex: WhatsApp Principal" 
                   />
                 </div>
+                
                 <div className="grid gap-2">
-                  <Label htmlFor="base_url">URL Base</Label>
+                  <Label htmlFor="base_url">URL da API</Label>
                   <Input 
                     id="base_url" 
                     value={formData.base_url}
                     onChange={(e) => setFormData({...formData, base_url: e.target.value})}
-                    placeholder="https://api.example.com" 
+                    placeholder="https://api.exemplo.com" 
                   />
                 </div>
+                
                 <div className="grid gap-2">
                   <Label htmlFor="api_token">Token da API</Label>
                   <Input 
@@ -132,6 +129,7 @@ const WhatsApp = () => {
                     placeholder="Token de acesso" 
                   />
                 </div>
+                
                 <div className="grid gap-2">
                   <Label htmlFor="phone_number">Número do WhatsApp</Label>
                   <Input 
@@ -141,9 +139,19 @@ const WhatsApp = () => {
                     placeholder="+5511999999999" 
                   />
                 </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="webhook_url">URL do Webhook (opcional)</Label>
+                  <Input 
+                    id="webhook_url" 
+                    value={formData.webhook_url}
+                    onChange={(e) => setFormData({...formData, webhook_url: e.target.value})}
+                    placeholder="https://webhook.exemplo.com" 
+                  />
+                </div>
               </div>
               <div className="flex gap-2">
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSubmit}>
+                <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700">
                   Salvar
                 </Button>
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -154,94 +162,80 @@ const WhatsApp = () => {
           </Dialog>
         </div>
 
-        {/* Integrações Configuradas */}
-        <Card className="border-blue-200">
-          <CardHeader>
-            <CardTitle className="text-blue-900">Integrações Configuradas</CardTitle>
-            <CardDescription>Configure e gerencie suas integrações do WhatsApp</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <p>Carregando integrações...</p>
-            ) : integrations && integrations.length > 0 ? (
-              <div className="grid gap-4">
-                {integrations.map((integration) => (
-                  <div key={integration.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h4 className="font-medium">{integration.name}</h4>
-                      <p className="text-sm text-gray-600">Tipo: {integration.type}</p>
-                      <p className="text-sm text-gray-600">Telefone: {integration.phone_number}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {integration.is_active ? (
-                        <Badge className="bg-green-100 text-green-800">Ativo</Badge>
-                      ) : (
-                        <Badge className="bg-red-100 text-red-800">Inativo</Badge>
-                      )}
-                      <Button variant="outline" size="sm">
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                    </div>
+        {/* Lista de Integrações */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {whatsappIntegrations.map((integration) => (
+            <Card key={integration.id} className="border-green-200">
+              <CardHeader>
+                <CardTitle className="text-green-900 flex items-center gap-2">
+                  <Smartphone className="h-5 w-5" />
+                  {integration.name}
+                </CardTitle>
+                <CardDescription>
+                  {integration.type === 'chatwoot' ? 'Chatwoot' : 'Evolution API'} - {integration.phone_number}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${integration.is_active ? 'bg-green-500' : 'bg-gray-400'}`} />
+                    <span className="text-sm">{integration.is_active ? 'Ativo' : 'Inativo'}</span>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500">Nenhuma integração configurada ainda.</p>
-            )}
-          </CardContent>
-        </Card>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline">
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-green-600">
+                      {integration.is_active ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          
+          {whatsappIntegrations.length === 0 && (
+            <Card className="border-gray-200 md:col-span-2">
+              <CardContent className="p-8 text-center">
+                <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-500 mb-4">Nenhuma integração WhatsApp configurada ainda.</p>
+                <p className="text-sm text-gray-400">Configure uma integração para começar a usar o WhatsApp Business.</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
-        {/* Conversas */}
-        <Card className="border-blue-200">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="text-blue-900">Conversas Ativas</CardTitle>
-                <CardDescription>Acompanhe todas as conversas do WhatsApp</CardDescription>
+        {/* Estatísticas */}
+        {whatsappIntegrations.length > 0 && (
+          <Card className="border-blue-200">
+            <CardHeader>
+              <CardTitle className="text-blue-900 flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Estatísticas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-blue-600">0</p>
+                  <p className="text-sm text-slate-600">Mensagens Hoje</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-green-600">0</p>
+                  <p className="text-sm text-slate-600">Conversas Ativas</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-purple-600">0</p>
+                  <p className="text-sm text-slate-600">Contatos</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-orange-600">0</p>
+                  <p className="text-sm text-slate-600">Mensagens Pendentes</p>
+                </div>
               </div>
-              <Button variant="outline" size="sm">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Atualizar
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Contato</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Última Mensagem</TableHead>
-                  <TableHead>Horário</TableHead>
-                  <TableHead>Não Lidas</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {conversations.map((conversation) => (
-                  <TableRow key={conversation.id} className="hover:bg-blue-50">
-                    <TableCell className="font-medium">{conversation.contactName}</TableCell>
-                    <TableCell>{conversation.contactPhone}</TableCell>
-                    <TableCell className="max-w-xs truncate">{conversation.lastMessage}</TableCell>
-                    <TableCell>{conversation.lastMessageTime}</TableCell>
-                    <TableCell>
-                      {conversation.unreadCount > 0 && (
-                        <Badge variant="destructive">{conversation.unreadCount}</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(conversation.status)}</TableCell>
-                    <TableCell>
-                      <Button variant="outline" size="sm">
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </Layout>
   );

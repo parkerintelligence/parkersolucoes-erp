@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DollarSign, TrendingUp, TrendingDown, CreditCard, BarChart3, Refresh } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, CreditCard, BarChart3, RefreshCw } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
@@ -84,7 +83,7 @@ const Financial = () => {
             disabled={isLoading || !bomControleIntegration}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            <Refresh className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             Sincronizar
           </Button>
         </div>
