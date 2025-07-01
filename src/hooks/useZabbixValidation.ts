@@ -9,11 +9,12 @@ export interface ZabbixValidationResult {
 
 export const validateZabbixConnection = async (
   baseUrl: string,
-  username: string,
-  password: string
+  username?: string,
+  password?: string,
+  apiToken?: string
 ): Promise<ZabbixValidationResult> => {
   try {
-    console.log('Validating Zabbix connection...', { baseUrl, username });
+    console.log('Validating Zabbix connection...', { baseUrl, hasApiToken: !!apiToken, hasCredentials: !!(username && password) });
     
     // Clean URL - remove trailing slash and ensure it ends with api_jsonrpc.php
     let cleanUrl = baseUrl.replace(/\/$/, '');
@@ -100,20 +101,48 @@ export const validateZabbixConnection = async (
       }
     }
 
-    // Now test authentication
+    // Test authentication - use API token if provided, otherwise use username/password
     console.log('Testing authentication...');
+    
+    let authMethod: string;
+    let authParams: any;
+    let authHeader = '';
+
+    if (apiToken) {
+      // Use API token authentication
+      authMethod = 'user.get';
+      authParams = {
+        output: ['userid', 'username']
+      };
+      authHeader = apiToken;
+      console.log('Using API Token authentication');
+    } else if (username && password) {
+      // Use username/password authentication
+      authMethod = 'user.login';
+      authParams = {
+        user: username,
+        password: password,
+      };
+      console.log('Using username/password authentication');
+    } else {
+      return {
+        isValid: false,
+        error: 'Credenciais não fornecidas',
+        details: 'É necessário fornecer um API Token ou usuário e senha para autenticação.'
+      };
+    }
+
     const authResponse = await fetch(cleanUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(apiToken && { 'Authorization': `Bearer ${apiToken}` })
       },
       body: JSON.stringify({
         jsonrpc: '2.0',
-        method: 'user.login',
-        params: {
-          user: username,
-          password: password,
-        },
+        method: authMethod,
+        params: authParams,
+        ...(apiToken && { auth: apiToken }),
         id: 1,
       }),
     });
@@ -140,13 +169,13 @@ export const validateZabbixConnection = async (
         return {
           isValid: false,
           error: 'Parâmetros de autenticação inválidos',
-          details: `Os parâmetros de login estão em formato incorreto.\nCódigo do erro: ${authData.error.code}\nMensagem: ${authData.error.message || 'N/A'}\n\nVerifique se o usuário e senha não contêm caracteres especiais problemáticos.`
+          details: `Os parâmetros de autenticação estão em formato incorreto.\nCódigo do erro: ${authData.error.code}\nMensagem: ${authData.error.message || 'N/A'}\n\nVerifique se o ${apiToken ? 'API Token' : 'usuário e senha'} está correto.`
         };
-      } else if (authData.error.code === -32500) {
+      } else if (authData.error.code === -32500 || authData.error.code === -32000) {
         return {
           isValid: false,
-          error: 'Credenciais incorretas',
-          details: `Usuário ou senha incorretos.\nCódigo do erro: ${authData.error.code}\nMensagem: ${authData.error.message || 'N/A'}\n\nVerifique:\n• Se o usuário '${username}' existe no Zabbix\n• Se a senha está correta\n• Se o usuário tem permissão para fazer login via API\n• Se o usuário não está desabilitado`
+          error: apiToken ? 'API Token inválido' : 'Credenciais incorretas',
+          details: `${apiToken ? 'O API Token fornecido é inválido' : 'Usuário ou senha incorretos'}.\nCódigo do erro: ${authData.error.code}\nMensagem: ${authData.error.message || 'N/A'}\n\nVerifique:\n${apiToken ? '• Se o API Token existe e está ativo\n• Se o token tem as permissões necessárias\n• Se o token não expirou' : '• Se o usuário existe no Zabbix\n• Se a senha está correta\n• Se o usuário tem permissão para fazer login via API\n• Se o usuário não está desabilitado'}`
         };
       } else if (authData.error.message?.toLowerCase().includes('login name or password is incorrect')) {
         return {
@@ -163,15 +192,27 @@ export const validateZabbixConnection = async (
       }
     }
 
-    if (!authData.result) {
-      return {
-        isValid: false,
-        error: 'Falha na obtenção do token',
-        details: 'A autenticação não retornou um token válido. Isso pode indicar:\n• Problema interno do Zabbix\n• Configuração incorreta da API\n• Versão incompatível do Zabbix'
-      };
+    if (apiToken) {
+      // For API token, check if we got user data back
+      if (!authData.result || (Array.isArray(authData.result) && authData.result.length === 0)) {
+        return {
+          isValid: false,
+          error: 'API Token sem permissões suficientes',
+          details: 'O API Token é válido, mas não tem permissões para acessar dados de usuário. Verifique se o token tem as permissões necessárias no Zabbix.'
+        };
+      }
+    } else {
+      // For username/password, check if we got a token back
+      if (!authData.result) {
+        return {
+          isValid: false,
+          error: 'Falha na obtenção do token',
+          details: 'A autenticação não retornou um token válido. Isso pode indicar:\n• Problema interno do Zabbix\n• Configuração incorreta da API\n• Versão incompatível do Zabbix'
+        };
+      }
     }
 
-    console.log('Zabbix connection validated successfully. Token:', authData.result);
+    console.log('Zabbix connection validated successfully.');
     return {
       isValid: true
     };

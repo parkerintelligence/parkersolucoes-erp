@@ -79,15 +79,41 @@ const AdminApiPanel = () => {
     },
   })
 
+  const getZabbixFields = () => (
+    <>
+      <FormField
+        control={form.control}
+        name="api_token"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>API Token *</FormLabel>
+            <FormControl>
+              <Input 
+                type="password"
+                placeholder="••••••••••••••••••••••••••••••••" 
+                {...field}
+                value={field.value || ''}
+              />
+            </FormControl>
+            <FormDescription>
+              Token de API gerado no Zabbix (Administration → General → API tokens)
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </>
+  );
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     console.log('Dados do formulário:', values);
     
     // Validate Zabbix connection before saving
     if (values.type === 'zabbix') {
-      if (!values.base_url || !values.username || !values.password) {
+      if (!values.base_url || !values.api_token) {
         toast({
           title: "Campos obrigatórios",
-          description: "URL Base, Nome de Usuário e Senha são obrigatórios para o Zabbix.",
+          description: "URL Base e API Token são obrigatórios para o Zabbix.",
           variant: "destructive"
         });
         return;
@@ -98,8 +124,9 @@ const AdminApiPanel = () => {
       
       const validation = await validateZabbixConnection(
         values.base_url,
-        values.username,
-        values.password
+        '', // username não usado
+        '', // password não usado
+        values.api_token
       );
 
       setIsValidating(false);
@@ -125,7 +152,7 @@ const AdminApiPanel = () => {
 
       toast({
         title: "Conexão validada!",
-        description: "Conexão com o Zabbix estabelecida com sucesso.",
+        description: "Conexão com o Zabbix estabelecida com sucesso usando API Token.",
       });
     }
     
@@ -158,7 +185,7 @@ const AdminApiPanel = () => {
       createIntegration.mutate(integrationData);
     }
     form.reset();
-  }
+  };
 
   const handleEditIntegration = (integration: any) => {
     console.log('Editando integração:', integration);
@@ -379,55 +406,6 @@ const AdminApiPanel = () => {
           </FormItem>
         )}
       />
-    </>
-  );
-
-  const getZabbixFields = () => (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nome de Usuário *</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="Admin" 
-                  {...field}
-                  value={field.value || ''}
-                />
-              </FormControl>
-              <FormDescription>
-                Nome de usuário para autenticação no Zabbix
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Senha *</FormLabel>
-              <FormControl>
-                <Input 
-                  type="password"
-                  placeholder="••••••••" 
-                  {...field}
-                  value={field.value || ''}
-                />
-              </FormControl>
-              <FormDescription>
-                Senha para autenticação no Zabbix
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
     </>
   );
 

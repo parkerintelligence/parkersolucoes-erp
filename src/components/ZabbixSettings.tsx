@@ -23,16 +23,15 @@ export const ZabbixSettings = () => {
   const [formData, setFormData] = useState({
     name: zabbixIntegration?.name || 'Zabbix Monitoramento',
     base_url: zabbixIntegration?.base_url || '',
-    username: zabbixIntegration?.username || '',
-    password: zabbixIntegration?.password || '',
+    api_token: zabbixIntegration?.api_token || '',
     is_active: zabbixIntegration?.is_active ?? true,
   });
 
   const handleTestConnection = async () => {
-    if (!formData.base_url || !formData.username || !formData.password) {
+    if (!formData.base_url || !formData.api_token) {
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha URL Base, Nome de Usuário e Senha para testar a conexão.",
+        description: "Preencha URL Base e API Token para testar a conexão.",
         variant: "destructive"
       });
       return;
@@ -43,8 +42,9 @@ export const ZabbixSettings = () => {
 
     const validation = await validateZabbixConnection(
       formData.base_url,
-      formData.username,
-      formData.password
+      '', // username não usado com API token
+      '', // password não usado com API token
+      formData.api_token
     );
 
     setIsValidating(false);
@@ -53,7 +53,7 @@ export const ZabbixSettings = () => {
       setConnectionStatus('success');
       toast({
         title: "Conexão bem-sucedida!",
-        description: "A conexão com o Zabbix foi estabelecida com sucesso.",
+        description: "A conexão com o Zabbix foi estabelecida com sucesso usando API Token.",
       });
     } else {
       setConnectionStatus('error');
@@ -72,7 +72,7 @@ export const ZabbixSettings = () => {
   };
 
   const handleSave = async () => {
-    if (!formData.base_url || !formData.username || !formData.password) {
+    if (!formData.base_url || !formData.api_token) {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha todos os campos obrigatórios.",
@@ -85,8 +85,9 @@ export const ZabbixSettings = () => {
     setIsValidating(true);
     const validation = await validateZabbixConnection(
       formData.base_url,
-      formData.username,
-      formData.password
+      '', // username não usado com API token
+      '', // password não usado com API token
+      formData.api_token
     );
     setIsValidating(false);
 
@@ -109,10 +110,10 @@ export const ZabbixSettings = () => {
       type: 'zabbix' as const,
       name: formData.name,
       base_url: formData.base_url,
-      username: formData.username,
-      password: formData.password,
+      api_token: formData.api_token,
+      username: null,
+      password: null,
       is_active: formData.is_active,
-      api_token: null,
       webhook_url: null,
       phone_number: null,
       region: null,
@@ -165,7 +166,7 @@ export const ZabbixSettings = () => {
               Configurações do Zabbix
             </CardTitle>
             <CardDescription>
-              Configure a conexão com seu servidor Zabbix para monitoramento em tempo real
+              Configure a conexão com seu servidor Zabbix usando API Token para monitoramento em tempo real
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -203,26 +204,18 @@ export const ZabbixSettings = () => {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="username">Nome de Usuário *</Label>
-                  <Input
-                    id="username"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    placeholder="Admin"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="password">Senha *</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="••••••••"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="api_token">API Token *</Label>
+                <Input
+                  id="api_token"
+                  type="password"
+                  value={formData.api_token}
+                  onChange={(e) => setFormData({ ...formData, api_token: e.target.value })}
+                  placeholder="••••••••••••••••••••••••••••••••"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Token de API gerado no Zabbix (Administration → General → API tokens)
+                </p>
               </div>
 
               <div className="flex items-center justify-between p-4 rounded-lg border">
@@ -280,11 +273,13 @@ export const ZabbixSettings = () => {
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                <strong>Dicas importantes:</strong>
+                <strong>Como obter um API Token:</strong>
                 <ul className="mt-2 space-y-1 text-sm">
-                  <li>• Certifique-se de que o usuário tem permissões de API no Zabbix</li>
-                  <li>• A URL deve ser acessível pela rede onde este sistema está rodando</li>
-                  <li>• Teste a conexão antes de salvar para evitar problemas</li>
+                  <li>• Acesse o Zabbix como administrador</li>
+                  <li>• Vá em Administration → General → API tokens</li>
+                  <li>• Clique em "Create API token"</li>
+                  <li>• Configure as permissões necessárias</li>
+                  <li>• Copie o token gerado e cole aqui</li>
                 </ul>
               </AlertDescription>
             </Alert>
