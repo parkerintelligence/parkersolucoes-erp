@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useZabbixIntegration } from '@/hooks/useZabbixIntegration';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Settings, Server, AlertTriangle } from 'lucide-react';
+import { Loader2, Settings, Server, AlertTriangle, CheckCircle } from 'lucide-react';
 
 export const ZabbixAdminConfig = () => {
   const { data: integrations, createIntegration, updateIntegration } = useIntegrations();
@@ -33,6 +33,11 @@ export const ZabbixAdminConfig = () => {
       });
       return;
     }
+
+    console.log('Testing connection with:', { 
+      base_url: formData.base_url, 
+      api_token: formData.api_token.substring(0, 10) + '...' 
+    });
 
     testConnection.mutate({
       base_url: formData.base_url,
@@ -69,16 +74,27 @@ export const ZabbixAdminConfig = () => {
       keep_logged: null,
     };
 
-    if (zabbixIntegration) {
-      updateIntegration.mutate({ id: zabbixIntegration.id, updates: integrationData });
-    } else {
-      createIntegration.mutate(integrationData);
-    }
+    console.log('Saving integration data:', { ...integrationData, api_token: '***' });
 
-    toast({
-      title: "Configuração salva",
-      description: "A configuração do Zabbix foi salva com sucesso.",
-    });
+    try {
+      if (zabbixIntegration) {
+        await updateIntegration.mutateAsync({ id: zabbixIntegration.id, updates: integrationData });
+      } else {
+        await createIntegration.mutateAsync(integrationData);
+      }
+
+      toast({
+        title: "Configuração salva",
+        description: "A configuração do Zabbix foi salva com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error saving integration:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Ocorreu um erro ao salvar a configuração.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -159,7 +175,10 @@ export const ZabbixAdminConfig = () => {
                 Testando...
               </>
             ) : (
-              'Testar Conexão'
+              <>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Testar Conexão
+              </>
             )}
           </Button>
           
@@ -194,6 +213,17 @@ export const ZabbixAdminConfig = () => {
             </ul>
           </AlertDescription>
         </Alert>
+
+        {zabbixIntegration && (
+          <Alert>
+            <Settings className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Status:</strong> Configuração encontrada e {zabbixIntegration.is_active ? 'ativa' : 'inativa'}.
+              <br />
+              <strong>URL:</strong> {zabbixIntegration.base_url}
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
     </Card>
   );

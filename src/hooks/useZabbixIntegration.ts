@@ -61,30 +61,48 @@ export interface ZabbixTrigger {
   }>;
 }
 
-const makeZabbixRequest = async (url: string, token: string, method: string, params: any) => {
-  const response = await fetch(`${url}/api_jsonrpc.php`, {
+const makeZabbixRequest = async (baseUrl: string, token: string, method: string, params: any) => {
+  console.log('Making Zabbix request:', { baseUrl, method, params });
+  
+  // Limpar URL e garantir que termine com api_jsonrpc.php
+  let apiUrl = baseUrl.replace(/\/$/, '');
+  if (!apiUrl.endsWith('/api_jsonrpc.php')) {
+    apiUrl = apiUrl + '/api_jsonrpc.php';
+  }
+  
+  console.log('Final API URL:', apiUrl);
+
+  const requestBody = {
+    jsonrpc: '2.0',
+    method: method,
+    params: params,
+    auth: token,
+    id: 1,
+  };
+
+  console.log('Request body:', requestBody);
+
+  const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      'Content-Type': 'application/json-rpc',
     },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      method: method,
-      params: params,
-      auth: token,
-      id: 1,
-    }),
+    body: JSON.stringify(requestBody),
   });
 
+  console.log('Response status:', response.status);
+
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    console.error('HTTP error:', response.status, response.statusText);
+    throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
   }
 
   const data = await response.json();
+  console.log('Response data:', data);
   
   if (data.error) {
-    throw new Error(data.error.message || 'Zabbix API error');
+    console.error('Zabbix API error:', data.error);
+    throw new Error(`Zabbix API error: ${data.error.message || 'Unknown error'} (Code: ${data.error.code || 'N/A'})`);
   }
 
   return data.result;
@@ -98,22 +116,57 @@ export const useZabbixIntegration = () => {
     integration.type === 'zabbix' && integration.is_active
   );
 
+  console.log('Zabbix integration found:', zabbixIntegration);
+
   const testConnection = useMutation({
     mutationFn: async ({ base_url, api_token }: ZabbixConnection) => {
-      return await makeZabbixRequest(
-        base_url,
-        api_token,
-        'user.get',
-        { output: ['userid', 'username'] }
-      );
+      console.log('Testing Zabbix connection...');
+      
+      // Primeiro, vamos testar se a API está acessível
+      let apiUrl = base_url.replace(/\/$/, '');
+      if (!apiUrl.endsWith('/api_jsonrpc.php')) {
+        apiUrl = apiUrl + '/api_jsonrpc.php';
+      }
+
+      // Teste 1: Verificar se a API responde
+      console.log('Testing API availability...');
+      const versionResponse = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json-rpc',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'apiinfo.version',
+          params: {},
+          id: 1,
+        }),
+      });
+
+      if (!versionResponse.ok) {
+        throw new Error(`Zabbix API não acessível: ${versionResponse.status} ${versionResponse.statusText}`);
+      }
+
+      const versionData = await versionResponse.json();
+      console.log('API version response:', versionData);
+
+      if (versionData.error) {
+        throw new Error(`Erro na API do Zabbix: ${versionData.error.message}`);
+      }
+
+      // Teste 2: Verificar autenticação
+      console.log('Testing authentication...');
+      return await makeZabbixRequest(base_url, api_token, 'user.get', { output: ['userid', 'username'] });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Connection test successful:', data);
       toast({
         title: "Conexão bem-sucedida!",
         description: "A conexão com o Zabbix foi estabelecida com sucesso.",
       });
     },
     onError: (error: Error) => {
+      console.error('Connection test failed:', error);
       toast({
         title: "Erro de Conexão",
         description: error.message,
@@ -129,6 +182,7 @@ export const useZabbixIntegration = () => {
         throw new Error('Zabbix não configurado');
       }
 
+      console.log('Fetching hosts...');
       return await makeZabbixRequest(
         zabbixIntegration.base_url,
         zabbixIntegration.api_token,
@@ -142,6 +196,7 @@ export const useZabbixIntegration = () => {
     },
     enabled: !!zabbixIntegration,
     refetchInterval: 30000,
+    retry: 3,
   });
 
   const problemsQuery = useQuery({
@@ -151,6 +206,7 @@ export const useZabbixIntegration = () => {
         throw new Error('Zabbix não configurado');
       }
 
+      console.log('Fetching problems...');
       return await makeZabbixRequest(
         zabbixIntegration.base_url,
         zabbixIntegration.api_token,
@@ -167,6 +223,7 @@ export const useZabbixIntegration = () => {
     },
     enabled: !!zabbixIntegration,
     refetchInterval: 15000,
+    retry: 3,
   });
 
   const itemsQuery = useQuery({
@@ -176,6 +233,7 @@ export const useZabbixIntegration = () => {
         throw new Error('Zabbix não configurado');
       }
 
+      console.log('Fetching items...');
       return await makeZabbixRequest(
         zabbixIntegration.base_url,
         zabbixIntegration.api_token,
@@ -190,6 +248,7 @@ export const useZabbixIntegration = () => {
     },
     enabled: !!zabbixIntegration,
     refetchInterval: 60000,
+    retry: 3,
   });
 
   const triggersQuery = useQuery({
@@ -199,6 +258,7 @@ export const useZabbixIntegration = () => {
         throw new Error('Zabbix não configurado');
       }
 
+      console.log('Fetching triggers...');
       return await makeZabbixRequest(
         zabbixIntegration.base_url,
         zabbixIntegration.api_token,
@@ -214,9 +274,11 @@ export const useZabbixIntegration = () => {
     },
     enabled: !!zabbixIntegration,
     refetchInterval: 30000,
+    retry: 3,
   });
 
   const refetchAll = () => {
+    console.log('Refetching all Zabbix data...');
     queryClient.invalidateQueries({ queryKey: ['zabbix-hosts'] });
     queryClient.invalidateQueries({ queryKey: ['zabbix-problems'] });
     queryClient.invalidateQueries({ queryKey: ['zabbix-items'] });
