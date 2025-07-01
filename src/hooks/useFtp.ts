@@ -20,7 +20,7 @@ export const useFtp = () => {
   }
 
   // Buscar arquivos do FTP
-  const { data: files = [], isLoading: isLoadingFiles, error: filesError } = useQuery({
+  const { data: files = [], isLoading: isLoadingFiles, error: filesError, refetch: refetchFiles } = useQuery({
     queryKey: ['ftp-files', activeFtpIntegration?.id],
     queryFn: async (): Promise<FtpFile[]> => {
       if (!activeFtpIntegration) {
@@ -29,12 +29,6 @@ export const useFtp = () => {
       }
 
       console.log('Conectando ao FTP para listar arquivos...');
-      console.log('Dados da conexão:', {
-        host: activeFtpIntegration.base_url,
-        username: activeFtpIntegration.username,
-        hasPassword: !!activeFtpIntegration.password
-      });
-
       const ftpService = new FtpService(activeFtpIntegration);
       const fileList = await ftpService.listFiles();
       
@@ -56,17 +50,13 @@ export const useFtp = () => {
 
       console.log('Testando conexão FTP...');
       const ftpService = new FtpService(activeFtpIntegration);
-      const connectionInfo = ftpService.getConnectionInfo();
-      
-      console.log('Testando conexão com:', connectionInfo);
-      
       const isConnected = await ftpService.testConnection();
       
       if (!isConnected) {
         throw new Error('Falha na conexão com o servidor FTP');
       }
 
-      return { success: true, connectionInfo };
+      return { success: true, connectionInfo: ftpService.getConnectionInfo() };
     },
     onSuccess: (data) => {
       console.log('Conexão FTP testada com sucesso:', data.connectionInfo);
@@ -74,7 +64,6 @@ export const useFtp = () => {
         title: "✅ Conexão FTP testada!",
         description: `Conexão estabelecida com ${data.connectionInfo.host}:${data.connectionInfo.port}`,
       });
-      // Recarregar arquivos após teste bem-sucedido
       queryClient.invalidateQueries({ queryKey: ['ftp-files'] });
     },
     onError: (error: any) => {
@@ -82,6 +71,37 @@ export const useFtp = () => {
       toast({
         title: "❌ Erro na conexão FTP",
         description: error.message || "Verifique os dados de configuração do servidor FTP.",
+        variant: "destructive"
+      });
+    },
+  });
+
+  // Upload de arquivo
+  const uploadFile = useMutation({
+    mutationFn: async (file: File) => {
+      if (!activeFtpIntegration) {
+        throw new Error('Nenhuma integração FTP configurada');
+      }
+
+      console.log('Iniciando upload de:', file.name);
+      const ftpService = new FtpService(activeFtpIntegration);
+      await ftpService.uploadFile(file);
+      
+      return { success: true, fileName: file.name };
+    },
+    onSuccess: (data) => {
+      console.log('Upload realizado:', data.fileName);
+      toast({
+        title: "📤 Upload concluído",
+        description: `Upload de ${data.fileName} foi realizado com sucesso.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['ftp-files'] });
+    },
+    onError: (error: any) => {
+      console.error('Erro no upload:', error);
+      toast({
+        title: "❌ Erro no upload",
+        description: error.message || "Não foi possível fazer upload do arquivo para o servidor FTP.",
         variant: "destructive"
       });
     },
@@ -117,6 +137,37 @@ export const useFtp = () => {
     },
   });
 
+  // Excluir arquivo
+  const deleteFile = useMutation({
+    mutationFn: async (fileName: string) => {
+      if (!activeFtpIntegration) {
+        throw new Error('Nenhuma integração FTP configurada');
+      }
+
+      console.log('Excluindo arquivo:', fileName);
+      const ftpService = new FtpService(activeFtpIntegration);
+      await ftpService.deleteFile(fileName);
+      
+      return { success: true, fileName };
+    },
+    onSuccess: (data) => {
+      console.log('Arquivo excluído:', data.fileName);
+      toast({
+        title: "🗑️ Arquivo excluído",
+        description: `${data.fileName} foi excluído com sucesso do servidor FTP.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['ftp-files'] });
+    },
+    onError: (error: any) => {
+      console.error('Erro na exclusão:', error);
+      toast({
+        title: "❌ Erro na exclusão",
+        description: error.message || "Não foi possível excluir o arquivo do servidor FTP.",
+        variant: "destructive"
+      });
+    },
+  });
+
   return {
     files,
     isLoadingFiles: isLoadingFiles || isLoadingIntegrations,
@@ -124,6 +175,9 @@ export const useFtp = () => {
     ftpIntegration: activeFtpIntegration,
     ftpIntegrations,
     testConnection,
+    uploadFile,
     downloadFile,
+    deleteFile,
+    refetchFiles,
   };
 };

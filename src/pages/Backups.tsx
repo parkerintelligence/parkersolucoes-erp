@@ -4,30 +4,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { HardDrive, CheckCircle, XCircle, Clock, RefreshCw, AlertTriangle, Download, Server, Wifi, WifiOff } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { HardDrive, CheckCircle, XCircle, RefreshCw, AlertTriangle, Download, Server, Wifi, WifiOff, Upload, Trash2, FileText } from 'lucide-react';
 import { useFtp } from '@/hooks/useFtp';
+import { FtpUploadDialog } from '@/components/FtpUploadDialog';
 import { format, isToday, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useState } from 'react';
 
 const Backups = () => {
-  const { files, isLoadingFiles, ftpIntegration, testConnection, downloadFile, ftpIntegrations } = useFtp();
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Success':
-        return <Badge className="bg-green-100 text-green-800 border-green-200"><CheckCircle className="h-3 w-3 mr-1" />Sucesso</Badge>;
-      case 'Failed':
-        return <Badge className="bg-red-100 text-red-800 border-red-200"><XCircle className="h-3 w-3 mr-1" />Falhou</Badge>;
-      case 'Warning':
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200"><AlertTriangle className="h-3 w-3 mr-1" />Atenção</Badge>;
-      case 'Online':
-        return <Badge className="bg-green-100 text-green-800 border-green-200"><Wifi className="h-3 w-3 mr-1" />Online</Badge>;
-      case 'Offline':
-        return <Badge className="bg-red-100 text-red-800 border-red-200"><WifiOff className="h-3 w-3 mr-1" />Offline</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
+  const { files, isLoadingFiles, ftpIntegration, testConnection, downloadFile, deleteFile, refetchFiles, ftpIntegrations } = useFtp();
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -44,7 +31,7 @@ const Backups = () => {
     if (today) {
       return 'bg-green-50 hover:bg-green-100 border-l-4 border-l-green-500';
     } else if (daysDiff >= 2) {
-      return 'bg-pink-50 hover:bg-pink-100 border-l-4 border-l-pink-500';
+      return 'bg-red-50 hover:bg-red-100 border-l-4 border-l-red-500';
     }
     return 'hover:bg-blue-50 border-l-4 border-l-transparent';
   };
@@ -53,12 +40,21 @@ const Backups = () => {
     if (fileName.includes('.sql')) {
       return <HardDrive className="h-4 w-4 text-blue-600" />;
     }
-    return <HardDrive className="h-4 w-4 text-gray-500" />;
+    return <FileText className="h-4 w-4 text-gray-500" />;
+  };
+
+  const handleDeleteFile = async (fileName: string) => {
+    try {
+      await deleteFile.mutateAsync(fileName);
+      setFileToDelete(null);
+    } catch (error) {
+      console.error('Erro ao excluir arquivo:', error);
+    }
   };
 
   const successCount = files.filter(file => isToday(file.lastModified)).length;
   const outdatedCount = files.filter(file => {
-    const daysDiff = Math.floor((Date.now() - file.lastModified.getTime()) / (1000 * 60 * 60 * 24));
+    const daysDiff = Math.floor((Date.now() - file.lastModified.getTime()) / (1000 * 60 * 60 * 1000));
     return daysDiff >= 2;
   }).length;
 
@@ -72,44 +68,48 @@ const Backups = () => {
               <div className="bg-blue-100 p-2 rounded-lg">
                 <HardDrive className="h-8 w-8 text-blue-600" />
               </div>
-              Verificação de Backups
+              Gerenciamento de Backups FTP
             </h1>
-            <p className="text-gray-600 mt-2">Monitoramento automático de backups via servidor FTP</p>
+            <p className="text-gray-600 mt-2">Gerencie arquivos de backup no servidor FTP configurado</p>
           </div>
           
           <div className="flex flex-wrap gap-2">
             {ftpIntegration && (
-              <Button 
-                variant="outline" 
-                onClick={() => testConnection.mutate()}
-                disabled={testConnection.isPending}
-                className="flex items-center gap-2 border-blue-200 hover:bg-blue-50"
-              >
-                <Server className="h-4 w-4" />
-                {testConnection.isPending ? 'Testando...' : 'Testar Conexão'}
-              </Button>
+              <>
+                <FtpUploadDialog />
+                <Button 
+                  variant="outline" 
+                  onClick={() => testConnection.mutate()}
+                  disabled={testConnection.isPending}
+                  className="flex items-center gap-2 border-blue-200 hover:bg-blue-50"
+                >
+                  <Server className="h-4 w-4" />
+                  {testConnection.isPending ? 'Testando...' : 'Testar Conexão'}
+                </Button>
+              </>
             )}
             <Button 
               className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
-              onClick={() => window.location.reload()}
+              onClick={() => refetchFiles()}
+              disabled={isLoadingFiles}
             >
-              <RefreshCw className="h-4 w-4" />
-              Atualizar
+              <RefreshCw className={`h-4 w-4 ${isLoadingFiles ? 'animate-spin' : ''}`} />
+              Atualizar Lista
             </Button>
           </div>
         </div>
 
-        {/* FTP Server Info Card */}
+        {/* FTP Server Status Card */}
         {ftpIntegration ? (
           <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
             <CardHeader className="pb-3">
               <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
-                <Server className="h-5 w-5" />
-                Servidor FTP Configurado
+                <Wifi className="h-5 w-5" />
+                Servidor FTP Conectado
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-gray-700">Nome da Integração</p>
                   <p className="text-gray-900 font-semibold">{ftpIntegration.name}</p>
@@ -120,7 +120,14 @@ const Backups = () => {
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-gray-700">Usuário</p>
-                  <p className="text-gray-900">{ftpIntegration.username || 'Não especificado'}</p>
+                  <p className="text-gray-900">{ftpIntegration.username || 'anonymous'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-700">Status</p>
+                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Ativo
+                  </Badge>
                 </div>
               </div>
             </CardContent>
@@ -129,12 +136,12 @@ const Backups = () => {
           <Card className="border-yellow-200 bg-yellow-50">
             <CardContent className="p-6">
               <div className="text-center">
-                <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                <WifiOff className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-yellow-800 mb-2">
                   Nenhuma integração FTP configurada
                 </h3>
                 <p className="text-yellow-700 mb-4">
-                  Para visualizar os backups, configure uma integração FTP no Painel de Administração.
+                  Para gerenciar backups, configure uma integração FTP no Painel de Administração.
                 </p>
                 <Button 
                   variant="outline" 
@@ -167,21 +174,21 @@ const Backups = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-2xl font-bold text-gray-900">{successCount}</p>
-                  <p className="text-sm text-gray-600">Backups de Hoje</p>
+                  <p className="text-sm text-gray-600">Backups Recentes</p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-500" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="border-l-4 border-l-pink-500">
+          <Card className="border-l-4 border-l-red-500">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-2xl font-bold text-gray-900">{outdatedCount}</p>
                   <p className="text-sm text-gray-600">Backups Antigos</p>
                 </div>
-                <AlertTriangle className="h-8 w-8 text-pink-500" />
+                <AlertTriangle className="h-8 w-8 text-red-500" />
               </div>
             </CardContent>
           </Card>
@@ -199,7 +206,7 @@ const Backups = () => {
           </Card>
         </div>
 
-        {/* Files Table */}
+        {/* Files Management Table */}
         {ftpIntegration && (
           <Card className="border-gray-200 shadow-sm">
             <CardHeader>
@@ -207,21 +214,21 @@ const Backups = () => {
                 <div>
                   <CardTitle className="text-gray-900 flex items-center gap-2">
                     <HardDrive className="h-5 w-5 text-blue-600" />
-                    Arquivos de Backup
+                    Arquivos no Servidor FTP
                   </CardTitle>
                   <CardDescription className="mt-2">
-                    Arquivos encontrados no servidor FTP configurado
+                    Gerencie arquivos de backup do servidor {ftpIntegration.base_url}
                   </CardDescription>
                 </div>
                 
                 <div className="flex gap-4 text-xs">
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-3 bg-green-100 border-l-4 border-l-green-500 rounded-sm"></div>
-                    <span className="text-gray-600">Backup de hoje</span>
+                    <span className="text-gray-600">Backup recente</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-3 bg-pink-100 border-l-4 border-l-pink-500 rounded-sm"></div>
-                    <span className="text-gray-600">Backup desatualizado (2+ dias)</span>
+                    <div className="w-4 h-3 bg-red-100 border-l-4 border-l-red-500 rounded-sm"></div>
+                    <span className="text-gray-600">Backup antigo (2+ dias)</span>
                   </div>
                 </div>
               </div>
@@ -241,7 +248,7 @@ const Backups = () => {
                       <TableRow>
                         <TableHead className="font-semibold text-gray-700">Arquivo</TableHead>
                         <TableHead className="font-semibold text-gray-700">Tamanho</TableHead>
-                        <TableHead className="font-semibold text-gray-700">Última Modificação</TableHead>
+                        <TableHead className="font-semibold text-gray-700">Modificado</TableHead>
                         <TableHead className="font-semibold text-gray-700">Localização</TableHead>
                         <TableHead className="font-semibold text-gray-700 text-right">Ações</TableHead>
                       </TableRow>
@@ -287,16 +294,53 @@ const Backups = () => {
                             </code>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => downloadFile.mutate(file.name)}
-                              disabled={downloadFile.isPending}
-                              className="flex items-center gap-2 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
-                            >
-                              <Download className="h-3 w-3" />
-                              {downloadFile.isPending ? 'Baixando...' : 'Download'}
-                            </Button>
+                            <div className="flex items-center gap-2 justify-end">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => downloadFile.mutate(file.name)}
+                                disabled={downloadFile.isPending}
+                                className="flex items-center gap-1 border-blue-200 hover:bg-blue-50"
+                              >
+                                <Download className="h-3 w-3" />
+                                Download
+                              </Button>
+                              
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex items-center gap-1 border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                    Excluir
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle className="flex items-center gap-2">
+                                      <Trash2 className="h-5 w-5 text-red-600" />
+                                      Confirmar Exclusão
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja excluir o arquivo <strong>{file.name}</strong>?
+                                      <br />
+                                      <span className="text-red-600 font-medium">Esta ação não pode ser desfeita.</span>
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteFile(file.name)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Excluir Arquivo
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -308,11 +352,12 @@ const Backups = () => {
                   <Server className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum arquivo encontrado</h3>
                   <p className="text-gray-600 mb-4">
-                    Não foram encontrados arquivos de backup no servidor FTP configurado
+                    Não foram encontrados arquivos no servidor FTP configurado
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 mb-4">
                     Servidor: <code className="bg-gray-100 px-2 py-1 rounded">{ftpIntegration.base_url}</code>
                   </p>
+                  <FtpUploadDialog />
                 </div>
               )}
             </CardContent>
