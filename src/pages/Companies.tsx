@@ -1,238 +1,147 @@
-import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
-import { Layout } from '@/components/Layout';
+
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Building, Plus, Edit, Trash2 } from 'lucide-react';
-import { useState } from 'react';
-import { useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany } from '@/hooks/useCompanies';
+import { Badge } from '@/components/ui/badge';
+import { Building2, Search, Plus, Edit, Trash2, Phone, Mail } from 'lucide-react';
+import { useCompanies } from '@/hooks/useCompanies';
 
 const Companies = () => {
-  const { isAuthenticated } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
   const { data: companies = [], isLoading } = useCompanies();
-  const createCompany = useCreateCompany();
-  const updateCompany = useUpdateCompany();
-  const deleteCompany = useDeleteCompany();
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    cnpj: '',
-    contact: '',
-    email: '',
-    phone: '',
-    address: ''
-  });
-
-  if (!isAuthenticated) {
-    return <Navigate to="/" />;
-  }
-
-  const handleSave = () => {
-    if (!formData.name.trim()) {
-      return;
-    }
-
-    const companyData = {
-      name: formData.name.trim(),
-      cnpj: formData.cnpj.trim() || null,
-      contact: formData.contact.trim() || null,
-      email: formData.email.trim() || null,
-      phone: formData.phone.trim() || null,
-      address: formData.address.trim() || null
-    };
-
-    if (editingCompany) {
-      updateCompany.mutate({ id: editingCompany, ...companyData });
-    } else {
-      createCompany.mutate(companyData);
-    }
-
-    setFormData({ name: '', cnpj: '', contact: '', email: '', phone: '', address: '' });
-    setIsDialogOpen(false);
-    setEditingCompany(null);
-  };
-
-  const handleEdit = (company: any) => {
-    setFormData({
-      name: company.name || '',
-      cnpj: company.cnpj || '',
-      contact: company.contact || '',
-      email: company.email || '',
-      phone: company.phone || '',
-      address: company.address || ''
-    });
-    setEditingCompany(company.id);
-    setIsDialogOpen(true);
-  };
-
-  const handleDelete = (id: string) => {
-    deleteCompany.mutate(id);
-  };
-
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="flex justify-center items-center h-96">
-          <div className="text-slate-600">Carregando empresas...</div>
-        </div>
-      </Layout>
-    );
-  }
+  const filteredCompanies = companies.filter(company =>
+    company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    company.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    company.cnpj?.includes(searchTerm)
+  );
 
   return (
-    <Layout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
-              <Building className="h-8 w-8" />
-              Cadastro de Empresas
-            </h1>
-            <p className="text-blue-600">Gerencie as empresas cadastradas no sistema</p>
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="mr-2 h-4 w-4" />
-                Nova Empresa
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingCompany ? 'Editar Empresa' : 'Cadastrar Nova Empresa'}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingCompany ? 'Edite os dados da empresa.' : 'Preencha os dados da empresa cliente.'}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Nome da Empresa *</Label>
-                  <Input 
-                    id="name" 
-                    placeholder="Nome da empresa"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="cnpj">CNPJ</Label>
-                  <Input 
-                    id="cnpj" 
-                    placeholder="00.000.000/0000-00"
-                    value={formData.cnpj}
-                    onChange={(e) => setFormData({...formData, cnpj: e.target.value})}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="contact">Contato</Label>
-                  <Input 
-                    id="contact" 
-                    placeholder="Nome do responsável"
-                    value={formData.contact}
-                    onChange={(e) => setFormData({...formData, contact: e.target.value})}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="email">E-mail</Label>
-                  <Input 
-                    id="email" 
-                    type="email"
-                    placeholder="email@empresa.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="phone">Telefone</Label>
-                  <Input 
-                    id="phone" 
-                    placeholder="(11) 99999-9999"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="address">Endereço</Label>
-                  <Textarea 
-                    id="address" 
-                    placeholder="Endereço completo"
-                    value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
-                    rows={3}
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSave}>
-                  {editingCompany ? 'Atualizar' : 'Salvar'}
-                </Button>
-                <Button variant="outline" onClick={() => {
-                  setIsDialogOpen(false);
-                  setEditingCompany(null);
-                  setFormData({ name: '', cnpj: '', contact: '', email: '', phone: '', address: '' });
-                }}>
-                  Cancelar
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-3">
+            <Building2 className="h-8 w-8" />
+            Empresas
+          </h1>
+          <p className="text-blue-600 mt-1">Gerencie suas empresas clientes</p>
         </div>
+        <Button className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="h-4 w-4 mr-2" />
+          Nova Empresa
+        </Button>
+      </div>
 
+      {/* Estatísticas */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="border-blue-200">
-          <CardHeader>
-            <CardTitle className="text-blue-900">Empresas Cadastradas</CardTitle>
-            <CardDescription>Lista de todas as empresas registradas no sistema</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {companies.length === 0 ? (
-              <div className="text-center py-8 text-slate-500">
-                <Building className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>Nenhuma empresa cadastrada</p>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <Building2 className="h-8 w-8 text-blue-500" />
+              <div>
+                <p className="text-2xl font-bold text-blue-900">{companies.length}</p>
+                <p className="text-sm text-blue-600">Total</p>
               </div>
-            ) : (
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-blue-200">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <Badge className="h-8 w-8 bg-green-100 text-green-800 rounded-full flex items-center justify-center">A</Badge>
+              <div>
+                <p className="text-2xl font-bold text-blue-900">{companies.filter(c => c.name).length}</p>
+                <p className="text-sm text-blue-600">Ativas</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-blue-200">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <Mail className="h-8 w-8 text-purple-500" />
+              <div>
+                <p className="text-2xl font-bold text-blue-900">{companies.filter(c => c.email).length}</p>
+                <p className="text-sm text-blue-600">Com E-mail</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-blue-200">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <Phone className="h-8 w-8 text-orange-500" />
+              <div>
+                <p className="text-2xl font-bold text-blue-900">{companies.filter(c => c.phone).length}</p>
+                <p className="text-sm text-blue-600">Com Telefone</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Lista de Empresas */}
+      <Card className="border-blue-200">
+        <CardHeader>
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div>
+              <CardTitle className="text-blue-900 flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Lista de Empresas
+              </CardTitle>
+              <CardDescription>Gerencie informações das suas empresas</CardDescription>
+            </div>
+            <div className="w-full lg:w-64">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  placeholder="Buscar empresas..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600">Carregando empresas...</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Empresa</TableHead>
+                    <TableHead>Nome</TableHead>
                     <TableHead>CNPJ</TableHead>
-                    <TableHead>Contato</TableHead>
                     <TableHead>E-mail</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Ações</TableHead>
+                    <TableHead className="hidden lg:table-cell">Telefone</TableHead>
+                    <TableHead className="hidden lg:table-cell">Contato</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {companies.map((company) => (
+                  {filteredCompanies.map((company) => (
                     <TableRow key={company.id} className="hover:bg-blue-50">
                       <TableCell className="font-medium">{company.name}</TableCell>
                       <TableCell>{company.cnpj || '-'}</TableCell>
-                      <TableCell>{company.contact || '-'}</TableCell>
                       <TableCell>{company.email || '-'}</TableCell>
-                      <TableCell>{company.phone || '-'}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{company.phone || '-'}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{company.contact || '-'}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleEdit(company)}
-                          >
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="outline" size="sm">
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-red-600 hover:text-red-700"
-                            onClick={() => handleDelete(company.id)}
-                          >
+                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:border-red-300">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -241,48 +150,20 @@ const Companies = () => {
                   ))}
                 </TableBody>
               </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="border-blue-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Building className="h-5 w-5 text-blue-500" />
-                <div>
-                  <p className="text-2xl font-bold text-blue-900">{companies.length}</p>
-                  <p className="text-sm text-blue-600">Total de Empresas</p>
+              {filteredCompanies.length === 0 && (
+                <div className="text-center py-12 text-gray-500">
+                  <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p className="text-lg font-medium">Nenhuma empresa encontrada</p>
+                  <p className="text-sm">
+                    {searchTerm ? 'Tente ajustar sua busca' : 'Cadastre sua primeira empresa'}
+                  </p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-green-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Building className="h-5 w-5 text-green-500" />
-                <div>
-                  <p className="text-2xl font-bold text-green-900">{companies.filter(c => c.cnpj).length}</p>
-                  <p className="text-sm text-green-600">Com CNPJ</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-purple-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Building className="h-5 w-5 text-purple-500" />
-                <div>
-                  <p className="text-2xl font-bold text-purple-900">{companies.filter(c => c.email).length}</p>
-                  <p className="text-sm text-purple-600">Com E-mail</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </Layout>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
