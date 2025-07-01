@@ -265,14 +265,18 @@ export type Database = {
           base_url: string
           bucket_name: string | null
           created_at: string
+          directory: string | null
           id: string
           is_active: boolean | null
+          keep_logged: boolean | null
           name: string
+          passive_mode: boolean | null
           password: string | null
           phone_number: string | null
           region: string | null
           type: string
           updated_at: string
+          use_ssl: boolean | null
           user_id: string
           username: string | null
           webhook_url: string | null
@@ -282,14 +286,18 @@ export type Database = {
           base_url: string
           bucket_name?: string | null
           created_at?: string
+          directory?: string | null
           id?: string
           is_active?: boolean | null
+          keep_logged?: boolean | null
           name: string
+          passive_mode?: boolean | null
           password?: string | null
           phone_number?: string | null
           region?: string | null
           type: string
           updated_at?: string
+          use_ssl?: boolean | null
           user_id: string
           username?: string | null
           webhook_url?: string | null
@@ -299,14 +307,18 @@ export type Database = {
           base_url?: string
           bucket_name?: string | null
           created_at?: string
+          directory?: string | null
           id?: string
           is_active?: boolean | null
+          keep_logged?: boolean | null
           name?: string
+          passive_mode?: boolean | null
           password?: string | null
           phone_number?: string | null
           region?: string | null
           type?: string
           updated_at?: string
+          use_ssl?: boolean | null
           user_id?: string
           username?: string | null
           webhook_url?: string | null
