@@ -49,7 +49,11 @@ const WhatsApp = () => {
       password: null,
       region: null,
       bucket_name: null,
-      port: null
+      port: null,
+      directory: null,
+      passive_mode: null,
+      use_ssl: null,
+      keep_logged: null
     });
 
     setFormData({
