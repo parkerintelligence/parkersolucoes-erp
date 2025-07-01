@@ -34,7 +34,7 @@ export const Layout = ({ children }: LayoutProps) => {
         <div className="flex-1 flex flex-col min-w-0">
           <TopHeader />
           <main className="flex-1 overflow-auto">
-            <div className="h-full p-4">
+            <div className="p-3">
               {children}
             </div>
           </main>

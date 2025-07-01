@@ -10,7 +10,7 @@ import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
 interface ApiConfiguration {
-  id?: number;
+  id?: string;
   type: string;
   name: string;
   base_url: string;
@@ -33,8 +33,8 @@ const AdminApiPanel = () => {
     bucket_name: '',
     is_active: true
   });
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [testingConnection, setTestingConnection] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [testingConnection, setTestingConnection] = useState<string | null>(null);
 
   const apiTypes = [
     { value: 'glpi', label: 'GLPI' },
@@ -58,7 +58,17 @@ const AdminApiPanel = () => {
   };
 
   const handleEdit = (config: ApiConfiguration) => {
-    setNewConfig(config);
+    setNewConfig({
+      id: config.id,
+      type: config.type,
+      name: config.name,
+      base_url: config.base_url,
+      username: config.username || '',
+      password: config.password || '',
+      region: config.region || '',
+      bucket_name: config.bucket_name || '',
+      is_active: config.is_active
+    });
     setEditingId(config.id || null);
   };
 
@@ -72,13 +82,13 @@ const AdminApiPanel = () => {
       let testOptions: RequestInit = {};
 
       if (config.type === 'wasabi') {
-        // Teste específico para Wasabi
+        // Teste específico para Wasabi usando s3.wasabisys.com
         testUrl = '/api/wasabi-test';
         testOptions = {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            endpoint: config.base_url,
+            endpoint: config.base_url || 's3.wasabisys.com',
             accessKey: config.username,
             secretKey: config.password,
             region: config.region || 'us-east-1',
@@ -98,7 +108,7 @@ const AdminApiPanel = () => {
 
       const response = await fetch(testUrl, testOptions);
       
-      if (response.ok || response.status === 401) { // 401 pode ser esperado em alguns casos
+      if (response.ok || response.status === 401) {
         toast({
           title: "Conexão bem-sucedida!",
           description: `Conexão com ${config.name} estabelecida com sucesso.`,
@@ -141,6 +151,11 @@ const AdminApiPanel = () => {
         return;
       }
 
+      // Definir endpoint padrão do Wasabi se não informado
+      if (!newConfig.base_url) {
+        newConfig.base_url = 's3.wasabisys.com';
+      }
+
       // Testar conexão
       try {
         const testResponse = await fetch('/api/wasabi-test', {
@@ -171,13 +186,37 @@ const AdminApiPanel = () => {
 
     try {
       if (editingId) {
-        await updateIntegration.mutateAsync({ id: editingId, ...newConfig });
+        await updateIntegration.mutateAsync({ 
+          id: editingId, 
+          updates: {
+            type: newConfig.type as any,
+            name: newConfig.name,
+            base_url: newConfig.base_url,
+            username: newConfig.username,
+            password: newConfig.password,
+            region: newConfig.region,
+            bucket_name: newConfig.bucket_name,
+            is_active: newConfig.is_active
+          }
+        });
         toast({
           title: "Configuração atualizada!",
           description: `${newConfig.name} foi atualizada com sucesso.`,
         });
       } else {
-        await createIntegration.mutateAsync(newConfig);
+        await createIntegration.mutateAsync({
+          type: newConfig.type as any,
+          name: newConfig.name,
+          base_url: newConfig.base_url,
+          api_token: null,
+          webhook_url: null,
+          phone_number: null,
+          username: newConfig.username,
+          password: newConfig.password,
+          region: newConfig.region,
+          bucket_name: newConfig.bucket_name,
+          is_active: newConfig.is_active
+        });
         toast({
           title: "Configuração adicionada!",
           description: `${newConfig.name} foi adicionada com sucesso.`,
@@ -193,7 +232,7 @@ const AdminApiPanel = () => {
     }
   };
 
-  const handleDelete = async (id: number, name: string) => {
+  const handleDelete = async (id: string, name: string) => {
     try {
       await deleteIntegration.mutateAsync(id);
       toast({
@@ -210,11 +249,11 @@ const AdminApiPanel = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Formulário */}
       <Card>
-        <CardHeader>
-          <CardTitle>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">
             {editingId ? 'Editar' : 'Nova'} Configuração de API
           </CardTitle>
         </CardHeader>
@@ -252,12 +291,14 @@ const AdminApiPanel = () => {
             </div>
 
             <div>
-              <Label htmlFor="base_url">URL Base</Label>
+              <Label htmlFor="base_url">
+                {newConfig.type === 'wasabi' ? 'Endpoint (padrão: s3.wasabisys.com)' : 'URL Base'}
+              </Label>
               <Input
                 id="base_url"
                 value={newConfig.base_url}
                 onChange={(e) => setNewConfig({ ...newConfig, base_url: e.target.value })}
-                placeholder="https://api.exemplo.com"
+                placeholder={newConfig.type === 'wasabi' ? 's3.wasabisys.com' : 'https://api.exemplo.com'}
                 required
               />
             </div>
@@ -307,6 +348,7 @@ const AdminApiPanel = () => {
                     value={newConfig.bucket_name}
                     onChange={(e) => setNewConfig({ ...newConfig, bucket_name: e.target.value })}
                     placeholder="nome-do-bucket"
+                    required={newConfig.type === 'wasabi'}
                   />
                 </div>
               </div>
@@ -342,14 +384,14 @@ const AdminApiPanel = () => {
 
       {/* Lista de Configurações */}
       <Card>
-        <CardHeader>
-          <CardTitle>Configurações Existentes</CardTitle>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Configurações Existentes</CardTitle>
         </CardHeader>
         <CardContent>
           {integrations && integrations.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {integrations.map((config) => (
-                <div key={config.id} className="border border-gray-200 rounded-lg p-4">
+                <div key={config.id} className="border border-gray-200 rounded-lg p-3">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
@@ -382,7 +424,17 @@ const AdminApiPanel = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => testConnection(config)}
+                        onClick={() => testConnection({
+                          id: config.id,
+                          type: config.type,
+                          name: config.name,
+                          base_url: config.base_url,
+                          username: config.username || '',
+                          password: config.password || '',
+                          region: config.region || '',
+                          bucket_name: config.bucket_name || '',
+                          is_active: config.is_active || false
+                        })}
                         disabled={testingConnection === config.id}
                       >
                         <TestTube className={`h-4 w-4 mr-1 ${testingConnection === config.id ? 'animate-spin' : ''}`} />
@@ -391,7 +443,17 @@ const AdminApiPanel = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleEdit(config)}
+                        onClick={() => handleEdit({
+                          id: config.id,
+                          type: config.type,
+                          name: config.name,
+                          base_url: config.base_url,
+                          username: config.username || '',
+                          password: config.password || '',
+                          region: config.region || '',
+                          bucket_name: config.bucket_name || '',
+                          is_active: config.is_active || false
+                        })}
                       >
                         <Check className="h-4 w-4" />
                       </Button>
@@ -409,7 +471,7 @@ const AdminApiPanel = () => {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">
+            <p className="text-gray-500 text-center py-6">
               Nenhuma configuração encontrada.
             </p>
           )}

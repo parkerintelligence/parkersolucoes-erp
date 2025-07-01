@@ -13,6 +13,8 @@ export interface Integration {
   phone_number: string | null;
   username: string | null;
   password: string | null;
+  region: string | null;
+  bucket_name: string | null;
   is_active: boolean | null;
   created_at: string;
   updated_at: string;
@@ -20,7 +22,9 @@ export interface Integration {
 }
 
 export const useIntegrations = () => {
-  return useQuery({
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
     queryKey: ['integrations'],
     queryFn: async () => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -46,12 +50,8 @@ export const useIntegrations = () => {
       return data as Integration[];
     },
   });
-};
 
-export const useCreateIntegration = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  const createIntegration = useMutation({
     mutationFn: async (integration: Omit<Integration, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
@@ -60,7 +60,6 @@ export const useCreateIntegration = () => {
         throw new Error('User not authenticated');
       }
 
-      // Garantir que campos obrigatórios não sejam undefined
       const integrationData = {
         type: integration.type,
         name: integration.name,
@@ -70,6 +69,8 @@ export const useCreateIntegration = () => {
         phone_number: integration.phone_number || null,
         username: integration.username || null,
         password: integration.password || null,
+        region: integration.region || null,
+        bucket_name: integration.bucket_name || null,
         is_active: integration.is_active ?? true,
         user_id: user.id
       };
@@ -106,12 +107,8 @@ export const useCreateIntegration = () => {
       });
     },
   });
-};
 
-export const useUpdateIntegration = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  const updateIntegration = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Integration> }) => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
@@ -120,7 +117,6 @@ export const useUpdateIntegration = () => {
         throw new Error('User not authenticated');
       }
 
-      // Garantir que campos sejam null em vez de undefined
       const updateData = {
         ...updates,
         api_token: updates.api_token === undefined ? null : updates.api_token,
@@ -128,6 +124,8 @@ export const useUpdateIntegration = () => {
         phone_number: updates.phone_number === undefined ? null : updates.phone_number,
         username: updates.username === undefined ? null : updates.username,
         password: updates.password === undefined ? null : updates.password,
+        region: updates.region === undefined ? null : updates.region,
+        bucket_name: updates.bucket_name === undefined ? null : updates.bucket_name,
       };
 
       console.log('Updating integration:', id, updateData);
@@ -163,12 +161,8 @@ export const useUpdateIntegration = () => {
       });
     },
   });
-};
 
-export const useDeleteIntegration = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  const deleteIntegration = useMutation({
     mutationFn: async (id: string) => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
@@ -207,4 +201,11 @@ export const useDeleteIntegration = () => {
       });
     },
   });
+
+  return {
+    ...query,
+    createIntegration,
+    updateIntegration,
+    deleteIntegration,
+  };
 };

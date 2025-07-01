@@ -60,10 +60,10 @@ const Wasabi = () => {
   if (!wasabiIntegration) {
     return (
       <Card className="border-orange-200 bg-orange-50">
-        <CardContent className="p-8 text-center">
+        <CardContent className="p-6 text-center">
           <HardDrive className="h-16 w-16 text-orange-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-orange-900 mb-2">Integração Wasabi não configurada</h2>
-          <p className="text-orange-700 mb-6">
+          <h2 className="text-xl font-bold text-orange-900 mb-2">Integração Wasabi não configurada</h2>
+          <p className="text-orange-700 mb-4">
             Para usar o armazenamento Wasabi, você precisa configurar uma integração primeiro.
           </p>
           <Button className="bg-orange-600 hover:bg-orange-700">
@@ -75,15 +75,15 @@ const Wasabi = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-3">
-            <HardDrive className="h-8 w-8" />
+          <h1 className="text-2xl font-bold text-blue-900 flex items-center gap-3">
+            <HardDrive className="h-7 w-7" />
             Wasabi Storage
           </h1>
-          <p className="text-blue-600 mt-1">
+          <p className="text-blue-600 text-sm">
             Bucket: <span className="font-semibold">{bucketName}</span>
           </p>
         </div>
@@ -94,43 +94,43 @@ const Wasabi = () => {
       </div>
 
       {/* Estatísticas */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="border-blue-200">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <Folder className="h-8 w-8 text-blue-500" />
+              <Folder className="h-6 w-6 text-blue-500" />
               <div>
-                <p className="text-2xl font-bold text-blue-900">1</p>
-                <p className="text-sm text-blue-600">Bucket Ativo</p>
+                <p className="text-xl font-bold text-blue-900">1</p>
+                <p className="text-xs text-blue-600">Bucket Ativo</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
         <Card className="border-blue-200">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <File className="h-8 w-8 text-green-500" />
+              <File className="h-6 w-6 text-green-500" />
               <div>
-                <p className="text-2xl font-bold text-blue-900">{files.length}</p>
-                <p className="text-sm text-blue-600">Arquivos</p>
+                <p className="text-xl font-bold text-blue-900">{files.length}</p>
+                <p className="text-xs text-blue-600">Arquivos</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
         <Card className="border-blue-200">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <HardDrive className="h-8 w-8 text-purple-500" />
+              <HardDrive className="h-6 w-6 text-purple-500" />
               <div>
-                <p className="text-2xl font-bold text-blue-900">
+                <p className="text-xl font-bold text-blue-900">
                   {files.reduce((total, file) => {
                     const sizeInMB = parseFloat(file.size.replace(/[^\d.]/g, ''));
                     return total + (file.size.includes('GB') ? sizeInMB * 1000 : sizeInMB);
                   }, 0).toFixed(0)} MB
                 </p>
-                <p className="text-sm text-blue-600">Usado</p>
+                <p className="text-xs text-blue-600">Usado</p>
               </div>
             </div>
           </CardContent>
@@ -139,8 +139,8 @@ const Wasabi = () => {
 
       {/* Upload Section */}
       <Card className="border-blue-200">
-        <CardHeader>
-          <CardTitle className="text-blue-900 flex items-center gap-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
             <Upload className="h-5 w-5" />
             Upload de Arquivos
           </CardTitle>
@@ -148,7 +148,7 @@ const Wasabi = () => {
             Envie arquivos para o bucket: <strong>{bucketName}</strong>
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Selecionar Arquivos
@@ -173,10 +173,10 @@ const Wasabi = () => {
 
       {/* Files List */}
       <Card className="border-blue-200">
-        <CardHeader>
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
             <div>
-              <CardTitle className="text-blue-900 flex items-center gap-2">
+              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
                 <File className="h-5 w-5" />
                 Arquivos Armazenados
               </CardTitle>
@@ -197,7 +197,7 @@ const Wasabi = () => {
         </CardHeader>
         <CardContent>
           {isLoadingFiles ? (
-            <div className="text-center py-8">
+            <div className="text-center py-6">
               <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
               <p className="text-gray-600">Carregando arquivos...</p>
             </div>
@@ -246,7 +246,7 @@ const Wasabi = () => {
                 </TableBody>
               </Table>
               {filteredFiles.length === 0 && (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-8 text-gray-500">
                   <File className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                   <p className="text-lg font-medium">Nenhum arquivo encontrado</p>
                   <p className="text-sm">
