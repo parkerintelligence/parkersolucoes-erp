@@ -1,32 +1,34 @@
 
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Headphones, AlertCircle, Clock, CheckCircle, RefreshCw, Plus, Settings, Loader2 } from 'lucide-react';
-import { useGLPI } from '@/hooks/useGLPI';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Headphones, Settings, RefreshCw, Plus, Loader2, BarChart3, AlertTriangle, HardDrive, FileText, Users } from 'lucide-react';
+import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
+import { GLPIDashboard } from '@/components/GLPIDashboard';
+import { GLPITicketsGrid } from '@/components/GLPITicketsGrid';
+import { GLPIInventory } from '@/components/GLPIInventory';
 
 const GLPI = () => {
   const { 
     glpiIntegration, 
-    tickets, 
-    computers, 
-    users, 
     createTicket, 
-    updateTicket, 
-    getStatusText, 
-    getPriorityText,
-    initSession 
-  } = useGLPI();
+    initSession,
+    problems,
+    changes,
+    suppliers,
+    contracts,
+    users,
+    entities,
+    locations,
+    groups
+  } = useGLPIExpanded();
 
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [newTicket, setNewTicket] = useState({
@@ -57,39 +59,6 @@ const GLPI = () => {
     }
   };
 
-  const getPriorityBadge = (priority: number) => {
-    switch (priority) {
-      case 5:
-      case 6:
-        return <Badge className="bg-red-100 text-red-800 border-red-200">Alta</Badge>;
-      case 3:
-      case 4:
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Média</Badge>;
-      case 1:
-      case 2:
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Baixa</Badge>;
-      default:
-        return <Badge>{getPriorityText(priority)}</Badge>;
-    }
-  };
-
-  const getStatusBadge = (status: number) => {
-    switch (status) {
-      case 1:
-      case 2:
-        return <Badge className="bg-red-100 text-red-800 border-red-200">{getStatusText(status)}</Badge>;
-      case 3:
-      case 4:
-        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">{getStatusText(status)}</Badge>;
-      case 5:
-        return <Badge className="bg-green-100 text-green-800 border-green-200">{getStatusText(status)}</Badge>;
-      case 6:
-        return <Badge className="bg-gray-100 text-gray-800 border-gray-200">{getStatusText(status)}</Badge>;
-      default:
-        return <Badge>{getStatusText(status)}</Badge>;
-    }
-  };
-
   if (!glpiIntegration) {
     return (
       <Layout>
@@ -98,9 +67,9 @@ const GLPI = () => {
             <div>
               <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
                 <Headphones className="h-8 w-8" />
-                GLPI - Chamados e Equipamentos
+                GLPI - Sistema Completo de Gestão
               </h1>
-              <p className="text-blue-600">Integração com sistema GLPI</p>
+              <p className="text-blue-600">Plataforma integrada para gestão de TI</p>
             </div>
           </div>
 
@@ -109,7 +78,7 @@ const GLPI = () => {
               <Settings className="h-12 w-12 mx-auto mb-4 text-gray-400" />
               <h3 className="text-lg font-semibold mb-2">GLPI não configurado</h3>
               <p className="text-gray-600 mb-4">
-                Configure a integração com GLPI no painel administrativo para começar a gerenciar chamados e equipamentos.
+                Configure a integração com GLPI no painel administrativo para acessar todas as funcionalidades.
               </p>
               <Button onClick={() => window.location.href = '/admin'}>
                 <Settings className="mr-2 h-4 w-4" />
@@ -129,9 +98,9 @@ const GLPI = () => {
           <div>
             <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
               <Headphones className="h-8 w-8" />
-              GLPI - Chamados e Equipamentos
+              GLPI - Sistema Completo de Gestão
             </h1>
-            <p className="text-blue-600">Gerenciamento de chamados e inventário de equipamentos</p>
+            <p className="text-blue-600">Gestão integrada de TI - Chamados, Ativos, Inventário e muito mais</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => initSession.mutate()}>
@@ -239,163 +208,199 @@ const GLPI = () => {
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="border-blue-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-red-500" />
-                <div>
-                  <p className="text-2xl font-bold text-blue-900">
-                    {tickets.data?.filter(t => t.priority >= 5).length || 0}
-                  </p>
-                  <p className="text-sm text-blue-600">Críticos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-blue-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-yellow-500" />
-                <div>
-                  <p className="text-2xl font-bold text-blue-900">
-                    {tickets.data?.filter(t => t.status === 2 || t.status === 3).length || 0}
-                  </p>
-                  <p className="text-sm text-blue-600">Em Andamento</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-blue-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                <div>
-                  <p className="text-2xl font-bold text-blue-900">
-                    {tickets.data?.filter(t => t.status === 5).length || 0}
-                  </p>
-                  <p className="text-sm text-blue-600">Resolvidos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-blue-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Headphones className="h-5 w-5 text-blue-500" />
-                <div>
-                  <p className="text-2xl font-bold text-blue-900">
-                    {tickets.data?.filter(t => t.status !== 6).length || 0}
-                  </p>
-                  <p className="text-sm text-blue-600">Total Abertos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Interface Principal com Abas */}
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="grid grid-cols-6 w-full">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="tickets" className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Chamados
+            </TabsTrigger>
+            <TabsTrigger value="inventory" className="flex items-center gap-2">
+              <HardDrive className="h-4 w-4" />
+              Inventário
+            </TabsTrigger>
+            <TabsTrigger value="itil" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              ITIL
+            </TabsTrigger>
+            <TabsTrigger value="organization" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Organização
+            </TabsTrigger>
+            <TabsTrigger value="management" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Gestão
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Loading State */}
-        {tickets.isLoading && (
-          <Card className="border-blue-200">
-            <CardContent className="p-8 text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
-              <p>Carregando dados do GLPI...</p>
-            </CardContent>
-          </Card>
-        )}
+          <TabsContent value="dashboard" className="mt-6">
+            <GLPIDashboard />
+          </TabsContent>
 
-        {/* Error State */}
-        {tickets.error && (
-          <Card className="border-red-200">
-            <CardContent className="p-8 text-center">
-              <AlertCircle className="h-8 w-8 mx-auto mb-4 text-red-500" />
-              <p className="text-red-600 mb-4">Erro ao carregar dados: {tickets.error.message}</p>
-              <Button onClick={() => tickets.refetch()}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Tentar Novamente
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+          <TabsContent value="tickets" className="mt-6">
+            <GLPITicketsGrid />
+          </TabsContent>
 
-        {/* Tickets Table */}
-        {tickets.data && tickets.data.length > 0 && (
-          <Card className="border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-blue-900">Chamados Recentes</CardTitle>
-              <CardDescription>Lista dos chamados mais recentes no sistema GLPI</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Título</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Prioridade</TableHead>
-                    <TableHead>Criado em</TableHead>
-                    <TableHead>Modificado em</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tickets.data.slice(0, 10).map((ticket) => (
-                    <TableRow key={ticket.id} className="hover:bg-blue-50">
-                      <TableCell className="font-medium">#{ticket.id}</TableCell>
-                      <TableCell className="max-w-xs truncate">{ticket.name}</TableCell>
-                      <TableCell>{getStatusBadge(ticket.status)}</TableCell>
-                      <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
-                      <TableCell className="text-gray-600">
-                        {format(new Date(ticket.date), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
-                      </TableCell>
-                      <TableCell className="text-gray-600">
-                        {format(new Date(ticket.date_mod), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
+          <TabsContent value="inventory" className="mt-6">
+            <GLPIInventory />
+          </TabsContent>
 
-        {/* Equipment Table */}
-        {computers.data && computers.data.length > 0 && (
-          <Card className="border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-blue-900">Inventário de Equipamentos</CardTitle>
-              <CardDescription>Lista dos equipamentos cadastrados no GLPI</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Serial</TableHead>
-                    <TableHead>Contato</TableHead>
-                    <TableHead>Localização</TableHead>
-                    <TableHead>Última Modificação</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {computers.data.slice(0, 10).map((computer) => (
-                    <TableRow key={computer.id} className="hover:bg-blue-50">
-                      <TableCell className="font-medium">{computer.id}</TableCell>
-                      <TableCell>{computer.name}</TableCell>
-                      <TableCell>{computer.serial || '-'}</TableCell>
-                      <TableCell>{computer.contact || '-'}</TableCell>
-                      <TableCell>{computer.locations_id || '-'}</TableCell>
-                      <TableCell className="text-gray-600">
-                        {computer.date_mod ? format(new Date(computer.date_mod), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
+          <TabsContent value="itil" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Problemas */}
+              <Card className="border-orange-200">
+                <CardContent className="p-4">
+                  <h3 className="text-lg font-semibold text-orange-900 mb-4 flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5" />
+                    Problemas ({problems.data?.length || 0})
+                  </h3>
+                  {problems.isLoading ? (
+                    <div className="text-center py-4">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-gray-600">Carregando problemas...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {problems.data?.slice(0, 5).map((problem) => (
+                        <div key={problem.id} className="p-2 bg-orange-50 rounded border border-orange-200">
+                          <div className="font-medium text-sm">#{problem.id} - {problem.name}</div>
+                          <div className="text-xs text-gray-600 truncate">{problem.content}</div>
+                        </div>
+                      )) || <p className="text-sm text-gray-500">Nenhum problema encontrado</p>}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Mudanças */}
+              <Card className="border-purple-200">
+                <CardContent className="p-4">
+                  <h3 className="text-lg font-semibold text-purple-900 mb-4 flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Mudanças ({changes.data?.length || 0})
+                  </h3>
+                  {changes.isLoading ? (
+                    <div className="text-center py-4">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-gray-600">Carregando mudanças...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {changes.data?.slice(0, 5).map((change) => (
+                        <div key={change.id} className="p-2 bg-purple-50 rounded border border-purple-200">
+                          <div className="font-medium text-sm">#{change.id} - {change.name}</div>
+                          <div className="text-xs text-gray-600 truncate">{change.content}</div>
+                        </div>
+                      )) || <p className="text-sm text-gray-500">Nenhuma mudança encontrada</p>}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="organization" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Usuários */}
+              <Card className="border-blue-200">
+                <CardContent className="p-4">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Usuários ({users.data?.length || 0})
+                  </h3>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {users.data?.slice(0, 10).map((user) => (
+                      <div key={user.id} className="p-2 bg-blue-50 rounded border border-blue-200">
+                        <div className="font-medium text-sm">{user.realname} {user.firstname}</div>
+                        <div className="text-xs text-gray-600">{user.email}</div>
+                      </div>
+                    )) || <p className="text-sm text-gray-500">Nenhum usuário encontrado</p>}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Entidades */}
+              <Card className="border-green-200">
+                <CardContent className="p-4">
+                  <h3 className="text-lg font-semibold text-green-900 mb-4 flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Entidades ({entities.data?.length || 0})
+                  </h3>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {entities.data?.slice(0, 10).map((entity) => (
+                      <div key={entity.id} className="p-2 bg-green-50 rounded border border-green-200">
+                        <div className="font-medium text-sm">{entity.name}</div>
+                        <div className="text-xs text-gray-600">{entity.comment}</div>
+                      </div>
+                    )) || <p className="text-sm text-gray-500">Nenhuma entidade encontrada</p>}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Localizações */}
+              <Card className="border-teal-200">
+                <CardContent className="p-4">
+                  <h3 className="text-lg font-semibold text-teal-900 mb-4 flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Localizações ({locations.data?.length || 0})
+                  </h3>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {locations.data?.slice(0, 10).map((location) => (
+                      <div key={location.id} className="p-2 bg-teal-50 rounded border border-teal-200">
+                        <div className="font-medium text-sm">{location.name}</div>
+                        {location.address && <div className="text-xs text-gray-600">{location.address}</div>}
+                      </div>
+                    )) || <p className="text-sm text-gray-500">Nenhuma localização encontrada</p>}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="management" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Fornecedores */}
+              <Card className="border-emerald-200">
+                <CardContent className="p-4">
+                  <h3 className="text-lg font-semibold text-emerald-900 mb-4 flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Fornecedores ({suppliers.data?.length || 0})
+                  </h3>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {suppliers.data?.slice(0, 10).map((supplier) => (
+                      <div key={supplier.id} className="p-2 bg-emerald-50 rounded border border-emerald-200">
+                        <div className="font-medium text-sm">{supplier.name}</div>
+                        <div className="text-xs text-gray-600">{supplier.email || supplier.website}</div>
+                      </div>
+                    )) || <p className="text-sm text-gray-500">Nenhum fornecedor encontrado</p>}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Contratos */}
+              <Card className="border-rose-200">
+                <CardContent className="p-4">
+                  <h3 className="text-lg font-semibold text-rose-900 mb-4 flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Contratos ({contracts.data?.length || 0})
+                  </h3>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {contracts.data?.slice(0, 10).map((contract) => (
+                      <div key={contract.id} className="p-2 bg-rose-50 rounded border border-rose-200">
+                        <div className="font-medium text-sm">{contract.name}</div>
+                        <div className="text-xs text-gray-600">Número: {contract.num}</div>
+                      </div>
+                    )) || <p className="text-sm text-gray-500">Nenhum contrato encontrado</p>}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
