@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Settings, Router, BarChart3, Network, Cpu, HardDrive, Wifi, Shield, Clock, AlertTriangle, CheckCircle, XCircle, Terminal, Download, Upload } from 'lucide-react';
 import { useMikrotikTunnel } from '@/hooks/useMikrotikTunnel';
+import { MikrotikConnectionStatus } from '@/components/MikrotikConnectionStatus';
 
 const Mikrotik = () => {
   const { isConfigured, interfaces, resources, isLoading, refetchAll, isWorkerReady, testConnection } = useMikrotikTunnel();
@@ -53,10 +54,20 @@ const Mikrotik = () => {
               Mikrotik - Gerenciamento RouterOS
             </h1>
             <p className="text-blue-600">Gestão completa de roteadores e monitoramento em tempo real</p>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant={isWorkerReady ? "default" : "destructive"}>
+                HTTP Tunnel: {isWorkerReady ? 'Ativo' : 'Inativo'}
+              </Badge>
+            </div>
           </div>
-          <Button onClick={refetchAll} variant="outline">
-            Atualizar Dados
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => testConnection.mutate()} variant="outline" disabled={testConnection.isPending}>
+              {testConnection.isPending ? 'Testando...' : 'Testar Conexão'}
+            </Button>
+            <Button onClick={refetchAll} variant="outline">
+              Atualizar Dados
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="dashboard" className="w-full">
@@ -175,6 +186,11 @@ const Mikrotik = () => {
                   </div>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Connection Status */}
+            <div className="mb-6">
+              <MikrotikConnectionStatus />
             </div>
 
             {/* Informações do Sistema e Interfaces */}
