@@ -331,22 +331,50 @@ const AdminApiPanel = () => {
 
   const getZabbixFields = () => (
     <>
-      <FormField
-        control={form.control}
-        name="api_token"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Token de API *</FormLabel>
-            <FormControl>
-              <Input placeholder="Token de acesso do Zabbix" {...field} />
-            </FormControl>
-            <FormDescription>
-              Token de autenticação para acessar a API do Zabbix
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nome de Usuário *</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="admin" 
+                  {...field}
+                  value={field.value || ''}
+                />
+              </FormControl>
+              <FormDescription>
+                Nome de usuário para autenticação no Zabbix
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Senha *</FormLabel>
+              <FormControl>
+                <Input 
+                  type="password"
+                  placeholder="••••••••" 
+                  {...field}
+                  value={field.value || ''}
+                />
+              </FormControl>
+              <FormDescription>
+                Senha para autenticação no Zabbix
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
     </>
   );
 
