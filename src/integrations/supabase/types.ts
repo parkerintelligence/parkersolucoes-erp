@@ -273,6 +273,7 @@ export type Database = {
           passive_mode: boolean | null
           password: string | null
           phone_number: string | null
+          port: number | null
           region: string | null
           type: string
           updated_at: string
@@ -294,6 +295,7 @@ export type Database = {
           passive_mode?: boolean | null
           password?: string | null
           phone_number?: string | null
+          port?: number | null
           region?: string | null
           type: string
           updated_at?: string
@@ -315,6 +317,7 @@ export type Database = {
           passive_mode?: boolean | null
           password?: string | null
           phone_number?: string | null
+          port?: number | null
           region?: string | null
           type?: string
           updated_at?: string
