@@ -15,10 +15,11 @@ import {
   Folder,
   File,
   Search,
-  Settings
+  Settings,
+  Upload
 } from 'lucide-react';
-import { useRealFtp } from '@/hooks/useRealFtp';
-import { FtpStatsPopover } from '@/components/FtpStatsPopover';
+import { useModernFtp } from '@/hooks/useModernFtp';
+import { FtpUploadDialog } from '@/components/FtpUploadDialog';
 import { FtpDirectoryNavigator } from '@/components/FtpDirectoryNavigator';
 
 const Backups = () => {
@@ -33,9 +34,10 @@ const Backups = () => {
     refetchFiles, 
     downloadFile, 
     deleteFile 
-  } = useRealFtp();
+  } = useModernFtp();
   
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
 
   const filteredFiles = files.filter(file => 
     file.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -63,6 +65,34 @@ const Backups = () => {
       hour: '2-digit',
       minute: '2-digit'
     }).format(date);
+  };
+
+  const handleSelectFile = (fileName: string) => {
+    const newSelection = selectedFiles.includes(fileName) 
+      ? selectedFiles.filter(f => f !== fileName)
+      : [...selectedFiles, fileName];
+    setSelectedFiles(newSelection);
+  };
+
+  const handleDownloadSelected = async () => {
+    for (const fileName of selectedFiles) {
+      try {
+        await downloadFile.mutateAsync(fileName);
+      } catch (error) {
+        console.error('Erro ao baixar arquivo:', fileName, error);
+      }
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    for (const fileName of selectedFiles) {
+      try {
+        await deleteFile.mutateAsync(fileName);
+      } catch (error) {
+        console.error('Erro ao excluir arquivo:', fileName, error);
+      }
+    }
+    setSelectedFiles([]);
   };
 
   if (!ftpIntegration) {
@@ -112,11 +142,13 @@ const Backups = () => {
         </div>
         
         <div className="flex items-center space-x-3">
-          <FtpStatsPopover 
-            totalFiles={files.length}
-            recentFiles={recentFiles}
-            totalSize={formatFileSize(totalSize)}
-          />
+          <div className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
+            <div className="flex items-center gap-4">
+              <span>Arquivos: {files.length}</span>
+              <span>Recentes: {recentFiles}</span>
+              <span>Total: {formatFileSize(totalSize)}</span>
+            </div>
+          </div>
           <Badge className="bg-green-100 text-green-800 border-green-200">
             <Server className="h-3 w-3 mr-1" />
             Conectado {ftpIntegration.port && `(Porta ${ftpIntegration.port})`}
@@ -139,7 +171,7 @@ const Backups = () => {
         <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 border-b p-4">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold">
             <Server className="h-5 w-5 text-slate-600" />
-            Explorador de Arquivos FTP
+            Explorador de Arquivos FTP Moderno
           </CardTitle>
         </CardHeader>
 
@@ -151,7 +183,7 @@ const Backups = () => {
           onGoBack={goToParentDirectory}
         />
 
-        {/* Barra de Pesquisa */}
+        {/* Barra de Ferramentas */}
         <div className="p-4 border-b bg-gray-50">
           <div className="flex items-center justify-between">
             <div className="relative flex-1 max-w-md">
@@ -163,8 +195,41 @@ const Backups = () => {
                 className="pl-10"
               />
             </div>
-            <div className="text-sm text-slate-600 ml-4">
-              {filteredFiles.length} arquivo(s) em {currentPath}
+            
+            <div className="flex items-center gap-3 ml-4">
+              <FtpUploadDialog />
+              
+              {selectedFiles.length > 0 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadSelected}
+                    className="flex items-center gap-1"
+                  >
+                    <Download className="h-4 w-4" />
+                    Baixar ({selectedFiles.length})
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm(`Tem certeza que deseja excluir ${selectedFiles.length} arquivo(s)?`)) {
+                        handleDeleteSelected();
+                      }
+                    }}
+                    className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Excluir ({selectedFiles.length})
+                  </Button>
+                </>
+              )}
+              
+              <div className="text-sm text-slate-600">
+                {filteredFiles.length} arquivo(s) em {currentPath}
+              </div>
             </div>
           </div>
         </div>
@@ -197,6 +262,12 @@ const Backups = () => {
               {filteredFiles.map((file, index) => (
                 <div key={index} className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3 flex-1">
+                    <input
+                      type="checkbox"
+                      checked={selectedFiles.includes(file.name)}
+                      onChange={() => handleSelectFile(file.name)}
+                      className="rounded border-gray-300"
+                    />
                     <div className="flex-shrink-0">
                       {file.isDirectory ? (
                         <button
@@ -243,9 +314,6 @@ const Backups = () => {
                         </p>
                         <p className="text-xs text-gray-500">
                           {file.owner}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {file.path}
                         </p>
                       </div>
                     </div>

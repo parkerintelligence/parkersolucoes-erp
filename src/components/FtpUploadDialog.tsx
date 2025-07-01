@@ -4,12 +4,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Upload, X } from 'lucide-react';
-import { useFtp } from '@/hooks/useFtp';
+import { useModernFtp } from '@/hooks/useModernFtp';
 
 export const FtpUploadDialog = () => {
   const [open, setOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const { uploadFile } = useFtp();
+  const { uploadFile } = useModernFtp();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -61,7 +61,7 @@ export const FtpUploadDialog = () => {
               onChange={handleFileSelect}
               className="hidden"
               id="file-upload"
-              accept=".sql,.txt,.zip,.tar,.gz,.bak"
+              accept=".sql,.txt,.zip,.tar,.gz,.bak,.log,.json,.xml,.csv"
             />
             <label htmlFor="file-upload" className="cursor-pointer">
               <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
@@ -69,7 +69,7 @@ export const FtpUploadDialog = () => {
                 Clique para selecionar um arquivo ou arraste aqui
               </p>
               <p className="text-xs text-gray-500">
-                Tipos aceitos: SQL, TXT, ZIP, TAR, GZ, BAK
+                Tipos aceitos: SQL, TXT, ZIP, TAR, GZ, BAK, LOG, JSON, XML, CSV
               </p>
             </label>
           </div>
