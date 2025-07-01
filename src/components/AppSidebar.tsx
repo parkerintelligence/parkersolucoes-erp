@@ -1,9 +1,7 @@
-
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard,
-  Building,
   Settings,
   Calculator,
   FileText,
@@ -32,13 +30,12 @@ import {
 
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, role: 'user' },
-  { title: 'Empresas', url: '/companies', icon: Building, role: 'user' },
   { title: 'Serviços', url: '/services', icon: Settings, role: 'user' },
   { title: 'Orçamentos', url: '/budgets', icon: Calculator, role: 'user' },
   { title: 'Contratos', url: '/contracts', icon: FileText, role: 'user' },
   { title: 'GLPI', url: '/glpi', icon: Headphones, role: 'user' },
   { title: 'Zabbix', url: '/zabbix', icon: Activity, role: 'user' },
-  { title: 'Backups', url: '/backups', icon: HardDrive, role: 'user' },
+  { title: 'Backups FTP', url: '/backups', icon: HardDrive, role: 'user' },
   { title: 'Senhas', url: '/passwords', icon: Lock, role: 'user' },
   { title: 'Links', url: '/links', icon: Link, role: 'user' },
   { title: 'Conversas WhatsApp', url: '/whatsapp-chats', icon: MessageCircle, role: 'user' },

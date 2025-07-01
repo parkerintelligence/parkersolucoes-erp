@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -15,6 +16,10 @@ export interface Integration {
   region: string | null;
   bucket_name: string | null;
   port: number | null;
+  directory: string | null;
+  passive_mode: boolean | null;
+  use_ssl: boolean | null;
+  keep_logged: boolean | null;
   is_active: boolean | null;
   created_at: string;
   updated_at: string;
@@ -72,6 +77,10 @@ export const useIntegrations = () => {
         region: integration.region || null,
         bucket_name: integration.bucket_name || null,
         port: integration.port || null,
+        directory: integration.directory || null,
+        passive_mode: integration.passive_mode || null,
+        use_ssl: integration.use_ssl || null,
+        keep_logged: integration.keep_logged || null,
         is_active: integration.is_active ?? true,
         user_id: user.id
       };
@@ -128,6 +137,10 @@ export const useIntegrations = () => {
         region: updates.region === undefined ? null : updates.region,
         bucket_name: updates.bucket_name === undefined ? null : updates.bucket_name,
         port: updates.port === undefined ? null : updates.port,
+        directory: updates.directory === undefined ? null : updates.directory,
+        passive_mode: updates.passive_mode === undefined ? null : updates.passive_mode,
+        use_ssl: updates.use_ssl === undefined ? null : updates.use_ssl,
+        keep_logged: updates.keep_logged === undefined ? null : updates.keep_logged,
       };
 
       console.log('Updating integration:', id, updateData);

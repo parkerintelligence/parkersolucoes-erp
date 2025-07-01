@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 
 const formSchema = z.object({
   type: z.enum(['chatwoot', 'evolution_api', 'wasabi', 'grafana', 'bomcontrole', 'zabbix', 'ftp']),
@@ -39,6 +40,10 @@ const formSchema = z.object({
   password: z.string().optional(),
   region: z.string().optional(),
   port: z.number().optional(),
+  directory: z.string().optional(),
+  passive_mode: z.boolean().default(true),
+  use_ssl: z.boolean().default(false),
+  keep_logged: z.boolean().default(false),
   is_active: z.boolean().default(true),
 })
 
@@ -60,6 +65,10 @@ const AdminApiPanel = () => {
       password: "",
       region: "",
       port: 21,
+      directory: "",
+      passive_mode: true,
+      use_ssl: false,
+      keep_logged: false,
       is_active: true,
     },
   })
@@ -78,8 +87,12 @@ const AdminApiPanel = () => {
       username: values.username || null,
       password: values.password || null,
       region: values.region || null,
-      bucket_name: null, // Removido do formulário, sempre null
+      bucket_name: null,
       port: values.port || null,
+      directory: values.directory || null,
+      passive_mode: values.passive_mode,
+      use_ssl: values.use_ssl,
+      keep_logged: values.keep_logged,
       is_active: values.is_active,
     };
 
@@ -107,6 +120,10 @@ const AdminApiPanel = () => {
     form.setValue("password", integration.password || "");
     form.setValue("region", integration.region || "");
     form.setValue("port", integration.port || 21);
+    form.setValue("directory", integration.directory || "");
+    form.setValue("passive_mode", integration.passive_mode !== null ? integration.passive_mode : true);
+    form.setValue("use_ssl", integration.use_ssl !== null ? integration.use_ssl : false);
+    form.setValue("keep_logged", integration.keep_logged !== null ? integration.keep_logged : false);
     form.setValue("is_active", integration.is_active !== null ? integration.is_active : true);
     setSelectedType(integration.type);
   };
@@ -316,26 +333,16 @@ const AdminApiPanel = () => {
     <>
       <FormField
         control={form.control}
-        name="username"
+        name="api_token"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Usuário *</FormLabel>
+            <FormLabel>Token de API *</FormLabel>
             <FormControl>
-              <Input placeholder="Usuário" {...field} />
+              <Input placeholder="Token de acesso do Zabbix" {...field} />
             </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={form.control}
-        name="password"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Senha *</FormLabel>
-            <FormControl>
-              <Input type="password" placeholder="Senha" {...field} />
-            </FormControl>
+            <FormDescription>
+              Token de autenticação para acessar a API do Zabbix
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
@@ -351,7 +358,7 @@ const AdminApiPanel = () => {
           name="username"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Usuário FTP *</FormLabel>
+              <FormLabel>Usuário *</FormLabel>
               <FormControl>
                 <Input 
                   placeholder="usuario_ftp" 
@@ -369,11 +376,11 @@ const AdminApiPanel = () => {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Senha FTP *</FormLabel>
+              <FormLabel>Senha *</FormLabel>
               <FormControl>
                 <Input 
                   type="password"
-                  placeholder="Senha do FTP" 
+                  placeholder="••••••••" 
                   {...field}
                   value={field.value || ''}
                 />
@@ -389,7 +396,7 @@ const AdminApiPanel = () => {
         name="port"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Porta FTP</FormLabel>
+            <FormLabel>Porta</FormLabel>
             <FormControl>
               <Input 
                 type="number"
@@ -403,6 +410,91 @@ const AdminApiPanel = () => {
           </FormItem>
         )}
       />
+
+      <FormField
+        control={form.control}
+        name="directory"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Diretório (se desejar ir direto a uma pasta)</FormLabel>
+            <FormControl>
+              <Input 
+                placeholder="/caminho/para/pasta" 
+                {...field}
+                value={field.value || ''}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <div className="space-y-4 border rounded-lg p-4">
+        <h4 className="font-medium">Configurações Avançadas</h4>
+        
+        <FormField
+          control={form.control}
+          name="passive_mode"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>Modo Passivo</FormLabel>
+                <FormDescription>
+                  Recomendado para a maioria dos servidores FTP
+                </FormDescription>
+              </div>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="use_ssl"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>Usar SSL (Para Storages Dedicados com SSL)</FormLabel>
+                <FormDescription>
+                  Ative apenas se o servidor suportar conexões SSL/TLS
+                </FormDescription>
+              </div>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="keep_logged"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>Manter Logado</FormLabel>
+                <FormDescription>
+                  Manter a conexão ativa durante a sessão
+                </FormDescription>
+              </div>
+            </FormItem>
+          )}
+        />
+      </div>
     </>
   );
 
@@ -476,9 +568,9 @@ const AdminApiPanel = () => {
                   name="base_url"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>URL Base *</FormLabel>
+                      <FormLabel>{selectedType === 'ftp' ? 'Servidor (IP ou Nome DNS)' : 'URL Base'} *</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://api.example.com" {...field} />
+                        <Input placeholder={selectedType === 'ftp' ? 'ftp.exemplo.com.br' : 'https://api.example.com'} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -519,7 +611,7 @@ const AdminApiPanel = () => {
         </CardContent>
       </Card>
 
-      {/* List of Integrations */}
+      {/* Lista de Integrações */}
       <div className="mt-8">
         <h2 className="text-2xl font-semibold mb-4">Lista de Integrações</h2>
         {isError && <p className="text-red-500">Ocorreu um erro ao carregar as integrações.</p>}
@@ -534,12 +626,17 @@ const AdminApiPanel = () => {
                   <CardDescription>Tipo: {integration.type}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-600 mb-2">URL: {integration.base_url}</p>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {integration.type === 'ftp' ? 'Servidor' : 'URL'}: {integration.base_url}
+                  </p>
                   {integration.type === 'evolution_api' && integration.phone_number && (
                     <p className="text-sm text-gray-600 mb-2">Telefone: {integration.phone_number}</p>
                   )}
                   {integration.type === 'ftp' && integration.port && (
                     <p className="text-sm text-gray-600 mb-2">Porta: {integration.port}</p>
+                  )}
+                  {integration.type === 'ftp' && integration.directory && (
+                    <p className="text-sm text-gray-600 mb-2">Diretório: {integration.directory}</p>
                   )}
                   <p className="text-sm text-gray-600 mb-4">
                     Status: {integration.is_active ? 

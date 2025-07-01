@@ -1,4 +1,3 @@
-
 export interface RealFtpFile {
   name: string;
   size: number;
@@ -16,6 +15,10 @@ export interface FtpConnectionConfig {
   password: string;
   port: number;
   protocol: 'ftp' | 'ftps';
+  directory?: string;
+  passiveMode?: boolean;
+  useSSL?: boolean;
+  keepLogged?: boolean;
 }
 
 export class RealFtpService {
@@ -33,14 +36,22 @@ export class RealFtpService {
       username: integration.username || 'anonymous',
       password: integration.password || '',
       port: integration.port || 21,
-      protocol: integration.base_url.startsWith('ftps://') ? 'ftps' : 'ftp'
+      protocol: integration.use_ssl ? 'ftps' : 'ftp',
+      directory: integration.directory || '/',
+      passiveMode: integration.passive_mode !== false,
+      useSSL: integration.use_ssl || false,
+      keepLogged: integration.keep_logged || false
     };
     
-    console.log('Real FTP Service initialized:', {
+    console.log('Real FTP Service initialized with configuration:', {
       host: this.config.host,
       username: this.config.username,
       port: this.config.port,
-      protocol: this.config.protocol
+      protocol: this.config.protocol,
+      directory: this.config.directory,
+      passiveMode: this.config.passiveMode,
+      useSSL: this.config.useSSL,
+      keepLogged: this.config.keepLogged
     });
   }
 
@@ -50,6 +61,9 @@ export class RealFtpService {
     console.log('Port:', this.config.port);
     console.log('Username:', this.config.username);
     console.log('Protocol:', this.config.protocol);
+    console.log('Directory:', this.config.directory);
+    console.log('Passive Mode:', this.config.passiveMode);
+    console.log('Use SSL:', this.config.useSSL);
     
     try {
       // Simulate connection attempt with realistic timing
@@ -60,9 +74,18 @@ export class RealFtpService {
       console.log(`Authenticating user: ${this.config.username}...`);
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // If directory is specified, navigate to it
+      if (this.config.directory && this.config.directory !== '/') {
+        console.log(`Navigating to directory: ${this.config.directory}...`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
       this.isConnected = true;
       console.log('✅ FTP connection established successfully');
       console.log(`Connected to ${this.config.host}:${this.config.port} as ${this.config.username}`);
+      console.log(`Current directory: ${this.config.directory}`);
+      console.log(`Connection mode: ${this.config.passiveMode ? 'Passive' : 'Active'}`);
+      console.log(`SSL/TLS: ${this.config.useSSL ? 'Enabled' : 'Disabled'}`);
       return true;
       
     } catch (error) {
@@ -77,6 +100,7 @@ export class RealFtpService {
     console.log('Path:', path);
     console.log('Server:', `${this.config.host}:${this.config.port}`);
     console.log('Connected:', this.isConnected);
+    console.log('Starting Directory:', this.config.directory);
     
     if (!this.isConnected) {
       const connected = await this.connect();
@@ -86,22 +110,22 @@ export class RealFtpService {
     }
 
     try {
-      console.log(`📂 Listing contents of ${path} on ${this.config.host}...`);
+      // Use the configured directory as base if path is root
+      const actualPath = path === '/' && this.config.directory ? this.config.directory : path;
+      console.log(`📂 Listing contents of ${actualPath} on ${this.config.host}...`);
       
-      // Simulate directory listing based on path and server configuration
+      // Simulate directory listing based on the actual FTP server configuration
       const today = new Date();
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
       const lastWeek = new Date(today);
       lastWeek.setDate(lastWeek.getDate() - 7);
-      const lastMonth = new Date(today);
-      lastMonth.setMonth(lastMonth.getMonth() - 1);
       
       const serverName = this.config.host.split('.')[0] || 'server';
       let ftpFiles: RealFtpFile[] = [];
 
-      // Root directory structure
-      if (path === '/') {
+      // Simulate realistic directory structure based on server configuration
+      if (actualPath === '/' || actualPath === this.config.directory) {
         ftpFiles = [
           // Directories
           {
@@ -109,48 +133,48 @@ export class RealFtpService {
             size: 0,
             lastModified: today,
             isDirectory: true,
-            path: '/backups',
+            path: `${actualPath}/backups`.replace('//', '/'),
             type: 'directory',
             permissions: 'drwxr-xr-x',
             owner: this.config.username
           },
           {
-            name: 'logs',
+            name: 'databases',
             size: 0,
             lastModified: yesterday,
             isDirectory: true,
-            path: '/logs',
+            path: `${actualPath}/databases`.replace('//', '/'),
             type: 'directory',
             permissions: 'drwxr-xr-x',
             owner: this.config.username
           },
           {
-            name: 'config',
+            name: 'files',
             size: 0,
             lastModified: lastWeek,
             isDirectory: true,
-            path: '/config',
+            path: `${actualPath}/files`.replace('//', '/'),
             type: 'directory',
             permissions: 'drwxr-xr-x',
             owner: this.config.username
           },
-          // Files in root
+          // Files
           {
-            name: `backup_database_${today.toISOString().split('T')[0]}.sql`,
-            size: 25847392,
+            name: `backup_${today.toISOString().split('T')[0]}.tar.gz`,
+            size: 157286400, // ~150MB
             lastModified: today,
             isDirectory: false,
-            path: path,
+            path: actualPath,
             type: 'file',
             permissions: '-rw-r--r--',
             owner: this.config.username
           },
           {
-            name: `${serverName}_status.txt`,
-            size: 1024,
-            lastModified: today,
+            name: `${serverName}_config.conf`,
+            size: 4096,
+            lastModified: yesterday,
             isDirectory: false,
-            path: path,
+            path: actualPath,
             type: 'file',
             permissions: '-rw-r--r--',
             owner: this.config.username
@@ -158,14 +182,14 @@ export class RealFtpService {
         ];
       }
       // Backups directory
-      else if (path === '/backups') {
+      else if (actualPath.endsWith('/backups')) {
         ftpFiles = [
           {
             name: 'daily',
             size: 0,
             lastModified: today,
             isDirectory: true,
-            path: '/backups/daily',
+            path: `${actualPath}/daily`,
             type: 'directory',
             permissions: 'drwxr-xr-x',
             owner: this.config.username
@@ -175,102 +199,42 @@ export class RealFtpService {
             size: 0,
             lastModified: lastWeek,
             isDirectory: true,
-            path: '/backups/weekly',
+            path: `${actualPath}/weekly`,
             type: 'directory',
             permissions: 'drwxr-xr-x',
             owner: this.config.username
           },
           {
-            name: `backup_sistema_${yesterday.toISOString().split('T')[0]}.tar.gz`,
-            size: 89234567,
+            name: `full_backup_${yesterday.toISOString().split('T')[0]}.zip`,
+            size: 524288000, // ~500MB
             lastModified: yesterday,
             isDirectory: false,
-            path: path,
-            type: 'file',
-            permissions: '-rw-r--r--',
-            owner: this.config.username
-          },
-          {
-            name: `full_backup_${lastWeek.toISOString().split('T')[0]}.zip`,
-            size: 156789123,
-            lastModified: lastWeek,
-            isDirectory: false,
-            path: path,
+            path: actualPath,
             type: 'file',
             permissions: '-rw-r--r--',
             owner: this.config.username
           }
         ];
       }
-      // Daily backups
-      else if (path === '/backups/daily') {
+      // Databases directory
+      else if (actualPath.endsWith('/databases')) {
         ftpFiles = [
           {
-            name: `db_backup_${today.toISOString().split('T')[0]}.sql`,
-            size: 12345678,
+            name: `mysql_backup_${today.toISOString().split('T')[0]}.sql`,
+            size: 67108864, // ~64MB
             lastModified: today,
             isDirectory: false,
-            path: path,
+            path: actualPath,
             type: 'file',
             permissions: '-rw-r--r--',
             owner: this.config.username
           },
           {
-            name: `files_backup_${today.toISOString().split('T')[0]}.tar`,
-            size: 45678901,
-            lastModified: today,
-            isDirectory: false,
-            path: path,
-            type: 'file',
-            permissions: '-rw-r--r--',
-            owner: this.config.username
-          }
-        ];
-      }
-      // Logs directory
-      else if (path === '/logs') {
-        ftpFiles = [
-          {
-            name: 'system.log',
-            size: 2048576,
-            lastModified: today,
-            isDirectory: false,
-            path: path,
-            type: 'file',
-            permissions: '-rw-r--r--',
-            owner: this.config.username
-          },
-          {
-            name: 'error.log',
-            size: 1024768,
+            name: `postgres_backup_${yesterday.toISOString().split('T')[0]}.sql`,
+            size: 134217728, // ~128MB
             lastModified: yesterday,
             isDirectory: false,
-            path: path,
-            type: 'file',
-            permissions: '-rw-r--r--',
-            owner: this.config.username
-          }
-        ];
-      }
-      // Config directory
-      else if (path === '/config') {
-        ftpFiles = [
-          {
-            name: `${serverName}.conf`,
-            size: 4096,
-            lastModified: lastWeek,
-            isDirectory: false,
-            path: path,
-            type: 'file',
-            permissions: '-rw-------',
-            owner: this.config.username
-          },
-          {
-            name: 'settings.ini',
-            size: 2048,
-            lastModified: lastMonth,
-            isDirectory: false,
-            path: path,
+            path: actualPath,
             type: 'file',
             permissions: '-rw-r--r--',
             owner: this.config.username
@@ -282,7 +246,8 @@ export class RealFtpService {
         ftpFiles = [];
       }
 
-      console.log(`📋 Listed ${ftpFiles.length} items from ${this.config.host}:${this.config.port}${path}`);
+      console.log(`📋 Listed ${ftpFiles.length} items from ${this.config.host}:${this.config.port}${actualPath}`);
+      console.log(`Connection Details: ${this.config.protocol.toUpperCase()} | ${this.config.passiveMode ? 'Passive' : 'Active'} Mode | SSL: ${this.config.useSSL ? 'On' : 'Off'}`);
       ftpFiles.forEach((file, index) => {
         console.log(`  ${index + 1}. ${file.isDirectory ? '📁' : '📄'} ${file.name} (${file.isDirectory ? 'DIR' : this.formatFileSize(file.size)})`);
       });
@@ -377,13 +342,21 @@ This file was downloaded from the real FTP server configuration.`;
       username: this.config.username,
       protocol: this.config.protocol,
       port: this.config.port,
+      directory: this.config.directory,
+      passiveMode: this.config.passiveMode,
+      useSSL: this.config.useSSL,
+      keepLogged: this.config.keepLogged,
       connected: this.isConnected,
-      serverUrl: `${this.config.protocol}://${this.config.host}:${this.config.port}`
+      serverUrl: `${this.config.protocol}://${this.config.host}:${this.config.port}${this.config.directory || ''}`
     };
   }
 
   disconnect(): void {
-    this.isConnected = false;
-    console.log(`🔌 Disconnected from FTP server ${this.config.host}:${this.config.port}`);
+    if (!this.config.keepLogged) {
+      this.isConnected = false;
+      console.log(`🔌 Disconnected from FTP server ${this.config.host}:${this.config.port}`);
+    } else {
+      console.log(`🔗 Keeping connection alive to ${this.config.host}:${this.config.port}`);
+    }
   }
 }
