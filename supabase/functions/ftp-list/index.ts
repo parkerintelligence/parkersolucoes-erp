@@ -7,27 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface FtpConfig {
-  host: string;
-  port: number;
-  username: string;
-  password: string;
-  secure: boolean;
-  path: string;
-  passive: boolean;
-}
-
-interface FtpFile {
-  name: string;
-  size: number;
-  lastModified: Date;
-  isDirectory: boolean;
-  path: string;
-  type: 'file' | 'directory';
-  permissions: string;
-  owner: string;
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -49,23 +28,23 @@ serve(async (req) => {
       throw new Error('User not authenticated')
     }
 
-    const { host, port, username, password, secure, path, passive }: FtpConfig = await req.json()
+    const { host, port, username, password, secure, path, passive } = await req.json()
 
     console.log('=== FTP List Operation ===')
     console.log('Host:', host)
     console.log('Port:', port)
-    console.log('Path:', path)
     console.log('User:', username)
+    console.log('Path:', path)
 
-    // Aqui usaríamos uma biblioteca FTP real em um ambiente Node.js
-    // Como o Deno tem limitações, vamos simular uma resposta baseada na configuração real
-    const mockFiles: FtpFile[] = [
+    // Simulação de conexão FTP real - aqui implementaríamos a biblioteca FTP
+    // Por enquanto, retornamos dados simulados baseados na configuração real
+    const mockFiles = [
       {
         name: 'backups',
         size: 0,
-        lastModified: new Date(),
+        lastModified: new Date().toISOString(),
         isDirectory: true,
-        path: `${path}/backups`.replace('//', '/'),
+        path: path === '/' ? '/backups' : `${path}/backups`,
         type: 'directory',
         permissions: 'drwxr-xr-x',
         owner: username
@@ -73,17 +52,17 @@ serve(async (req) => {
       {
         name: 'databases',
         size: 0,
-        lastModified: new Date(Date.now() - 86400000),
+        lastModified: new Date(Date.now() - 86400000).toISOString(), // 1 dia atrás
         isDirectory: true,
-        path: `${path}/databases`.replace('//', '/'),
+        path: path === '/' ? '/databases' : `${path}/databases`,
         type: 'directory',
         permissions: 'drwxr-xr-x',
         owner: username
       },
       {
-        name: `backup_${new Date().toISOString().split('T')[0]}.sql`,
-        size: 1048576,
-        lastModified: new Date(),
+        name: 'backup_2025-07-01.sql',
+        size: 1048576, // 1MB
+        lastModified: new Date().toISOString(),
         isDirectory: false,
         path: path,
         type: 'file',
@@ -92,15 +71,15 @@ serve(async (req) => {
       },
       {
         name: 'system_backup.tar.gz',
-        size: 157286400,
-        lastModified: new Date(Date.now() - 3600000),
+        size: 157286400, // 150MB
+        lastModified: new Date().toISOString(),
         isDirectory: false,
         path: path,
         type: 'file',
         permissions: '-rw-r--r--',
         owner: username
       }
-    ]
+    ];
 
     console.log('Files retrieved:', mockFiles.length)
 

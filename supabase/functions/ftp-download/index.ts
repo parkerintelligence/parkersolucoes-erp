@@ -35,20 +35,22 @@ serve(async (req) => {
     console.log('Host:', host)
     console.log('Path:', path)
 
-    // Aqui implementaríamos o download real do servidor FTP
-    // Por enquanto, vamos simular um arquivo de exemplo
-    const mockFileContent = `Mock content for file: ${fileName}\nDownloaded from: ${host}${path}\nTimestamp: ${new Date().toISOString()}`
-    const blob = new Blob([mockFileContent], { type: 'text/plain' })
-
+    // Aqui implementaríamos o download real do FTP
+    // Por enquanto, simulamos um arquivo de exemplo
+    const mockFileContent = `Mock content for ${fileName}\nDownloaded from FTP server: ${host}\nPath: ${path}\nTime: ${new Date().toISOString()}`
+    
     console.log('✅ File downloaded successfully (simulated)')
 
-    return new Response(blob, {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="${fileName}"`,
-      },
-    })
+    return new Response(
+      mockFileContent,
+      {
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/octet-stream',
+          'Content-Disposition': `attachment; filename="${fileName}"`
+        },
+      }
+    )
   } catch (error) {
     console.error('Error in ftp-download function:', error)
     return new Response(

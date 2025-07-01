@@ -28,22 +28,23 @@ serve(async (req) => {
       throw new Error('User not authenticated')
     }
 
+    // Para upload, precisamos processar FormData
     const formData = await req.formData()
     const file = formData.get('file') as File
     const config = JSON.parse(formData.get('config') as string)
+
+    console.log('=== FTP Upload Operation ===')
+    console.log('File:', file?.name)
+    console.log('Size:', file?.size)
+    console.log('Host:', config.host)
+    console.log('Path:', config.path)
 
     if (!file) {
       throw new Error('No file provided')
     }
 
-    console.log('=== FTP Upload Operation ===')
-    console.log('File:', file.name)
-    console.log('Size:', file.size)
-    console.log('Host:', config.host)
-    console.log('Path:', config.path)
-
-    // Aqui implementaríamos o upload real para o servidor FTP
-    // Por enquanto, vamos simular o sucesso
+    // Aqui implementaríamos o upload real para o FTP
+    // Por enquanto, simulamos o sucesso
     await new Promise(resolve => setTimeout(resolve, 1000)) // Simular delay de upload
 
     console.log('✅ File uploaded successfully (simulated)')
