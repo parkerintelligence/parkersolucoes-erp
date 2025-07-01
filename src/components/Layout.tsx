@@ -28,13 +28,15 @@ export const Layout = ({ children }: LayoutProps) => {
   }
 
   return (
-    <SidebarProvider defaultOpen={false}>
+    <SidebarProvider defaultOpen={true}>
       <div className="min-h-screen flex w-full bg-gray-50">
         <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 ml-0">
           <TopHeader />
-          <main className="flex-1 overflow-auto">
-            {children}
+          <main className="flex-1 overflow-auto p-6">
+            <div className="max-w-7xl mx-auto">
+              {children}
+            </div>
           </main>
         </div>
       </div>
