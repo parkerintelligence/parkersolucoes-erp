@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Headphones, Settings, RefreshCw, Plus, Loader2, BarChart3, AlertTriangle, HardDrive, FileText, Users } from 'lucide-react';
+import { Headphones, Settings, RefreshCw, Plus, Loader2, BarChart3, AlertTriangle, HardDrive, FileText, Users, Building2 } from 'lucide-react';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { GLPIDashboard } from '@/components/GLPIDashboard';
 import { GLPITicketsGrid } from '@/components/GLPITicketsGrid';
@@ -40,10 +40,11 @@ const GLPI = () => {
     urgency: 3,
     impact: 3,
     type: 1,
+    entities_id: 0,
   });
 
   const handleCreateTicket = async () => {
-    if (!newTicket.name || !newTicket.content) return;
+    if (!newTicket.name || !newTicket.content || !newTicket.entities_id) return;
     
     try {
       await createTicket.mutateAsync(newTicket);
@@ -54,6 +55,7 @@ const GLPI = () => {
         urgency: 3,
         impact: 3,
         type: 1,
+        entities_id: 0,
       });
       setIsCreatingTicket(false);
     } catch (error) {
@@ -145,6 +147,35 @@ const GLPI = () => {
                       rows={4}
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="ticket-entity">Entidade</Label>
+                    <Select 
+                      value={newTicket.entities_id.toString()} 
+                      onValueChange={(value) => setNewTicket({ ...newTicket, entities_id: parseInt(value) })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma entidade">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4" />
+                            {newTicket.entities_id > 0 
+                              ? entities.data?.find(e => e.id === newTicket.entities_id)?.name 
+                              : "Selecione uma entidade"
+                            }
+                          </div>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {entities.data?.map((entity) => (
+                          <SelectItem key={entity.id} value={entity.id.toString()}>
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4" />
+                              {entity.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="priority">Prioridade</Label>
@@ -194,7 +225,10 @@ const GLPI = () => {
                     </div>
                   </div>
                   <div className="flex gap-2 pt-4">
-                    <Button onClick={handleCreateTicket} disabled={createTicket.isPending || !newTicket.name || !newTicket.content}>
+                    <Button 
+                      onClick={handleCreateTicket} 
+                      disabled={createTicket.isPending || !newTicket.name || !newTicket.content || !newTicket.entities_id}
+                    >
                       {createTicket.isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
@@ -334,7 +368,7 @@ const GLPI = () => {
               <Card className="border-green-200">
                 <CardContent className="p-4">
                   <h3 className="text-lg font-semibold text-green-900 mb-4 flex items-center gap-2">
-                    <Settings className="h-5 w-5" />
+                    <Building2 className="h-5 w-5" />
                     Entidades ({entities.data?.length || 0})
                   </h3>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
