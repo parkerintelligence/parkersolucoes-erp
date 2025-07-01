@@ -6,9 +6,11 @@ import { Layout } from '@/components/Layout';
 import AdminApiPanel from '@/components/AdminApiPanel';
 import { AdminCompaniesPanel } from '@/components/AdminCompaniesPanel';
 import { GLPIConfig } from '@/components/GLPIConfig';
+import { ZabbixAdminConfig } from '@/components/ZabbixAdminConfig';
+import { MikrotikAdminConfig } from '@/components/MikrotikAdminConfig';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Settings, Users, Database, Key, Building, Activity, DollarSign, MessageCircle, HardDrive, Monitor, Headphones } from 'lucide-react';
+import { Settings, Users, Database, Key, Building, Activity, DollarSign, MessageCircle, HardDrive, Monitor, Headphones, Router } from 'lucide-react';
 
 const Admin = () => {
   const { isMaster } = useAuth();
@@ -38,6 +40,40 @@ const Admin = () => {
             </CardHeader>
             <CardContent>
               <GLPIConfig />
+            </CardContent>
+          </Card>
+        );
+      case 'zabbix':
+        return (
+          <Card className="border-blue-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
+                <Activity className="h-5 w-5" />
+                Configuração Zabbix
+              </CardTitle>
+              <CardDescription>
+                Configure a integração com o servidor Zabbix para monitoramento
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ZabbixAdminConfig />
+            </CardContent>
+          </Card>
+        );
+      case 'mikrotik':
+        return (
+          <Card className="border-blue-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
+                <Router className="h-5 w-5" />
+                Configuração Mikrotik
+              </CardTitle>
+              <CardDescription>
+                Configure a integração com RouterOS para gerenciamento de rede
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <MikrotikAdminConfig />
             </CardContent>
           </Card>
         );
@@ -117,6 +153,34 @@ const Admin = () => {
                   <div>
                     <h3 className="font-semibold text-cyan-900">GLPI</h3>
                     <p className="text-sm text-cyan-600">Configurar integração com GLPI</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-red-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('zabbix')}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  <div className="bg-red-100 p-3 rounded-lg">
+                    <Activity className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-red-900">Zabbix</h3>
+                    <p className="text-sm text-red-600">Monitoramento de infraestrutura</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-yellow-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('mikrotik')}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  <div className="bg-yellow-100 p-3 rounded-lg">
+                    <Router className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-yellow-900">Mikrotik</h3>
+                    <p className="text-sm text-yellow-600">Gerenciamento RouterOS</p>
                   </div>
                 </div>
               </CardContent>
@@ -251,6 +315,8 @@ const Admin = () => {
               {activeSection === 'companies' && 'Empresas'}
               {activeSection === 'users' && 'Usuários'}
               {activeSection === 'glpi' && 'GLPI'}
+              {activeSection === 'zabbix' && 'Zabbix'}
+              {activeSection === 'mikrotik' && 'Mikrotik'}
             </span>
           </div>
         )}

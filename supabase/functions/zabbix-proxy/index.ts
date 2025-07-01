@@ -96,10 +96,18 @@ serve(async (req) => {
       tokenLength: integration.api_token?.length || 0
     });
 
-    // Preparar URL da API
+    // Preparar URL da API - permitir HTTP para desenvolvimento
     let apiUrl = integration.base_url.replace(/\/$/, '');
     if (!apiUrl.endsWith('/api_jsonrpc.php')) {
       apiUrl = apiUrl + '/api_jsonrpc.php';
+    }
+
+    // Converter HTTPS para HTTP se necessário para desenvolvimento
+    if (apiUrl.startsWith('https://') && !integration.base_url.includes('localhost')) {
+      console.log('Converting HTTPS to HTTP for development...');
+      const httpUrl = apiUrl.replace('https://', 'http://');
+      console.log('Testing HTTP URL:', httpUrl);
+      apiUrl = httpUrl;
     }
 
     console.log('Final API URL:', apiUrl);

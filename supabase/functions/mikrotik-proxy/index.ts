@@ -90,25 +90,26 @@ serve(async (req) => {
 
     console.log('Integration found:', {
       base_url: integration.base_url,
-      hasUsername: !!integration.username,
+      username: integration.username,
       hasPassword: !!integration.password,
-      port: integration.port || 8728
+      port: integration.port || 80
     });
 
-    // Preparar URL da API REST do Mikrotik
+    // Preparar URL da API REST
     let apiUrl = integration.base_url.replace(/\/$/, '');
-    if (!apiUrl.includes('/rest')) {
-      apiUrl = apiUrl + '/rest' + endpoint;
-    } else {
-      apiUrl = apiUrl + endpoint;
+    if (!apiUrl.startsWith('http')) {
+      apiUrl = 'http://' + apiUrl;
     }
+    
+    // RouterOS REST API endpoint
+    const restUrl = `${apiUrl}/rest${endpoint}`;
+    console.log('Final REST URL:', restUrl);
 
-    console.log('Final API URL:', apiUrl);
-
-    // Preparar autenticação básica
+    // Preparar autenticação Basic Auth
     const auth = btoa(`${integration.username}:${integration.password}`);
+    console.log('Using Basic Auth for user:', integration.username);
 
-    // Fazer requisição para o Mikrotik
+    // Fazer requisição para o Mikrotik via REST API
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       console.log('Request timeout triggered');
@@ -118,12 +119,12 @@ serve(async (req) => {
     try {
       console.log('Making request to Mikrotik...');
       
-      const response = await fetch(apiUrl, {
+      const response = await fetch(restUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Basic ${auth}`,
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
           'User-Agent': 'Supabase-Mikrotik-Proxy/1.0',
         },
         signal: controller.signal,
@@ -161,21 +162,19 @@ serve(async (req) => {
         data = JSON.parse(responseText);
       } catch (parseError) {
         console.error('JSON parse error:', parseError);
-        console.error('Raw response:', responseText);
         
+        // RouterOS pode retornar dados em formato diferente
         return new Response(JSON.stringify({
-          error: 'Resposta inválida do Mikrotik (não é JSON válido)',
-          details: responseText.substring(0, 200)
+          result: responseText.split('\n').filter(line => line.trim())
         }), {
-          status: 502,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       console.log('Parsed response:', { 
+        hasData: !!data,
         dataType: typeof data,
-        isArray: Array.isArray(data),
-        length: Array.isArray(data) ? data.length : 'N/A'
+        isArray: Array.isArray(data)
       });
 
       console.log('Success! Returning result...');
@@ -195,7 +194,7 @@ serve(async (req) => {
         console.error('Request timeout');
         return new Response(JSON.stringify({
           error: 'Timeout na conexão com o Mikrotik (15s)',
-          details: 'Verifique se o servidor está acessível e respondendo'
+          details: 'Verifique se o RouterOS está acessível e a API REST está habilitada'
         }), {
           status: 408,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -204,8 +203,7 @@ serve(async (req) => {
       
       return new Response(JSON.stringify({
         error: 'Erro de conectividade com o Mikrotik',
-        details: fetchError.message,
-        type: fetchError.name
+        details: fetchError.message
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -216,7 +214,8 @@ serve(async (req) => {
     console.error('=== Edge Function Error ===');
     console.error('Error details:', {
       name: error.name,
-      message: error.message
+      message: error.message,
+      stack: error.stack
     });
     
     return new Response(JSON.stringify({ 

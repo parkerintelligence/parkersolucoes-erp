@@ -2,7 +2,10 @@ import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Router, BarChart3, Network, Cpu, HardDrive } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Settings, Router, BarChart3, Network, Cpu, HardDrive, Wifi, Shield, Clock, AlertTriangle, CheckCircle, XCircle, Terminal, Download, Upload } from 'lucide-react';
 import { useMikrotikIntegration } from '@/hooks/useMikrotikIntegration';
 
 const Mikrotik = () => {
@@ -57,7 +60,7 @@ const Mikrotik = () => {
         </div>
 
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid grid-cols-4 w-full">
+          <TabsList className="grid grid-cols-6 w-full">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Dashboard
@@ -66,75 +69,206 @@ const Mikrotik = () => {
               <Network className="h-4 w-4" />
               Interfaces
             </TabsTrigger>
-            <TabsTrigger value="resources" className="flex items-center gap-2">
+            <TabsTrigger value="system" className="flex items-center gap-2">
               <Cpu className="h-4 w-4" />
-              Recursos
+              Sistema
             </TabsTrigger>
-            <TabsTrigger value="config" className="flex items-center gap-2">
-              <HardDrive className="h-4 w-4" />
-              Configuração
+            <TabsTrigger value="network" className="flex items-center gap-2">
+              <Wifi className="h-4 w-4" />
+              Rede
+            </TabsTrigger>
+            <TabsTrigger value="firewall" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Firewall
+            </TabsTrigger>
+            <TabsTrigger value="tools" className="flex items-center gap-2">
+              <Terminal className="h-4 w-4" />
+              Ferramentas
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Status Geral */}
+              <Card className="border-green-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-green-100 p-2 rounded-lg">
+                      <CheckCircle className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-green-900">RouterOS</h3>
+                      <p className="text-sm text-green-600">
+                        {isLoading ? 'Verificando...' : resources ? 'Online' : 'Offline'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* CPU Load */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-100 p-2 rounded-lg">
+                      <Cpu className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">CPU Load</h3>
+                      {isLoading ? (
+                        <p className="text-sm text-gray-600">Carregando...</p>
+                      ) : resources ? (
+                        <>
+                          <p className="text-sm text-gray-600">{resources.cpu_load}%</p>
+                          <Progress value={resources.cpu_load} className="h-2 mt-1" />
+                        </>
+                      ) : (
+                        <p className="text-sm text-gray-600">N/A</p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Memória */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-purple-100 p-2 rounded-lg">
+                      <HardDrive className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Memória</h3>
+                      {isLoading ? (
+                        <p className="text-sm text-gray-600">Carregando...</p>
+                      ) : resources ? (
+                        <>
+                          <p className="text-sm text-gray-600">
+                            {Math.round(((resources.total_memory - resources.free_memory) / resources.total_memory) * 100)}% usado
+                          </p>
+                          <Progress 
+                            value={((resources.total_memory - resources.free_memory) / resources.total_memory) * 100} 
+                            className="h-2 mt-1" 
+                          />
+                        </>
+                      ) : (
+                        <p className="text-sm text-gray-600">N/A</p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Uptime */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-green-100 p-2 rounded-lg">
+                      <Clock className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Uptime</h3>
+                      <p className="text-sm text-gray-600">
+                        {isLoading ? 'Carregando...' : resources?.uptime || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Informações do Sistema e Interfaces */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Informações do Sistema */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Cpu className="h-5 w-5" />
-                    Recursos do Sistema
+                    <Router className="h-5 w-5" />
+                    Informações do Sistema
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {isLoading ? (
-                    <p>Carregando...</p>
-                  ) : resources ? (
                     <div className="space-y-2">
-                      <p><strong>CPU:</strong> {resources.cpu_load}%</p>
-                      <p><strong>Memória:</strong> {Math.round((resources.free_memory / resources.total_memory) * 100)}% livre</p>
-                      <p><strong>Uptime:</strong> {resources.uptime}</p>
-                      <p><strong>Versão:</strong> {resources.version}</p>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                  ) : resources ? (
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="font-medium">Placa:</span>
+                        <span>{resources.board_name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Versão:</span>
+                        <Badge variant="outline">{resources.version}</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Memória Total:</span>
+                        <span>{(resources.total_memory / 1024 / 1024).toFixed(0)} MB</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Memória Livre:</span>
+                        <span>{(resources.free_memory / 1024 / 1024).toFixed(0)} MB</span>
+                      </div>
                     </div>
                   ) : (
-                    <p>Dados não disponíveis</p>
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        Não foi possível carregar as informações do sistema.
+                      </AlertDescription>
+                    </Alert>
                   )}
                 </CardContent>
               </Card>
 
+              {/* Status das Interfaces */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Network className="h-5 w-5" />
-                    Interfaces Ativas
+                    Status das Interfaces
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {isLoading ? (
-                    <p>Carregando...</p>
-                  ) : (
-                    <div>
-                      <p className="text-2xl font-bold">{interfaces.filter(i => i.running).length}</p>
-                      <p className="text-sm text-gray-600">de {interfaces.length} totais</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Tráfego Total
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <p>Carregando...</p>
-                  ) : (
                     <div className="space-y-2">
-                      <p><strong>RX:</strong> {interfaces.reduce((sum, i) => sum + (i.rx_bytes || 0), 0)} bytes</p>
-                      <p><strong>TX:</strong> {interfaces.reduce((sum, i) => sum + (i.tx_bytes || 0), 0)} bytes</p>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
                     </div>
+                  ) : interfaces.length > 0 ? (
+                    <div className="space-y-2">
+                      {interfaces.slice(0, 5).map((iface) => (
+                        <div key={iface.id} className="flex justify-between items-center p-2 border rounded">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${iface.running ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                            <span className="font-medium">{iface.name}</span>
+                            <Badge variant="secondary" className="text-xs">{iface.type}</Badge>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            <div className="flex items-center gap-1">
+                              <Download className="h-3 w-3" />
+                              {(iface.rx_bytes / 1024 / 1024).toFixed(1)} MB
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {interfaces.length > 5 && (
+                        <p className="text-sm text-gray-500 text-center">
+                          +{interfaces.length - 5} interfaces adicionais
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        Nenhuma interface encontrada.
+                      </AlertDescription>
+                    </Alert>
                   )}
                 </CardContent>
               </Card>
@@ -185,7 +319,7 @@ const Mikrotik = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="resources" className="mt-6">
+          <TabsContent value="system" className="mt-6">
             <Card>
               <CardHeader>
                 <CardTitle>Recursos do Sistema</CardTitle>
@@ -220,25 +354,161 @@ const Mikrotik = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="config" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Ferramentas de Configuração</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center p-8">
-                <HardDrive className="h-12 w-12 mx-auto mb-4 text-blue-600" />
-                <h3 className="text-lg font-semibold mb-2">Configuração Avançada</h3>
-                <p className="text-gray-600 mb-4">
-                  Ferramentas de configuração e backup em desenvolvimento
-                </p>
-                <div className="text-sm text-gray-500">
-                  • Backup automático de configurações<br/>
-                  • Aplicação de scripts em lote<br/>
-                  • Configuração de QoS<br/>
-                  • Gerenciamento de firewall
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="network" className="mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wifi className="h-5 w-5" />
+                    Configuração IP
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center p-8">
+                  <Network className="h-12 w-12 mx-auto mb-4 text-blue-600" />
+                  <h3 className="text-lg font-semibold mb-2">Configuração de Rede</h3>
+                  <p className="text-gray-600 mb-4">
+                    Gerencie IPs, rotas, DHCP e configurações wireless
+                  </p>
+                  <div className="text-sm text-gray-500">
+                    • Endereços IP<br/>
+                    • Rotas estáticas<br/>
+                    • DHCP Server/Client<br/>
+                    • Configuração wireless
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Bandwidth Monitor
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center p-8">
+                  <BarChart3 className="h-12 w-12 mx-auto mb-4 text-green-600" />
+                  <h3 className="text-lg font-semibold mb-2">Monitoramento de Banda</h3>
+                  <p className="text-gray-600 mb-4">
+                    Visualize o tráfego em tempo real por interface
+                  </p>
+                  <div className="text-sm text-gray-500">
+                    • Gráficos de tráfego<br/>
+                    • Histórico de banda<br/>
+                    • Top usuários<br/>
+                    • Alertas de limite
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="firewall" className="mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Regras de Firewall
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center p-8">
+                  <Shield className="h-12 w-12 mx-auto mb-4 text-red-600" />
+                  <h3 className="text-lg font-semibold mb-2">Firewall Rules</h3>
+                  <p className="text-gray-600 mb-4">
+                    Configure regras de segurança e controle de acesso
+                  </p>
+                  <div className="text-sm text-gray-500">
+                    • Filter rules<br/>
+                    • NAT configuration<br/>
+                    • Mangle rules<br/>
+                    • Address lists
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    QoS / Queue
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center p-8">
+                  <Settings className="h-12 w-12 mx-auto mb-4 text-purple-600" />
+                  <h3 className="text-lg font-semibold mb-2">Quality of Service</h3>
+                  <p className="text-gray-600 mb-4">
+                    Gerencie a qualidade de serviço e limitação de banda
+                  </p>
+                  <div className="text-sm text-gray-500">
+                    • Simple Queues<br/>
+                    • Queue Trees<br/>
+                    • PCQ configuration<br/>
+                    • Burst settings
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="tools" className="mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Terminal className="h-5 w-5" />
+                    Terminal
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center p-6">
+                  <Terminal className="h-10 w-10 mx-auto mb-3 text-gray-600" />
+                  <h4 className="font-semibold mb-2">Console RouterOS</h4>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Execute comandos diretamente no RouterOS
+                  </p>
+                  <Button size="sm" variant="outline" disabled>
+                    Em Desenvolvimento
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Download className="h-5 w-5" />
+                    Backup
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center p-6">
+                  <Download className="h-10 w-10 mx-auto mb-3 text-blue-600" />
+                  <h4 className="font-semibold mb-2">Backup de Configuração</h4>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Download automático das configurações
+                  </p>
+                  <Button size="sm" variant="outline" disabled>
+                    Em Desenvolvimento
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Network className="h-5 w-5" />
+                    Ping/Traceroute
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center p-6">
+                  <Network className="h-10 w-10 mx-auto mb-3 text-green-600" />
+                  <h4 className="font-semibold mb-2">Ferramentas de Rede</h4>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Teste de conectividade e diagnóstico
+                  </p>
+                  <Button size="sm" variant="outline" disabled>
+                    Em Desenvolvimento
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
