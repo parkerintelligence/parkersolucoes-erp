@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,7 +48,8 @@ const WhatsApp = () => {
       username: null,
       password: null,
       region: null,
-      bucket_name: null
+      bucket_name: null,
+      port: null
     });
 
     setFormData({

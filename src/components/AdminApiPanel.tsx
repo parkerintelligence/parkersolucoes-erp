@@ -38,6 +38,7 @@ const formSchema = z.object({
   username: z.string().optional(),
   password: z.string().optional(),
   region: z.string().optional(),
+  port: z.number().optional(),
   is_active: z.boolean().default(true),
 })
 
@@ -58,6 +59,7 @@ const AdminApiPanel = () => {
       username: "",
       password: "",
       region: "",
+      port: 21,
       is_active: true,
     },
   })
@@ -77,6 +79,7 @@ const AdminApiPanel = () => {
       password: values.password || null,
       region: values.region || null,
       bucket_name: null, // Removido do formulário, sempre null
+      port: values.port || null,
       is_active: values.is_active,
     };
 
@@ -103,6 +106,7 @@ const AdminApiPanel = () => {
     form.setValue("username", integration.username || "");
     form.setValue("password", integration.password || "");
     form.setValue("region", integration.region || "");
+    form.setValue("port", integration.port || 21);
     form.setValue("is_active", integration.is_active !== null ? integration.is_active : true);
     setSelectedType(integration.type);
   };
@@ -379,6 +383,26 @@ const AdminApiPanel = () => {
           )}
         />
       </div>
+      
+      <FormField
+        control={form.control}
+        name="port"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Porta FTP</FormLabel>
+            <FormControl>
+              <Input 
+                type="number"
+                placeholder="21" 
+                {...field}
+                value={field.value || 21}
+                onChange={(e) => field.onChange(Number(e.target.value))}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     </>
   );
 
@@ -513,6 +537,9 @@ const AdminApiPanel = () => {
                   <p className="text-sm text-gray-600 mb-2">URL: {integration.base_url}</p>
                   {integration.type === 'evolution_api' && integration.phone_number && (
                     <p className="text-sm text-gray-600 mb-2">Telefone: {integration.phone_number}</p>
+                  )}
+                  {integration.type === 'ftp' && integration.port && (
+                    <p className="text-sm text-gray-600 mb-2">Porta: {integration.port}</p>
                   )}
                   <p className="text-sm text-gray-600 mb-4">
                     Status: {integration.is_active ? 
