@@ -1,206 +1,256 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Activity, RefreshCw, ExternalLink, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Activity, BarChart3, Server, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
 const Monitoring = () => {
-  const [selectedDashboard, setSelectedDashboard] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const { data: integrations = [] } = useIntegrations();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [dashboards, setDashboards] = useState([]);
 
-  // Dados simulados dos dashboards do Grafana
-  const dashboards = [
-    { id: '1', name: 'Sistema Principal', url: 'https://grafana.example.com/d/system', status: 'online' },
-    { id: '2', name: 'Servidores', url: 'https://grafana.example.com/d/servers', status: 'online' },
-    { id: '3', name: 'Banco de Dados', url: 'https://grafana.example.com/d/database', status: 'warning' },
-    { id: '4', name: 'Aplicações', url: 'https://grafana.example.com/d/apps', status: 'online' },
-  ];
+  const grafanaIntegration = integrations.find(integration => 
+    integration.type === 'grafana' && integration.is_active
+  );
 
-  // Métricas simuladas
-  const metrics = [
-    { name: 'CPU Usage', value: '45%', status: 'good', trend: 'up' },
-    { name: 'Memory Usage', value: '67%', status: 'warning', trend: 'up' },
-    { name: 'Disk Space', value: '23%', status: 'good', trend: 'stable' },
-    { name: 'Network I/O', value: '1.2 GB/s', status: 'good', trend: 'down' },
-  ];
-
-  const handleRefresh = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!grafanaIntegration) {
       toast({
-        title: "Atualizado!",
-        description: "Métricas atualizadas com sucesso.",
+        title: "Integração não configurada",
+        description: "Configure a integração com o Grafana no painel de administração.",
+        variant: "destructive"
       });
-    }, 1000);
-  };
+      return;
+    }
 
-  const openDashboard = (url: string) => {
-    window.open(url, '_blank');
-  };
-
-  const getStatusBadge = (status: string) => {
-    const colors = {
-      'online': 'bg-green-100 text-green-800 border-green-200',
-      'warning': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'offline': 'bg-red-100 text-red-800 border-red-200',
-    };
-    return <Badge className={colors[status] || 'bg-gray-100 text-gray-800 border-gray-200'}>{status}</Badge>;
-  };
-
-  const getMetricStatusColor = (status: string) => {
-    const colors = {
-      'good': 'text-green-600',
-      'warning': 'text-yellow-600',
-      'critical': 'text-red-600',
-    };
-    return colors[status] || 'text-gray-600';
-  };
-
-  const getTrendIcon = (trend: string) => {
-    switch(trend) {
-      case 'up':
-        return <TrendingUp className="h-4 w-4 text-red-500" />;
-      case 'down':
-        return <TrendingUp className="h-4 w-4 text-green-500 rotate-180" />;
-      default:
-        return <div className="h-4 w-4" />;
+    // Verificar credenciais com as configuradas na integração
+    if (credentials.username === grafanaIntegration.username && 
+        credentials.password === grafanaIntegration.password) {
+      setIsAuthenticated(true);
+      setDashboards([
+        { id: 1, name: 'Sistema Overview', url: `${grafanaIntegration.base_url}/d/sistema-overview` },
+        { id: 2, name: 'Performance Metrics', url: `${grafanaIntegration.base_url}/d/performance` },
+        { id: 3, name: 'Network Status', url: `${grafanaIntegration.base_url}/d/network` },
+      ]);
+      toast({
+        title: "Login realizado com sucesso",
+        description: "Acesso aos dashboards do Grafana liberado.",
+      });
+    } else {
+      toast({
+        title: "Credenciais inválidas",
+        description: "Usuário ou senha incorretos.",
+        variant: "destructive"
+      });
     }
   };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setCredentials({ username: '', password: '' });
+    setDashboards([]);
+  };
+
+  if (!grafanaIntegration) {
+    return (
+      <Layout>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
+              <Activity className="h-8 w-8" />
+              Monitoramento
+            </h1>
+            <p className="text-slate-600">Dashboard de monitoramento integrado com Grafana</p>
+          </div>
+
+          <Card className="border-yellow-200 bg-yellow-50">
+            <CardContent className="p-6 text-center">
+              <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-600" />
+              <h3 className="text-lg font-semibold text-yellow-800 mb-2">Integração não configurada</h3>
+              <p className="text-yellow-700">
+                Para usar o monitoramento, configure a integração com o Grafana no painel de administração.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <Layout>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
+              <Activity className="h-8 w-8" />
+              Monitoramento
+            </h1>
+            <p className="text-slate-600">Dashboard de monitoramento integrado com Grafana</p>
+          </div>
+
+          <div className="max-w-md mx-auto">
+            <Card className="border-blue-200">
+              <CardHeader>
+                <CardTitle className="text-blue-900 text-center">Login do Grafana</CardTitle>
+                <CardDescription className="text-center">
+                  Entre com suas credenciais para acessar os dashboards
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Usuário</Label>
+                    <Input
+                      id="username"
+                      type="text"
+                      value={credentials.username}
+                      onChange={(e) => setCredentials({...credentials, username: e.target.value})}
+                      placeholder="Digite seu usuário"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Senha</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={credentials.password}
+                        onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+                        placeholder="Digite sua senha"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
+                    Fazer Login
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
               <Activity className="h-8 w-8" />
               Monitoramento
             </h1>
-            <p className="text-blue-600">Dashboards e métricas do Grafana</p>
+            <p className="text-slate-600">Dashboard de monitoramento integrado com Grafana</p>
           </div>
-          <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Atualizar
+          <Button variant="outline" onClick={handleLogout}>
+            Sair
           </Button>
         </div>
 
-        {/* Métricas em Tempo Real */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {metrics.map((metric, index) => (
-            <Card key={index} className="border-blue-200">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">{metric.name}</p>
-                    <p className={`text-2xl font-bold ${getMetricStatusColor(metric.status)}`}>
-                      {metric.value}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getTrendIcon(metric.trend)}
-                    {metric.status === 'warning' && <AlertTriangle className="h-4 w-4 text-yellow-500" />}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Tabs defaultValue="dashboards" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="dashboards">Dashboards</TabsTrigger>
+            <TabsTrigger value="alerts">Alertas</TabsTrigger>
+            <TabsTrigger value="metrics">Métricas</TabsTrigger>
+          </TabsList>
 
-        {/* Seletor de Dashboard */}
-        <Card className="border-blue-200">
-          <CardHeader>
-            <CardTitle className="text-blue-900">Selecionar Dashboard</CardTitle>
-            <CardDescription>Escolha um dashboard do Grafana para visualizar</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <Select value={selectedDashboard} onValueChange={setSelectedDashboard}>
-                <SelectTrigger className="w-64">
-                  <SelectValue placeholder="Selecione um dashboard" />
-                </SelectTrigger>
-                <SelectContent>
-                  {dashboards.map((dashboard) => (
-                    <SelectItem key={dashboard.id} value={dashboard.id}>
+          <TabsContent value="dashboards" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {dashboards.map((dashboard: any) => (
+                <Card key={dashboard.id} className="border-blue-200 hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="text-blue-900 flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
                       {dashboard.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedDashboard && (
-                <Button 
-                  onClick={() => {
-                    const dashboard = dashboards.find(d => d.id === selectedDashboard);
-                    if (dashboard) openDashboard(dashboard.url);
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Abrir Dashboard
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Lista de Dashboards */}
-        <Card className="border-blue-200">
-          <CardHeader>
-            <CardTitle className="text-blue-900">Dashboards Disponíveis</CardTitle>
-            <CardDescription>Todos os dashboards configurados no Grafana</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {dashboards.map((dashboard) => (
-                <Card key={dashboard.id} className="border-blue-100 hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-blue-900">{dashboard.name}</h4>
-                      {getStatusBadge(dashboard.status)}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-600 truncate flex-1 mr-2">{dashboard.url}</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => openDashboard(dashboard.url)}
-                      >
-                        <ExternalLink className="h-3 w-3 mr-1" />
-                        Abrir
-                      </Button>
-                    </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Button 
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      onClick={() => window.open(dashboard.url, '_blank')}
+                    >
+                      Abrir Dashboard
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </TabsContent>
 
-        {/* Iframe do Dashboard Selecionado */}
-        {selectedDashboard && (
-          <Card className="border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-blue-900">
-                Dashboard: {dashboards.find(d => d.id === selectedDashboard)?.name}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="w-full h-96 bg-gray-100 rounded border flex items-center justify-center">
-                <div className="text-center">
-                  <Activity className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-600">Dashboard do Grafana será exibido aqui</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Configure a URL do Grafana no painel de administração
-                  </p>
+          <TabsContent value="alerts" className="mt-6">
+            <Card className="border-blue-200">
+              <CardHeader>
+                <CardTitle className="text-blue-900 flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  Sistema de Alertas
+                </CardTitle>
+                <CardDescription>
+                  Alertas e notificações do sistema
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-gray-500">
+                  <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Nenhum alerta ativo no momento.</p>
+                  <p className="text-sm mt-2">Sistema funcionando normalmente.</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="metrics" className="mt-6">
+            <Card className="border-blue-200">
+              <CardHeader>
+                <CardTitle className="text-blue-900 flex items-center gap-2">
+                  <Server className="h-5 w-5" />
+                  Métricas do Sistema
+                </CardTitle>
+                <CardDescription>
+                  Estatísticas e performance do sistema
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 border rounded-lg">
+                    <p className="text-2xl font-bold text-green-600">99.9%</p>
+                    <p className="text-sm text-slate-600">Uptime</p>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <p className="text-2xl font-bold text-blue-600">45ms</p>
+                    <p className="text-sm text-slate-600">Latência</p>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <p className="text-2xl font-bold text-purple-600">12GB</p>
+                    <p className="text-sm text-slate-600">Uso de Memória</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );

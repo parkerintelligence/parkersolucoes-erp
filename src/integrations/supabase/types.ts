@@ -267,10 +267,12 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          password: string | null
           phone_number: string | null
           type: string
           updated_at: string
           user_id: string
+          username: string | null
           webhook_url: string | null
         }
         Insert: {
@@ -280,10 +282,12 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          password?: string | null
           phone_number?: string | null
           type: string
           updated_at?: string
           user_id: string
+          username?: string | null
           webhook_url?: string | null
         }
         Update: {
@@ -293,10 +297,12 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          password?: string | null
           phone_number?: string | null
           type?: string
           updated_at?: string
           user_id?: string
+          username?: string | null
           webhook_url?: string | null
         }
         Relationships: []

@@ -4,12 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Plus, Edit, Trash2, Key, MessageCircle, HardDrive, Activity } from 'lucide-react';
+import { Settings, Plus, Edit, Trash2, Key, MessageCircle, HardDrive, Activity, DollarSign } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
 
 export function AdminApiPanel() {
@@ -21,25 +20,39 @@ export function AdminApiPanel() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingIntegration, setEditingIntegration] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    type: 'chatwoot' as 'chatwoot' | 'evolution_api' | 'wasabi' | 'grafana',
+    type: 'chatwoot' as 'chatwoot' | 'evolution_api' | 'wasabi' | 'grafana' | 'bomcontrole',
     name: '',
     base_url: '',
     api_token: '',
     webhook_url: '',
     phone_number: '',
+    username: '',
+    password: '',
     is_active: true
   });
 
   const handleSave = () => {
-    if (!formData.name || !formData.base_url || !formData.api_token) return;
+    if (!formData.name || !formData.base_url) return;
+    
+    // Para Grafana e Bom Controle, username/password são obrigatórios
+    if ((formData.type === 'grafana' || formData.type === 'bomcontrole') && (!formData.username || !formData.password)) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Username e Password são obrigatórios para Grafana e Bom Controle.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const integrationData = {
       type: formData.type,
       name: formData.name,
       base_url: formData.base_url,
-      api_token: formData.api_token,
+      api_token: formData.api_token || '',
       webhook_url: formData.webhook_url || null,
       phone_number: formData.phone_number || null,
+      username: formData.username || null,
+      password: formData.password || null,
       is_active: formData.is_active
     };
 
@@ -49,6 +62,10 @@ export function AdminApiPanel() {
       createIntegration.mutate(integrationData);
     }
 
+    resetForm();
+  };
+
+  const resetForm = () => {
     setFormData({
       type: 'chatwoot',
       name: '',
@@ -56,6 +73,8 @@ export function AdminApiPanel() {
       api_token: '',
       webhook_url: '',
       phone_number: '',
+      username: '',
+      password: '',
       is_active: true
     });
     setIsDialogOpen(false);
@@ -67,9 +86,11 @@ export function AdminApiPanel() {
       type: integration.type,
       name: integration.name,
       base_url: integration.base_url,
-      api_token: integration.api_token,
+      api_token: integration.api_token || '',
       webhook_url: integration.webhook_url || '',
       phone_number: integration.phone_number || '',
+      username: integration.username || '',
+      password: integration.password || '',
       is_active: integration.is_active ?? true
     });
     setEditingIntegration(integration.id);
@@ -85,6 +106,8 @@ export function AdminApiPanel() {
         return HardDrive;
       case 'grafana':
         return Activity;
+      case 'bomcontrole':
+        return DollarSign;
       default:
         return Settings;
     }
@@ -100,9 +123,19 @@ export function AdminApiPanel() {
         return 'Wasabi';
       case 'grafana':
         return 'Grafana';
+      case 'bomcontrole':
+        return 'Bom Controle';
       default:
         return type;
     }
+  };
+
+  const requiresAuth = (type: string) => {
+    return type === 'grafana' || type === 'bomcontrole';
+  };
+
+  const requiresApiToken = (type: string) => {
+    return type !== 'grafana' && type !== 'bomcontrole';
   };
 
   if (isLoading) {
@@ -119,7 +152,7 @@ export function AdminApiPanel() {
               Configurações de API
             </CardTitle>
             <CardDescription>
-              Configure integrações com APIs externas (WhatsApp, Wasabi, Grafana)
+              Configure integrações com APIs externas (WhatsApp, Wasabi, Grafana, Bom Controle)
             </CardDescription>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -150,9 +183,11 @@ export function AdminApiPanel() {
                       <SelectItem value="evolution_api">Evolution API - WhatsApp</SelectItem>
                       <SelectItem value="wasabi">Wasabi Cloud Storage</SelectItem>
                       <SelectItem value="grafana">Grafana Monitoring</SelectItem>
+                      <SelectItem value="bomcontrole">Bom Controle - Financeiro</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                
                 <div className="grid gap-2">
                   <Label htmlFor="name">Nome da Integração</Label>
                   <Input 
@@ -162,6 +197,7 @@ export function AdminApiPanel() {
                     placeholder="Ex: WhatsApp Principal, Wasabi Backup, etc." 
                   />
                 </div>
+                
                 <div className="grid gap-2">
                   <Label htmlFor="base_url">URL Base da API</Label>
                   <Input 
@@ -171,16 +207,44 @@ export function AdminApiPanel() {
                     placeholder="https://api.example.com" 
                   />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="api_token">Token/Chave da API</Label>
-                  <Input 
-                    id="api_token" 
-                    type="password"
-                    value={formData.api_token}
-                    onChange={(e) => setFormData({...formData, api_token: e.target.value})}
-                    placeholder="Token de acesso" 
-                  />
-                </div>
+
+                {requiresAuth(formData.type) && (
+                  <>
+                    <div className="grid gap-2">
+                      <Label htmlFor="username">Usuário</Label>
+                      <Input 
+                        id="username" 
+                        value={formData.username}
+                        onChange={(e) => setFormData({...formData, username: e.target.value})}
+                        placeholder="Usuário de acesso" 
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="password">Senha</Label>
+                      <Input 
+                        id="password" 
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        placeholder="Senha de acesso" 
+                      />
+                    </div>
+                  </>
+                )}
+
+                {requiresApiToken(formData.type) && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="api_token">Token/Chave da API</Label>
+                    <Input 
+                      id="api_token" 
+                      type="password"
+                      value={formData.api_token}
+                      onChange={(e) => setFormData({...formData, api_token: e.target.value})}
+                      placeholder="Token de acesso" 
+                    />
+                  </div>
+                )}
+
                 {(formData.type === 'chatwoot' || formData.type === 'evolution_api') && (
                   <>
                     <div className="grid gap-2">
@@ -203,15 +267,23 @@ export function AdminApiPanel() {
                     </div>
                   </>
                 )}
+
                 {formData.type === 'wasabi' && (
                   <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded">
                     <strong>Wasabi:</strong> Configure as credenciais de acesso ao bucket do Wasabi. 
                     O token deve conter as chaves de acesso (Access Key e Secret Key).
                   </div>
                 )}
+
                 {formData.type === 'grafana' && (
                   <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded">
-                    <strong>Grafana:</strong> Configure a URL do Grafana e um token de API com permissões de leitura para visualizar dashboards.
+                    <strong>Grafana:</strong> Configure a URL do Grafana e as credenciais de usuário para acessar os dashboards.
+                  </div>
+                )}
+
+                {formData.type === 'bomcontrole' && (
+                  <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded">
+                    <strong>Bom Controle:</strong> Configure a URL da API do Bom Controle e as credenciais de acesso para integração financeira.
                   </div>
                 )}
               </div>
@@ -219,19 +291,7 @@ export function AdminApiPanel() {
                 <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSave}>
                   {editingIntegration ? 'Atualizar' : 'Salvar'}
                 </Button>
-                <Button variant="outline" onClick={() => {
-                  setIsDialogOpen(false);
-                  setEditingIntegration(null);
-                  setFormData({
-                    type: 'chatwoot',
-                    name: '',
-                    base_url: '',
-                    api_token: '',
-                    webhook_url: '',
-                    phone_number: '',
-                    is_active: true
-                  });
-                }}>
+                <Button variant="outline" onClick={resetForm}>
                   Cancelar
                 </Button>
               </div>
@@ -279,6 +339,7 @@ export function AdminApiPanel() {
                     <TableCell className="text-sm text-gray-600">
                       {integration.phone_number && `Tel: ${integration.phone_number}`}
                       {integration.webhook_url && 'Webhook configurado'}
+                      {integration.username && `User: ${integration.username}`}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">

@@ -5,12 +5,14 @@ import { toast } from '@/hooks/use-toast';
 
 export interface Integration {
   id: string;
-  type: 'chatwoot' | 'evolution_api' | 'wasabi' | 'grafana';
+  type: 'chatwoot' | 'evolution_api' | 'wasabi' | 'grafana' | 'bomcontrole';
   name: string;
   base_url: string;
   api_token: string;
   webhook_url: string | null;
   phone_number: string | null;
+  username: string | null;
+  password: string | null;
   is_active: boolean | null;
   created_at: string;
   updated_at: string;
