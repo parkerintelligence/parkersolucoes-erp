@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { 
@@ -11,22 +10,12 @@ import {
   Server, 
   Wifi, 
   WifiOff, 
-  Folder, 
-  File, 
-  Upload, 
-  Download, 
-  Trash2, 
   RefreshCw,
-  Home,
-  ArrowLeft,
-  Search,
-  Grid,
-  List,
   Settings,
-  Info,
-  Clock,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Database,
+  Clock
 } from 'lucide-react';
 import { useFtp } from '@/hooks/useFtp';
 import { FtpFileExplorer } from '@/components/FtpFileExplorer';
@@ -36,7 +25,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const Backups = () => {
-  const { files, isLoadingFiles, ftpIntegration, refetchFiles, ftpIntegrations } = useFtp();
+  const { files, isLoadingFiles, ftpIntegration, refetchFiles, ftpIntegrations, testConnection } = useFtp();
   const [currentPath, setCurrentPath] = useState('/');
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
@@ -63,22 +52,22 @@ const Backups = () => {
   if (!ftpIntegration) {
     return (
       <Layout>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
-          <div className="max-w-4xl mx-auto">
-            <Card className="border-yellow-200 bg-yellow-50 shadow-lg">
-              <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <WifiOff className="h-8 w-8 text-yellow-600" />
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+          <div className="container mx-auto px-4 py-8 max-w-6xl">
+            <Card className="border-yellow-200 bg-yellow-50 shadow-xl">
+              <CardContent className="p-12 text-center">
+                <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <WifiOff className="h-10 w-10 text-yellow-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-yellow-800 mb-2">
+                <h2 className="text-3xl font-bold text-yellow-800 mb-4">
                   Nenhuma Conexão FTP Configurada
                 </h2>
-                <p className="text-yellow-700 mb-6 text-lg">
-                  Para gerenciar arquivos de backup, configure uma integração FTP no Painel de Administração.
+                <p className="text-yellow-700 mb-8 text-lg max-w-2xl mx-auto">
+                  Para gerenciar arquivos de backup, você precisa configurar uma integração FTP no Painel de Administração.
                 </p>
                 <Button 
                   size="lg"
-                  className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3"
                   onClick={() => window.location.href = '/admin'}
                 >
                   <Settings className="h-5 w-5 mr-2" />
@@ -95,29 +84,44 @@ const Backups = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-        {/* Header */}
+        {/* Header Section */}
         <div className="bg-white border-b border-gray-200 shadow-sm">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
+          <div className="container mx-auto px-4 py-6 max-w-7xl">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                  <HardDrive className="h-6 w-6 text-white" />
+                <div className="w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <HardDrive className="h-7 w-7 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    Gerenciador FTP
+                  <h1 className="text-3xl font-bold text-gray-900">
+                    Gerenciador de Backups FTP
                   </h1>
-                  <p className="text-gray-600">
-                    Gerencie arquivos de backup no servidor FTP
+                  <p className="text-gray-600 mt-1">
+                    Gerencie e monitore arquivos de backup no servidor FTP
                   </p>
                 </div>
               </div>
               
-              <div className="flex items-center space-x-3">
-                <Badge className="bg-green-100 text-green-800 border-green-200">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Conectado
-                </Badge>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Badge className="bg-green-100 text-green-800 border-green-200 px-3 py-1">
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Conectado
+                  </Badge>
+                  <span className="text-sm text-gray-500">
+                    {ftpIntegration.base_url.replace(/^(ftp:\/\/|ftps:\/\/)/, '')}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => testConnection.mutate()}
+                  disabled={testConnection.isPending}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${testConnection.isPending ? 'animate-spin' : ''}`} />
+                  {testConnection.isPending ? 'Testando...' : 'Testar Conexão'}
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -133,46 +137,121 @@ const Backups = () => {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Main Content */}
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
             
-            {/* Status Panel */}
-            <div className="lg:col-span-1">
-              <FtpStatusPanel 
-                ftpIntegration={ftpIntegration}
-                totalFiles={files.length}
-                totalSize={totalSize}
-                recentFiles={recentFiles}
-                formatFileSize={formatFileSize}
-              />
+            {/* Status Panel - Sidebar */}
+            <div className="xl:col-span-1">
+              <div className="space-y-6">
+                {/* Connection Status */}
+                <Card className="shadow-lg border-0">
+                  <CardHeader className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-t-lg pb-4">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Wifi className="h-5 w-5" />
+                      Status da Conexão
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Status</span>
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Online
+                      </Badge>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Server className="h-4 w-4 text-blue-500" />
+                          <span className="text-sm font-medium">Servidor</span>
+                        </div>
+                        <p className="text-xs bg-gray-50 px-3 py-2 rounded font-mono break-all">
+                          {ftpIntegration.base_url}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Database className="h-4 w-4 text-indigo-500" />
+                          <span className="text-sm font-medium">Usuário</span>
+                        </div>
+                        <p className="text-xs bg-gray-50 px-3 py-2 rounded">
+                          {ftpIntegration.username || 'anonymous'}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Statistics */}
+                <Card className="shadow-lg border-0">
+                  <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-t-lg pb-4">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <HardDrive className="h-5 w-5" />
+                      Estatísticas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <HardDrive className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Total de Arquivos</p>
+                            <p className="text-xs text-gray-600">no servidor</p>
+                          </div>
+                        </div>
+                        <span className="text-xl font-bold text-blue-600">{files.length}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <Clock className="h-5 w-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Arquivos Recentes</p>
+                            <p className="text-xs text-gray-600">hoje</p>
+                          </div>
+                        </div>
+                        <span className="text-xl font-bold text-green-600">{recentFiles}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                            <Database className="h-5 w-5 text-purple-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Tamanho Total</p>
+                            <p className="text-xs text-gray-600">todos os arquivos</p>
+                          </div>
+                        </div>
+                        <span className="text-sm font-bold text-purple-600">
+                          {formatFileSize(totalSize)}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
 
             {/* Main File Explorer */}
-            <div className="lg:col-span-3">
+            <div className="xl:col-span-3">
               <Card className="shadow-lg border-0">
-                <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
+                <CardHeader className="bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-t-lg">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Server className="h-5 w-5" />
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                      <Server className="h-6 w-6" />
                       Explorador de Arquivos
                     </CardTitle>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setViewMode('list')}
-                        className="text-white border-white/20 hover:bg-white/10"
-                      >
-                        <List className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setViewMode('grid')}
-                        className="text-white border-white/20 hover:bg-white/10"
-                      >
-                        <Grid className="h-4 w-4" />
-                      </Button>
+                    <div className="text-sm opacity-90">
+                      {filteredFiles.length} arquivo(s) encontrado(s)
                     </div>
                   </div>
                 </CardHeader>

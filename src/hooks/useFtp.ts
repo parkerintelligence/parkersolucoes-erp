@@ -56,7 +56,7 @@ export const useFtp = () => {
       return fileList;
     },
     enabled: !!activeFtpIntegration && !isLoadingIntegrations,
-    retry: 2,
+    retry: 3,
     retryDelay: 1000,
     refetchInterval: false,
     refetchOnWindowFocus: false,
@@ -85,7 +85,7 @@ export const useFtp = () => {
       console.log('FTP connection test successful:', data.connectionInfo);
       toast({
         title: "✅ Teste de Conexão FTP Bem-sucedido",
-        description: `Conectado ao ${data.connectionInfo.host}:${data.connectionInfo.port}`,
+        description: `Conectado ao ${data.connectionInfo.host}`,
       });
       queryClient.invalidateQueries({ queryKey: ['ftp-files'] });
     },
@@ -201,7 +201,7 @@ export const useFtp = () => {
   console.log('=== FTP Hook Current State ===');
   console.log('Files loaded:', files.length);
   console.log('Loading files:', isLoadingFiles);
-  console.log('Files error:', filesError?.message);
+  console.log('Files error:', filesError);
   console.log('Has active integration:', !!activeFtpIntegration);
 
   return {
