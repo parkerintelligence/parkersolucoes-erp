@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
@@ -16,21 +15,20 @@ serve(async (req) => {
   }
 
   try {
-    console.log('=== Zabbix Proxy Request Started ===');
+    console.log('=== Mikrotik Proxy Request Started ===');
     
     const body = await req.json();
-    const { method, params, integrationId } = body;
+    const { endpoint, integrationId } = body;
     
     console.log('Request body:', { 
-      method, 
-      integrationId,
-      paramsKeys: params ? Object.keys(params) : 'no params'
+      endpoint, 
+      integrationId
     });
 
-    if (!method || !integrationId) {
-      console.error('Missing required fields:', { method: !!method, integrationId: !!integrationId });
+    if (!endpoint || !integrationId) {
+      console.error('Missing required fields:', { endpoint: !!endpoint, integrationId: !!integrationId });
       return new Response(JSON.stringify({ 
-        error: 'Campos obrigatórios: method e integrationId' 
+        error: 'Campos obrigatórios: endpoint e integrationId' 
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -58,14 +56,14 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Buscar configuração do Zabbix
+    // Buscar configuração do Mikrotik
     console.log('Fetching integration with ID:', integrationId);
     
     const { data: integration, error: integrationError } = await supabase
       .from('integrations')
-      .select('base_url, api_token')
+      .select('base_url, username, password, port')
       .eq('id', integrationId)
-      .eq('type', 'zabbix')
+      .eq('type', 'mikrotik')
       .eq('is_active', true)
       .single();
 
@@ -83,7 +81,7 @@ serve(async (req) => {
     if (!integration) {
       console.error('Integration not found or inactive');
       return new Response(JSON.stringify({ 
-        error: 'Integração Zabbix não encontrada ou inativa' 
+        error: 'Integração Mikrotik não encontrada ou inativa' 
       }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -92,78 +90,42 @@ serve(async (req) => {
 
     console.log('Integration found:', {
       base_url: integration.base_url,
-      hasApiToken: !!integration.api_token,
-      tokenLength: integration.api_token?.length || 0
+      hasUsername: !!integration.username,
+      hasPassword: !!integration.password,
+      port: integration.port || 8728
     });
 
-    // Preparar URL da API
+    // Preparar URL da API REST do Mikrotik
     let apiUrl = integration.base_url.replace(/\/$/, '');
-    if (!apiUrl.endsWith('/api_jsonrpc.php')) {
-      apiUrl = apiUrl + '/api_jsonrpc.php';
+    if (!apiUrl.includes('/rest')) {
+      apiUrl = apiUrl + '/rest' + endpoint;
+    } else {
+      apiUrl = apiUrl + endpoint;
     }
 
     console.log('Final API URL:', apiUrl);
 
-    // Preparar requisição para o Zabbix
-    const requestBody = {
-      jsonrpc: '2.0',
-      method: method,
-      params: params || {},
-      auth: integration.api_token,
-      id: 1,
-    };
+    // Preparar autenticação básica
+    const auth = btoa(`${integration.username}:${integration.password}`);
 
-    console.log('Zabbix request:', {
-      jsonrpc: requestBody.jsonrpc,
-      method: requestBody.method,
-      paramsCount: Object.keys(requestBody.params).length,
-      hasAuth: !!requestBody.auth,
-      id: requestBody.id
-    });
-
-    // Teste de conectividade básica primeiro
-    console.log('Testing basic connectivity...');
-    
-    try {
-      const testUrl = new URL(apiUrl);
-      console.log('Testing DNS resolution for:', testUrl.hostname);
-      
-      // Teste básico de conectividade
-      const connectivityTest = await fetch(`${testUrl.protocol}//${testUrl.host}/`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(10000),
-      }).catch(e => {
-        console.log('Basic connectivity test failed:', e.message);
-        return null;
-      });
-      
-      if (connectivityTest) {
-        console.log('Basic connectivity OK, status:', connectivityTest.status);
-      }
-    } catch (connectivityError) {
-      console.log('Connectivity test error:', connectivityError.message);
-    }
-
-    // Fazer requisição para o Zabbix com timeout e headers corretos
+    // Fazer requisição para o Mikrotik
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       console.log('Request timeout triggered');
       controller.abort();
-    }, 30000);
+    }, 15000);
 
     try {
-      console.log('Making request to Zabbix...');
+      console.log('Making request to Mikrotik...');
       
       const response = await fetch(apiUrl, {
-        method: 'POST',
+        method: 'GET',
         headers: {
+          'Authorization': `Basic ${auth}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'User-Agent': 'Supabase-Zabbix-Proxy/1.0',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
+          'User-Agent': 'Supabase-Mikrotik-Proxy/1.0',
         },
-        body: JSON.stringify(requestBody),
         signal: controller.signal,
       });
 
@@ -172,24 +134,22 @@ serve(async (req) => {
       console.log('Response received:', {
         status: response.status,
         statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries())
+        ok: response.ok
       });
 
       const responseText = await response.text();
       console.log('Response text length:', responseText.length);
-      console.log('Response preview:', responseText.substring(0, 500));
 
       if (!response.ok) {
         console.error('HTTP Error details:', {
           status: response.status,
           statusText: response.statusText,
-          responseText: responseText.substring(0, 1000)
+          responseText: responseText.substring(0, 500)
         });
         
         return new Response(JSON.stringify({
           error: `Erro HTTP ${response.status}: ${response.statusText}`,
-          details: responseText.substring(0, 500)
+          details: responseText.substring(0, 200)
         }), {
           status: response.status,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -204,7 +164,7 @@ serve(async (req) => {
         console.error('Raw response:', responseText);
         
         return new Response(JSON.stringify({
-          error: 'Resposta inválida do Zabbix (não é JSON válido)',
+          error: 'Resposta inválida do Mikrotik (não é JSON válido)',
           details: responseText.substring(0, 200)
         }), {
           status: 502,
@@ -213,26 +173,13 @@ serve(async (req) => {
       }
 
       console.log('Parsed response:', { 
-        hasResult: !!data.result, 
-        hasError: !!data.error,
-        resultType: typeof data.result,
-        resultLength: Array.isArray(data.result) ? data.result.length : 'N/A'
+        dataType: typeof data,
+        isArray: Array.isArray(data),
+        length: Array.isArray(data) ? data.length : 'N/A'
       });
-      
-      if (data.error) {
-        console.error('Zabbix API Error:', data.error);
-        return new Response(JSON.stringify({
-          error: `Erro da API Zabbix: ${data.error.message || 'Erro desconhecido'}`,
-          code: data.error.code || 'N/A',
-          details: JSON.stringify(data.error)
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
 
       console.log('Success! Returning result...');
-      return new Response(JSON.stringify({ result: data.result }), {
+      return new Response(JSON.stringify({ result: data }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
 
@@ -241,59 +188,24 @@ serve(async (req) => {
       
       console.error('Fetch error details:', {
         name: fetchError.name,
-        message: fetchError.message,
-        stack: fetchError.stack
+        message: fetchError.message
       });
       
       if (fetchError.name === 'AbortError') {
         console.error('Request timeout');
         return new Response(JSON.stringify({
-          error: 'Timeout na conexão com o Zabbix (30s)',
-          details: 'Verifique se o servidor está acessível e respondendo',
-          troubleshooting: {
-            dns_check: 'Execute: nslookup seu-servidor-zabbix.com',
-            port_check: 'Execute: telnet seu-servidor-zabbix.com 80',
-            firewall: 'Verifique se as portas 80/443 estão abertas',
-            network: 'Teste a conectividade da rede local'
-          }
+          error: 'Timeout na conexão com o Mikrotik (15s)',
+          details: 'Verifique se o servidor está acessível e respondendo'
         }), {
           status: 408,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       
-      // Diagnóstico detalhado de erro de conectividade
-      let diagnosticInfo = {
-        error_type: fetchError.name,
-        error_message: fetchError.message,
-        url_tested: apiUrl,
-        timestamp: new Date().toISOString()
-      };
-      
-      if (fetchError.message.includes('ENOTFOUND')) {
-        diagnosticInfo = { 
-          ...diagnosticInfo, 
-          issue: 'DNS Resolution Failed',
-          solution: 'Verifique se o hostname está correto e acessível'
-        };
-      } else if (fetchError.message.includes('ECONNREFUSED')) {
-        diagnosticInfo = { 
-          ...diagnosticInfo, 
-          issue: 'Connection Refused',
-          solution: 'Verifique se o serviço Zabbix está rodando na porta correta'
-        };
-      } else if (fetchError.message.includes('certificate')) {
-        diagnosticInfo = { 
-          ...diagnosticInfo, 
-          issue: 'SSL Certificate Error',
-          solution: 'Use HTTP ao invés de HTTPS ou configure certificado válido'
-        };
-      }
-      
       return new Response(JSON.stringify({
-        error: 'Erro de conectividade com o Zabbix',
+        error: 'Erro de conectividade com o Mikrotik',
         details: fetchError.message,
-        diagnostic: diagnosticInfo
+        type: fetchError.name
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -304,8 +216,7 @@ serve(async (req) => {
     console.error('=== Edge Function Error ===');
     console.error('Error details:', {
       name: error.name,
-      message: error.message,
-      stack: error.stack
+      message: error.message
     });
     
     return new Response(JSON.stringify({ 
