@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { HardDrive, Download, Upload, Trash2, RefreshCw, Search, File, Folder, Settings } from 'lucide-react';
+import { HardDrive, Download, Upload, Trash2, RefreshCw, Search, File, Folder, Settings, AlertTriangle } from 'lucide-react';
 import { useWasabi } from '@/hooks/useWasabi';
 
 const Wasabi = () => {
@@ -15,6 +15,7 @@ const Wasabi = () => {
   const { 
     files, 
     isLoadingFiles, 
+    error,
     wasabiIntegration,
     wasabiIntegrations,
     uploadFiles,
@@ -45,17 +46,23 @@ const Wasabi = () => {
   };
 
   const handleDelete = (fileName: string) => {
-    deleteFile.mutate({ fileName });
+    if (confirm(`Tem certeza que deseja remover o arquivo "${fileName}"?`)) {
+      deleteFile.mutate({ fileName });
+    }
   };
 
   const getTypeBadge = (type: string) => {
     const colors = {
-      'backup': 'bg-blue-100 text-blue-800 border-blue-200',
-      'database': 'bg-green-100 text-green-800 border-green-200',
-      'media': 'bg-purple-100 text-purple-800 border-purple-200',
+      'image': 'bg-purple-100 text-purple-800 border-purple-200',
+      'video': 'bg-red-100 text-red-800 border-red-200',
+      'audio': 'bg-pink-100 text-pink-800 border-pink-200',
       'document': 'bg-orange-100 text-orange-800 border-orange-200',
+      'archive': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      'code': 'bg-green-100 text-green-800 border-green-200',
+      'database': 'bg-blue-100 text-blue-800 border-blue-200',
+      'file': 'bg-gray-100 text-gray-800 border-gray-200',
     };
-    return <Badge className={colors[type] || 'bg-gray-100 text-gray-800 border-gray-200'}>{type}</Badge>;
+    return <Badge className={colors[type] || colors.file}>{type}</Badge>;
   };
 
   if (!wasabiIntegration) {
@@ -89,6 +96,34 @@ const Wasabi = () => {
             <Settings className="h-4 w-4 mr-2" />
             Configurar Bucket
           </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Mostrar erro de conexão se houver
+  if (error) {
+    return (
+      <Card className="border-red-200 bg-red-50">
+        <CardContent className="p-6 text-center">
+          <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-red-900 mb-2">Erro de Conexão com Wasabi</h2>
+          <p className="text-red-700 mb-4">
+            Não foi possível conectar ao Wasabi. Verifique suas credenciais e configurações.
+          </p>
+          <p className="text-sm text-red-600 mb-4 font-mono bg-red-100 p-2 rounded">
+            {error.message}
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button className="bg-red-600 hover:bg-red-700" onClick={() => window.location.href = '/admin'}>
+              <Settings className="h-4 w-4 mr-2" />
+              Verificar Configurações
+            </Button>
+            <Button variant="outline" onClick={handleRefresh}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Tentar Novamente
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -163,10 +198,10 @@ const Wasabi = () => {
               <HardDrive className="h-6 w-6 text-purple-500" />
               <div>
                 <p className="text-xl font-bold text-blue-900">
-                  {files.reduce((total, file) => {
-                    const sizeInMB = parseFloat(file.size.replace(/[^\d.]/g, ''));
-                    return total + (file.size.includes('GB') ? sizeInMB * 1000 : sizeInMB);
-                  }, 0).toFixed(0)} MB
+                  {files.reduce((total, file) => total + (file.sizeBytes || 0), 0) > 0 ? 
+                    Math.round(files.reduce((total, file) => total + (file.sizeBytes || 0), 0) / 1024 / 1024) + ' MB' : 
+                    '0 MB'
+                  }
                 </p>
                 <p className="text-xs text-blue-600">Usado</p>
               </div>
