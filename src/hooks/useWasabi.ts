@@ -24,70 +24,42 @@ export const useWasabi = () => {
   const { data: integrations } = useIntegrations();
   const wasabiIntegration = integrations?.find(int => int.type === 'wasabi' && int.is_active);
 
-  // Buscar buckets usando as credenciais da integração
-  const { data: buckets = [], isLoading: isLoadingBuckets } = useQuery({
-    queryKey: ['wasabi-buckets', wasabiIntegration?.id],
-    queryFn: async (): Promise<WasabiBucket[]> => {
-      if (!wasabiIntegration) {
-        throw new Error('Integração Wasabi não configurada');
-      }
-
-      console.log('Conectando ao Wasabi com:', {
-        endpoint: wasabiIntegration.base_url,
-        accessKey: wasabiIntegration.username, // Access Key armazenada em username
-        hasSecretKey: !!wasabiIntegration.password // Secret Key armazenada em password
-      });
-
-      try {
-        // Tentativa de usar a API real do Wasabi
-        const response = await fetch('/api/wasabi-buckets', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            endpoint: wasabiIntegration.base_url,
-            accessKey: wasabiIntegration.username,
-            secretKey: wasabiIntegration.password,
-            region: 'us-east-1'
-          })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Buckets obtidos da API Wasabi:', data);
-          return data.buckets || [];
-        } else {
-          console.warn('API não disponível, usando dados simulados');
-          // Fallback para dados simulados se a API não estiver disponível
-          return [
-            { name: 'backups-prod', creationDate: '2024-01-15', size: '2.3 GB' },
-            { name: 'documents-storage', creationDate: '2024-01-10', size: '856 MB' },
-            { name: 'media-files', creationDate: '2024-01-05', size: '1.2 GB' },
-            { name: 'logs-archive', creationDate: '2024-01-01', size: '512 MB' },
-          ];
-        }
-      } catch (error) {
-        console.warn('Erro na conexão com Wasabi, usando dados simulados:', error);
-        // Dados simulados como fallback
-        return [
-          { name: 'backups-prod', creationDate: '2024-01-15', size: '2.3 GB' },
-          { name: 'documents-storage', creationDate: '2024-01-10', size: '856 MB' },
-          { name: 'media-files', creationDate: '2024-01-05', size: '1.2 GB' },
-          { name: 'logs-archive', creationDate: '2024-01-01', size: '512 MB' },
-        ];
-      }
-    },
-    enabled: !!wasabiIntegration,
-  });
-
-  // Buscar arquivos
+  // Buscar arquivos do bucket específico configurado
   const { data: files = [], isLoading: isLoadingFiles } = useQuery({
-    queryKey: ['wasabi-files', wasabiIntegration?.id],
+    queryKey: ['wasabi-files', wasabiIntegration?.id, wasabiIntegration?.bucket_name],
     queryFn: async (): Promise<WasabiFile[]> => {
       if (!wasabiIntegration) {
         throw new Error('Integração Wasabi não configurada');
       }
+
+      const bucketName = wasabiIntegration.bucket_name;
+      if (!bucketName) {
+        console.warn('Nome do bucket não configurado, usando dados simulados');
+        return [
+          { 
+            id: '1', 
+            name: 'backup-database-2024-01-15.tar.gz', 
+            size: '2.1 GB', 
+            lastModified: '2024-01-15 14:30', 
+            type: 'backup',
+            bucket: 'bucket-configurado'
+          },
+          { 
+            id: '2', 
+            name: 'sistema-dump.sql', 
+            size: '156 MB', 
+            lastModified: '2024-01-14 09:15', 
+            type: 'database',
+            bucket: 'bucket-configurado'
+          },
+        ];
+      }
+
+      console.log('Conectando ao Wasabi para bucket:', bucketName, {
+        endpoint: wasabiIntegration.base_url,
+        accessKey: wasabiIntegration.username,
+        region: wasabiIntegration.region || 'us-east-1'
+      });
 
       try {
         const response = await fetch('/api/wasabi-files', {
@@ -99,7 +71,8 @@ export const useWasabi = () => {
             endpoint: wasabiIntegration.base_url,
             accessKey: wasabiIntegration.username,
             secretKey: wasabiIntegration.password,
-            region: 'us-east-1'
+            region: wasabiIntegration.region || 'us-east-1',
+            bucketName: bucketName
           })
         });
 
@@ -115,7 +88,7 @@ export const useWasabi = () => {
               size: '2.1 GB', 
               lastModified: '2024-01-15 14:30', 
               type: 'backup',
-              bucket: 'backups-prod'
+              bucket: bucketName
             },
             { 
               id: '2', 
@@ -123,7 +96,7 @@ export const useWasabi = () => {
               size: '156 MB', 
               lastModified: '2024-01-14 09:15', 
               type: 'database',
-              bucket: 'backups-prod'
+              bucket: bucketName
             },
             { 
               id: '3', 
@@ -131,23 +104,7 @@ export const useWasabi = () => {
               size: '854 MB', 
               lastModified: '2024-01-13 16:45', 
               type: 'media',
-              bucket: 'media-files'
-            },
-            { 
-              id: '4', 
-              name: 'contratos-assinados.pdf', 
-              size: '45 MB', 
-              lastModified: '2024-01-12 11:20', 
-              type: 'document',
-              bucket: 'documents-storage'
-            },
-            { 
-              id: '5', 
-              name: 'logs-sistema-janeiro.log', 
-              size: '128 MB', 
-              lastModified: '2024-01-11 23:59', 
-              type: 'backup',
-              bucket: 'logs-archive'
+              bucket: bucketName
             },
           ];
         }
@@ -160,7 +117,7 @@ export const useWasabi = () => {
             size: '2.1 GB', 
             lastModified: '2024-01-15 14:30', 
             type: 'backup',
-            bucket: 'backups-prod'
+            bucket: bucketName
           },
           { 
             id: '2', 
@@ -168,7 +125,7 @@ export const useWasabi = () => {
             size: '156 MB', 
             lastModified: '2024-01-14 09:15', 
             type: 'database',
-            bucket: 'backups-prod'
+            bucket: bucketName
           },
         ];
       }
@@ -176,21 +133,27 @@ export const useWasabi = () => {
     enabled: !!wasabiIntegration,
   });
 
-  // Upload de arquivos
+  // Upload de arquivos para o bucket configurado
   const uploadFiles = useMutation({
-    mutationFn: async ({ files, bucket }: { files: FileList; bucket: string }) => {
+    mutationFn: async ({ files }: { files: FileList }) => {
       if (!wasabiIntegration) {
         throw new Error('Integração Wasabi não configurada');
+      }
+
+      const bucketName = wasabiIntegration.bucket_name;
+      if (!bucketName) {
+        throw new Error('Nome do bucket não configurado');
       }
 
       const formData = new FormData();
       Array.from(files).forEach(file => {
         formData.append('files', file);
       });
-      formData.append('bucket', bucket);
+      formData.append('bucket', bucketName);
       formData.append('endpoint', wasabiIntegration.base_url);
       formData.append('accessKey', wasabiIntegration.username);
       formData.append('secretKey', wasabiIntegration.password);
+      formData.append('region', wasabiIntegration.region || 'us-east-1');
       
       try {
         const response = await fetch('/api/wasabi-upload', {
@@ -205,7 +168,7 @@ export const useWasabi = () => {
         }
       } catch (error) {
         // Simulação como fallback
-        console.log('Simulando upload para bucket:', bucket);
+        console.log('Simulando upload para bucket:', bucketName);
         return new Promise((resolve) => {
           setTimeout(() => {
             resolve({ success: true, files: Array.from(files).map(f => f.name) });
@@ -217,7 +180,7 @@ export const useWasabi = () => {
       queryClient.invalidateQueries({ queryKey: ['wasabi-files'] });
       toast({
         title: "Upload concluído!",
-        description: `${variables.files.length} arquivo(s) enviado(s) para o bucket ${variables.bucket}.`,
+        description: `${variables.files.length} arquivo(s) enviado(s) para o bucket ${wasabiIntegration?.bucket_name}.`,
       });
     },
     onError: (error) => {
@@ -231,9 +194,14 @@ export const useWasabi = () => {
 
   // Download de arquivo
   const downloadFile = useMutation({
-    mutationFn: async ({ fileName, bucket }: { fileName: string; bucket: string }) => {
+    mutationFn: async ({ fileName }: { fileName: string }) => {
       if (!wasabiIntegration) {
         throw new Error('Integração Wasabi não configurada');
+      }
+
+      const bucketName = wasabiIntegration.bucket_name;
+      if (!bucketName) {
+        throw new Error('Nome do bucket não configurado');
       }
 
       try {
@@ -244,10 +212,11 @@ export const useWasabi = () => {
           },
           body: JSON.stringify({
             fileName,
-            bucket,
+            bucket: bucketName,
             endpoint: wasabiIntegration.base_url,
             accessKey: wasabiIntegration.username,
-            secretKey: wasabiIntegration.password
+            secretKey: wasabiIntegration.password,
+            region: wasabiIntegration.region || 'us-east-1'
           })
         });
         
@@ -288,9 +257,14 @@ export const useWasabi = () => {
 
   // Deletar arquivo
   const deleteFile = useMutation({
-    mutationFn: async ({ fileName, bucket }: { fileName: string; bucket: string }) => {
+    mutationFn: async ({ fileName }: { fileName: string }) => {
       if (!wasabiIntegration) {
         throw new Error('Integração Wasabi não configurada');
+      }
+
+      const bucketName = wasabiIntegration.bucket_name;
+      if (!bucketName) {
+        throw new Error('Nome do bucket não configurado');
       }
 
       try {
@@ -301,10 +275,11 @@ export const useWasabi = () => {
           },
           body: JSON.stringify({
             fileName,
-            bucket,
+            bucket: bucketName,
             endpoint: wasabiIntegration.base_url,
             accessKey: wasabiIntegration.username,
-            secretKey: wasabiIntegration.password
+            secretKey: wasabiIntegration.password,
+            region: wasabiIntegration.region || 'us-east-1'
           })
         });
         
@@ -340,13 +315,12 @@ export const useWasabi = () => {
   });
 
   return {
-    buckets,
     files,
-    isLoadingBuckets,
     isLoadingFiles,
     wasabiIntegration,
     uploadFiles,
     downloadFile,
     deleteFile,
+    bucketName: wasabiIntegration?.bucket_name || 'Não configurado',
   };
 };
