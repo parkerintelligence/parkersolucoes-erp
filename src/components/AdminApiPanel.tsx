@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -33,12 +34,11 @@ const formSchema = z.object({
   }),
   base_url: z.string().url({ message: "URL inválida" }),
   api_token: z.string().optional(),
-  webhook_url: z.string().url({ message: "URL inválida" }).optional(),
+  webhook_url: z.string().url({ message: "URL inválida" }).optional().or(z.literal("")),
   phone_number: z.string().optional(),
   username: z.string().optional(),
   password: z.string().optional(),
   region: z.string().optional(),
-  bucket_name: z.string().optional(),
   is_active: z.boolean().default(true),
 })
 
@@ -59,12 +59,13 @@ const AdminApiPanel = () => {
       username: "",
       password: "",
       region: "",
-      bucket_name: "",
       is_active: true,
     },
   })
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
+    console.log('Dados do formulário:', values);
+    
     // Ensure all required fields are present with proper defaults
     const integrationData = {
       type: values.type,
@@ -76,9 +77,11 @@ const AdminApiPanel = () => {
       username: values.username || null,
       password: values.password || null,
       region: values.region || null,
-      bucket_name: values.bucket_name || null,
+      bucket_name: null, // Removido do formulário, sempre null
       is_active: values.is_active,
     };
+
+    console.log('Dados para enviar:', integrationData);
 
     if (editingIntegrationId) {
       updateIntegration.mutate({ id: editingIntegrationId, updates: integrationData });
@@ -90,6 +93,7 @@ const AdminApiPanel = () => {
   }
 
   const handleEditIntegration = (integration: any) => {
+    console.log('Editando integração:', integration);
     setEditingIntegrationId(integration.id);
     form.setValue("type", integration.type);
     form.setValue("name", integration.name);
@@ -100,7 +104,6 @@ const AdminApiPanel = () => {
     form.setValue("username", integration.username || "");
     form.setValue("password", integration.password || "");
     form.setValue("region", integration.region || "");
-    form.setValue("bucket_name", integration.bucket_name || "");
     form.setValue("is_active", integration.is_active !== null ? integration.is_active : true);
     setSelectedType(integration.type);
   };
@@ -195,24 +198,6 @@ const AdminApiPanel = () => {
   const getWasabiFields = () => (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="base_url"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Endpoint URL *</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="s3.wasabisys.com" 
-                  {...field}
-                  value={field.value || ''}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
         <FormField
           control={form.control}
           name="region"
@@ -363,27 +348,28 @@ const AdminApiPanel = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue={selectedType} className="space-y-4">
+          <Tabs value={selectedType} onValueChange={(value) => setSelectedType(value as typeof selectedType)} className="space-y-4">
             <TabsList>
-              <TabsTrigger value="chatwoot" onClick={() => setSelectedType("chatwoot")}>Chatwoot</TabsTrigger>
-              <TabsTrigger value="evolution_api" onClick={() => setSelectedType("evolution_api")}>Evolution API</TabsTrigger>
-              <TabsTrigger value="wasabi" onClick={() => setSelectedType("wasabi")}>Wasabi</TabsTrigger>
-              <TabsTrigger value="grafana" onClick={() => setSelectedType("grafana")}>Grafana</TabsTrigger>
-              <TabsTrigger value="bomcontrole" onClick={() => setSelectedType("bomcontrole")}>BomControle</TabsTrigger>
-              <TabsTrigger value="zabbix" onClick={() => setSelectedType("zabbix")}>Zabbix</TabsTrigger>
+              <TabsTrigger value="chatwoot">Chatwoot</TabsTrigger>
+              <TabsTrigger value="evolution_api">Evolution API</TabsTrigger>
+              <TabsTrigger value="wasabi">Wasabi</TabsTrigger>
+              <TabsTrigger value="grafana">Grafana</TabsTrigger>
+              <TabsTrigger value="bomcontrole">BomControle</TabsTrigger>
+              <TabsTrigger value="zabbix">Zabbix</TabsTrigger>
             </TabsList>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
                   name="type"
-                  render={() => (
+                  render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tipo de Integração</FormLabel>
                       <Select onValueChange={(value) => {
-                        form.setValue("type", value as "chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix");
-                        setSelectedType(value as "chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix");
-                      }}>
+                        const newType = value as "chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix";
+                        form.setValue("type", newType);
+                        setSelectedType(newType);
+                      }} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione o tipo" />
@@ -451,8 +437,11 @@ const AdminApiPanel = () => {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" disabled={isLoading}>
-                  {editingIntegrationId ? (isLoading ? "Atualizando..." : "Atualizar Integração") : (isLoading ? "Criando..." : "Criar Integração")}
+                <Button type="submit" disabled={createIntegration.isPending || updateIntegration.isPending}>
+                  {editingIntegrationId ? 
+                    (updateIntegration.isPending ? "Atualizando..." : "Atualizar Integração") : 
+                    (createIntegration.isPending ? "Criando..." : "Criar Integração")
+                  }
                 </Button>
               </form>
             </Form>
@@ -475,8 +464,16 @@ const AdminApiPanel = () => {
                   <CardDescription>Tipo: {integration.type}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p>URL: {integration.base_url}</p>
-                  {integration.type === 'evolution_api' && <p>Telefone: {integration.phone_number}</p>}
+                  <p className="text-sm text-gray-600 mb-2">URL: {integration.base_url}</p>
+                  {integration.type === 'evolution_api' && integration.phone_number && (
+                    <p className="text-sm text-gray-600 mb-2">Telefone: {integration.phone_number}</p>
+                  )}
+                  <p className="text-sm text-gray-600 mb-4">
+                    Status: {integration.is_active ? 
+                      <span className="text-green-600 font-medium">Ativo</span> : 
+                      <span className="text-red-600 font-medium">Inativo</span>
+                    }
+                  </p>
                   <div className="flex justify-end gap-2 mt-4">
                     <Button variant="secondary" size="sm" onClick={() => handleEditIntegration(integration)}>
                       Editar
