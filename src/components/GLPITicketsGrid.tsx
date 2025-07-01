@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -395,8 +394,8 @@ export const GLPITicketsGrid = () => {
 
           {/* Tabelas */}
           <div className="space-y-6">
-            {Object.entries(paginatedTickets).map(([groupName, tickets]) => 
-              renderTicketTable(tickets, groupName)
+            {Object.entries(paginatedTickets).map(([groupName, ticketList]) => 
+              renderTicketTable(ticketList, groupName)
             )}
           </div>
 
