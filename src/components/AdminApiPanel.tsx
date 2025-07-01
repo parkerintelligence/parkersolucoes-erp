@@ -89,7 +89,7 @@ const AdminApiPanel = () => {
         bucket_name: config.bucket_name
       });
 
-      // Simulação de teste de conexão (sem APIs backend)
+      // Simulação de teste de conexão
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       if (config.type === 'wasabi') {
@@ -103,8 +103,8 @@ const AdminApiPanel = () => {
         }
 
         toast({
-          title: "Teste simulado",
-          description: `Configuração do Wasabi ${config.name} salva. O teste real será feito quando acessar os arquivos.`,
+          title: "Teste de conexão simulado",
+          description: `Configuração do Wasabi ${config.name} testada com sucesso! (Simulado)`,
         });
       } else {
         if (!config.base_url) {
@@ -117,15 +117,15 @@ const AdminApiPanel = () => {
         }
 
         toast({
-          title: "Teste simulado",
-          description: `Configuração ${config.name} salva com sucesso.`,
+          title: "Teste de conexão simulado",
+          description: `Configuração ${config.name} testada com sucesso! (Simulado)`,
         });
       }
     } catch (error) {
       console.error('Erro no teste de conexão:', error);
       toast({
         title: "Erro no teste",
-        description: `Erro ao testar conexão: ${error.message}`,
+        description: `Erro ao testar conexão: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
         variant: "destructive"
       });
     } finally {
@@ -146,6 +146,15 @@ const AdminApiPanel = () => {
       toast({
         title: "Campo obrigatório",
         description: "Nome é obrigatório.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!newConfig.type) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Tipo de API é obrigatório.",
         variant: "destructive"
       });
       return;
@@ -236,7 +245,7 @@ const AdminApiPanel = () => {
       console.error('Erro ao salvar configuração:', error);
       toast({
         title: "Erro ao salvar",
-        description: `Erro: ${error.message || 'Erro desconhecido'}. Tente novamente.`,
+        description: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Tente novamente.`,
         variant: "destructive"
       });
     }
@@ -254,7 +263,7 @@ const AdminApiPanel = () => {
       console.error('Erro ao remover configuração:', error);
       toast({
         title: "Erro ao remover",
-        description: `Erro: ${error.message || 'Erro desconhecido'}. Tente novamente.`,
+        description: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Tente novamente.`,
         variant: "destructive"
       });
     }
