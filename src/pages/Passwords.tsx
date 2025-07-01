@@ -13,6 +13,13 @@ import { Lock, Plus, Eye, EyeOff, Edit, Trash2, Building, Search } from 'lucide-
 import { toast } from '@/hooks/use-toast';
 
 const Passwords = () => {
+  const [passwords, setPasswords] = useState([
+    { id: '1', client: 'Empresa A', system: 'ERP Sistema', url: 'https://erp.empresaa.com', username: 'admin', password: 'SecurePass123!', category: 'Sistema' },
+    { id: '2', client: 'Empresa A', system: 'Email Corporativo', url: 'https://mail.empresaa.com', username: 'admin@empresaa.com', password: 'EmailPass456@', category: 'Email' },
+    { id: '3', client: 'Empresa B', system: 'Painel Hospedagem', url: 'https://cpanel.empresab.com', username: 'root', password: 'HostPass789#', category: 'Hosting' },
+    { id: '4', client: 'Empresa C', system: 'Banco de Dados', url: 'mysql://db.empresac.com', username: 'dbadmin', password: 'DbPass321$', category: 'Database' },
+  ]);
+
   const [showPassword, setShowPassword] = useState<{ [key: string]: boolean }>({});
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -20,12 +27,14 @@ const Passwords = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
   
-  const passwords = [
-    { id: '1', client: 'Empresa A', system: 'ERP Sistema', url: 'https://erp.empresaa.com', username: 'admin', password: 'SecurePass123!', category: 'Sistema' },
-    { id: '2', client: 'Empresa A', system: 'Email Corporativo', url: 'https://mail.empresaa.com', username: 'admin@empresaa.com', password: 'EmailPass456@', category: 'Email' },
-    { id: '3', client: 'Empresa B', system: 'Painel Hospedagem', url: 'https://cpanel.empresab.com', username: 'root', password: 'HostPass789#', category: 'Hosting' },
-    { id: '4', client: 'Empresa C', system: 'Banco de Dados', url: 'mysql://db.empresac.com', username: 'dbadmin', password: 'DbPass321$', category: 'Database' },
-  ];
+  const [formData, setFormData] = useState({
+    client: '',
+    system: '',
+    url: '',
+    username: '',
+    password: '',
+    category: ''
+  });
 
   const companies = ['Empresa A', 'Empresa B', 'Empresa C'];
 
@@ -62,18 +71,77 @@ const Passwords = () => {
     });
   };
 
+  const handleSavePassword = () => {
+    if (!formData.client || !formData.system || !formData.username || !formData.password) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newPassword = {
+      id: Date.now().toString(),
+      ...formData
+    };
+
+    setPasswords(prev => [...prev, newPassword]);
+    
+    toast({
+      title: "Senha adicionada!",
+      description: "A senha foi adicionada com sucesso ao cofre.",
+    });
+
+    setFormData({ client: '', system: '', url: '', username: '', password: '', category: '' });
+    setIsDialogOpen(false);
+  };
+
   const handleEditPassword = (password: any) => {
     setEditingPassword(password);
+    setFormData({
+      client: password.client,
+      system: password.system,
+      url: password.url,
+      username: password.username,
+      password: password.password,
+      category: password.category
+    });
     setIsEditDialogOpen(true);
   };
 
   const handleSaveEdit = () => {
+    if (!formData.client || !formData.system || !formData.username || !formData.password) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setPasswords(prev => prev.map(p => 
+      p.id === editingPassword.id 
+        ? { ...p, ...formData }
+        : p
+    ));
+
     toast({
       title: "Senha atualizada!",
       description: "A senha foi atualizada com sucesso.",
     });
+    
     setIsEditDialogOpen(false);
     setEditingPassword(null);
+    setFormData({ client: '', system: '', url: '', username: '', password: '', category: '' });
+  };
+
+  const handleDeletePassword = (id: string) => {
+    setPasswords(prev => prev.filter(p => p.id !== id));
+    toast({
+      title: "Senha removida!",
+      description: "A senha foi removida do cofre.",
+    });
   };
 
   return (
@@ -101,37 +169,54 @@ const Passwords = () => {
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="client">Empresa Cliente</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a empresa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {companies.map((company) => (
-                        <SelectItem key={company} value={company}>{company}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="client">Empresa Cliente *</Label>
+                  <Input 
+                    id="client" 
+                    placeholder="Nome da empresa"
+                    value={formData.client}
+                    onChange={(e) => setFormData({...formData, client: e.target.value})}
+                  />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="system">Sistema</Label>
-                  <Input id="system" placeholder="Nome do sistema" />
+                  <Label htmlFor="system">Sistema *</Label>
+                  <Input 
+                    id="system" 
+                    placeholder="Nome do sistema"
+                    value={formData.system}
+                    onChange={(e) => setFormData({...formData, system: e.target.value})}
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="url">URL</Label>
-                  <Input id="url" placeholder="https://..." />
+                  <Input 
+                    id="url" 
+                    placeholder="https://..."
+                    value={formData.url}
+                    onChange={(e) => setFormData({...formData, url: e.target.value})}
+                  />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="username">Usuário</Label>
-                  <Input id="username" placeholder="Nome de usuário" />
+                  <Label htmlFor="username">Usuário *</Label>
+                  <Input 
+                    id="username" 
+                    placeholder="Nome de usuário"
+                    value={formData.username}
+                    onChange={(e) => setFormData({...formData, username: e.target.value})}
+                  />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="password">Senha</Label>
-                  <Input id="password" type="password" placeholder="Senha segura" />
+                  <Label htmlFor="password">Senha *</Label>
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    placeholder="Senha segura"
+                    value={formData.password}
+                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="category">Categoria</Label>
-                  <Select>
+                  <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a categoria" />
                     </SelectTrigger>
@@ -145,7 +230,7 @@ const Passwords = () => {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setIsDialogOpen(false)}>
+                <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSavePassword}>
                   Salvar
                 </Button>
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -248,9 +333,11 @@ const Passwords = () => {
                     <TableCell className="font-medium">{item.client}</TableCell>
                     <TableCell>{item.system}</TableCell>
                     <TableCell>
-                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-                        Acessar
-                      </a>
+                      {item.url && (
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                          Acessar
+                        </a>
+                      )}
                     </TableCell>
                     <TableCell>{item.username}</TableCell>
                     <TableCell>
@@ -284,7 +371,12 @@ const Passwords = () => {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => handleDeletePassword(item.id)}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -308,53 +400,63 @@ const Passwords = () => {
               <DialogTitle>Editar Senha</DialogTitle>
               <DialogDescription>Atualize as informações da senha.</DialogDescription>
             </DialogHeader>
-            {editingPassword && (
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-client">Empresa Cliente</Label>
-                  <Select defaultValue={editingPassword.client}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {companies.map((company) => (
-                        <SelectItem key={company} value={company}>{company}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-system">Sistema</Label>
-                  <Input id="edit-system" defaultValue={editingPassword.system} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-url">URL</Label>
-                  <Input id="edit-url" defaultValue={editingPassword.url} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-username">Usuário</Label>
-                  <Input id="edit-username" defaultValue={editingPassword.username} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-password">Senha</Label>
-                  <Input id="edit-password" type="password" defaultValue={editingPassword.password} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-category">Categoria</Label>
-                  <Select defaultValue={editingPassword.category}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Sistema">Sistema</SelectItem>
-                      <SelectItem value="Email">Email</SelectItem>
-                      <SelectItem value="Hosting">Hosting</SelectItem>
-                      <SelectItem value="Database">Database</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-client">Empresa Cliente *</Label>
+                <Input 
+                  id="edit-client" 
+                  value={formData.client}
+                  onChange={(e) => setFormData({...formData, client: e.target.value})}
+                />
               </div>
-            )}
+              <div className="grid gap-2">
+                <Label htmlFor="edit-system">Sistema *</Label>
+                <Input 
+                  id="edit-system" 
+                  value={formData.system}
+                  onChange={(e) => setFormData({...formData, system: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-url">URL</Label>
+                <Input 
+                  id="edit-url" 
+                  value={formData.url}
+                  onChange={(e) => setFormData({...formData, url: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-username">Usuário *</Label>
+                <Input 
+                  id="edit-username" 
+                  value={formData.username}
+                  onChange={(e) => setFormData({...formData, username: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-password">Senha *</Label>
+                <Input 
+                  id="edit-password" 
+                  type="password" 
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-category">Categoria</Label>
+                <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Sistema">Sistema</SelectItem>
+                    <SelectItem value="Email">Email</SelectItem>
+                    <SelectItem value="Hosting">Hosting</SelectItem>
+                    <SelectItem value="Database">Database</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="flex gap-2">
               <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSaveEdit}>
                 Salvar Alterações

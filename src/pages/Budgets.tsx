@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,20 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Calculator, Plus, Eye, Edit, FileText } from 'lucide-react';
 import { useBudgets, useCreateBudget, useBudgetItems, useCreateBudgetItem } from '@/hooks/useBudgets';
-import { useCompanies } from '@/hooks/useCompanies';
-import { useServices } from '@/hooks/useServices';
 import { format } from 'date-fns';
 
 const Budgets = () => {
   const { data: budgets = [], isLoading } = useBudgets();
-  const { data: companies = [] } = useCompanies();
-  const { data: services = [] } = useServices();
   const createBudget = useCreateBudget();
   const createBudgetItem = useCreateBudgetItem();
 
@@ -27,7 +21,7 @@ const Budgets = () => {
   const [selectedBudget, setSelectedBudget] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     budget_number: '',
-    company_id: '',
+    company_name: '',
     title: '',
     description: '',
     valid_until: ''
@@ -36,18 +30,19 @@ const Budgets = () => {
   const { data: budgetItems = [] } = useBudgetItems(selectedBudget || '');
 
   const handleSave = () => {
-    if (!formData.title || !formData.company_id) return;
+    if (!formData.title || !formData.company_name) return;
 
     const budgetNumber = formData.budget_number || `ORC-${Date.now()}`;
     
     createBudget.mutate({
       ...formData,
       budget_number: budgetNumber,
+      company_id: '', // Será removido ou usado apenas como referência
       status: 'draft',
       total_amount: 0
     });
 
-    setFormData({ budget_number: '', company_id: '', title: '', description: '', valid_until: '' });
+    setFormData({ budget_number: '', company_name: '', title: '', description: '', valid_until: '' });
     setIsDialogOpen(false);
   };
 
@@ -115,17 +110,13 @@ const Budgets = () => {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="company_id">Empresa *</Label>
-                  <Select value={formData.company_id} onValueChange={(value) => setFormData({...formData, company_id: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a empresa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {companies.map((company) => (
-                        <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="company_name">Nome da Empresa *</Label>
+                  <Input 
+                    id="company_name" 
+                    placeholder="Digite o nome da empresa"
+                    value={formData.company_name}
+                    onChange={(e) => setFormData({...formData, company_name: e.target.value})}
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="title">Título *</Label>
@@ -196,7 +187,7 @@ const Budgets = () => {
                   {budgets.map((budget) => (
                     <TableRow key={budget.id} className="hover:bg-blue-50">
                       <TableCell className="font-medium">{budget.budget_number}</TableCell>
-                      <TableCell>{budget.companies?.name}</TableCell>
+                      <TableCell>{budget.companies?.name || 'N/A'}</TableCell>
                       <TableCell>{budget.title}</TableCell>
                       <TableCell>R$ {(budget.total_amount || 0).toFixed(2)}</TableCell>
                       <TableCell>{getStatusBadge(budget.status || 'draft')}</TableCell>
