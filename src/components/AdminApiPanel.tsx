@@ -33,10 +33,20 @@ export function AdminApiPanel() {
   const handleSave = () => {
     if (!formData.name || !formData.base_url || !formData.api_token) return;
 
+    const integrationData = {
+      type: formData.type,
+      name: formData.name,
+      base_url: formData.base_url,
+      api_token: formData.api_token,
+      webhook_url: formData.webhook_url || null,
+      phone_number: formData.phone_number || null,
+      is_active: formData.is_active
+    };
+
     if (editingIntegration) {
-      updateIntegration.mutate({ id: editingIntegration, updates: formData });
+      updateIntegration.mutate({ id: editingIntegration, updates: integrationData });
     } else {
-      createIntegration.mutate(formData);
+      createIntegration.mutate(integrationData);
     }
 
     setFormData({

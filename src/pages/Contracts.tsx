@@ -74,9 +74,15 @@ _______________________        _______________________
     const content = formData.content || defaultContractTemplate;
     
     const contractData = {
-      ...formData,
       contract_number: contractNumber,
+      company_id: formData.company_id,
+      title: formData.title,
       content,
+      status: formData.status,
+      signed_date: null,
+      start_date: formData.start_date || null,
+      end_date: formData.end_date || null,
+      total_value: formData.total_value || null,
       budget_id: null
     };
 
