@@ -5,9 +5,10 @@ import { Navigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import AdminApiPanel from '@/components/AdminApiPanel';
 import { AdminCompaniesPanel } from '@/components/AdminCompaniesPanel';
+import { GLPIConfig } from '@/components/GLPIConfig';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Settings, Users, Database, Key, Building, Activity, DollarSign, MessageCircle, HardDrive, Monitor } from 'lucide-react';
+import { Settings, Users, Database, Key, Building, Activity, DollarSign, MessageCircle, HardDrive, Monitor, Headphones } from 'lucide-react';
 
 const Admin = () => {
   const { isMaster } = useAuth();
@@ -23,6 +24,23 @@ const Admin = () => {
         return <AdminApiPanel />;
       case 'companies':
         return <AdminCompaniesPanel />;
+      case 'glpi':
+        return (
+          <Card className="border-blue-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
+                <Headphones className="h-5 w-5" />
+                Configuração GLPI
+              </CardTitle>
+              <CardDescription>
+                Configure a integração com o sistema GLPI para chamados e inventário
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <GLPIConfig />
+            </CardContent>
+          </Card>
+        );
       case 'users':
         return (
           <Card className="border-blue-200">
@@ -85,6 +103,20 @@ const Admin = () => {
                   <div>
                     <h3 className="font-semibold text-purple-900">Usuários</h3>
                     <p className="text-sm text-purple-600">Controle de acesso e permissions</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-cyan-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('glpi')}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  <div className="bg-cyan-100 p-3 rounded-lg">
+                    <Headphones className="h-6 w-6 text-cyan-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-cyan-900">GLPI</h3>
+                    <p className="text-sm text-cyan-600">Configurar integração com GLPI</p>
                   </div>
                 </div>
               </CardContent>
@@ -177,7 +209,7 @@ const Admin = () => {
               <div className="flex items-center gap-2">
                 <Key className="h-5 w-5 text-green-500" />
                 <div>
-                  <p className="text-xl font-bold text-green-900">4</p>
+                  <p className="text-xl font-bold text-green-900">5</p>
                   <p className="text-xs text-green-600">APIs Ativas</p>
                 </div>
               </div>
@@ -218,6 +250,7 @@ const Admin = () => {
               {activeSection === 'integrations' && 'Integrações & APIs'}
               {activeSection === 'companies' && 'Empresas'}
               {activeSection === 'users' && 'Usuários'}
+              {activeSection === 'glpi' && 'GLPI'}
             </span>
           </div>
         )}

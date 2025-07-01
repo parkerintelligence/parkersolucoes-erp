@@ -510,7 +510,15 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      integration_type:
+        | "chatwoot"
+        | "evolution_api"
+        | "wasabi"
+        | "grafana"
+        | "bomcontrole"
+        | "zabbix"
+        | "ftp"
+        | "glpi"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -625,6 +633,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      integration_type: [
+        "chatwoot",
+        "evolution_api",
+        "wasabi",
+        "grafana",
+        "bomcontrole",
+        "zabbix",
+        "ftp",
+        "glpi",
+      ],
+    },
   },
 } as const
