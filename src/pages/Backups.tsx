@@ -333,7 +333,7 @@ const Backups = () => {
                             Math.floor((Date.now() - f.lastModified.getTime()) / (1000 * 60 * 60 * 24)) > 2
                           ).length || 0}
                         </p>
-                        <p className="text-sm text-gray-600">Backups Antigos (>2 dias)</p>
+                        <p className="text-sm text-gray-600">Backups Antigos (&gt;2 dias)</p>
                       </div>
                     </div>
                   </CardContent>
