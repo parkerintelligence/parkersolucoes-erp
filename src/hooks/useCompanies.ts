@@ -1,41 +1,31 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
 export interface Company {
   id: string;
   name: string;
-  cnpj: string | null;
-  contact: string | null;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
+  cnpj?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  contact?: string;
+  user_id: string;
   created_at: string;
   updated_at: string;
-  user_id: string;
 }
 
 export const useCompanies = () => {
+  const { user, isMaster } = useAuth();
+  
   return useQuery({
     queryKey: ['companies'],
-    queryFn: async () => {
-      console.log('Fetching companies...');
-      
-      // Primeiro verificar se temos uma sessão válida
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        throw new Error('Erro de sessão');
+    queryFn: async (): Promise<Company[]> => {
+      if (!user) {
+        throw new Error('User not authenticated');
       }
-
-      if (!session?.user) {
-        console.error('No user session found');
-        throw new Error('Usuário não autenticado');
-      }
-
-      console.log('User authenticated:', session.user.id);
 
       const { data, error } = await supabase
         .from('companies')
@@ -47,42 +37,32 @@ export const useCompanies = () => {
         throw error;
       }
 
-      console.log('Companies fetched:', data?.length || 0);
-      return data as Company[];
+      return data || [];
     },
+    enabled: !!user,
   });
 };
 
 export const useCreateCompany = () => {
   const queryClient = useQueryClient();
+  const { user, isMaster } = useAuth();
 
   return useMutation({
-    mutationFn: async (company: Omit<Company, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-      console.log('Creating company...');
-      
-      // Verificar sessão antes de criar
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Session error during create:', sessionError);
-        throw new Error('Erro de sessão ao criar empresa');
+    mutationFn: async (company: Omit<Company, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+      if (!user) {
+        throw new Error('User not authenticated');
       }
 
-      if (!session?.user) {
-        console.error('No user session found during create');
-        throw new Error('Usuário não autenticado para criar empresa');
+      if (!isMaster) {
+        throw new Error('Only master users can create companies');
       }
-
-      const companyData = {
-        ...company,
-        user_id: session.user.id
-      };
-
-      console.log('Creating company with data:', companyData);
 
       const { data, error } = await supabase
         .from('companies')
-        .insert([companyData])
+        .insert([{
+          ...company,
+          user_id: user.id
+        }])
         .select()
         .single();
 
@@ -91,22 +71,21 @@ export const useCreateCompany = () => {
         throw error;
       }
 
-      console.log('Company created successfully:', data);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       toast({
-        title: "Empresa criada!",
-        description: "A empresa foi cadastrada com sucesso.",
+        title: "Empresa criada com sucesso!",
+        description: "A empresa foi adicionada ao sistema.",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error creating company:', error);
       toast({
         title: "Erro ao criar empresa",
-        description: error.message || "Ocorreu um erro ao criar a empresa. Tente novamente.",
-        variant: "destructive"
+        description: error.message || "Ocorreu um erro inesperado.",
+        variant: "destructive",
       });
     },
   });
@@ -114,19 +93,21 @@ export const useCreateCompany = () => {
 
 export const useUpdateCompany = () => {
   const queryClient = useQueryClient();
+  const { user, isMaster } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Company> }) => {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session?.user) {
-        console.error('User not authenticated:', sessionError);
-        throw new Error('Usuário não autenticado');
+    mutationFn: async ({ id, ...company }: Partial<Company> & { id: string }) => {
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      if (!isMaster) {
+        throw new Error('Only master users can update companies');
       }
 
       const { data, error } = await supabase
         .from('companies')
-        .update(updates)
+        .update(company)
         .eq('id', id)
         .select()
         .single();
@@ -141,16 +122,16 @@ export const useUpdateCompany = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       toast({
-        title: "Empresa atualizada!",
-        description: "A empresa foi atualizada com sucesso.",
+        title: "Empresa atualizada com sucesso!",
+        description: "As informações da empresa foram atualizadas.",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error updating company:', error);
       toast({
         title: "Erro ao atualizar empresa",
-        description: error.message || "Ocorreu um erro ao atualizar a empresa.",
-        variant: "destructive"
+        description: error.message || "Ocorreu um erro inesperado.",
+        variant: "destructive",
       });
     },
   });
@@ -158,14 +139,16 @@ export const useUpdateCompany = () => {
 
 export const useDeleteCompany = () => {
   const queryClient = useQueryClient();
+  const { user, isMaster } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session?.user) {
-        console.error('User not authenticated:', sessionError);
-        throw new Error('Usuário não autenticado');
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      if (!isMaster) {
+        throw new Error('Only master users can delete companies');
       }
 
       const { error } = await supabase
@@ -181,16 +164,16 @@ export const useDeleteCompany = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       toast({
-        title: "Empresa removida!",
-        description: "A empresa foi removida com sucesso.",
+        title: "Empresa excluída com sucesso!",
+        description: "A empresa foi removida do sistema.",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error deleting company:', error);
       toast({
-        title: "Erro ao remover empresa",
-        description: error.message || "Ocorreu um erro ao remover a empresa.",
-        variant: "destructive"
+        title: "Erro ao excluir empresa",
+        description: error.message || "Ocorreu um erro inesperado.",
+        variant: "destructive",
       });
     },
   });

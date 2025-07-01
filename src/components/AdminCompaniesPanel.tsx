@@ -1,100 +1,115 @@
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Building, Plus, Edit, Trash2 } from 'lucide-react';
+import { Building, Plus, Edit, Trash2, AlertCircle } from 'lucide-react';
 import { useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany } from '@/hooks/useCompanies';
-import { toast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
-export function AdminCompaniesPanel() {
+export const AdminCompaniesPanel = () => {
+  const { isMaster } = useAuth();
   const { data: companies = [], isLoading } = useCompanies();
   const createCompany = useCreateCompany();
   const updateCompany = useUpdateCompany();
   const deleteCompany = useDeleteCompany();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<string | null>(null);
+  const [editingCompany, setEditingCompany] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
     cnpj: '',
-    contact: '',
-    email: '',
+    address: '',
     phone: '',
-    address: ''
+    email: '',
+    contact: ''
   });
 
-  const handleSave = () => {
-    if (!formData.name.trim()) {
-      toast({
-        title: "Campo obrigatório",
-        description: "Nome da empresa é obrigatório.",
-        variant: "destructive"
-      });
-      return;
-    }
+  if (!isMaster) {
+    return (
+      <Card className="border-red-200">
+        <CardContent className="p-8 text-center">
+          <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+          <h3 className="text-lg font-semibold text-red-900 mb-2">Acesso Restrito</h3>
+          <p className="text-red-600">Apenas usuários master podem gerenciar empresas.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
-    const companyData = {
-      name: formData.name.trim(),
-      cnpj: formData.cnpj.trim() || null,
-      contact: formData.contact.trim() || null,
-      email: formData.email.trim() || null,
-      phone: formData.phone.trim() || null,
-      address: formData.address.trim() || null
-    };
+  const handleSave = () => {
+    if (!formData.name) return;
 
     if (editingCompany) {
-      updateCompany.mutate({ id: editingCompany, updates: companyData });
+      updateCompany.mutate({
+        id: editingCompany.id,
+        ...formData
+      });
     } else {
-      createCompany.mutate(companyData);
+      createCompany.mutate(formData);
     }
 
-    resetForm();
-  };
-
-  const resetForm = () => {
-    setFormData({ name: '', cnpj: '', contact: '', email: '', phone: '', address: '' });
-    setIsDialogOpen(false);
+    setFormData({ name: '', cnpj: '', address: '', phone: '', email: '', contact: '' });
     setEditingCompany(null);
+    setIsDialogOpen(false);
   };
 
   const handleEdit = (company: any) => {
+    setEditingCompany(company);
     setFormData({
       name: company.name || '',
       cnpj: company.cnpj || '',
-      contact: company.contact || '',
-      email: company.email || '',
+      address: company.address || '',
       phone: company.phone || '',
-      address: company.address || ''
+      email: company.email || '',
+      contact: company.contact || ''
     });
-    setEditingCompany(company.id);
     setIsDialogOpen(true);
   };
 
+  const handleDelete = (id: string) => {
+    deleteCompany.mutate(id);
+  };
+
+  const resetForm = () => {
+    setFormData({ name: '', cnpj: '', address: '', phone: '', email: '', contact: '' });
+    setEditingCompany(null);
+  };
+
   if (isLoading) {
-    return <div className="text-center py-4">Carregando empresas...</div>;
+    return (
+      <Card className="border-blue-200">
+        <CardContent className="p-8 text-center">
+          <div className="text-slate-600">Carregando empresas...</div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
-    <Card className="border-green-200">
+    <Card className="border-blue-200">
       <CardHeader>
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle className="text-green-900 flex items-center gap-2">
+            <CardTitle className="text-blue-900 flex items-center gap-2">
               <Building className="h-5 w-5" />
               Gerenciamento de Empresas
             </CardTitle>
             <CardDescription>
-              Cadastre e gerencie as empresas do sistema (Apenas usuários Master)
+              Cadastre e gerencie as empresas do sistema
             </CardDescription>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}>
             <DialogTrigger asChild>
-              <Button className="bg-green-600 hover:bg-green-700">
+              <Button className="bg-blue-600 hover:bg-blue-700">
                 <Plus className="mr-2 h-4 w-4" />
                 Nova Empresa
               </Button>
@@ -102,10 +117,10 @@ export function AdminCompaniesPanel() {
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>
-                  {editingCompany ? 'Editar Empresa' : 'Cadastrar Nova Empresa'}
+                  {editingCompany ? 'Editar Empresa' : 'Nova Empresa'}
                 </DialogTitle>
                 <DialogDescription>
-                  {editingCompany ? 'Edite os dados da empresa.' : 'Preencha os dados da empresa cliente.'}
+                  Preencha os dados da empresa.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -122,22 +137,31 @@ export function AdminCompaniesPanel() {
                   <Label htmlFor="cnpj">CNPJ</Label>
                   <Input 
                     id="cnpj" 
-                    placeholder="00.000.000/0000-00"
+                    placeholder="XX.XXX.XXX/XXXX-XX"
                     value={formData.cnpj}
                     onChange={(e) => setFormData({...formData, cnpj: e.target.value})}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="contact">Contato</Label>
+                  <Label htmlFor="address">Endereço</Label>
                   <Input 
-                    id="contact" 
-                    placeholder="Nome do responsável"
-                    value={formData.contact}
-                    onChange={(e) => setFormData({...formData, contact: e.target.value})}
+                    id="address" 
+                    placeholder="Endereço completo"
+                    value={formData.address}
+                    onChange={(e) => setFormData({...formData, address: e.target.value})}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="email">E-mail</Label>
+                  <Label htmlFor="phone">Telefone</Label>
+                  <Input 
+                    id="phone" 
+                    placeholder="(XX) XXXXX-XXXX"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email</Label>
                   <Input 
                     id="email" 
                     type="email"
@@ -147,34 +171,24 @@ export function AdminCompaniesPanel() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="phone">Telefone</Label>
+                  <Label htmlFor="contact">Contato</Label>
                   <Input 
-                    id="phone" 
-                    placeholder="(11) 99999-9999"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="address">Endereço</Label>
-                  <Textarea 
-                    id="address" 
-                    placeholder="Endereço completo"
-                    value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
-                    rows={3}
+                    id="contact" 
+                    placeholder="Nome do contato principal"
+                    value={formData.contact}
+                    onChange={(e) => setFormData({...formData, contact: e.target.value})}
                   />
                 </div>
               </div>
               <div className="flex gap-2">
                 <Button 
-                  className="bg-green-600 hover:bg-green-700" 
+                  className="bg-blue-600 hover:bg-blue-700" 
                   onClick={handleSave}
-                  disabled={createCompany.isPending || updateCompany.isPending}
+                  disabled={!formData.name || createCompany.isPending || updateCompany.isPending}
                 >
-                  {editingCompany ? 'Atualizar' : 'Salvar'}
+                  {editingCompany ? 'Atualizar' : 'Criar'} Empresa
                 </Button>
-                <Button variant="outline" onClick={resetForm}>
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancelar
                 </Button>
               </div>
@@ -184,31 +198,32 @@ export function AdminCompaniesPanel() {
       </CardHeader>
       <CardContent>
         {companies.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhuma empresa cadastrada ainda.</p>
-            <p className="text-sm mt-2">Adicione empresas para começar a gerenciar contratos e orçamentos.</p>
+          <div className="text-center py-8 text-slate-500">
+            <Building className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <p>Nenhuma empresa cadastrada</p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Empresa</TableHead>
+                <TableHead>Nome</TableHead>
                 <TableHead>CNPJ</TableHead>
                 <TableHead>Contato</TableHead>
-                <TableHead>E-mail</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead>Telefone</TableHead>
-                <TableHead>Ações</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead width="100">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {companies.map((company) => (
-                <TableRow key={company.id} className="hover:bg-green-50">
+                <TableRow key={company.id} className="hover:bg-blue-50">
                   <TableCell className="font-medium">{company.name}</TableCell>
                   <TableCell>{company.cnpj || '-'}</TableCell>
                   <TableCell>{company.contact || '-'}</TableCell>
                   <TableCell>{company.email || '-'}</TableCell>
                   <TableCell>{company.phone || '-'}</TableCell>
+                  <TableCell>{format(new Date(company.created_at), 'dd/MM/yyyy')}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <Button 
@@ -218,14 +233,31 @@ export function AdminCompaniesPanel() {
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-red-600 hover:text-red-700"
-                        onClick={() => deleteCompany.mutate(company.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja excluir a empresa "{company.name}"? 
+                              Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDelete(company.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -236,4 +268,4 @@ export function AdminCompaniesPanel() {
       </CardContent>
     </Card>
   );
-}
+};

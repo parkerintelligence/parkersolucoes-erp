@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export const Header = () => {
-  const { user, logout, isMaster } = useAuth();
+  const { user, userProfile, logout, isMaster } = useAuth();
 
   return (
     <header className="border-b border-slate-200 bg-white px-4 py-3">
@@ -29,13 +29,13 @@ export const Header = () => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 text-slate-700 hover:text-slate-900 hover:bg-slate-50">
               {isMaster ? <Crown className="h-4 w-4" /> : <User className="h-4 w-4" />}
-              <span>{user?.username}</span>
+              <span>{userProfile?.email || user?.email}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 bg-white border border-slate-200">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium text-slate-900">{user?.username}</p>
+                <p className="text-sm font-medium text-slate-900">{userProfile?.email || user?.email}</p>
                 <p className="text-xs text-slate-600">
                   {isMaster ? 'Administrador Master' : 'Usuário'}
                 </p>
