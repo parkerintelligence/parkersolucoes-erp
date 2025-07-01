@@ -48,7 +48,7 @@ export const useCompanies = () => {
 
 export const useCreateCompany = () => {
   const queryClient = useQueryClient();
-  const { user, isMaster } = useAuth();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (company: Omit<Company, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
@@ -56,14 +56,7 @@ export const useCreateCompany = () => {
         throw new Error('User not authenticated');
       }
 
-      // Allow master users or the specific email to create companies
-      const canCreate = isMaster || user.email === 'contato@parkersolucoes.com.br';
-      
-      if (!canCreate) {
-        throw new Error('Only master users can create companies');
-      }
-
-      console.log('Creating company:', company, 'User is master:', isMaster);
+      console.log('Creating company:', company);
 
       const { data, error } = await supabase
         .from('companies')
@@ -102,7 +95,7 @@ export const useCreateCompany = () => {
 
 export const useUpdateCompany = () => {
   const queryClient = useQueryClient();
-  const { user, isMaster } = useAuth();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, ...company }: Partial<Company> & { id: string }) => {
@@ -110,14 +103,7 @@ export const useUpdateCompany = () => {
         throw new Error('User not authenticated');
       }
 
-      // Allow master users or the specific email to update companies
-      const canUpdate = isMaster || user.email === 'contato@parkersolucoes.com.br';
-
-      if (!canUpdate) {
-        throw new Error('Only master users can update companies');
-      }
-
-      console.log('Updating company:', id, company, 'User is master:', isMaster);
+      console.log('Updating company:', id, company);
 
       const { data, error } = await supabase
         .from('companies')
@@ -154,7 +140,7 @@ export const useUpdateCompany = () => {
 
 export const useDeleteCompany = () => {
   const queryClient = useQueryClient();
-  const { user, isMaster } = useAuth();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -162,14 +148,7 @@ export const useDeleteCompany = () => {
         throw new Error('User not authenticated');
       }
 
-      // Allow master users or the specific email to delete companies
-      const canDelete = isMaster || user.email === 'contato@parkersolucoes.com.br';
-
-      if (!canDelete) {
-        throw new Error('Only master users can delete companies');
-      }
-
-      console.log('Deleting company:', id, 'User is master:', isMaster);
+      console.log('Deleting company:', id);
 
       const { error } = await supabase
         .from('companies')

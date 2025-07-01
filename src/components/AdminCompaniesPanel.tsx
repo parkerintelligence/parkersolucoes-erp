@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Building, Plus, Edit, Trash2, AlertCircle } from 'lucide-react';
+import { Building, Plus, Edit, Trash2 } from 'lucide-react';
 import { useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany } from '@/hooks/useCompanies';
 import { format } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -29,22 +30,7 @@ export const AdminCompaniesPanel = () => {
     contact: ''
   });
 
-  // Check if user is master or the specific master email
-  const canManageCompanies = isMaster || user?.email === 'contato@parkersolucoes.com.br';
-
-  if (!canManageCompanies) {
-    return (
-      <Card className="border-red-200">
-        <CardContent className="p-8 text-center">
-          <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
-          <h3 className="text-lg font-semibold text-red-900 mb-2">Acesso Restrito</h3>
-          <p className="text-red-600">Apenas usuários master podem gerenciar empresas.</p>
-          <p className="text-sm text-gray-500 mt-2">Usuário atual: {user?.email}</p>
-          <p className="text-sm text-gray-500">É Master: {isMaster ? 'Sim' : 'Não'}</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  console.log('AdminCompaniesPanel - User:', user?.email, 'Is Master:', isMaster);
 
   const handleSave = () => {
     if (!formData.name) return;
