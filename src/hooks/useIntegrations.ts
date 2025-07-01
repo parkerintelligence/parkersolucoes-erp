@@ -1,11 +1,10 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 export interface Integration {
   id: string;
-  type: 'chatwoot' | 'evolution_api' | 'wasabi' | 'grafana' | 'bomcontrole';
+  type: 'chatwoot' | 'evolution_api' | 'wasabi' | 'grafana' | 'bomcontrole' | 'zabbix';
   name: string;
   base_url: string;
   api_token: string | null;

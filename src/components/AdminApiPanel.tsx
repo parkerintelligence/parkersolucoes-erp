@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Plus, Edit, Trash2, Key, MessageCircle, HardDrive, Activity, DollarSign } from 'lucide-react';
+import { Settings, Plus, Edit, Trash2, Key, MessageCircle, HardDrive, Activity, DollarSign, Monitor } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
 
 export function AdminApiPanel() {
@@ -20,7 +20,7 @@ export function AdminApiPanel() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingIntegration, setEditingIntegration] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    type: 'chatwoot' as 'chatwoot' | 'evolution_api' | 'wasabi' | 'grafana' | 'bomcontrole',
+    type: 'chatwoot' as 'chatwoot' | 'evolution_api' | 'wasabi' | 'grafana' | 'bomcontrole' | 'zabbix',
     name: '',
     base_url: '',
     api_token: '',
@@ -33,17 +33,32 @@ export function AdminApiPanel() {
 
   const handleSave = () => {
     if (!formData.name.trim() || !formData.base_url.trim()) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Nome e URL base são obrigatórios.",
+        variant: "destructive"
+      });
       return;
     }
     
     // Validações específicas por tipo
     if ((formData.type === 'grafana' || formData.type === 'bomcontrole') && 
         (!formData.username.trim() || !formData.password.trim())) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Usuário e senha são obrigatórios para este tipo de integração.",
+        variant: "destructive"
+      });
       return;
     }
 
     if ((formData.type !== 'grafana' && formData.type !== 'bomcontrole') && 
         !formData.api_token.trim()) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Token da API é obrigatório para este tipo de integração.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -111,6 +126,8 @@ export function AdminApiPanel() {
         return Activity;
       case 'bomcontrole':
         return DollarSign;
+      case 'zabbix':
+        return Monitor;
       default:
         return Settings;
     }
@@ -128,17 +145,19 @@ export function AdminApiPanel() {
         return 'Grafana';
       case 'bomcontrole':
         return 'Bom Controle';
+      case 'zabbix':
+        return 'Zabbix';
       default:
         return type;
     }
   };
 
   const requiresAuth = (type: string) => {
-    return type === 'grafana' || type === 'bomcontrole';
+    return type === 'grafana' || type === 'bomcontrole' || type === 'zabbix';
   };
 
   const requiresApiToken = (type: string) => {
-    return type !== 'grafana' && type !== 'bomcontrole';
+    return type !== 'grafana' && type !== 'bomcontrole' && type !== 'zabbix';
   };
 
   if (isLoading) {
@@ -155,7 +174,7 @@ export function AdminApiPanel() {
               Configurações de API
             </CardTitle>
             <CardDescription>
-              Configure integrações com APIs externas (WhatsApp, Wasabi, Grafana, Bom Controle)
+              Configure integrações com APIs externas (WhatsApp, Wasabi, Grafana, Bom Controle, Zabbix)
             </CardDescription>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -187,6 +206,7 @@ export function AdminApiPanel() {
                       <SelectItem value="wasabi">Wasabi Cloud Storage</SelectItem>
                       <SelectItem value="grafana">Grafana Monitoring</SelectItem>
                       <SelectItem value="bomcontrole">Bom Controle - Financeiro</SelectItem>
+                      <SelectItem value="zabbix">Zabbix Monitoring</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -197,7 +217,7 @@ export function AdminApiPanel() {
                     id="name" 
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    placeholder="Ex: WhatsApp Principal, Wasabi Backup, etc." 
+                    placeholder="Ex: WhatsApp Principal, Zabbix Server, etc." 
                   />
                 </div>
                 
@@ -248,8 +268,7 @@ export function AdminApiPanel() {
                   </div>
                 )}
 
-                {// ... keep existing code (conditional fields for WhatsApp)
-                (formData.type === 'chatwoot' || formData.type === 'evolution_api') && (
+                {(formData.type === 'chatwoot' || formData.type === 'evolution_api') && (
                   <>
                     <div className="grid gap-2">
                       <Label htmlFor="phone_number">Número do WhatsApp</Label>
@@ -289,8 +308,7 @@ export function AdminApiPanel() {
         </div>
       </CardHeader>
       <CardContent>
-        {// ... keep existing code (table and empty state display)
-        integrations.length === 0 ? (
+        {integrations.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Nenhuma integração configurada ainda.</p>

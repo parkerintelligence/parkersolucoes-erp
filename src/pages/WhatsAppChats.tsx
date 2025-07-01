@@ -9,34 +9,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { MessageCircle, RefreshCw, Send, Search, Archive, Ban } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
+import { useWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
 
 const WhatsAppChats = () => {
-  const { data: integrations = [] } = useIntegrations();
+  const { data: integrations = [], isLoading: integrationsLoading } = useIntegrations();
+  const { data: conversations = [], isLoading: conversationsLoading, refetch } = useWhatsAppConversations();
   const [selectedIntegration, setSelectedIntegration] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Mock data para conversas - em produção viriam da API do Chatwoot/Evolution
-  const conversations = [
-    { id: '1', contactName: 'João Silva', contactPhone: '+5511999999999', lastMessage: 'Olá, preciso de ajuda com o sistema', lastMessageTime: '2 min atrás', unreadCount: 3, status: 'active', integrationId: '1' },
-    { id: '2', contactName: 'Maria Santos', contactPhone: '+5511888888888', lastMessage: 'Obrigada pelo atendimento', lastMessageTime: '15 min atrás', unreadCount: 0, status: 'active', integrationId: '1' },
-    { id: '3', contactName: 'Pedro Costa', contactPhone: '+5511777777777', lastMessage: 'Quando fica pronto?', lastMessageTime: '1h atrás', unreadCount: 2, status: 'active', integrationId: '2' },
-    { id: '4', contactName: 'Ana Paula', contactPhone: '+5511666666666', lastMessage: 'Preciso de um orçamento', lastMessageTime: '2h atrás', unreadCount: 1, status: 'active', integrationId: '1' },
-    { id: '5', contactName: 'Carlos Lima', contactPhone: '+5511555555555', lastMessage: 'O servidor está funcionando bem', lastMessageTime: '3h atrás', unreadCount: 0, status: 'archived', integrationId: '2' },
-  ];
 
   const whatsappIntegrations = integrations.filter(i => 
     (i.type === 'chatwoot' || i.type === 'evolution_api') && i.is_active
   );
   
   const filteredConversations = conversations.filter(conv => {
-    const matchesSearch = conv.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         conv.contactPhone.includes(searchTerm) ||
-                         conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesIntegration = selectedIntegration === '' || conv.integrationId === selectedIntegration;
+    const matchesSearch = conv.contact_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         conv.contact_phone.includes(searchTerm) ||
+                         (conv.last_message && conv.last_message.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesIntegration = selectedIntegration === '' || conv.integration_id === selectedIntegration;
     return matchesSearch && matchesIntegration;
   });
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string | null) => {
+    const statusValue = status || 'active';
     const colors = {
       'active': 'bg-green-100 text-green-800 border-green-200',
       'archived': 'bg-gray-100 text-gray-800 border-gray-200',
@@ -47,13 +41,48 @@ const WhatsAppChats = () => {
       'archived': 'Arquivado',
       'blocked': 'Bloqueado',
     };
-    return <Badge className={colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800 border-gray-200'}>{labels[status as keyof typeof labels] || status}</Badge>;
+    return <Badge className={colors[statusValue as keyof typeof colors] || 'bg-gray-100 text-gray-800 border-gray-200'}>{labels[statusValue as keyof typeof labels] || statusValue}</Badge>;
   };
 
   const getIntegrationName = (integrationId: string) => {
     const integration = integrations.find(i => i.id === integrationId);
     return integration?.name || 'Integração não encontrada';
   };
+
+  const formatTime = (timeString: string | null) => {
+    if (!timeString) return 'Sem horário';
+    
+    try {
+      const date = new Date(timeString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 1) return 'Agora';
+      if (diffMins < 60) return `${diffMins} min atrás`;
+      if (diffHours < 24) return `${diffHours}h atrás`;
+      if (diffDays < 7) return `${diffDays}d atrás`;
+      
+      return date.toLocaleDateString('pt-BR');
+    } catch (error) {
+      return 'Horário inválido';
+    }
+  };
+
+  const activeConversations = filteredConversations.filter(c => c.status === 'active' || !c.status);
+  const totalUnread = filteredConversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+
+  if (integrationsLoading || conversationsLoading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center h-64">
+          <div className="text-blue-600">Carregando conversas...</div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -66,7 +95,7 @@ const WhatsAppChats = () => {
             </h1>
             <p className="text-blue-600">Acompanhe todas as conversas dos números vinculados</p>
           </div>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Atualizar
           </Button>
@@ -90,7 +119,7 @@ const WhatsAppChats = () => {
               <div className="flex items-center gap-2">
                 <MessageCircle className="h-5 w-5 text-green-500" />
                 <div>
-                  <p className="text-2xl font-bold text-green-900">{filteredConversations.filter(c => c.status === 'active').length}</p>
+                  <p className="text-2xl font-bold text-green-900">{activeConversations.length}</p>
                   <p className="text-sm text-green-600">Ativas</p>
                 </div>
               </div>
@@ -101,7 +130,7 @@ const WhatsAppChats = () => {
               <div className="flex items-center gap-2">
                 <MessageCircle className="h-5 w-5 text-orange-500" />
                 <div>
-                  <p className="text-2xl font-bold text-orange-900">{filteredConversations.reduce((sum, c) => sum + c.unreadCount, 0)}</p>
+                  <p className="text-2xl font-bold text-orange-900">{totalUnread}</p>
                   <p className="text-sm text-orange-600">Não Lidas</p>
                 </div>
               </div>
@@ -155,7 +184,7 @@ const WhatsAppChats = () => {
         {/* Lista de Conversas */}
         <Card className="border-blue-200">
           <CardHeader>
-            <CardTitle className="text-blue-900">Conversas Ativas</CardTitle>
+            <CardTitle className="text-blue-900">Conversas</CardTitle>
             <CardDescription>
               {filteredConversations.length > 0 
                 ? `Mostrando ${filteredConversations.length} conversas`
@@ -181,28 +210,30 @@ const WhatsAppChats = () => {
                 <TableBody>
                   {filteredConversations.map((conversation) => (
                     <TableRow key={conversation.id} className="hover:bg-blue-50">
-                      <TableCell className="font-medium">{conversation.contactName}</TableCell>
-                      <TableCell>{conversation.contactPhone}</TableCell>
-                      <TableCell className="max-w-xs truncate">{conversation.lastMessage}</TableCell>
-                      <TableCell>{conversation.lastMessageTime}</TableCell>
+                      <TableCell className="font-medium">{conversation.contact_name}</TableCell>
+                      <TableCell>{conversation.contact_phone}</TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        {conversation.last_message || 'Sem mensagens'}
+                      </TableCell>
+                      <TableCell>{formatTime(conversation.last_message_time)}</TableCell>
                       <TableCell className="text-sm text-gray-600">
-                        {getIntegrationName(conversation.integrationId)}
+                        {getIntegrationName(conversation.integration_id)}
                       </TableCell>
                       <TableCell>
-                        {conversation.unreadCount > 0 && (
-                          <Badge variant="destructive">{conversation.unreadCount}</Badge>
+                        {(conversation.unread_count || 0) > 0 && (
+                          <Badge variant="destructive">{conversation.unread_count}</Badge>
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(conversation.status)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" title="Responder">
                             <Send className="h-4 w-4" />
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" title="Arquivar">
                             <Archive className="h-4 w-4" />
                           </Button>
-                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700" title="Bloquear">
                             <Ban className="h-4 w-4" />
                           </Button>
                         </div>
