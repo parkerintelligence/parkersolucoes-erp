@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +16,6 @@ import {
   File,
   Search,
   Settings,
-  Upload,
   Calendar,
   CheckCircle2
 } from 'lucide-react';
@@ -45,9 +45,17 @@ const Backups = () => {
   );
 
   const totalSize = files.reduce((acc, file) => acc + file.size, 0);
+  
+  // Corrigir o cálculo de arquivos recentes - garantir que lastModified é Date
   const recentFiles = files.filter(file => {
-    const daysDiff = Math.floor((Date.now() - file.lastModified.getTime()) / (1000 * 60 * 60 * 24));
-    return daysDiff <= 1;
+    try {
+      const fileDate = file.lastModified instanceof Date ? file.lastModified : new Date(file.lastModified);
+      const daysDiff = Math.floor((Date.now() - fileDate.getTime()) / (1000 * 60 * 60 * 24));
+      return daysDiff <= 1;
+    } catch (error) {
+      console.error('Error calculating file age:', error);
+      return false;
+    }
   }).length;
 
   const formatFileSize = (bytes: number) => {
@@ -59,13 +67,19 @@ const Backups = () => {
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
+    try {
+      const validDate = date instanceof Date ? date : new Date(date);
+      return new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(validDate);
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Data inválida';
+    }
   };
 
   const handleSelectFile = (fileName: string) => {
@@ -299,7 +313,7 @@ const Backups = () => {
                 </p>
                 <div className="mt-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
                   <p className="text-sm text-blue-800 font-medium">
-                    🔗 Conectado ao servidor real configurado no painel administrativo
+                    🔗 Conectando ao servidor real configurado no painel administrativo
                   </p>
                   <p className="text-xs text-blue-600 mt-1">
                     Host: {ftpIntegration.base_url} | Usuário: {ftpIntegration.username}

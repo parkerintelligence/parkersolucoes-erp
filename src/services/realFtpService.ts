@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface RealFtpFile {
@@ -74,7 +73,13 @@ export class RealFtpService {
 
       console.log('FTP files retrieved from Edge Function:', data.files?.length || 0);
       
-      return data.files || [];
+      // Certificar que as datas são objetos Date válidos
+      const files = (data.files || []).map((file: any) => ({
+        ...file,
+        lastModified: new Date(file.lastModified || Date.now())
+      }));
+      
+      return files;
       
     } catch (error) {
       console.error('Real FTP listing error:', error);
