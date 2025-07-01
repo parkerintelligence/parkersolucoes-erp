@@ -20,7 +20,10 @@ import {
   HardDrive, 
   Network, 
   Zap,
-  Info
+  Info,
+  AlertCircle,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { useZabbixIntegration } from '@/hooks/useZabbixIntegration';
 import { ZabbixAdminConfig } from '@/components/ZabbixAdminConfig';
@@ -71,9 +74,9 @@ const Zabbix = () => {
 
   const getHostStatusBadge = (status: string, available: string) => {
     if (status === '0' && available === '1') {
-      return <Badge className="bg-green-100 text-green-800 border-green-200">Online</Badge>;
+      return <Badge className="bg-green-100 text-green-800 border-green-200 flex items-center gap-1"><Wifi className="h-3 w-3" />Online</Badge>;
     } else if (status === '0' && available === '2') {
-      return <Badge className="bg-red-100 text-red-800 border-red-200">Indisponível</Badge>;
+      return <Badge className="bg-red-100 text-red-800 border-red-200 flex items-center gap-1"><WifiOff className="h-3 w-3" />Indisponível</Badge>;
     } else if (status === '1') {
       return <Badge className="bg-gray-100 text-gray-800 border-gray-200">Desabilitado</Badge>;
     } else {
@@ -165,6 +168,8 @@ const Zabbix = () => {
   }
 
   if (error) {
+    const isCorsError = error?.message?.includes('CORS') || error?.message?.includes('Failed to fetch');
+    
     return (
       <Layout>
         <div className="space-y-6">
@@ -193,12 +198,26 @@ const Zabbix = () => {
           </div>
 
           <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Erro de Conexão</AlertTitle>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>{isCorsError ? 'Erro de CORS Detectado' : 'Erro de Conexão'}</AlertTitle>
             <AlertDescription>
-              Não foi possível conectar ao Zabbix. Clique em "Ver Detalhes" para mais informações ou tente configurar novamente no painel administrativo.
-              <br />
-              <strong>Erro resumido:</strong> {error?.message?.split('\n')[0] || 'Erro desconhecido'}
+              {isCorsError ? (
+                <>
+                  <p>Problema de CORS: Conectando de HTTPS para HTTP não é permitido pelos navegadores.</p>
+                  <p className="mt-2"><strong>Soluções:</strong></p>
+                  <ul className="list-disc list-inside mt-1 space-y-1">
+                    <li>Configure CORS no servidor Zabbix</li>
+                    <li>Use HTTPS no Zabbix</li>
+                    <li>Configure um proxy reverso</li>
+                  </ul>
+                </>
+              ) : (
+                <>
+                  Não foi possível conectar ao Zabbix. Clique em "Ver Detalhes" para mais informações.
+                  <br />
+                  <strong>Erro:</strong> {error?.message?.split('\n')[0] || 'Erro desconhecido'}
+                </>
+              )}
             </AlertDescription>
           </Alert>
 
@@ -232,6 +251,16 @@ const Zabbix = () => {
           </Button>
         </div>
 
+        {/* Status de Conexão */}
+        <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <CheckCircle className="h-5 w-5 text-green-600" />
+          <span className="text-green-800 font-medium">Conectado ao Zabbix</span>
+          <Badge className="bg-green-100 text-green-800">{hosts.length} hosts</Badge>
+          <Badge className="bg-blue-100 text-blue-800">{problems.length} problemas</Badge>
+          <Badge className="bg-orange-100 text-orange-800">{items.length} itens</Badge>
+          <Badge className="bg-purple-100 text-purple-800">{triggers.length} triggers</Badge>
+        </div>
+
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
@@ -242,7 +271,6 @@ const Zabbix = () => {
             <TabsTrigger value="monitoring">Monitoramento</TabsTrigger>
           </TabsList>
 
-          {/* ... keep existing code (all TabsContent sections remain the same) */}
           <TabsContent value="dashboard" className="space-y-6">
             {/* Cards de Estatísticas */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
