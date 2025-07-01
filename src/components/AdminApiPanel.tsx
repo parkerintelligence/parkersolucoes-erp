@@ -180,7 +180,7 @@ const AdminApiPanel = () => {
       }
 
       // Definir região padrão se não fornecido
-      if (!configToSave.region.trim()) {
+      if (!configToSave.region?.trim()) {
         configToSave.region = 'us-east-1';
       }
 
@@ -201,20 +201,25 @@ const AdminApiPanel = () => {
     }
 
     try {
+      const integrationData = {
+        type: configToSave.type as any,
+        name: configToSave.name,
+        base_url: configToSave.base_url,
+        api_token: null,
+        webhook_url: null,
+        phone_number: null,
+        username: configToSave.username || null,
+        password: configToSave.password || null,
+        region: configToSave.region || null,
+        bucket_name: configToSave.bucket_name || null,
+        is_active: configToSave.is_active
+      };
+
       if (editingId) {
         console.log('Atualizando integração:', editingId);
         await updateIntegration.mutateAsync({ 
           id: editingId, 
-          updates: {
-            type: configToSave.type as any,
-            name: configToSave.name,
-            base_url: configToSave.base_url,
-            username: configToSave.username,
-            password: configToSave.password,
-            region: configToSave.region,
-            bucket_name: configToSave.bucket_name,
-            is_active: configToSave.is_active
-          }
+          updates: integrationData
         });
         toast({
           title: "Configuração atualizada!",
@@ -222,19 +227,7 @@ const AdminApiPanel = () => {
         });
       } else {
         console.log('Criando nova integração');
-        await createIntegration.mutateAsync({
-          type: configToSave.type as any,
-          name: configToSave.name,
-          base_url: configToSave.base_url,
-          api_token: null,
-          webhook_url: null,
-          phone_number: null,
-          username: configToSave.username,
-          password: configToSave.password,
-          region: configToSave.region,
-          bucket_name: configToSave.bucket_name,
-          is_active: configToSave.is_active
-        });
+        await createIntegration.mutateAsync(integrationData);
         toast({
           title: "Configuração criada!",
           description: `${configToSave.name} foi configurada com sucesso.`,
@@ -245,7 +238,7 @@ const AdminApiPanel = () => {
       console.error('Erro ao salvar configuração:', error);
       toast({
         title: "Erro ao salvar",
-        description: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Tente novamente.`,
+        description: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Verifique os logs do console para mais detalhes.`,
         variant: "destructive"
       });
     }
@@ -364,7 +357,7 @@ const AdminApiPanel = () => {
                   <Label htmlFor="region" className="text-sm font-semibold text-gray-700">Região (opcional - padrão: us-east-1)</Label>
                   <Input
                     id="region"
-                    value={newConfig.region}
+                    value={newConfig.region || ''}
                     onChange={(e) => setNewConfig({ ...newConfig, region: e.target.value })}
                     placeholder="us-east-1"
                     className="p-3 border-gray-300 focus:ring-2 focus:ring-blue-500"
@@ -374,7 +367,7 @@ const AdminApiPanel = () => {
                   <Label htmlFor="bucket_name" className="text-sm font-semibold text-gray-700">Nome do Bucket *</Label>
                   <Input
                     id="bucket_name"
-                    value={newConfig.bucket_name}
+                    value={newConfig.bucket_name || ''}
                     onChange={(e) => setNewConfig({ ...newConfig, bucket_name: e.target.value })}
                     placeholder="nome-do-bucket"
                     className="p-3 border-gray-300 focus:ring-2 focus:ring-blue-500"

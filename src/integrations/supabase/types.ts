@@ -263,12 +263,14 @@ export type Database = {
         Row: {
           api_token: string | null
           base_url: string
+          bucket_name: string | null
           created_at: string
           id: string
           is_active: boolean | null
           name: string
           password: string | null
           phone_number: string | null
+          region: string | null
           type: string
           updated_at: string
           user_id: string
@@ -278,12 +280,14 @@ export type Database = {
         Insert: {
           api_token?: string | null
           base_url: string
+          bucket_name?: string | null
           created_at?: string
           id?: string
           is_active?: boolean | null
           name: string
           password?: string | null
           phone_number?: string | null
+          region?: string | null
           type: string
           updated_at?: string
           user_id: string
@@ -293,12 +297,14 @@ export type Database = {
         Update: {
           api_token?: string | null
           base_url?: string
+          bucket_name?: string | null
           created_at?: string
           id?: string
           is_active?: boolean | null
           name?: string
           password?: string | null
           phone_number?: string | null
+          region?: string | null
           type?: string
           updated_at?: string
           user_id?: string
