@@ -261,7 +261,7 @@ export type Database = {
       }
       integrations: {
         Row: {
-          api_token: string
+          api_token: string | null
           base_url: string
           created_at: string
           id: string
@@ -276,7 +276,7 @@ export type Database = {
           webhook_url: string | null
         }
         Insert: {
-          api_token: string
+          api_token?: string | null
           base_url: string
           created_at?: string
           id?: string
@@ -291,7 +291,7 @@ export type Database = {
           webhook_url?: string | null
         }
         Update: {
-          api_token?: string
+          api_token?: string | null
           base_url?: string
           created_at?: string
           id?: string

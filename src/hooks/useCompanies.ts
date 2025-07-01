@@ -18,7 +18,7 @@ export interface Company {
 }
 
 export const useCompanies = () => {
-  const { user, isMaster } = useAuth();
+  const { user } = useAuth();
   
   return useQuery({
     queryKey: ['companies'],
@@ -27,7 +27,7 @@ export const useCompanies = () => {
         throw new Error('User not authenticated');
       }
 
-      console.log('Fetching companies, isMaster:', isMaster, 'userEmail:', user.email);
+      console.log('Fetching companies for user:', user.email);
 
       const { data, error } = await supabase
         .from('companies')
@@ -39,7 +39,7 @@ export const useCompanies = () => {
         throw error;
       }
 
-      console.log('Companies fetched:', data);
+      console.log('Companies fetched successfully:', data?.length || 0, 'companies');
       return data || [];
     },
     enabled: !!user,
@@ -56,7 +56,7 @@ export const useCreateCompany = () => {
         throw new Error('User not authenticated');
       }
 
-      console.log('Creating company:', company);
+      console.log('Creating company:', company, 'for user:', user.id);
 
       const { data, error } = await supabase
         .from('companies')
@@ -72,7 +72,7 @@ export const useCreateCompany = () => {
         throw error;
       }
 
-      console.log('Company created:', data);
+      console.log('Company created successfully:', data);
       return data;
     },
     onSuccess: () => {
@@ -117,7 +117,7 @@ export const useUpdateCompany = () => {
         throw error;
       }
 
-      console.log('Company updated:', data);
+      console.log('Company updated successfully:', data);
       return data;
     },
     onSuccess: () => {
@@ -160,7 +160,7 @@ export const useDeleteCompany = () => {
         throw error;
       }
 
-      console.log('Company deleted:', id);
+      console.log('Company deleted successfully:', id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });

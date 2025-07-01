@@ -30,6 +30,8 @@ export const useIntegrations = () => {
         throw new Error('User not authenticated');
       }
 
+      console.log('Fetching integrations for user:', user.email);
+
       const { data, error } = await supabase
         .from('integrations')
         .select('*')
@@ -40,6 +42,7 @@ export const useIntegrations = () => {
         throw error;
       }
 
+      console.log('Integrations fetched successfully:', data?.length || 0, 'integrations');
       return data as Integration[];
     },
   });
@@ -71,7 +74,7 @@ export const useCreateIntegration = () => {
         user_id: user.id
       };
 
-      console.log('Creating integration with data:', integrationData);
+      console.log('Creating integration:', integrationData);
 
       const { data, error } = await supabase
         .from('integrations')
@@ -84,6 +87,7 @@ export const useCreateIntegration = () => {
         throw error;
       }
 
+      console.log('Integration created successfully:', data);
       return data;
     },
     onSuccess: () => {
@@ -119,12 +123,14 @@ export const useUpdateIntegration = () => {
       // Garantir que campos sejam null em vez de undefined
       const updateData = {
         ...updates,
-        api_token: updates.api_token || null,
-        webhook_url: updates.webhook_url || null,
-        phone_number: updates.phone_number || null,
-        username: updates.username || null,
-        password: updates.password || null,
+        api_token: updates.api_token === undefined ? null : updates.api_token,
+        webhook_url: updates.webhook_url === undefined ? null : updates.webhook_url,
+        phone_number: updates.phone_number === undefined ? null : updates.phone_number,
+        username: updates.username === undefined ? null : updates.username,
+        password: updates.password === undefined ? null : updates.password,
       };
+
+      console.log('Updating integration:', id, updateData);
 
       const { data, error } = await supabase
         .from('integrations')
@@ -138,6 +144,7 @@ export const useUpdateIntegration = () => {
         throw error;
       }
 
+      console.log('Integration updated successfully:', data);
       return data;
     },
     onSuccess: () => {
@@ -170,6 +177,8 @@ export const useDeleteIntegration = () => {
         throw new Error('User not authenticated');
       }
 
+      console.log('Deleting integration:', id);
+
       const { error } = await supabase
         .from('integrations')
         .delete()
@@ -179,6 +188,8 @@ export const useDeleteIntegration = () => {
         console.error('Error deleting integration:', error);
         throw error;
       }
+
+      console.log('Integration deleted successfully:', id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
