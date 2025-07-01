@@ -186,11 +186,11 @@ export const ZabbixHostsGrid = () => {
                                 <div>
                                   <label className="text-sm font-medium text-gray-700">Interfaces</label>
                                   <div className="mt-2 space-y-2">
-                                    {selectedHost.interfaces.map((interface, index) => (
+                                    {selectedHost.interfaces.map((hostInterface, index) => (
                                       <div key={index} className="p-2 bg-gray-50 rounded">
                                         <div className="text-sm font-medium">Interface {index + 1}</div>
                                         <div className="text-sm text-gray-600">
-                                          IP: {interface.ip}:{interface.port}
+                                          IP: {hostInterface.ip}:{hostInterface.port}
                                         </div>
                                       </div>
                                     ))}
