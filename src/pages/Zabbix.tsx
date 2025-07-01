@@ -1,4 +1,3 @@
-
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,10 +19,12 @@ import {
   Cpu, 
   HardDrive, 
   Network, 
-  Zap 
+  Zap,
+  Info
 } from 'lucide-react';
 import { useZabbixIntegration } from '@/hooks/useZabbixIntegration';
 import { ZabbixAdminConfig } from '@/components/ZabbixAdminConfig';
+import { ZabbixErrorDialog } from '@/components/ZabbixErrorDialog';
 import { useState } from 'react';
 
 const Zabbix = () => {
@@ -39,7 +40,9 @@ const Zabbix = () => {
   } = useZabbixIntegration();
 
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
 
+  // ... keep existing code (helper functions like getSeverityBadge, getHostStatusBadge, etc.)
   const getSeverityBadge = (severity: string) => {
     const severityNum = parseInt(severity);
     switch (severityNum) {
@@ -173,21 +176,40 @@ const Zabbix = () => {
               </h1>
               <p className="text-blue-600">Monitoramento em tempo real da infraestrutura</p>
             </div>
-            <Button onClick={refetchAll} className="bg-blue-600 hover:bg-blue-700">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Tentar Novamente
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setShowErrorDialog(true)} 
+                variant="outline"
+                className="text-red-600 border-red-200 hover:bg-red-50"
+              >
+                <Info className="mr-2 h-4 w-4" />
+                Ver Detalhes
+              </Button>
+              <Button onClick={refetchAll} className="bg-blue-600 hover:bg-blue-700">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Tentar Novamente
+              </Button>
+            </div>
           </div>
 
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Erro de Conexão</AlertTitle>
             <AlertDescription>
-              Não foi possível conectar ao Zabbix. Verifique as configurações no painel administrativo.
+              Não foi possível conectar ao Zabbix. Clique em "Ver Detalhes" para mais informações ou tente configurar novamente no painel administrativo.
               <br />
-              <strong>Erro:</strong> {error?.message}
+              <strong>Erro resumido:</strong> {error?.message?.split('\n')[0] || 'Erro desconhecido'}
             </AlertDescription>
           </Alert>
+
+          <ZabbixAdminConfig />
+
+          <ZabbixErrorDialog
+            isOpen={showErrorDialog}
+            onClose={() => setShowErrorDialog(false)}
+            error={error?.message?.split('\n')[0] || 'Erro desconhecido'}
+            details={error?.message || 'Nenhum detalhe disponível'}
+          />
         </div>
       </Layout>
     );
@@ -220,6 +242,7 @@ const Zabbix = () => {
             <TabsTrigger value="monitoring">Monitoramento</TabsTrigger>
           </TabsList>
 
+          {/* ... keep existing code (all TabsContent sections remain the same) */}
           <TabsContent value="dashboard" className="space-y-6">
             {/* Cards de Estatísticas */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">

@@ -80,32 +80,59 @@ const makeZabbixRequest = async (baseUrl: string, token: string, method: string,
     id: 1,
   };
 
-  console.log('Request body:', requestBody);
+  console.log('Request body:', { ...requestBody, auth: token.substring(0, 10) + '...' });
 
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json-rpc',
-    },
-    body: JSON.stringify(requestBody),
-  });
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json-rpc',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+      mode: 'cors',
+    });
 
-  console.log('Response status:', response.status);
+    console.log('Response status:', response.status);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
-  if (!response.ok) {
-    console.error('HTTP error:', response.status, response.statusText);
-    throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('HTTP error details:', {
+        status: response.status,
+        statusText: response.statusText,
+        responseText: errorText
+      });
+      
+      if (response.status === 0 || response.status === 999) {
+        throw new Error(`Erro de CORS: O servidor Zabbix não permite conexões do navegador. Status: ${response.status}`);
+      }
+      
+      throw new Error(`Erro HTTP ${response.status}: ${response.statusText}. Detalhes: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('Response data:', data);
+    
+    if (data.error) {
+      console.error('Zabbix API error:', data.error);
+      throw new Error(`Erro da API Zabbix: ${data.error.message || 'Erro desconhecido'} (Código: ${data.error.code || 'N/A'})`);
+    }
+
+    return data.result;
+  } catch (error) {
+    console.error('Fetch error:', error);
+    
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new Error(`Erro de conexão: Não foi possível conectar ao servidor Zabbix. Possíveis causas:
+      1. CORS: O servidor não permite conexões do navegador
+      2. Rede: Problemas de conectividade ou firewall
+      3. URL incorreta: Verifique se a URL está correta
+      4. HTTPS/HTTP: Problemas de protocolo (seu site é HTTPS, Zabbix é HTTP)`);
+    }
+    
+    throw error;
   }
-
-  const data = await response.json();
-  console.log('Response data:', data);
-  
-  if (data.error) {
-    console.error('Zabbix API error:', data.error);
-    throw new Error(`Zabbix API error: ${data.error.message || 'Unknown error'} (Code: ${data.error.code || 'N/A'})`);
-  }
-
-  return data.result;
 };
 
 export const useZabbixIntegration = () => {
@@ -121,6 +148,8 @@ export const useZabbixIntegration = () => {
   const testConnection = useMutation({
     mutationFn: async ({ base_url, api_token }: ZabbixConnection) => {
       console.log('Testing Zabbix connection...');
+      console.log('Base URL:', base_url);
+      console.log('Token length:', api_token.length);
       
       // Primeiro, vamos testar se a API está acessível
       let apiUrl = base_url.replace(/\/$/, '');
@@ -128,41 +157,73 @@ export const useZabbixIntegration = () => {
         apiUrl = apiUrl + '/api_jsonrpc.php';
       }
 
-      // Teste 1: Verificar se a API responde
-      console.log('Testing API availability...');
-      const versionResponse = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json-rpc',
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'apiinfo.version',
-          params: {},
-          id: 1,
-        }),
-      });
+      console.log('Testing API availability at:', apiUrl);
 
-      if (!versionResponse.ok) {
-        throw new Error(`Zabbix API não acessível: ${versionResponse.status} ${versionResponse.statusText}`);
+      // Teste 1: Verificar se a API responde com apiinfo.version (não requer auth)
+      try {
+        const versionResponse = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json-rpc',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'apiinfo.version',
+            params: {},
+            id: 1,
+          }),
+          mode: 'cors',
+        });
+
+        console.log('Version test response status:', versionResponse.status);
+
+        if (!versionResponse.ok) {
+          const errorText = await versionResponse.text();
+          console.error('Version test failed:', errorText);
+          throw new Error(`API não acessível: HTTP ${versionResponse.status} - ${versionResponse.statusText}`);
+        }
+
+        const versionData = await versionResponse.json();
+        console.log('API version response:', versionData);
+
+        if (versionData.error) {
+          throw new Error(`Erro na API do Zabbix: ${versionData.error.message}`);
+        }
+
+        console.log('Zabbix API version:', versionData.result);
+
+        // Teste 2: Verificar autenticação com o token
+        console.log('Testing authentication...');
+        return await makeZabbixRequest(base_url, api_token, 'user.get', { 
+          output: ['userid', 'username'],
+          limit: 1
+        });
+
+      } catch (fetchError) {
+        console.error('Connection test failed:', fetchError);
+        
+        if (fetchError instanceof TypeError && fetchError.message.includes('Failed to fetch')) {
+          throw new Error(`Falha na conexão com ${apiUrl}:
+
+POSSÍVEIS SOLUÇÕES:
+1. CORS: Configure o servidor Zabbix para permitir conexões do navegador
+2. Adicione no arquivo zabbix.conf.php: $CORS_settings = ['Access-Control-Allow-Origin' => '*'];
+3. Verifique se a URL está correta e acessível
+4. Considere configurar um proxy para contornar limitações de CORS
+5. Verifique configurações de firewall/rede
+
+Erro técnico: ${fetchError.message}`);
+        }
+        
+        throw fetchError;
       }
-
-      const versionData = await versionResponse.json();
-      console.log('API version response:', versionData);
-
-      if (versionData.error) {
-        throw new Error(`Erro na API do Zabbix: ${versionData.error.message}`);
-      }
-
-      // Teste 2: Verificar autenticação
-      console.log('Testing authentication...');
-      return await makeZabbixRequest(base_url, api_token, 'user.get', { output: ['userid', 'username'] });
     },
     onSuccess: (data) => {
       console.log('Connection test successful:', data);
       toast({
         title: "Conexão bem-sucedida!",
-        description: "A conexão com o Zabbix foi estabelecida com sucesso.",
+        description: `Conectado ao Zabbix com sucesso. Usuários encontrados: ${data?.length || 'N/A'}`,
       });
     },
     onError: (error: Error) => {
@@ -196,7 +257,11 @@ export const useZabbixIntegration = () => {
     },
     enabled: !!zabbixIntegration,
     refetchInterval: 30000,
-    retry: 3,
+    retry: (failureCount, error) => {
+      console.log('Host query retry attempt:', failureCount, error.message);
+      return failureCount < 2; // Retry apenas 2 vezes
+    },
+    retryDelay: 5000,
   });
 
   const problemsQuery = useQuery({
@@ -223,7 +288,11 @@ export const useZabbixIntegration = () => {
     },
     enabled: !!zabbixIntegration,
     refetchInterval: 15000,
-    retry: 3,
+    retry: (failureCount, error) => {
+      console.log('Problems query retry attempt:', failureCount, error.message);
+      return failureCount < 2;
+    },
+    retryDelay: 5000,
   });
 
   const itemsQuery = useQuery({
@@ -248,7 +317,11 @@ export const useZabbixIntegration = () => {
     },
     enabled: !!zabbixIntegration,
     refetchInterval: 60000,
-    retry: 3,
+    retry: (failureCount, error) => {
+      console.log('Items query retry attempt:', failureCount, error.message);
+      return failureCount < 2;
+    },
+    retryDelay: 5000,
   });
 
   const triggersQuery = useQuery({
@@ -274,7 +347,11 @@ export const useZabbixIntegration = () => {
     },
     enabled: !!zabbixIntegration,
     refetchInterval: 30000,
-    retry: 3,
+    retry: (failureCount, error) => {
+      console.log('Triggers query retry attempt:', failureCount, error.message);
+      return failureCount < 2;
+    },
+    retryDelay: 5000,
   });
 
   const refetchAll = () => {
