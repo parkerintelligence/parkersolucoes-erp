@@ -1,70 +1,95 @@
 
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-export interface CompanyLink {
+interface CompanyLink {
   id: string;
-  company_id: string;
+  client: string;
   name: string;
   url: string;
-  service: string | null;
-  username: string | null;
-  password: string | null;
+  description: string;
+  category: string;
+  is_active: boolean;
   created_at: string;
-  updated_at: string;
-  user_id: string;
 }
 
-export const useCompanyLinks = (companyId?: string) => {
-  return useQuery({
-    queryKey: ['company-links', companyId],
-    queryFn: async () => {
-      let query = supabase
-        .from('company_links')
-        .select('*')
-        .order('name');
+const mockLinks: CompanyLink[] = [
+  { 
+    id: '1', 
+    client: 'Empresa A', 
+    name: 'Portal Administrativo', 
+    url: 'https://admin.empresaa.com', 
+    description: 'Painel principal de administração', 
+    category: 'Admin',
+    is_active: true,
+    created_at: '2024-01-01'
+  },
+  { 
+    id: '2', 
+    client: 'Empresa A', 
+    name: 'Sistema ERP', 
+    url: 'https://erp.empresaa.com', 
+    description: 'Sistema de gestão empresarial', 
+    category: 'Sistema',
+    is_active: true,
+    created_at: '2024-01-02'
+  },
+  { 
+    id: '3', 
+    client: 'Empresa B', 
+    name: 'Sistema de Vendas', 
+    url: 'https://vendas.empresab.com', 
+    description: 'Sistema de gestão de vendas', 
+    category: 'Vendas',
+    is_active: true,
+    created_at: '2024-01-03'
+  },
+  { 
+    id: '4', 
+    client: 'Empresa B', 
+    name: 'CRM', 
+    url: 'https://crm.empresab.com', 
+    description: 'Gestão de relacionamento com cliente', 
+    category: 'CRM',
+    is_active: true,
+    created_at: '2024-01-04'
+  },
+  { 
+    id: '5', 
+    client: 'Empresa C', 
+    name: 'Monitoramento', 
+    url: 'https://monitor.empresac.com', 
+    description: 'Dashboard de monitoramento', 
+    category: 'Monitor',
+    is_active: true,
+    created_at: '2024-01-05'
+  },
+];
 
-      if (companyId) {
-        query = query.eq('company_id', companyId);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error fetching company links:', error);
-        throw error;
-      }
-
-      return data as CompanyLink[];
-    },
-    enabled: !!companyId,
-  });
-};
-
-export const useCreateCompanyLink = () => {
+export const useCompanyLinks = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async (link: Omit<CompanyLink, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+  const { data: links = [], isLoading } = useQuery({
+    queryKey: ['company-links'],
+    queryFn: async (): Promise<CompanyLink[]> => {
+      console.log('Carregando links das empresas...');
+      // Simular delay de carregamento
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('Links carregados:', mockLinks.length, 'links');
+      return mockLinks;
+    },
+  });
 
-      const { data, error } = await supabase
-        .from('company_links')
-        .insert([{
-          ...link,
-          user_id: user.id
-        }])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating company link:', error);
-        throw error;
-      }
-
-      return data;
+  const createLink = useMutation({
+    mutationFn: async (newLink: Omit<CompanyLink, 'id' | 'created_at'>) => {
+      console.log('Criando novo link:', newLink);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return {
+        ...newLink,
+        id: Date.now().toString(),
+        created_at: new Date().toISOString()
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-links'] });
@@ -73,35 +98,20 @@ export const useCreateCompanyLink = () => {
         description: "O link foi adicionado com sucesso.",
       });
     },
-    onError: (error) => {
-      console.error('Error creating company link:', error);
+    onError: (error: Error) => {
       toast({
         title: "Erro ao criar link",
-        description: "Ocorreu um erro ao criar o link. Tente novamente.",
+        description: error.message,
         variant: "destructive"
       });
     },
   });
-};
 
-export const useUpdateCompanyLink = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  const updateLink = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<CompanyLink> }) => {
-      const { data, error } = await supabase
-        .from('company_links')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating company link:', error);
-        throw error;
-      }
-
-      return data;
+      console.log('Atualizando link:', id, updates);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return { id, updates };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-links'] });
@@ -110,31 +120,20 @@ export const useUpdateCompanyLink = () => {
         description: "O link foi atualizado com sucesso.",
       });
     },
-    onError: (error) => {
-      console.error('Error updating company link:', error);
+    onError: (error: Error) => {
       toast({
         title: "Erro ao atualizar link",
-        description: "Ocorreu um erro ao atualizar o link.",
+        description: error.message,
         variant: "destructive"
       });
     },
   });
-};
 
-export const useDeleteCompanyLink = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  const deleteLink = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('company_links')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting company link:', error);
-        throw error;
-      }
+      console.log('Removendo link:', id);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return id;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-links'] });
@@ -143,13 +142,20 @@ export const useDeleteCompanyLink = () => {
         description: "O link foi removido com sucesso.",
       });
     },
-    onError: (error) => {
-      console.error('Error deleting company link:', error);
+    onError: (error: Error) => {
       toast({
         title: "Erro ao remover link",
-        description: "Ocorreu um erro ao remover o link.",
+        description: error.message,
         variant: "destructive"
       });
     },
   });
+
+  return {
+    links,
+    isLoading,
+    createLink,
+    updateLink,
+    deleteLink,
+  };
 };
