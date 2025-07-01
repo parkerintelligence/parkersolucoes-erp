@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { HardDrive, Download, Upload, Trash2, RefreshCw, Search, File, Folder } from 'lucide-react';
+import { HardDrive, Download, Upload, Trash2, RefreshCw, Search, File, Folder, Settings } from 'lucide-react';
 import { useWasabi } from '@/hooks/useWasabi';
 
 const Wasabi = () => {
@@ -16,6 +16,7 @@ const Wasabi = () => {
     files, 
     isLoadingFiles, 
     wasabiIntegration,
+    wasabiIntegrations,
     uploadFiles,
     downloadFile,
     deleteFile,
@@ -66,8 +67,27 @@ const Wasabi = () => {
           <p className="text-orange-700 mb-4">
             Para usar o armazenamento Wasabi, você precisa configurar uma integração primeiro.
           </p>
-          <Button className="bg-orange-600 hover:bg-orange-700">
+          <Button className="bg-orange-600 hover:bg-orange-700" onClick={() => window.location.href = '/admin'}>
+            <Settings className="h-4 w-4 mr-2" />
             Configurar Integração
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!bucketName || bucketName === 'Não configurado') {
+    return (
+      <Card className="border-orange-200 bg-orange-50">
+        <CardContent className="p-6 text-center">
+          <HardDrive className="h-16 w-16 text-orange-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-orange-900 mb-2">Bucket não configurado</h2>
+          <p className="text-orange-700 mb-4">
+            A integração Wasabi está ativa, mas o nome do bucket não foi configurado.
+          </p>
+          <Button className="bg-orange-600 hover:bg-orange-700" onClick={() => window.location.href = '/admin'}>
+            <Settings className="h-4 w-4 mr-2" />
+            Configurar Bucket
           </Button>
         </CardContent>
       </Card>
@@ -84,7 +104,13 @@ const Wasabi = () => {
             Wasabi Storage
           </h1>
           <p className="text-blue-600 text-sm">
+            Integração: <span className="font-semibold">{wasabiIntegration.name}</span>
+          </p>
+          <p className="text-blue-600 text-sm">
             Bucket: <span className="font-semibold">{bucketName}</span>
+          </p>
+          <p className="text-blue-600 text-xs">
+            Endpoint: {wasabiIntegration.base_url} | Região: {wasabiIntegration.region || 'us-east-1'}
           </p>
         </div>
         <Button variant="outline" onClick={handleRefresh} disabled={isLoadingFiles}>
@@ -92,6 +118,18 @@ const Wasabi = () => {
           Atualizar
         </Button>
       </div>
+
+      {/* Informações da Integração */}
+      {wasabiIntegrations.length > 1 && (
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardContent className="p-4">
+            <p className="text-yellow-800 text-sm">
+              <strong>Aviso:</strong> Foram encontradas {wasabiIntegrations.length} integrações Wasabi ativas. 
+              Exibindo dados da integração: <strong>{wasabiIntegration.name}</strong>
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Estatísticas */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
@@ -199,7 +237,7 @@ const Wasabi = () => {
           {isLoadingFiles ? (
             <div className="text-center py-6">
               <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
-              <p className="text-gray-600">Carregando arquivos...</p>
+              <p className="text-gray-600">Carregando arquivos do bucket {bucketName}...</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -250,7 +288,7 @@ const Wasabi = () => {
                   <File className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                   <p className="text-lg font-medium">Nenhum arquivo encontrado</p>
                   <p className="text-sm">
-                    {searchTerm ? 'Tente ajustar sua busca' : 'Faça upload de arquivos para começar'}
+                    {searchTerm ? 'Tente ajustar sua busca' : `Faça upload de arquivos para o bucket ${bucketName}`}
                   </p>
                 </div>
               )}
