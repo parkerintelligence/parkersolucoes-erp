@@ -90,6 +90,8 @@ const makeZabbixRequest = async (baseUrl: string, token: string, method: string,
         'Accept': 'application/json',
       },
       body: JSON.stringify(requestBody),
+      // Permitir conexões HTTP mesmo de HTTPS
+      mode: 'cors',
     });
 
     console.log('Response status:', response.status);
@@ -119,29 +121,25 @@ const makeZabbixRequest = async (baseUrl: string, token: string, method: string,
     console.error('Fetch error:', error);
     
     if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      throw new Error(`ERRO DE CORS DETECTADO!
+      throw new Error(`Erro de conexão detectado.
 
-Problema: Você está tentando conectar de HTTPS (${window.location.origin}) para HTTP (${apiUrl}).
+Possíveis soluções para conectar HTTP de HTTPS:
 
-SOLUÇÕES POSSÍVEIS:
+1. CONFIGURAR PROXY REVERSO:
+   - Use nginx ou apache para rotear HTTPS → HTTP
+   - Configure SSL/TLS no servidor Zabbix
 
-1. CONFIGURAR CORS NO ZABBIX:
-   - Adicione no arquivo zabbix.conf.php:
-     $CORS_settings = [
-       'Access-Control-Allow-Origin' => '${window.location.origin}',
-       'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-       'Access-Control-Allow-Headers' => 'Content-Type, Authorization'
-     ];
+2. USAR EXTENSÃO DO NAVEGADOR:
+   - CORS Unblock ou similar
+   - Desabilitar CORS temporariamente
 
-2. USAR HTTPS NO ZABBIX:
-   - Configure SSL/TLS no seu servidor Zabbix
-   - Altere a URL de HTTP para HTTPS
+3. CONFIGURAR SERVIDOR WEB:
+   - Adicionar headers CORS no servidor
+   - Permitir origem ${window.location.origin}
 
-3. USAR PROXY REVERSO:
-   - Configure um proxy (nginx/apache) para rotear as requisições
-
-4. DESABILITAR HTTPS (NÃO RECOMENDADO):
-   - Apenas para testes em ambiente local
+4. USAR HTTPS NO ZABBIX:
+   - Configure certificado SSL no Zabbix
+   - Altere URL para HTTPS
 
 Erro técnico: ${error.message}`);
     }
@@ -217,7 +215,7 @@ export const useZabbixIntegration = () => {
     },
     enabled: !!zabbixIntegration,
     refetchInterval: 30000,
-    retry: false, // Desabilitar retry para evitar loops
+    retry: false,
     staleTime: 10000,
   });
 

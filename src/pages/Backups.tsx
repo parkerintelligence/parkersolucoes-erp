@@ -1,604 +1,263 @@
-import { useState, useEffect } from 'react';
+
+import { useState } from 'react';
 import { Layout } from '@/components/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  HardDrive, 
-  Server, 
-  RefreshCw,
-  WifiOff,
-  Download,
-  Trash2,
-  Folder,
-  File,
-  Search,
-  Settings,
-  Calendar,
-  CheckCircle2,
-  BarChart3,
-  Calculator,
-  Loader2
-} from 'lucide-react';
-import { useRealFtp } from '@/hooks/useRealFtp';
-import { useFtpSpaceCalculator } from '@/hooks/useFtpSpaceCalculator';
-import { FtpUploadDialog } from '@/components/FtpUploadDialog';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useIntegrations } from '@/hooks/useIntegrations';
+import { useFtp } from '@/hooks/useFtp';
+import { FtpConnectionStatus } from '@/components/FtpConnectionStatus';
+import { FtpFileExplorer } from '@/components/FtpFileExplorer';
+import { FtpToolbar } from '@/components/FtpToolbar';
 import { FtpDirectoryNavigator } from '@/components/FtpDirectoryNavigator';
+import { FtpUploadDialog } from '@/components/FtpUploadDialog';
+import { 
+  Activity, 
+  Server, 
+  Database, 
+  RefreshCw, 
+  Settings, 
+  HardDrive,
+  Folder,
+  FileText,
+  AlertTriangle,
+  Plus,
+  Trash2,
+  Download
+} from 'lucide-react';
 
 const Backups = () => {
-  const { 
-    files, 
-    isLoadingFiles, 
-    ftpIntegration, 
+  const { data: integrations } = useIntegrations();
+  const ftpIntegration = integrations?.find(integration => integration.type === 'ftp');
+  
+  const {
+    connectionStatus,
     currentPath,
-    directories,
-    navigateToDirectory,
-    goToParentDirectory,
-    refetchFiles, 
-    downloadFile, 
-    deleteFile 
-  } = useRealFtp();
-  
-  const { calculateTotalSpace, isCalculating, spaceData, formatFileSize } = useFtpSpaceCalculator();
-  
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+    files,
+    isLoading,
+    error,
+    navigateToPath,
+    refresh,
+    createFolder,
+    deleteFile,
+    downloadFile,
+    uploadFile
+  } = useFtp();
 
-  // Calculate total space on component mount and when integration changes
-  useEffect(() => {
-    if (ftpIntegration && currentPath === '/') {
-      calculateTotalSpace(ftpIntegration);
-    }
-  }, [ftpIntegration]);
-
-  const filteredFiles = files.filter(file => 
-    file.name.toLowerCase().includes(searchTerm.toLowerCase())
-  ).sort((a, b) => {
-    // Ordenar por data de modificação: mais antiga primeiro, mais nova por último
-    const dateA = a.lastModified instanceof Date ? a.lastModified : new Date(a.lastModified);
-    const dateB = b.lastModified instanceof Date ? b.lastModified : new Date(b.lastModified);
-    return dateA.getTime() - dateB.getTime();
-  });
-
-  // Use space data from calculator or fallback to current folder calculation
-  const totalSize = spaceData?.totalSize || files.reduce((acc, file) => acc + file.size, 0);
-  const totalFiles = spaceData?.totalFiles || files.filter(f => !f.isDirectory).length;
-  const totalDirectories = spaceData?.totalDirectories || files.filter(f => f.isDirectory).length;
-  
-  // Corrigir o cálculo de arquivos recentes - garantir que lastModified é Date
-  const recentFiles = files.filter(file => {
-    try {
-      const fileDate = file.lastModified instanceof Date ? file.lastModified : new Date(file.lastModified);
-      const daysDiff = Math.floor((Date.now() - fileDate.getTime()) / (1000 * 60 * 60 * 24));
-      return daysDiff <= 1;
-    } catch (error) {
-      console.error('Error calculating file age:', error);
-      return false;
-    }
-  }).length;
-
-  // Calcular arquivos antigos (mais de 2 dias)
-  const oldFiles = files.filter(file => {
-    try {
-      const fileDate = file.lastModified instanceof Date ? file.lastModified : new Date(file.lastModified);
-      const daysDiff = Math.floor((Date.now() - fileDate.getTime()) / (1000 * 60 * 60 * 24));
-      return daysDiff > 2;
-    } catch (error) {
-      console.error('Error calculating file age:', error);
-      return false;
-    }
-  }).length;
-
-  const formatDate = (date: Date) => {
-    try {
-      const validDate = date instanceof Date ? date : new Date(date);
-      return new Intl.DateTimeFormat('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(validDate);
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Data inválida';
-    }
-  };
-
-  const handleSelectFile = (fileName: string) => {
-    const newSelection = selectedFiles.includes(fileName) 
-      ? selectedFiles.filter(f => f !== fileName)
-      : [...selectedFiles, fileName];
-    setSelectedFiles(newSelection);
-  };
-
-  const handleSelectAll = () => {
-    if (selectedFiles.length === files.length) {
-      setSelectedFiles([]);
-    } else {
-      setSelectedFiles(files.map(f => f.name));
-    }
-  };
-
-  const handleDownloadSelected = async () => {
-    for (const fileName of selectedFiles) {
-      try {
-        await downloadFile.mutateAsync(fileName);
-      } catch (error) {
-        console.error('Erro ao baixar arquivo:', fileName, error);
-      }
-    }
-  };
-
-  const handleDeleteSelected = async () => {
-    for (const fileName of selectedFiles) {
-      try {
-        await deleteFile.mutateAsync(fileName);
-      } catch (error) {
-        console.error('Erro ao excluir arquivo:', fileName, error);
-      }
-    }
-    setSelectedFiles([]);
-  };
-
-  const getFileIcon = (fileName: string, isDirectory: boolean) => {
-    if (isDirectory) {
-      return <Folder className="h-5 w-5 text-blue-500" />;
-    }
-    
-    const extension = fileName.split('.').pop()?.toLowerCase();
-    switch (extension) {
-      case 'sql':
-        return <File className="h-5 w-5 text-green-600" />;
-      case 'txt':
-      case 'log':
-        return <File className="h-5 w-5 text-gray-600" />;
-      case 'zip':
-      case 'rar':
-      case 'tar':
-      case 'gz':
-        return <File className="h-5 w-5 text-orange-600" />;
-      case 'json':
-      case 'xml':
-        return <File className="h-5 w-5 text-purple-600" />;
-      default:
-        return <File className="h-5 w-5 text-gray-500" />;
-    }
-  };
-
-  const getRowBackgroundColor = (lastModified: Date) => {
-    const daysDiff = Math.floor((Date.now() - lastModified.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysDiff > 2) {
-      return 'bg-pink-50 hover:bg-pink-100';
-    }
-    return 'bg-green-50 hover:bg-green-100';
-  };
+  const [newFolderName, setNewFolderName] = useState('');
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
 
   if (!ftpIntegration) {
     return (
       <Layout>
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <WifiOff className="h-8 w-8 text-yellow-600" />
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
+                <HardDrive className="h-8 w-8" />
+                Backups FTP
+              </h1>
+              <p className="text-blue-600">Gerencie seus backups via FTP</p>
             </div>
-            <h2 className="text-2xl font-bold text-yellow-800 mb-3">
-              Nenhuma Conexão FTP Configurada
-            </h2>
-            <p className="text-yellow-700 mb-6 max-w-md mx-auto">
-              Para gerenciar arquivos de backup FTP, configure uma integração FTP no Painel de Administração.
-            </p>
-            <Button 
-              className="bg-yellow-600 hover:bg-yellow-700 text-white"
-              onClick={() => window.location.href = '/admin'}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Configurar Integração FTP
-            </Button>
-          </CardContent>
-        </Card>
+          </div>
+
+          <Alert>
+            <Settings className="h-4 w-4" />
+            <AlertDescription>
+              Configure uma integração FTP no painel administrativo para começar a gerenciar seus backups.
+            </AlertDescription>
+          </Alert>
+        </div>
       </Layout>
     );
   }
 
+  // Sort files by modification date (oldest first)
+  const sortedFiles = files?.sort((a, b) => {
+    if (!a.date || !b.date) return 0;
+    return new Date(a.date).getTime() - new Date(b.date).getTime();
+  }) || [];
+
+  const handleCreateFolder = async () => {
+    if (newFolderName.trim()) {
+      await createFolder(newFolderName.trim());
+      setNewFolderName('');
+    }
+  };
+
+  const handleUploadComplete = () => {
+    setShowUploadDialog(false);
+    refresh();
+  };
+
   return (
     <Layout>
-      {/* Header da Página */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-            <HardDrive className="h-6 w-6 text-white" />
-          </div>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Explorador de Arquivos FTP Real
+            <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
+              <HardDrive className="h-8 w-8" />
+              Backups FTP
             </h1>
-            <p className="text-sm text-gray-600 flex items-center gap-2">
-              <Server className="h-4 w-4" />
-              {ftpIntegration.base_url.replace(/^(ftp:\/\/|ftps:\/\/)/, '')}
-              {ftpIntegration.port && ftpIntegration.port !== 21 && `:${ftpIntegration.port}`}
-              <Badge className="bg-green-100 text-green-800 border-green-200 ml-2">
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Conectado ao Servidor Real
-              </Badge>
-            </p>
+            <p className="text-blue-600">Gerencie seus backups via FTP</p>
           </div>
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => calculateTotalSpace(ftpIntegration, '/')}
-            disabled={isCalculating}
-            className="flex items-center gap-2"
-          >
-            {isCalculating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Calculator className="h-4 w-4" />
-            )}
-            {isCalculating ? 'Calculando...' : 'Recalcular Espaço'}
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetchFiles()}
-            disabled={isLoadingFiles}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoadingFiles ? 'animate-spin' : ''}`} />
-            Atualizar Servidor
+          <Button onClick={refresh} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Atualizar
           </Button>
         </div>
-      </div>
 
-      {/* Resumo do Espaço Total */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <HardDrive className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">
-                  Espaço Total {spaceData ? '(Recursivo)' : '(Pasta Atual)'}
-                </p>
-                <p className="text-lg font-semibold text-gray-900">{formatFileSize(totalSize)}</p>
-                {isCalculating && (
-                  <p className="text-xs text-orange-600">Calculando...</p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <File className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Total de Arquivos</p>
-                <p className="text-lg font-semibold text-gray-900">{totalFiles}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Folder className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Diretórios</p>
-                <p className="text-lg font-semibold text-gray-900">{totalDirectories}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Arquivos Recentes</p>
-                <p className="text-lg font-semibold text-gray-900">{recentFiles}</p>
-                {oldFiles > 0 && (
-                  <p className="text-xs text-pink-600">{oldFiles} antigos</p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Space Calculation Progress */}
-      {spaceData && (
-        <Card className="mb-6 bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-blue-900">Cálculo Recursivo Concluído</p>
-                <p className="text-sm text-blue-700">
-                  Processadas {spaceData.processedPaths.length} pastas
-                  {spaceData.errors.length > 0 && ` • ${spaceData.errors.length} erros`}
-                </p>
-              </div>
-              <Badge className="bg-blue-100 text-blue-800">
-                <BarChart3 className="h-3 w-3 mr-1" />
-                Dados Completos
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Card principal do explorador FTP */}
-      <Card className="shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 border-b">
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-800">
-            <Server className="h-5 w-5 text-slate-600" />
-            Explorador Real - Servidor FTP
-            <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">
-              {ftpIntegration.name}
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-
-        {/* Navegação de Diretórios */}
-        <FtpDirectoryNavigator
-          currentPath={currentPath}
-          directories={directories.map(dir => ({ name: dir.name, path: dir.path }))}
-          onNavigate={navigateToDirectory}
-          onGoBack={goToParentDirectory}
+        <FtpConnectionStatus 
+          status={connectionStatus} 
+          serverInfo={ftpIntegration} 
         />
 
-        {/* Barra de Ferramentas */}
-        <div className="p-4 border-b bg-gray-50">
-          <div className="flex items-center justify-between gap-4">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Buscar arquivos e pastas..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <FtpUploadDialog />
-              
-              {selectedFiles.length > 0 && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDownloadSelected}
-                    disabled={downloadFile.isPending}
-                    className="flex items-center gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Baixar ({selectedFiles.length})
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (confirm(`Tem certeza que deseja excluir ${selectedFiles.length} arquivo(s)?`)) {
-                        handleDeleteSelected();
-                      }
-                    }}
-                    disabled={deleteFile.isPending}
-                    className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Excluir ({selectedFiles.length})
-                  </Button>
-                </>
-              )}
-              
-              <div className="text-sm text-slate-600 bg-white px-3 py-2 rounded border">
-                {filteredFiles.length} item(s) em {currentPath}
-              </div>
-            </div>
-          </div>
-        </div>
+        {connectionStatus === 'connected' && (
+          <Tabs defaultValue="files" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="files">Arquivos</TabsTrigger>
+              <TabsTrigger value="stats">Estatísticas</TabsTrigger>
+            </TabsList>
 
-        <CardContent className="p-0">
-          {isLoadingFiles ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="text-center">
-                <RefreshCw className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Conectando ao Servidor FTP Real...
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  Acessando {ftpIntegration.base_url}
-                </p>
-                <p className="text-gray-500 text-xs mt-1">
-                  Caminho atual: {currentPath}
-                </p>
-                <div className="mt-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-800 font-medium">
-                    🔗 Conectando ao servidor real configurado no painel administrativo
-                  </p>
-                  <p className="text-xs text-blue-600 mt-1">
-                    Host: {ftpIntegration.base_url} | Usuário: {ftpIntegration.username}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : filteredFiles.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Folder className="h-8 w-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {searchTerm ? 'Nenhum arquivo encontrado' : 'Pasta vazia no servidor'}
-              </h3>
-              <p className="text-gray-500 mb-4">
-                {searchTerm 
-                  ? `Nenhum resultado para "${searchTerm}" em ${currentPath}` 
-                  : `O diretório ${currentPath} está vazio no servidor FTP real`
-                }
-              </p>
-              <div className="bg-green-50 p-4 rounded-lg border border-green-200 mb-4">
-                <p className="text-sm text-green-800">
-                  ✅ Conectado com sucesso ao servidor FTP configurado
-                </p>
-              </div>
-              {!searchTerm && <FtpUploadDialog />}
-            </div>
-          ) : (
-            <div>
-              <div className="bg-green-50 p-3 border-b border-green-200">
-                <p className="text-sm text-green-800 font-medium text-center flex items-center justify-center gap-2">
-                  ✅ Exibindo {filteredFiles.length} itens do servidor FTP real: {ftpIntegration.base_url}
-                  <Badge className="bg-pink-100 text-pink-800 text-xs">
-                    {oldFiles} arquivos antigos
-                  </Badge>
-                </p>
-              </div>
-
-              <div className="flex items-center p-4 bg-gray-50 border-b text-sm font-medium text-gray-700">
-                <div className="w-12 flex items-center">
-                  <input
-                    type="checkbox"
-                    onChange={handleSelectAll}
-                    checked={selectedFiles.length === files.length && files.length > 0}
-                    className="rounded border-gray-300"
-                  />
-                </div>
-                <div className="flex-1">Nome</div>
-                <div className="w-24 text-center">Tamanho</div>
-                <div className="w-40 text-center">Modificado</div>
-                <div className="w-32 text-center">Permissões</div>
-                <div className="w-24 text-center">Ações</div>
-              </div>
-
-              <div className="divide-y">
-                {filteredFiles.map((file, index) => (
-                  <div 
-                    key={index} 
-                    className={`flex items-center p-4 transition-colors ${
-                      selectedFiles.includes(file.name) 
-                        ? 'bg-blue-50' 
-                        : getRowBackgroundColor(file.lastModified)
-                    }`}
-                  >
-                    <div className="w-12 flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedFiles.includes(file.name)}
-                        onChange={() => handleSelectFile(file.name)}
-                        className="rounded border-gray-300"
-                      />
+            <TabsContent value="files" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Explorador de Arquivos</CardTitle>
+                      <CardDescription>
+                        Navegue pelos arquivos do servidor FTP
+                      </CardDescription>
                     </div>
-                    
-                    <div className="flex-1 flex items-center gap-3 min-w-0">
-                      <div className="flex-shrink-0">
-                        {file.isDirectory ? (
-                          <button
-                            onClick={() => navigateToDirectory(file.path)}
-                            className="p-1 hover:bg-blue-50 rounded transition-colors"
-                            title="Abrir pasta"
-                          >
-                            <Folder className="h-5 w-5 text-blue-500" />
-                          </button>
-                        ) : (
-                          getFileIcon(file.name, file.isDirectory)
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {file.isDirectory ? (
-                              <button
-                                onClick={() => navigateToDirectory(file.path)}
-                                className="hover:text-blue-600 hover:underline text-left"
-                                title="Abrir pasta"
-                              >
-                                {file.name}
-                              </button>
-                            ) : (
-                              file.name
-                            )}
-                          </p>
-                          {file.isDirectory && (
-                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                              Pasta
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500 truncate">
-                          Proprietário: {file.owner}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="w-24 text-center text-sm text-gray-600">
-                      {file.isDirectory ? '-' : formatFileSize(file.size)}
-                    </div>
-                    
-                    <div className="w-40 text-center text-sm text-gray-600">
-                      <div>{formatDate(file.lastModified)}</div>
-                    </div>
-                    
-                    <div className="w-32 text-center">
-                      <Badge variant="outline" className="text-xs font-mono">
-                        {file.permissions}
-                      </Badge>
-                    </div>
-                    
-                    <div className="w-24 flex items-center justify-center gap-1">
-                      {!file.isDirectory && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => downloadFile.mutate(file.name)}
-                            disabled={downloadFile.isPending}
-                            className="h-8 w-8 p-0"
-                            title="Baixar arquivo"
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              if (confirm(`Tem certeza que deseja excluir ${file.name}?`)) {
-                                deleteFile.mutate(file.name);
-                              }
-                            }}
-                            disabled={deleteFile.isPending}
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            title="Excluir arquivo"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => setShowUploadDialog(true)}
+                        size="sm"
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Upload
+                      </Button>
                     </div>
                   </div>
-                ))}
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <FtpDirectoryNavigator 
+                      currentPath={currentPath}
+                      onNavigate={navigateToPath}
+                    />
+
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder="Nome da nova pasta"
+                        value={newFolderName}
+                        onChange={(e) => setNewFolderName(e.target.value)}
+                        className="max-w-xs"
+                      />
+                      <Button 
+                        onClick={handleCreateFolder}
+                        disabled={!newFolderName.trim()}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Folder className="h-4 w-4 mr-1" />
+                        Criar Pasta
+                      </Button>
+                    </div>
+
+                    <FtpToolbar 
+                      currentPath={currentPath}
+                      onRefresh={refresh}
+                      onNavigateUp={() => {
+                        const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/';
+                        navigateToPath(parentPath);
+                      }}
+                    />
+
+                    {error && (
+                      <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    <FtpFileExplorer 
+                      files={sortedFiles}
+                      isLoading={isLoading}
+                      onNavigate={navigateToPath}
+                      onDownload={downloadFile}
+                      onDelete={deleteFile}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="stats" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-blue-100 rounded-lg">
+                        <FileText className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-blue-900">
+                          {sortedFiles?.filter(f => f.type === 'file').length || 0}
+                        </p>
+                        <p className="text-sm text-gray-600">Arquivos</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-green-100 rounded-lg">
+                        <Folder className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-green-900">
+                          {sortedFiles?.filter(f => f.type === 'directory').length || 0}
+                        </p>
+                        <p className="text-sm text-gray-600">Pastas</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-purple-100 rounded-lg">
+                        <Database className="h-6 w-6 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-purple-900">
+                          {sortedFiles?.reduce((total, file) => total + (file.size || 0), 0) || 0}
+                        </p>
+                        <p className="text-sm text-gray-600">Bytes (Pasta Atual)</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </TabsContent>
+          </Tabs>
+        )}
+
+        <FtpUploadDialog
+          isOpen={showUploadDialog}
+          onClose={() => setShowUploadDialog(false)}
+          onUploadComplete={handleUploadComplete}
+          currentPath={currentPath}
+        />
+      </div>
     </Layout>
   );
 };

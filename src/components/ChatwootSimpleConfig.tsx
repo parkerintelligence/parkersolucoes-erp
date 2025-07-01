@@ -16,7 +16,7 @@ interface ChatwootConfig {
 }
 
 export const ChatwootSimpleConfig = () => {
-  const { data: integrations, addIntegration, updateIntegration } = useIntegrations();
+  const { data: integrations, createIntegration, updateIntegration } = useIntegrations();
   const [config, setConfig] = useState<ChatwootConfig>({
     name: 'Chatwoot WhatsApp',
     base_url: '',
@@ -88,23 +88,27 @@ export const ChatwootSimpleConfig = () => {
         name: config.name,
         base_url: config.base_url,
         api_token: config.api_token,
-        username: '',
-        password: '',
+        username: null,
+        password: null,
         port: null,
-        bucket_name: '',
-        directory: '',
-        account_id: '',
-        region: '',
+        bucket_name: null,
+        directory: null,
+        region: null,
         is_active: true,
+        passive_mode: null,
+        use_ssl: null,
+        keep_logged: null,
+        webhook_url: null,
+        phone_number: null,
       };
 
       if (chatwootIntegration) {
         await updateIntegration.mutateAsync({
           id: chatwootIntegration.id,
-          ...integrationData
+          updates: integrationData
         });
       } else {
-        await addIntegration.mutateAsync(integrationData);
+        await createIntegration.mutateAsync(integrationData);
       }
 
       toast({
@@ -218,10 +222,10 @@ export const ChatwootSimpleConfig = () => {
         {/* Save Button */}
         <Button
           onClick={saveConfiguration}
-          disabled={!config.base_url || !config.api_token || addIntegration.isPending || updateIntegration.isPending}
+          disabled={!config.base_url || !config.api_token || createIntegration.isPending || updateIntegration.isPending}
           className="w-full"
         >
-          {(addIntegration.isPending || updateIntegration.isPending) ? (
+          {(createIntegration.isPending || updateIntegration.isPending) ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
           ) : null}
           {chatwootIntegration ? 'Atualizar Configuração' : 'Salvar Configuração'}
