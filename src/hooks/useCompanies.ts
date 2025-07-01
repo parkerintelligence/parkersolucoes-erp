@@ -27,7 +27,7 @@ export const useCompanies = () => {
         throw new Error('User not authenticated');
       }
 
-      console.log('Fetching companies, isMaster:', isMaster);
+      console.log('Fetching companies, isMaster:', isMaster, 'userEmail:', user.email);
 
       const { data, error } = await supabase
         .from('companies')
@@ -56,11 +56,14 @@ export const useCreateCompany = () => {
         throw new Error('User not authenticated');
       }
 
-      if (!isMaster) {
+      // Allow master users or the specific email to create companies
+      const canCreate = isMaster || user.email === 'contato@parkersolucoes.com.br';
+      
+      if (!canCreate) {
         throw new Error('Only master users can create companies');
       }
 
-      console.log('Creating company:', company);
+      console.log('Creating company:', company, 'User is master:', isMaster);
 
       const { data, error } = await supabase
         .from('companies')
@@ -107,11 +110,14 @@ export const useUpdateCompany = () => {
         throw new Error('User not authenticated');
       }
 
-      if (!isMaster) {
+      // Allow master users or the specific email to update companies
+      const canUpdate = isMaster || user.email === 'contato@parkersolucoes.com.br';
+
+      if (!canUpdate) {
         throw new Error('Only master users can update companies');
       }
 
-      console.log('Updating company:', id, company);
+      console.log('Updating company:', id, company, 'User is master:', isMaster);
 
       const { data, error } = await supabase
         .from('companies')
@@ -156,11 +162,14 @@ export const useDeleteCompany = () => {
         throw new Error('User not authenticated');
       }
 
-      if (!isMaster) {
+      // Allow master users or the specific email to delete companies
+      const canDelete = isMaster || user.email === 'contato@parkersolucoes.com.br';
+
+      if (!canDelete) {
         throw new Error('Only master users can delete companies');
       }
 
-      console.log('Deleting company:', id);
+      console.log('Deleting company:', id, 'User is master:', isMaster);
 
       const { error } = await supabase
         .from('companies')

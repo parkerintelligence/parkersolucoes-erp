@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +12,7 @@ import { format } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 export const AdminCompaniesPanel = () => {
-  const { isMaster } = useAuth();
+  const { user, isMaster } = useAuth();
   const { data: companies = [], isLoading } = useCompanies();
   const createCompany = useCreateCompany();
   const updateCompany = useUpdateCompany();
@@ -30,13 +29,18 @@ export const AdminCompaniesPanel = () => {
     contact: ''
   });
 
-  if (!isMaster) {
+  // Check if user is master or the specific master email
+  const canManageCompanies = isMaster || user?.email === 'contato@parkersolucoes.com.br';
+
+  if (!canManageCompanies) {
     return (
       <Card className="border-red-200">
         <CardContent className="p-8 text-center">
           <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
           <h3 className="text-lg font-semibold text-red-900 mb-2">Acesso Restrito</h3>
           <p className="text-red-600">Apenas usuários master podem gerenciar empresas.</p>
+          <p className="text-sm text-gray-500 mt-2">Usuário atual: {user?.email}</p>
+          <p className="text-sm text-gray-500">É Master: {isMaster ? 'Sim' : 'Não'}</p>
         </CardContent>
       </Card>
     );
@@ -212,7 +216,7 @@ export const AdminCompaniesPanel = () => {
                 <TableHead>Email</TableHead>
                 <TableHead>Telefone</TableHead>
                 <TableHead>Data</TableHead>
-                <TableHead className="w-[100px]">Ações</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

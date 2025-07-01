@@ -70,20 +70,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (session?.user) {
           // Fetch user profile data
-          setTimeout(async () => {
-            const profile = await fetchUserProfile(session.user.id);
-            if (profile) {
-              // Ensure role is correctly typed
-              const typedProfile: UserProfile = {
-                id: profile.id,
-                email: profile.email,
-                role: profile.role === 'master' ? 'master' : 'user'
-              };
-              console.log('Setting user profile:', typedProfile);
-              setUserProfile(typedProfile);
-            }
-            setIsLoading(false);
-          }, 0);
+          const profile = await fetchUserProfile(session.user.id);
+          if (profile) {
+            // Ensure role is correctly typed and force master for the specific email
+            const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
+            const typedProfile: UserProfile = {
+              id: profile.id,
+              email: profile.email,
+              role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
+            };
+            console.log('Setting user profile:', typedProfile);
+            setUserProfile(typedProfile);
+          }
+          setIsLoading(false);
         } else {
           setUserProfile(null);
           setIsLoading(false);
@@ -92,26 +91,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       console.log('Existing session check:', session?.user?.email);
       
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchUserProfile(session.user.id).then((profile) => {
-          if (profile) {
-            // Ensure role is correctly typed
-            const typedProfile: UserProfile = {
-              id: profile.id,
-              email: profile.email,
-              role: profile.role === 'master' ? 'master' : 'user'
-            };
-            console.log('Setting existing user profile:', typedProfile);
-            setUserProfile(typedProfile);
-          }
-          setIsLoading(false);
-        });
+        const profile = await fetchUserProfile(session.user.id);
+        if (profile) {
+          // Ensure role is correctly typed and force master for the specific email
+          const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
+          const typedProfile: UserProfile = {
+            id: profile.id,
+            email: profile.email,
+            role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
+          };
+          console.log('Setting existing user profile:', typedProfile);
+          setUserProfile(typedProfile);
+        }
+        setIsLoading(false);
       } else {
         setIsLoading(false);
       }
@@ -157,13 +156,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     logout,
     isAuthenticated: !!user,
-    isMaster: userProfile?.role === 'master',
+    isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
     isLoading
   };
 
   console.log('AuthContext value:', { 
     isAuthenticated: !!user, 
-    isMaster: userProfile?.role === 'master',
+    isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
     userEmail: user?.email,
     userRole: userProfile?.role 
   });
