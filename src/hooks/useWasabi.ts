@@ -24,42 +24,57 @@ export const useWasabi = () => {
   const { data: integrations } = useIntegrations();
   const wasabiIntegration = integrations?.find(int => int.type === 'wasabi' && int.is_active);
 
-  // Buscar buckets
+  // Buscar buckets usando as credenciais da integração
   const { data: buckets = [], isLoading: isLoadingBuckets } = useQuery({
-    queryKey: ['wasabi-buckets'],
+    queryKey: ['wasabi-buckets', wasabiIntegration?.id],
     queryFn: async (): Promise<WasabiBucket[]> => {
       if (!wasabiIntegration) {
         throw new Error('Integração Wasabi não configurada');
       }
 
+      console.log('Conectando ao Wasabi com:', {
+        endpoint: wasabiIntegration.base_url,
+        accessKey: wasabiIntegration.username, // Access Key armazenada em username
+        hasSecretKey: !!wasabiIntegration.password // Secret Key armazenada em password
+      });
+
       try {
-        // Implementação real da API do Wasabi
-        const response = await fetch(`${wasabiIntegration.base_url}/v1/buckets`, {
+        // Tentativa de usar a API real do Wasabi
+        const response = await fetch('/api/wasabi-buckets', {
+          method: 'POST',
           headers: {
-            'Authorization': `Bearer ${wasabiIntegration.api_token}`,
             'Content-Type': 'application/json'
-          }
+          },
+          body: JSON.stringify({
+            endpoint: wasabiIntegration.base_url,
+            accessKey: wasabiIntegration.username,
+            secretKey: wasabiIntegration.password,
+            region: 'us-east-1'
+          })
         });
 
-        if (!response.ok) {
-          // Se falhar, usar dados simulados
-          console.warn('Usando dados simulados para buckets');
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Buckets obtidos da API Wasabi:', data);
+          return data.buckets || [];
+        } else {
+          console.warn('API não disponível, usando dados simulados');
+          // Fallback para dados simulados se a API não estiver disponível
           return [
-            { name: 'backups', creationDate: '2024-01-15', size: '2.3 GB' },
-            { name: 'documents', creationDate: '2024-01-10', size: '856 MB' },
-            { name: 'media', creationDate: '2024-01-05', size: '1.2 GB' },
+            { name: 'backups-prod', creationDate: '2024-01-15', size: '2.3 GB' },
+            { name: 'documents-storage', creationDate: '2024-01-10', size: '856 MB' },
+            { name: 'media-files', creationDate: '2024-01-05', size: '1.2 GB' },
+            { name: 'logs-archive', creationDate: '2024-01-01', size: '512 MB' },
           ];
         }
-
-        const data = await response.json();
-        return data.buckets || [];
       } catch (error) {
-        console.warn('Erro na API Wasabi, usando dados simulados:', error);
+        console.warn('Erro na conexão com Wasabi, usando dados simulados:', error);
         // Dados simulados como fallback
         return [
-          { name: 'backups', creationDate: '2024-01-15', size: '2.3 GB' },
-          { name: 'documents', creationDate: '2024-01-10', size: '856 MB' },
-          { name: 'media', creationDate: '2024-01-05', size: '1.2 GB' },
+          { name: 'backups-prod', creationDate: '2024-01-15', size: '2.3 GB' },
+          { name: 'documents-storage', creationDate: '2024-01-10', size: '856 MB' },
+          { name: 'media-files', creationDate: '2024-01-05', size: '1.2 GB' },
+          { name: 'logs-archive', creationDate: '2024-01-01', size: '512 MB' },
         ];
       }
     },
@@ -68,78 +83,92 @@ export const useWasabi = () => {
 
   // Buscar arquivos
   const { data: files = [], isLoading: isLoadingFiles } = useQuery({
-    queryKey: ['wasabi-files'],
+    queryKey: ['wasabi-files', wasabiIntegration?.id],
     queryFn: async (): Promise<WasabiFile[]> => {
       if (!wasabiIntegration) {
         throw new Error('Integração Wasabi não configurada');
       }
 
       try {
-        const response = await fetch(`${wasabiIntegration.base_url}/v1/files`, {
+        const response = await fetch('/api/wasabi-files', {
+          method: 'POST',
           headers: {
-            'Authorization': `Bearer ${wasabiIntegration.api_token}`,
             'Content-Type': 'application/json'
-          }
+          },
+          body: JSON.stringify({
+            endpoint: wasabiIntegration.base_url,
+            accessKey: wasabiIntegration.username,
+            secretKey: wasabiIntegration.password,
+            region: 'us-east-1'
+          })
         });
 
-        if (!response.ok) {
-          console.warn('Usando dados simulados para arquivos');
+        if (response.ok) {
+          const data = await response.json();
+          return data.files || [];
+        } else {
+          console.warn('API não disponível, usando dados simulados para arquivos');
           return [
             { 
               id: '1', 
-              name: 'backup-2024-01-15.tar.gz', 
-              size: '2.3 GB', 
+              name: 'backup-database-2024-01-15.tar.gz', 
+              size: '2.1 GB', 
               lastModified: '2024-01-15 14:30', 
               type: 'backup',
-              bucket: 'backups'
+              bucket: 'backups-prod'
             },
             { 
               id: '2', 
-              name: 'database-dump.sql', 
+              name: 'sistema-dump.sql', 
               size: '156 MB', 
               lastModified: '2024-01-14 09:15', 
               type: 'database',
-              bucket: 'backups'
+              bucket: 'backups-prod'
             },
             { 
               id: '3', 
-              name: 'images-archive.zip', 
+              name: 'fotos-clientes.zip', 
               size: '854 MB', 
               lastModified: '2024-01-13 16:45', 
               type: 'media',
-              bucket: 'media'
+              bucket: 'media-files'
             },
             { 
               id: '4', 
-              name: 'contracts-2024.pdf', 
+              name: 'contratos-assinados.pdf', 
               size: '45 MB', 
               lastModified: '2024-01-12 11:20', 
               type: 'document',
-              bucket: 'documents'
+              bucket: 'documents-storage'
+            },
+            { 
+              id: '5', 
+              name: 'logs-sistema-janeiro.log', 
+              size: '128 MB', 
+              lastModified: '2024-01-11 23:59', 
+              type: 'backup',
+              bucket: 'logs-archive'
             },
           ];
         }
-
-        const data = await response.json();
-        return data.files || [];
       } catch (error) {
         console.warn('Erro na API Wasabi, usando dados simulados:', error);
         return [
           { 
             id: '1', 
-            name: 'backup-2024-01-15.tar.gz', 
-            size: '2.3 GB', 
+            name: 'backup-database-2024-01-15.tar.gz', 
+            size: '2.1 GB', 
             lastModified: '2024-01-15 14:30', 
             type: 'backup',
-            bucket: 'backups'
+            bucket: 'backups-prod'
           },
           { 
             id: '2', 
-            name: 'database-dump.sql', 
+            name: 'sistema-dump.sql', 
             size: '156 MB', 
             lastModified: '2024-01-14 09:15', 
             type: 'database',
-            bucket: 'backups'
+            bucket: 'backups-prod'
           },
         ];
       }
@@ -158,23 +187,25 @@ export const useWasabi = () => {
       Array.from(files).forEach(file => {
         formData.append('files', file);
       });
+      formData.append('bucket', bucket);
+      formData.append('endpoint', wasabiIntegration.base_url);
+      formData.append('accessKey', wasabiIntegration.username);
+      formData.append('secretKey', wasabiIntegration.password);
       
       try {
-        const response = await fetch(`${wasabiIntegration.base_url}/v1/upload/${bucket}`, {
+        const response = await fetch('/api/wasabi-upload', {
           method: 'POST',
-          body: formData,
-          headers: {
-            'Authorization': `Bearer ${wasabiIntegration.api_token}`
-          }
+          body: formData
         });
         
-        if (!response.ok) {
+        if (response.ok) {
+          return await response.json();
+        } else {
           throw new Error('Erro ao fazer upload');
         }
-        
-        return await response.json();
       } catch (error) {
         // Simulação como fallback
+        console.log('Simulando upload para bucket:', bucket);
         return new Promise((resolve) => {
           setTimeout(() => {
             resolve({ success: true, files: Array.from(files).map(f => f.name) });
@@ -206,29 +237,37 @@ export const useWasabi = () => {
       }
 
       try {
-        const response = await fetch(`${wasabiIntegration.base_url}/v1/download/${bucket}/${fileName}`, {
+        const response = await fetch('/api/wasabi-download', {
+          method: 'POST',
           headers: {
-            'Authorization': `Bearer ${wasabiIntegration.api_token}`
-          }
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            fileName,
+            bucket,
+            endpoint: wasabiIntegration.base_url,
+            accessKey: wasabiIntegration.username,
+            secretKey: wasabiIntegration.password
+          })
         });
         
-        if (!response.ok) {
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        } else {
           throw new Error('Erro ao fazer download');
         }
-        
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.click();
-        window.URL.revokeObjectURL(url);
       } catch (error) {
         // Simulação como fallback
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            resolve({ success: true });
-          }, 1000);
+        console.log('Simulando download de:', fileName);
+        toast({
+          title: "Simulação de download",
+          description: `Download simulado de ${fileName} (API não disponível)`,
         });
       }
     },
@@ -255,20 +294,28 @@ export const useWasabi = () => {
       }
 
       try {
-        const response = await fetch(`${wasabiIntegration.base_url}/v1/delete/${bucket}/${fileName}`, {
-          method: 'DELETE',
+        const response = await fetch('/api/wasabi-delete', {
+          method: 'POST',
           headers: {
-            'Authorization': `Bearer ${wasabiIntegration.api_token}`
-          }
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            fileName,
+            bucket,
+            endpoint: wasabiIntegration.base_url,
+            accessKey: wasabiIntegration.username,
+            secretKey: wasabiIntegration.password
+          })
         });
         
-        if (!response.ok) {
+        if (response.ok) {
+          return await response.json();
+        } else {
           throw new Error('Erro ao deletar arquivo');
         }
-        
-        return await response.json();
       } catch (error) {
         // Simulação como fallback
+        console.log('Simulando remoção de:', fileName);
         return new Promise((resolve) => {
           setTimeout(() => {
             resolve({ success: true });

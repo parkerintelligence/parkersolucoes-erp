@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Plus, Edit, Trash2, Key, MessageCircle, HardDrive, Activity, DollarSign, Monitor } from 'lucide-react';
+import { Settings, Plus, Edit, Trash2, Key, MessageCircle, HardDrive, Activity, DollarSign, Monitor, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
@@ -20,6 +19,8 @@ export function AdminApiPanel() {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingIntegration, setEditingIntegration] = useState<string | null>(null);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionTestResult, setConnectionTestResult] = useState<'success' | 'error' | null>(null);
   const [formData, setFormData] = useState({
     type: 'chatwoot' as 'chatwoot' | 'evolution_api' | 'wasabi' | 'grafana' | 'bomcontrole' | 'zabbix',
     name: '',
@@ -29,8 +30,63 @@ export function AdminApiPanel() {
     phone_number: '',
     username: '',
     password: '',
+    access_key: '',
+    secret_key: '',
+    region: '',
     is_active: true
   });
+
+  const testWasabiConnection = async () => {
+    if (formData.type !== 'wasabi' || !formData.base_url || !formData.access_key || !formData.secret_key) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "URL, Access Key e Secret Key são obrigatórios para testar a conexão Wasabi.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsTestingConnection(true);
+    setConnectionTestResult(null);
+
+    try {
+      // Teste básico de conexão com Wasabi
+      const testUrl = `${formData.base_url.replace(/\/$/, '')}/`;
+      
+      const response = await fetch('/api/test-wasabi-connection', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          endpoint: testUrl,
+          accessKey: formData.access_key,
+          secretKey: formData.secret_key,
+          region: formData.region || 'us-east-1'
+        })
+      });
+
+      if (response.ok) {
+        setConnectionTestResult('success');
+        toast({
+          title: "Conexão bem-sucedida!",
+          description: "A conexão com o Wasabi foi estabelecida com sucesso.",
+        });
+      } else {
+        throw new Error('Falha na conexão');
+      }
+    } catch (error) {
+      console.error('Erro ao testar conexão Wasabi:', error);
+      setConnectionTestResult('error');
+      toast({
+        title: "Erro na conexão",
+        description: "Não foi possível conectar ao Wasabi. Verifique as credenciais e URL.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
 
   const handleSave = () => {
     if (!formData.name.trim() || !formData.base_url.trim()) {
@@ -43,6 +99,26 @@ export function AdminApiPanel() {
     }
     
     // Validações específicas por tipo
+    if (formData.type === 'wasabi') {
+      if (!formData.access_key.trim() || !formData.secret_key.trim()) {
+        toast({
+          title: "Campos obrigatórios",
+          description: "Access Key e Secret Key são obrigatórios para Wasabi.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (connectionTestResult !== 'success') {
+        toast({
+          title: "Teste de conexão necessário",
+          description: "Execute o teste de conexão antes de salvar a integração Wasabi.",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     if ((formData.type === 'grafana' || formData.type === 'bomcontrole' || formData.type === 'zabbix') && 
         (!formData.username.trim() || !formData.password.trim())) {
       toast({
@@ -53,7 +129,7 @@ export function AdminApiPanel() {
       return;
     }
 
-    if ((formData.type !== 'grafana' && formData.type !== 'bomcontrole' && formData.type !== 'zabbix') && 
+    if ((formData.type !== 'grafana' && formData.type !== 'bomcontrole' && formData.type !== 'zabbix' && formData.type !== 'wasabi') && 
         !formData.api_token.trim()) {
       toast({
         title: "Campo obrigatório",
@@ -70,8 +146,8 @@ export function AdminApiPanel() {
       api_token: formData.api_token.trim() || null,
       webhook_url: formData.webhook_url.trim() || null,
       phone_number: formData.phone_number.trim() || null,
-      username: formData.username.trim() || null,
-      password: formData.password.trim() || null,
+      username: formData.username.trim() || formData.access_key.trim() || null,
+      password: formData.password.trim() || formData.secret_key.trim() || null,
       is_active: formData.is_active
     };
 
@@ -94,10 +170,14 @@ export function AdminApiPanel() {
       phone_number: '',
       username: '',
       password: '',
+      access_key: '',
+      secret_key: '',
+      region: '',
       is_active: true
     });
     setIsDialogOpen(false);
     setEditingIntegration(null);
+    setConnectionTestResult(null);
   };
 
   const handleEdit = (integration: any) => {
@@ -110,10 +190,14 @@ export function AdminApiPanel() {
       phone_number: integration.phone_number || '',
       username: integration.username || '',
       password: integration.password || '',
+      access_key: integration.type === 'wasabi' ? integration.username || '' : '',
+      secret_key: integration.type === 'wasabi' ? integration.password || '' : '',
+      region: integration.region || 'us-east-1',
       is_active: integration.is_active ?? true
     });
     setEditingIntegration(integration.id);
     setIsDialogOpen(true);
+    setConnectionTestResult(null);
   };
 
   const getTypeIcon = (type: string) => {
@@ -158,7 +242,7 @@ export function AdminApiPanel() {
   };
 
   const requiresApiToken = (type: string) => {
-    return type !== 'grafana' && type !== 'bomcontrole' && type !== 'zabbix';
+    return type !== 'grafana' && type !== 'bomcontrole' && type !== 'zabbix' && type !== 'wasabi';
   };
 
   if (isLoading) {
@@ -185,7 +269,7 @@ export function AdminApiPanel() {
                 Nova Integração
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
                 <DialogTitle>
                   {editingIntegration ? 'Editar Integração' : 'Configurar Nova Integração'}
@@ -194,10 +278,13 @@ export function AdminApiPanel() {
                   Configure uma nova integração com APIs externas ou sistemas de monitoramento
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 max-h-[500px] overflow-y-auto">
                 <div className="grid gap-2">
                   <Label htmlFor="type">Tipo de Integração</Label>
-                  <Select value={formData.type} onValueChange={(value: any) => setFormData({...formData, type: value})}>
+                  <Select value={formData.type} onValueChange={(value: any) => {
+                    setFormData({...formData, type: value});
+                    setConnectionTestResult(null);
+                  }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
@@ -223,14 +310,72 @@ export function AdminApiPanel() {
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="base_url">URL Base da API/Sistema</Label>
+                  <Label htmlFor="base_url">
+                    {formData.type === 'wasabi' ? 'Endpoint URL do Wasabi' : 'URL Base da API/Sistema'}
+                  </Label>
                   <Input 
                     id="base_url" 
                     value={formData.base_url}
                     onChange={(e) => setFormData({...formData, base_url: e.target.value})}
-                    placeholder="https://api.example.com ou https://grafana.empresa.com" 
+                    placeholder={formData.type === 'wasabi' ? 'https://s3.wasabisys.com' : 'https://api.example.com'} 
                   />
                 </div>
+
+                {formData.type === 'wasabi' && (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="access_key">Access Key</Label>
+                        <Input 
+                          id="access_key" 
+                          value={formData.access_key}
+                          onChange={(e) => setFormData({...formData, access_key: e.target.value})}
+                          placeholder="Sua Access Key do Wasabi"
+                          type="password"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="secret_key">Secret Key</Label>
+                        <Input 
+                          id="secret_key" 
+                          type="password"
+                          value={formData.secret_key}
+                          onChange={(e) => setFormData({...formData, secret_key: e.target.value})}
+                          placeholder="Sua Secret Key do Wasabi" 
+                        />
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="region">Região (opcional)</Label>
+                      <Input 
+                        id="region" 
+                        value={formData.region}
+                        onChange={(e) => setFormData({...formData, region: e.target.value})}
+                        placeholder="us-east-1 (padrão)" 
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        type="button"
+                        variant="outline" 
+                        onClick={testWasabiConnection}
+                        disabled={isTestingConnection || !formData.base_url || !formData.access_key || !formData.secret_key}
+                        className="flex items-center gap-2"
+                      >
+                        {isTestingConnection && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {connectionTestResult === 'success' && <CheckCircle className="h-4 w-4 text-green-600" />}
+                        {connectionTestResult === 'error' && <XCircle className="h-4 w-4 text-red-600" />}
+                        Testar Conexão
+                      </Button>
+                      {connectionTestResult === 'success' && (
+                        <span className="text-sm text-green-600">Conexão OK!</span>
+                      )}
+                      {connectionTestResult === 'error' && (
+                        <span className="text-sm text-red-600">Falha na conexão</span>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 {requiresAuth(formData.type) && (
                   <>
@@ -348,7 +493,8 @@ export function AdminApiPanel() {
                     <TableCell className="text-sm text-gray-600">
                       {integration.phone_number && `Tel: ${integration.phone_number}`}
                       {integration.webhook_url && 'Webhook configurado'}
-                      {integration.username && `User: ${integration.username}`}
+                      {integration.username && integration.type !== 'wasabi' && `User: ${integration.username}`}
+                      {integration.type === 'wasabi' && 'S3 Compatible'}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
