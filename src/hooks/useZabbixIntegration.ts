@@ -112,7 +112,10 @@ export const useZabbixIntegration = () => {
       try {
         const result = await makeZabbixProxyRequest(
           'user.get',
-          { output: ['userid', 'username'], limit: 1 },
+          { 
+            output: ['userid', 'username'],
+            limit: 1 
+          },
           zabbixIntegration.id
         );
         
@@ -127,7 +130,7 @@ export const useZabbixIntegration = () => {
       console.log('Conexão testada com sucesso:', data);
       toast({
         title: "Conexão bem-sucedida!",
-        description: `Conectado ao Zabbix com sucesso. Usuários encontrados: ${data?.length || 0}`,
+        description: `Conectado ao Zabbix com sucesso. Usuários encontrados: ${Array.isArray(data) ? data.length : 0}`,
       });
     },
     onError: (error: Error) => {
@@ -148,7 +151,9 @@ export const useZabbixIntegration = () => {
         {
           output: ['hostid', 'host', 'name', 'status', 'available', 'error'],
           selectInterfaces: ['ip', 'port'],
-          monitored_hosts: true,
+          filter: {
+            status: 0
+          }
         },
         zabbixIntegration.id
       ) as ZabbixHost[];
@@ -172,10 +177,9 @@ export const useZabbixIntegration = () => {
         {
           output: ['eventid', 'objectid', 'name', 'severity', 'clock', 'r_clock', 'acknowledged'],
           selectHosts: ['hostid', 'name'],
-          recent: true,
-          sortfield: 'clock',
+          sortfield: ['clock'],
           sortorder: 'DESC',
-          limit: 50,
+          limit: 50
         },
         zabbixIntegration.id
       ) as ZabbixProblem[];
@@ -198,9 +202,11 @@ export const useZabbixIntegration = () => {
         'item.get',
         {
           output: ['itemid', 'name', 'key_', 'hostid', 'status', 'type', 'value_type', 'lastvalue', 'lastclock', 'units'],
-          monitored: true,
-          with_triggers: true,
-          limit: 100,
+          filter: {
+            status: 0
+          },
+          webitems: true,
+          limit: 100
         },
         zabbixIntegration.id
       ) as ZabbixItem[];
@@ -224,9 +230,10 @@ export const useZabbixIntegration = () => {
         {
           output: ['triggerid', 'description', 'status', 'value', 'priority', 'lastchange'],
           selectHosts: ['hostid', 'name'],
-          monitored: true,
-          active: true,
-          limit: 100,
+          filter: {
+            status: 0
+          },
+          limit: 100
         },
         zabbixIntegration.id
       ) as ZabbixTrigger[];
