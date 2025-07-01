@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, AlertTriangle, Server, Wifi, Database, RefreshCw, Settings, CircleX, Clock, TrendingUp, Zap } from 'lucide-react';
+import { Activity, AlertTriangle, Server, Wifi, Database, RefreshCw, Settings, CircleX, Clock, TrendingUp, Zap, CheckCircle } from 'lucide-react';
 import { useZabbix } from '@/hooks/useZabbix';
 import { ZabbixSettings } from '@/components/ZabbixSettings';
 import { useState } from 'react';
