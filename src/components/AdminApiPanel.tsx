@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Settings, Plus, Edit, Trash2, Key, MessageCircle, HardDrive, Activity, DollarSign, Monitor } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
+import { toast } from '@/hooks/use-toast';
 
 export function AdminApiPanel() {
   const { data: integrations = [], isLoading } = useIntegrations();
