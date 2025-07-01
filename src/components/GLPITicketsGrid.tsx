@@ -394,7 +394,7 @@ export const GLPITicketsGrid = () => {
 
           {/* Tabelas */}
           <div className="space-y-6">
-            {Object.entries(paginatedTickets).map(([groupName, ticketList]) => 
+            {(Object.entries(paginatedTickets) as [string, GLPITicket[]][]).map(([groupName, ticketList]) => 
               renderTicketTable(ticketList, groupName)
             )}
           </div>
