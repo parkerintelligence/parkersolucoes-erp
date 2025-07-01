@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,7 +33,17 @@ export const ZabbixAdminConfig = () => {
       return;
     }
 
-    console.log('Testing connection with:', { 
+    // Primeiro salvar temporariamente para testar
+    if (!zabbixIntegration) {
+      toast({
+        title: "Salve primeiro",
+        description: "Salve a configuração antes de testar a conexão.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    console.log('Testando conexão com:', { 
       base_url: formData.base_url, 
       api_token: formData.api_token.substring(0, 10) + '...' 
     });
@@ -105,7 +114,9 @@ export const ZabbixAdminConfig = () => {
           Configuração do Zabbix
         </CardTitle>
         <CardDescription>
-          Configure a conexão com seu servidor Zabbix usando API Token
+          Configure a conexão com seu servidor Zabbix usando API Token.
+          <br />
+          <strong>Nova implementação:</strong> Agora usa proxy para resolver problemas de CORS.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -165,7 +176,7 @@ export const ZabbixAdminConfig = () => {
         <div className="flex gap-3">
           <Button
             onClick={handleTestConnection}
-            disabled={testConnection.isPending}
+            disabled={testConnection.isPending || !zabbixIntegration}
             variant="outline"
             className="flex-1"
           >
@@ -203,6 +214,19 @@ export const ZabbixAdminConfig = () => {
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
+            <strong>Resolução de CORS:</strong>
+            <ul className="mt-2 space-y-1 text-sm">
+              <li>• A nova implementação usa proxy via Supabase</li>
+              <li>• Resolve problemas de CORS e protocolo misto</li>
+              <li>• Permite conectar com servidores HTTP</li>
+              <li>• Credenciais ficam seguras no servidor</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
             <strong>Como obter um API Token:</strong>
             <ul className="mt-2 space-y-1 text-sm">
               <li>• Acesse o Zabbix como administrador</li>
@@ -221,6 +245,8 @@ export const ZabbixAdminConfig = () => {
               <strong>Status:</strong> Configuração encontrada e {zabbixIntegration.is_active ? 'ativa' : 'inativa'}.
               <br />
               <strong>URL:</strong> {zabbixIntegration.base_url}
+              <br />
+              <strong>Proxy:</strong> Ativo via Supabase Edge Function
             </AlertDescription>
           </Alert>
         )}
