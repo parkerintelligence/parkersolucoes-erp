@@ -1,8 +1,9 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIntegrations } from './useIntegrations';
 import { useZabbixProxy } from './useZabbixProxy';
 import { toast } from '@/hooks/use-toast';
+import { useState } from 'react';
+import { ZabbixErrorDialog } from '@/components/ZabbixErrorDialog';
 
 interface ZabbixConnection {
   base_url: string;
@@ -66,12 +67,36 @@ export const useZabbixIntegration = () => {
   const { data: integrations } = useIntegrations();
   const { makeZabbixProxyRequest } = useZabbixProxy();
   const queryClient = useQueryClient();
+  const [errorDialog, setErrorDialog] = useState<{isOpen: boolean; error: string; details?: string}>({
+    isOpen: false,
+    error: '',
+    details: ''
+  });
   
   const zabbixIntegration = integrations?.find(integration => 
     integration.type === 'zabbix' && integration.is_active
   );
 
   console.log('Zabbix integration found:', zabbixIntegration);
+
+  const handleError = (error: any, context: string) => {
+    console.error(`${context}:`, error);
+    
+    const errorMessage = error.message || 'Erro desconhecido';
+    const errorDetails = error.stack || JSON.stringify(error, null, 2);
+    
+    setErrorDialog({
+      isOpen: true,
+      error: `${context}: ${errorMessage}`,
+      details: errorDetails
+    });
+    
+    toast({
+      title: "Erro de Conexão Zabbix",
+      description: errorMessage,
+      variant: "destructive"
+    });
+  };
 
   const testConnection = useMutation({
     mutationFn: async ({ base_url, api_token }: ZabbixConnection) => {
@@ -105,12 +130,7 @@ export const useZabbixIntegration = () => {
       });
     },
     onError: (error: Error) => {
-      console.error('Falha no teste de conexão:', error);
-      toast({
-        title: "Erro de Conexão",
-        description: error.message,
-        variant: "destructive"
-      });
+      handleError(error, 'Teste de Conexão');
     },
   });
 
@@ -136,6 +156,9 @@ export const useZabbixIntegration = () => {
     refetchInterval: 30000,
     retry: 2,
     staleTime: 10000,
+    onError: (error: Error) => {
+      handleError(error, 'Busca de Hosts');
+    }
   });
 
   const problemsQuery = useQuery({
@@ -163,6 +186,9 @@ export const useZabbixIntegration = () => {
     refetchInterval: 15000,
     retry: 2,
     staleTime: 5000,
+    onError: (error: Error) => {
+      handleError(error, 'Busca de Problemas');
+    }
   });
 
   const itemsQuery = useQuery({
@@ -188,6 +214,9 @@ export const useZabbixIntegration = () => {
     refetchInterval: 60000,
     retry: 2,
     staleTime: 30000,
+    onError: (error: Error) => {
+      handleError(error, 'Busca de Itens');
+    }
   });
 
   const triggersQuery = useQuery({
@@ -214,6 +243,9 @@ export const useZabbixIntegration = () => {
     refetchInterval: 30000,
     retry: 2,
     staleTime: 15000,
+    onError: (error: Error) => {
+      handleError(error, 'Busca de Triggers');
+    }
   });
 
   const refetchAll = () => {
@@ -234,5 +266,7 @@ export const useZabbixIntegration = () => {
     error: hostsQuery.error || problemsQuery.error || itemsQuery.error || triggersQuery.error,
     testConnection,
     refetchAll,
+    errorDialog,
+    closeErrorDialog: () => setErrorDialog(prev => ({ ...prev, isOpen: false })),
   };
 };

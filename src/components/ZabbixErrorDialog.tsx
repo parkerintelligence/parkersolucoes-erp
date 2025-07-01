@@ -14,7 +14,7 @@ interface ZabbixErrorDialogProps {
   isOpen: boolean;
   onClose: () => void;
   error: string;
-  details: string;
+  details?: string;
 }
 
 export const ZabbixErrorDialog = ({ isOpen, onClose, error, details }: ZabbixErrorDialogProps) => {
@@ -35,20 +35,23 @@ export const ZabbixErrorDialog = ({ isOpen, onClose, error, details }: ZabbixErr
                 <p className="mt-1 text-red-700 font-medium">{error}</p>
               </div>
               
-              <div>
-                <strong className="text-gray-700">Detalhes:</strong>
-                <pre className="mt-1 text-sm text-gray-600 whitespace-pre-wrap bg-gray-50 p-3 rounded border max-h-64 overflow-y-auto">
+              {details && (
+                <div>
+                  <strong className="text-gray-700">Detalhes:</strong>
+                  <pre className="mt-1 text-sm text-gray-600 whitespace-pre-wrap bg-gray-50 p-3 rounded border max-h-64 overflow-y-auto">
 {details}
-                </pre>
-              </div>
+                  </pre>
+                </div>
+              )}
 
               <div className="bg-blue-50 p-3 rounded border border-blue-200">
                 <strong className="text-blue-700">Dicas para resolver:</strong>
                 <ul className="mt-2 text-sm text-blue-600 space-y-1">
-                  <li>• Verifique se a URL base termina com /zabbix (sem /api_jsonrpc.php)</li>
-                  <li>• Confirme se o usuário tem permissões de API no Zabbix</li>
+                  <li>• Verifique se a URL base está correta (ex: http://servidor.com/zabbix)</li>
+                  <li>• Confirme se o API Token tem as permissões necessárias</li>
                   <li>• Teste se consegue acessar a URL no navegador</li>
                   <li>• Verifique se não há firewall bloqueando a conexão</li>
+                  <li>• O proxy resolve problemas de CORS automaticamente</li>
                 </ul>
               </div>
             </div>
