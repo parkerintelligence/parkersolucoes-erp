@@ -38,6 +38,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('Fetching user profile for:', userId);
+      
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -49,6 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
+      console.log('User profile fetched:', data);
       return data;
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -60,6 +63,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -74,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 email: profile.email,
                 role: profile.role === 'master' ? 'master' : 'user'
               };
+              console.log('Setting user profile:', typedProfile);
               setUserProfile(typedProfile);
             }
             setIsLoading(false);
@@ -87,6 +93,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Existing session check:', session?.user?.email);
+      
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -99,6 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               email: profile.email,
               role: profile.role === 'master' ? 'master' : 'user'
             };
+            console.log('Setting existing user profile:', typedProfile);
             setUserProfile(typedProfile);
           }
           setIsLoading(false);
@@ -151,6 +160,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isMaster: userProfile?.role === 'master',
     isLoading
   };
+
+  console.log('AuthContext value:', { 
+    isAuthenticated: !!user, 
+    isMaster: userProfile?.role === 'master',
+    userEmail: user?.email,
+    userRole: userProfile?.role 
+  });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -27,6 +27,8 @@ export const useCompanies = () => {
         throw new Error('User not authenticated');
       }
 
+      console.log('Fetching companies, isMaster:', isMaster);
+
       const { data, error } = await supabase
         .from('companies')
         .select('*')
@@ -37,6 +39,7 @@ export const useCompanies = () => {
         throw error;
       }
 
+      console.log('Companies fetched:', data);
       return data || [];
     },
     enabled: !!user,
@@ -57,6 +60,8 @@ export const useCreateCompany = () => {
         throw new Error('Only master users can create companies');
       }
 
+      console.log('Creating company:', company);
+
       const { data, error } = await supabase
         .from('companies')
         .insert([{
@@ -71,6 +76,7 @@ export const useCreateCompany = () => {
         throw error;
       }
 
+      console.log('Company created:', data);
       return data;
     },
     onSuccess: () => {
@@ -105,6 +111,8 @@ export const useUpdateCompany = () => {
         throw new Error('Only master users can update companies');
       }
 
+      console.log('Updating company:', id, company);
+
       const { data, error } = await supabase
         .from('companies')
         .update(company)
@@ -117,6 +125,7 @@ export const useUpdateCompany = () => {
         throw error;
       }
 
+      console.log('Company updated:', data);
       return data;
     },
     onSuccess: () => {
@@ -151,6 +160,8 @@ export const useDeleteCompany = () => {
         throw new Error('Only master users can delete companies');
       }
 
+      console.log('Deleting company:', id);
+
       const { error } = await supabase
         .from('companies')
         .delete()
@@ -160,6 +171,8 @@ export const useDeleteCompany = () => {
         console.error('Error deleting company:', error);
         throw error;
       }
+
+      console.log('Company deleted:', id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
