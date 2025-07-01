@@ -1,174 +1,56 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { HardDrive, Download, Upload, Trash2, RefreshCw, Search, FolderOpen, File } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-import { useIntegrations } from '@/hooks/useIntegrations';
+import { useWasabi } from '@/hooks/useWasabi';
 
 const Wasabi = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
-  const [buckets, setBuckets] = useState<any[]>([]);
   const [selectedBucket, setSelectedBucket] = useState<string>('');
-  const [bucketContents, setBucketContents] = useState<any[]>([]);
   
-  const { data: integrations } = useIntegrations();
-  const wasabiIntegration = integrations?.find(int => int.type === 'wasabi');
+  const { 
+    buckets, 
+    files, 
+    isLoadingBuckets, 
+    isLoadingFiles, 
+    wasabiIntegration,
+    uploadFiles,
+    downloadFile,
+    deleteFile
+  } = useWasabi();
 
-  // Dados simulados dos buckets (substituir pela API real do Wasabi)
-  const mockBuckets = [
-    { name: 'backups', creationDate: '2024-01-15', size: '2.3 GB' },
-    { name: 'documents', creationDate: '2024-01-10', size: '856 MB' },
-    { name: 'media', creationDate: '2024-01-05', size: '1.2 GB' },
-  ];
-
-  // Dados simulados dos arquivos (substituir pela API real do Wasabi)
-  const mockFiles = [
-    { 
-      id: '1', 
-      name: 'backup-2024-01-15.tar.gz', 
-      size: '2.3 GB', 
-      lastModified: '2024-01-15 14:30', 
-      type: 'backup',
-      bucket: 'backups'
-    },
-    { 
-      id: '2', 
-      name: 'database-dump.sql', 
-      size: '156 MB', 
-      lastModified: '2024-01-14 09:15', 
-      type: 'database',
-      bucket: 'backups'
-    },
-    { 
-      id: '3', 
-      name: 'images-archive.zip', 
-      size: '854 MB', 
-      lastModified: '2024-01-13 16:45', 
-      type: 'media',
-      bucket: 'media'
-    },
-    { 
-      id: '4', 
-      name: 'contracts-2024.pdf', 
-      size: '45 MB', 
-      lastModified: '2024-01-12 11:20', 
-      type: 'document',
-      bucket: 'documents'
-    },
-  ];
-
-  const filteredFiles = bucketContents.filter(file => 
+  const filteredFiles = files.filter(file => 
     file.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  useEffect(() => {
-    // Inicializar com dados simulados
-    setBuckets(mockBuckets);
-    setBucketContents(mockFiles);
-  }, []);
-
-  const handleRefresh = async () => {
-    setIsLoading(true);
-    try {
-      // Aqui seria a chamada real para a API do Wasabi
-      // const response = await fetch(`${wasabiIntegration?.base_url}/buckets`);
-      // const data = await response.json();
-      // setBuckets(data);
-      
-      // Simulação
-      setTimeout(() => {
-        setBuckets(mockBuckets);
-        setBucketContents(mockFiles);
-        setIsLoading(false);
-        toast({
-          title: "Atualizado!",
-          description: "Lista de buckets e arquivos atualizada com sucesso.",
-        });
-      }, 1000);
-    } catch (error) {
-      setIsLoading(false);
-      toast({
-        title: "Erro",
-        description: "Erro ao atualizar dados do Wasabi.",
-        variant: "destructive"
-      });
-    }
+  const handleRefresh = () => {
+    window.location.reload();
   };
 
   const handleFileUpload = async () => {
     if (!selectedFiles || selectedFiles.length === 0) {
-      toast({
-        title: "Nenhum arquivo selecionado",
-        description: "Selecione um ou mais arquivos para upload.",
-        variant: "destructive"
-      });
       return;
     }
 
     if (!selectedBucket) {
-      toast({
-        title: "Bucket não selecionado",
-        description: "Selecione um bucket de destino.",
-        variant: "destructive"
-      });
       return;
     }
 
-    setIsLoading(true);
-    try {
-      // Aqui seria a implementação real do upload para Wasabi
-      // const formData = new FormData();
-      // Array.from(selectedFiles).forEach(file => {
-      //   formData.append('files', file);
-      // });
-      
-      // const response = await fetch(`${wasabiIntegration?.base_url}/upload/${selectedBucket}`, {
-      //   method: 'POST',
-      //   body: formData,
-      //   headers: {
-      //     'Authorization': `Bearer ${wasabiIntegration?.api_token}`
-      //   }
-      // });
-
-      // Simulação
-      setTimeout(() => {
-        setIsLoading(false);
-        setSelectedFiles(null);
-        toast({
-          title: "Upload concluído!",
-          description: `${selectedFiles.length} arquivo(s) enviado(s) para o bucket ${selectedBucket}.`,
-        });
-      }, 2000);
-    } catch (error) {
-      setIsLoading(false);
-      toast({
-        title: "Erro no upload",
-        description: "Erro ao enviar arquivos para o Wasabi.",
-        variant: "destructive"
-      });
-    }
+    uploadFiles.mutate({ files: selectedFiles, bucket: selectedBucket });
+    setSelectedFiles(null);
   };
 
-  const handleDownload = (fileName: string) => {
-    // Aqui seria a implementação real do download
-    toast({
-      title: "Download iniciado",
-      description: `Fazendo download de ${fileName}`,
-    });
+  const handleDownload = (fileName: string, bucket: string) => {
+    downloadFile.mutate({ fileName, bucket });
   };
 
-  const handleDelete = (fileName: string) => {
-    // Aqui seria a implementação real da exclusão
-    toast({
-      title: "Arquivo removido",
-      description: `${fileName} foi removido com sucesso.`,
-    });
+  const handleDelete = (fileName: string, bucket: string) => {
+    deleteFile.mutate({ fileName, bucket });
   };
 
   const getTypeBadge = (type: string) => {
@@ -190,9 +72,9 @@ const Wasabi = () => {
 
   if (!wasabiIntegration) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="p-4 space-y-6">
         <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="p-8 text-center">
+          <CardContent className="p-6 text-center">
             <HardDrive className="h-16 w-16 text-orange-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-orange-900 mb-2">Integração Wasabi não configurada</h2>
             <p className="text-orange-700 mb-6">
@@ -208,33 +90,31 @@ const Wasabi = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
+    <div className="p-4 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-3">
-            <HardDrive className="h-8 w-8" />
+          <h1 className="text-2xl lg:text-3xl font-bold text-blue-900 flex items-center gap-3">
+            <HardDrive className="h-6 w-6 lg:h-8 lg:w-8" />
             Wasabi Storage
           </h1>
           <p className="text-blue-600 mt-1">Gerencie arquivos no armazenamento Wasabi</p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
-        </div>
+        <Button variant="outline" onClick={handleRefresh} disabled={isLoadingBuckets || isLoadingFiles}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${(isLoadingBuckets || isLoadingFiles) ? 'animate-spin' : ''}`} />
+          Atualizar
+        </Button>
       </div>
 
       {/* Estatísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-blue-200">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <FolderOpen className="h-8 w-8 text-blue-500" />
+              <FolderOpen className="h-6 w-6 lg:h-8 lg:w-8 text-blue-500" />
               <div>
-                <p className="text-2xl font-bold text-blue-900">{buckets.length}</p>
-                <p className="text-sm text-blue-600">Total de Buckets</p>
+                <p className="text-xl lg:text-2xl font-bold text-blue-900">{buckets.length}</p>
+                <p className="text-xs lg:text-sm text-blue-600">Buckets</p>
               </div>
             </div>
           </CardContent>
@@ -243,10 +123,10 @@ const Wasabi = () => {
         <Card className="border-blue-200">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <File className="h-8 w-8 text-green-500" />
+              <File className="h-6 w-6 lg:h-8 lg:w-8 text-green-500" />
               <div>
-                <p className="text-2xl font-bold text-blue-900">{bucketContents.length}</p>
-                <p className="text-sm text-blue-600">Total de Arquivos</p>
+                <p className="text-xl lg:text-2xl font-bold text-blue-900">{files.length}</p>
+                <p className="text-xs lg:text-sm text-blue-600">Arquivos</p>
               </div>
             </div>
           </CardContent>
@@ -255,10 +135,10 @@ const Wasabi = () => {
         <Card className="border-blue-200">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <Download className="h-8 w-8 text-purple-500" />
+              <Download className="h-6 w-6 lg:h-8 lg:w-8 text-purple-500" />
               <div>
-                <p className="text-2xl font-bold text-blue-900">{getTotalUsedSpace()} GB</p>
-                <p className="text-sm text-blue-600">Espaço Usado</p>
+                <p className="text-xl lg:text-2xl font-bold text-blue-900">{getTotalUsedSpace()} GB</p>
+                <p className="text-xs lg:text-sm text-blue-600">Usado</p>
               </div>
             </div>
           </CardContent>
@@ -267,10 +147,10 @@ const Wasabi = () => {
         <Card className="border-blue-200">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <HardDrive className="h-8 w-8 text-orange-500" />
+              <HardDrive className="h-6 w-6 lg:h-8 lg:w-8 text-orange-500" />
               <div>
-                <p className="text-2xl font-bold text-blue-900">{(100 - parseFloat(getTotalUsedSpace())).toFixed(1)} GB</p>
-                <p className="text-sm text-blue-600">Espaço Disponível</p>
+                <p className="text-xl lg:text-2xl font-bold text-blue-900">{(100 - parseFloat(getTotalUsedSpace())).toFixed(1)} GB</p>
+                <p className="text-xs lg:text-sm text-blue-600">Disponível</p>
               </div>
             </div>
           </CardContent>
@@ -287,7 +167,7 @@ const Wasabi = () => {
           <CardDescription>Envie arquivos para seus buckets no Wasabi</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Selecionar Bucket de Destino
@@ -319,11 +199,11 @@ const Wasabi = () => {
           </div>
           <Button 
             onClick={handleFileUpload} 
-            disabled={isLoading || !selectedFiles || !selectedBucket}
+            disabled={uploadFiles.isPending || !selectedFiles || !selectedBucket}
             className="bg-blue-600 hover:bg-blue-700"
           >
             <Upload className="h-4 w-4 mr-2" />
-            {isLoading ? 'Enviando...' : 'Fazer Upload'}
+            {uploadFiles.isPending ? 'Enviando...' : 'Fazer Upload'}
           </Button>
         </CardContent>
       </Card>
@@ -338,14 +218,14 @@ const Wasabi = () => {
           <CardDescription>Lista de buckets no seu armazenamento Wasabi</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {buckets.map((bucket) => (
               <Card key={bucket.name} className="border-gray-200 hover:border-blue-300 transition-colors">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3 mb-3">
                     <FolderOpen className="h-6 w-6 text-blue-500" />
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{bucket.name}</h3>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-gray-900 truncate">{bucket.name}</h3>
                       <p className="text-sm text-gray-500">Criado em {bucket.creationDate}</p>
                     </div>
                   </div>
@@ -370,7 +250,7 @@ const Wasabi = () => {
       {/* Files List */}
       <Card className="border-blue-200">
         <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div>
               <CardTitle className="text-blue-900 flex items-center gap-2">
                 <File className="h-5 w-5" />
@@ -378,8 +258,8 @@ const Wasabi = () => {
               </CardTitle>
               <CardDescription>Gerencie seus arquivos no Wasabi</CardDescription>
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="relative flex-1 sm:w-64">
+            <div className="w-full lg:w-64">
+              <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
                 <Input
                   placeholder="Buscar arquivos..."
@@ -400,26 +280,27 @@ const Wasabi = () => {
                   <TableHead>Bucket</TableHead>
                   <TableHead>Tamanho</TableHead>
                   <TableHead>Tipo</TableHead>
-                  <TableHead>Última Modificação</TableHead>
+                  <TableHead className="hidden lg:table-cell">Última Modificação</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredFiles.map((file) => (
                   <TableRow key={file.id} className="hover:bg-blue-50">
-                    <TableCell className="font-medium">{file.name}</TableCell>
+                    <TableCell className="font-medium max-w-xs truncate">{file.name}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{file.bucket}</Badge>
                     </TableCell>
                     <TableCell>{file.size}</TableCell>
                     <TableCell>{getTypeBadge(file.type)}</TableCell>
-                    <TableCell>{file.lastModified}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{file.lastModified}</TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleDownload(file.name)}
+                          onClick={() => handleDownload(file.name, file.bucket)}
+                          disabled={downloadFile.isPending}
                         >
                           <Download className="h-4 w-4" />
                         </Button>
@@ -427,7 +308,8 @@ const Wasabi = () => {
                           variant="outline" 
                           size="sm" 
                           className="text-red-600 hover:text-red-700 hover:border-red-300"
-                          onClick={() => handleDelete(file.name)}
+                          onClick={() => handleDelete(file.name, file.bucket)}
+                          disabled={deleteFile.isPending}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
