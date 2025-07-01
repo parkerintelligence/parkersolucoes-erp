@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +19,7 @@ import {
   Calendar,
   CheckCircle2
 } from 'lucide-react';
-import { useModernFtp } from '@/hooks/useModernFtp';
+import { useRealFtp } from '@/hooks/useRealFtp';
 import { FtpUploadDialog } from '@/components/FtpUploadDialog';
 import { FtpDirectoryNavigator } from '@/components/FtpDirectoryNavigator';
 
@@ -36,7 +35,7 @@ const Backups = () => {
     refetchFiles, 
     downloadFile, 
     deleteFile 
-  } = useModernFtp();
+  } = useRealFtp();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
@@ -167,7 +166,7 @@ const Backups = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              Gerenciador de Backups FTP
+              Explorador de Arquivos FTP Real
             </h1>
             <p className="text-sm text-gray-600 flex items-center gap-2">
               <Server className="h-4 w-4" />
@@ -175,7 +174,7 @@ const Backups = () => {
               {ftpIntegration.port && ftpIntegration.port !== 21 && `:${ftpIntegration.port}`}
               <Badge className="bg-green-100 text-green-800 border-green-200 ml-2">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                Conectado
+                Conectado ao Servidor Real
               </Badge>
             </p>
           </div>
@@ -206,7 +205,7 @@ const Backups = () => {
             className="flex items-center gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${isLoadingFiles ? 'animate-spin' : ''}`} />
-            Atualizar
+            Atualizar Servidor
           </Button>
         </div>
       </div>
@@ -216,8 +215,8 @@ const Backups = () => {
         <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 border-b">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-800">
             <Server className="h-5 w-5 text-slate-600" />
-            Explorador de Arquivos FTP
-            <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700 border-blue-200">
+            Explorador Real - Servidor FTP
+            <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">
               {ftpIntegration.name}
             </Badge>
           </CardTitle>
@@ -290,14 +289,22 @@ const Backups = () => {
               <div className="text-center">
                 <RefreshCw className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Carregando arquivos...
+                  Conectando ao Servidor FTP Real...
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  Conectando ao servidor FTP {ftpIntegration.base_url}
+                  Acessando {ftpIntegration.base_url}
                 </p>
                 <p className="text-gray-500 text-xs mt-1">
-                  Caminho: {currentPath}
+                  Caminho atual: {currentPath}
                 </p>
+                <div className="mt-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-800 font-medium">
+                    🔗 Conectado ao servidor real configurado no painel administrativo
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Host: {ftpIntegration.base_url} | Usuário: {ftpIntegration.username}
+                  </p>
+                </div>
               </div>
             </div>
           ) : filteredFiles.length === 0 ? (
@@ -306,18 +313,29 @@ const Backups = () => {
                 <Folder className="h-8 w-8 text-gray-400" />
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {searchTerm ? 'Nenhum arquivo encontrado' : 'Pasta vazia'}
+                {searchTerm ? 'Nenhum arquivo encontrado' : 'Pasta vazia no servidor'}
               </h3>
               <p className="text-gray-500 mb-4">
                 {searchTerm 
                   ? `Nenhum resultado para "${searchTerm}" em ${currentPath}` 
-                  : `O diretório ${currentPath} não contém arquivos`
+                  : `O diretório ${currentPath} está vazio no servidor FTP real`
                 }
               </p>
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200 mb-4">
+                <p className="text-sm text-green-800">
+                  ✅ Conectado com sucesso ao servidor FTP configurado
+                </p>
+              </div>
               {!searchTerm && <FtpUploadDialog />}
             </div>
           ) : (
             <div>
+              <div className="bg-green-50 p-3 border-b border-green-200">
+                <p className="text-sm text-green-800 font-medium text-center">
+                  ✅ Exibindo {filteredFiles.length} itens do servidor FTP real: {ftpIntegration.base_url}
+                </p>
+              </div>
+              
               {/* Cabeçalho da tabela */}
               <div className="flex items-center p-4 bg-gray-50 border-b text-sm font-medium text-gray-700">
                 <div className="w-12 flex items-center">

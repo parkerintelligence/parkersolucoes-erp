@@ -26,7 +26,7 @@ export const useRealFtp = () => {
     });
   }
 
-  // Fetch FTP files using real connection
+  // Fetch real FTP files
   const { data: files = [], isLoading: isLoadingFiles, error: filesError, refetch: refetchFiles } = useQuery({
     queryKey: ['real-ftp-files', activeFtpIntegration?.id, currentPath],
     queryFn: async (): Promise<RealFtpFile[]> => {
@@ -61,7 +61,7 @@ export const useRealFtp = () => {
     retryDelay: 2000,
     refetchInterval: false,
     refetchOnWindowFocus: false,
-    staleTime: 60000,
+    staleTime: 30000,
   });
 
   // Get available directories for navigation
@@ -103,7 +103,7 @@ export const useRealFtp = () => {
       console.log('Real FTP download successful:', data.fileName);
       toast({
         title: "📥 Download Concluído",
-        description: `${data.fileName} foi baixado do servidor FTP real.`,
+        description: `${data.fileName} foi baixado do servidor FTP.`,
       });
     },
     onError: (error: any) => {
@@ -136,7 +136,7 @@ export const useRealFtp = () => {
       console.log('Real FTP upload successful:', data.fileName);
       toast({
         title: "📤 Upload Concluído",
-        description: `${data.fileName} foi enviado para o servidor FTP real.`,
+        description: `${data.fileName} foi enviado para o servidor FTP.`,
       });
       queryClient.invalidateQueries({ queryKey: ['real-ftp-files'] });
     },
@@ -170,7 +170,7 @@ export const useRealFtp = () => {
       console.log('Real FTP deletion successful:', data.fileName);
       toast({
         title: "🗑️ Arquivo Excluído",
-        description: `${data.fileName} foi removido do servidor FTP real.`,
+        description: `${data.fileName} foi removido do servidor FTP.`,
       });
       queryClient.invalidateQueries({ queryKey: ['real-ftp-files'] });
     },

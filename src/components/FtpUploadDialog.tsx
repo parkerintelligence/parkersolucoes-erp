@@ -4,12 +4,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Upload, X } from 'lucide-react';
-import { useModernFtp } from '@/hooks/useModernFtp';
+import { useRealFtp } from '@/hooks/useRealFtp';
 
 export const FtpUploadDialog = () => {
   const [open, setOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const { uploadFile } = useModernFtp();
+  const { uploadFile } = useRealFtp();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -26,7 +26,7 @@ export const FtpUploadDialog = () => {
       setSelectedFile(null);
       setOpen(false);
     } catch (error) {
-      console.error('Erro no upload:', error);
+      console.error('Erro no upload para servidor real:', error);
     }
   };
 
@@ -43,18 +43,24 @@ export const FtpUploadDialog = () => {
       <DialogTrigger asChild>
         <Button className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2">
           <Upload className="h-4 w-4" />
-          Upload Arquivo
+          Upload para Servidor Real
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5 text-blue-600" />
-            Upload para Servidor FTP
+            Upload para Servidor FTP Real
           </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4 pt-4">
+          <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+            <p className="text-sm text-green-800 font-medium">
+              🔗 Enviando para o servidor FTP configurado no painel administrativo
+            </p>
+          </div>
+
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
             <Input
               type="file"
