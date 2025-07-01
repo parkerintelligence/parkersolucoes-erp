@@ -14,7 +14,7 @@ export const MikrotikAdminConfig = () => {
   const { data: integrations, createIntegration, updateIntegration } = useIntegrations();
   const { testConnection } = useMikrotikIntegration();
   
-  const mikrotikIntegration = integrations?.find(integration => integration.type === 'mikrotik' as any);
+  const mikrotikIntegration = integrations?.find(integration => integration.type === 'mikrotik');
 
   const [formData, setFormData] = useState({
     name: mikrotikIntegration?.name || 'Mikrotik RouterOS',
@@ -63,7 +63,7 @@ export const MikrotikAdminConfig = () => {
     }
 
     const integrationData = {
-      type: 'mikrotik' as any,
+      type: 'mikrotik' as const,
       name: formData.name,
       base_url: formData.base_url,
       username: formData.username,

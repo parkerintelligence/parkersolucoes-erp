@@ -5,7 +5,7 @@ import { toast } from '@/hooks/use-toast';
 
 export interface Integration {
   id: string;
-  type: 'chatwoot' | 'evolution_api' | 'wasabi' | 'grafana' | 'bomcontrole' | 'zabbix' | 'ftp' | 'glpi';
+  type: 'chatwoot' | 'evolution_api' | 'wasabi' | 'grafana' | 'bomcontrole' | 'zabbix' | 'ftp' | 'glpi' | 'mikrotik';
   name: string;
   base_url: string;
   api_token: string | null;
@@ -149,7 +149,7 @@ export const useIntegrations = () => {
       }
 
       // Validação preventiva para GLPI
-      if (updates.type === 'glpi' || (updates.api_token !== undefined || updates.password !== undefined)) {
+      if (updates.type === 'glpi') {
         if (updates.api_token !== undefined && (!updates.api_token || updates.api_token.trim() === '')) {
           throw new Error('App Token é obrigatório para integração GLPI');
         }
