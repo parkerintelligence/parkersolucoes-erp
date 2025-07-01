@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { MainLayout } from "@/components/MainLayout";
+import { Layout } from "@/components/Layout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Companies from "./pages/Companies";
@@ -37,22 +37,22 @@ const App = () => (
             {/* Rota pública - Login */}
             <Route path="/" element={<Login />} />
             
-            {/* Rotas protegidas - todas dentro do MainLayout */}
-            <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
-            <Route path="/companies" element={<MainLayout><Companies /></MainLayout>} />
-            <Route path="/services" element={<MainLayout><Services /></MainLayout>} />
-            <Route path="/budgets" element={<MainLayout><Budgets /></MainLayout>} />
-            <Route path="/contracts" element={<MainLayout><Contracts /></MainLayout>} />
-            <Route path="/glpi" element={<MainLayout><GLPI /></MainLayout>} />
-            <Route path="/zabbix" element={<MainLayout><Zabbix /></MainLayout>} />
-            <Route path="/backups" element={<MainLayout><Backups /></MainLayout>} />
-            <Route path="/passwords" element={<MainLayout><Passwords /></MainLayout>} />
-            <Route path="/links" element={<MainLayout><Links /></MainLayout>} />
-            <Route path="/whatsapp-chats" element={<MainLayout><WhatsAppChats /></MainLayout>} />
-            <Route path="/wasabi" element={<MainLayout><Wasabi /></MainLayout>} />
-            <Route path="/monitoring" element={<MainLayout><Monitoring /></MainLayout>} />
-            <Route path="/schedule" element={<MainLayout><Schedule /></MainLayout>} />
-            <Route path="/admin" element={<MainLayout><Admin /></MainLayout>} />
+            {/* Rotas protegidas - todas dentro do Layout */}
+            <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+            <Route path="/companies" element={<Layout><Companies /></Layout>} />
+            <Route path="/services" element={<Layout><Services /></Layout>} />
+            <Route path="/budgets" element={<Layout><Budgets /></Layout>} />
+            <Route path="/contracts" element={<Layout><Contracts /></Layout>} />
+            <Route path="/glpi" element={<Layout><GLPI /></Layout>} />
+            <Route path="/zabbix" element={<Layout><Zabbix /></Layout>} />
+            <Route path="/backups" element={<Layout><Backups /></Layout>} />
+            <Route path="/passwords" element={<Layout><Passwords /></Layout>} />
+            <Route path="/links" element={<Layout><Links /></Layout>} />
+            <Route path="/whatsapp-chats" element={<Layout><WhatsAppChats /></Layout>} />
+            <Route path="/wasabi" element={<Layout><Wasabi /></Layout>} />
+            <Route path="/monitoring" element={<Layout><Monitoring /></Layout>} />
+            <Route path="/schedule" element={<Layout><Schedule /></Layout>} />
+            <Route path="/admin" element={<Layout><Admin /></Layout>} />
             
             {/* Página 404 */}
             <Route path="*" element={<NotFound />} />

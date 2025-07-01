@@ -70,15 +70,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (error) {
           console.error('Erro ao obter sessão:', error);
+          if (mounted) {
+            setIsLoading(false);
+          }
+          return;
         }
         
         if (mounted) {
-          console.log('Sessão inicial:', session?.user?.email);
+          console.log('Sessão inicial:', session?.user?.email || 'Nenhuma sessão');
           
           if (session?.user) {
             setSession(session);
             setUser(session.user);
             
+            // Buscar perfil do usuário
             const profile = await fetchUserProfile(session.user.id);
             if (profile && mounted) {
               const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
@@ -87,14 +92,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 email: profile.email,
                 role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
               };
-              console.log('Definindo perfil inicial do usuário:', typedProfile);
+              console.log('Perfil do usuário definido:', typedProfile);
               setUserProfile(typedProfile);
             }
+          } else {
+            setSession(null);
+            setUser(null);
+            setUserProfile(null);
           }
+          
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Erro ao inicializar autenticação:', error);
-      } finally {
         if (mounted) {
           setIsLoading(false);
         }
@@ -108,29 +118,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         if (!mounted) return;
         
-        console.log('Estado de autenticação alterado:', event, session?.user?.email);
-        
-        setSession(session);
-        setUser(session?.user ?? null);
+        console.log('Estado de autenticação alterado:', event, session?.user?.email || 'Logout');
         
         if (session?.user) {
-          const profile = await fetchUserProfile(session.user.id);
-          if (profile && mounted) {
-            const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
-            const typedProfile: UserProfile = {
-              id: profile.id,
-              email: profile.email,
-              role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
-            };
-            console.log('Definindo perfil do usuário na mudança de estado:', typedProfile);
-            setUserProfile(typedProfile);
-          }
+          setSession(session);
+          setUser(session.user);
+          
+          // Buscar perfil do usuário
+          setTimeout(async () => {
+            if (!mounted) return;
+            const profile = await fetchUserProfile(session.user.id);
+            if (profile && mounted) {
+              const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
+              const typedProfile: UserProfile = {
+                id: profile.id,
+                email: profile.email,
+                role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
+              };
+              console.log('Perfil atualizado:', typedProfile);
+              setUserProfile(typedProfile);
+            }
+          }, 0);
         } else {
+          setSession(null);
+          setUser(null);
           setUserProfile(null);
-        }
-        
-        if (mounted) {
-          setIsLoading(false);
         }
       }
     );
@@ -143,7 +155,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      setIsLoading(true);
       console.log('Tentando fazer login com:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -161,14 +172,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Erro no login:', error);
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const logout = async () => {
     try {
-      setIsLoading(true);
       console.log('Fazendo logout...');
       
       await supabase.auth.signOut();
@@ -179,8 +187,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Logout realizado com sucesso');
     } catch (error) {
       console.error('Erro no logout:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -195,7 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading
   };
 
-  console.log('Valor do AuthContext:', { 
+  console.log('AuthContext Estado:', { 
     isAuthenticated: !!user && !!session, 
     isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
     userEmail: user?.email,
