@@ -299,6 +299,8 @@ export const useGLPIExpanded = () => {
     const baseUrl = glpiIntegration.base_url.replace(/\/$/, '');
     const url = `${baseUrl}/apirest.php/${endpoint}`;
     
+    console.log(`Fazendo requisição GLPI: ${endpoint}`);
+    
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -308,6 +310,8 @@ export const useGLPIExpanded = () => {
         ...options.headers,
       },
     });
+
+    console.log(`Resposta GLPI ${endpoint}:`, response.status, response.statusText);
 
     if (!response.ok) {
       // Se token expirou, tentar renovar
@@ -332,7 +336,19 @@ export const useGLPIExpanded = () => {
           });
         }
       }
-      throw new Error(`GLPI API Error: ${response.status} ${response.statusText}`);
+      
+      // Tentar obter mais detalhes do erro
+      let errorMessage = `GLPI API Error: ${response.status} ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        if (errorData && errorData.message) {
+          errorMessage += ` - ${errorData.message}`;
+        }
+      } catch (e) {
+        // Ignore JSON parse errors
+      }
+      
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -346,35 +362,79 @@ export const useGLPIExpanded = () => {
 
     try {
       const baseUrl = glpiIntegration.base_url.replace(/\/$/, '');
-      const response = await fetch(`${baseUrl}/apirest.php/initSession`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'App-Token': glpiIntegration.api_token || '',
-          'Authorization': `user_token ${glpiIntegration.password}`,
-        },
+      console.log('Inicializando sessão GLPI com:', {
+        baseUrl,
+        hasAppToken: !!glpiIntegration.api_token,
+        hasUsername: !!glpiIntegration.username,
+        hasPassword: !!glpiIntegration.password
       });
 
-      if (!response.ok) {
-        console.error('Erro ao inicializar sessão:', response.status, response.statusText);
-        throw new Error(`Erro ao inicializar sessão GLPI: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const sessionToken = data.session_token;
-
-      console.log('Nova sessão GLPI inicializada:', sessionToken);
-
-      // Salvar o session token na integração
-      if (sessionToken && glpiIntegration.id) {
-        await updateIntegration.mutateAsync({
-          id: glpiIntegration.id,
-          updates: { webhook_url: sessionToken }
+      // Método 1: Tentar com User Token (recomendado)
+      if (glpiIntegration.password) {
+        console.log('Tentando autenticação com User Token...');
+        const response = await fetch(`${baseUrl}/apirest.php/initSession`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'App-Token': glpiIntegration.api_token || '',
+            'Authorization': `user_token ${glpiIntegration.password}`,
+          },
         });
-        console.log('Session token salvo na integração');
+
+        if (response.ok) {
+          const data = await response.json();
+          const sessionToken = data.session_token;
+          console.log('Autenticação com User Token bem-sucedida');
+
+          // Salvar o session token na integração
+          if (sessionToken && glpiIntegration.id) {
+            await updateIntegration.mutateAsync({
+              id: glpiIntegration.id,
+              updates: { webhook_url: sessionToken }
+            });
+            console.log('Session token salvo na integração');
+          }
+
+          return sessionToken;
+        } else {
+          console.log('Falha na autenticação com User Token, tentando método alternativo...');
+        }
       }
 
-      return sessionToken;
+      // Método 2: Tentar com Basic Auth (fallback)
+      if (glpiIntegration.username && glpiIntegration.password) {
+        console.log('Tentando autenticação com Basic Auth...');
+        const response = await fetch(`${baseUrl}/apirest.php/initSession`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'App-Token': glpiIntegration.api_token || '',
+            'Authorization': `Basic ${btoa(`${glpiIntegration.username}:${glpiIntegration.password}`)}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const sessionToken = data.session_token;
+          console.log('Autenticação com Basic Auth bem-sucedida');
+
+          // Salvar o session token na integração
+          if (sessionToken && glpiIntegration.id) {
+            await updateIntegration.mutateAsync({
+              id: glpiIntegration.id,
+              updates: { webhook_url: sessionToken }
+            });
+            console.log('Session token salvo na integração');
+          }
+
+          return sessionToken;
+        } else {
+          const errorText = await response.text();
+          console.error('Erro na autenticação Basic Auth:', response.status, errorText);
+        }
+      }
+
+      throw new Error(`Falha na autenticação GLPI. Verifique suas credenciais e tente usar um User Token.`);
     } catch (error) {
       console.error('Erro ao inicializar sessão GLPI:', error);
       throw error;
