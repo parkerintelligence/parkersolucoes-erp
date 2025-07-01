@@ -29,6 +29,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { validateZabbixConnection } from '@/hooks/useZabbixValidation';
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { ZabbixErrorDialog } from './ZabbixErrorDialog';
 
 const formSchema = z.object({
   type: z.enum(['chatwoot', 'evolution_api', 'wasabi', 'grafana', 'bomcontrole', 'zabbix', 'ftp']),
@@ -55,6 +56,7 @@ const AdminApiPanel = () => {
   const { createIntegration, updateIntegration, deleteIntegration, data: integrations, isLoading, isError } = useIntegrations();
   const [editingIntegrationId, setEditingIntegrationId] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [zabbixError, setZabbixError] = useState<{ error: string; details: string } | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -104,9 +106,18 @@ const AdminApiPanel = () => {
 
       if (!validation.isValid) {
         console.error('Zabbix validation failed:', validation);
+        
+        // Show detailed error popup
+        if (validation.error && validation.details) {
+          setZabbixError({
+            error: validation.error,
+            details: validation.details
+          });
+        }
+        
         toast({
           title: `Erro de Conexão: ${validation.error}`,
-          description: validation.details,
+          description: "Veja os detalhes no popup que foi aberto.",
           variant: "destructive"
         });
         return;
@@ -382,7 +393,7 @@ const AdminApiPanel = () => {
               <FormLabel>Nome de Usuário *</FormLabel>
               <FormControl>
                 <Input 
-                  placeholder="admin" 
+                  placeholder="Admin" 
                   {...field}
                   value={field.value || ''}
                 />
@@ -569,175 +580,190 @@ const AdminApiPanel = () => {
   );
 
   return (
-    <div className="container max-w-4xl mx-auto p-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Painel de Integrações</CardTitle>
-          <CardDescription>
-            Adicione e configure integrações com diferentes serviços.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={selectedType} onValueChange={(value) => setSelectedType(value as typeof selectedType)} className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="chatwoot">Chatwoot</TabsTrigger>
-              <TabsTrigger value="evolution_api">Evolution API</TabsTrigger>
-              <TabsTrigger value="wasabi">Wasabi</TabsTrigger>
-              <TabsTrigger value="grafana">Grafana</TabsTrigger>
-              <TabsTrigger value="bomcontrole">BomControle</TabsTrigger>
-              <TabsTrigger value="zabbix">Zabbix</TabsTrigger>
-              <TabsTrigger value="ftp">FTP</TabsTrigger>
-            </TabsList>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tipo de Integração</FormLabel>
-                      <Select onValueChange={(value) => {
-                        const newType = value as "chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix" | "ftp";
-                        form.setValue("type", newType);
-                        setSelectedType(newType);
-                      }} value={field.value}>
+    <>
+      <div className="container max-w-4xl mx-auto p-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Painel de Integrações</CardTitle>
+            <CardDescription>
+              Adicione e configure integrações com diferentes serviços.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={selectedType} onValueChange={(value) => setSelectedType(value as typeof selectedType)} className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="chatwoot">Chatwoot</TabsTrigger>
+                <TabsTrigger value="evolution_api">Evolution API</TabsTrigger>
+                <TabsTrigger value="wasabi">Wasabi</TabsTrigger>
+                <TabsTrigger value="grafana">Grafana</TabsTrigger>
+                <TabsTrigger value="bomcontrole">BomControle</TabsTrigger>
+                <TabsTrigger value="zabbix">Zabbix</TabsTrigger>
+                <TabsTrigger value="ftp">FTP</TabsTrigger>
+              </TabsList>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tipo de Integração</FormLabel>
+                        <Select onValueChange={(value) => {
+                          const newType = value as "chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix" | "ftp";
+                          form.setValue("type", newType);
+                          setSelectedType(newType);
+                        }} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o tipo" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="chatwoot">Chatwoot</SelectItem>
+                            <SelectItem value="evolution_api">Evolution API</SelectItem>
+                            <SelectItem value="wasabi">Wasabi</SelectItem>
+                            <SelectItem value="grafana">Grafana</SelectItem>
+                            <SelectItem value="bomcontrole">BomControle</SelectItem>
+                            <SelectItem value="zabbix">Zabbix</SelectItem>
+                            <SelectItem value="ftp">FTP</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome *</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o tipo" />
-                          </SelectTrigger>
+                          <Input placeholder="Nome da integração" {...field} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="chatwoot">Chatwoot</SelectItem>
-                          <SelectItem value="evolution_api">Evolution API</SelectItem>
-                          <SelectItem value="wasabi">Wasabi</SelectItem>
-                          <SelectItem value="grafana">Grafana</SelectItem>
-                          <SelectItem value="bomcontrole">BomControle</SelectItem>
-                          <SelectItem value="zabbix">Zabbix</SelectItem>
-                          <SelectItem value="ftp">FTP</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome da integração" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="base_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{selectedType === 'ftp' ? 'Servidor (IP ou Nome DNS)' : 'URL Base'} *</FormLabel>
-                      <FormControl>
-                        <Input placeholder={selectedType === 'ftp' ? 'ftp.exemplo.com.br' : 'https://api.example.com'} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="base_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{selectedType === 'ftp' ? 'Servidor (IP ou Nome DNS)' : selectedType === 'zabbix' ? 'URL Base (ex: http://servidor.com/zabbix)' : 'URL Base'} *</FormLabel>
+                        <FormControl>
+                          <Input placeholder={selectedType === 'ftp' ? 'ftp.exemplo.com.br' : selectedType === 'zabbix' ? 'http://monitoramento.parkersolucoes.com.br/zabbix' : 'https://api.example.com'} {...field} />
+                        </FormControl>
+                        {selectedType === 'zabbix' && (
+                          <FormDescription>
+                            Digite apenas a URL base do Zabbix (sem /api_jsonrpc.php no final)
+                          </FormDescription>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                {getFieldsForType(selectedType)}
+                  {getFieldsForType(selectedType)}
 
-                <FormField
-                  control={form.control}
-                  name="is_active"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel>Ativo</FormLabel>
-                        <FormDescription>
-                          Define se a integração está ativa e disponível para uso.
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <Button 
-                  type="submit" 
-                  disabled={createIntegration.isPending || updateIntegration.isPending || isValidating}
-                  className="w-full"
-                >
-                  {isValidating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Validando conexão...
-                    </>
-                  ) : editingIntegrationId ? 
-                    (updateIntegration.isPending ? "Atualizando..." : "Atualizar Integração") : 
-                    (createIntegration.isPending ? "Criando..." : "Criar Integração")
-                  }
-                </Button>
-              </form>
-            </Form>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Lista de Integrações */}
-      <div className="mt-8">
-        <h2 className="text-2xl font-semibold mb-4">Lista de Integrações</h2>
-        {isError && <p className="text-red-500">Ocorreu um erro ao carregar as integrações.</p>}
-        {isLoading ? (
-          <p>Carregando integrações...</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {integrations?.map((integration) => (
-              <Card key={integration.id} className="bg-gray-50 border border-gray-200">
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold">{integration.name}</CardTitle>
-                  <CardDescription>Tipo: {integration.type}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 mb-2">
-                    {integration.type === 'ftp' ? 'Servidor' : 'URL'}: {integration.base_url}
-                  </p>
-                  {integration.type === 'evolution_api' && integration.phone_number && (
-                    <p className="text-sm text-gray-600 mb-2">Telefone: {integration.phone_number}</p>
-                  )}
-                  {integration.type === 'ftp' && integration.port && (
-                    <p className="text-sm text-gray-600 mb-2">Porta: {integration.port}</p>
-                  )}
-                  {integration.type === 'ftp' && integration.directory && (
-                    <p className="text-sm text-gray-600 mb-2">Diretório: {integration.directory}</p>
-                  )}
-                  <p className="text-sm text-gray-600 mb-4">
-                    Status: {integration.is_active ? 
-                      <span className="text-green-600 font-medium">Ativo</span> : 
-                      <span className="text-red-600 font-medium">Inativo</span>
+                  <FormField
+                    control={form.control}
+                    name="is_active"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel>Ativo</FormLabel>
+                          <FormDescription>
+                            Define se a integração está ativa e disponível para uso.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <Button 
+                    type="submit" 
+                    disabled={createIntegration.isPending || updateIntegration.isPending || isValidating}
+                    className="w-full"
+                  >
+                    {isValidating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Validando conexão...
+                      </>
+                    ) : editingIntegrationId ? 
+                      (updateIntegration.isPending ? "Atualizando..." : "Atualizar Integração") : 
+                      (createIntegration.isPending ? "Criando..." : "Criar Integração")
                     }
-                  </p>
-                  <div className="flex justify-end gap-2 mt-4">
-                    <Button variant="secondary" size="sm" onClick={() => handleEditIntegration(integration)}>
-                      Editar
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDeleteIntegration(integration.id)}>
-                      Excluir
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                  </Button>
+                </form>
+              </Form>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Lista de Integrações */}
+        <div className="mt-8">
+          <h2 className="text-2xl font-semibold mb-4">Lista de Integrações</h2>
+          {isError && <p className="text-red-500">Ocorreu um erro ao carregar as integrações.</p>}
+          {isLoading ? (
+            <p>Carregando integrações...</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {integrations?.map((integration) => (
+                <Card key={integration.id} className="bg-gray-50 border border-gray-200">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-semibold">{integration.name}</CardTitle>
+                    <CardDescription>Tipo: {integration.type}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {integration.type === 'ftp' ? 'Servidor' : 'URL'}: {integration.base_url}
+                    </p>
+                    {integration.type === 'evolution_api' && integration.phone_number && (
+                      <p className="text-sm text-gray-600 mb-2">Telefone: {integration.phone_number}</p>
+                    )}
+                    {integration.type === 'ftp' && integration.port && (
+                      <p className="text-sm text-gray-600 mb-2">Porta: {integration.port}</p>
+                    )}
+                    {integration.type === 'ftp' && integration.directory && (
+                      <p className="text-sm text-gray-600 mb-2">Diretório: {integration.directory}</p>
+                    )}
+                    <p className="text-sm text-gray-600 mb-4">
+                      Status: {integration.is_active ? 
+                        <span className="text-green-600 font-medium">Ativo</span> : 
+                        <span className="text-red-600 font-medium">Inativo</span>
+                      }
+                    </p>
+                    <div className="flex justify-end gap-2 mt-4">
+                      <Button variant="secondary" size="sm" onClick={() => handleEditIntegration(integration)}>
+                        Editar
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDeleteIntegration(integration.id)}>
+                        Excluir
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Popup de erro do Zabbix */}
+      <ZabbixErrorDialog
+        isOpen={!!zabbixError}
+        onClose={() => setZabbixError(null)}
+        error={zabbixError?.error || ''}
+        details={zabbixError?.details || ''}
+      />
+    </>
   );
 };
 
