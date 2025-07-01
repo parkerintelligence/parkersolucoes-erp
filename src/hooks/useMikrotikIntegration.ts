@@ -35,7 +35,7 @@ export const useMikrotikIntegration = () => {
   const queryClient = useQueryClient();
   
   const mikrotikIntegration = integrations?.find(integration => 
-    integration.type === 'mikrotik' && integration.is_active
+    integration.type === 'mikrotik' as any && integration.is_active
   );
 
   const makeMikrotikRequest = async (endpoint: string, integrationId: string) => {

@@ -14,6 +14,7 @@ import Budgets from "./pages/Budgets";
 import Contracts from "./pages/Contracts";
 import GLPI from "./pages/GLPI";
 import Zabbix from "./pages/Zabbix";
+import Mikrotik from "./pages/Mikrotik";
 import Backups from "./pages/Backups";
 import Passwords from "./pages/Passwords";
 import Links from "./pages/Links";
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/contracts" element={<Layout><Contracts /></Layout>} />
             <Route path="/glpi" element={<Layout><GLPI /></Layout>} />
             <Route path="/zabbix" element={<Layout><Zabbix /></Layout>} />
+            <Route path="/mikrotik" element={<Layout><Mikrotik /></Layout>} />
             <Route path="/backups" element={<Layout><Backups /></Layout>} />
             <Route path="/passwords" element={<Layout><Passwords /></Layout>} />
             <Route path="/links" element={<Layout><Links /></Layout>} />

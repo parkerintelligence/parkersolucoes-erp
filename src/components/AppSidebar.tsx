@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Calendar,
   Shield,
+  Router,
 } from 'lucide-react';
 
 import {
@@ -35,6 +36,7 @@ const menuItems = [
   { title: 'Contratos', url: '/contracts', icon: FileText, role: 'user' },
   { title: 'GLPI', url: '/glpi', icon: Headphones, role: 'user' },
   { title: 'Zabbix', url: '/zabbix', icon: Activity, role: 'user' },
+  { title: 'Mikrotik', url: '/mikrotik', icon: Router, role: 'user' },
   { title: 'Backups FTP', url: '/backups', icon: HardDrive, role: 'user' },
   { title: 'Senhas', url: '/passwords', icon: Lock, role: 'user' },
   { title: 'Links', url: '/links', icon: Link, role: 'user' },
