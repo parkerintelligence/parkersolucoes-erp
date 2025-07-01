@@ -54,7 +54,12 @@ const Backups = () => {
 
   const filteredFiles = files.filter(file => 
     file.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ).sort((a, b) => {
+    // Ordenar por data de modificação: mais antiga primeiro, mais nova por último
+    const dateA = a.lastModified instanceof Date ? a.lastModified : new Date(a.lastModified);
+    const dateB = b.lastModified instanceof Date ? b.lastModified : new Date(b.lastModified);
+    return dateA.getTime() - dateB.getTime();
+  });
 
   // Use space data from calculator or fallback to current folder calculation
   const totalSize = spaceData?.totalSize || files.reduce((acc, file) => acc + file.size, 0);

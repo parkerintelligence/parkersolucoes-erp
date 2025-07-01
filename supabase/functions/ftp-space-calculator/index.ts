@@ -1,7 +1,8 @@
 
 import { corsHeaders } from '../_shared/cors.ts';
 
-const FTP_TIMEOUT = 30000; // 30 seconds timeout
+const FTP_TIMEOUT = 15000; // Reduzido para 15 segundos
+const MAX_CONCURRENT_CONNECTIONS = 3; // Limite de conexões simultâneas
 
 interface FtpSpaceResult {
   totalSize: number;
@@ -27,7 +28,13 @@ class FtpClient {
 
   async connect(): Promise<void> {
     console.log(`Connecting to ${this.host}:${this.port}`);
-    this.conn = await Deno.connect({ hostname: this.host, port: this.port });
+    
+    const connectPromise = Deno.connect({ hostname: this.host, port: this.port });
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Connection timeout')), FTP_TIMEOUT);
+    });
+
+    this.conn = await Promise.race([connectPromise, timeoutPromise]);
     
     // Read welcome message
     await this.readResponse();
@@ -64,18 +71,17 @@ class FtpClient {
     const buffer = new Uint8Array(4096);
     let response = '';
     
-    const timeoutId = setTimeout(() => {
-      throw new Error('FTP response timeout');
-    }, FTP_TIMEOUT);
+    const readPromise = this.conn.read(buffer);
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('FTP response timeout')), FTP_TIMEOUT);
+    });
 
     try {
-      const bytesRead = await this.conn.read(buffer);
+      const bytesRead = await Promise.race([readPromise, timeoutPromise]);
       if (bytesRead) {
         response = decoder.decode(buffer.subarray(0, bytesRead));
       }
-      clearTimeout(timeoutId);
     } catch (error) {
-      clearTimeout(timeoutId);
       throw error;
     }
 
@@ -84,72 +90,92 @@ class FtpClient {
   }
 
   async listDirectory(path: string): Promise<any[]> {
-    // Enter passive mode
-    const pasvResponse = await this.sendCommand('PASV');
-    const pasvMatch = pasvResponse.match(/\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
-    
-    if (!pasvMatch) {
-      throw new Error('Failed to parse PASV response');
-    }
-
-    const ip = `${pasvMatch[1]}.${pasvMatch[2]}.${pasvMatch[3]}.${pasvMatch[4]}`;
-    const port = parseInt(pasvMatch[5]) * 256 + parseInt(pasvMatch[6]);
-
-    console.log(`Data connection: ${ip} ${port}`);
-
-    // Connect to data port
-    const dataConn = await Deno.connect({ hostname: ip, port: port });
-    
-    // Send LIST command
-    const listResponse = await this.sendCommand(`LIST ${path}`);
-    console.log('LIST Response:', listResponse);
-
-    // Read directory listing
-    const decoder = new TextDecoder();
-    const buffer = new Uint8Array(65536);
-    let listing = '';
-    
     try {
-      const bytesRead = await dataConn.read(buffer);
-      if (bytesRead) {
-        listing = decoder.decode(buffer.subarray(0, bytesRead));
+      // Enter passive mode
+      const pasvResponse = await this.sendCommand('PASV');
+      const pasvMatch = pasvResponse.match(/\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
+      
+      if (!pasvMatch) {
+        throw new Error('Failed to parse PASV response: ' + pasvResponse);
       }
-    } finally {
-      dataConn.close();
-    }
 
-    console.log('Raw FTP LIST data:', listing);
+      const ip = `${pasvMatch[1]}.${pasvMatch[2]}.${pasvMatch[3]}.${pasvMatch[4]}`;
+      const port = parseInt(pasvMatch[5]) * 256 + parseInt(pasvMatch[6]);
 
-    // Parse listing
-    const files = [];
-    const lines = listing.trim().split('\n');
-    
-    for (const line of lines) {
-      if (!line.trim() || line.startsWith('total')) continue;
-      
-      const parts = line.trim().split(/\s+/);
-      if (parts.length < 9) continue;
-      
-      const permissions = parts[0];
-      const isDirectory = permissions.startsWith('d');
-      const size = parseInt(parts[4]) || 0;
-      const name = parts.slice(8).join(' ');
-      
-      // Skip . and .. entries
-      if (name === '.' || name === '..') continue;
-      
-      const filePath = path === '/' ? `/${name}` : `${path}/${name}`;
-      
-      files.push({
-        name,
-        size,
-        isDirectory,
-        path: filePath,
-        permissions
+      console.log(`Data connection: ${ip}:${port}`);
+
+      // Connect to data port with timeout
+      const dataConnPromise = Deno.connect({ hostname: ip, port: port });
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Data connection timeout')), FTP_TIMEOUT);
       });
-    }
 
-    return files;
+      const dataConn = await Promise.race([dataConnPromise, timeoutPromise]);
+      
+      try {
+        // Send LIST command
+        const listResponse = await this.sendCommand(`LIST ${path}`);
+        console.log('LIST Response:', listResponse);
+
+        // Read directory listing with timeout
+        const decoder = new TextDecoder();
+        const buffer = new Uint8Array(65536);
+        let listing = '';
+        
+        const readPromise = dataConn.read(buffer);
+        const readTimeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Data read timeout')), FTP_TIMEOUT);
+        });
+
+        try {
+          const bytesRead = await Promise.race([readPromise, readTimeoutPromise]);
+          if (bytesRead) {
+            listing = decoder.decode(buffer.subarray(0, bytesRead));
+          }
+        } catch (error) {
+          console.error('Data read error:', error);
+          throw error;
+        }
+
+        console.log('Raw FTP LIST data:', listing);
+
+        // Parse listing
+        const files = [];
+        const lines = listing.trim().split('\n');
+        
+        for (const line of lines) {
+          if (!line.trim() || line.startsWith('total')) continue;
+          
+          const parts = line.trim().split(/\s+/);
+          if (parts.length < 9) continue;
+          
+          const permissions = parts[0];
+          const isDirectory = permissions.startsWith('d');
+          const size = parseInt(parts[4]) || 0;
+          const name = parts.slice(8).join(' ');
+          
+          // Skip . and .. entries
+          if (name === '.' || name === '..') continue;
+          
+          const filePath = path === '/' ? `/${name}` : `${path}/${name}`;
+          
+          files.push({
+            name,
+            size,
+            isDirectory,
+            path: filePath,
+            permissions
+          });
+        }
+
+        return files;
+      } finally {
+        dataConn.close();
+      }
+    } catch (error) {
+      console.error(`Error listing directory ${path}:`, error);
+      throw error;
+    }
   }
 }
 
@@ -157,7 +183,7 @@ async function calculateSpaceRecursively(
   ftpClient: FtpClient, 
   path: string, 
   result: FtpSpaceResult,
-  maxDepth: number = 10,
+  maxDepth: number = 5, // Reduzido para evitar timeout
   currentDepth: number = 0
 ): Promise<void> {
   if (currentDepth >= maxDepth) {
@@ -173,8 +199,15 @@ async function calculateSpaceRecursively(
     for (const file of files) {
       if (file.isDirectory) {
         result.totalDirectories++;
-        // Recursively process subdirectory
-        await calculateSpaceRecursively(ftpClient, file.path, result, maxDepth, currentDepth + 1);
+        // Recursively process subdirectory with error handling
+        try {
+          await calculateSpaceRecursively(ftpClient, file.path, result, maxDepth, currentDepth + 1);
+        } catch (error) {
+          const errorMsg = `Error processing subdirectory ${file.path}: ${error.message}`;
+          console.error(errorMsg);
+          result.errors.push(errorMsg);
+          // Continue with other directories instead of failing completely
+        }
       } else {
         result.totalFiles++;
         result.totalSize += file.size;

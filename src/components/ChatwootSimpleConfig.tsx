@@ -1,282 +1,242 @@
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  MessageCircle, 
-  Settings, 
-  CheckCircle2, 
-  AlertCircle,
-  ExternalLink,
-  Info
-} from 'lucide-react';
-import { useChatwootAPI } from '@/hooks/useChatwootAPI';
+import { Loader2, CheckCircle2, AlertCircle, MessageSquare, ExternalLink } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
 interface ChatwootConfig {
+  name: string;
   base_url: string;
   api_token: string;
 }
 
 export const ChatwootSimpleConfig = () => {
+  const { data: integrations, addIntegration, updateIntegration } = useIntegrations();
   const [config, setConfig] = useState<ChatwootConfig>({
+    name: 'Chatwoot WhatsApp',
     base_url: '',
     api_token: ''
   });
-  const [isValidating, setIsValidating] = useState(false);
-  const [validationResult, setValidationResult] = useState<any>(null);
-  
-  const { testConnection } = useChatwootAPI(); 
-  const { createIntegration, updateIntegration, data: integrations } = useIntegrations();
-  
-  const existingChatwoot = integrations?.find(int => int.type === 'chatwoot');
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  const validateConfiguration = async () => {
+  const chatwootIntegration = integrations?.find(int => int.type === 'chatwoot');
+
+  // Load existing configuration
+  useState(() => {
+    if (chatwootIntegration) {
+      setConfig({
+        name: chatwootIntegration.name,
+        base_url: chatwootIntegration.base_url,
+        api_token: chatwootIntegration.api_token || ''
+      });
+    }
+  });
+
+  const testConnection = async () => {
     if (!config.base_url || !config.api_token) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Preencha a URL e o Token de API",
+        title: "❌ Configuração Incompleta",
+        description: "Preencha a URL e o Token da API",
         variant: "destructive"
       });
       return;
     }
 
-    setIsValidating(true);
-    setValidationResult(null);
-
+    setIsTestingConnection(true);
+    
     try {
-      // Clean URL - remove trailing slashes and common paths
-      let cleanUrl = config.base_url.trim();
-      if (!cleanUrl.startsWith('http')) {
-        cleanUrl = 'https://' + cleanUrl;
-      }
-      
-      // Remove common suffixes that users might add
-      cleanUrl = cleanUrl.replace(/\/(app|login|api.*)?$/, '');
-      
-      console.log('Testing Chatwoot connection with:', { cleanUrl, token: '***' });
-      
-      await testConnection.mutateAsync({
-        base_url: cleanUrl,
-        api_token: config.api_token
+      const cleanUrl = config.base_url.replace(/\/$/, '');
+      const response = await fetch(`${cleanUrl}/api/v1/accounts`, {
+        headers: {
+          'api_access_token': config.api_token,
+          'Content-Type': 'application/json'
+        }
       });
-      
-      const result = {
-        status: 'success',
-        url: cleanUrl,
-        message: 'Conexão estabelecida com sucesso!'
-      };
-      
-      setValidationResult(result);
-      setConfig(prev => ({ ...prev, base_url: cleanUrl }));
-      
+
+      if (response.ok) {
+        setConnectionStatus('success');
+        toast({
+          title: "✅ Conexão Bem-sucedida",
+          description: "Chatwoot conectado com sucesso!",
+        });
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
     } catch (error) {
-      console.error('Validation failed:', error);
-      setValidationResult({
-        status: 'error',
-        message: error.message || 'Erro na validação'
+      console.error('Chatwoot connection test failed:', error);
+      setConnectionStatus('error');
+      toast({
+        title: "❌ Falha na Conexão",
+        description: `Erro ao conectar: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+        variant: "destructive"
       });
     } finally {
-      setIsValidating(false);
+      setIsTestingConnection(false);
     }
   };
 
   const saveConfiguration = async () => {
-    if (!validationResult || validationResult.status !== 'success') {
-      toast({
-        title: "Validação necessária",
-        description: "Teste a conexão antes de salvar",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
       const integrationData = {
         type: 'chatwoot' as const,
-        name: 'Chatwoot WhatsApp',
+        name: config.name,
         base_url: config.base_url,
         api_token: config.api_token,
-        is_active: true
+        username: '',
+        password: '',
+        port: null,
+        bucket_name: '',
+        directory: '',
+        account_id: '',
+        region: '',
+        is_active: true,
       };
 
-      if (existingChatwoot) {
+      if (chatwootIntegration) {
         await updateIntegration.mutateAsync({
-          id: existingChatwoot.id,
-          updates: integrationData
+          id: chatwootIntegration.id,
+          ...integrationData
         });
       } else {
-        await createIntegration.mutateAsync(integrationData);
+        await addIntegration.mutateAsync(integrationData);
       }
 
       toast({
         title: "✅ Configuração Salva",
-        description: "Chatwoot configurado com sucesso!",
+        description: "Integração Chatwoot configurada com sucesso!",
       });
-
     } catch (error) {
-      console.error('Save failed:', error);
+      console.error('Error saving Chatwoot configuration:', error);
       toast({
-        title: "Erro ao salvar",
-        description: error.message || "Erro ao salvar configuração",
+        title: "❌ Erro ao Salvar",
+        description: "Erro ao salvar configuração do Chatwoot",
         variant: "destructive"
       });
     }
   };
 
   return (
-    <Card className="max-w-2xl mx-auto">
+    <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="flex items-center gap-3">
-          <MessageCircle className="h-6 w-6 text-green-600" />
-          Configuração Simples do Chatwoot
+        <CardTitle className="flex items-center gap-2">
+          <MessageSquare className="h-5 w-5 text-green-600" />
+          Configuração Chatwoot (WhatsApp)
         </CardTitle>
       </CardHeader>
-
       <CardContent className="space-y-6">
-        {/* Info Box */}
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-          <div className="flex gap-3">
-            <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-800">
-              <p className="font-medium mb-1">Como configurar:</p>
-              <ol className="list-decimal list-inside space-y-1 text-xs">
-                <li>Cole a URL do seu Chatwoot (ex: https://app.chatwoot.com)</li>
-                <li>Cole o Token de API (encontre em Configurações → Integrações → API)</li>
-                <li>Clique em "Testar Conexão" para validar</li>
-                <li>Se o teste passar, clique em "Salvar Configuração"</li>
-              </ol>
-            </div>
+        {/* Status Badge */}
+        {chatwootIntegration && (
+          <div className="flex items-center gap-2">
+            <Badge className={chatwootIntegration.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+              {chatwootIntegration.is_active ? 'Ativo' : 'Inativo'}
+            </Badge>
+            {connectionStatus === 'success' && (
+              <Badge className="bg-blue-100 text-blue-800">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Conectado
+              </Badge>
+            )}
           </div>
-        </div>
+        )}
 
         {/* Configuration Form */}
         <div className="space-y-4">
           <div>
-            <Label htmlFor="chatwoot-url">URL do Chatwoot</Label>
+            <Label htmlFor="name">Nome da Integração</Label>
             <Input
-              id="chatwoot-url"
-              placeholder="https://app.chatwoot.com ou https://seu-chatwoot.com"
+              id="name"
+              value={config.name}
+              onChange={(e) => setConfig({ ...config, name: e.target.value })}
+              placeholder="Chatwoot WhatsApp"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="base_url">URL do Chatwoot</Label>
+            <Input
+              id="base_url"
               value={config.base_url}
-              onChange={(e) => setConfig(prev => ({ ...prev, base_url: e.target.value }))}
-              className="mt-1"
+              onChange={(e) => setConfig({ ...config, base_url: e.target.value })}
+              placeholder="https://app.chatwoot.com"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Exemplo: https://app.chatwoot.com (sem /app/login no final)
+              Exemplo: https://app.chatwoot.com ou https://seu-chatwoot.com
             </p>
           </div>
 
           <div>
-            <Label htmlFor="chatwoot-token">Token de API</Label>
+            <Label htmlFor="api_token">Token da API</Label>
             <Input
-              id="chatwoot-token"
+              id="api_token"
               type="password"
-              placeholder="Seu token de API do Chatwoot"
               value={config.api_token}
-              onChange={(e) => setConfig(prev => ({ ...prev, api_token: e.target.value }))}
-              className="mt-1"
+              onChange={(e) => setConfig({ ...config, api_token: e.target.value })}
+              placeholder="Seu token da API do Chatwoot"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Encontre em: Configurações → Integrações → API Access Token
+              Encontre em: Configurações → Perfil → Tokens de Acesso
             </p>
           </div>
         </div>
 
-        {/* Validation Result */}
-        {validationResult && (
-          <div className={`p-4 rounded-lg border ${
-            validationResult.status === 'success' 
-              ? 'bg-green-50 border-green-200' 
-              : 'bg-red-50 border-red-200'
-          }`}>
-            <div className="flex items-center gap-2">
-              {validationResult.status === 'success' ? (
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-red-600" />
-              )}
-              <span className={`font-medium ${
-                validationResult.status === 'success' ? 'text-green-800' : 'text-red-800'
-              }`}>
-                {validationResult.message}
-              </span>
-            </div>
-            {validationResult.url && (
-              <p className="text-xs text-gray-600 mt-1">
-                URL validada: {validationResult.url}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Current Status */}
-        {existingChatwoot && (
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-gray-900">Configuração Atual</p>
-                <p className="text-sm text-gray-600">{existingChatwoot.base_url}</p>
-              </div>
-              <Badge variant={existingChatwoot.is_active ? "default" : "secondary"}>
-                {existingChatwoot.is_active ? "Ativo" : "Inativo"}
-              </Badge>
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex gap-3">
-          <Button 
-            onClick={validateConfiguration}
-            disabled={isValidating || !config.base_url || !config.api_token}
+        {/* Test Connection */}
+        <div className="flex items-center gap-3">
+          <Button
             variant="outline"
-            className="flex-1"
+            onClick={testConnection}
+            disabled={isTestingConnection || !config.base_url || !config.api_token}
           >
-            {isValidating ? (
-              <>Testando...</>
+            {isTestingConnection ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
             ) : (
-              <>
-                <Settings className="h-4 w-4 mr-2" />
-                Testar Conexão
-              </>
+              <ExternalLink className="h-4 w-4 mr-2" />
             )}
+            Testar Conexão
           </Button>
 
-          <Button 
-            onClick={saveConfiguration}
-            disabled={!validationResult || validationResult.status !== 'success'}
-            className="flex-1"
-          >
-            <CheckCircle2 className="h-4 w-4 mr-2" />
-            Salvar Configuração
-          </Button>
+          {connectionStatus === 'success' && (
+            <div className="flex items-center text-green-600 text-sm">
+              <CheckCircle2 className="h-4 w-4 mr-1" />
+              Conectado
+            </div>
+          )}
+
+          {connectionStatus === 'error' && (
+            <div className="flex items-center text-red-600 text-sm">
+              <AlertCircle className="h-4 w-4 mr-1" />
+              Erro na conexão
+            </div>
+          )}
         </div>
 
-        {/* Help Links */}
-        <div className="border-t pt-4">
-          <p className="text-sm text-gray-600 mb-2">Links úteis:</p>
-          <div className="flex gap-4 text-xs">
-            <a 
-              href="https://www.chatwoot.com/docs/product/channels/api/client-apis" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline flex items-center gap-1"
-            >
-              Documentação API <ExternalLink className="h-3 w-3" />
-            </a>
-            <a 
-              href="https://app.chatwoot.com" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline flex items-center gap-1"
-            >
-              Chatwoot.com <ExternalLink className="h-3 w-3" />
-            </a>
-          </div>
+        {/* Save Button */}
+        <Button
+          onClick={saveConfiguration}
+          disabled={!config.base_url || !config.api_token || addIntegration.isPending || updateIntegration.isPending}
+          className="w-full"
+        >
+          {(addIntegration.isPending || updateIntegration.isPending) ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : null}
+          {chatwootIntegration ? 'Atualizar Configuração' : 'Salvar Configuração'}
+        </Button>
+
+        {/* Help Section */}
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <h4 className="font-medium text-blue-900 mb-2">Como configurar:</h4>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>1. Acesse seu painel do Chatwoot</li>
+            <li>2. Vá em Configurações → Perfil → Tokens de Acesso</li>
+            <li>3. Gere um novo token de acesso</li>
+            <li>4. Cole o token no campo acima</li>
+            <li>5. Teste a conexão antes de salvar</li>
+          </ul>
         </div>
       </CardContent>
     </Card>
