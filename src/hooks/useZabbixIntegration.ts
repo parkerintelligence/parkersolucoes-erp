@@ -1,8 +1,9 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIntegrations } from './useIntegrations';
 import { useZabbixProxy } from './useZabbixProxy';
 import { toast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ZabbixErrorDialog } from '@/components/ZabbixErrorDialog';
 
 interface ZabbixConnection {
@@ -156,9 +157,6 @@ export const useZabbixIntegration = () => {
     refetchInterval: 30000,
     retry: 2,
     staleTime: 10000,
-    onError: (error: Error) => {
-      handleError(error, 'Busca de Hosts');
-    }
   });
 
   const problemsQuery = useQuery({
@@ -186,9 +184,6 @@ export const useZabbixIntegration = () => {
     refetchInterval: 15000,
     retry: 2,
     staleTime: 5000,
-    onError: (error: Error) => {
-      handleError(error, 'Busca de Problemas');
-    }
   });
 
   const itemsQuery = useQuery({
@@ -214,9 +209,6 @@ export const useZabbixIntegration = () => {
     refetchInterval: 60000,
     retry: 2,
     staleTime: 30000,
-    onError: (error: Error) => {
-      handleError(error, 'Busca de Itens');
-    }
   });
 
   const triggersQuery = useQuery({
@@ -243,10 +235,32 @@ export const useZabbixIntegration = () => {
     refetchInterval: 30000,
     retry: 2,
     staleTime: 15000,
-    onError: (error: Error) => {
-      handleError(error, 'Busca de Triggers');
-    }
   });
+
+  // Handle errors using useEffect instead of onError
+  useEffect(() => {
+    if (hostsQuery.error) {
+      handleError(hostsQuery.error, 'Busca de Hosts');
+    }
+  }, [hostsQuery.error]);
+
+  useEffect(() => {
+    if (problemsQuery.error) {
+      handleError(problemsQuery.error, 'Busca de Problemas');
+    }
+  }, [problemsQuery.error]);
+
+  useEffect(() => {
+    if (itemsQuery.error) {
+      handleError(itemsQuery.error, 'Busca de Itens');
+    }
+  }, [itemsQuery.error]);
+
+  useEffect(() => {
+    if (triggersQuery.error) {
+      handleError(triggersQuery.error, 'Busca de Triggers');
+    }
+  }, [triggersQuery.error]);
 
   const refetchAll = () => {
     console.log('Recarregando todos os dados do Zabbix...');
