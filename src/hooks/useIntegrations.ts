@@ -23,6 +23,13 @@ export const useIntegrations = () => {
   return useQuery({
     queryKey: ['integrations'],
     queryFn: async () => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase
         .from('integrations')
         .select('*')
@@ -43,8 +50,12 @@ export const useCreateIntegration = () => {
 
   return useMutation({
     mutationFn: async (integration: Omit<Integration, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
+      }
 
       // Garantir que campos obrigatórios não sejam undefined
       const integrationData = {
@@ -59,6 +70,8 @@ export const useCreateIntegration = () => {
         is_active: integration.is_active ?? true,
         user_id: user.id
       };
+
+      console.log('Creating integration with data:', integrationData);
 
       const { data, error } = await supabase
         .from('integrations')
@@ -84,7 +97,7 @@ export const useCreateIntegration = () => {
       console.error('Error creating integration:', error);
       toast({
         title: "Erro ao criar integração",
-        description: "Ocorreu um erro ao criar a integração. Tente novamente.",
+        description: error.message || "Ocorreu um erro ao criar a integração. Tente novamente.",
         variant: "destructive"
       });
     },
@@ -96,6 +109,13 @@ export const useUpdateIntegration = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Integration> }) => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
+      }
+
       // Garantir que campos sejam null em vez de undefined
       const updateData = {
         ...updates,
@@ -131,7 +151,7 @@ export const useUpdateIntegration = () => {
       console.error('Error updating integration:', error);
       toast({
         title: "Erro ao atualizar integração",
-        description: "Ocorreu um erro ao atualizar a integração.",
+        description: error.message || "Ocorreu um erro ao atualizar a integração.",
         variant: "destructive"
       });
     },
@@ -143,6 +163,13 @@ export const useDeleteIntegration = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
+      }
+
       const { error } = await supabase
         .from('integrations')
         .delete()
@@ -164,7 +191,7 @@ export const useDeleteIntegration = () => {
       console.error('Error deleting integration:', error);
       toast({
         title: "Erro ao remover integração",
-        description: "Ocorreu um erro ao remover a integração.",
+        description: error.message || "Ocorreu um erro ao remover a integração.",
         variant: "destructive"
       });
     },

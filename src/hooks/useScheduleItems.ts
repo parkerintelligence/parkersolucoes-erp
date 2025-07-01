@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -20,6 +19,13 @@ export const useScheduleItems = () => {
   return useQuery({
     queryKey: ['schedule-items'],
     queryFn: async () => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase
         .from('schedule_items')
         .select('*')
@@ -40,16 +46,24 @@ export const useCreateScheduleItem = () => {
 
   return useMutation({
     mutationFn: async (item: Omit<ScheduleItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'status'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
+      }
+
+      const itemData = {
+        ...item,
+        user_id: user.id,
+        status: 'pending' as const
+      };
+
+      console.log('Creating schedule item with data:', itemData);
 
       const { data, error } = await supabase
         .from('schedule_items')
-        .insert([{
-          ...item,
-          user_id: user.id,
-          status: 'pending'
-        }])
+        .insert([itemData])
         .select()
         .single();
 
@@ -71,7 +85,7 @@ export const useCreateScheduleItem = () => {
       console.error('Error creating schedule item:', error);
       toast({
         title: "Erro ao criar agendamento",
-        description: "Ocorreu um erro ao criar o agendamento. Tente novamente.",
+        description: error.message || "Ocorreu um erro ao criar o agendamento. Tente novamente.",
         variant: "destructive"
       });
     },
@@ -83,6 +97,13 @@ export const useUpdateScheduleItem = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<ScheduleItem> }) => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase
         .from('schedule_items')
         .update(updates)
@@ -104,7 +125,7 @@ export const useUpdateScheduleItem = () => {
       console.error('Error updating schedule item:', error);
       toast({
         title: "Erro ao atualizar agendamento",
-        description: "Ocorreu um erro ao atualizar o agendamento.",
+        description: error.message || "Ocorreu um erro ao atualizar o agendamento.",
         variant: "destructive"
       });
     },
@@ -116,6 +137,13 @@ export const useDeleteScheduleItem = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
+      }
+
       const { error } = await supabase
         .from('schedule_items')
         .delete()
@@ -137,7 +165,7 @@ export const useDeleteScheduleItem = () => {
       console.error('Error deleting schedule item:', error);
       toast({
         title: "Erro ao remover agendamento",
-        description: "Ocorreu um erro ao remover o agendamento.",
+        description: error.message || "Ocorreu um erro ao remover o agendamento.",
         variant: "destructive"
       });
     },

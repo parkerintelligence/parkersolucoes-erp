@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -20,6 +19,13 @@ export const useCompanies = () => {
   return useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase
         .from('companies')
         .select('*')
@@ -40,15 +46,23 @@ export const useCreateCompany = () => {
 
   return useMutation({
     mutationFn: async (company: Omit<Company, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
+      }
+
+      const companyData = {
+        ...company,
+        user_id: user.id
+      };
+
+      console.log('Creating company with data:', companyData);
 
       const { data, error } = await supabase
         .from('companies')
-        .insert([{
-          ...company,
-          user_id: user.id
-        }])
+        .insert([companyData])
         .select()
         .single();
 
@@ -70,7 +84,7 @@ export const useCreateCompany = () => {
       console.error('Error creating company:', error);
       toast({
         title: "Erro ao criar empresa",
-        description: "Ocorreu um erro ao criar a empresa. Tente novamente.",
+        description: error.message || "Ocorreu um erro ao criar a empresa. Tente novamente.",
         variant: "destructive"
       });
     },
@@ -82,6 +96,13 @@ export const useUpdateCompany = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Company> }) => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase
         .from('companies')
         .update(updates)
@@ -107,7 +128,7 @@ export const useUpdateCompany = () => {
       console.error('Error updating company:', error);
       toast({
         title: "Erro ao atualizar empresa",
-        description: "Ocorreu um erro ao atualizar a empresa.",
+        description: error.message || "Ocorreu um erro ao atualizar a empresa.",
         variant: "destructive"
       });
     },
@@ -119,6 +140,13 @@ export const useDeleteCompany = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
+      }
+
       const { error } = await supabase
         .from('companies')
         .delete()
@@ -140,7 +168,7 @@ export const useDeleteCompany = () => {
       console.error('Error deleting company:', error);
       toast({
         title: "Erro ao remover empresa",
-        description: "Ocorreu um erro ao remover a empresa.",
+        description: error.message || "Ocorreu um erro ao remover a empresa.",
         variant: "destructive"
       });
     },

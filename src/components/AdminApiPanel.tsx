@@ -10,7 +10,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Settings, Plus, Edit, Trash2, Key, MessageCircle, HardDrive, Activity, DollarSign } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
-import { toast } from '@/hooks/use-toast';
 
 export function AdminApiPanel() {
   const { data: integrations = [], isLoading } = useIntegrations();
@@ -34,31 +33,17 @@ export function AdminApiPanel() {
 
   const handleSave = () => {
     if (!formData.name.trim() || !formData.base_url.trim()) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Nome e URL Base são obrigatórios.",
-        variant: "destructive"
-      });
       return;
     }
     
-    // Para Grafana e Bom Controle, username/password são obrigatórios
-    if ((formData.type === 'grafana' || formData.type === 'bomcontrole') && (!formData.username.trim() || !formData.password.trim())) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Username e Password são obrigatórios para Grafana e Bom Controle.",
-        variant: "destructive"
-      });
+    // Validações específicas por tipo
+    if ((formData.type === 'grafana' || formData.type === 'bomcontrole') && 
+        (!formData.username.trim() || !formData.password.trim())) {
       return;
     }
 
-    // Para outros tipos, api_token é obrigatório se não for Grafana/Bom Controle
-    if ((formData.type !== 'grafana' && formData.type !== 'bomcontrole') && !formData.api_token.trim()) {
-      toast({
-        title: "Campo obrigatório",
-        description: "Token da API é obrigatório para este tipo de integração.",
-        variant: "destructive"
-      });
+    if ((formData.type !== 'grafana' && formData.type !== 'bomcontrole') && 
+        !formData.api_token.trim()) {
       return;
     }
 
@@ -263,7 +248,7 @@ export function AdminApiPanel() {
                   </div>
                 )}
 
-                {// ... keep existing code (conditional fields for WhatsApp and info panels)
+                {// ... keep existing code (conditional fields for WhatsApp)
                 (formData.type === 'chatwoot' || formData.type === 'evolution_api') && (
                   <>
                     <div className="grid gap-2">
@@ -286,25 +271,6 @@ export function AdminApiPanel() {
                     </div>
                   </>
                 )}
-
-                {formData.type === 'wasabi' && (
-                  <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded">
-                    <strong>Wasabi:</strong> Configure as credenciais de acesso ao bucket do Wasabi. 
-                    O token deve conter as chaves de acesso (Access Key e Secret Key).
-                  </div>
-                )}
-
-                {formData.type === 'grafana' && (
-                  <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded">
-                    <strong>Grafana:</strong> Configure a URL do Grafana e as credenciais de usuário para acessar os dashboards.
-                  </div>
-                )}
-
-                {formData.type === 'bomcontrole' && (
-                  <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded">
-                    <strong>Bom Controle:</strong> Configure a URL da API do Bom Controle e as credenciais de acesso para integração financeira.
-                  </div>
-                )}
               </div>
               <div className="flex gap-2">
                 <Button 
@@ -323,7 +289,7 @@ export function AdminApiPanel() {
         </div>
       </CardHeader>
       <CardContent>
-        {// ... keep existing code (table and empty state)
+        {// ... keep existing code (table and empty state display)
         integrations.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />

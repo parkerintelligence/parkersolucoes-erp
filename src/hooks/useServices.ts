@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -20,6 +19,13 @@ export const useServices = () => {
   return useQuery({
     queryKey: ['services'],
     queryFn: async () => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase
         .from('services')
         .select('*')
@@ -40,15 +46,23 @@ export const useCreateService = () => {
 
   return useMutation({
     mutationFn: async (service: Omit<Service, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
+      }
+
+      const serviceData = {
+        ...service,
+        user_id: user.id
+      };
+
+      console.log('Creating service with data:', serviceData);
 
       const { data, error } = await supabase
         .from('services')
-        .insert([{
-          ...service,
-          user_id: user.id
-        }])
+        .insert([serviceData])
         .select()
         .single();
 
@@ -70,7 +84,7 @@ export const useCreateService = () => {
       console.error('Error creating service:', error);
       toast({
         title: "Erro ao criar serviço",
-        description: "Ocorreu um erro ao criar o serviço. Tente novamente.",
+        description: error.message || "Ocorreu um erro ao criar o serviço. Tente novamente.",
         variant: "destructive"
       });
     },
@@ -82,6 +96,13 @@ export const useUpdateService = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Service> }) => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase
         .from('services')
         .update(updates)
@@ -107,7 +128,7 @@ export const useUpdateService = () => {
       console.error('Error updating service:', error);
       toast({
         title: "Erro ao atualizar serviço",
-        description: "Ocorreu um erro ao atualizar o serviço.",
+        description: error.message || "Ocorreu um erro ao atualizar o serviço.",
         variant: "destructive"
       });
     },
@@ -119,6 +140,13 @@ export const useDeleteService = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
+      }
+
       const { error } = await supabase
         .from('services')
         .delete()
@@ -140,7 +168,7 @@ export const useDeleteService = () => {
       console.error('Error deleting service:', error);
       toast({
         title: "Erro ao remover serviço",
-        description: "Ocorreu um erro ao remover o serviço.",
+        description: error.message || "Ocorreu um erro ao remover o serviço.",
         variant: "destructive"
       });
     },
