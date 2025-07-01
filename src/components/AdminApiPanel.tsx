@@ -108,55 +108,7 @@ const AdminApiPanel = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     console.log('Dados do formulário:', values);
     
-    // Validate Zabbix connection before saving
-    if (values.type === 'zabbix') {
-      if (!values.base_url || !values.api_token) {
-        toast({
-          title: "Campos obrigatórios",
-          description: "URL Base e API Token são obrigatórios para o Zabbix.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      setIsValidating(true);
-      console.log('Validating Zabbix connection before saving...');
-      
-      const validation = await validateZabbixConnection(
-        values.base_url,
-        '', // username não usado
-        '', // password não usado
-        values.api_token
-      );
-
-      setIsValidating(false);
-
-      if (!validation.isValid) {
-        console.error('Zabbix validation failed:', validation);
-        
-        // Show detailed error popup
-        if (validation.error && validation.details) {
-          setZabbixError({
-            error: validation.error,
-            details: validation.details
-          });
-        }
-        
-        toast({
-          title: `Erro de Conexão: ${validation.error}`,
-          description: "Veja os detalhes no popup que foi aberto.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      toast({
-        title: "Conexão validada!",
-        description: "Conexão com o Zabbix estabelecida com sucesso usando API Token.",
-      });
-    }
-    
-    // Ensure all required fields are present with proper defaults
+    // Não validar mais ao salvar - apenas salvar os dados
     const integrationData = {
       type: values.type,
       name: values.name,
@@ -666,15 +618,10 @@ const AdminApiPanel = () => {
                   />
                   <Button 
                     type="submit" 
-                    disabled={createIntegration.isPending || updateIntegration.isPending || isValidating}
+                    disabled={createIntegration.isPending || updateIntegration.isPending}
                     className="w-full"
                   >
-                    {isValidating ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Validando conexão...
-                      </>
-                    ) : editingIntegrationId ? 
+                    {editingIntegrationId ? 
                       (updateIntegration.isPending ? "Atualizando..." : "Atualizar Integração") : 
                       (createIntegration.isPending ? "Criando..." : "Criar Integração")
                     }

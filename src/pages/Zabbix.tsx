@@ -1,3 +1,4 @@
+
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -5,44 +6,50 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, AlertTriangle, Server, Wifi, Database, RefreshCw, Settings, CircleX, Clock, TrendingUp, Zap, CheckCircle, Shield, Users, BarChart3, Globe, Cpu, HardDrive, Network, Timer } from 'lucide-react';
-import { useZabbix } from '@/hooks/useZabbix';
-import { ZabbixSettings } from '@/components/ZabbixSettings';
+import { 
+  Activity, 
+  AlertTriangle, 
+  Server, 
+  Database, 
+  RefreshCw, 
+  Settings, 
+  CheckCircle, 
+  Shield, 
+  BarChart3, 
+  Globe, 
+  Cpu, 
+  HardDrive, 
+  Network, 
+  Zap 
+} from 'lucide-react';
+import { useZabbixIntegration } from '@/hooks/useZabbixIntegration';
+import { ZabbixAdminConfig } from '@/components/ZabbixAdminConfig';
 import { useState } from 'react';
 
 const Zabbix = () => {
   const { 
     isConfigured, 
-    isAuthenticated, 
     hosts, 
     problems, 
     items, 
     triggers,
     isLoading, 
     error, 
-    authError,
-    refetch 
-  } = useZabbix();
+    refetchAll 
+  } = useZabbixIntegration();
 
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const getSeverityBadge = (severity: string) => {
     const severityNum = parseInt(severity);
     switch (severityNum) {
-      case 5: // Disaster
-        return <Badge className="bg-purple-100 text-purple-800 border-purple-200">Desastre</Badge>;
-      case 4: // High
-        return <Badge className="bg-red-100 text-red-800 border-red-200">Alta</Badge>;
-      case 3: // Average
-        return <Badge className="bg-orange-100 text-orange-800 border-orange-200">Média</Badge>;
-      case 2: // Warning
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Atenção</Badge>;
-      case 1: // Information
-        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Informação</Badge>;
-      case 0: // Not classified
-        return <Badge className="bg-gray-100 text-gray-800 border-gray-200">Não Classificada</Badge>;
-      default:
-        return <Badge>{severity}</Badge>;
+      case 5: return <Badge className="bg-purple-100 text-purple-800 border-purple-200">Desastre</Badge>;
+      case 4: return <Badge className="bg-red-100 text-red-800 border-red-200">Alta</Badge>;
+      case 3: return <Badge className="bg-orange-100 text-orange-800 border-orange-200">Média</Badge>;
+      case 2: return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Atenção</Badge>;
+      case 1: return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Informação</Badge>;
+      case 0: return <Badge className="bg-gray-100 text-gray-800 border-gray-200">Não Classificada</Badge>;
+      default: return <Badge>{severity}</Badge>;
     }
   };
 
@@ -76,37 +83,14 @@ const Zabbix = () => {
     return date.toLocaleString('pt-BR');
   };
 
-  const formatUptime = (seconds: string) => {
-    const totalSeconds = parseInt(seconds);
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor((totalSeconds % 86400) / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    
-    if (days > 0) {
-      return `${days}d ${hours}h ${minutes}m`;
-    } else if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    } else {
-      return `${minutes}m`;
-    }
-  };
-
   const getItemTypeIcon = (type: string) => {
     const typeNum = parseInt(type);
     switch (typeNum) {
-      case 0: return <Zap className="h-4 w-4" />; // Zabbix agent
-      case 3: return <Globe className="h-4 w-4" />; // Simple check
-      case 7: return <Network className="h-4 w-4" />; // Zabbix agent (active)
-      case 10: return <Database className="h-4 w-4" />; // External check
-      case 11: return <Database className="h-4 w-4" />; // Database monitor
-      case 13: return <Server className="h-4 w-4" />; // SSH agent
-      case 14: return <Server className="h-4 w-4" />; // Telnet agent
-      case 15: return <BarChart3 className="h-4 w-4" />; // Calculated
-      case 16: return <Database className="h-4 w-4" />; // JMX agent
-      case 17: return <Network className="h-4 w-4" />; // SNMP trap
-      case 18: return <Cpu className="h-4 w-4" />; // Dependent item
-      case 19: return <Globe className="h-4 w-4" />; // HTTP agent
-      case 20: return <Network className="h-4 w-4" />; // SNMP agent
+      case 0: return <Zap className="h-4 w-4" />;
+      case 3: return <Globe className="h-4 w-4" />;
+      case 7: return <Network className="h-4 w-4" />;
+      case 10: return <Database className="h-4 w-4" />;
+      case 19: return <Globe className="h-4 w-4" />;
       default: return <Database className="h-4 w-4" />;
     }
   };
@@ -118,15 +102,7 @@ const Zabbix = () => {
       case 3: return 'Simple Check';
       case 7: return 'Zabbix Agent (Ativo)';
       case 10: return 'External Check';
-      case 11: return 'Database Monitor';
-      case 13: return 'SSH Agent';
-      case 14: return 'Telnet Agent';
-      case 15: return 'Calculated';
-      case 16: return 'JMX Agent';
-      case 17: return 'SNMP Trap';
-      case 18: return 'Dependent Item';
       case 19: return 'HTTP Agent';
-      case 20: return 'SNMP Agent';
       default: return `Tipo ${type}`;
     }
   };
@@ -139,14 +115,8 @@ const Zabbix = () => {
     const highSeverityProblems = problems.filter(p => parseInt(p.severity) >= 4).length;
     const mediumSeverityProblems = problems.filter(p => parseInt(p.severity) === 3).length;
     const lowSeverityProblems = problems.filter(p => parseInt(p.severity) <= 2).length;
-    const acknowledgedProblems = problems.filter(p => p.acknowledged === '1').length;
     const activeTriggers = triggers.filter(t => t.value === '1').length;
-    const totalTriggers = triggers.length;
-    const enabledTriggers = triggers.filter(t => t.status === '0').length;
-    const disabledTriggers = triggers.filter(t => t.status === '1').length;
     const activeItems = items.filter(i => i.status === '0').length;
-    const totalItems = items.length;
-    const disabledItems = items.filter(i => i.status === '1').length;
 
     return { 
       onlineHosts, 
@@ -156,14 +126,8 @@ const Zabbix = () => {
       highSeverityProblems, 
       mediumSeverityProblems,
       lowSeverityProblems,
-      acknowledgedProblems,
       activeTriggers, 
-      totalTriggers,
-      enabledTriggers,
-      disabledTriggers,
-      activeItems,
-      totalItems,
-      disabledItems
+      activeItems
     };
   };
 
@@ -187,17 +151,17 @@ const Zabbix = () => {
             <Settings className="h-4 w-4" />
             <AlertTitle>Configuração Necessária</AlertTitle>
             <AlertDescription>
-              Configure a conexão com o Zabbix para começar a monitorar sua infraestrutura.
+              Configure a conexão com o Zabbix no painel administrativo para começar a monitorar sua infraestrutura.
             </AlertDescription>
           </Alert>
 
-          <ZabbixSettings />
+          <ZabbixAdminConfig />
         </div>
       </Layout>
     );
   }
 
-  if (authError || (error && !isAuthenticated)) {
+  if (error) {
     return (
       <Layout>
         <div className="space-y-6">
@@ -209,29 +173,21 @@ const Zabbix = () => {
               </h1>
               <p className="text-blue-600">Monitoramento em tempo real da infraestrutura</p>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={() => setActiveTab('settings')} variant="outline">
-                <Settings className="mr-2 h-4 w-4" />
-                Configurações
-              </Button>
-              <Button onClick={refetch} className="bg-blue-600 hover:bg-blue-700">
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Tentar Novamente
-              </Button>
-            </div>
+            <Button onClick={refetchAll} className="bg-blue-600 hover:bg-blue-700">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Tentar Novamente
+            </Button>
           </div>
 
           <Alert variant="destructive">
-            <CircleX className="h-4 w-4" />
+            <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Erro de Conexão</AlertTitle>
             <AlertDescription>
-              Não foi possível conectar ao Zabbix. Verifique as configurações de URL e API Token.
+              Não foi possível conectar ao Zabbix. Verifique as configurações no painel administrativo.
               <br />
-              <strong>Erro:</strong> {authError?.message || error?.message}
+              <strong>Erro:</strong> {error?.message}
             </AlertDescription>
           </Alert>
-
-          <ZabbixSettings />
         </div>
       </Layout>
     );
@@ -248,35 +204,24 @@ const Zabbix = () => {
             </h1>
             <p className="text-blue-600">Monitoramento em tempo real da infraestrutura</p>
           </div>
-          <div className="flex gap-2">
-            <Button 
-              onClick={() => setActiveTab('settings')} 
-              variant="outline"
-              className={activeTab === 'settings' ? 'bg-blue-50' : ''}
-            >
-              <Settings className="mr-2 h-4 w-4" />
-              Configurações
-            </Button>
-            <Button onClick={refetch} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
-              <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Atualizar
-            </Button>
-          </div>
+          <Button onClick={refetchAll} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="hosts">Hosts</TabsTrigger>
             <TabsTrigger value="problems">Problemas</TabsTrigger>
             <TabsTrigger value="items">Itens</TabsTrigger>
             <TabsTrigger value="triggers">Triggers</TabsTrigger>
             <TabsTrigger value="monitoring">Monitoramento</TabsTrigger>
-            <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
-            {/* Status Overview Cards */}
+            {/* Cards de Estatísticas */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
               <Card className="border-green-200">
                 <CardContent className="p-4">
@@ -351,96 +296,8 @@ const Zabbix = () => {
               </Card>
             </div>
 
-            {/* Detailed Statistics */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Hosts Statistics */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-blue-700 flex items-center gap-2">
-                    <Server className="h-5 w-5" />
-                    Estatísticas de Hosts
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Online</span>
-                    <Badge className="bg-green-100 text-green-800">{stats.onlineHosts}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Offline</span>
-                    <Badge className="bg-red-100 text-red-800">{stats.offlineHosts}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Desabilitados</span>
-                    <Badge className="bg-gray-100 text-gray-800">{stats.disabledHosts}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Total</span>
-                    <Badge className="bg-blue-100 text-blue-800">{hosts.length}</Badge>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Problems Statistics */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-red-700 flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" />
-                    Problemas por Severidade
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Alta Severidade</span>
-                    <Badge className="bg-red-100 text-red-800">{stats.highSeverityProblems}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Média Severidade</span>
-                    <Badge className="bg-orange-100 text-orange-800">{stats.mediumSeverityProblems}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Baixa Severidade</span>
-                    <Badge className="bg-yellow-100 text-yellow-800">{stats.lowSeverityProblems}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Reconhecidos</span>
-                    <Badge className="bg-blue-100 text-blue-800">{stats.acknowledgedProblems}</Badge>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Triggers & Items Statistics */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-green-700 flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Triggers & Itens
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Triggers Ativos</span>
-                    <Badge className="bg-red-100 text-red-800">{stats.activeTriggers}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Total Triggers</span>
-                    <Badge className="bg-blue-100 text-blue-800">{stats.totalTriggers}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Itens Ativos</span>
-                    <Badge className="bg-green-100 text-green-800">{stats.activeItems}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Total Itens</span>
-                    <Badge className="bg-gray-100 text-gray-800">{stats.totalItems}</Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Recent Problems and Top Hosts */}
+            {/* Problemas Recentes e Status dos Hosts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Recent Problems */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-red-700">Problemas Recentes</CardTitle>
@@ -467,7 +324,6 @@ const Zabbix = () => {
                 </CardContent>
               </Card>
 
-              {/* Host Overview */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-blue-700">Status dos Hosts</CardTitle>
@@ -487,11 +343,6 @@ const Zabbix = () => {
                       </div>
                       <div className="flex flex-col gap-1">
                         {getHostStatusBadge(host.status, host.available)}
-                        {host.error && (
-                          <p className="text-xs text-red-600 max-w-32 truncate" title={host.error}>
-                            {host.error}
-                          </p>
-                        )}
                       </div>
                     </div>
                   ))}
@@ -524,7 +375,6 @@ const Zabbix = () => {
                         <TableHead>Endereço IP</TableHead>
                         <TableHead>Porta</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Disponibilidade</TableHead>
                         <TableHead>Erro</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -536,15 +386,6 @@ const Zabbix = () => {
                           <TableCell>{host.interfaces?.[0]?.ip || 'N/A'}</TableCell>
                           <TableCell>{host.interfaces?.[0]?.port || 'N/A'}</TableCell>
                           <TableCell>{getHostStatusBadge(host.status, host.available)}</TableCell>
-                          <TableCell>
-                            {host.available === '1' ? (
-                              <Badge className="bg-green-100 text-green-800">Disponível</Badge>
-                            ) : host.available === '2' ? (
-                              <Badge className="bg-red-100 text-red-800">Indisponível</Badge>
-                            ) : (
-                              <Badge className="bg-gray-100 text-gray-800">Desconhecido</Badge>
-                            )}
-                          </TableCell>
                           <TableCell className="max-w-48">
                             <span className="text-xs text-red-600 truncate block" title={host.error}>
                               {host.error || 'N/A'}
@@ -595,7 +436,7 @@ const Zabbix = () => {
                                 </Badge>
                               )}
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                               <div>
                                 <p><strong>Host:</strong> {problem.hosts?.[0]?.name || 'Desconhecido'}</p>
                               </div>
@@ -604,9 +445,6 @@ const Zabbix = () => {
                               </div>
                               <div>
                                 <p><strong>ID do Evento:</strong> {problem.eventid}</p>
-                              </div>
-                              <div>
-                                <p><strong>Object ID:</strong> {problem.objectid}</p>
                               </div>
                             </div>
                           </div>
@@ -623,7 +461,7 @@ const Zabbix = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
+                  <BarChart3 className="h-5 w-5" />
                   Itens Monitorados ({items.length})
                 </CardTitle>
                 <CardDescription>Métricas e dados coletados pelos hosts</CardDescription>
@@ -648,9 +486,7 @@ const Zabbix = () => {
                           </div>
                           <p className="text-sm text-gray-600 font-mono">{item.key_}</p>
                           <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
-                            <span>ID: {item.itemid}</span>
                             <span>Tipo: {getItemTypeName(item.type)}</span>
-                            <span>Value Type: {item.value_type}</span>
                           </div>
                         </div>
                         <div className="text-right">
@@ -694,7 +530,6 @@ const Zabbix = () => {
                         <TableHead>Status</TableHead>
                         <TableHead>Estado Atual</TableHead>
                         <TableHead>Última Mudança</TableHead>
-                        <TableHead>ID</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -722,9 +557,6 @@ const Zabbix = () => {
                           <TableCell className="text-sm text-gray-600">
                             {formatTimestamp(trigger.lastchange)}
                           </TableCell>
-                          <TableCell className="font-mono text-xs text-gray-500">
-                            {trigger.triggerid}
-                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -735,9 +567,8 @@ const Zabbix = () => {
           </TabsContent>
 
           <TabsContent value="monitoring" className="space-y-6">
-            {/* Real-time Monitoring Dashboard */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Active Alerts */}
+              {/* Alertas Críticos */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-red-700 flex items-center gap-2">
@@ -754,14 +585,13 @@ const Zabbix = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         {getSeverityBadge(problem.severity)}
-                        <Clock className="h-4 w-4 text-red-500" />
                       </div>
                     </div>
                   ))}
                 </CardContent>
               </Card>
 
-              {/* System Health */}
+              {/* Saúde do Sistema */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-green-700 flex items-center gap-2">
@@ -777,7 +607,7 @@ const Zabbix = () => {
                         <div className="w-20 bg-gray-200 rounded-full h-2">
                           <div 
                             className="bg-green-500 h-2 rounded-full" 
-                            style={{ width: `${(stats.onlineHosts / hosts.length) * 100}%` }}
+                            style={{ width: `${hosts.length > 0 ? (stats.onlineHosts / hosts.length) * 100 : 0}%` }}
                           ></div>
                         </div>
                         <span className="text-sm font-medium">
@@ -804,7 +634,7 @@ const Zabbix = () => {
               </Card>
             </div>
 
-            {/* Performance Metrics */}
+            {/* Métricas de Performance */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-blue-700 flex items-center gap-2">
@@ -839,10 +669,6 @@ const Zabbix = () => {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="settings">
-            <ZabbixSettings />
           </TabsContent>
         </Tabs>
       </div>
