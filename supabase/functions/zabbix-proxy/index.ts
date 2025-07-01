@@ -98,16 +98,16 @@ serve(async (req) => {
 
     // Preparar URL da API - permitir HTTP para desenvolvimento
     let apiUrl = integration.base_url.replace(/\/$/, '');
+    
+    // Tentar detectar o protocolo automaticamente
+    if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
+      // Se não tem protocolo, tentar HTTP primeiro
+      apiUrl = 'http://' + apiUrl;
+    }
+    
+    // Adicionar endpoint da API se não estiver presente
     if (!apiUrl.endsWith('/api_jsonrpc.php')) {
       apiUrl = apiUrl + '/api_jsonrpc.php';
-    }
-
-    // Converter HTTPS para HTTP se necessário para desenvolvimento
-    if (apiUrl.startsWith('https://') && !integration.base_url.includes('localhost')) {
-      console.log('Converting HTTPS to HTTP for development...');
-      const httpUrl = apiUrl.replace('https://', 'http://');
-      console.log('Testing HTTP URL:', httpUrl);
-      apiUrl = httpUrl;
     }
 
     console.log('Final API URL:', apiUrl);
@@ -119,6 +119,26 @@ serve(async (req) => {
       params: params || {},
       auth: integration.api_token,
       id: 1,
+    };
+
+    // Função para tentar requisição com fallback para HTTP
+    const tryRequest = async (url: string) => {
+      console.log('Tentando URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'Supabase-Zabbix-Proxy/1.0',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(25000),
+      });
+      
+      return response;
     };
 
     console.log('Zabbix request:', {
@@ -152,30 +172,34 @@ serve(async (req) => {
       console.log('Connectivity test error:', connectivityError.message);
     }
 
-    // Fazer requisição para o Zabbix com timeout e headers corretos
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.log('Request timeout triggered');
-      controller.abort();
-    }, 30000);
-
+    // Fazer requisição para o Zabbix com fallback automático
     try {
       console.log('Making request to Zabbix...');
       
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'User-Agent': 'Supabase-Zabbix-Proxy/1.0',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal,
-      });
+      let response;
+      try {
+        // Tentar primeiro com a URL configurada
+        response = await tryRequest(apiUrl);
+      } catch (originalError) {
+        console.log('Primeira tentativa falhou:', originalError.message);
+        
+        // Se HTTPS falhou, tentar HTTP
+        if (apiUrl.startsWith('https://')) {
+          const httpUrl = apiUrl.replace('https://', 'http://');
+          console.log('Tentando fallback para HTTP:', httpUrl);
+          
+          try {
+            response = await tryRequest(httpUrl);
+            console.log('Fallback HTTP bem-sucedido!');
+          } catch (fallbackError) {
+            console.log('Fallback HTTP também falhou:', fallbackError.message);
+            throw originalError; // Lançar o erro original
+          }
+        } else {
+          throw originalError;
+        }
+      }
 
-      clearTimeout(timeoutId);
       
       console.log('Response received:', {
         status: response.status,
@@ -245,7 +269,6 @@ serve(async (req) => {
       });
 
     } catch (fetchError) {
-      clearTimeout(timeoutId);
       
       console.error('Fetch error details:', {
         name: fetchError.name,
