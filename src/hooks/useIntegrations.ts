@@ -159,15 +159,14 @@ export const useIntegrations = () => {
       }
 
       // Corrigir a lógica de conversão - preservar strings vazias, só converter undefined para null
-      const updateData: Partial<Integration> = {};
+      const updateData: Record<string, any> = {};
       
       // Para cada campo, apenas converter undefined para null, preservando strings vazias
-      Object.keys(updates).forEach(key => {
-        const value = updates[key as keyof Integration];
+      for (const [key, value] of Object.entries(updates)) {
         if (value !== undefined) {
-          updateData[key as keyof Integration] = value;
+          updateData[key] = value;
         }
-      });
+      }
 
       console.log('Updating integration:', {
         id,
