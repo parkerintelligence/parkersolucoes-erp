@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,31 +80,6 @@ export const ZabbixSettings = () => {
       return;
     }
 
-    // Test connection before saving
-    setIsValidating(true);
-    const validation = await validateZabbixConnection(
-      formData.base_url,
-      '', // username não usado com API token
-      '', // password não usado com API token
-      formData.api_token
-    );
-    setIsValidating(false);
-
-    if (!validation.isValid) {
-      if (validation.error && validation.details) {
-        setZabbixError({
-          error: validation.error,
-          details: validation.details
-        });
-      }
-      toast({
-        title: `Erro de Conexão: ${validation.error}`,
-        description: "Corrija os erros antes de salvar.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     const integrationData = {
       type: 'zabbix' as const,
       name: formData.name,
@@ -130,6 +104,11 @@ export const ZabbixSettings = () => {
     } else {
       createIntegration.mutate(integrationData);
     }
+
+    toast({
+      title: "Configuração salva",
+      description: "A configuração do Zabbix foi salva com sucesso.",
+    });
   };
 
   const getConnectionStatusIcon = () => {
@@ -253,7 +232,7 @@ export const ZabbixSettings = () => {
               
               <Button
                 onClick={handleSave}
-                disabled={isValidating || createIntegration.isPending || updateIntegration.isPending}
+                disabled={createIntegration.isPending || updateIntegration.isPending}
                 className="flex-1"
               >
                 {createIntegration.isPending || updateIntegration.isPending ? (
