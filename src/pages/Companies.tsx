@@ -49,7 +49,7 @@ const Companies = () => {
     };
 
     if (editingCompany) {
-      updateCompany.mutate({ id: editingCompany, updates: companyData });
+      updateCompany.mutate({ id: editingCompany, ...companyData });
     } else {
       createCompany.mutate(companyData);
     }

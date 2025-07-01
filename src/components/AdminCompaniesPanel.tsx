@@ -212,7 +212,7 @@ export const AdminCompaniesPanel = () => {
                 <TableHead>Email</TableHead>
                 <TableHead>Telefone</TableHead>
                 <TableHead>Data</TableHead>
-                <TableHead width="100">Ações</TableHead>
+                <TableHead className="w-[100px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

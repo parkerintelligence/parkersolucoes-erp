@@ -67,7 +67,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Fetch user profile data
           setTimeout(async () => {
             const profile = await fetchUserProfile(session.user.id);
-            setUserProfile(profile);
+            if (profile) {
+              // Ensure role is correctly typed
+              const typedProfile: UserProfile = {
+                id: profile.id,
+                email: profile.email,
+                role: profile.role === 'master' ? 'master' : 'user'
+              };
+              setUserProfile(typedProfile);
+            }
             setIsLoading(false);
           }, 0);
         } else {
@@ -84,7 +92,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (session?.user) {
         fetchUserProfile(session.user.id).then((profile) => {
-          setUserProfile(profile);
+          if (profile) {
+            // Ensure role is correctly typed
+            const typedProfile: UserProfile = {
+              id: profile.id,
+              email: profile.email,
+              role: profile.role === 'master' ? 'master' : 'user'
+            };
+            setUserProfile(typedProfile);
+          }
           setIsLoading(false);
         });
       } else {
