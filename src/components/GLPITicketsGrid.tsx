@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   Search, 
   Filter, 
@@ -17,11 +20,13 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
-  Building2
+  Building2,
+  CalendarIcon
 } from 'lucide-react';
 import { useGLPIExpanded, GLPITicket } from '@/hooks/useGLPIExpanded';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 export const GLPITicketsGrid = () => {
   const { tickets, entities, getStatusText, getPriorityText } = useGLPIExpanded();
@@ -29,9 +34,18 @@ export const GLPITicketsGrid = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [entityFilter, setEntityFilter] = useState('all');
-  const [groupByEntity, setGroupByEntity] = useState(false);
+  const [groupByEntity, setGroupByEntity] = useState(true); // Default to true
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTicket, setSelectedTicket] = useState<GLPITicket | null>(null);
+  
+  // Date filter states - defaulting to current month
+  const currentDate = new Date();
+  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  
+  const [dateFrom, setDateFrom] = useState<Date>(firstDayOfMonth);
+  const [dateTo, setDateTo] = useState<Date>(lastDayOfMonth);
+  
   const itemsPerPage = 20;
 
   const getEntityName = (entityId: number) => {
@@ -51,9 +65,13 @@ export const GLPITicketsGrid = () => {
       const matchesPriority = priorityFilter === 'all' || ticket.priority.toString() === priorityFilter;
       const matchesEntity = entityFilter === 'all' || ticket.entities_id.toString() === entityFilter;
       
-      return matchesSearch && matchesStatus && matchesPriority && matchesEntity;
+      // Date filter
+      const ticketDate = new Date(ticket.date);
+      const matchesDate = ticketDate >= dateFrom && ticketDate <= dateTo;
+      
+      return matchesSearch && matchesStatus && matchesPriority && matchesEntity && matchesDate;
     });
-  }, [tickets.data, searchTerm, statusFilter, priorityFilter, entityFilter]);
+  }, [tickets.data, searchTerm, statusFilter, priorityFilter, entityFilter, dateFrom, dateTo]);
 
   const groupedTickets = useMemo(() => {
     if (!groupByEntity) {
@@ -326,6 +344,58 @@ export const GLPITicketsGrid = () => {
                 className="flex-1"
               />
             </div>
+
+            {/* Date filter */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Período:</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[140px] justify-start text-left font-normal",
+                      !dateFrom && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateFrom ? format(dateFrom, "dd/MM/yy") : "Data inicial"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dateFrom}
+                    onSelect={(date) => date && setDateFrom(date)}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[140px] justify-start text-left font-normal",
+                      !dateTo && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateTo ? format(dateTo, "dd/MM/yy") : "Data final"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dateTo}
+                    onSelect={(date) => date && setDateTo(date)}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
             
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[140px]">
@@ -390,6 +460,9 @@ export const GLPITicketsGrid = () => {
           <div className="text-sm text-gray-600">
             Mostrando {filteredTickets.length} chamados
             {groupByEntity && ` em ${Object.keys(groupedTickets).length} entidade(s)`}
+            <span className="ml-2 text-blue-600">
+              ({format(dateFrom, 'dd/MM/yyyy', { locale: ptBR })} até {format(dateTo, 'dd/MM/yyyy', { locale: ptBR })})
+            </span>
           </div>
 
           {/* Tabelas */}
