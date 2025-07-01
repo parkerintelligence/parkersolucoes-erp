@@ -1,4 +1,6 @@
 
+import { supabase } from '@/integrations/supabase/client';
+
 export interface RealFtpFile {
   name: string;
   size: number;
@@ -53,15 +55,8 @@ export class RealFtpService {
     console.log('Path:', path);
     
     try {
-      // Construir URL da API para listar arquivos
-      const apiUrl = `${window.location.origin}/api/ftp/list`;
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('ftp-list', {
+        body: {
           host: this.config.host,
           port: this.config.port,
           username: this.config.username,
@@ -69,17 +64,15 @@ export class RealFtpService {
           secure: this.config.secure,
           path: path,
           passive: this.config.passive
-        })
+        }
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('FTP API Error:', errorText);
-        throw new Error(`Failed to connect to FTP server: ${response.status} ${errorText}`);
+      if (error) {
+        console.error('FTP List Error:', error);
+        throw new Error(`Failed to list FTP directory: ${error.message}`);
       }
 
-      const data = await response.json();
-      console.log('FTP files retrieved:', data.files?.length || 0);
+      console.log('FTP files retrieved from Edge Function:', data.files?.length || 0);
       
       return data.files || [];
       
@@ -142,14 +135,8 @@ export class RealFtpService {
     console.log('Path:', remotePath);
     
     try {
-      const apiUrl = `${window.location.origin}/api/ftp/download`;
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('ftp-download', {
+        body: {
           host: this.config.host,
           port: this.config.port,
           username: this.config.username,
@@ -158,14 +145,15 @@ export class RealFtpService {
           path: remotePath,
           fileName: fileName,
           passive: this.config.passive
-        })
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`Download failed: ${response.status}`);
+      if (error) {
+        throw new Error(`Download failed: ${error.message}`);
       }
 
-      const blob = await response.blob();
+      // Criar um blob a partir dos dados e forçar download
+      const blob = new Blob([data], { type: 'application/octet-stream' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -201,15 +189,12 @@ export class RealFtpService {
         passive: this.config.passive
       }));
 
-      const apiUrl = `${window.location.origin}/api/ftp/upload`;
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
+      const { data, error } = await supabase.functions.invoke('ftp-upload', {
         body: formData
       });
 
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.status}`);
+      if (error) {
+        throw new Error(`Upload failed: ${error.message}`);
       }
 
       console.log('✅ File uploaded successfully');
@@ -225,14 +210,8 @@ export class RealFtpService {
     console.log('File:', fileName);
     
     try {
-      const apiUrl = `${window.location.origin}/api/ftp/delete`;
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('ftp-delete', {
+        body: {
           host: this.config.host,
           port: this.config.port,
           username: this.config.username,
@@ -241,11 +220,11 @@ export class RealFtpService {
           path: remotePath,
           fileName: fileName,
           passive: this.config.passive
-        })
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`Delete failed: ${response.status}`);
+      if (error) {
+        throw new Error(`Delete failed: ${error.message}`);
       }
 
       console.log('✅ File deleted successfully');
