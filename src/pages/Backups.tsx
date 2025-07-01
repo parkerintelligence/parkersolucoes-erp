@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,9 +17,12 @@ import {
   Settings,
   Calendar,
   CheckCircle2,
-  BarChart3
+  BarChart3,
+  Calculator,
+  Loader2
 } from 'lucide-react';
 import { useRealFtp } from '@/hooks/useRealFtp';
+import { useFtpSpaceCalculator } from '@/hooks/useFtpSpaceCalculator';
 import { FtpUploadDialog } from '@/components/FtpUploadDialog';
 import { FtpDirectoryNavigator } from '@/components/FtpDirectoryNavigator';
 
@@ -37,16 +40,26 @@ const Backups = () => {
     deleteFile 
   } = useRealFtp();
   
+  const { calculateTotalSpace, isCalculating, spaceData, formatFileSize } = useFtpSpaceCalculator();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+
+  // Calculate total space on component mount and when integration changes
+  useEffect(() => {
+    if (ftpIntegration && currentPath === '/') {
+      calculateTotalSpace(ftpIntegration);
+    }
+  }, [ftpIntegration]);
 
   const filteredFiles = files.filter(file => 
     file.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalSize = files.reduce((acc, file) => acc + file.size, 0);
-  const totalFiles = files.filter(f => !f.isDirectory).length;
-  const totalDirectories = files.filter(f => f.isDirectory).length;
+  // Use space data from calculator or fallback to current folder calculation
+  const totalSize = spaceData?.totalSize || files.reduce((acc, file) => acc + file.size, 0);
+  const totalFiles = spaceData?.totalFiles || files.filter(f => !f.isDirectory).length;
+  const totalDirectories = spaceData?.totalDirectories || files.filter(f => f.isDirectory).length;
   
   // Corrigir o cálculo de arquivos recentes - garantir que lastModified é Date
   const recentFiles = files.filter(file => {
@@ -71,14 +84,6 @@ const Backups = () => {
       return false;
     }
   }).length;
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
 
   const formatDate = (date: Date) => {
     try {
@@ -157,13 +162,12 @@ const Backups = () => {
     }
   };
 
-  // Nova função para determinar a cor de fundo da linha baseada na data
   const getRowBackgroundColor = (lastModified: Date) => {
     const daysDiff = Math.floor((Date.now() - lastModified.getTime()) / (1000 * 60 * 60 * 24));
     if (daysDiff > 2) {
-      return 'bg-pink-50 hover:bg-pink-100'; // Rosa para arquivos antigos (mais de 2 dias)
+      return 'bg-pink-50 hover:bg-pink-100';
     }
-    return 'bg-green-50 hover:bg-green-100'; // Verde claro para arquivos recentes
+    return 'bg-green-50 hover:bg-green-100';
   };
 
   if (!ftpIntegration) {
@@ -221,6 +225,21 @@ const Backups = () => {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => calculateTotalSpace(ftpIntegration, '/')}
+            disabled={isCalculating}
+            className="flex items-center gap-2"
+          >
+            {isCalculating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Calculator className="h-4 w-4" />
+            )}
+            {isCalculating ? 'Calculando...' : 'Recalcular Espaço'}
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => refetchFiles()}
             disabled={isLoadingFiles}
             className="flex items-center gap-2"
@@ -240,8 +259,13 @@ const Backups = () => {
                 <HardDrive className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Espaço Total</p>
+                <p className="text-sm text-gray-600">
+                  Espaço Total {spaceData ? '(Recursivo)' : '(Pasta Atual)'}
+                </p>
                 <p className="text-lg font-semibold text-gray-900">{formatFileSize(totalSize)}</p>
+                {isCalculating && (
+                  <p className="text-xs text-orange-600">Calculando...</p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -292,6 +316,27 @@ const Backups = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Space Calculation Progress */}
+      {spaceData && (
+        <Card className="mb-6 bg-blue-50 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-blue-900">Cálculo Recursivo Concluído</p>
+                <p className="text-sm text-blue-700">
+                  Processadas {spaceData.processedPaths.length} pastas
+                  {spaceData.errors.length > 0 && ` • ${spaceData.errors.length} erros`}
+                </p>
+              </div>
+              <Badge className="bg-blue-100 text-blue-800">
+                <BarChart3 className="h-3 w-3 mr-1" />
+                Dados Completos
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Card principal do explorador FTP */}
       <Card className="shadow-lg">
@@ -422,7 +467,6 @@ const Backups = () => {
                 </p>
               </div>
 
-              {/* ... keep existing code (cabeçalho da tabela) */}
               <div className="flex items-center p-4 bg-gray-50 border-b text-sm font-medium text-gray-700">
                 <div className="w-12 flex items-center">
                   <input
@@ -439,7 +483,6 @@ const Backups = () => {
                 <div className="w-24 text-center">Ações</div>
               </div>
 
-              {/* Lista de arquivos com cores baseadas na data */}
               <div className="divide-y">
                 {filteredFiles.map((file, index) => (
                   <div 
