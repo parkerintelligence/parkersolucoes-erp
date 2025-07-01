@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Check, X, TestTube } from 'lucide-react';
+import { Trash2, Plus, Check, X, TestTube, Edit } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
@@ -40,6 +40,8 @@ const AdminApiPanel = () => {
     { value: 'glpi', label: 'GLPI' },
     { value: 'zabbix', label: 'Zabbix' },
     { value: 'wasabi', label: 'Wasabi' },
+    { value: 'chatwoot', label: 'Chatwoot' },
+    { value: 'evolution_api', label: 'Evolution API' },
     { value: 'other', label: 'Outro' }
   ];
 
@@ -57,7 +59,7 @@ const AdminApiPanel = () => {
     setEditingId(null);
   };
 
-  const handleEdit = (config: ApiConfiguration) => {
+  const handleEdit = (config: any) => {
     setNewConfig({
       id: config.id,
       type: config.type,
@@ -69,7 +71,7 @@ const AdminApiPanel = () => {
       bucket_name: config.bucket_name || '',
       is_active: config.is_active
     });
-    setEditingId(config.id || null);
+    setEditingId(config.id);
   };
 
   const testConnection = async (config: ApiConfiguration) => {
@@ -82,7 +84,6 @@ const AdminApiPanel = () => {
       let testOptions: RequestInit = {};
 
       if (config.type === 'wasabi') {
-        // Teste específico para Wasabi usando s3.wasabisys.com
         testUrl = '/api/wasabi-test';
         testOptions = {
           method: 'POST',
@@ -96,7 +97,6 @@ const AdminApiPanel = () => {
           })
         };
       } else {
-        // Teste genérico para outras APIs
         testUrl = config.base_url;
         testOptions = {
           method: 'GET',
@@ -140,7 +140,6 @@ const AdminApiPanel = () => {
       return;
     }
 
-    // Para Wasabi, testar conexão antes de salvar
     if (newConfig.type === 'wasabi') {
       if (!newConfig.username || !newConfig.password) {
         toast({
@@ -151,12 +150,10 @@ const AdminApiPanel = () => {
         return;
       }
 
-      // Definir endpoint padrão do Wasabi se não informado
       if (!newConfig.base_url) {
         newConfig.base_url = 's3.wasabisys.com';
       }
 
-      // Testar conexão
       try {
         const testResponse = await fetch('/api/wasabi-test', {
           method: 'POST',
@@ -180,7 +177,6 @@ const AdminApiPanel = () => {
         }
       } catch (error) {
         console.warn('Erro no teste de conexão Wasabi:', error);
-        // Continuar mesmo com erro no teste, pois pode ser problema de rede
       }
     }
 
@@ -199,10 +195,6 @@ const AdminApiPanel = () => {
             is_active: newConfig.is_active
           }
         });
-        toast({
-          title: "Configuração atualizada!",
-          description: `${newConfig.name} foi atualizada com sucesso.`,
-        });
       } else {
         await createIntegration.mutateAsync({
           type: newConfig.type as any,
@@ -216,10 +208,6 @@ const AdminApiPanel = () => {
           region: newConfig.region,
           bucket_name: newConfig.bucket_name,
           is_active: newConfig.is_active
-        });
-        toast({
-          title: "Configuração adicionada!",
-          description: `${newConfig.name} foi adicionada com sucesso.`,
         });
       }
       resetForm();
@@ -235,10 +223,6 @@ const AdminApiPanel = () => {
   const handleDelete = async (id: string, name: string) => {
     try {
       await deleteIntegration.mutateAsync(id);
-      toast({
-        title: "Configuração removida!",
-        description: `${name} foi removida com sucesso.`,
-      });
     } catch (error) {
       toast({
         title: "Erro ao remover",
@@ -249,11 +233,11 @@ const AdminApiPanel = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Formulário */}
-      <Card>
+      <Card className="border-blue-200">
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg">
+          <CardTitle className="text-lg text-blue-900">
             {editingId ? 'Editar' : 'Nova'} Configuração de API
           </CardTitle>
         </CardHeader>
@@ -383,97 +367,106 @@ const AdminApiPanel = () => {
       </Card>
 
       {/* Lista de Configurações */}
-      <Card>
+      <Card className="border-blue-200">
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg">Configurações Existentes</CardTitle>
+          <CardTitle className="text-lg text-blue-900">Configurações Existentes</CardTitle>
         </CardHeader>
         <CardContent>
           {integrations && integrations.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {integrations.map((config) => (
-                <div key={config.id} className="border border-gray-200 rounded-lg p-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-medium">{config.name}</h3>
-                        <Badge variant={config.type === 'wasabi' ? 'default' : 'secondary'}>
-                          {config.type.toUpperCase()}
-                        </Badge>
-                        <Badge variant={config.is_active ? 'default' : 'secondary'}>
-                          {config.is_active ? 'Ativa' : 'Inativa'}
-                        </Badge>
+                <Card key={config.id} className="border border-gray-200 shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex flex-col lg:flex-row justify-between gap-4">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold text-lg">{config.name}</h3>
+                          <Badge variant={config.type === 'wasabi' ? 'default' : 'secondary'}>
+                            {config.type.toUpperCase()}
+                          </Badge>
+                          <Badge variant={config.is_active ? 'default' : 'secondary'}>
+                            {config.is_active ? 'Ativa' : 'Inativa'}
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="font-medium text-gray-700">URL:</span>
+                            <p className="text-gray-600 break-all">{config.base_url}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Usuário:</span>
+                            <p className="text-gray-600">{config.username}</p>
+                          </div>
+                          {config.type === 'wasabi' && config.region && (
+                            <div>
+                              <span className="font-medium text-gray-700">Região:</span>
+                              <p className="text-gray-600">{config.region}</p>
+                            </div>
+                          )}
+                          {config.type === 'wasabi' && config.bucket_name && (
+                            <div>
+                              <span className="font-medium text-gray-700">Bucket:</span>
+                              <p className="text-gray-600">{config.bucket_name}</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-600 mb-1">
-                        <strong>URL:</strong> {config.base_url}
-                      </p>
-                      <p className="text-sm text-gray-600 mb-1">
-                        <strong>Usuário:</strong> {config.username}
-                      </p>
-                      {config.type === 'wasabi' && config.region && (
-                        <p className="text-sm text-gray-600 mb-1">
-                          <strong>Região:</strong> {config.region}
-                        </p>
-                      )}
-                      {config.type === 'wasabi' && config.bucket_name && (
-                        <p className="text-sm text-gray-600 mb-1">
-                          <strong>Bucket:</strong> {config.bucket_name}
-                        </p>
-                      )}
+                      
+                      <div className="flex flex-row lg:flex-col gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => testConnection({
+                            id: config.id,
+                            type: config.type,
+                            name: config.name,
+                            base_url: config.base_url,
+                            username: config.username || '',
+                            password: config.password || '',
+                            region: config.region || '',
+                            bucket_name: config.bucket_name || '',
+                            is_active: config.is_active || false
+                          })}
+                          disabled={testingConnection === config.id}
+                          className="flex-1 lg:flex-none"
+                        >
+                          <TestTube className={`h-4 w-4 mr-1 ${testingConnection === config.id ? 'animate-spin' : ''}`} />
+                          {testingConnection === config.id ? 'Testando...' : 'Testar'}
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(config)}
+                          className="flex-1 lg:flex-none"
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Editar
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(config.id, config.name)}
+                          className="text-red-600 hover:text-red-700 hover:border-red-300 flex-1 lg:flex-none"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Remover
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => testConnection({
-                          id: config.id,
-                          type: config.type,
-                          name: config.name,
-                          base_url: config.base_url,
-                          username: config.username || '',
-                          password: config.password || '',
-                          region: config.region || '',
-                          bucket_name: config.bucket_name || '',
-                          is_active: config.is_active || false
-                        })}
-                        disabled={testingConnection === config.id}
-                      >
-                        <TestTube className={`h-4 w-4 mr-1 ${testingConnection === config.id ? 'animate-spin' : ''}`} />
-                        {testingConnection === config.id ? 'Testando...' : 'Testar'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit({
-                          id: config.id,
-                          type: config.type,
-                          name: config.name,
-                          base_url: config.base_url,
-                          username: config.username || '',
-                          password: config.password || '',
-                          region: config.region || '',
-                          bucket_name: config.bucket_name || '',
-                          is_active: config.is_active || false
-                        })}
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(config.id, config.name)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-6">
-              Nenhuma configuração encontrada.
-            </p>
+            <div className="text-center py-8">
+              <div className="bg-gray-50 rounded-lg p-6">
+                <p className="text-gray-500 text-lg mb-2">Nenhuma configuração encontrada</p>
+                <p className="text-gray-400 text-sm">Adicione uma nova configuração para começar</p>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
