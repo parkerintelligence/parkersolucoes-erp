@@ -3,28 +3,32 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useIntegrations } from './useIntegrations';
 import { RealFtpService, RealFtpFile } from '@/services/realFtpService';
+import { useState } from 'react';
 
 export const useRealFtp = () => {
   const queryClient = useQueryClient();
+  const [currentPath, setCurrentPath] = useState('/');
   const { data: integrations, isLoading: isLoadingIntegrations } = useIntegrations();
   const ftpIntegrations = integrations?.filter(int => int.type === 'ftp' && int.is_active) || [];
   const activeFtpIntegration = ftpIntegrations[0];
 
   console.log('=== Real FTP Hook Debug ===');
   console.log('Active FTP integration found:', !!activeFtpIntegration);
+  console.log('Current path:', currentPath);
   
   if (activeFtpIntegration) {
     console.log('Integration details:', {
       id: activeFtpIntegration.id,
       name: activeFtpIntegration.name,
       host: activeFtpIntegration.base_url,
-      username: activeFtpIntegration.username
+      username: activeFtpIntegration.username,
+      port: activeFtpIntegration.port || 21
     });
   }
 
   // Fetch FTP files using real connection
   const { data: files = [], isLoading: isLoadingFiles, error: filesError, refetch: refetchFiles } = useQuery({
-    queryKey: ['real-ftp-files', activeFtpIntegration?.id],
+    queryKey: ['real-ftp-files', activeFtpIntegration?.id, currentPath],
     queryFn: async (): Promise<RealFtpFile[]> => {
       if (!activeFtpIntegration) {
         console.log('No active FTP integration - returning empty array');
@@ -34,9 +38,10 @@ export const useRealFtp = () => {
       console.log('=== Fetching Real FTP Files ===');
       console.log('Using integration:', activeFtpIntegration.name);
       console.log('Server URL:', activeFtpIntegration.base_url);
+      console.log('Current path:', currentPath);
       
       const realFtpService = new RealFtpService(activeFtpIntegration);
-      const fileList = await realFtpService.listDirectory('/');
+      const fileList = await realFtpService.listDirectory(currentPath);
       
       console.log('Real FTP files retrieved:', fileList.length);
       fileList.forEach((file, index) => {
@@ -56,8 +61,27 @@ export const useRealFtp = () => {
     retryDelay: 2000,
     refetchInterval: false,
     refetchOnWindowFocus: false,
-    staleTime: 60000, // Cache for 1 minute
+    staleTime: 60000,
   });
+
+  // Get available directories for navigation
+  const directories = files.filter(file => file.isDirectory);
+
+  // Navigate to directory
+  const navigateToDirectory = (path: string) => {
+    console.log('Navigating to directory:', path);
+    setCurrentPath(path);
+    queryClient.invalidateQueries({ queryKey: ['real-ftp-files'] });
+  };
+
+  // Go back to parent directory
+  const goToParentDirectory = () => {
+    if (currentPath === '/') return;
+    const pathParts = currentPath.split('/').filter(Boolean);
+    pathParts.pop();
+    const parentPath = pathParts.length > 0 ? `/${pathParts.join('/')}` : '/';
+    navigateToDirectory(parentPath);
+  };
 
   // Download file from real FTP
   const downloadFile = useMutation({
@@ -68,9 +92,10 @@ export const useRealFtp = () => {
 
       console.log('=== Downloading from Real FTP ===');
       console.log('File:', fileName);
+      console.log('Path:', currentPath);
       
       const realFtpService = new RealFtpService(activeFtpIntegration);
-      await realFtpService.downloadFile(fileName);
+      await realFtpService.downloadFile(fileName, currentPath);
       
       return { success: true, fileName };
     },
@@ -100,9 +125,10 @@ export const useRealFtp = () => {
 
       console.log('=== Uploading to Real FTP ===');
       console.log('File:', file.name);
+      console.log('Path:', currentPath);
       
       const realFtpService = new RealFtpService(activeFtpIntegration);
-      await realFtpService.uploadFile(file);
+      await realFtpService.uploadFile(file, currentPath);
       
       return { success: true, fileName: file.name };
     },
@@ -133,9 +159,10 @@ export const useRealFtp = () => {
 
       console.log('=== Deleting from Real FTP ===');
       console.log('File:', fileName);
+      console.log('Path:', currentPath);
       
       const realFtpService = new RealFtpService(activeFtpIntegration);
-      await realFtpService.deleteFile(fileName);
+      await realFtpService.deleteFile(fileName, currentPath);
       
       return { success: true, fileName };
     },
@@ -163,6 +190,10 @@ export const useRealFtp = () => {
     filesError,
     ftpIntegration: activeFtpIntegration,
     ftpIntegrations,
+    currentPath,
+    directories,
+    navigateToDirectory,
+    goToParentDirectory,
     downloadFile,
     uploadFile,
     deleteFile,
