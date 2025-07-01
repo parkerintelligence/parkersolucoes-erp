@@ -5,16 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useIntegrations } from '@/hooks/useIntegrations';
-import { useFtp } from '@/hooks/useFtp';
-import { FtpConnectionStatus } from '@/components/FtpConnectionStatus';
-import { FtpFileExplorer } from '@/components/FtpFileExplorer';
-import { FtpToolbar } from '@/components/FtpToolbar';
-import { FtpDirectoryNavigator } from '@/components/FtpDirectoryNavigator';
-import { FtpUploadDialog } from '@/components/FtpUploadDialog';
+import { useRealFtp } from '@/hooks/useRealFtp';
 import { 
   Activity, 
   Server, 
@@ -35,18 +29,19 @@ const Backups = () => {
   const ftpIntegration = integrations?.find(integration => integration.type === 'ftp');
   
   const {
-    connectionStatus,
-    currentPath,
     files,
-    isLoading,
-    error,
-    navigateToPath,
-    refresh,
-    createFolder,
-    deleteFile,
+    isLoadingFiles,
+    filesError,
+    ftpIntegration: activeFtpIntegration,
+    currentPath,
+    directories,
+    navigateToDirectory,
+    goToParentDirectory,
     downloadFile,
-    uploadFile
-  } = useFtp();
+    uploadFile,
+    deleteFile,
+    refetchFiles
+  } = useRealFtp();
 
   const [newFolderName, setNewFolderName] = useState('');
   const [showUploadDialog, setShowUploadDialog] = useState(false);
@@ -78,21 +73,16 @@ const Backups = () => {
 
   // Sort files by modification date (oldest first)
   const sortedFiles = files?.sort((a, b) => {
-    if (!a.date || !b.date) return 0;
-    return new Date(a.date).getTime() - new Date(b.date).getTime();
+    if (!a.lastModified || !b.lastModified) return 0;
+    return new Date(a.lastModified).getTime() - new Date(b.lastModified).getTime();
   }) || [];
-
-  const handleCreateFolder = async () => {
-    if (newFolderName.trim()) {
-      await createFolder(newFolderName.trim());
-      setNewFolderName('');
-    }
-  };
 
   const handleUploadComplete = () => {
     setShowUploadDialog(false);
-    refresh();
+    refetchFiles();
   };
+
+  const connectionStatus = activeFtpIntegration ? 'connected' : 'disconnected';
 
   return (
     <Layout>
@@ -105,16 +95,29 @@ const Backups = () => {
             </h1>
             <p className="text-blue-600">Gerencie seus backups via FTP</p>
           </div>
-          <Button onClick={refresh} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <Button onClick={() => refetchFiles()} disabled={isLoadingFiles} className="bg-blue-600 hover:bg-blue-700">
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoadingFiles ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
         </div>
 
-        <FtpConnectionStatus 
-          status={connectionStatus} 
-          serverInfo={ftpIntegration} 
-        />
+        {/* Connection Status */}
+        {connectionStatus === 'connected' && ftpIntegration && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm font-medium">Conectado</span>
+                </div>
+                <Badge variant="outline">
+                  <Server className="h-3 w-3 mr-1" />
+                  {ftpIntegration.base_url}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {connectionStatus === 'connected' && (
           <Tabs defaultValue="files" className="space-y-6">
@@ -146,52 +149,84 @@ const Backups = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <FtpDirectoryNavigator 
-                      currentPath={currentPath}
-                      onNavigate={navigateToPath}
-                    />
-
-                    <div className="flex items-center gap-2">
-                      <Input
-                        placeholder="Nome da nova pasta"
-                        value={newFolderName}
-                        onChange={(e) => setNewFolderName(e.target.value)}
-                        className="max-w-xs"
-                      />
-                      <Button 
-                        onClick={handleCreateFolder}
-                        disabled={!newFolderName.trim()}
-                        size="sm"
-                        variant="outline"
-                      >
-                        <Folder className="h-4 w-4 mr-1" />
-                        Criar Pasta
-                      </Button>
+                    {/* Directory Navigation */}
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                      <Folder className="h-4 w-4 text-blue-500" />
+                      <span className="text-sm">Caminho atual: {currentPath}</span>
+                      {currentPath !== '/' && (
+                        <Button 
+                          onClick={goToParentDirectory}
+                          size="sm"
+                          variant="outline"
+                        >
+                          Voltar
+                        </Button>
+                      )}
                     </div>
 
-                    <FtpToolbar 
-                      currentPath={currentPath}
-                      onRefresh={refresh}
-                      onNavigateUp={() => {
-                        const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/';
-                        navigateToPath(parentPath);
-                      }}
-                    />
-
-                    {error && (
+                    {filesError && (
                       <Alert variant="destructive">
                         <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>{error}</AlertDescription>
+                        <AlertDescription>{filesError.message}</AlertDescription>
                       </Alert>
                     )}
 
-                    <FtpFileExplorer 
-                      files={sortedFiles}
-                      isLoading={isLoading}
-                      onNavigate={navigateToPath}
-                      onDownload={downloadFile}
-                      onDelete={deleteFile}
-                    />
+                    {/* Files List */}
+                    {isLoadingFiles ? (
+                      <div className="flex items-center justify-center p-8">
+                        <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
+                        <span className="ml-2">Carregando arquivos...</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {sortedFiles.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                            <div className="flex items-center gap-3">
+                              {file.isDirectory ? (
+                                <Folder className="h-5 w-5 text-blue-500" />
+                              ) : (
+                                <FileText className="h-5 w-5 text-gray-500" />
+                              )}
+                              <div>
+                                <p className="font-medium">{file.name}</p>
+                                <p className="text-sm text-gray-500">
+                                  {file.isDirectory ? 'Pasta' : `${Math.round(file.size / 1024)} KB`}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {file.isDirectory ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => navigateToDirectory(`${currentPath}/${file.name}`.replace('//', '/'))}
+                                >
+                                  Abrir
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => downloadFile.mutate(file.name)}
+                                  disabled={downloadFile.isPending}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => deleteFile.mutate(file.name)}
+                                disabled={deleteFile.isPending}
+                                className="text-red-600 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -207,7 +242,7 @@ const Backups = () => {
                       </div>
                       <div>
                         <p className="text-2xl font-bold text-blue-900">
-                          {sortedFiles?.filter(f => f.type === 'file').length || 0}
+                          {sortedFiles?.filter(f => !f.isDirectory).length || 0}
                         </p>
                         <p className="text-sm text-gray-600">Arquivos</p>
                       </div>
@@ -223,7 +258,7 @@ const Backups = () => {
                       </div>
                       <div>
                         <p className="text-2xl font-bold text-green-900">
-                          {sortedFiles?.filter(f => f.type === 'directory').length || 0}
+                          {sortedFiles?.filter(f => f.isDirectory).length || 0}
                         </p>
                         <p className="text-sm text-gray-600">Pastas</p>
                       </div>
@@ -239,9 +274,9 @@ const Backups = () => {
                       </div>
                       <div>
                         <p className="text-2xl font-bold text-purple-900">
-                          {sortedFiles?.reduce((total, file) => total + (file.size || 0), 0) || 0}
+                          {Math.round((sortedFiles?.reduce((total, file) => total + (file.size || 0), 0) || 0) / 1024)}
                         </p>
-                        <p className="text-sm text-gray-600">Bytes (Pasta Atual)</p>
+                        <p className="text-sm text-gray-600">KB (Pasta Atual)</p>
                       </div>
                     </div>
                   </CardContent>
@@ -251,12 +286,39 @@ const Backups = () => {
           </Tabs>
         )}
 
-        <FtpUploadDialog
-          isOpen={showUploadDialog}
-          onClose={() => setShowUploadDialog(false)}
-          onUploadComplete={handleUploadComplete}
-          currentPath={currentPath}
-        />
+        {/* Upload Dialog */}
+        {showUploadDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-md">
+              <CardHeader>
+                <CardTitle>Upload de Arquivo</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Input
+                    type="file"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        uploadFile.mutate(file);
+                        handleUploadComplete();
+                      }
+                    }}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowUploadDialog(false)}
+                      className="flex-1"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </Layout>
   );
