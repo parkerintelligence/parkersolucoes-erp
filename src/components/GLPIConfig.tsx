@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CheckCircle2, AlertCircle, Headphones, ExternalLink, Info, Shield, Key, Settings2 } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Headphones, ExternalLink, Info, Shield, Key, Settings2, Save } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { toast } from '@/hooks/use-toast';
@@ -38,12 +37,24 @@ export const GLPIConfig = () => {
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [lastError, setLastError] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const glpiIntegration = integrations?.find(int => int.type === 'glpi');
 
   // Load existing configuration
   useEffect(() => {
     if (glpiIntegration) {
+      console.log('Loading GLPI integration config:', {
+        id: glpiIntegration.id,
+        name: glpiIntegration.name,
+        base_url: glpiIntegration.base_url,
+        hasApiToken: !!glpiIntegration.api_token,
+        apiTokenLength: glpiIntegration.api_token?.length || 0,
+        hasUsername: !!glpiIntegration.username,
+        hasPassword: !!glpiIntegration.password,
+        passwordLength: glpiIntegration.password?.length || 0
+      });
+      
       setConfig({
         name: glpiIntegration.name,
         base_url: glpiIntegration.base_url,
@@ -253,7 +264,23 @@ export const GLPIConfig = () => {
       return;
     }
 
+    setIsSaving(true);
+    
     try {
+      console.log('💾 Salvando configuração GLPI:', {
+        hasIntegration: !!glpiIntegration,
+        integrationId: glpiIntegration?.id,
+        configToSave: {
+          name: config.name,
+          base_url: config.base_url,
+          hasApiToken: !!config.api_token,
+          apiTokenLength: config.api_token?.length || 0,
+          hasUsername: !!config.username,
+          hasPassword: !!config.password,
+          passwordLength: config.password?.length || 0
+        }
+      });
+
       const integrationData = {
         type: 'glpi' as const,
         name: config.name,
@@ -274,14 +301,17 @@ export const GLPIConfig = () => {
       };
 
       if (glpiIntegration) {
+        console.log('🔄 Atualizando integração existente...');
         await updateIntegration.mutateAsync({
           id: glpiIntegration.id,
           updates: integrationData
         });
       } else {
+        console.log('➕ Criando nova integração...');
         await createIntegration.mutateAsync(integrationData);
       }
 
+      console.log('✅ Configuração salva com sucesso!');
       toast({
         title: "✅ Configuração Salva",
         description: "Integração GLPI configurada com sucesso!",
@@ -289,15 +319,18 @@ export const GLPIConfig = () => {
 
       // Initialize session after saving
       setTimeout(() => {
+        console.log('🚀 Inicializando sessão GLPI...');
         initSession.mutate();
       }, 1000);
     } catch (error) {
-      console.error('Error saving GLPI configuration:', error);
+      console.error('❌ Erro ao salvar configuração GLPI:', error);
       toast({
         title: "❌ Erro ao Salvar",
-        description: "Erro ao salvar configuração do GLPI",
+        description: error.message || "Erro ao salvar configuração do GLPI",
         variant: "destructive"
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -332,6 +365,12 @@ export const GLPIConfig = () => {
               <Badge className="bg-red-100 text-red-800">
                 <AlertCircle className="h-3 w-3 mr-1" />
                 Erro de Conexão
+              </Badge>
+            )}
+            {glpiIntegration.api_token && (
+              <Badge className="bg-gray-100 text-gray-800">
+                <Save className="h-3 w-3 mr-1" />
+                Configurado
               </Badge>
             )}
           </div>
@@ -510,15 +549,15 @@ export const GLPIConfig = () => {
         {/* Save Button */}
         <Button
           onClick={saveConfiguration}
-          disabled={!isConfigValid || createIntegration.isPending || updateIntegration.isPending}
+          disabled={!isConfigValid || isSaving}
           className="w-full"
         >
-          {(createIntegration.isPending || updateIntegration.isPending) ? (
+          {isSaving ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
           ) : (
             <Settings2 className="h-4 w-4 mr-2" />
           )}
-          {glpiIntegration ? 'Atualizar Configuração' : 'Salvar Configuração'}
+          {isSaving ? 'Salvando...' : (glpiIntegration ? 'Atualizar Configuração' : 'Salvar Configuração')}
         </Button>
 
         {/* Enhanced Help Section */}

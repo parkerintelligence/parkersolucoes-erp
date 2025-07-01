@@ -65,6 +65,16 @@ export const useIntegrations = () => {
         throw new Error('User not authenticated');
       }
 
+      // Validação preventiva para GLPI
+      if (integration.type === 'glpi') {
+        if (!integration.api_token || integration.api_token.trim() === '') {
+          throw new Error('App Token é obrigatório para integração GLPI');
+        }
+        if (!integration.password || integration.password.trim() === '') {
+          throw new Error('User Token ou Senha é obrigatório para integração GLPI');
+        }
+      }
+
       const integrationData = {
         type: integration.type,
         name: integration.name,
@@ -85,7 +95,13 @@ export const useIntegrations = () => {
         user_id: user.id
       };
 
-      console.log('Creating integration:', integrationData);
+      console.log('Creating integration:', {
+        type: integrationData.type,
+        name: integrationData.name,
+        hasApiToken: !!integrationData.api_token,
+        hasPassword: !!integrationData.password,
+        apiTokenLength: integrationData.api_token?.length || 0
+      });
 
       const { data, error } = await supabase
         .from('integrations')
@@ -98,7 +114,12 @@ export const useIntegrations = () => {
         throw error;
       }
 
-      console.log('Integration created successfully:', data);
+      console.log('Integration created successfully:', {
+        id: data.id,
+        type: data.type,
+        hasApiToken: !!data.api_token,
+        apiTokenLength: data.api_token?.length || 0
+      });
       return data;
     },
     onSuccess: () => {
@@ -127,23 +148,35 @@ export const useIntegrations = () => {
         throw new Error('User not authenticated');
       }
 
-      const updateData = {
-        ...updates,
-        api_token: updates.api_token === undefined ? null : updates.api_token,
-        webhook_url: updates.webhook_url === undefined ? null : updates.webhook_url,
-        phone_number: updates.phone_number === undefined ? null : updates.phone_number,
-        username: updates.username === undefined ? null : updates.username,
-        password: updates.password === undefined ? null : updates.password,
-        region: updates.region === undefined ? null : updates.region,
-        bucket_name: updates.bucket_name === undefined ? null : updates.bucket_name,
-        port: updates.port === undefined ? null : updates.port,
-        directory: updates.directory === undefined ? null : updates.directory,
-        passive_mode: updates.passive_mode === undefined ? null : updates.passive_mode,
-        use_ssl: updates.use_ssl === undefined ? null : updates.use_ssl,
-        keep_logged: updates.keep_logged === undefined ? null : updates.keep_logged,
-      };
+      // Validação preventiva para GLPI
+      if (updates.type === 'glpi' || (updates.api_token !== undefined || updates.password !== undefined)) {
+        if (updates.api_token !== undefined && (!updates.api_token || updates.api_token.trim() === '')) {
+          throw new Error('App Token é obrigatório para integração GLPI');
+        }
+        if (updates.password !== undefined && (!updates.password || updates.password.trim() === '')) {
+          throw new Error('User Token ou Senha é obrigatório para integração GLPI');
+        }
+      }
 
-      console.log('Updating integration:', id, updateData);
+      // Corrigir a lógica de conversão - preservar strings vazias, só converter undefined para null
+      const updateData: Partial<Integration> = {};
+      
+      // Para cada campo, apenas converter undefined para null, preservando strings vazias
+      Object.keys(updates).forEach(key => {
+        const value = updates[key as keyof Integration];
+        if (value !== undefined) {
+          updateData[key as keyof Integration] = value;
+        }
+      });
+
+      console.log('Updating integration:', {
+        id,
+        fieldsToUpdate: Object.keys(updateData),
+        hasApiToken: !!(updateData.api_token),
+        apiTokenLength: typeof updateData.api_token === 'string' ? updateData.api_token.length : 0,
+        hasPassword: !!(updateData.password),
+        passwordLength: typeof updateData.password === 'string' ? updateData.password.length : 0
+      });
 
       const { data, error } = await supabase
         .from('integrations')
@@ -157,7 +190,14 @@ export const useIntegrations = () => {
         throw error;
       }
 
-      console.log('Integration updated successfully:', data);
+      console.log('Integration updated successfully:', {
+        id: data.id,
+        type: data.type,
+        hasApiToken: !!data.api_token,
+        apiTokenLength: data.api_token?.length || 0,
+        hasPassword: !!data.password,
+        passwordLength: data.password?.length || 0
+      });
       return data;
     },
     onSuccess: () => {
