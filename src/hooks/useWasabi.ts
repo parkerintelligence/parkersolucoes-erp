@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
@@ -46,6 +45,35 @@ export const useWasabi = () => {
     enabled: !!activeWasabiIntegration && !!bucketName,
     retry: 2,
     retryDelay: 1000,
+  });
+
+  // Criar novo bucket
+  const createBucket = useMutation({
+    mutationFn: async (bucketName: string) => {
+      if (!activeWasabiIntegration) {
+        throw new Error('Integração Wasabi não configurada');
+      }
+
+      const wasabiService = new WasabiService(activeWasabiIntegration);
+      await wasabiService.createBucket(bucketName);
+      
+      return { success: true, bucketName };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['wasabi-buckets', activeWasabiIntegration?.id] });
+      toast({
+        title: "Bucket criado!",
+        description: `Bucket "${data.bucketName}" foi criado com sucesso.`,
+      });
+    },
+    onError: (error) => {
+      console.error('Erro ao criar bucket:', error);
+      toast({
+        title: "Erro ao criar bucket",
+        description: error.message || "Erro ao criar bucket no Wasabi.",
+        variant: "destructive"
+      });
+    },
   });
 
   // Upload de arquivos
@@ -151,5 +179,6 @@ export const useWasabi = () => {
     uploadFiles,
     downloadFile,
     deleteFile,
+    createBucket,
   };
 };

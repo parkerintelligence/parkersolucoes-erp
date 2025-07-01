@@ -6,12 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { HardDrive, Download, Upload, Trash2, RefreshCw, Search, File, Folder, Settings, AlertTriangle, Database } from 'lucide-react';
+import { HardDrive, Download, Trash2, RefreshCw, Search, File, Folder, Settings, AlertTriangle, Database } from 'lucide-react';
 import { useWasabi } from '@/hooks/useWasabi';
+import { WasabiUploadDialog } from '@/components/WasabiUploadDialog';
+import { WasabiCreateBucketDialog } from '@/components/WasabiCreateBucketDialog';
 
 const Wasabi = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [selectedBucket, setSelectedBucket] = useState<string>('');
   
   const { 
@@ -24,6 +25,7 @@ const Wasabi = () => {
     uploadFiles,
     downloadFile,
     deleteFile,
+    createBucket,
   } = useWasabi();
 
   const { data: files = [], isLoading: isLoadingFiles, error: filesError } = getFilesQuery(selectedBucket);
@@ -36,13 +38,13 @@ const Wasabi = () => {
     window.location.reload();
   };
 
-  const handleFileUpload = async () => {
-    if (!selectedFiles || selectedFiles.length === 0 || !selectedBucket) {
-      return;
-    }
+  const handleFileUpload = (files: FileList) => {
+    if (!selectedBucket) return;
+    uploadFiles.mutate({ files, bucketName: selectedBucket });
+  };
 
-    uploadFiles.mutate({ files: selectedFiles, bucketName: selectedBucket });
-    setSelectedFiles(null);
+  const handleCreateBucket = (bucketName: string) => {
+    createBucket.mutate(bucketName);
   };
 
   const handleDownload = (fileName: string) => {
@@ -138,16 +140,27 @@ const Wasabi = () => {
                 Endpoint: {wasabiIntegration.base_url} | Região: {wasabiIntegration.region || 'us-east-1'}
               </p>
             </div>
-            <Button variant="outline" onClick={handleRefresh} disabled={isLoadingBuckets}>
-              <RefreshCw className={`h-5 w-5 mr-2 ${isLoadingBuckets ? 'animate-spin' : ''}`} />
-              Atualizar
-            </Button>
+            <div className="flex items-center gap-2">
+              <WasabiCreateBucketDialog
+                onCreateBucket={handleCreateBucket}
+                isCreating={createBucket.isPending}
+              />
+              <WasabiUploadDialog
+                selectedBucket={selectedBucket}
+                onUpload={handleFileUpload}
+                isUploading={uploadFiles.isPending}
+              />
+              <Button variant="outline" onClick={handleRefresh} disabled={isLoadingBuckets}>
+                <RefreshCw className={`h-5 w-5 mr-2 ${isLoadingBuckets ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* Control Panel */}
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-end">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-end">
             {/* Bucket Selection */}
             <div className="space-y-3">
               <label className="text-sm font-medium text-gray-700">Selecionar Bucket</label>
@@ -173,28 +186,6 @@ const Wasabi = () => {
                   </SelectContent>
                 </Select>
               )}
-            </div>
-
-            {/* File Upload */}
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-gray-700">Upload de Arquivos</label>
-              <div className="flex gap-2">
-                <input
-                  type="file"
-                  multiple
-                  onChange={(e) => setSelectedFiles(e.target.files)}
-                  className="flex-1 p-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:outline-none"
-                  disabled={!selectedBucket}
-                />
-                <Button 
-                  onClick={handleFileUpload} 
-                  disabled={uploadFiles.isPending || !selectedFiles || selectedFiles.length === 0 || !selectedBucket}
-                  className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {uploadFiles.isPending ? 'Enviando...' : 'Upload'}
-                </Button>
-              </div>
             </div>
 
             {/* Search */}

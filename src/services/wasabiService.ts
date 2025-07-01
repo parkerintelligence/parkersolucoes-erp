@@ -1,5 +1,4 @@
-
-import { S3Client, ListObjectsV2Command, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, ListBucketsCommand } from '@aws-sdk/client-s3';
+import { S3Client, ListObjectsV2Command, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, ListBucketsCommand, CreateBucketCommand } from '@aws-sdk/client-s3';
 import { Integration } from '@/hooks/useIntegrations';
 
 export interface WasabiFile {
@@ -80,6 +79,26 @@ export class WasabiService {
     } catch (error) {
       console.error('Erro ao listar buckets do Wasabi:', error);
       throw new Error(`Erro ao conectar com Wasabi: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
+  }
+
+  async createBucket(bucketName: string): Promise<void> {
+    if (!this.s3Client) {
+      throw new Error('Cliente S3 não configurado');
+    }
+
+    try {
+      console.log('Criando bucket:', bucketName);
+      
+      const command = new CreateBucketCommand({
+        Bucket: bucketName,
+      });
+
+      await this.s3Client.send(command);
+      console.log('Bucket criado com sucesso:', bucketName);
+    } catch (error) {
+      console.error('Erro ao criar bucket:', error);
+      throw new Error(`Erro ao criar bucket: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
   }
 
