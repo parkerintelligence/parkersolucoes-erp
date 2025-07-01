@@ -52,23 +52,26 @@ export interface ChatwootMessage {
 }
 
 const makeChatwootRequest = async (baseUrl: string, token: string, endpoint: string, options: RequestInit = {}) => {
-  // Clean URL and ensure it doesn't end with slash
+  // Limpar a URL e garantir que não termine com barra
   let apiUrl = baseUrl.replace(/\/$/, '');
   
-  // Remove any login paths that might be in the base URL
+  // Remover qualquer path de login que possa estar na URL base
   apiUrl = apiUrl.replace(/\/app\/login$/, '');
+  apiUrl = apiUrl.replace(/\/app$/, '');
   
+  // Adicionar /api/v1 se não estiver presente
   if (!apiUrl.includes('/api/v1')) {
     apiUrl = apiUrl + '/api/v1';
   }
   
   const fullUrl = `${apiUrl}${endpoint}`;
   
-  console.log('Making Chatwoot request:', { fullUrl, method: options.method || 'GET' });
+  console.log('Fazendo requisição Chatwoot:', { fullUrl, method: options.method || 'GET' });
 
   try {
     const response = await fetch(fullUrl, {
       ...options,
+      mode: 'cors', // Permitir CORS
       headers: {
         'Content-Type': 'application/json',
         'api_access_token': token,
@@ -76,11 +79,11 @@ const makeChatwootRequest = async (baseUrl: string, token: string, endpoint: str
       },
     });
 
-    console.log('Chatwoot response status:', response.status);
+    console.log('Status da resposta Chatwoot:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Chatwoot API error:', {
+      console.error('Erro da API Chatwoot:', {
         status: response.status,
         statusText: response.statusText,
         responseText: errorText,
@@ -91,20 +94,22 @@ const makeChatwootRequest = async (baseUrl: string, token: string, endpoint: str
         throw new Error('Token de API inválido. Verifique o token de acesso do Chatwoot.');
       } else if (response.status === 404) {
         throw new Error('Endpoint não encontrado. Verifique se a URL base está correta.');
+      } else if (response.status === 403) {
+        throw new Error('Acesso negado. Verifique as permissões do token de API.');
       } else {
         throw new Error(`Erro da API Chatwoot ${response.status}: ${response.statusText}`);
       }
     }
 
     const data = await response.json();
-    console.log('Chatwoot response data:', data);
+    console.log('Dados da resposta Chatwoot:', data);
     
     return data;
   } catch (error) {
-    console.error('Chatwoot fetch error:', error);
+    console.error('Erro de requisição Chatwoot:', error);
     
     if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      throw new Error(`Erro de conexão com Chatwoot. Verifique se a URL está acessível e não há problemas de CORS: ${fullUrl}`);
+      throw new Error(`Erro de conexão com Chatwoot. Verifique se a URL está acessível: ${fullUrl}`);
     }
     
     throw error;
@@ -119,30 +124,30 @@ export const useChatwootAPI = () => {
     integration.type === 'chatwoot' && integration.is_active
   );
 
-  console.log('Chatwoot integration found:', chatwootIntegration);
+  console.log('Integração Chatwoot encontrada:', chatwootIntegration);
 
   const testConnection = useMutation({
     mutationFn: async ({ base_url, api_token }: { base_url: string; api_token: string }) => {
-      console.log('Testing Chatwoot connection...');
+      console.log('Testando conexão Chatwoot...');
       
       try {
         const result = await makeChatwootRequest(base_url, api_token, '/accounts');
-        console.log('Chatwoot connection test successful:', result);
+        console.log('Teste de conexão Chatwoot bem-sucedido:', result);
         return result;
       } catch (error) {
-        console.error('Chatwoot connection test failed:', error);
+        console.error('Teste de conexão Chatwoot falhou:', error);
         throw error;
       }
     },
     onSuccess: (data) => {
-      console.log('Chatwoot connection successful:', data);
+      console.log('Conexão Chatwoot bem-sucedida:', data);
       toast({
         title: "Conexão bem-sucedida!",
         description: `Conectado ao Chatwoot com sucesso. Contas encontradas: ${data?.length || 0}`,
       });
     },
     onError: (error: Error) => {
-      console.error('Chatwoot connection failed:', error);
+      console.error('Conexão Chatwoot falhou:', error);
       toast({
         title: "Erro de Conexão Chatwoot",
         description: error.message,
@@ -287,9 +292,9 @@ export const useChatwootAPI = () => {
 
   return {
     isConfigured: !!chatwootIntegration,
-    conversations: conversationsQuery.data || [],
-    isLoading: conversationsQuery.isLoading,
-    error: conversationsQuery.error,
+    conversations: conversationsQuery?.data || [],
+    isLoading: conversationsQuery?.isLoading || false,
+    error: conversationsQuery?.error,
     testConnection,
     sendMessage,
     updateConversationStatus,

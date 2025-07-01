@@ -30,6 +30,7 @@ import { validateZabbixConnection } from '@/hooks/useZabbixValidation';
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { ZabbixErrorDialog } from './ZabbixErrorDialog';
+import { ChatwootConfig } from './ChatwootConfig';
 
 const formSchema = z.object({
   type: z.enum(['chatwoot', 'evolution_api', 'wasabi', 'grafana', 'bomcontrole', 'zabbix', 'ftp']),
@@ -530,104 +531,553 @@ const AdminApiPanel = () => {
                 <TabsTrigger value="zabbix">Zabbix</TabsTrigger>
                 <TabsTrigger value="ftp">FTP</TabsTrigger>
               </TabsList>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="type"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tipo de Integração</FormLabel>
-                        <Select onValueChange={(value) => {
-                          const newType = value as "chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix" | "ftp";
-                          form.setValue("type", newType);
-                          setSelectedType(newType);
-                        }} value={field.value}>
+              
+              <TabsContent value="chatwoot" className="space-y-4">
+                <ChatwootConfig />
+              </TabsContent>
+              
+              <TabsContent value="evolution_api" className="space-y-4">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo de Integração</FormLabel>
+                          <Select onValueChange={(value) => {
+                            const newType = value as "chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix" | "ftp";
+                            form.setValue("type", newType);
+                            setSelectedType(newType);
+                          }} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o tipo" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="evolution_api">Evolution API</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome *</FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o tipo" />
-                            </SelectTrigger>
+                            <Input placeholder="Nome da integração" {...field} />
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="chatwoot">Chatwoot</SelectItem>
-                            <SelectItem value="evolution_api">Evolution API</SelectItem>
-                            <SelectItem value="wasabi">Wasabi</SelectItem>
-                            <SelectItem value="grafana">Grafana</SelectItem>
-                            <SelectItem value="bomcontrole">BomControle</SelectItem>
-                            <SelectItem value="zabbix">Zabbix</SelectItem>
-                            <SelectItem value="ftp">FTP</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Nome da integração" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="base_url"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{selectedType === 'ftp' ? 'Servidor (IP ou Nome DNS)' : selectedType === 'zabbix' ? 'URL Base (ex: http://servidor.com/zabbix)' : 'URL Base'} *</FormLabel>
-                        <FormControl>
-                          <Input placeholder={selectedType === 'ftp' ? 'ftp.exemplo.com.br' : selectedType === 'zabbix' ? 'http://monitoramento.parkersolucoes.com.br/zabbix' : 'https://api.example.com'} {...field} />
-                        </FormControl>
-                        {selectedType === 'zabbix' && (
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="base_url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>URL Base *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://api.example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {getFieldsForType(selectedType)}
+
+                    <FormField
+                      control={form.control}
+                      name="is_active"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel>Ativo</FormLabel>
+                            <FormDescription>
+                              Define se a integração está ativa e disponível para uso.
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <Button 
+                      type="submit" 
+                      disabled={createIntegration.isPending || updateIntegration.isPending}
+                      className="w-full"
+                    >
+                      {editingIntegrationId ? 
+                        (updateIntegration.isPending ? "Atualizando..." : "Atualizar Integração") : 
+                        (createIntegration.isPending ? "Criando..." : "Criar Integração")
+                      }
+                    </Button>
+                  </form>
+                </Form>
+              </TabsContent>
+              
+              <TabsContent value="wasabi" className="space-y-4">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo de Integração</FormLabel>
+                          <Select onValueChange={(value) => {
+                            const newType = value as "chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix" | "ftp";
+                            form.setValue("type", newType);
+                            setSelectedType(newType);
+                          }} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o tipo" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="wasabi">Wasabi</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Nome da integração" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="base_url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>URL Base *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://api.example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {getFieldsForType(selectedType)}
+
+                    <FormField
+                      control={form.control}
+                      name="is_active"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel>Ativo</FormLabel>
+                            <FormDescription>
+                              Define se a integração está ativa e disponível para uso.
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <Button 
+                      type="submit" 
+                      disabled={createIntegration.isPending || updateIntegration.isPending}
+                      className="w-full"
+                    >
+                      {editingIntegrationId ? 
+                        (updateIntegration.isPending ? "Atualizando..." : "Atualizar Integração") : 
+                        (createIntegration.isPending ? "Criando..." : "Criar Integração")
+                      }
+                    </Button>
+                  </form>
+                </Form>
+              </TabsContent>
+              
+              <TabsContent value="grafana" className="space-y-4">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo de Integração</FormLabel>
+                          <Select onValueChange={(value) => {
+                            const newType = value as "chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix" | "ftp";
+                            form.setValue("type", newType);
+                            setSelectedType(newType);
+                          }} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o tipo" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="grafana">Grafana</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Nome da integração" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="base_url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>URL Base *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://api.example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {getFieldsForType(selectedType)}
+
+                    <FormField
+                      control={form.control}
+                      name="is_active"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel>Ativo</FormLabel>
+                            <FormDescription>
+                              Define se a integração está ativa e disponível para uso.
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <Button 
+                      type="submit" 
+                      disabled={createIntegration.isPending || updateIntegration.isPending}
+                      className="w-full"
+                    >
+                      {editingIntegrationId ? 
+                        (updateIntegration.isPending ? "Atualizando..." : "Atualizar Integração") : 
+                        (createIntegration.isPending ? "Criando..." : "Criar Integração")
+                      }
+                    </Button>
+                  </form>
+                </Form>
+              </TabsContent>
+              
+              <TabsContent value="bomcontrole" className="space-y-4">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo de Integração</FormLabel>
+                          <Select onValueChange={(value) => {
+                            const newType = value as "chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix" | "ftp";
+                            form.setValue("type", newType);
+                            setSelectedType(newType);
+                          }} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o tipo" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="bomcontrole">BomControle</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Nome da integração" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="base_url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>URL Base *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://api.example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {getFieldsForType(selectedType)}
+
+                    <FormField
+                      control={form.control}
+                      name="is_active"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel>Ativo</FormLabel>
+                            <FormDescription>
+                              Define se a integração está ativa e disponível para uso.
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <Button 
+                      type="submit" 
+                      disabled={createIntegration.isPending || updateIntegration.isPending}
+                      className="w-full"
+                    >
+                      {editingIntegrationId ? 
+                        (updateIntegration.isPending ? "Atualizando..." : "Atualizar Integração") : 
+                        (createIntegration.isPending ? "Criando..." : "Criar Integração")
+                      }
+                    </Button>
+                  </form>
+                </Form>
+              </TabsContent>
+              
+              <TabsContent value="zabbix" className="space-y-4">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo de Integração</FormLabel>
+                          <Select onValueChange={(value) => {
+                            const newType = value as "chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix" | "ftp";
+                            form.setValue("type", newType);
+                            setSelectedType(newType);
+                          }} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o tipo" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="zabbix">Zabbix</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Nome da integração" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="base_url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>URL Base (ex: http://servidor.com/zabbix) *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="http://monitoramento.parkersolucoes.com.br/zabbix" {...field} />
+                          </FormControl>
                           <FormDescription>
                             Digite apenas a URL base do Zabbix (sem /api_jsonrpc.php no final)
                           </FormDescription>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                  {getFieldsForType(selectedType)}
+                    {getFieldsForType(selectedType)}
 
-                  <FormField
-                    control={form.control}
-                    name="is_active"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel>Ativo</FormLabel>
-                          <FormDescription>
-                            Define se a integração está ativa e disponível para uso.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <Button 
-                    type="submit" 
-                    disabled={createIntegration.isPending || updateIntegration.isPending}
-                    className="w-full"
-                  >
-                    {editingIntegrationId ? 
-                      (updateIntegration.isPending ? "Atualizando..." : "Atualizar Integração") : 
-                      (createIntegration.isPending ? "Criando..." : "Criar Integração")
-                    }
-                  </Button>
-                </form>
-              </Form>
+                    <FormField
+                      control={form.control}
+                      name="is_active"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel>Ativo</FormLabel>
+                            <FormDescription>
+                              Define se a integração está ativa e disponível para uso.
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <Button 
+                      type="submit" 
+                      disabled={createIntegration.isPending || updateIntegration.isPending}
+                      className="w-full"
+                    >
+                      {editingIntegrationId ? 
+                        (updateIntegration.isPending ? "Atualizando..." : "Atualizar Integração") : 
+                        (createIntegration.isPending ? "Criando..." : "Criar Integração")
+                      }
+                    </Button>
+                  </form>
+                </Form>
+              </TabsContent>
+              
+              <TabsContent value="ftp" className="space-y-4">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo de Integração</FormLabel>
+                          <Select onValueChange={(value) => {
+                            const newType = value as "chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix" | "ftp";
+                            form.setValue("type", newType);
+                            setSelectedType(newType);
+                          }} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o tipo" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="ftp">FTP</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Nome da integração" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="base_url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Servidor (IP ou Nome DNS) *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="ftp.exemplo.com.br" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {getFieldsForType(selectedType)}
+
+                    <FormField
+                      control={form.control}
+                      name="is_active"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel>Ativo</FormLabel>
+                            <FormDescription>
+                              Define se a integração está ativa e disponível para uso.
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <Button 
+                      type="submit" 
+                      disabled={createIntegration.isPending || updateIntegration.isPending}
+                      className="w-full"
+                    >
+                      {editingIntegrationId ? 
+                        (updateIntegration.isPending ? "Atualizando..." : "Atualizar Integração") : 
+                        (createIntegration.isPending ? "Criando..." : "Criar Integração")
+                      }
+                    </Button>
+                  </form>
+                </Form>
+              </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
