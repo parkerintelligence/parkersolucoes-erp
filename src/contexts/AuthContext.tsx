@@ -60,6 +60,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Check for existing session first
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+        }
+        
+        console.log('Initial session check:', session?.user?.email);
+        
+        if (session?.user) {
+          setSession(session);
+          setUser(session.user);
+          
+          const profile = await fetchUserProfile(session.user.id);
+          if (profile) {
+            const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
+            const typedProfile: UserProfile = {
+              id: profile.id,
+              email: profile.email,
+              role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
+            };
+            console.log('Setting initial user profile:', typedProfile);
+            setUserProfile(typedProfile);
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeAuth();
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -69,58 +105,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user profile data
           const profile = await fetchUserProfile(session.user.id);
           if (profile) {
-            // Ensure role is correctly typed and force master for the specific email
             const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
             const typedProfile: UserProfile = {
               id: profile.id,
               email: profile.email,
               role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
             };
-            console.log('Setting user profile:', typedProfile);
+            console.log('Setting user profile from auth change:', typedProfile);
             setUserProfile(typedProfile);
           }
-          setIsLoading(false);
         } else {
           setUserProfile(null);
-          setIsLoading(false);
         }
+        
+        setIsLoading(false);
       }
     );
-
-    // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('Existing session check:', session?.user?.email);
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        const profile = await fetchUserProfile(session.user.id);
-        if (profile) {
-          // Ensure role is correctly typed and force master for the specific email
-          const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
-          const typedProfile: UserProfile = {
-            id: profile.id,
-            email: profile.email,
-            role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
-          };
-          console.log('Setting existing user profile:', typedProfile);
-          setUserProfile(typedProfile);
-        }
-        setIsLoading(false);
-      } else {
-        setIsLoading(false);
-      }
-    });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      setIsLoading(true);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -131,21 +141,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
+      console.log('Login successful for:', email);
       return !!data.user;
     } catch (error) {
       console.error('Login error:', error);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const logout = async () => {
     try {
+      setIsLoading(true);
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
       setUserProfile(null);
     } catch (error) {
       console.error('Logout error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -164,7 +180,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: !!user, 
     isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
     userEmail: user?.email,
-    userRole: userProfile?.role 
+    userRole: userProfile?.role,
+    isLoading
   });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

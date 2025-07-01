@@ -4,8 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { Layout } from "@/components/Layout";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Companies from "./pages/Companies";
@@ -29,33 +29,31 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <SidebarProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/companies" element={<Companies />} />
-              <Route path="/services" element={<Services />} />
-              <Route path="/budgets" element={<Budgets />} />
-              <Route path="/contracts" element={<Contracts />} />
-              <Route path="/glpi" element={<GLPI />} />
-              <Route path="/zabbix" element={<Zabbix />} />
-              <Route path="/backups" element={<Backups />} />
-              <Route path="/passwords" element={<Passwords />} />
-              <Route path="/links" element={<Links />} />
-              <Route path="/whatsapp-chats" element={<WhatsAppChats />} />
-              <Route path="/wasabi" element={<Wasabi />} />
-              <Route path="/monitoring" element={<Monitoring />} />
-              <Route path="/schedule" element={<Schedule />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </SidebarProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+            <Route path="/companies" element={<Layout><Companies /></Layout>} />
+            <Route path="/services" element={<Layout><Services /></Layout>} />
+            <Route path="/budgets" element={<Layout><Budgets /></Layout>} />
+            <Route path="/contracts" element={<Layout><Contracts /></Layout>} />
+            <Route path="/glpi" element={<Layout><GLPI /></Layout>} />
+            <Route path="/zabbix" element={<Layout><Zabbix /></Layout>} />
+            <Route path="/backups" element={<Layout><Backups /></Layout>} />
+            <Route path="/passwords" element={<Layout><Passwords /></Layout>} />
+            <Route path="/links" element={<Layout><Links /></Layout>} />
+            <Route path="/whatsapp-chats" element={<Layout><WhatsAppChats /></Layout>} />
+            <Route path="/wasabi" element={<Layout><Wasabi /></Layout>} />
+            <Route path="/monitoring" element={<Layout><Monitoring /></Layout>} />
+            <Route path="/schedule" element={<Layout><Schedule /></Layout>} />
+            <Route path="/admin" element={<Layout><Admin /></Layout>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
