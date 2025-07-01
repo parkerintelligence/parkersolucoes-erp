@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useIntegrations } from './useIntegrations';
-import { WasabiService, WasabiFile } from '@/services/wasabiService';
+import { WasabiService, WasabiFile, WasabiBucket } from '@/services/wasabiService';
 
 export const useWasabi = () => {
   const queryClient = useQueryClient();
@@ -12,60 +12,66 @@ export const useWasabi = () => {
   const activeWasabiIntegration = wasabiIntegrations[0];
 
   console.log('Integrações Wasabi ativas encontradas:', wasabiIntegrations.length);
-  if (activeWasabiIntegration) {
-    console.log('Integração Wasabi ativa:', {
-      id: activeWasabiIntegration.id,
-      name: activeWasabiIntegration.name,
-      base_url: activeWasabiIntegration.base_url,
-      bucket_name: activeWasabiIntegration.bucket_name,
-      username: activeWasabiIntegration.username ? '***' : 'não definido',
-      region: activeWasabiIntegration.region
-    });
-  }
 
-  // Buscar arquivos do bucket usando a API real do Wasabi
-  const { data: files = [], isLoading: isLoadingFiles, error } = useQuery({
-    queryKey: ['wasabi-files', activeWasabiIntegration?.id, activeWasabiIntegration?.bucket_name],
-    queryFn: async (): Promise<WasabiFile[]> => {
-      if (!activeWasabiIntegration || !activeWasabiIntegration.bucket_name) {
-        console.log('Nenhuma integração Wasabi ativa com bucket configurado');
+  // Buscar buckets disponíveis
+  const { data: buckets = [], isLoading: isLoadingBuckets, error: bucketsError } = useQuery({
+    queryKey: ['wasabi-buckets', activeWasabiIntegration?.id],
+    queryFn: async (): Promise<WasabiBucket[]> => {
+      if (!activeWasabiIntegration) {
+        console.log('Nenhuma integração Wasabi ativa');
         return [];
       }
 
-      console.log('Conectando ao Wasabi com configurações reais...');
+      console.log('Conectando ao Wasabi para listar buckets...');
       const wasabiService = new WasabiService(activeWasabiIntegration);
-      return await wasabiService.listFiles();
+      return await wasabiService.listBuckets();
     },
-    enabled: !!activeWasabiIntegration && !!activeWasabiIntegration.bucket_name,
+    enabled: !!activeWasabiIntegration,
     retry: 2,
     retryDelay: 1000,
   });
 
-  // Upload de arquivos usando API real
+  // Buscar arquivos de um bucket específico
+  const getFilesQuery = (bucketName: string | null) => useQuery({
+    queryKey: ['wasabi-files', activeWasabiIntegration?.id, bucketName],
+    queryFn: async (): Promise<WasabiFile[]> => {
+      if (!activeWasabiIntegration || !bucketName) {
+        return [];
+      }
+
+      console.log('Listando arquivos do bucket:', bucketName);
+      const wasabiService = new WasabiService(activeWasabiIntegration);
+      return await wasabiService.listFiles(bucketName);
+    },
+    enabled: !!activeWasabiIntegration && !!bucketName,
+    retry: 2,
+    retryDelay: 1000,
+  });
+
+  // Upload de arquivos
   const uploadFiles = useMutation({
-    mutationFn: async ({ files }: { files: FileList }) => {
+    mutationFn: async ({ files, bucketName }: { files: FileList; bucketName: string }) => {
       if (!activeWasabiIntegration) {
         throw new Error('Integração Wasabi não configurada');
       }
 
       const wasabiService = new WasabiService(activeWasabiIntegration);
       
-      // Upload de cada arquivo
       for (const file of Array.from(files)) {
-        await wasabiService.uploadFile(file);
+        await wasabiService.uploadFile(file, bucketName);
       }
 
       return { 
         success: true, 
         files: Array.from(files).map(f => f.name),
-        bucket: activeWasabiIntegration.bucket_name
+        bucketName
       };
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['wasabi-files'] });
+      queryClient.invalidateQueries({ queryKey: ['wasabi-files', activeWasabiIntegration?.id, variables.bucketName] });
       toast({
         title: "Upload concluído!",
-        description: `${variables.files.length} arquivo(s) enviado(s) para o bucket ${activeWasabiIntegration?.bucket_name}.`,
+        description: `${variables.files.length} arquivo(s) enviado(s) para o bucket ${variables.bucketName}.`,
       });
     },
     onError: (error) => {
@@ -78,15 +84,15 @@ export const useWasabi = () => {
     },
   });
 
-  // Download de arquivo usando API real
+  // Download de arquivo
   const downloadFile = useMutation({
-    mutationFn: async ({ fileName }: { fileName: string }) => {
+    mutationFn: async ({ fileName, bucketName }: { fileName: string; bucketName: string }) => {
       if (!activeWasabiIntegration) {
         throw new Error('Integração Wasabi não configurada');
       }
 
       const wasabiService = new WasabiService(activeWasabiIntegration);
-      await wasabiService.downloadFile(fileName);
+      await wasabiService.downloadFile(fileName, bucketName);
       
       return { success: true, fileName };
     },
@@ -106,20 +112,20 @@ export const useWasabi = () => {
     },
   });
 
-  // Deletar arquivo usando API real
+  // Deletar arquivo
   const deleteFile = useMutation({
-    mutationFn: async ({ fileName }: { fileName: string }) => {
+    mutationFn: async ({ fileName, bucketName }: { fileName: string; bucketName: string }) => {
       if (!activeWasabiIntegration) {
         throw new Error('Integração Wasabi não configurada');
       }
 
       const wasabiService = new WasabiService(activeWasabiIntegration);
-      await wasabiService.deleteFile(fileName);
+      await wasabiService.deleteFile(fileName, bucketName);
       
       return { success: true, fileName };
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['wasabi-files'] });
+      queryClient.invalidateQueries({ queryKey: ['wasabi-files', activeWasabiIntegration?.id, variables.bucketName] });
       toast({
         title: "Arquivo removido",
         description: `${variables.fileName} foi removido com sucesso.`,
@@ -136,14 +142,14 @@ export const useWasabi = () => {
   });
 
   return {
-    files,
-    isLoadingFiles,
-    error,
+    buckets,
+    isLoadingBuckets,
+    bucketsError,
     wasabiIntegration: activeWasabiIntegration,
     wasabiIntegrations,
+    getFilesQuery,
     uploadFiles,
     downloadFile,
     deleteFile,
-    bucketName: activeWasabiIntegration?.bucket_name || 'Não configurado',
   };
 };

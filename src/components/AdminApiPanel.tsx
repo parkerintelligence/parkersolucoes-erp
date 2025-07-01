@@ -1,544 +1,480 @@
-
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Check, X, TestTube, Edit } from 'lucide-react';
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 import { useIntegrations } from '@/hooks/useIntegrations';
-import { toast } from '@/hooks/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 
-interface ApiConfiguration {
-  id?: string;
-  type: string;
-  name: string;
-  base_url: string;
-  username: string;
-  password: string;
-  region?: string;
-  bucket_name?: string;
-  is_active: boolean;
-}
+const formSchema = z.object({
+  type: z.enum(['chatwoot', 'evolution_api', 'wasabi', 'grafana', 'bomcontrole', 'zabbix']),
+  name: z.string().min(2, {
+    message: "Nome precisa ter ao menos 2 caracteres.",
+  }),
+  base_url: z.string().url({ message: "URL inválida" }),
+  api_token: z.string().optional(),
+  webhook_url: z.string().url({ message: "URL inválida" }).optional(),
+  phone_number: z.string().optional(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+  region: z.string().optional(),
+  bucket_name: z.string().optional(),
+  is_active: z.boolean().default(true),
+})
 
 const AdminApiPanel = () => {
-  const { data: integrations, createIntegration, updateIntegration, deleteIntegration } = useIntegrations();
-  const [newConfig, setNewConfig] = useState<ApiConfiguration>({
-    type: '',
-    name: '',
-    base_url: '',
-    username: '',
-    password: '',
-    region: '',
-    bucket_name: '',
-    is_active: true
-  });
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [testingConnection, setTestingConnection] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<"chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix">("chatwoot");
+  const { createIntegration, updateIntegration, deleteIntegration, data: integrations, isLoading, isError } = useIntegrations();
+  const [editingIntegrationId, setEditingIntegrationId] = useState<string | null>(null);
 
-  const apiTypes = [
-    { value: 'glpi', label: 'GLPI' },
-    { value: 'zabbix', label: 'Zabbix' },
-    { value: 'wasabi', label: 'Wasabi' },
-    { value: 'chatwoot', label: 'Chatwoot' },
-    { value: 'evolution_api', label: 'Evolution API' },
-    { value: 'other', label: 'Outro' }
-  ];
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      type: "chatwoot",
+      name: "",
+      base_url: "",
+      api_token: "",
+      webhook_url: "",
+      phone_number: "",
+      username: "",
+      password: "",
+      region: "",
+      bucket_name: "",
+      is_active: true,
+    },
+  })
 
-  const resetForm = () => {
-    setNewConfig({
-      type: '',
-      name: '',
-      base_url: '',
-      username: '',
-      password: '',
-      region: '',
-      bucket_name: '',
-      is_active: true
-    });
-    setEditingId(null);
-  };
-
-  const handleEdit = (config: any) => {
-    setNewConfig({
-      id: config.id,
-      type: config.type,
-      name: config.name,
-      base_url: config.base_url,
-      username: config.username || '',
-      password: config.password || '',
-      region: config.region || '',
-      bucket_name: config.bucket_name || '',
-      is_active: config.is_active
-    });
-    setEditingId(config.id);
-  };
-
-  const testConnection = async (config: ApiConfiguration) => {
-    if (!config.id) return;
-    
-    setTestingConnection(config.id);
-    
-    try {
-      console.log('Testando conexão com configuração:', {
-        type: config.type,
-        name: config.name,
-        base_url: config.base_url,
-        username: config.username ? '***' : '',
-        region: config.region,
-        bucket_name: config.bucket_name
-      });
-
-      // Simulação de teste de conexão
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      if (config.type === 'wasabi') {
-        if (!config.username || !config.password || !config.bucket_name) {
-          toast({
-            title: "Erro de configuração",
-            description: "Access Key, Secret Key e Bucket Name são obrigatórios para Wasabi.",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        toast({
-          title: "Teste de conexão simulado",
-          description: `Configuração do Wasabi ${config.name} testada com sucesso! (Simulado)`,
-        });
-      } else {
-        if (!config.base_url) {
-          toast({
-            title: "Erro de configuração",
-            description: "URL Base é obrigatória.",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        toast({
-          title: "Teste de conexão simulado",
-          description: `Configuração ${config.name} testada com sucesso! (Simulado)`,
-        });
-      }
-    } catch (error) {
-      console.error('Erro no teste de conexão:', error);
-      toast({
-        title: "Erro no teste",
-        description: `Erro ao testar conexão: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
-        variant: "destructive"
-      });
-    } finally {
-      setTestingConnection(null);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    console.log('Salvando configuração:', {
-      ...newConfig,
-      password: newConfig.password ? '***' : ''
-    });
-
-    // Validações básicas
-    if (!newConfig.name.trim()) {
-      toast({
-        title: "Campo obrigatório",
-        description: "Nome é obrigatório.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!newConfig.type) {
-      toast({
-        title: "Campo obrigatório",
-        description: "Tipo de API é obrigatório.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Configurar valores padrão para Wasabi
-    let configToSave = { ...newConfig };
-    
-    if (newConfig.type === 'wasabi') {
-      // Validações específicas do Wasabi
-      if (!newConfig.username || !newConfig.password || !newConfig.bucket_name) {
-        toast({
-          title: "Campos obrigatórios",
-          description: "Para Wasabi: Access Key, Secret Key e Bucket Name são obrigatórios.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Definir endpoint padrão se não fornecido
-      if (!configToSave.base_url.trim()) {
-        configToSave.base_url = 's3.wasabisys.com';
-      }
-
-      // Definir região padrão se não fornecido
-      if (!configToSave.region?.trim()) {
-        configToSave.region = 'us-east-1';
-      }
-
-      console.log('Configuração Wasabi processada:', {
-        ...configToSave,
-        password: '***'
-      });
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
+    if (editingIntegrationId) {
+      updateIntegration.mutate({ id: editingIntegrationId, updates: values });
+      setEditingIntegrationId(null); // Clear the editing state
     } else {
-      // Para outros tipos, validar URL base
-      if (!configToSave.base_url.trim()) {
-        toast({
-          title: "Campo obrigatório",
-          description: "URL Base é obrigatória.",
-          variant: "destructive"
-        });
-        return;
-      }
+      createIntegration.mutate(values);
     }
+    form.reset();
+  }
 
-    try {
-      const integrationData = {
-        type: configToSave.type as any,
-        name: configToSave.name,
-        base_url: configToSave.base_url,
-        api_token: null,
-        webhook_url: null,
-        phone_number: null,
-        username: configToSave.username || null,
-        password: configToSave.password || null,
-        region: configToSave.region || null,
-        bucket_name: configToSave.bucket_name || null,
-        is_active: configToSave.is_active
-      };
+  const handleEditIntegration = (integration: any) => {
+    setEditingIntegrationId(integration.id);
+    form.setValue("type", integration.type);
+    form.setValue("name", integration.name);
+    form.setValue("base_url", integration.base_url);
+    form.setValue("api_token", integration.api_token || "");
+    form.setValue("webhook_url", integration.webhook_url || "");
+    form.setValue("phone_number", integration.phone_number || "");
+    form.setValue("username", integration.username || "");
+    form.setValue("password", integration.password || "");
+    form.setValue("region", integration.region || "");
+    form.setValue("bucket_name", integration.bucket_name || "");
+    form.setValue("is_active", integration.is_active !== null ? integration.is_active : true);
+    setSelectedType(integration.type);
+  };
 
-      if (editingId) {
-        console.log('Atualizando integração:', editingId);
-        await updateIntegration.mutateAsync({ 
-          id: editingId, 
-          updates: integrationData
-        });
-        toast({
-          title: "Configuração atualizada!",
-          description: `${configToSave.name} foi atualizada com sucesso.`,
-        });
-      } else {
-        console.log('Criando nova integração');
-        await createIntegration.mutateAsync(integrationData);
-        toast({
-          title: "Configuração criada!",
-          description: `${configToSave.name} foi configurada com sucesso.`,
-        });
-      }
-      resetForm();
-    } catch (error) {
-      console.error('Erro ao salvar configuração:', error);
-      toast({
-        title: "Erro ao salvar",
-        description: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Verifique os logs do console para mais detalhes.`,
-        variant: "destructive"
-      });
+  const handleDeleteIntegration = (id: string) => {
+    if (confirm("Tem certeza que deseja remover essa integração?")) {
+      deleteIntegration.mutate(id);
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    try {
-      console.log('Removendo integração:', id, name);
-      await deleteIntegration.mutateAsync(id);
-      toast({
-        title: "Configuração removida!",
-        description: `${name} foi removida com sucesso.`,
-      });
-    } catch (error) {
-      console.error('Erro ao remover configuração:', error);
-      toast({
-        title: "Erro ao remover",
-        description: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Tente novamente.`,
-        variant: "destructive"
-      });
+  const getFieldsForType = (type: string) => {
+    switch (type) {
+      case "chatwoot":
+        return getChatwootFields();
+      case "evolution_api":
+        return getEvolutionApiFields();
+      case "wasabi":
+        return getWasabiFields();
+      case "grafana":
+        return getGrafanaFields();
+      case "bomcontrole":
+        return getBomControleFields();
+      case "zabbix":
+        return getZabbixFields();
+      default:
+        return null;
     }
   };
+
+  const getChatwootFields = () => (
+    <>
+      <FormField
+        control={form.control}
+        name="api_token"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>API Token *</FormLabel>
+            <FormControl>
+              <Input placeholder="Chave da API" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="webhook_url"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Webhook URL</FormLabel>
+            <FormControl>
+              <Input placeholder="URL do Webhook" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </>
+  );
+
+  const getEvolutionApiFields = () => (
+    <>
+      <FormField
+        control={form.control}
+        name="phone_number"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Número de Telefone *</FormLabel>
+            <FormControl>
+              <Input placeholder="554199999999" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="api_token"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>API Token *</FormLabel>
+            <FormControl>
+              <Input placeholder="Chave da API" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </>
+  );
+
+  const getWasabiFields = () => (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="base_url"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Endpoint URL *</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="s3.wasabisys.com" 
+                  {...field}
+                  value={field.value || ''}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="region"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Região</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="us-east-1" 
+                  {...field}
+                  value={field.value || ''}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Access Key *</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Sua chave de acesso" 
+                  {...field}
+                  value={field.value || ''}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Secret Key *</FormLabel>
+              <FormControl>
+                <Input 
+                  type="password"
+                  placeholder="Sua chave secreta" 
+                  {...field}
+                  value={field.value || ''}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    </>
+  );
+
+  const getGrafanaFields = () => (
+    <>
+      <FormField
+        control={form.control}
+        name="api_token"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>API Token *</FormLabel>
+            <FormControl>
+              <Input placeholder="Chave da API" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </>
+  );
+
+  const getBomControleFields = () => (
+    <>
+      <FormField
+        control={form.control}
+        name="username"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Usuário *</FormLabel>
+            <FormControl>
+              <Input placeholder="Usuário" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="password"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Senha *</FormLabel>
+            <FormControl>
+              <Input type="password" placeholder="Senha" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </>
+  );
+
+  const getZabbixFields = () => (
+    <>
+      <FormField
+        control={form.control}
+        name="username"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Usuário *</FormLabel>
+            <FormControl>
+              <Input placeholder="Usuário" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="password"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Senha *</FormLabel>
+            <FormControl>
+              <Input type="password" placeholder="Senha" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </>
+  );
 
   return (
-    <div className="space-y-8">
-      {/* Formulário */}
-      <Card className="border-blue-200 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-t-lg">
-          <CardTitle className="text-xl text-blue-900 flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            {editingId ? 'Editar' : 'Nova'} Configuração de API
-          </CardTitle>
+    <div className="container max-w-4xl mx-auto p-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Painel de Integrações</CardTitle>
+          <CardDescription>
+            Adicione e configure integrações com diferentes serviços.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="type" className="text-sm font-semibold text-gray-700">Tipo de API *</Label>
-                <select
-                  id="type"
-                  value={newConfig.type}
-                  onChange={(e) => setNewConfig({ ...newConfig, type: e.target.value })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                  required
-                >
-                  <option value="">Selecione o tipo</option>
-                  {apiTypes.map(type => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-semibold text-gray-700">Nome *</Label>
-                <Input
-                  id="name"
-                  value={newConfig.name}
-                  onChange={(e) => setNewConfig({ ...newConfig, name: e.target.value })}
-                  placeholder="Nome da configuração"
-                  className="p-3 border-gray-300 focus:ring-2 focus:ring-blue-500"
-                  required
+        <CardContent>
+          <Tabs defaultValue={selectedType} className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="chatwoot" onClick={() => setSelectedType("chatwoot")}>Chatwoot</TabsTrigger>
+              <TabsTrigger value="evolution_api" onClick={() => setSelectedType("evolution_api")}>Evolution API</TabsTrigger>
+              <TabsTrigger value="wasabi" onClick={() => setSelectedType("wasabi")}>Wasabi</TabsTrigger>
+              <TabsTrigger value="grafana" onClick={() => setSelectedType("grafana")}>Grafana</TabsTrigger>
+              <TabsTrigger value="bomcontrole" onClick={() => setSelectedType("bomcontrole")}>BomControle</TabsTrigger>
+              <TabsTrigger value="zabbix" onClick={() => setSelectedType("zabbix")}>Zabbix</TabsTrigger>
+            </TabsList>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>Tipo de Integração</FormLabel>
+                      <Select onValueChange={(value) => {
+                        form.setValue("type", value as "chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix");
+                        setSelectedType(value as "chatwoot" | "evolution_api" | "wasabi" | "grafana" | "bomcontrole" | "zabbix");
+                      }}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o tipo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="chatwoot">Chatwoot</SelectItem>
+                          <SelectItem value="evolution_api">Evolution API</SelectItem>
+                          <SelectItem value="wasabi">Wasabi</SelectItem>
+                          <SelectItem value="grafana">Grafana</SelectItem>
+                          <SelectItem value="bomcontrole">BomControle</SelectItem>
+                          <SelectItem value="zabbix">Zabbix</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="base_url" className="text-sm font-semibold text-gray-700">
-                {newConfig.type === 'wasabi' ? 'Endpoint (opcional - padrão: s3.wasabisys.com)' : 'URL Base *'}
-              </Label>
-              <Input
-                id="base_url"
-                value={newConfig.base_url}
-                onChange={(e) => setNewConfig({ ...newConfig, base_url: e.target.value })}
-                placeholder={newConfig.type === 'wasabi' ? 's3.wasabisys.com' : 'https://api.exemplo.com'}
-                className="p-3 border-gray-300 focus:ring-2 focus:ring-blue-500"
-                required={newConfig.type !== 'wasabi'}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="username" className="text-sm font-semibold text-gray-700">
-                  {newConfig.type === 'wasabi' ? 'Access Key *' : 'Usuário'}
-                </Label>
-                <Input
-                  id="username"
-                  value={newConfig.username}
-                  onChange={(e) => setNewConfig({ ...newConfig, username: e.target.value })}
-                  placeholder={newConfig.type === 'wasabi' ? 'Access Key' : 'Usuário'}
-                  className="p-3 border-gray-300 focus:ring-2 focus:ring-blue-500"
-                  required={newConfig.type === 'wasabi'}
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nome da integração" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
-                  {newConfig.type === 'wasabi' ? 'Secret Key *' : 'Senha'}
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={newConfig.password}
-                  onChange={(e) => setNewConfig({ ...newConfig, password: e.target.value })}
-                  placeholder={newConfig.type === 'wasabi' ? 'Secret Key' : 'Senha'}
-                  className="p-3 border-gray-300 focus:ring-2 focus:ring-blue-500"
-                  required={newConfig.type === 'wasabi'}
+                <FormField
+                  control={form.control}
+                  name="base_url"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>URL Base *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://api.example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-            </div>
 
-            {newConfig.type === 'wasabi' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="space-y-2">
-                  <Label htmlFor="region" className="text-sm font-semibold text-gray-700">Região (opcional - padrão: us-east-1)</Label>
-                  <Input
-                    id="region"
-                    value={newConfig.region || ''}
-                    onChange={(e) => setNewConfig({ ...newConfig, region: e.target.value })}
-                    placeholder="us-east-1"
-                    className="p-3 border-gray-300 focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bucket_name" className="text-sm font-semibold text-gray-700">Nome do Bucket *</Label>
-                  <Input
-                    id="bucket_name"
-                    value={newConfig.bucket_name || ''}
-                    onChange={(e) => setNewConfig({ ...newConfig, bucket_name: e.target.value })}
-                    placeholder="nome-do-bucket"
-                    className="p-3 border-gray-300 focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-              </div>
-            )}
+                {getFieldsForType(selectedType)}
 
-            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-              <input
-                type="checkbox"
-                id="is_active"
-                checked={newConfig.is_active}
-                onChange={(e) => setNewConfig({ ...newConfig, is_active: e.target.checked })}
-                className="w-4 h-4 rounded border-2 border-gray-300 focus:ring-2 focus:ring-blue-500"
-              />
-              <Label htmlFor="is_active" className="text-sm font-semibold text-gray-700">Configuração Ativa</Label>
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <Button 
-                type="submit" 
-                disabled={createIntegration.isPending || updateIntegration.isPending}
-                className="bg-blue-600 hover:bg-blue-700 px-6 py-3 text-white font-semibold rounded-lg shadow-md"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                {createIntegration.isPending || updateIntegration.isPending ? 
-                  (editingId ? 'Atualizando...' : 'Salvando...') : 
-                  (editingId ? 'Atualizar' : 'Salvar')
-                }
-              </Button>
-              
-              {editingId && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={resetForm}
-                  className="px-6 py-3 font-semibold rounded-lg shadow-md"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Cancelar
+                <FormField
+                  control={form.control}
+                  name="is_active"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel>Ativo</FormLabel>
+                        <FormDescription>
+                          Define se a integração está ativa e disponível para uso.
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" disabled={isLoading}>
+                  {editingIntegrationId ? (isLoading ? "Atualizando..." : "Atualizar Integração") : (isLoading ? "Criando..." : "Criar Integração")}
                 </Button>
-              )}
-            </div>
-          </form>
+              </form>
+            </Form>
+          </Tabs>
         </CardContent>
       </Card>
 
-      {/* Lista de Configurações */}
-      <Card className="border-blue-200 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-t-lg">
-          <CardTitle className="text-xl text-blue-900">Configurações Existentes</CardTitle>
-          {integrations && integrations.length > 0 && (
-            <p className="text-sm text-blue-600">{integrations.length} configuração(ões) encontrada(s)</p>
-          )}
-        </CardHeader>
-        <CardContent className="p-6">
-          {integrations && integrations.length > 0 ? (
-            <div className="space-y-4">
-              {integrations.map((config) => (
-                <Card key={config.id} className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col lg:flex-row justify-between gap-6">
-                      <div className="flex-1 space-y-4">
-                        <div className="flex items-center gap-3 mb-3">
-                          <h3 className="font-bold text-lg text-gray-900">{config.name}</h3>
-                          <Badge 
-                            variant={config.type === 'wasabi' ? 'default' : 'secondary'}
-                            className="px-3 py-1 text-xs font-semibold"
-                          >
-                            {config.type.toUpperCase()}
-                          </Badge>
-                          <Badge 
-                            variant={config.is_active ? 'default' : 'secondary'}
-                            className={`px-3 py-1 text-xs font-semibold ${
-                              config.is_active 
-                                ? 'bg-green-100 text-green-800 border-green-200' 
-                                : 'bg-gray-100 text-gray-600 border-gray-200'
-                            }`}
-                          >
-                            {config.is_active ? 'Ativa' : 'Inativa'}
-                          </Badge>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          <div className="bg-gray-50 p-3 rounded-lg">
-                            <span className="font-semibold text-gray-700 block mb-1">URL/Endpoint:</span>
-                            <p className="text-gray-600 break-all">{config.base_url || 'Não informado'}</p>
-                          </div>
-                          <div className="bg-gray-50 p-3 rounded-lg">
-                            <span className="font-semibold text-gray-700 block mb-1">
-                              {config.type === 'wasabi' ? 'Access Key:' : 'Usuário:'}
-                            </span>
-                            <p className="text-gray-600">{config.username || 'Não informado'}</p>
-                          </div>
-                          {config.type === 'wasabi' && config.region && (
-                            <div className="bg-gray-50 p-3 rounded-lg">
-                              <span className="font-semibold text-gray-700 block mb-1">Região:</span>
-                              <p className="text-gray-600">{config.region}</p>
-                            </div>
-                          )}
-                          {config.type === 'wasabi' && config.bucket_name && (
-                            <div className="bg-gray-50 p-3 rounded-lg">
-                              <span className="font-semibold text-gray-700 block mb-1">Bucket:</span>
-                              <p className="text-gray-600">{config.bucket_name}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-row lg:flex-col gap-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => testConnection({
-                            id: config.id,
-                            type: config.type,
-                            name: config.name,
-                            base_url: config.base_url,
-                            username: config.username || '',
-                            password: config.password || '',
-                            region: config.region || '',
-                            bucket_name: config.bucket_name || '',
-                            is_active: config.is_active || false
-                          })}
-                          disabled={testingConnection === config.id}
-                          className="flex-1 lg:flex-none hover:bg-blue-50 border-blue-200"
-                        >
-                          <TestTube className={`h-4 w-4 mr-2 ${testingConnection === config.id ? 'animate-spin' : ''}`} />
-                          {testingConnection === config.id ? 'Testando...' : 'Testar'}
-                        </Button>
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(config)}
-                          className="flex-1 lg:flex-none hover:bg-green-50 border-green-200"
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Editar
-                        </Button>
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(config.id, config.name)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-300 flex-1 lg:flex-none"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Remover
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 max-w-md mx-auto">
-                <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Plus className="h-8 w-8 text-blue-600" />
-                </div>
-                <p className="text-gray-600 text-lg font-semibold mb-2">Nenhuma configuração encontrada</p>
-                <p className="text-gray-500 text-sm">Adicione uma nova configuração de API para começar</p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* List of Integrations */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-semibold mb-4">Lista de Integrações</h2>
+        {isError && <p className="text-red-500">Ocorreu um erro ao carregar as integrações.</p>}
+        {isLoading ? (
+          <p>Carregando integrações...</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {integrations?.map((integration) => (
+              <Card key={integration.id} className="bg-gray-50 border border-gray-200">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold">{integration.name}</CardTitle>
+                  <CardDescription>Tipo: {integration.type}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p>URL: {integration.base_url}</p>
+                  {integration.type === 'evolution_api' && <p>Telefone: {integration.phone_number}</p>}
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="secondary" size="sm" onClick={() => handleEditIntegration(integration)}>
+                      Editar
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleDeleteIntegration(integration.id)}>
+                      Excluir
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

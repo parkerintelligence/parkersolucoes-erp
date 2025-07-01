@@ -1,5 +1,5 @@
 
-import { S3Client, ListObjectsV2Command, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, ListObjectsV2Command, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, ListBucketsCommand } from '@aws-sdk/client-s3';
 import { Integration } from '@/hooks/useIntegrations';
 
 export interface WasabiFile {
@@ -10,6 +10,11 @@ export interface WasabiFile {
   type: string;
   bucket: string;
   sizeBytes: number;
+}
+
+export interface WasabiBucket {
+  name: string;
+  creationDate: string;
 }
 
 export class WasabiService {
@@ -43,21 +48,51 @@ export class WasabiService {
 
     console.log('Cliente Wasabi S3 inicializado:', {
       endpoint,
-      region: this.integration.region || 'us-east-1',
-      bucket: this.integration.bucket_name
+      region: this.integration.region || 'us-east-1'
     });
   }
 
-  async listFiles(): Promise<WasabiFile[]> {
-    if (!this.s3Client || !this.integration?.bucket_name) {
+  async listBuckets(): Promise<WasabiBucket[]> {
+    if (!this.s3Client) {
+      throw new Error('Cliente S3 não configurado');
+    }
+
+    try {
+      console.log('Listando buckets do Wasabi...');
+      
+      const command = new ListBucketsCommand({});
+      const response = await this.s3Client.send(command);
+      
+      if (!response.Buckets) {
+        console.log('Nenhum bucket encontrado');
+        return [];
+      }
+
+      const buckets: WasabiBucket[] = response.Buckets.map((bucket) => ({
+        name: bucket.Name || 'Bucket sem nome',
+        creationDate: bucket.CreationDate ? 
+          bucket.CreationDate.toLocaleString('pt-BR') : 
+          'Data não disponível'
+      }));
+
+      console.log(`${buckets.length} buckets encontrados`);
+      return buckets;
+    } catch (error) {
+      console.error('Erro ao listar buckets do Wasabi:', error);
+      throw new Error(`Erro ao conectar com Wasabi: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
+  }
+
+  async listFiles(bucketName: string): Promise<WasabiFile[]> {
+    if (!this.s3Client || !bucketName) {
       throw new Error('Cliente S3 ou bucket não configurado');
     }
 
     try {
-      console.log('Listando arquivos do bucket:', this.integration.bucket_name);
+      console.log('Listando arquivos do bucket:', bucketName);
       
       const command = new ListObjectsV2Command({
-        Bucket: this.integration.bucket_name,
+        Bucket: bucketName,
         MaxKeys: 1000,
       });
 
@@ -81,12 +116,12 @@ export class WasabiService {
           size: sizeFormatted,
           lastModified,
           type: this.getFileType(object.Key || ''),
-          bucket: this.integration!.bucket_name!,
+          bucket: bucketName,
           sizeBytes
         };
       });
 
-      console.log(`${files.length} arquivos encontrados no bucket ${this.integration.bucket_name}`);
+      console.log(`${files.length} arquivos encontrados no bucket ${bucketName}`);
       return files;
     } catch (error) {
       console.error('Erro ao listar arquivos do Wasabi:', error);
@@ -94,19 +129,19 @@ export class WasabiService {
     }
   }
 
-  async uploadFile(file: File): Promise<void> {
-    if (!this.s3Client || !this.integration?.bucket_name) {
+  async uploadFile(file: File, bucketName: string): Promise<void> {
+    if (!this.s3Client || !bucketName) {
       throw new Error('Cliente S3 ou bucket não configurado');
     }
 
     try {
-      console.log('Fazendo upload do arquivo:', file.name, 'para bucket:', this.integration.bucket_name);
+      console.log('Fazendo upload do arquivo:', file.name, 'para bucket:', bucketName);
       
       const arrayBuffer = await file.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
 
       const command = new PutObjectCommand({
-        Bucket: this.integration.bucket_name,
+        Bucket: bucketName,
         Key: file.name,
         Body: uint8Array,
         ContentType: file.type || 'application/octet-stream',
@@ -120,16 +155,16 @@ export class WasabiService {
     }
   }
 
-  async deleteFile(fileName: string): Promise<void> {
-    if (!this.s3Client || !this.integration?.bucket_name) {
+  async deleteFile(fileName: string, bucketName: string): Promise<void> {
+    if (!this.s3Client || !bucketName) {
       throw new Error('Cliente S3 ou bucket não configurado');
     }
 
     try {
-      console.log('Deletando arquivo:', fileName, 'do bucket:', this.integration.bucket_name);
+      console.log('Deletando arquivo:', fileName, 'do bucket:', bucketName);
       
       const command = new DeleteObjectCommand({
-        Bucket: this.integration.bucket_name,
+        Bucket: bucketName,
         Key: fileName,
       });
 
@@ -141,16 +176,16 @@ export class WasabiService {
     }
   }
 
-  async downloadFile(fileName: string): Promise<void> {
-    if (!this.s3Client || !this.integration?.bucket_name) {
+  async downloadFile(fileName: string, bucketName: string): Promise<void> {
+    if (!this.s3Client || !bucketName) {
       throw new Error('Cliente S3 ou bucket não configurado');
     }
 
     try {
-      console.log('Baixando arquivo:', fileName, 'do bucket:', this.integration.bucket_name);
+      console.log('Baixando arquivo:', fileName, 'do bucket:', bucketName);
       
       const command = new GetObjectCommand({
-        Bucket: this.integration.bucket_name,
+        Bucket: bucketName,
         Key: fileName,
       });
 
