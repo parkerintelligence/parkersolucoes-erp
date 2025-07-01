@@ -54,6 +54,10 @@ export interface ChatwootMessage {
 const makeChatwootRequest = async (baseUrl: string, token: string, endpoint: string, options: RequestInit = {}) => {
   // Clean URL and ensure it doesn't end with slash
   let apiUrl = baseUrl.replace(/\/$/, '');
+  
+  // Remove any login paths that might be in the base URL
+  apiUrl = apiUrl.replace(/\/app\/login$/, '');
+  
   if (!apiUrl.includes('/api/v1')) {
     apiUrl = apiUrl + '/api/v1';
   }
@@ -79,10 +83,17 @@ const makeChatwootRequest = async (baseUrl: string, token: string, endpoint: str
       console.error('Chatwoot API error:', {
         status: response.status,
         statusText: response.statusText,
-        responseText: errorText
+        responseText: errorText,
+        url: fullUrl
       });
       
-      throw new Error(`Erro da API Chatwoot ${response.status}: ${response.statusText}`);
+      if (response.status === 401) {
+        throw new Error('Token de API inválido. Verifique o token de acesso do Chatwoot.');
+      } else if (response.status === 404) {
+        throw new Error('Endpoint não encontrado. Verifique se a URL base está correta.');
+      } else {
+        throw new Error(`Erro da API Chatwoot ${response.status}: ${response.statusText}`);
+      }
     }
 
     const data = await response.json();
@@ -93,7 +104,7 @@ const makeChatwootRequest = async (baseUrl: string, token: string, endpoint: str
     console.error('Chatwoot fetch error:', error);
     
     if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      throw new Error(`Erro de conexão com Chatwoot. Verifique se a URL está correta e acessível: ${fullUrl}`);
+      throw new Error(`Erro de conexão com Chatwoot. Verifique se a URL está acessível e não há problemas de CORS: ${fullUrl}`);
     }
     
     throw error;
