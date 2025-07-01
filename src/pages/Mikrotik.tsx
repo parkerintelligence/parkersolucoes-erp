@@ -6,10 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Settings, Router, BarChart3, Network, Cpu, HardDrive, Wifi, Shield, Clock, AlertTriangle, CheckCircle, XCircle, Terminal, Download, Upload } from 'lucide-react';
-import { useMikrotikIntegration } from '@/hooks/useMikrotikIntegration';
+import { useMikrotikTunnel } from '@/hooks/useMikrotikTunnel';
 
 const Mikrotik = () => {
-  const { isConfigured, interfaces, resources, isLoading, refetchAll } = useMikrotikIntegration();
+  const { isConfigured, interfaces, resources, isLoading, refetchAll, isWorkerReady, testConnection } = useMikrotikTunnel();
 
   if (!isConfigured) {
     return (
