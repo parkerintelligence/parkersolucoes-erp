@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle2, AlertCircle, Headphones, ExternalLink, Info } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, CheckCircle2, AlertCircle, Headphones, ExternalLink, Info, Shield, Key, Settings2 } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { toast } from '@/hooks/use-toast';
@@ -16,6 +17,11 @@ interface GLPIConfig {
   api_token: string;
   username: string;
   password: string;
+}
+
+interface ValidationError {
+  field: string;
+  message: string;
 }
 
 export const GLPIConfig = () => {
@@ -30,6 +36,8 @@ export const GLPIConfig = () => {
   });
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [lastError, setLastError] = useState<string>('');
 
   const glpiIntegration = integrations?.find(int => int.type === 'glpi');
 
@@ -46,44 +54,118 @@ export const GLPIConfig = () => {
     }
   }, [glpiIntegration]);
 
-  const testConnection = async () => {
-    if (!config.base_url || !config.api_token) {
-      toast({
-        title: "❌ Configuração Incompleta",
-        description: "URL do GLPI e App Token são obrigatórios",
-        variant: "destructive"
-      });
-      return;
+  // Validação em tempo real
+  const validateConfig = (configToValidate: GLPIConfig): ValidationError[] => {
+    const errors: ValidationError[] = [];
+
+    if (!configToValidate.base_url) {
+      errors.push({ field: 'base_url', message: 'URL do GLPI é obrigatória' });
+    } else if (!configToValidate.base_url.match(/^https?:\/\/.+/)) {
+      errors.push({ field: 'base_url', message: 'URL deve começar com http:// ou https://' });
     }
 
-    if (!config.password && !config.username) {
+    if (!configToValidate.api_token) {
+      errors.push({ field: 'api_token', message: 'App Token é obrigatório' });
+    } else if (configToValidate.api_token.length < 16) {
+      errors.push({ field: 'api_token', message: 'App Token parece inválido (muito curto)' });
+    }
+
+    if (!configToValidate.password) {
+      errors.push({ field: 'password', message: 'User Token ou Senha é obrigatório' });
+    }
+
+    if (configToValidate.username && !configToValidate.password) {
+      errors.push({ field: 'password', message: 'Senha é obrigatória quando usuário é informado' });
+    }
+
+    return errors;
+  };
+
+  // Atualizar validação quando config muda
+  useEffect(() => {
+    const errors = validateConfig(config);
+    setValidationErrors(errors);
+  }, [config]);
+
+  const diagnoseError = (error: any, response?: Response): string => {
+    const errorMessage = error.message || error.toString();
+    
+    // Diagnóstico específico para erro 400
+    if (errorMessage.includes('400')) {
+      if (!config.api_token) {
+        return 'Erro 400: App Token não configurado. Configure o App Token no GLPI.';
+      }
+      if (config.api_token.length < 16) {
+        return 'Erro 400: App Token parece inválido. Verifique se o token foi copiado corretamente.';
+      }
+      return 'Erro 400: Parâmetros inválidos. Verifique se a API REST está habilitada no GLPI e se o App Token está correto.';
+    }
+
+    // Diagnóstico específico para erro 401
+    if (errorMessage.includes('401')) {
+      if (!config.password) {
+        return 'Erro 401: Credenciais não configuradas. Configure um User Token ou usuário/senha.';
+      }
+      return 'Erro 401: Credenciais inválidas. Verifique se o User Token ou usuário/senha estão corretos.';
+    }
+
+    // Diagnóstico para outros erros
+    if (errorMessage.includes('404')) {
+      return 'Erro 404: Endpoint não encontrado. Verifique se a URL do GLPI está correta e se a API REST está habilitada.';
+    }
+
+    if (errorMessage.includes('500')) {
+      return 'Erro 500: Erro interno do servidor GLPI. Verifique os logs do GLPI.';
+    }
+
+    return `Erro: ${errorMessage}`;
+  };
+
+  const testConnection = async () => {
+    // Validar antes de testar
+    const errors = validateConfig(config);
+    if (errors.length > 0) {
       toast({
-        title: "❌ Credenciais Necessárias",
-        description: "Configure um User Token (campo Senha) ou usuário/senha",
+        title: "❌ Configuração Inválida",
+        description: errors[0].message,
         variant: "destructive"
       });
       return;
     }
 
     setIsTestingConnection(true);
+    setLastError('');
     
     try {
       const cleanUrl = config.base_url.replace(/\/$/, '');
-      
+      console.log('🔍 Testando conexão GLPI:', {
+        url: cleanUrl,
+        hasAppToken: !!config.api_token,
+        appTokenLength: config.api_token?.length || 0,
+        hasUserToken: !!config.password && !config.username,
+        hasBasicAuth: !!config.username && !!config.password,
+        authMethod: config.password && !config.username ? 'User Token' : 'Basic Auth'
+      });
+
+      let response: Response;
+      let authHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'App-Token': config.api_token,
+      };
+
       // Método 1: Tentar com User Token (recomendado)
       if (config.password && !config.username) {
-        console.log('Testando conexão com User Token...');
-        const response = await fetch(`${cleanUrl}/apirest.php/initSession`, {
+        console.log('🔑 Tentando autenticação com User Token...');
+        authHeaders['Authorization'] = `user_token ${config.password}`;
+        
+        response = await fetch(`${cleanUrl}/apirest.php/initSession`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'App-Token': config.api_token,
-            'Authorization': `user_token ${config.password}`,
-          },
+          headers: authHeaders,
         });
 
         if (response.ok) {
           const data = await response.json();
+          console.log('✅ Autenticação com User Token bem-sucedida');
           setConnectionStatus('success');
           toast({
             title: "✅ Conexão Bem-sucedida",
@@ -102,24 +184,24 @@ export const GLPIConfig = () => {
           return;
         } else {
           const errorText = await response.text();
-          console.log('Falha com User Token, tentando Basic Auth...', response.status, errorText);
+          console.log('❌ Falha com User Token:', response.status, errorText);
+          throw new Error(`User Token falhou: ${response.status} - ${errorText}`);
         }
       }
 
-      // Método 2: Tentar com Basic Auth
+      // Método 2: Tentar com Basic Auth (fallback)
       if (config.username && config.password) {
-        console.log('Testando conexão com Basic Auth...');
-        const response = await fetch(`${cleanUrl}/apirest.php/initSession`, {
+        console.log('🔑 Tentando autenticação com Basic Auth...');
+        authHeaders['Authorization'] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
+        
+        response = await fetch(`${cleanUrl}/apirest.php/initSession`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'App-Token': config.api_token,
-            'Authorization': `Basic ${btoa(`${config.username}:${config.password}`)}`,
-          },
+          headers: authHeaders,
         });
 
         if (response.ok) {
           const data = await response.json();
+          console.log('✅ Autenticação com Basic Auth bem-sucedida');
           setConnectionStatus('success');
           toast({
             title: "✅ Conexão Bem-sucedida",
@@ -138,17 +220,20 @@ export const GLPIConfig = () => {
           return;
         } else {
           const errorText = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+          console.log('❌ Falha com Basic Auth:', response.status, errorText);
+          throw new Error(`Basic Auth falhou: ${response.status} - ${errorText}`);
         }
       }
 
-      throw new Error('Nenhum método de autenticação funcionou');
+      throw new Error('Nenhum método de autenticação configurado corretamente');
     } catch (error) {
-      console.error('GLPI connection test failed:', error);
+      console.error('❌ Erro no teste de conexão GLPI:', error);
+      const diagnosticMessage = diagnoseError(error);
       setConnectionStatus('error');
+      setLastError(diagnosticMessage);
       toast({
         title: "❌ Falha na Conexão",
-        description: `Erro ao conectar: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+        description: diagnosticMessage,
         variant: "destructive"
       });
     } finally {
@@ -157,6 +242,17 @@ export const GLPIConfig = () => {
   };
 
   const saveConfiguration = async () => {
+    // Validar antes de salvar
+    const errors = validateConfig(config);
+    if (errors.length > 0) {
+      toast({
+        title: "❌ Configuração Inválida",
+        description: errors[0].message,
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const integrationData = {
         type: 'glpi' as const,
@@ -165,7 +261,7 @@ export const GLPIConfig = () => {
         api_token: config.api_token,
         username: config.username || null,
         password: config.password,
-        webhook_url: null, // Will store session token after init
+        webhook_url: null,
         phone_number: null,
         region: null,
         bucket_name: null,
@@ -205,6 +301,12 @@ export const GLPIConfig = () => {
     }
   };
 
+  const getFieldError = (fieldName: string): string | undefined => {
+    return validationErrors.find(error => error.field === fieldName)?.message;
+  };
+
+  const isConfigValid = validationErrors.length === 0 && config.base_url && config.api_token && config.password;
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
@@ -226,8 +328,32 @@ export const GLPIConfig = () => {
                 Conectado
               </Badge>
             )}
+            {connectionStatus === 'error' && (
+              <Badge className="bg-red-100 text-red-800">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                Erro de Conexão
+              </Badge>
+            )}
           </div>
         )}
+
+        {/* Error Alert */}
+        {lastError && (
+          <Alert className="border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              {lastError}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Prerequisites Alert */}
+        <Alert className="border-amber-200 bg-amber-50">
+          <Shield className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800">
+            <strong>Pré-requisitos:</strong> Certifique-se de que a API REST está habilitada no GLPI (Configurar → Geral → API) e que você tem permissões adequadas.
+          </AlertDescription>
+        </Alert>
 
         {/* Authentication Method Info */}
         <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -236,9 +362,9 @@ export const GLPIConfig = () => {
             <div>
               <h4 className="font-medium text-blue-900 mb-2">Métodos de Autenticação:</h4>
               <ul className="text-sm text-blue-800 space-y-1">
-                <li><strong>Recomendado:</strong> Use apenas o campo "Senha" com um User Token</li>
-                <li><strong>Alternativo:</strong> Use "Usuário" + "Senha" com credenciais normais</li>
-                <li>Para obter um User Token: Perfil do usuário → Chaves de acesso remoto</li>
+                <li><strong>🏆 Recomendado:</strong> Use apenas o campo "User Token" (deixe usuário vazio)</li>
+                <li><strong>🔄 Alternativo:</strong> Use "Usuário" + "Senha" com credenciais normais</li>
+                <li><strong>📋 Para obter User Token:</strong> Perfil do usuário → Chaves de acesso remoto → Gerar</li>
               </ul>
             </div>
           </div>
@@ -257,29 +383,44 @@ export const GLPIConfig = () => {
           </div>
 
           <div>
-            <Label htmlFor="base_url">URL do GLPI *</Label>
+            <Label htmlFor="base_url" className="flex items-center gap-2">
+              URL do GLPI *
+              {getFieldError('base_url') && <AlertCircle className="h-4 w-4 text-red-500" />}
+            </Label>
             <Input
               id="base_url"
               value={config.base_url}
               onChange={(e) => setConfig({ ...config, base_url: e.target.value })}
               placeholder="https://seu-glpi.com"
+              className={getFieldError('base_url') ? 'border-red-300' : ''}
             />
+            {getFieldError('base_url') && (
+              <p className="text-xs text-red-600 mt-1">{getFieldError('base_url')}</p>
+            )}
             <p className="text-xs text-gray-500 mt-1">
               URL base do seu servidor GLPI
             </p>
           </div>
 
           <div>
-            <Label htmlFor="api_token">App Token *</Label>
+            <Label htmlFor="api_token" className="flex items-center gap-2">
+              <Key className="h-4 w-4" />
+              App Token *
+              {getFieldError('api_token') && <AlertCircle className="h-4 w-4 text-red-500" />}
+            </Label>
             <Input
               id="api_token"
               type="password"
               value={config.api_token}
               onChange={(e) => setConfig({ ...config, api_token: e.target.value })}
               placeholder="Token da aplicação GLPI"
+              className={getFieldError('api_token') ? 'border-red-300' : ''}
             />
+            {getFieldError('api_token') && (
+              <p className="text-xs text-red-600 mt-1">{getFieldError('api_token')}</p>
+            )}
             <p className="text-xs text-gray-500 mt-1">
-              Token gerado em: Configurar → Geral → API
+              Token gerado em: Configurar → Geral → API → Gerar App Token
             </p>
           </div>
 
@@ -298,14 +439,21 @@ export const GLPIConfig = () => {
             </div>
 
             <div>
-              <Label htmlFor="password">Senha / User Token *</Label>
+              <Label htmlFor="password" className="flex items-center gap-2">
+                User Token / Senha *
+                {getFieldError('password') && <AlertCircle className="h-4 w-4 text-red-500" />}
+              </Label>
               <Input
                 id="password"
                 type="password"
                 value={config.password}
                 onChange={(e) => setConfig({ ...config, password: e.target.value })}
-                placeholder="Senha ou User Token"
+                placeholder="User Token ou Senha"
+                className={getFieldError('password') ? 'border-red-300' : ''}
               />
+              {getFieldError('password') && (
+                <p className="text-xs text-red-600 mt-1">{getFieldError('password')}</p>
+              )}
               <p className="text-xs text-gray-500 mt-1">
                 User Token é mais seguro
               </p>
@@ -313,19 +461,35 @@ export const GLPIConfig = () => {
           </div>
         </div>
 
+        {/* Validation Summary */}
+        {validationErrors.length > 0 && (
+          <Alert className="border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              <strong>Corrija os seguintes erros:</strong>
+              <ul className="list-disc list-inside mt-1">
+                {validationErrors.map((error, index) => (
+                  <li key={index}>{error.message}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Test Connection */}
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
             onClick={testConnection}
-            disabled={isTestingConnection || !config.base_url || !config.api_token || !config.password}
+            disabled={isTestingConnection || !isConfigValid}
+            className="flex-1"
           >
             {isTestingConnection ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
             ) : (
               <ExternalLink className="h-4 w-4 mr-2" />
             )}
-            Testar Conexão
+            {isTestingConnection ? 'Testando...' : 'Testar Conexão'}
           </Button>
 
           {connectionStatus === 'success' && (
@@ -346,26 +510,77 @@ export const GLPIConfig = () => {
         {/* Save Button */}
         <Button
           onClick={saveConfiguration}
-          disabled={!config.base_url || !config.api_token || !config.password || createIntegration.isPending || updateIntegration.isPending}
+          disabled={!isConfigValid || createIntegration.isPending || updateIntegration.isPending}
           className="w-full"
         >
           {(createIntegration.isPending || updateIntegration.isPending) ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : null}
+          ) : (
+            <Settings2 className="h-4 w-4 mr-2" />
+          )}
           {glpiIntegration ? 'Atualizar Configuração' : 'Salvar Configuração'}
         </Button>
 
-        {/* Help Section */}
+        {/* Enhanced Help Section */}
         <div className="bg-gray-50 p-4 rounded-lg border">
-          <h4 className="font-medium text-gray-900 mb-2">Como configurar:</h4>
-          <ul className="text-sm text-gray-700 space-y-1">
-            <li>1. Acesse o GLPI como administrador</li>
-            <li>2. Vá em Configurar → Geral → API</li>
-            <li>3. Ative a API REST e gere um App Token</li>
-            <li>4. <strong>Recomendado:</strong> Vá no seu perfil → Chaves de acesso remoto → Gere um User Token</li>
-            <li>5. Use o User Token no campo "Senha" (deixe "Usuário" vazio)</li>
-            <li>6. Teste a conexão antes de salvar</li>
-          </ul>
+          <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+            <Info className="h-4 w-4" />
+            Guia de Configuração Passo-a-Passo
+          </h4>
+          <div className="space-y-3 text-sm text-gray-700">
+            <div className="bg-white p-3 rounded border">
+              <h5 className="font-medium text-gray-900 mb-2">1. Habilitar API REST no GLPI</h5>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Acesse o GLPI como administrador</li>
+                <li>Vá em <strong>Configurar → Geral → API</strong></li>
+                <li>Ative a opção <strong>"Habilitar API REST"</strong></li>
+                <li>Defina a URL da API (geralmente automática)</li>
+              </ul>
+            </div>
+            
+            <div className="bg-white p-3 rounded border">
+              <h5 className="font-medium text-gray-900 mb-2">2. Gerar App Token</h5>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Ainda em <strong>Configurar → Geral → API</strong></li>
+                <li>Clique em <strong>"Gerar"</strong> na seção App Token</li>
+                <li>Copie o token gerado (será usado no campo "App Token")</li>
+              </ul>
+            </div>
+            
+            <div className="bg-white p-3 rounded border">
+              <h5 className="font-medium text-gray-900 mb-2">3. Gerar User Token (Recomendado)</h5>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Vá no seu <strong>Perfil de usuário</strong></li>
+                <li>Clique em <strong>"Chaves de acesso remoto"</strong></li>
+                <li>Clique em <strong>"Gerar"</strong> para criar um User Token</li>
+                <li>Copie o token e use no campo "User Token/Senha"</li>
+                <li><strong>Deixe o campo "Usuário" vazio</strong></li>
+              </ul>
+            </div>
+            
+            <div className="bg-white p-3 rounded border">
+              <h5 className="font-medium text-gray-900 mb-2">4. Alternativa: Usuário e Senha</h5>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Se não usar User Token, informe usuário e senha</li>
+                <li>Certifique-se de que o usuário tem permissões na API</li>
+                <li>User Token é mais seguro que usuário/senha</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Troubleshooting Section */}
+        <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+          <h4 className="font-medium text-red-900 mb-3 flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            Soluções para Problemas Comuns
+          </h4>
+          <div className="space-y-2 text-sm text-red-800">
+            <div><strong>Erro 400:</strong> Verifique se o App Token está correto e se a API REST está habilitada</div>
+            <div><strong>Erro 401:</strong> Verifique suas credenciais (User Token ou usuário/senha)</div>
+            <div><strong>Erro 404:</strong> Verifique se a URL do GLPI está correta</div>
+            <div><strong>Erro 500:</strong> Problema no servidor GLPI - verifique os logs do servidor</div>
+          </div>
         </div>
       </CardContent>
     </Card>

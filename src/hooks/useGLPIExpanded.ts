@@ -296,59 +296,108 @@ export const useGLPIExpanded = () => {
       throw new Error('GLPI não configurado');
     }
 
+    // Validação de pré-requisitos
+    if (!glpiIntegration.api_token) {
+      throw new Error('App Token não configurado. Configure o App Token no GLPI.');
+    }
+
+    if (!glpiIntegration.webhook_url) {
+      throw new Error('Sessão não inicializada. Clique em "Iniciar Sessão" primeiro.');
+    }
+
     const baseUrl = glpiIntegration.base_url.replace(/\/$/, '');
     const url = `${baseUrl}/apirest.php/${endpoint}`;
     
-    console.log(`Fazendo requisição GLPI: ${endpoint}`);
+    console.log(`🔍 Fazendo requisição GLPI: ${endpoint}`, {
+      url,
+      hasAppToken: !!glpiIntegration.api_token,
+      hasSessionToken: !!glpiIntegration.webhook_url,
+      appTokenLength: glpiIntegration.api_token?.length || 0
+    });
     
     const response = await fetch(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        'App-Token': glpiIntegration.api_token || '',
-        'Session-Token': glpiIntegration.webhook_url || '',
+        'App-Token': glpiIntegration.api_token,
+        'Session-Token': glpiIntegration.webhook_url,
         ...options.headers,
       },
     });
 
-    console.log(`Resposta GLPI ${endpoint}:`, response.status, response.statusText);
+    console.log(`📋 Resposta GLPI ${endpoint}:`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
 
     if (!response.ok) {
-      // Se token expirou, tentar renovar
-      if (response.status === 401) {
-        console.log('Session token expirado, tentando renovar...');
-        const newToken = await initializeSession();
-        if (newToken) {
-          // Repetir a requisição com o novo token
-          return fetch(url, {
-            ...options,
-            headers: {
-              'Content-Type': 'application/json',
-              'App-Token': glpiIntegration.api_token || '',
-              'Session-Token': newToken,
-              ...options.headers,
-            },
-          }).then(res => {
-            if (!res.ok) {
-              throw new Error(`GLPI API Error: ${res.status} ${res.statusText}`);
-            }
-            return res.json();
-          });
-        }
-      }
-      
-      // Tentar obter mais detalhes do erro
+      // Capturar mais detalhes do erro
       let errorMessage = `GLPI API Error: ${response.status} ${response.statusText}`;
+      let errorDetails = '';
+      
       try {
         const errorData = await response.json();
         if (errorData && errorData.message) {
-          errorMessage += ` - ${errorData.message}`;
+          errorDetails = errorData.message;
+        } else if (typeof errorData === 'string') {
+          errorDetails = errorData;
         }
       } catch (e) {
-        // Ignore JSON parse errors
+        try {
+          errorDetails = await response.text();
+        } catch (textError) {
+          console.log('Não foi possível obter detalhes do erro');
+        }
+      }
+
+      // Diagnóstico específico para erros comuns
+      if (response.status === 400) {
+        if (!glpiIntegration.api_token) {
+          throw new Error('Erro 400: App Token não configurado');
+        }
+        if (errorDetails.includes('ERROR_APP_TOKEN_PARAMETERS_MISSING')) {
+          throw new Error('Erro 400: App Token ausente ou inválido');
+        }
+        throw new Error(`Erro 400: Parâmetros inválidos - ${errorDetails || 'Verifique a configuração'}`);
+      }
+
+      if (response.status === 401) {
+        // Se token expirou, tentar renovar
+        console.log('🔄 Session token expirado, tentando renovar...');
+        try {
+          const newToken = await initializeSession();
+          if (newToken) {
+            // Repetir a requisição com o novo token
+            return fetch(url, {
+              ...options,
+              headers: {
+                'Content-Type': 'application/json',
+                'App-Token': glpiIntegration.api_token,
+                'Session-Token': newToken,
+                ...options.headers,
+              },
+            }).then(res => {
+              if (!res.ok) {
+                throw new Error(`GLPI API Error: ${res.status} ${res.statusText}`);
+              }
+              return res.json();
+            });
+          }
+        } catch (renewError) {
+          throw new Error(`Erro 401: Sessão expirada e não foi possível renovar - ${errorDetails}`);
+        }
+      }
+
+      if (response.status === 404) {
+        throw new Error(`Erro 404: Endpoint não encontrado - Verifique se a URL está correta e se a API REST está habilitada`);
+      }
+
+      if (response.status === 500) {
+        throw new Error(`Erro 500: Erro interno do servidor GLPI - ${errorDetails}`);
       }
       
-      throw new Error(errorMessage);
+      throw new Error(`${errorMessage}${errorDetails ? ` - ${errorDetails}` : ''}`);
     }
 
     return response.json();
@@ -360,31 +409,46 @@ export const useGLPIExpanded = () => {
       throw new Error('GLPI não configurado');
     }
 
+    // Validação de pré-requisitos
+    if (!glpiIntegration.api_token) {
+      throw new Error('App Token não configurado. Configure o App Token no GLPI primeiro.');
+    }
+
+    if (!glpiIntegration.password) {
+      throw new Error('Credenciais não configuradas. Configure um User Token ou usuário/senha.');
+    }
+
     try {
       const baseUrl = glpiIntegration.base_url.replace(/\/$/, '');
-      console.log('Inicializando sessão GLPI com:', {
+      console.log('🚀 Inicializando sessão GLPI:', {
         baseUrl,
         hasAppToken: !!glpiIntegration.api_token,
+        appTokenLength: glpiIntegration.api_token?.length || 0,
         hasUsername: !!glpiIntegration.username,
-        hasPassword: !!glpiIntegration.password
+        hasPassword: !!glpiIntegration.password,
+        authMethod: glpiIntegration.password && !glpiIntegration.username ? 'User Token' : 'Basic Auth'
       });
 
+      let response: Response;
+      let authHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'App-Token': glpiIntegration.api_token,
+      };
+
       // Método 1: Tentar com User Token (recomendado)
-      if (glpiIntegration.password) {
-        console.log('Tentando autenticação com User Token...');
-        const response = await fetch(`${baseUrl}/apirest.php/initSession`, {
+      if (glpiIntegration.password && !glpiIntegration.username) {
+        console.log('🔑 Tentando autenticação com User Token...');
+        authHeaders['Authorization'] = `user_token ${glpiIntegration.password}`;
+        
+        response = await fetch(`${baseUrl}/apirest.php/initSession`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'App-Token': glpiIntegration.api_token || '',
-            'Authorization': `user_token ${glpiIntegration.password}`,
-          },
+          headers: authHeaders,
         });
 
         if (response.ok) {
           const data = await response.json();
           const sessionToken = data.session_token;
-          console.log('Autenticação com User Token bem-sucedida');
+          console.log('✅ Autenticação com User Token bem-sucedida');
 
           // Salvar o session token na integração
           if (sessionToken && glpiIntegration.id) {
@@ -392,51 +456,66 @@ export const useGLPIExpanded = () => {
               id: glpiIntegration.id,
               updates: { webhook_url: sessionToken }
             });
-            console.log('Session token salvo na integração');
-          }
-
-          return sessionToken;
-        } else {
-          console.log('Falha na autenticação com User Token, tentando método alternativo...');
-        }
-      }
-
-      // Método 2: Tentar com Basic Auth (fallback)
-      if (glpiIntegration.username && glpiIntegration.password) {
-        console.log('Tentando autenticação com Basic Auth...');
-        const response = await fetch(`${baseUrl}/apirest.php/initSession`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'App-Token': glpiIntegration.api_token || '',
-            'Authorization': `Basic ${btoa(`${glpiIntegration.username}:${glpiIntegration.password}`)}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const sessionToken = data.session_token;
-          console.log('Autenticação com Basic Auth bem-sucedida');
-
-          // Salvar o session token na integração
-          if (sessionToken && glpiIntegration.id) {
-            await updateIntegration.mutateAsync({
-              id: glpiIntegration.id,
-              updates: { webhook_url: sessionToken }
-            });
-            console.log('Session token salvo na integração');
+            console.log('💾 Session token salvo na integração');
           }
 
           return sessionToken;
         } else {
           const errorText = await response.text();
-          console.error('Erro na autenticação Basic Auth:', response.status, errorText);
+          console.log('❌ Falha na autenticação com User Token:', response.status, errorText);
+          
+          // Diagnóstico específico
+          if (response.status === 400) {
+            throw new Error('User Token inválido ou App Token incorreto. Verifique as configurações.');
+          }
+          if (response.status === 401) {
+            throw new Error('User Token expirado ou inválido. Gere um novo User Token no GLPI.');
+          }
         }
       }
 
-      throw new Error(`Falha na autenticação GLPI. Verifique suas credenciais e tente usar um User Token.`);
+      // Método 2: Tentar com Basic Auth (fallback)
+      if (glpiIntegration.username && glpiIntegration.password) {
+        console.log('🔑 Tentando autenticação com Basic Auth...');
+        authHeaders['Authorization'] = `Basic ${btoa(`${glpiIntegration.username}:${glpiIntegration.password}`)}`;
+        
+        response = await fetch(`${baseUrl}/apirest.php/initSession`, {
+          method: 'POST',
+          headers: authHeaders,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const sessionToken = data.session_token;
+          console.log('✅ Autenticação com Basic Auth bem-sucedida');
+
+          // Salvar o session token na integração
+          if (sessionToken && glpiIntegration.id) {
+            await updateIntegration.mutateAsync({
+              id: glpiIntegration.id,
+              updates: { webhook_url: sessionToken }
+            });
+            console.log('💾 Session token salvo na integração');
+          }
+
+          return sessionToken;
+        } else {
+          const errorText = await response.text();
+          console.error('❌ Erro na autenticação Basic Auth:', response.status, errorText);
+          
+          // Diagnóstico específico
+          if (response.status === 400) {
+            throw new Error('Credenciais inválidas ou App Token incorreto. Verifique usuário, senha e App Token.');
+          }
+          if (response.status === 401) {
+            throw new Error('Usuário ou senha incorretos. Verifique as credenciais.');
+          }
+        }
+      }
+
+      throw new Error('Falha na autenticação GLPI. Verifique suas credenciais e certifique-se de que a API REST está habilitada.');
     } catch (error) {
-      console.error('Erro ao inicializar sessão GLPI:', error);
+      console.error('❌ Erro ao inicializar sessão GLPI:', error);
       throw error;
     }
   };
@@ -445,18 +524,18 @@ export const useGLPIExpanded = () => {
   const initSession = useMutation({
     mutationFn: initializeSession,
     onSuccess: (sessionToken) => {
-      console.log('Sessão GLPI inicializada com sucesso:', sessionToken);
+      console.log('🎉 Sessão GLPI inicializada com sucesso:', sessionToken);
       toast({
-        title: "Conectado ao GLPI",
+        title: "✅ Conectado ao GLPI",
         description: "Sessão inicializada com sucesso!",
       });
       // Invalidar todas as queries para recarregar com novo token
       queryClient.invalidateQueries({ queryKey: ['glpi-'] });
     },
     onError: (error) => {
-      console.error('Erro ao inicializar sessão GLPI:', error);
+      console.error('❌ Erro ao inicializar sessão GLPI:', error);
       toast({
-        title: "Erro de conexão",
+        title: "❌ Erro de conexão",
         description: error.message,
         variant: "destructive"
       });
@@ -465,21 +544,21 @@ export const useGLPIExpanded = () => {
 
   // Verificar se temos uma sessão válida
   const hasValidSession = !!glpiIntegration?.webhook_url;
-  const isEnabled = !!glpiIntegration && hasValidSession;
+  const isEnabled = !!glpiIntegration && hasValidSession && !!glpiIntegration.api_token;
 
-  console.log('GLPI Integration status:', {
+  console.log('📊 GLPI Integration status:', {
     hasIntegration: !!glpiIntegration,
+    hasAppToken: !!glpiIntegration?.api_token,
     hasSessionToken: hasValidSession,
     isEnabled,
     baseUrl: glpiIntegration?.base_url,
     sessionToken: glpiIntegration?.webhook_url ? 'presente' : 'ausente'
   });
 
-  // Fetch all data types
   const tickets = useQuery({
     queryKey: ['glpi-tickets'],
     queryFn: () => {
-      console.log('Buscando tickets GLPI...');
+      console.log('🎫 Buscando tickets GLPI...');
       return makeGLPIRequest('Ticket?range=0-100&expand_dropdowns=true');
     },
     enabled: isEnabled,
@@ -507,7 +586,7 @@ export const useGLPIExpanded = () => {
     queryKey: ['glpi-computers'],
     queryFn: () => makeGLPIRequest('Computer?range=0-100&expand_dropdowns=true'),
     enabled: isEnabled,
-    refetchInterval: 300000, // 5 minutes
+    refetchInterval: 300000,
     retry: 1,
   });
 
@@ -591,7 +670,6 @@ export const useGLPIExpanded = () => {
     retry: 1,
   });
 
-  // Create ticket
   const createTicket = useMutation({
     mutationFn: async (ticketData: Partial<GLPITicket>) => {
       return makeGLPIRequest('Ticket', {
@@ -602,20 +680,19 @@ export const useGLPIExpanded = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['glpi-tickets'] });
       toast({
-        title: "Chamado criado",
+        title: "✅ Chamado criado",
         description: "Chamado criado com sucesso no GLPI!",
       });
     },
     onError: (error) => {
       toast({
-        title: "Erro ao criar chamado",
+        title: "❌ Erro ao criar chamado",
         description: error.message,
         variant: "destructive"
       });
     },
   });
 
-  // Update ticket
   const updateTicket = useMutation({
     mutationFn: async ({ id, updates }: { id: number; updates: Partial<GLPITicket> }) => {
       return makeGLPIRequest(`Ticket/${id}`, {
@@ -626,13 +703,13 @@ export const useGLPIExpanded = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['glpi-tickets'] });
       toast({
-        title: "Chamado atualizado",
+        title: "✅ Chamado atualizado",
         description: "Chamado atualizado com sucesso!",
       });
     },
     onError: (error) => {
       toast({
-        title: "Erro ao atualizar chamado",
+        title: "❌ Erro ao atualizar chamado",
         description: error.message,
         variant: "destructive"
       });
