@@ -8,6 +8,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -64,11 +65,26 @@ const AdminApiPanel = () => {
   })
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
+    // Ensure all required fields are present with proper defaults
+    const integrationData = {
+      type: values.type,
+      name: values.name,
+      base_url: values.base_url,
+      api_token: values.api_token || null,
+      webhook_url: values.webhook_url || null,
+      phone_number: values.phone_number || null,
+      username: values.username || null,
+      password: values.password || null,
+      region: values.region || null,
+      bucket_name: values.bucket_name || null,
+      is_active: values.is_active,
+    };
+
     if (editingIntegrationId) {
-      updateIntegration.mutate({ id: editingIntegrationId, updates: values });
-      setEditingIntegrationId(null); // Clear the editing state
+      updateIntegration.mutate({ id: editingIntegrationId, updates: integrationData });
+      setEditingIntegrationId(null);
     } else {
-      createIntegration.mutate(values);
+      createIntegration.mutate(integrationData);
     }
     form.reset();
   }
