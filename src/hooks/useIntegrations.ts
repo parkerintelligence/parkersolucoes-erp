@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -15,6 +14,7 @@ export interface Integration {
   password: string | null;
   region: string | null;
   bucket_name: string | null;
+  port: number | null;
   is_active: boolean | null;
   created_at: string;
   updated_at: string;
@@ -71,6 +71,7 @@ export const useIntegrations = () => {
         password: integration.password || null,
         region: integration.region || null,
         bucket_name: integration.bucket_name || null,
+        port: integration.port || null,
         is_active: integration.is_active ?? true,
         user_id: user.id
       };
@@ -126,6 +127,7 @@ export const useIntegrations = () => {
         password: updates.password === undefined ? null : updates.password,
         region: updates.region === undefined ? null : updates.region,
         bucket_name: updates.bucket_name === undefined ? null : updates.bucket_name,
+        port: updates.port === undefined ? null : updates.port,
       };
 
       console.log('Updating integration:', id, updateData);
