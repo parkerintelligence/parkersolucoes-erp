@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIntegrations } from './useIntegrations';
 import { toast } from '@/hooks/use-toast';
@@ -426,12 +425,6 @@ export const useGLPIExpanded = () => {
     enabled: isEnabled,
     refetchInterval: 30000,
     retry: 1,
-    onError: (error) => {
-      console.error('Erro ao buscar tickets:', error);
-    },
-    onSuccess: (data) => {
-      console.log('Tickets GLPI carregados:', data?.length || 0, 'tickets');
-    }
   });
 
   const problems = useQuery({
