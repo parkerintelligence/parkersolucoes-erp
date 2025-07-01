@@ -20,7 +20,6 @@ export const useFtp = () => {
       name: activeFtpIntegration.name,
       host: activeFtpIntegration.base_url,
       username: activeFtpIntegration.username,
-      port: activeFtpIntegration.port || 21,
       is_active: activeFtpIntegration.is_active
     });
   } else {
@@ -59,10 +58,10 @@ export const useFtp = () => {
     enabled: !!activeFtpIntegration && !isLoadingIntegrations,
     retry: 2,
     retryDelay: 1000,
-    refetchInterval: false, // Don't auto-refresh to avoid spam
+    refetchInterval: false,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
-    staleTime: 30000, // Consider data stale after 30 seconds
+    staleTime: 30000,
   });
 
   // Test FTP connection

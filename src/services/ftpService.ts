@@ -27,7 +27,7 @@ export class FtpService {
       host: cleanHost,
       username: integration.username || 'anonymous',
       password: integration.password || '',
-      port: integration.port || 21
+      port: 21 // Default FTP port since port is not available in Integration interface
     };
     
     console.log('FTP Service initialized with connection:', {
