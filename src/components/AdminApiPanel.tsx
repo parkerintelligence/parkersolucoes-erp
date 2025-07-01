@@ -80,47 +80,86 @@ const AdminApiPanel = () => {
     setTestingConnection(config.id);
     
     try {
-      let testUrl = '';
-      let testOptions: RequestInit = {};
+      console.log('Testando conexão com configuração:', {
+        type: config.type,
+        name: config.name,
+        base_url: config.base_url,
+        username: config.username,
+        region: config.region,
+        bucket_name: config.bucket_name
+      });
 
       if (config.type === 'wasabi') {
-        testUrl = '/api/wasabi-test';
-        testOptions = {
+        // Validar campos obrigatórios para Wasabi
+        if (!config.username || !config.password || !config.bucket_name) {
+          toast({
+            title: "Erro de configuração",
+            description: "Access Key, Secret Key e Bucket Name são obrigatórios para Wasabi.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        const testPayload = {
+          endpoint: config.base_url || 's3.wasabisys.com',
+          accessKey: config.username,
+          secretKey: config.password,
+          region: config.region || 'us-east-1',
+          bucketName: config.bucket_name
+        };
+
+        console.log('Payload de teste Wasabi:', testPayload);
+
+        const response = await fetch('/api/wasabi-test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            endpoint: config.base_url || 's3.wasabisys.com',
-            accessKey: config.username,
-            secretKey: config.password,
-            region: config.region || 'us-east-1',
-            bucketName: config.bucket_name
-          })
-        };
-      } else {
-        testUrl = config.base_url;
-        testOptions = {
-          method: 'GET',
-          headers: {
-            'Authorization': `Basic ${btoa(`${config.username}:${config.password}`)}`
-          }
-        };
-      }
-
-      const response = await fetch(testUrl, testOptions);
-      
-      if (response.ok || response.status === 401) {
-        toast({
-          title: "Conexão bem-sucedida!",
-          description: `Conexão com ${config.name} estabelecida com sucesso.`,
+          body: JSON.stringify(testPayload)
         });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Resultado do teste Wasabi:', result);
+          toast({
+            title: "Conexão bem-sucedida!",
+            description: `Conectado ao bucket ${config.bucket_name} com sucesso.`,
+          });
+        } else {
+          const errorText = await response.text();
+          console.error('Erro na resposta da API:', errorText);
+          throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
+        }
       } else {
-        throw new Error(`HTTP ${response.status}`);
+        // Teste para outros tipos de API
+        if (!config.base_url) {
+          toast({
+            title: "Erro de configuração",
+            description: "URL Base é obrigatória.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        const response = await fetch(config.base_url, {
+          method: 'GET',
+          headers: config.username && config.password ? {
+            'Authorization': `Basic ${btoa(`${config.username}:${config.password}`)}`
+          } : {}
+        });
+        
+        if (response.ok || response.status === 401) {
+          toast({
+            title: "Conexão bem-sucedida!",
+            description: `Conexão com ${config.name} estabelecida.`,
+          });
+        } else {
+          throw new Error(`HTTP ${response.status}`);
+        }
       }
     } catch (error) {
-      console.warn('Erro no teste de conexão:', error);
+      console.error('Erro detalhado no teste de conexão:', error);
       toast({
         title: "Erro na conexão",
-        description: `Não foi possível conectar com ${config.name}. Verifique as configurações.`,
+        description: `Falha ao conectar: ${error.message}. Verifique as configurações e tente novamente.`,
         variant: "destructive"
       });
     } finally {
@@ -131,90 +170,142 @@ const AdminApiPanel = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newConfig.name || !newConfig.base_url) {
+    console.log('Iniciando salvamento da configuração:', newConfig);
+
+    // Validações básicas
+    if (!newConfig.name.trim()) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Nome e URL base são obrigatórios.",
+        title: "Campo obrigatório",
+        description: "Nome é obrigatório.",
         variant: "destructive"
       });
       return;
     }
 
+    // Configurar valores padrão para Wasabi
+    let configToSave = { ...newConfig };
+    
     if (newConfig.type === 'wasabi') {
-      if (!newConfig.username || !newConfig.password) {
+      // Validações específicas do Wasabi
+      if (!newConfig.username || !newConfig.password || !newConfig.bucket_name) {
         toast({
-          title: "Credenciais obrigatórias",
-          description: "Access Key e Secret Key são obrigatórios para Wasabi.",
+          title: "Campos obrigatórios",
+          description: "Para Wasabi: Access Key, Secret Key e Bucket Name são obrigatórios.",
           variant: "destructive"
         });
         return;
       }
 
-      if (!newConfig.base_url) {
-        newConfig.base_url = 's3.wasabisys.com';
+      // Definir endpoint padrão se não fornecido
+      if (!configToSave.base_url.trim()) {
+        configToSave.base_url = 's3.wasabisys.com';
       }
 
+      // Definir região padrão se não fornecido
+      if (!configToSave.region.trim()) {
+        configToSave.region = 'us-east-1';
+      }
+
+      console.log('Configuração Wasabi processada:', configToSave);
+
+      // Testar conexão antes de salvar
       try {
+        const testPayload = {
+          endpoint: configToSave.base_url,
+          accessKey: configToSave.username,
+          secretKey: configToSave.password,
+          region: configToSave.region,
+          bucketName: configToSave.bucket_name
+        };
+
+        console.log('Testando conexão Wasabi antes de salvar:', testPayload);
+
         const testResponse = await fetch('/api/wasabi-test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            endpoint: newConfig.base_url,
-            accessKey: newConfig.username,
-            secretKey: newConfig.password,
-            region: newConfig.region || 'us-east-1',
-            bucketName: newConfig.bucket_name
-          })
+          body: JSON.stringify(testPayload)
         });
 
         if (!testResponse.ok) {
+          const errorText = await testResponse.text();
+          console.error('Falha no teste de conexão:', errorText);
           toast({
             title: "Falha no teste de conexão",
-            description: "Não foi possível conectar com o Wasabi. Verifique as credenciais.",
+            description: `Não foi possível conectar ao Wasabi: ${errorText}`,
             variant: "destructive"
           });
           return;
         }
-      } catch (error) {
-        console.warn('Erro no teste de conexão Wasabi:', error);
+
+        const testResult = await testResponse.json();
+        console.log('Teste de conexão bem-sucedido:', testResult);
+      } catch (testError) {
+        console.error('Erro no teste de conexão Wasabi:', testError);
+        toast({
+          title: "Erro no teste",
+          description: `Erro ao testar conexão: ${testError.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+    } else {
+      // Para outros tipos, validar URL base
+      if (!configToSave.base_url.trim()) {
+        toast({
+          title: "Campo obrigatório",
+          description: "URL Base é obrigatória.",
+          variant: "destructive"
+        });
+        return;
       }
     }
 
     try {
       if (editingId) {
+        console.log('Atualizando integração:', editingId, configToSave);
         await updateIntegration.mutateAsync({ 
           id: editingId, 
           updates: {
-            type: newConfig.type as any,
-            name: newConfig.name,
-            base_url: newConfig.base_url,
-            username: newConfig.username,
-            password: newConfig.password,
-            region: newConfig.region,
-            bucket_name: newConfig.bucket_name,
-            is_active: newConfig.is_active
+            type: configToSave.type as any,
+            name: configToSave.name,
+            base_url: configToSave.base_url,
+            username: configToSave.username,
+            password: configToSave.password,
+            region: configToSave.region,
+            bucket_name: configToSave.bucket_name,
+            is_active: configToSave.is_active
           }
         });
+        toast({
+          title: "Configuração atualizada!",
+          description: `${configToSave.name} foi atualizada com sucesso.`,
+        });
       } else {
+        console.log('Criando nova integração:', configToSave);
         await createIntegration.mutateAsync({
-          type: newConfig.type as any,
-          name: newConfig.name,
-          base_url: newConfig.base_url,
+          type: configToSave.type as any,
+          name: configToSave.name,
+          base_url: configToSave.base_url,
           api_token: null,
           webhook_url: null,
           phone_number: null,
-          username: newConfig.username,
-          password: newConfig.password,
-          region: newConfig.region,
-          bucket_name: newConfig.bucket_name,
-          is_active: newConfig.is_active
+          username: configToSave.username,
+          password: configToSave.password,
+          region: configToSave.region,
+          bucket_name: configToSave.bucket_name,
+          is_active: configToSave.is_active
+        });
+        toast({
+          title: "Configuração criada!",
+          description: `${configToSave.name} foi configurada com sucesso.`,
         });
       }
       resetForm();
     } catch (error) {
+      console.error('Erro ao salvar configuração:', error);
       toast({
         title: "Erro ao salvar",
-        description: "Erro ao salvar a configuração. Tente novamente.",
+        description: `Erro: ${error.message || 'Erro desconhecido'}. Tente novamente.`,
         variant: "destructive"
       });
     }
@@ -222,11 +313,17 @@ const AdminApiPanel = () => {
 
   const handleDelete = async (id: string, name: string) => {
     try {
+      console.log('Removendo integração:', id, name);
       await deleteIntegration.mutateAsync(id);
+      toast({
+        title: "Configuração removida!",
+        description: `${name} foi removida com sucesso.`,
+      });
     } catch (error) {
+      console.error('Erro ao remover configuração:', error);
       toast({
         title: "Erro ao remover",
-        description: "Erro ao remover a configuração. Tente novamente.",
+        description: `Erro: ${error.message || 'Erro desconhecido'}. Tente novamente.`,
         variant: "destructive"
       });
     }
@@ -245,7 +342,7 @@ const AdminApiPanel = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="type">Tipo de API</Label>
+                <Label htmlFor="type">Tipo de API *</Label>
                 <select
                   id="type"
                   value={newConfig.type}
@@ -263,7 +360,7 @@ const AdminApiPanel = () => {
               </div>
               
               <div>
-                <Label htmlFor="name">Nome</Label>
+                <Label htmlFor="name">Nome *</Label>
                 <Input
                   id="name"
                   value={newConfig.name}
@@ -276,33 +373,34 @@ const AdminApiPanel = () => {
 
             <div>
               <Label htmlFor="base_url">
-                {newConfig.type === 'wasabi' ? 'Endpoint (padrão: s3.wasabisys.com)' : 'URL Base'}
+                {newConfig.type === 'wasabi' ? 'Endpoint (opcional - padrão: s3.wasabisys.com)' : 'URL Base *'}
               </Label>
               <Input
                 id="base_url"
                 value={newConfig.base_url}
                 onChange={(e) => setNewConfig({ ...newConfig, base_url: e.target.value })}
                 placeholder={newConfig.type === 'wasabi' ? 's3.wasabisys.com' : 'https://api.exemplo.com'}
-                required
+                required={newConfig.type !== 'wasabi'}
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="username">
-                  {newConfig.type === 'wasabi' ? 'Access Key' : 'Usuário'}
+                  {newConfig.type === 'wasabi' ? 'Access Key *' : 'Usuário'}
                 </Label>
                 <Input
                   id="username"
                   value={newConfig.username}
                   onChange={(e) => setNewConfig({ ...newConfig, username: e.target.value })}
                   placeholder={newConfig.type === 'wasabi' ? 'Access Key' : 'Usuário'}
+                  required={newConfig.type === 'wasabi'}
                 />
               </div>
               
               <div>
                 <Label htmlFor="password">
-                  {newConfig.type === 'wasabi' ? 'Secret Key' : 'Senha'}
+                  {newConfig.type === 'wasabi' ? 'Secret Key *' : 'Senha'}
                 </Label>
                 <Input
                   id="password"
@@ -310,6 +408,7 @@ const AdminApiPanel = () => {
                   value={newConfig.password}
                   onChange={(e) => setNewConfig({ ...newConfig, password: e.target.value })}
                   placeholder={newConfig.type === 'wasabi' ? 'Secret Key' : 'Senha'}
+                  required={newConfig.type === 'wasabi'}
                 />
               </div>
             </div>
@@ -317,7 +416,7 @@ const AdminApiPanel = () => {
             {newConfig.type === 'wasabi' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="region">Região</Label>
+                  <Label htmlFor="region">Região (opcional - padrão: us-east-1)</Label>
                   <Input
                     id="region"
                     value={newConfig.region}
@@ -326,13 +425,13 @@ const AdminApiPanel = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="bucket_name">Nome do Bucket</Label>
+                  <Label htmlFor="bucket_name">Nome do Bucket *</Label>
                   <Input
                     id="bucket_name"
                     value={newConfig.bucket_name}
                     onChange={(e) => setNewConfig({ ...newConfig, bucket_name: e.target.value })}
                     placeholder="nome-do-bucket"
-                    required={newConfig.type === 'wasabi'}
+                    required
                   />
                 </div>
               </div>
@@ -350,9 +449,16 @@ const AdminApiPanel = () => {
             </div>
 
             <div className="flex gap-2">
-              <Button type="submit" disabled={createIntegration.isPending || updateIntegration.isPending}>
+              <Button 
+                type="submit" 
+                disabled={createIntegration.isPending || updateIntegration.isPending}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
                 <Plus className="h-4 w-4 mr-2" />
-                {editingId ? 'Atualizar' : 'Adicionar'}
+                {createIntegration.isPending || updateIntegration.isPending ? 
+                  (editingId ? 'Atualizando...' : 'Salvando...') : 
+                  (editingId ? 'Atualizar' : 'Salvar')
+                }
               </Button>
               
               {editingId && (
