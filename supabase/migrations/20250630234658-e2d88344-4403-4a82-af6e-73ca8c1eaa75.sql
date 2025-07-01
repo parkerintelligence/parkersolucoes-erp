@@ -27,16 +27,25 @@ CREATE TABLE public.company_links (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
--- Criar tabela para configurações das integrações
+-- Criar tabela para configurações das integrações - Updated to support more integration types
 CREATE TABLE public.integrations (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('chatwoot', 'evolution_api')),
+  type TEXT NOT NULL CHECK (type IN ('chatwoot', 'evolution_api', 'wasabi', 'grafana', 'bomcontrole', 'zabbix', 'ftp')),
   name TEXT NOT NULL,
   base_url TEXT NOT NULL,
-  api_token TEXT NOT NULL,
+  api_token TEXT,
   webhook_url TEXT,
   phone_number TEXT,
+  username TEXT,
+  password TEXT,
+  region TEXT,
+  bucket_name TEXT,
+  port INTEGER,
+  directory TEXT,
+  passive_mode BOOLEAN,
+  use_ssl BOOLEAN,
+  keep_logged BOOLEAN,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
