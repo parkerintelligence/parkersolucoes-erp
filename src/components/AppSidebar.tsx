@@ -38,7 +38,7 @@ const menuItems = [
   { title: 'Senhas', url: '/passwords', icon: Lock, role: 'user' },
   { title: 'Links', url: '/links', icon: Link, role: 'user' },
   { title: 'Conversas WhatsApp', url: '/whatsapp-chats', icon: MessageCircle, role: 'user' },
-  { title: 'Wasabi', url: '/wasabi', icon: HardDrive, role: 'user' },
+  { title: 'Wasabi', url: '/wasabi', icon: Cloud, role: 'user' },
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
 ];
 
@@ -49,7 +49,7 @@ const financialItems = [
 ];
 
 const adminItems = [
-  { title: 'Administração', url: '/admin', icon: Shield, role: 'master' },
+  { title: 'Painel de Administração', url: '/admin', icon: Shield, role: 'master' },
 ];
 
 export function AppSidebar() {
@@ -73,39 +73,32 @@ export function AppSidebar() {
     item.role === 'user' || (item.role === 'master' && isMaster)
   );
 
-  const getNavClass = (active: boolean) =>
-    `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-blue-900/50 ${
-      active 
-        ? 'bg-blue-800 text-white font-medium' 
-        : 'text-blue-100 hover:text-white'
-    }`;
-
   return (
     <Sidebar 
-      className="border-r border-blue-900 bg-blue-950 z-30" 
+      className="border-r border-primary bg-primary z-30" 
       collapsible="icon"
     >
-      <SidebarHeader className="p-4 border-b border-blue-900 bg-blue-950">
+      <SidebarHeader className="p-4 border-b border-primary-foreground/20 bg-primary">
         <div className="flex items-center justify-center">
-          <div className="bg-blue-600 p-2 rounded-lg">
-            <Shield className="h-6 w-6 text-white" />
+          <div className="bg-secondary p-2 rounded-lg shadow-sm">
+            <Shield className="h-6 w-6 text-secondary-foreground" />
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-blue-950">
+      <SidebarContent className="bg-primary">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-blue-200 font-medium">
+          <SidebarGroupLabel className="text-primary-foreground/70 font-medium">
             {!isCollapsed && "Menu Principal"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
               {filteredMainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink 
                       to={item.url} 
-                      className={getNavClass(isActive(item.url))}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all"
                     >
                       <item.icon className="h-4 w-4 flex-shrink-0" />
                       {!isCollapsed && <span>{item.title}</span>}
@@ -119,17 +112,17 @@ export function AppSidebar() {
 
         {filteredFinancialItems.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-blue-200 font-medium">
+            <SidebarGroupLabel className="text-primary-foreground/70 font-medium">
               {!isCollapsed && "Financeiro"}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="space-y-1">
                 {filteredFinancialItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
                       <NavLink 
                         to={item.url} 
-                        className={getNavClass(isActive(item.url))}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all"
                       >
                         <item.icon className="h-4 w-4 flex-shrink-0" />
                         {!isCollapsed && <span>{item.title}</span>}
@@ -144,17 +137,17 @@ export function AppSidebar() {
 
         {filteredAdminItems.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-blue-200 font-medium">
+            <SidebarGroupLabel className="text-primary-foreground/70 font-medium">
               {!isCollapsed && "Administração"}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="space-y-1">
                 {filteredAdminItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
                       <NavLink 
                         to={item.url} 
-                        className={getNavClass(isActive(item.url))}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all"
                       >
                         <item.icon className="h-4 w-4 flex-shrink-0" />
                         {!isCollapsed && <span>{item.title}</span>}

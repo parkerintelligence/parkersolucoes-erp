@@ -1,7 +1,8 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Crown, Shield, ChevronRight, Home } from 'lucide-react';
+import { LogOut, User, Crown, Shield, ChevronRight, Home, PanelLeft } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,8 +47,9 @@ export const TopHeader = () => {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-primary text-primary-foreground shadow-lg">
       <div className="flex items-center justify-between w-full px-3 md:px-6 py-4">
-        {/* Logo e Título */}
+        {/* Menu Toggle e Título */}
         <div className="flex items-center gap-3 min-w-0">
+          <SidebarTrigger className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/10" />
           <div className="bg-secondary p-2 rounded-xl flex-shrink-0 shadow-sm">
             <Shield className="h-5 w-5 md:h-6 md:w-6 text-secondary-foreground" />
           </div>
@@ -70,18 +72,6 @@ export const TopHeader = () => {
 
         {/* Área do Usuário */}
         <div className="flex items-center gap-2">
-          {/* Botão Admin para usuários master */}
-          {isMaster && (
-            <Button 
-              variant="secondary" 
-              size="sm"
-              className="hidden lg:flex items-center gap-2 bg-secondary/90 hover:bg-secondary text-secondary-foreground shadow-sm"
-              onClick={() => window.location.href = '/admin'}
-            >
-              <Shield className="h-4 w-4" />
-              <span>Admin</span>
-            </Button>
-          )}
 
           {/* Dropdown do Usuário */}
           <DropdownMenu>
@@ -120,21 +110,7 @@ export const TopHeader = () => {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               
-              {/* Botão Admin no dropdown para mobile */}
-              {isMaster && (
-                <>
-                  <DropdownMenuItem 
-                    onClick={() => window.location.href = '/admin'}
-                    className="lg:hidden cursor-pointer px-4 py-2"
-                  >
-                    <Shield className="mr-2 h-4 w-4 text-secondary" />
-                    <span>Painel Administrativo</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="lg:hidden" />
-                </>
-              )}
-              
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={handleLogout} 
                 className="text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer px-4 py-2"
               >
