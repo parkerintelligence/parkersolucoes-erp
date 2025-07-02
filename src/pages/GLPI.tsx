@@ -1,6 +1,4 @@
-
 import { useState } from 'react';
-import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,373 +64,120 @@ const GLPI = () => {
 
   if (!glpiIntegration) {
     return (
-      <Layout>
-        <div className="space-y-6">
-
-          <Card className="border-blue-200">
-            <CardContent className="p-8 text-center">
-              <Settings className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-semibold mb-2">GLPI não configurado</h3>
-              <p className="text-gray-600 mb-4">
-                Configure a integração com GLPI no painel administrativo para acessar todas as funcionalidades.
-              </p>
-              <Button onClick={() => window.location.href = '/admin'}>
-                <Settings className="mr-2 h-4 w-4" />
-                Ir para Configurações
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
+      <div className="space-y-6">
+        <Card className="border-blue-200">
+          <CardContent className="p-8 text-center">
+            <Settings className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <h3 className="text-lg font-semibold mb-2">GLPI não configurado</h3>
+            <p className="text-gray-600 mb-4">
+              Configure a integração com GLPI no painel administrativo para acessar todas as funcionalidades.
+            </p>
+            <Button onClick={() => window.location.href = '/admin'}>
+              <Settings className="mr-2 h-4 w-4" />
+              Ir para Configurações
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className="space-y-6">
-        <div className="flex justify-end gap-2">
-          {!hasValidSession && (
-            <Button variant="outline" onClick={() => initSession.mutate()}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Iniciar Sessão
+    <div className="space-y-6">
+      <div className="flex justify-end gap-2">
+        {!hasValidSession && (
+          <Button variant="outline" onClick={() => initSession.mutate()}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Iniciar Sessão
+          </Button>
+        )}
+        <Dialog open={isCreatingTicket} onOpenChange={setIsCreatingTicket}>
+          <DialogTrigger asChild>
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Chamado
             </Button>
-          )}
-          <Dialog open={isCreatingTicket} onOpenChange={setIsCreatingTicket}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="mr-2 h-4 w-4" />
-                Novo Chamado
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Criar Novo Chamado</DialogTitle>
-                <DialogDescription>
-                  Preencha os dados para criar um novo chamado no GLPI
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="ticket-name">Título do Chamado</Label>
-                  <Input
-                    id="ticket-name"
-                    value={newTicket.name}
-                    onChange={(e) => setNewTicket({ ...newTicket, name: e.target.value })}
-                    placeholder="Descreva brevemente o problema"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="ticket-content">Descrição</Label>
-                  <Textarea
-                    id="ticket-content"
-                    value={newTicket.content}
-                    onChange={(e) => setNewTicket({ ...newTicket, content: e.target.value })}
-                    placeholder="Descreva detalhadamente o problema"
-                    rows={4}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="ticket-entity">Entidade</Label>
-                  <Select 
-                    value={newTicket.entities_id.toString()} 
-                    onValueChange={(value) => setNewTicket({ ...newTicket, entities_id: parseInt(value) })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma entidade">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4" />
-                          {newTicket.entities_id > 0 
-                            ? entities.data?.find(e => e.id === newTicket.entities_id)?.name 
-                            : "Selecione uma entidade"
-                          }
-                        </div>
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {entities.data?.map((entity) => (
-                        <SelectItem key={entity.id} value={entity.id.toString()}>
-                          <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4" />
-                            {entity.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="priority">Prioridade</Label>
-                    <Select value={newTicket.priority.toString()} onValueChange={(value) => setNewTicket({ ...newTicket, priority: parseInt(value) })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">Muito Baixa</SelectItem>
-                        <SelectItem value="2">Baixa</SelectItem>
-                        <SelectItem value="3">Média</SelectItem>
-                        <SelectItem value="4">Alta</SelectItem>
-                        <SelectItem value="5">Muito Alta</SelectItem>
-                        <SelectItem value="6">Crítica</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="urgency">Urgência</Label>
-                    <Select value={newTicket.urgency.toString()} onValueChange={(value) => setNewTicket({ ...newTicket, urgency: parseInt(value) })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">Muito Baixa</SelectItem>
-                        <SelectItem value="2">Baixa</SelectItem>
-                        <SelectItem value="3">Média</SelectItem>
-                        <SelectItem value="4">Alta</SelectItem>
-                        <SelectItem value="5">Muito Alta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="impact">Impacto</Label>
-                    <Select value={newTicket.impact.toString()} onValueChange={(value) => setNewTicket({ ...newTicket, impact: parseInt(value) })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">Muito Baixo</SelectItem>
-                        <SelectItem value="2">Baixo</SelectItem>
-                        <SelectItem value="3">Médio</SelectItem>
-                        <SelectItem value="4">Alto</SelectItem>
-                        <SelectItem value="5">Muito Alto</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="flex gap-2 pt-4">
-                  <Button 
-                    onClick={handleCreateTicket} 
-                    disabled={createTicket.isPending || !newTicket.name || !newTicket.content || !newTicket.entities_id}
-                  >
-                    {createTicket.isPending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Plus className="mr-2 h-4 w-4" />
-                    )}
-                    Criar Chamado
-                  </Button>
-                  <Button variant="outline" onClick={() => setIsCreatingTicket(false)}>
-                    Cancelar
-                  </Button>
-                </div>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Criar Novo Chamado</DialogTitle>
+              <DialogDescription>
+                Preencha os dados para criar um novo chamado no GLPI
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="ticket-name">Título do Chamado</Label>
+                <Input
+                  id="ticket-name"
+                  value={newTicket.name}
+                  onChange={(e) => setNewTicket({ ...newTicket, name: e.target.value })}
+                  placeholder="Descreva brevemente o problema"
+                />
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Status da Conexão */}
-        <GLPIConnectionStatus />
-
-        {/* Interface Principal com Botões Grandes */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-          <Button 
-            variant={activeTab === 'dashboard' ? 'default' : 'outline'}
-            size="lg"
-            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
-              activeTab === 'dashboard' 
-                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
-                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
-            }`}
-            onClick={() => setActiveTab('dashboard')}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <BarChart3 className="h-8 w-8" />
-              <span className="font-semibold">Dashboard</span>
-            </div>
-          </Button>
-          
-          <Button 
-            variant={activeTab === 'tickets' ? 'default' : 'outline'}
-            size="lg"
-            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
-              activeTab === 'tickets' 
-                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
-                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
-            }`}
-            onClick={() => setActiveTab('tickets')}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <AlertTriangle className="h-8 w-8" />
-              <span className="font-semibold">Chamados</span>
-            </div>
-          </Button>
-          
-          <Button 
-            variant={activeTab === 'inventory' ? 'default' : 'outline'}
-            size="lg"
-            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
-              activeTab === 'inventory' 
-                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
-                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
-            }`}
-            onClick={() => setActiveTab('inventory')}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <HardDrive className="h-8 w-8" />
-              <span className="font-semibold">Inventário</span>
-            </div>
-          </Button>
-          
-          <Button 
-            variant={activeTab === 'itil' ? 'default' : 'outline'}
-            size="lg"
-            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
-              activeTab === 'itil' 
-                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
-                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
-            }`}
-            onClick={() => setActiveTab('itil')}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <FileText className="h-8 w-8" />
-              <span className="font-semibold">ITIL</span>
-            </div>
-          </Button>
-          
-          <Button 
-            variant={activeTab === 'organization' ? 'default' : 'outline'}
-            size="lg"
-            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
-              activeTab === 'organization' 
-                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
-                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
-            }`}
-            onClick={() => setActiveTab('organization')}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <Users className="h-8 w-8" />
-              <span className="font-semibold">Organização</span>
-            </div>
-          </Button>
-        </div>
-
-        {/* Conteúdo dinâmico baseado na aba ativa */}
-        <div className="mt-6">
-          {activeTab === 'dashboard' && <GLPIDashboard />}
-          {activeTab === 'tickets' && <GLPITicketsGrid />}
-          {activeTab === 'inventory' && <GLPIInventory />}
-          {activeTab === 'itil' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Problemas */}
-              <Card className="border-orange-200">
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold text-orange-900 mb-4 flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" />
-                    Problemas ({problems.data?.length || 0})
-                  </h3>
-                  {problems.isLoading ? (
-                    <div className="text-center py-4">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">Carregando problemas...</p>
-                    </div>
+              <div>
+                <Label htmlFor="ticket-content">Descrição</Label>
+                <Textarea
+                  id="ticket-content"
+                  value={newTicket.content}
+                  onChange={(e) => setNewTicket({ ...newTicket, content: e.target.value })}
+                  placeholder="Descreva detalhadamente o problema"
+                  rows={4}
+                />
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button 
+                  onClick={handleCreateTicket} 
+                  disabled={createTicket.isPending || !newTicket.name || !newTicket.content}
+                >
+                  {createTicket.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {problems.data?.slice(0, 5).map((problem) => (
-                        <div key={problem.id} className="p-2 bg-orange-50 rounded border border-orange-200">
-                          <div className="font-medium text-sm">#{problem.id} - {problem.name}</div>
-                          <div className="text-xs text-gray-600 truncate">{problem.content}</div>
-                        </div>
-                      )) || <p className="text-sm text-gray-500">Nenhum problema encontrado</p>}
-                    </div>
+                    <Plus className="mr-2 h-4 w-4" />
                   )}
-                </CardContent>
-              </Card>
-
-              {/* Mudanças */}
-              <Card className="border-purple-200">
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold text-purple-900 mb-4 flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Mudanças ({changes.data?.length || 0})
-                  </h3>
-                  {changes.isLoading ? (
-                    <div className="text-center py-4">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">Carregando mudanças...</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {changes.data?.slice(0, 5).map((change) => (
-                        <div key={change.id} className="p-2 bg-purple-50 rounded border border-purple-200">
-                          <div className="font-medium text-sm">#{change.id} - {change.name}</div>
-                          <div className="text-xs text-gray-600 truncate">{change.content}</div>
-                        </div>
-                      )) || <p className="text-sm text-gray-500">Nenhuma mudança encontrada</p>}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                  Criar Chamado
+                </Button>
+                <Button variant="outline" onClick={() => setIsCreatingTicket(false)}>
+                  Cancelar
+                </Button>
+              </div>
             </div>
-          )}
-          {activeTab === 'organization' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Usuários */}
-              <Card className="border-blue-200">
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Usuários ({users.data?.length || 0})
-                  </h3>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {users.data?.slice(0, 10).map((user) => (
-                      <div key={user.id} className="p-2 bg-blue-50 rounded border border-blue-200">
-                        <div className="font-medium text-sm">{user.realname} {user.firstname}</div>
-                        <div className="text-xs text-gray-600">{user.email}</div>
-                      </div>
-                    )) || <p className="text-sm text-gray-500">Nenhum usuário encontrado</p>}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Entidades */}
-              <Card className="border-green-200">
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold text-green-900 mb-4 flex items-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    Entidades ({entities.data?.length || 0})
-                  </h3>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {entities.data?.slice(0, 10).map((entity) => (
-                      <div key={entity.id} className="p-2 bg-green-50 rounded border border-green-200">
-                        <div className="font-medium text-sm">{entity.name}</div>
-                        <div className="text-xs text-gray-600">{entity.comment}</div>
-                      </div>
-                    )) || <p className="text-sm text-gray-500">Nenhuma entidade encontrada</p>}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Localizações */}
-              <Card className="border-teal-200">
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold text-teal-900 mb-4 flex items-center gap-2">
-                    <Settings className="h-5 w-5" />
-                    Localizações ({locations.data?.length || 0})
-                  </h3>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {locations.data?.slice(0, 10).map((location) => (
-                      <div key={location.id} className="p-2 bg-teal-50 rounded border border-teal-200">
-                        <div className="font-medium text-sm">{location.name}</div>
-                        {location.address && <div className="text-xs text-gray-600">{location.address}</div>}
-                      </div>
-                    )) || <p className="text-sm text-gray-500">Nenhuma localização encontrada</p>}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
+          </DialogContent>
+        </Dialog>
       </div>
-    </Layout>
+
+      {/* Status da Conexão */}
+      <GLPIConnectionStatus />
+
+      {/* Interface Principal */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+        <Button 
+          variant={activeTab === 'dashboard' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('dashboard')}
+        >
+          Dashboard
+        </Button>
+        <Button 
+          variant={activeTab === 'tickets' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('tickets')}
+        >
+          Chamados
+        </Button>
+        <Button 
+          variant={activeTab === 'inventory' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('inventory')}
+        >
+          Inventário
+        </Button>
+      </div>
+
+      {/* Conteúdo dinâmico baseado na aba ativa */}
+      <div className="mt-6">
+        {activeTab === 'dashboard' && <GLPIDashboard />}
+        {activeTab === 'tickets' && <GLPITicketsGrid />}
+        {activeTab === 'inventory' && <GLPIInventory />}
+      </div>
+    </div>
   );
 };
 

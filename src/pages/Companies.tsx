@@ -1,6 +1,4 @@
-
 import { useState, useEffect } from 'react';
-import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,14 +18,13 @@ const Companies = () => {
   );
 
   return (
-    <Layout>
-      <div className="space-y-6">
-        <div className="flex justify-end">
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Empresa
-          </Button>
-        </div>
+    <div className="space-y-6">
+      <div className="flex justify-end">
+        <Button className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="h-4 w-4 mr-2" />
+          Nova Empresa
+        </Button>
+      </div>
 
       {/* Estatísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
@@ -157,8 +154,7 @@ const Companies = () => {
           )}
         </CardContent>
       </Card>
-      </div>
-    </Layout>
+    </div>
   );
 };
 
