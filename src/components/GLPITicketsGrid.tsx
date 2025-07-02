@@ -160,25 +160,25 @@ export const GLPITicketsGrid = () => {
         </div>
       )}
       
-      <div className="border rounded-lg overflow-hidden">
+      <div className="bg-white/90 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg border border-blue-200">
         <Table>
           <TableHeader>
-            <TableRow className="bg-gray-50">
-              <TableHead className="w-[80px]">ID</TableHead>
-              <TableHead>Título</TableHead>
-              <TableHead className="w-[140px]">Entidade</TableHead>
-              <TableHead className="w-[120px]">Status</TableHead>
-              <TableHead className="w-[120px]">Prioridade</TableHead>
-              <TableHead className="w-[100px]">Urgência</TableHead>
-              <TableHead className="w-[100px]">Impacto</TableHead>
-              <TableHead className="w-[130px]">Criado em</TableHead>
-              <TableHead className="w-[130px]">Modificado</TableHead>
-              <TableHead className="w-[100px]">Ações</TableHead>
+            <TableRow className="bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800">
+              <TableHead className="w-[80px] text-white font-semibold">ID</TableHead>
+              <TableHead className="text-white font-semibold">Título</TableHead>
+              <TableHead className="w-[140px] text-white font-semibold">Entidade</TableHead>
+              <TableHead className="w-[120px] text-white font-semibold">Status</TableHead>
+              <TableHead className="w-[120px] text-white font-semibold">Prioridade</TableHead>
+              <TableHead className="w-[100px] text-white font-semibold">Urgência</TableHead>
+              <TableHead className="w-[100px] text-white font-semibold">Impacto</TableHead>
+              <TableHead className="w-[130px] text-white font-semibold">Criado em</TableHead>
+              <TableHead className="w-[130px] text-white font-semibold">Modificado</TableHead>
+              <TableHead className="w-[100px] text-white font-semibold">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {tickets.map((ticket) => (
-              <TableRow key={ticket.id} className="hover:bg-blue-50">
+              <TableRow key={ticket.id} className="hover:bg-blue-50/70 transition-colors border-b border-blue-100">
                 <TableCell className="font-medium">#{ticket.id}</TableCell>
                 <TableCell className="max-w-xs">
                   <div className="truncate font-medium">{ticket.name}</div>
@@ -324,12 +324,12 @@ export const GLPITicketsGrid = () => {
   );
 
   return (
-    <div className="space-y-6">
-      <Card className="border-blue-200">
-        <CardHeader>
-          <CardTitle className="text-blue-900 flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            Chamados - Gestão Completa
+    <div className="space-y-6 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen p-6 rounded-xl">
+      <Card className="bg-white/90 backdrop-blur-sm border-blue-200 shadow-xl">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
+          <CardTitle className="flex items-center gap-2 text-white">
+            <AlertTriangle className="h-6 w-6" />
+            Central de Chamados GLPI
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

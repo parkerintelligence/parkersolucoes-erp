@@ -44,55 +44,31 @@ export const GLPIKPIHeader = ({ tickets, problems, changes }: KPIData) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Chamados Resolvidos */}
+        <div className="bg-emerald-600 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm font-medium mb-1">Chamados Ativos</p>
-              <p className="text-3xl font-bold">{totalActive}</p>
-              <p className="text-blue-200 text-xs mt-1">Em atendimento</p>
+              <p className="text-emerald-100 text-sm font-medium mb-1">Chamados Resolvidos</p>
+              <p className="text-3xl font-bold">{resolved}</p>
+              <p className="text-emerald-200 text-xs mt-1">Finalizados</p>
+            </div>
+            <div className="bg-white/20 rounded-xl p-3">
+              <CheckCircle className="h-8 w-8 text-white" />
+            </div>
+          </div>
+        </div>
+
+        {/* Total de Chamados */}
+        <div className="bg-blue-600 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-100 text-sm font-medium mb-1">Total de Chamados</p>
+              <p className="text-3xl font-bold">{tickets.length}</p>
+              <p className="text-blue-200 text-xs mt-1">No sistema</p>
             </div>
             <div className="bg-white/20 rounded-xl p-3">
               <Activity className="h-8 w-8 text-white" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-red-500 via-red-600 to-red-700 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-red-100 text-sm font-medium mb-1">Críticos</p>
-              <p className="text-3xl font-bold">{critical}</p>
-              <p className="text-red-200 text-xs mt-1">Urgente</p>
-            </div>
-            <div className="bg-white/20 rounded-xl p-3">
-              <AlertTriangle className="h-8 w-8 text-white" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-emerald-100 text-sm font-medium mb-1">Taxa Resolução</p>
-              <p className="text-3xl font-bold">{resolutionRate.toFixed(1)}%</p>
-              <p className="text-emerald-200 text-xs mt-1">Meta: 95%</p>
-            </div>
-            <div className="bg-white/20 rounded-xl p-3">
-              <TrendingUp className="h-8 w-8 text-white" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-sm font-medium mb-1">Incidentes ITIL</p>
-              <p className="text-3xl font-bold">{problems.length + changes.length}</p>
-              <p className="text-purple-200 text-xs mt-1">Problemas e mudanças</p>
-            </div>
-            <div className="bg-white/20 rounded-xl p-3">
-              <Clock className="h-8 w-8 text-white" />
             </div>
           </div>
         </div>
