@@ -46,7 +46,7 @@ export const GLPIDashboard = () => {
   const isLoading = tickets.isLoading || problems.isLoading || changes.isLoading;
 
   return (
-    <div className="space-y-8 p-6 bg-gradient-to-br from-gray-50 to-white min-h-screen">
+    <div className="space-y-8 p-6 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen rounded-xl">
       {/* Header com KPIs Principais */}
       <GLPIKPIHeader 
         tickets={tickets.data || []}
@@ -60,7 +60,7 @@ export const GLPIDashboard = () => {
           size="sm"
           onClick={handleRefresh}
           disabled={isLoading}
-          className="gap-2"
+          className="gap-2 bg-white/80 backdrop-blur-sm hover:bg-white/90 border-blue-200"
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           Atualizar Dados
@@ -68,38 +68,20 @@ export const GLPIDashboard = () => {
       </div>
 
       {/* Gestão de Chamados */}
-      <GLPITicketMetrics tickets={tickets.data || []} />
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-blue-100">
+        <GLPITicketMetrics tickets={tickets.data || []} />
+      </div>
       
-      <Separator className="my-8" />
-
       {/* Inventário de Ativos */}
-      <GLPIAssetMetrics 
-        computers={computers.data || []}
-        monitors={monitors.data || []}
-        printers={printers.data || []}
-        networkEquipment={networkEquipment.data || []}
-        software={software.data || []}
-      />
-      
-      <Separator className="my-8" />
-
-      {/* Gestão ITIL */}
-      <GLPIITILMetrics 
-        problems={problems.data || []}
-        changes={changes.data || []}
-        tickets={tickets.data || []}
-      />
-      
-      <Separator className="my-8" />
-
-      {/* Organização e Gestão */}
-      <GLPIOrganizationMetrics 
-        users={users.data || []}
-        entities={entities.data || []}
-        locations={locations.data || []}
-        suppliers={suppliers.data || []}
-        contracts={contracts.data || []}
-      />
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-blue-100">
+        <GLPIAssetMetrics 
+          computers={computers.data || []}
+          monitors={monitors.data || []}
+          printers={printers.data || []}
+          networkEquipment={networkEquipment.data || []}
+          software={software.data || []}
+        />
+      </div>
     </div>
   );
 };

@@ -34,67 +34,74 @@ export const GLPIKPIHeader = ({ tickets, problems, changes }: KPIData) => {
     <div className="mb-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Dashboard Operacional</h2>
-          <p className="text-gray-600">Visão geral em tempo real do GLPI</p>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">
+            Dashboard Operacional
+          </h2>
+          <p className="text-blue-700">Visão geral em tempo real do GLPI</p>
         </div>
         <div className="flex items-center gap-2">
           <div className={`w-3 h-3 rounded-full ${health.color} animate-pulse`}></div>
           <Badge variant={health.status === 'critical' ? 'destructive' : 
-                          health.status === 'warning' ? 'secondary' : 'default'}>
+                          health.status === 'warning' ? 'secondary' : 'default'}
+                 className="bg-blue-100 text-blue-800 border-blue-200">
             <Shield className="w-3 h-3 mr-1" />
             Sistema {health.text}
           </Badge>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm">Chamados Ativos</p>
-                <p className="text-2xl font-bold">{totalActive}</p>
-              </div>
-              <Activity className="h-8 w-8 text-blue-200" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-100 text-sm font-medium mb-1">Chamados Ativos</p>
+              <p className="text-3xl font-bold">{totalActive}</p>
+              <p className="text-blue-200 text-xs mt-1">Em atendimento</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="bg-white/20 rounded-xl p-3">
+              <Activity className="h-8 w-8 text-white" />
+            </div>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-red-100 text-sm">Críticos</p>
-                <p className="text-2xl font-bold">{critical}</p>
-              </div>
-              <AlertTriangle className="h-8 w-8 text-red-200" />
+        <div className="bg-gradient-to-br from-red-500 via-red-600 to-red-700 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-red-100 text-sm font-medium mb-1">Críticos</p>
+              <p className="text-3xl font-bold">{critical}</p>
+              <p className="text-red-200 text-xs mt-1">Urgente</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="bg-white/20 rounded-xl p-3">
+              <AlertTriangle className="h-8 w-8 text-white" />
+            </div>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm">Taxa Resolução</p>
-                <p className="text-2xl font-bold">{resolutionRate.toFixed(1)}%</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-200" />
+        <div className="bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-emerald-100 text-sm font-medium mb-1">Taxa Resolução</p>
+              <p className="text-3xl font-bold">{resolutionRate.toFixed(1)}%</p>
+              <p className="text-emerald-200 text-xs mt-1">Meta: 95%</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="bg-white/20 rounded-xl p-3">
+              <TrendingUp className="h-8 w-8 text-white" />
+            </div>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm">Incidentes ITIL</p>
-                <p className="text-2xl font-bold">{problems.length + changes.length}</p>
-              </div>
-              <Clock className="h-8 w-8 text-purple-200" />
+        <div className="bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-100 text-sm font-medium mb-1">Incidentes ITIL</p>
+              <p className="text-3xl font-bold">{problems.length + changes.length}</p>
+              <p className="text-purple-200 text-xs mt-1">Problemas e mudanças</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="bg-white/20 rounded-xl p-3">
+              <Clock className="h-8 w-8 text-white" />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

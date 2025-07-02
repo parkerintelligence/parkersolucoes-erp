@@ -33,6 +33,7 @@ const GLPI = () => {
   } = useGLPIExpanded();
 
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [newTicket, setNewTicket] = useState({
     name: '',
     content: '',
@@ -249,48 +250,95 @@ const GLPI = () => {
         {/* Status da Conexão */}
         <GLPIConnectionStatus />
 
-        {/* Interface Principal com Abas */}
-        <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid grid-cols-6 w-full">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="tickets" className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              Chamados
-            </TabsTrigger>
-            <TabsTrigger value="inventory" className="flex items-center gap-2">
-              <HardDrive className="h-4 w-4" />
-              Inventário
-            </TabsTrigger>
-            <TabsTrigger value="itil" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              ITIL
-            </TabsTrigger>
-            <TabsTrigger value="organization" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Organização
-            </TabsTrigger>
-            <TabsTrigger value="management" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Gestão
-            </TabsTrigger>
-          </TabsList>
+        {/* Interface Principal com Botões Grandes */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+          <Button 
+            variant={activeTab === 'dashboard' ? 'default' : 'outline'}
+            size="lg"
+            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
+              activeTab === 'dashboard' 
+                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
+                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
+            }`}
+            onClick={() => setActiveTab('dashboard')}
+          >
+            <div className="flex flex-col items-center gap-2">
+              <BarChart3 className="h-8 w-8" />
+              <span className="font-semibold">Dashboard</span>
+            </div>
+          </Button>
+          
+          <Button 
+            variant={activeTab === 'tickets' ? 'default' : 'outline'}
+            size="lg"
+            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
+              activeTab === 'tickets' 
+                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
+                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
+            }`}
+            onClick={() => setActiveTab('tickets')}
+          >
+            <div className="flex flex-col items-center gap-2">
+              <AlertTriangle className="h-8 w-8" />
+              <span className="font-semibold">Chamados</span>
+            </div>
+          </Button>
+          
+          <Button 
+            variant={activeTab === 'inventory' ? 'default' : 'outline'}
+            size="lg"
+            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
+              activeTab === 'inventory' 
+                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
+                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
+            }`}
+            onClick={() => setActiveTab('inventory')}
+          >
+            <div className="flex flex-col items-center gap-2">
+              <HardDrive className="h-8 w-8" />
+              <span className="font-semibold">Inventário</span>
+            </div>
+          </Button>
+          
+          <Button 
+            variant={activeTab === 'itil' ? 'default' : 'outline'}
+            size="lg"
+            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
+              activeTab === 'itil' 
+                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
+                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
+            }`}
+            onClick={() => setActiveTab('itil')}
+          >
+            <div className="flex flex-col items-center gap-2">
+              <FileText className="h-8 w-8" />
+              <span className="font-semibold">ITIL</span>
+            </div>
+          </Button>
+          
+          <Button 
+            variant={activeTab === 'organization' ? 'default' : 'outline'}
+            size="lg"
+            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
+              activeTab === 'organization' 
+                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
+                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
+            }`}
+            onClick={() => setActiveTab('organization')}
+          >
+            <div className="flex flex-col items-center gap-2">
+              <Users className="h-8 w-8" />
+              <span className="font-semibold">Organização</span>
+            </div>
+          </Button>
+        </div>
 
-          <TabsContent value="dashboard" className="mt-6">
-            <GLPIDashboard />
-          </TabsContent>
-
-          <TabsContent value="tickets" className="mt-6">
-            <GLPITicketsGrid />
-          </TabsContent>
-
-          <TabsContent value="inventory" className="mt-6">
-            <GLPIInventory />
-          </TabsContent>
-
-          <TabsContent value="itil" className="mt-6">
+        {/* Conteúdo dinâmico baseado na aba ativa */}
+        <div className="mt-6">
+          {activeTab === 'dashboard' && <GLPIDashboard />}
+          {activeTab === 'tickets' && <GLPITicketsGrid />}
+          {activeTab === 'inventory' && <GLPIInventory />}
+          {activeTab === 'itil' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Problemas */}
               <Card className="border-orange-200">
@@ -342,9 +390,8 @@ const GLPI = () => {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-
-          <TabsContent value="organization" className="mt-6">
+          )}
+          {activeTab === 'organization' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Usuários */}
               <Card className="border-blue-200">
@@ -400,48 +447,8 @@ const GLPI = () => {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-
-          <TabsContent value="management" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Fornecedores */}
-              <Card className="border-emerald-200">
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold text-emerald-900 mb-4 flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Fornecedores ({suppliers.data?.length || 0})
-                  </h3>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {suppliers.data?.slice(0, 10).map((supplier) => (
-                      <div key={supplier.id} className="p-2 bg-emerald-50 rounded border border-emerald-200">
-                        <div className="font-medium text-sm">{supplier.name}</div>
-                        <div className="text-xs text-gray-600">{supplier.email || supplier.website}</div>
-                      </div>
-                    )) || <p className="text-sm text-gray-500">Nenhum fornecedor encontrado</p>}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Contratos */}
-              <Card className="border-rose-200">
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold text-rose-900 mb-4 flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Contratos ({contracts.data?.length || 0})
-                  </h3>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {contracts.data?.slice(0, 10).map((contract) => (
-                      <div key={contract.id} className="p-2 bg-rose-50 rounded border border-rose-200">
-                        <div className="font-medium text-sm">{contract.name}</div>
-                        <div className="text-xs text-gray-600">Número: {contract.num}</div>
-                      </div>
-                    )) || <p className="text-sm text-gray-500">Nenhum contrato encontrado</p>}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
       </div>
     </Layout>
   );
