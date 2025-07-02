@@ -40,6 +40,56 @@ export const GLPITicketMetrics = ({ tickets }: TicketMetricsProps) => {
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         <GLPIMetricsCard
+          title="Chamado"
+          value={stats.total}
+          subtitle="Total de chamados"
+          variant="default"
+          icon={<Target className="h-5 w-5" />}
+        />
+
+        <GLPIMetricsCard
+          title="Chamados novos"
+          value={stats.new}
+          subtitle="Aguardando triagem"
+          variant="success"
+          icon={<Users className="h-5 w-5" />}
+        />
+
+        <GLPIMetricsCard
+          title="Chamados pendentes"
+          value={stats.pending}
+          subtitle="Aguardando resposta"
+          variant="warning"
+          icon={<Timer className="h-5 w-5" />}
+        />
+
+        <GLPIMetricsCard
+          title="Chamados atribuídos"
+          value={stats.inProgress}
+          subtitle="Sendo trabalhados"
+          variant="info"
+          icon={<Clock className="h-5 w-5" />}
+        />
+
+        <GLPIMetricsCard
+          title="Chamados planejados"
+          value={stats.high}
+          subtitle="Programados"
+          variant="info"
+          icon={<AlertCircle className="h-5 w-5" />}
+        />
+
+        <GLPIMetricsCard
+          title="Chamados solucionados"
+          value={stats.resolved}
+          subtitle="Finalizados"
+          variant="gray"
+          trend="up"
+          trendValue="+12%"
+          icon={<CheckCircle className="h-5 w-5" />}
+        />
+
+        <GLPIMetricsCard
           title="Críticos"
           value={stats.critical}
           subtitle="Requer ação imediata"
@@ -50,61 +100,11 @@ export const GLPITicketMetrics = ({ tickets }: TicketMetricsProps) => {
         />
 
         <GLPIMetricsCard
-          title="Alta Prioridade"
-          value={stats.high}
-          subtitle="Próximos na fila"
-          variant="warning"
-          icon={<AlertCircle className="h-5 w-5" />}
-        />
-
-        <GLPIMetricsCard
-          title="Em Andamento"
-          value={stats.inProgress}
-          subtitle="Sendo trabalhados"
-          variant="info"
-          icon={<Clock className="h-5 w-5" />}
-        />
-
-        <GLPIMetricsCard
-          title="Pendentes"
-          value={stats.pending}
-          subtitle="Aguardando resposta"
-          variant="warning"
-          icon={<Timer className="h-5 w-5" />}
-        />
-
-        <GLPIMetricsCard
-          title="Resolvidos"
-          value={stats.resolved}
-          subtitle="Finalizados hoje"
-          variant="success"
-          trend="up"
-          trendValue="+12%"
-          icon={<CheckCircle className="h-5 w-5" />}
-        />
-
-        <GLPIMetricsCard
-          title="Novos"
-          value={stats.new}
-          subtitle="Aguardando triagem"
-          variant="info"
-          icon={<Users className="h-5 w-5" />}
-        />
-
-        <GLPIMetricsCard
           title="Backlog"
           value={backlog}
           subtitle="Total não resolvidos"
           variant={backlog > 50 ? 'danger' : backlog > 20 ? 'warning' : 'default'}
           icon={<TrendingUp className="h-5 w-5" />}
-        />
-
-        <GLPIMetricsCard
-          title="Total Abertos"
-          value={stats.total}
-          subtitle="Todos os chamados ativos"
-          variant="default"
-          icon={<Target className="h-5 w-5" />}
         />
       </div>
 
