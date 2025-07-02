@@ -9,6 +9,7 @@ import { Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { ScheduleItem } from '@/hooks/useScheduleItems';
 import { useCompanies } from '@/hooks/useCompanies';
+import { useScheduleTypes } from '@/hooks/useScheduleTypes';
 
 interface ScheduleFormProps {
   onSubmit: (item: Omit<ScheduleItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'status'>) => void;
@@ -16,9 +17,11 @@ interface ScheduleFormProps {
 
 export const ScheduleForm = ({ onSubmit }: ScheduleFormProps) => {
   const { data: companies = [] } = useCompanies();
+  const { data: scheduleTypes = [] } = useScheduleTypes();
+  
   const [formData, setFormData] = useState({
     title: '',
-    type: '' as 'certificate' | 'license' | 'system_update' | '',
+    schedule_type_id: '',
     due_date: '',
     description: '',
     company: '',
@@ -28,7 +31,7 @@ export const ScheduleForm = ({ onSubmit }: ScheduleFormProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.type || !formData.due_date || !formData.company) {
+    if (!formData.title || !formData.schedule_type_id || !formData.due_date || !formData.company) {
       toast({
         title: "Erro no formulário",
         description: "Preencha todos os campos obrigatórios.",
@@ -39,16 +42,16 @@ export const ScheduleForm = ({ onSubmit }: ScheduleFormProps) => {
 
     onSubmit({
       title: formData.title,
-      type: formData.type,
+      schedule_type_id: formData.schedule_type_id,
       due_date: formData.due_date,
       description: formData.description,
       company: formData.company,
       company_id: formData.company_id || null
-    } as Omit<ScheduleItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'status'>);
+    } as any);
     
     setFormData({
       title: '',
-      type: '',
+      schedule_type_id: '',
       due_date: '',
       description: '',
       company: '',
@@ -78,15 +81,23 @@ export const ScheduleForm = ({ onSubmit }: ScheduleFormProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="type">Tipo *</Label>
-        <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value as any })}>
+        <Label htmlFor="schedule_type_id">Tipo *</Label>
+        <Select value={formData.schedule_type_id} onValueChange={(value) => setFormData({ ...formData, schedule_type_id: value })}>
           <SelectTrigger>
             <SelectValue placeholder="Selecione o tipo" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="certificate">Certificado</SelectItem>
-            <SelectItem value="license">Licença</SelectItem>
-            <SelectItem value="system_update">Atualização de Sistema</SelectItem>
+            {scheduleTypes.map((type) => (
+              <SelectItem key={type.id} value={type.id}>
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: type.color }}
+                  />
+                  {type.name}
+                </div>
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

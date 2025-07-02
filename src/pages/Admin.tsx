@@ -6,15 +6,13 @@ import { Layout } from '@/components/Layout';
 import AdminApiPanel from '@/components/AdminApiPanel';
 import { AdminCompaniesPanel } from '@/components/AdminCompaniesPanel';
 import { GLPIConfig } from '@/components/GLPIConfig';
-import { ZabbixAdminConfig } from '@/components/ZabbixAdminConfig';
-
 import { ChatwootAdminConfig } from '@/components/ChatwootAdminConfig';
 import { EvolutionAPIAdminConfig } from '@/components/EvolutionAPIAdminConfig';
 import { GrafanaAdminConfig } from '@/components/GrafanaAdminConfig';
 import { BomControleAdminConfig } from '@/components/BomControleAdminConfig';
 import { FtpAdminConfig } from '@/components/FtpAdminConfig';
 import { WasabiAdminConfig } from '@/components/WasabiAdminConfig';
-import { UnifiAdminConfig } from '@/components/UnifiAdminConfig';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Settings, Users, Database, Key, Building, Activity, DollarSign, MessageCircle, HardDrive, Monitor, Headphones, Router, BarChart3, FileText, MessageSquare, Wifi, Cloud } from 'lucide-react';
@@ -47,23 +45,6 @@ const Admin = () => {
             </CardHeader>
             <CardContent>
               <GLPIConfig />
-            </CardContent>
-          </Card>
-        );
-      case 'zabbix':
-        return (
-          <Card className="border-blue-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
-                <Activity className="h-5 w-5" />
-                Configuração Zabbix
-              </CardTitle>
-              <CardDescription>
-                Configure a integração com o servidor Zabbix para monitoramento
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ZabbixAdminConfig />
             </CardContent>
           </Card>
         );
@@ -169,23 +150,6 @@ const Admin = () => {
             </CardContent>
           </Card>
         );
-      case 'unifi':
-        return (
-          <Card className="border-blue-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
-                <Wifi className="h-5 w-5" />
-                Configuração UNIFI
-              </CardTitle>
-              <CardDescription>
-                Configure a integração com a controladora UNIFI
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <UnifiAdminConfig />
-            </CardContent>
-          </Card>
-        );
       case 'users':
         return (
           <Card className="border-blue-200">
@@ -231,21 +195,6 @@ const Admin = () => {
                     </div>
                   </CardContent>
                 </Card>
-
-                <Card className="border-red-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('zabbix')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-red-100 p-3 rounded-lg">
-                        <Activity className="h-6 w-6 text-red-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-red-900">Zabbix</h3>
-                        <p className="text-sm text-red-600">Monitoramento de Infraestrutura</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
 
                 <Card className="border-blue-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('chatwoot')}>
                   <CardContent className="p-4">
@@ -331,19 +280,6 @@ const Admin = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-blue-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('unifi')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-blue-100 p-3 rounded-lg">
-                        <Wifi className="h-6 w-6 text-blue-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-blue-900">UNIFI</h3>
-                        <p className="text-sm text-blue-600">Controladora WiFi</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
             </div>
 

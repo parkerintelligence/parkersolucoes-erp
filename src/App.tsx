@@ -13,8 +13,6 @@ import Services from "./pages/Services";
 import Budgets from "./pages/Budgets";
 import Contracts from "./pages/Contracts";
 import GLPI from "./pages/GLPI";
-import Zabbix from "./pages/Zabbix";
-import Unifi from "./pages/Unifi";
 import Backups from "./pages/Backups";
 import Passwords from "./pages/Passwords";
 import Links from "./pages/Links";
@@ -45,8 +43,6 @@ const App = () => (
             <Route path="/budgets" element={<Layout><Budgets /></Layout>} />
             <Route path="/contracts" element={<Layout><Contracts /></Layout>} />
             <Route path="/glpi" element={<Layout><GLPI /></Layout>} />
-            <Route path="/zabbix" element={<Layout><Zabbix /></Layout>} />
-            <Route path="/unifi" element={<Layout><Unifi /></Layout>} />
             <Route path="/backups" element={<Layout><Backups /></Layout>} />
             <Route path="/passwords" element={<Layout><Passwords /></Layout>} />
             <Route path="/links" element={<Layout><Links /></Layout>} />

@@ -33,8 +33,6 @@ import {
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, role: 'user' },
   { title: 'GLPI', url: '/glpi', icon: Headphones, role: 'user' },
-  { title: 'Zabbix', url: '/zabbix', icon: Activity, role: 'user' },
-  { title: 'UNIFI', url: '/unifi', icon: Wifi, role: 'user' },
   { title: 'Backups FTP', url: '/backups', icon: HardDrive, role: 'user' },
   { title: 'Senhas', url: '/passwords', icon: Lock, role: 'user' },
   { title: 'Links', url: '/links', icon: Link, role: 'user' },

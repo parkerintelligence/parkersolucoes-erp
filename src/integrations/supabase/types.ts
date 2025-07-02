@@ -336,6 +336,7 @@ export type Database = {
           description: string | null
           due_date: string
           id: string
+          schedule_type_id: string | null
           status: string
           title: string
           type: string
@@ -349,6 +350,7 @@ export type Database = {
           description?: string | null
           due_date: string
           id?: string
+          schedule_type_id?: string | null
           status?: string
           title: string
           type: string
@@ -362,6 +364,7 @@ export type Database = {
           description?: string | null
           due_date?: string
           id?: string
+          schedule_type_id?: string | null
           status?: string
           title?: string
           type?: string
@@ -376,7 +379,50 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "schedule_items_schedule_type_id_fkey"
+            columns: ["schedule_type_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_types"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      schedule_types: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       services: {
         Row: {

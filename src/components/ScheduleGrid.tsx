@@ -2,7 +2,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, Calendar, CheckCircle, Clock, Trash2 } from 'lucide-react';
+import { AlertTriangle, Calendar, Clock, Trash2, Edit } from 'lucide-react';
 import { ScheduleItem } from '@/hooks/useScheduleItems';
 
 interface ScheduleGridProps {
@@ -69,9 +69,6 @@ export const ScheduleGrid = ({ items, onUpdate, onDelete }: ScheduleGridProps) =
     system_update: AlertTriangle
   };
 
-  const handleComplete = (id: string) => {
-    onUpdate(id, { status: 'completed' });
-  };
 
   const handleDelete = (id: string) => {
     onDelete(id);
@@ -120,17 +117,15 @@ export const ScheduleGrid = ({ items, onUpdate, onDelete }: ScheduleGridProps) =
               </div>
               
               <div className="flex gap-2 pt-2">
-                {item.status === 'pending' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleComplete(item.id)}
-                    className="text-green-600 border-green-300 hover:bg-green-50 flex-1"
-                  >
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Concluir
-                  </Button>
-                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onUpdate(item.id, {})}
+                  className="text-blue-600 border-blue-300 hover:bg-blue-50 flex-1"
+                >
+                  <Edit className="h-3 w-3 mr-1" />
+                  Editar
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"

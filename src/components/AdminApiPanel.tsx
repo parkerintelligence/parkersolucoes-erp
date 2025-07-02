@@ -29,7 +29,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { validateZabbixConnection } from '@/hooks/useZabbixValidation';
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { ZabbixErrorDialog } from './ZabbixErrorDialog';
+
 import { ChatwootConfig } from './ChatwootConfig';
 
 const formSchema = z.object({
@@ -1131,13 +1131,6 @@ const AdminApiPanel = () => {
         </div>
       </div>
 
-      {/* Popup de erro do Zabbix */}
-      <ZabbixErrorDialog
-        isOpen={!!zabbixError}
-        onClose={() => setZabbixError(null)}
-        error={zabbixError?.error || ''}
-        details={zabbixError?.details || ''}
-      />
     </>
   );
 };
