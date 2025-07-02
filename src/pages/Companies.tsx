@@ -23,11 +23,11 @@ const Companies = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-3">
-            <Building2 className="h-8 w-8" />
+          <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+            <Building2 className="h-6 w-6" />
             Empresas
           </h1>
-          <p className="text-blue-600 mt-1">Gerencie suas empresas clientes</p>
+          <p className="text-slate-600 text-sm">Gerencie suas empresas clientes</p>
         </div>
         <Button className="bg-blue-600 hover:bg-blue-700">
           <Plus className="h-4 w-4 mr-2" />

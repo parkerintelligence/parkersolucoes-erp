@@ -8,11 +8,11 @@ const Dashboard = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-3">
-          <BarChart3 className="h-8 w-8" />
+        <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+          <BarChart3 className="h-6 w-6" />
           Dashboard
         </h1>
-        <p className="text-blue-600 mt-1">Visão geral do seu negócio</p>
+        <p className="text-slate-600 text-sm">Visão geral do seu negócio</p>
       </div>
 
       {/* Estatísticas principais */}

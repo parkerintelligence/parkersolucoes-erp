@@ -70,11 +70,11 @@ const GLPI = () => {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
-                <Headphones className="h-8 w-8" />
-                GLPI - Sistema Completo de Gestão
+              <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                <Headphones className="h-6 w-6" />
+                GLPI
               </h1>
-              <p className="text-blue-600">Plataforma integrada para gestão de TI</p>
+              <p className="text-slate-600 text-sm">Gestão integrada de TI</p>
             </div>
           </div>
 
@@ -101,11 +101,11 @@ const GLPI = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
-              <Headphones className="h-8 w-8" />
-              GLPI - Sistema Completo de Gestão
+            <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+              <Headphones className="h-6 w-6" />
+              GLPI
             </h1>
-            <p className="text-blue-600">Gestão integrada de TI - Chamados, Ativos, Inventário e muito mais</p>
+            <p className="text-slate-600 text-sm">Gestão integrada de TI</p>
           </div>
           <div className="flex gap-2">
             {!hasValidSession && (
