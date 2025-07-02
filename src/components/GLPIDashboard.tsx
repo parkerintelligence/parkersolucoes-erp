@@ -68,12 +68,12 @@ export const GLPIDashboard = () => {
       </div>
 
       {/* Gestão de Chamados */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-blue-100">
+      <div className="bg-blue-600 rounded-2xl p-6 shadow-lg border border-blue-200">
         <GLPITicketMetrics tickets={tickets.data || []} />
       </div>
       
       {/* Inventário de Ativos */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-blue-100">
+      <div className="bg-blue-700 rounded-2xl p-6 shadow-lg border border-blue-200">
         <GLPIAssetMetrics 
           computers={computers.data || []}
           monitors={monitors.data || []}

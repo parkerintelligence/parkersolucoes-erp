@@ -32,13 +32,7 @@ export const GLPIKPIHeader = ({ tickets, problems, changes }: KPIData) => {
 
   return (
     <div className="mb-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">
-            Dashboard Operacional
-          </h2>
-          <p className="text-blue-700">Visão geral em tempo real do GLPI</p>
-        </div>
+      <div className="flex items-center justify-end mb-6">
         <div className="flex items-center gap-2">
           <div className={`w-3 h-3 rounded-full ${health.color} animate-pulse`}></div>
           <Badge variant={health.status === 'critical' ? 'destructive' : 
