@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useIntegrations, Integration } from '@/hooks/useIntegrations';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Cloud, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Cloud, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
 
 export const GoogleDriveAdminConfig = () => {
   const { data: integrations, createIntegration, updateIntegration } = useIntegrations();
@@ -70,12 +71,68 @@ export const GoogleDriveAdminConfig = () => {
     }
   };
 
-  const handleAuthorize = () => {
-    // TODO: Implementar fluxo OAuth
+  const handleAuthorize = async () => {
+    if (!googleDriveIntegration) {
+      toast({
+        title: "Erro",
+        description: "Salve a configuração primeiro antes de autorizar.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Generate OAuth URL
+    const clientId = formData.client_id;
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${clientId}&` +
+      `redirect_uri=${encodeURIComponent('urn:ietf:wg:oauth:2.0:oob')}&` +
+      `scope=${encodeURIComponent('https://www.googleapis.com/auth/drive')}&` +
+      `response_type=code&` +
+      `access_type=offline&` +
+      `prompt=consent`;
+
+    // Open OAuth window
+    const authWindow = window.open(authUrl, 'google-auth', 'width=500,height=600');
+    
     toast({
-      title: "OAuth em desenvolvimento",
-      description: "A autorização OAuth será implementada em breve.",
+      title: "Autorização necessária",
+      description: "Uma nova janela foi aberta. Complete a autorização e cole o código aqui.",
     });
+
+    // Prompt for authorization code
+    setTimeout(() => {
+      const authCode = prompt('Cole o código de autorização do Google aqui:');
+      if (authCode) {
+        handleAuthCode(authCode);
+      }
+      authWindow?.close();
+    }, 5000);
+  };
+
+  const handleAuthCode = async (authCode: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('google-drive-proxy', {
+        body: {
+          action: 'authorize',
+          authCode,
+          integrationId: googleDriveIntegration?.id
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Autorização realizada!",
+        description: "Conta Google Drive conectada com sucesso.",
+      });
+    } catch (error) {
+      console.error('Authorization error:', error);
+      toast({
+        title: "Erro na autorização",
+        description: "Falha ao conectar com o Google Drive. Tente novamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getStatusBadge = () => {
@@ -161,7 +218,8 @@ export const GoogleDriveAdminConfig = () => {
           
           {googleDriveIntegration && (
             <Button variant="outline" onClick={handleAuthorize}>
-              Autorizar Conta
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Autorizar Conta Google
             </Button>
           )}
         </div>
