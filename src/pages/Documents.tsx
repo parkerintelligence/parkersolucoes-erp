@@ -50,14 +50,7 @@ const Documents = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
-              <FileText className="h-8 w-8" />
-              Gerenciamento de Documentos
-            </h1>
-            <p className="text-blue-600">Integração com OwnCloud para armazenamento de documentos</p>
-          </div>
+        <div className="flex justify-end">
           <Button className="bg-blue-600 hover:bg-blue-700">
             <Upload className="mr-2 h-4 w-4" />
             Upload Documento

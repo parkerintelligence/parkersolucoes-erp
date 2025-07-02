@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,135 +76,124 @@ const Wasabi = () => {
 
   if (!wasabiIntegration) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <Card className="border-orange-200 bg-orange-50 max-w-2xl mx-auto">
-          <CardContent className="p-8 text-center">
-            <HardDrive className="h-20 w-20 text-orange-500 mx-auto mb-6" />
-            <h2 className="text-2xl font-bold text-orange-900 mb-4">Integração Wasabi não configurada</h2>
-            <p className="text-orange-700 mb-6 text-lg">
-              Para usar o armazenamento Wasabi, você precisa configurar uma integração primeiro.
-            </p>
-            <Button size="lg" className="bg-orange-600 hover:bg-orange-700" onClick={() => window.location.href = '/admin'}>
-              <Settings className="h-5 w-5 mr-2" />
-              Configurar Integração
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <Layout>
+        <div className="space-y-6">
+          <Card className="border-orange-200 bg-orange-50 max-w-2xl mx-auto">
+            <CardContent className="p-8 text-center">
+              <HardDrive className="h-20 w-20 text-orange-500 mx-auto mb-6" />
+              <h2 className="text-2xl font-bold text-orange-900 mb-4">Integração Wasabi não configurada</h2>
+              <p className="text-orange-700 mb-6 text-lg">
+                Para usar o armazenamento Wasabi, você precisa configurar uma integração primeiro.
+              </p>
+              <Button size="lg" className="bg-orange-600 hover:bg-orange-700" onClick={() => window.location.href = '/admin'}>
+                <Settings className="h-5 w-5 mr-2" />
+                Configurar Integração
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
     );
   }
 
   if (bucketsError) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <Card className="border-red-200 bg-red-50 max-w-2xl mx-auto">
-          <CardContent className="p-8 text-center">
-            <AlertTriangle className="h-20 w-20 text-red-500 mx-auto mb-6" />
-            <h2 className="text-2xl font-bold text-red-900 mb-4">Erro de Conexão com Wasabi</h2>
-            <p className="text-red-700 mb-4 text-lg">
-              Não foi possível conectar ao Wasabi. Verifique suas credenciais e configurações.
-            </p>
-            <p className="text-sm text-red-600 mb-6 font-mono bg-red-100 p-3 rounded">
-              {bucketsError.message}
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Button size="lg" className="bg-red-600 hover:bg-red-700" onClick={() => window.location.href = '/admin'}>
-                <Settings className="h-5 w-5 mr-2" />
-                Verificar Configurações
-              </Button>
-              <Button size="lg" variant="outline" onClick={handleRefresh}>
-                <RefreshCw className="h-5 w-5 mr-2" />
-                Tentar Novamente
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Layout>
+        <div className="space-y-6">
+          <Card className="border-red-200 bg-red-50 max-w-2xl mx-auto">
+            <CardContent className="p-8 text-center">
+              <AlertTriangle className="h-20 w-20 text-red-500 mx-auto mb-6" />
+              <h2 className="text-2xl font-bold text-red-900 mb-4">Erro de Conexão com Wasabi</h2>
+              <p className="text-red-700 mb-4 text-lg">
+                Não foi possível conectar ao Wasabi. Verifique suas credenciais e configurações.
+              </p>
+              <p className="text-sm text-red-600 mb-6 font-mono bg-red-100 p-3 rounded">
+                {bucketsError.message}
+              </p>
+              <div className="flex gap-4 justify-center">
+                <Button size="lg" className="bg-red-600 hover:bg-red-700" onClick={() => window.location.href = '/admin'}>
+                  <Settings className="h-5 w-5 mr-2" />
+                  Verificar Configurações
+                </Button>
+                <Button size="lg" variant="outline" onClick={handleRefresh}>
+                  <RefreshCw className="h-5 w-5 mr-2" />
+                  Tentar Novamente
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-3">
-                <HardDrive className="h-8 w-8" />
-                Wasabi Storage
-              </h1>
-              <p className="text-blue-600 mt-1">
-                Integração: <span className="font-semibold">{wasabiIntegration.name}</span>
-              </p>
-              <p className="text-blue-600 text-sm">
-                Endpoint: {wasabiIntegration.base_url} | Região: {wasabiIntegration.region || 'us-east-1'}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <WasabiCreateBucketDialog
-                onCreateBucket={handleCreateBucket}
-                isCreating={createBucket.isPending}
-              />
-              <WasabiUploadDialog
-                selectedBucket={selectedBucket}
-                onUpload={handleFileUpload}
-                isUploading={uploadFiles.isPending}
-              />
-              <Button variant="outline" onClick={handleRefresh} disabled={isLoadingBuckets}>
-                <RefreshCw className={`h-5 w-5 mr-2 ${isLoadingBuckets ? 'animate-spin' : ''}`} />
-                Atualizar
-              </Button>
-            </div>
-          </div>
+    <Layout>
+      <div className="space-y-6">
+        <div className="flex justify-end gap-2">
+          <WasabiCreateBucketDialog
+            onCreateBucket={handleCreateBucket}
+            isCreating={createBucket.isPending}
+          />
+          <WasabiUploadDialog
+            selectedBucket={selectedBucket}
+            onUpload={handleFileUpload}
+            isUploading={uploadFiles.isPending}
+          />
+          <Button variant="outline" onClick={handleRefresh} disabled={isLoadingBuckets}>
+            <RefreshCw className={`h-5 w-5 mr-2 ${isLoadingBuckets ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
         </div>
 
         {/* Control Panel */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-end">
-            {/* Bucket Selection */}
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-gray-700">Selecionar Bucket</label>
-              {isLoadingBuckets ? (
-                <div className="flex items-center gap-2 p-3 border rounded-lg bg-gray-50">
-                  <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />
-                  <span className="text-sm text-gray-600">Carregando buckets...</span>
-                </div>
-              ) : (
-                <Select value={selectedBucket} onValueChange={setSelectedBucket}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Escolha um bucket" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {buckets.map((bucket) => (
-                      <SelectItem key={bucket.name} value={bucket.name}>
-                        <div className="flex items-center gap-2">
-                          <Folder className="h-4 w-4 text-blue-500" />
-                          {bucket.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-end">
+              {/* Bucket Selection */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700">Selecionar Bucket</label>
+                {isLoadingBuckets ? (
+                  <div className="flex items-center gap-2 p-3 border rounded-lg bg-gray-50">
+                    <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />
+                    <span className="text-sm text-gray-600">Carregando buckets...</span>
+                  </div>
+                ) : (
+                  <Select value={selectedBucket} onValueChange={setSelectedBucket}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Escolha um bucket" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {buckets.map((bucket) => (
+                        <SelectItem key={bucket.name} value={bucket.name}>
+                          <div className="flex items-center gap-2">
+                            <Folder className="h-4 w-4 text-blue-500" />
+                            {bucket.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
 
-            {/* Search */}
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-gray-700">Buscar Arquivos</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                <Input
-                  placeholder="Buscar arquivos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                  disabled={!selectedBucket}
-                />
+              {/* Search */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700">Buscar Arquivos</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                  <Input
+                    placeholder="Buscar arquivos..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                    disabled={!selectedBucket}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -338,7 +328,7 @@ const Wasabi = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </Layout>
   );
 };
 

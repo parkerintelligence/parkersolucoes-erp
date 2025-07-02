@@ -65,13 +65,6 @@ const Monitoring = () => {
     return (
       <Layout>
         <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
-              <Activity className="h-8 w-8" />
-              Monitoramento
-            </h1>
-            <p className="text-slate-600">Dashboard de monitoramento integrado com Grafana</p>
-          </div>
 
           <Card className="border-yellow-200 bg-yellow-50">
             <CardContent className="p-6 text-center">
@@ -91,13 +84,6 @@ const Monitoring = () => {
     return (
       <Layout>
         <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
-              <Activity className="h-8 w-8" />
-              Monitoramento
-            </h1>
-            <p className="text-slate-600">Dashboard de monitoramento integrado com Grafana</p>
-          </div>
 
           <div className="max-w-md mx-auto">
             <Card className="border-blue-200">
@@ -157,14 +143,7 @@ const Monitoring = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
-              <Activity className="h-8 w-8" />
-              Monitoramento
-            </h1>
-            <p className="text-slate-600">Dashboard de monitoramento integrado com Grafana</p>
-          </div>
+        <div className="flex justify-end">
           <Button variant="outline" onClick={handleLogout}>
             Sair
           </Button>

@@ -21,10 +21,6 @@ const WhatsAppChats = () => {
       <div className="container mx-auto py-10">
         <Card className="w-full max-w-4xl mx-auto">
           <CardHeader>
-            <CardTitle className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-              <MessageSquare className="h-6 w-6" />
-              WhatsApp Chats
-            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {chatwootIntegration ? (

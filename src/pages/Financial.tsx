@@ -70,16 +70,9 @@ const Financial = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
-              <DollarSign className="h-8 w-8" />
-              Gestão Financeira
-            </h1>
-            <p className="text-slate-600">Dashboard financeiro integrado com Bom Controle</p>
-          </div>
+        <div className="flex justify-end">
           <Button 
-            onClick={fetchFinancialData} 
+            onClick={fetchFinancialData}
             disabled={isLoading || !bomControleIntegration}
             className="bg-blue-600 hover:bg-blue-700"
           >

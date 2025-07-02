@@ -37,24 +37,15 @@ const Schedule = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-              <Calendar className="h-6 w-6" />
-              Agenda de Vencimentos
-            </h1>
-            <p className="text-slate-600 text-sm">Gerencie certificados, licenças e atualizações do sistema</p>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={() => setShowTypeDialog(true)} variant="outline">
-              <Settings className="mr-2 h-4 w-4" />
-              Novo Tipo
-            </Button>
-            <Button onClick={() => setShowScheduleDialog(true)} className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Agenda
-            </Button>
-          </div>
+        <div className="flex justify-end gap-2">
+          <Button onClick={() => setShowTypeDialog(true)} variant="outline">
+            <Settings className="mr-2 h-4 w-4" />
+            Novo Tipo
+          </Button>
+          <Button onClick={() => setShowScheduleDialog(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Agenda
+          </Button>
         </div>
 
         {/* Summary Cards */}

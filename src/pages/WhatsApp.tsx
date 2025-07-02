@@ -70,14 +70,7 @@ const WhatsApp = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-              <MessageCircle className="h-6 w-6" />
-              WhatsApp Business
-            </h1>
-            <p className="text-slate-600 text-sm">Gerencie suas integrações de WhatsApp</p>
-          </div>
+        <div className="flex justify-end">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-green-600 hover:bg-green-700">
