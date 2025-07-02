@@ -52,11 +52,11 @@ const Links = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
-              <Link className="h-8 w-8" />
+            <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+              <Link className="h-6 w-6" />
               Links por Empresa
             </h1>
-            <p className="text-blue-600">Links gerados automaticamente do sistema de senhas</p>
+            <p className="text-slate-600 text-sm">Links gerados automaticamente do sistema de senhas</p>
           </div>
         </div>
 

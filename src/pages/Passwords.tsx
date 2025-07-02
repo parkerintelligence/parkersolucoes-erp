@@ -160,11 +160,11 @@ const Passwords = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
-              <Lock className="h-8 w-8" />
-              Gerenciador de Senhas por Empresa
+            <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+              <Lock className="h-6 w-6" />
+              Gerenciador de Senhas
             </h1>
-            <p className="text-blue-600">Cofre seguro para senhas organizadas por empresa</p>
+            <p className="text-slate-600 text-sm">Cofre seguro para senhas organizadas por empresa</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>

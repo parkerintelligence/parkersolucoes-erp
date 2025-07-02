@@ -56,11 +56,11 @@ const Backups = () => {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
-                <HardDrive className="h-8 w-8" />
+              <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                <HardDrive className="h-6 w-6" />
                 Backups FTP
               </h1>
-              <p className="text-blue-600">Gerencie seus backups via FTP</p>
+              <p className="text-slate-600 text-sm">Gerencie seus backups via FTP</p>
             </div>
           </div>
 
@@ -111,11 +111,11 @@ const Backups = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
-              <HardDrive className="h-8 w-8" />
+            <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+              <HardDrive className="h-6 w-6" />
               Backups FTP
             </h1>
-            <p className="text-blue-600">Gerencie seus backups via FTP - Arquivos ordenados por data (mais antigos primeiro)</p>
+            <p className="text-slate-600 text-sm">Gerencie seus backups via FTP - Arquivos ordenados por data (mais antigos primeiro)</p>
           </div>
           <Button onClick={() => refetchFiles()} disabled={isLoadingFiles} className="bg-blue-600 hover:bg-blue-700">
             <RefreshCw className={`mr-2 h-4 w-4 ${isLoadingFiles ? 'animate-spin' : ''}`} />

@@ -72,11 +72,11 @@ const WhatsApp = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
-              <MessageCircle className="h-8 w-8" />
+            <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+              <MessageCircle className="h-6 w-6" />
               WhatsApp Business
             </h1>
-            <p className="text-slate-600">Gerencie suas integrações de WhatsApp</p>
+            <p className="text-slate-600 text-sm">Gerencie suas integrações de WhatsApp</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>

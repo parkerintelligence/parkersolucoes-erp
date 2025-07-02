@@ -72,11 +72,11 @@ const Services = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
-              <Settings className="h-8 w-8" />
+            <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+              <Settings className="h-6 w-6" />
               Cadastro de Serviços
             </h1>
-            <p className="text-blue-600">Gerencie os serviços oferecidos pela empresa</p>
+            <p className="text-slate-600 text-sm">Gerencie os serviços oferecidos pela empresa</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>

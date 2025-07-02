@@ -79,11 +79,11 @@ const Budgets = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
-              <Calculator className="h-8 w-8" />
+            <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+              <Calculator className="h-6 w-6" />
               Orçamentos
             </h1>
-            <p className="text-blue-600">Gerencie orçamentos de serviços de TI</p>
+            <p className="text-slate-600 text-sm">Gerencie orçamentos de serviços de TI</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
