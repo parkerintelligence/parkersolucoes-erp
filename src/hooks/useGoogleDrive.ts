@@ -136,9 +136,15 @@ export const useGoogleDrive = () => {
     },
     onError: (error) => {
       console.error('Upload error:', error);
+      
+      let errorMessage = "Não foi possível enviar o arquivo. Tente novamente.";
+      if (error.message && error.message.includes('Authentication failed')) {
+        errorMessage = "Sessão expirada. Vá para Administração e re-autorize sua conta Google.";
+      }
+      
       toast({
         title: "Erro no upload",
-        description: "Não foi possível enviar o arquivo. Tente novamente.",
+        description: errorMessage,
         variant: "destructive"
       });
     },
@@ -188,9 +194,15 @@ export const useGoogleDrive = () => {
     },
     onError: (error) => {
       console.error('Download error:', error);
+      
+      let errorMessage = "Não foi possível baixar o arquivo. Tente novamente.";
+      if (error.message && error.message.includes('Authentication failed')) {
+        errorMessage = "Sessão expirada. Vá para Administração e re-autorize sua conta Google.";
+      }
+      
       toast({
         title: "Erro no download",
-        description: "Não foi possível baixar o arquivo. Tente novamente.",
+        description: errorMessage,
         variant: "destructive"
       });
     },

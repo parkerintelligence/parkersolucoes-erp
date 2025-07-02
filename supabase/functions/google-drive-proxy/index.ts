@@ -163,7 +163,10 @@ serve(async (req) => {
           parents: params.folderId !== 'root' ? [params.folderId] : undefined
         };
 
-        // First, create the file metadata
+        // Use callGoogleDriveAPI for upload with automatic token refresh
+        const fileData = Uint8Array.from(atob(params.fileData), c => c.charCodeAt(0));
+        
+        // First, create the file metadata using resumable upload
         const createResponse = await fetch(`${GOOGLE_DRIVE_API_BASE}/files?uploadType=resumable`, {
           method: 'POST',
           headers: {
@@ -174,14 +177,18 @@ serve(async (req) => {
         });
 
         if (!createResponse.ok) {
+          const errorText = await createResponse.text();
+          console.error('Upload initiation failed:', createResponse.status, errorText);
           throw new Error(`Failed to initiate upload: ${createResponse.statusText}`);
         }
 
         const uploadUrl = createResponse.headers.get('Location');
+        if (!uploadUrl) {
+          throw new Error('No upload URL received from Google Drive');
+        }
         
         // Upload the file content
-        const fileData = Uint8Array.from(atob(params.fileData), c => c.charCodeAt(0));
-        const uploadResponse = await fetch(uploadUrl!, {
+        const uploadResponse = await fetch(uploadUrl, {
           method: 'PUT',
           headers: {
             'Content-Type': params.mimeType || 'application/octet-stream'
@@ -190,6 +197,8 @@ serve(async (req) => {
         });
 
         if (!uploadResponse.ok) {
+          const errorText = await uploadResponse.text();
+          console.error('Upload failed:', uploadResponse.status, errorText);
           throw new Error(`Failed to upload file: ${uploadResponse.statusText}`);
         }
 
@@ -206,13 +215,38 @@ serve(async (req) => {
       case 'download':
         console.log('Downloading file:', params.fileId);
         
-        const downloadResponse = await fetch(`${GOOGLE_DRIVE_API_BASE}/files/${params.fileId}?alt=media`, {
+        // Use direct fetch with current token, but handle refresh if needed
+        let downloadResponse = await fetch(`${GOOGLE_DRIVE_API_BASE}/files/${params.fileId}?alt=media`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`
           }
         });
 
+        // If token expired, try to refresh
+        if (downloadResponse.status === 401) {
+          console.log('Download: Access token expired, attempting refresh...');
+          const refreshToken = integration.username;
+          if (refreshToken) {
+            const newAccessToken = await refreshAccessToken(refreshToken);
+            
+            // Update stored access token
+            await supabase
+              .from('integrations')
+              .update({ webhook_url: newAccessToken })
+              .eq('id', integrationId);
+            
+            // Retry download with new token
+            downloadResponse = await fetch(`${GOOGLE_DRIVE_API_BASE}/files/${params.fileId}?alt=media`, {
+              headers: {
+                'Authorization': `Bearer ${newAccessToken}`
+              }
+            });
+          }
+        }
+
         if (!downloadResponse.ok) {
+          const errorText = await downloadResponse.text();
+          console.error('Download failed:', downloadResponse.status, errorText);
           throw new Error(`Failed to download file: ${downloadResponse.statusText}`);
         }
 

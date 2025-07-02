@@ -53,30 +53,50 @@ export const GoogleDriveAdminConfig = () => {
   }, [googleDriveIntegration]);
 
   const handleAuthCode = async (authCode: string) => {
+    setIsLoading(true);
     try {
-      console.log('Processing authorization code:', authCode);
+      console.log('Processing authorization code:', authCode.substring(0, 10) + '...');
+      
+      // Buscar a integração atualizada
+      const urlParams = new URLSearchParams(window.location.search);
+      const state = urlParams.get('state');
+      const targetIntegration = integrations?.find(i => i.id === state && i.type === 'google_drive');
+      
+      if (!targetIntegration) {
+        throw new Error('Integração não encontrada');
+      }
+
+      console.log('Invoking google-drive-proxy for authorization...');
       const { data, error } = await supabase.functions.invoke('google-drive-proxy', {
         body: {
           action: 'authorize',
           authCode,
-          integrationId: googleDriveIntegration?.id
+          integrationId: targetIntegration.id
         }
       });
 
       if (error) {
         console.error('Edge function error:', error);
-        throw error;
+        throw new Error(error.message || 'Erro na função de autorização');
+      }
+
+      if (data?.error) {
+        console.error('Authorization error from function:', data.error);
+        throw new Error(data.error);
       }
 
       console.log('Authorization successful:', data);
       
-      // Refresh integrations data to get updated tokens
-      window.location.reload();
-
       toast({
         title: "Autorização realizada!",
         description: "Conta Google Drive conectada com sucesso.",
       });
+      
+      // Aguardar um pouco antes de recarregar para garantir que os dados foram salvos
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+
     } catch (error) {
       console.error('Authorization error:', error);
       toast({
@@ -84,6 +104,8 @@ export const GoogleDriveAdminConfig = () => {
         description: error.message || "Falha ao conectar com o Google Drive. Tente novamente.",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -92,13 +114,37 @@ export const GoogleDriveAdminConfig = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const authCode = urlParams.get('code');
     const state = urlParams.get('state');
+    const error = urlParams.get('error');
     
-    if (authCode && state && googleDriveIntegration) {
-      handleAuthCode(authCode);
+    console.log('OAuth callback detection:', { authCode: !!authCode, state, error });
+    
+    if (error) {
+      console.error('OAuth error:', error);
+      toast({
+        title: "Erro na autorização",
+        description: "A autorização foi cancelada ou falhou. Tente novamente.",
+        variant: "destructive"
+      });
       // Limpar URL
       window.history.replaceState(null, '', window.location.pathname);
+      return;
     }
-  }, [googleDriveIntegration]);
+    
+    if (authCode && state) {
+      console.log('Processing OAuth callback with state:', state);
+      // Verificar se state corresponde a alguma integração
+      const targetIntegration = integrations?.find(i => i.id === state && i.type === 'google_drive');
+      
+      if (targetIntegration) {
+        console.log('Found matching integration for state:', targetIntegration.id);
+        handleAuthCode(authCode);
+        // Limpar URL
+        window.history.replaceState(null, '', window.location.pathname);
+      } else {
+        console.warn('No matching integration found for state:', state);
+      }
+    }
+  }, [integrations]);
 
   const handleSave = async () => {
     if (!formData.name || !formData.client_id || !formData.client_secret) {
@@ -296,9 +342,13 @@ export const GoogleDriveAdminConfig = () => {
           </Button>
           
           {googleDriveIntegration && (
-            <Button variant="outline" onClick={handleAuthorize}>
+            <Button 
+              variant="outline" 
+              onClick={handleAuthorize} 
+              disabled={isLoading}
+            >
               <ExternalLink className="mr-2 h-4 w-4" />
-              Autorizar Conta Google
+              {googleDriveIntegration.webhook_url ? 'Re-autorizar Conta Google' : 'Autorizar Conta Google'}
             </Button>
           )}
         </div>

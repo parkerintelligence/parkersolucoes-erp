@@ -224,14 +224,14 @@ const GoogleDrive = () => {
                   {filteredFiles.map((file) => (
                     <tr key={file.id} className="border-b hover:bg-muted/50">
                       <td className="py-3">
-                        <div 
-                          className="flex items-center gap-2 cursor-pointer"
-                          onClick={() => {
-                            if (file.mimeType === 'application/vnd.google-apps.folder') {
-                              navigateToFolder(file.id);
-                            }
-                          }}
-                        >
+                         <div 
+                           className="flex items-center gap-2 cursor-pointer"
+                           onClick={() => {
+                             if (file.mimeType === 'application/vnd.google-apps.folder') {
+                               navigateToFolder(file.id, file.name);
+                             }
+                           }}
+                         >
                           {getFileIcon(file)}
                           <span className="font-medium">{file.name}</span>
                         </div>
