@@ -17,12 +17,12 @@ interface GLPIMetricsCardProps {
 }
 
 const variantStyles = {
-  default: 'border-yellow-200 bg-yellow-50',
-  success: 'border-green-200 bg-green-50',
-  warning: 'border-orange-200 bg-orange-50',
-  danger: 'border-red-200 bg-red-50',
-  info: 'border-blue-200 bg-blue-50',
-  gray: 'border-gray-200 bg-gray-50',
+  default: 'border-yellow-300 bg-gradient-to-br from-yellow-100 to-yellow-200', // Amarelo como no GLPI
+  success: 'border-green-300 bg-gradient-to-br from-green-100 to-green-200', // Verde para novos/resolvidos
+  warning: 'border-orange-300 bg-gradient-to-br from-orange-100 to-orange-200', // Laranja para pendentes
+  danger: 'border-red-300 bg-gradient-to-br from-red-100 to-red-200', // Vermelho para críticos
+  info: 'border-blue-300 bg-gradient-to-br from-blue-100 to-blue-200', // Azul para atribuídos/planejados
+  gray: 'border-gray-300 bg-gradient-to-br from-gray-100 to-gray-200', // Cinza para solucionados
 };
 
 const getTrendIcon = (trend?: 'up' | 'down' | 'stable') => {
@@ -50,7 +50,7 @@ export const GLPIMetricsCard = ({
   className = '',
 }: GLPIMetricsCardProps) => {
   return (
-    <Card className={`${variantStyles[variant]} hover:shadow-sm transition-shadow ${className}`}>
+    <Card className={`${variantStyles[variant]} hover:shadow-lg transition-all duration-300 ${className}`}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium text-gray-600">{title}</CardTitle>

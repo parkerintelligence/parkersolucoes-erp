@@ -44,31 +44,31 @@ export const GLPIKPIHeader = ({ tickets, problems, changes }: KPIData) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Chamados Resolvidos */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+        <div className="bg-emerald-600 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-700 text-sm font-medium mb-1">Chamados Resolvidos</p>
-              <p className="text-2xl font-bold text-green-900">{resolved}</p>
-              <p className="text-green-600 text-xs mt-1">Finalizados</p>
+              <p className="text-emerald-100 text-sm font-medium mb-1">Chamados Resolvidos</p>
+              <p className="text-3xl font-bold">{resolved}</p>
+              <p className="text-emerald-200 text-xs mt-1">Finalizados</p>
             </div>
-            <div className="bg-green-100 rounded-lg p-2">
-              <CheckCircle className="h-6 w-6 text-green-600" />
+            <div className="bg-white/20 rounded-xl p-3">
+              <CheckCircle className="h-8 w-8 text-white" />
             </div>
           </div>
         </div>
 
         {/* Total de Chamados */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+        <div className="bg-blue-600 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-700 text-sm font-medium mb-1">Total de Chamados</p>
-              <p className="text-2xl font-bold text-blue-900">{tickets.length}</p>
-              <p className="text-blue-600 text-xs mt-1">No sistema</p>
+              <p className="text-blue-100 text-sm font-medium mb-1">Total de Chamados</p>
+              <p className="text-3xl font-bold">{tickets.length}</p>
+              <p className="text-blue-200 text-xs mt-1">No sistema</p>
             </div>
-            <div className="bg-blue-100 rounded-lg p-2">
-              <Activity className="h-6 w-6 text-blue-600" />
+            <div className="bg-white/20 rounded-xl p-3">
+              <Activity className="h-8 w-8 text-white" />
             </div>
           </div>
         </div>

@@ -251,55 +251,85 @@ const GLPI = () => {
         <GLPIConnectionStatus />
 
         {/* Interface Principal com Botões Grandes */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
           <Button 
             variant={activeTab === 'dashboard' ? 'default' : 'outline'}
             size="lg"
-            className="h-20 flex flex-col gap-1 p-3"
+            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
+              activeTab === 'dashboard' 
+                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
+                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
+            }`}
             onClick={() => setActiveTab('dashboard')}
           >
-            <BarChart3 className="h-6 w-6" />
-            <span className="text-xs font-medium">Dashboard</span>
+            <div className="flex flex-col items-center gap-2">
+              <BarChart3 className="h-8 w-8" />
+              <span className="font-semibold">Dashboard</span>
+            </div>
           </Button>
           
           <Button 
             variant={activeTab === 'tickets' ? 'default' : 'outline'}
             size="lg"
-            className="h-20 flex flex-col gap-1 p-3"
+            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
+              activeTab === 'tickets' 
+                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
+                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
+            }`}
             onClick={() => setActiveTab('tickets')}
           >
-            <AlertTriangle className="h-6 w-6" />
-            <span className="text-xs font-medium">Chamados</span>
+            <div className="flex flex-col items-center gap-2">
+              <AlertTriangle className="h-8 w-8" />
+              <span className="font-semibold">Chamados</span>
+            </div>
           </Button>
           
           <Button 
             variant={activeTab === 'inventory' ? 'default' : 'outline'}
             size="lg"
-            className="h-20 flex flex-col gap-1 p-3"
+            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
+              activeTab === 'inventory' 
+                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
+                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
+            }`}
             onClick={() => setActiveTab('inventory')}
           >
-            <HardDrive className="h-6 w-6" />
-            <span className="text-xs font-medium">Inventário</span>
+            <div className="flex flex-col items-center gap-2">
+              <HardDrive className="h-8 w-8" />
+              <span className="font-semibold">Inventário</span>
+            </div>
           </Button>
           
           <Button 
             variant={activeTab === 'itil' ? 'default' : 'outline'}
             size="lg"
-            className="h-20 flex flex-col gap-1 p-3"
+            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
+              activeTab === 'itil' 
+                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
+                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
+            }`}
             onClick={() => setActiveTab('itil')}
           >
-            <FileText className="h-6 w-6" />
-            <span className="text-xs font-medium">ITIL</span>
+            <div className="flex flex-col items-center gap-2">
+              <FileText className="h-8 w-8" />
+              <span className="font-semibold">ITIL</span>
+            </div>
           </Button>
           
           <Button 
             variant={activeTab === 'organization' ? 'default' : 'outline'}
             size="lg"
-            className="h-20 flex flex-col gap-1 p-3"
+            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
+              activeTab === 'organization' 
+                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
+                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
+            }`}
             onClick={() => setActiveTab('organization')}
           >
-            <Users className="h-6 w-6" />
-            <span className="text-xs font-medium">Organização</span>
+            <div className="flex flex-col items-center gap-2">
+              <Users className="h-8 w-8" />
+              <span className="font-semibold">Organização</span>
+            </div>
           </Button>
         </div>
 
