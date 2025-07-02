@@ -27,12 +27,27 @@ export const GoogleDriveAdminConfig = () => {
 
   // Atualizar o formulário quando a integração for carregada
   useEffect(() => {
+    console.log('GoogleDrive integration changed:', googleDriveIntegration);
     if (googleDriveIntegration) {
+      console.log('Updating form with integration data:', {
+        name: googleDriveIntegration.name,
+        api_token: googleDriveIntegration.api_token,
+        password: googleDriveIntegration.password,
+        is_active: googleDriveIntegration.is_active
+      });
       setFormData({
         name: googleDriveIntegration.name || 'Google Drive Principal',
         client_id: googleDriveIntegration.api_token || '',
         client_secret: googleDriveIntegration.password || '',
         is_active: googleDriveIntegration.is_active ?? true,
+      });
+    } else {
+      console.log('No GoogleDrive integration found, resetting form');
+      setFormData({
+        name: 'Google Drive Principal',
+        client_id: '',
+        client_secret: '',
+        is_active: true,
       });
     }
   }, [googleDriveIntegration]);
