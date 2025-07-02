@@ -56,7 +56,7 @@ export interface UnifiStatistics {
 export const useUnifiIntegration = () => {
   const { data: integrations } = useIntegrations();
   const unifiIntegration = integrations?.find(integration => 
-    integration.type === 'unifi' && integration.is_active
+    (integration.type as any) === 'unifi' && integration.is_active
   );
   
   // Use the direct client

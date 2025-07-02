@@ -12,7 +12,7 @@ import { Loader2, Wifi, AlertTriangle } from 'lucide-react';
 export const UnifiAdminConfig = () => {
   const { data: integrations, createIntegration, updateIntegration } = useIntegrations();
   
-  const unifiIntegration = integrations?.find(integration => integration.type === 'unifi');
+  const unifiIntegration = integrations?.find(integration => (integration.type as any) === 'unifi');
 
   const [formData, setFormData] = useState({
     name: unifiIntegration?.name || 'Controladora UNIFI',
@@ -34,7 +34,7 @@ export const UnifiAdminConfig = () => {
     }
 
     const integrationData = {
-      type: 'unifi' as const,
+      type: 'unifi' as any,
       name: formData.name,
       base_url: formData.base_url,
       username: formData.username,

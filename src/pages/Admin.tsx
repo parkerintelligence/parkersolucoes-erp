@@ -14,6 +14,7 @@ import { GrafanaAdminConfig } from '@/components/GrafanaAdminConfig';
 import { BomControleAdminConfig } from '@/components/BomControleAdminConfig';
 import { FtpAdminConfig } from '@/components/FtpAdminConfig';
 import { WasabiAdminConfig } from '@/components/WasabiAdminConfig';
+import { UnifiAdminConfig } from '@/components/UnifiAdminConfig';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Settings, Users, Database, Key, Building, Activity, DollarSign, MessageCircle, HardDrive, Monitor, Headphones, Router, BarChart3, FileText, MessageSquare, Wifi, Cloud } from 'lucide-react';

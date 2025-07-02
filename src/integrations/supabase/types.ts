@@ -520,6 +520,7 @@ export type Database = {
         | "ftp"
         | "glpi"
         | "mikrotik"
+        | "unifi"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -645,6 +646,7 @@ export const Constants = {
         "ftp",
         "glpi",
         "mikrotik",
+        "unifi",
       ],
     },
   },
