@@ -205,6 +205,38 @@ export const GoogleDriveAdminConfig = () => {
     }
   };
 
+  const validateCredentials = () => {
+    if (!formData.client_id) {
+      toast({
+        title: "Client ID necessário",
+        description: "Configure o Client ID antes de autorizar.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!formData.client_secret) {
+      toast({
+        title: "Client Secret necessário", 
+        description: "Configure o Client Secret antes de autorizar.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    // Validate Client ID format (Google Client IDs typically end with .googleusercontent.com)
+    if (!formData.client_id.includes('.googleusercontent.com')) {
+      toast({
+        title: "Client ID inválido",
+        description: "O Client ID deve ter o formato correto do Google Cloud Console (termina com .googleusercontent.com).",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleAuthorize = async () => {
     if (!googleDriveIntegration) {
       toast({
@@ -215,34 +247,50 @@ export const GoogleDriveAdminConfig = () => {
       return;
     }
 
-    if (!googleDriveIntegration.api_token) {
-      toast({
-        title: "Erro",
-        description: "Client ID não configurado. Configure primeiro no formulário acima.",
-        variant: "destructive"
-      });
+    // Validate credentials before attempting authorization
+    if (!validateCredentials()) {
       return;
     }
 
-    // Generate OAuth URL usando o Client ID salvo na integração
-    const clientId = googleDriveIntegration.api_token;
-    const redirectUri = `${window.location.origin}/admin`;
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-      `client_id=${clientId}&` +
-      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-      `scope=${encodeURIComponent('https://www.googleapis.com/auth/drive')}&` +
-      `response_type=code&` +
-      `access_type=offline&` +
-      `prompt=consent&` +
-      `state=${encodeURIComponent(googleDriveIntegration.id)}`;
+    try {
+      const clientId = googleDriveIntegration.api_token;
+      const redirectUri = `${window.location.origin}/admin`;
+      
+      console.log('Starting OAuth flow with:', {
+        clientId: clientId?.substring(0, 10) + '...',
+        redirectUri,
+        integrationId: googleDriveIntegration.id
+      });
 
-    // Usar redirect direto ao invés de popup
-    window.location.href = authUrl;
-    
-    toast({
-      title: "Redirecionando...",
-      description: "Você será redirecionado para autorizar o Google Drive.",
-    });
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${encodeURIComponent(clientId)}&` +
+        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+        `scope=${encodeURIComponent('https://www.googleapis.com/auth/drive')}&` +
+        `response_type=code&` +
+        `access_type=offline&` +
+        `prompt=consent&` +
+        `state=${encodeURIComponent(googleDriveIntegration.id)}`;
+
+      console.log('Redirecting to Google OAuth URL');
+      
+      toast({
+        title: "Redirecionando...",
+        description: "Você será redirecionado para autorizar o Google Drive.",
+      });
+
+      // Small delay to show the toast before redirect
+      setTimeout(() => {
+        window.location.href = authUrl;
+      }, 500);
+
+    } catch (error) {
+      console.error('Error starting OAuth flow:', error);
+      toast({
+        title: "Erro na autorização",
+        description: "Erro ao iniciar o processo de autorização. Verifique as credenciais.",
+        variant: "destructive"
+      });
+    }
   };
 
 
@@ -354,30 +402,48 @@ export const GoogleDriveAdminConfig = () => {
         </div>
 
         <div className="text-sm text-muted-foreground">
-          <p><strong>Instruções para Google Cloud Console:</strong></p>
+          <p><strong>🔧 Instruções para corrigir o erro "deleted_client":</strong></p>
           <ol className="list-decimal list-inside space-y-1 mt-2">
             <li>Acesse o <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cloud Console</a></li>
-            <li>Crie um projeto ou selecione um existente</li>
+            <li><strong>CRIE UM NOVO PROJETO</strong> (não reutilize projetos antigos)</li>
             <li>Vá em "APIs e Serviços" → "Biblioteca" e ative a <strong>Google Drive API</strong></li>
+            <li>Configure a <strong>Tela de Consentimento OAuth</strong>:</li>
+            <li className="ml-4">• Tipo de usuário: <strong>Externo</strong></li>
+            <li className="ml-4">• Adicione domínios autorizados: <code>lovableproject.com</code> e <code>lovable.app</code></li>
+            <li className="ml-4">• Escopos: <code>https://www.googleapis.com/auth/drive</code></li>
             <li>Vá em "APIs e Serviços" → "Credenciais"</li>
             <li>Clique em "Criar credenciais" → "ID do cliente OAuth 2.0"</li>
             <li>Tipo de aplicação: <strong>Aplicação da Web</strong></li>
             <li>Nome: <strong>Gestão TI - Google Drive</strong></li>
-            <li><strong>URLs de redirecionamento autorizados:</strong></li>
+            <li><strong>URLs de redirecionamento autorizados (COPIE EXATAMENTE):</strong></li>
             <li className="ml-4 font-mono text-xs bg-gray-100 p-1 rounded">
-              {window.location.origin}/admin
+              https://f4440219-dd51-4101-bb5d-8216b89db483.lovableproject.com/admin
             </li>
             <li className="ml-4 font-mono text-xs bg-gray-100 p-1 rounded">
-              http://localhost:3000/admin (para desenvolvimento)
+              https://id-preview--f4440219-dd51-4101-bb5d-8216b89db483.lovable.app/admin
+            </li>
+            <li className="ml-4 font-mono text-xs bg-gray-100 p-1 rounded">
+              http://localhost:3000/admin
             </li>
             <li>Copie o <strong>Client ID</strong> e <strong>Client Secret</strong> e cole nos campos acima</li>
+            <li><strong>Aguarde 5-10 minutos</strong> para as configurações se propagarem</li>
             <li>Clique em "Salvar Configuração" e depois "Autorizar Conta Google"</li>
           </ol>
           
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-            <p className="text-yellow-800 text-xs">
-              <strong>⚠️ Importante:</strong> Se você receber "Acesso bloqueado", verifique se as URLs de redirecionamento 
-              estão configuradas exatamente como mostrado acima no Google Cloud Console.
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
+            <p className="text-red-800 text-xs">
+              <strong>🚨 Erro "deleted_client":</strong> Isso acontece quando:
+              <br />• O Client ID está incorreto ou foi deletado
+              <br />• O projeto no Google Cloud foi removido
+              <br />• As URLs de redirecionamento não estão configuradas corretamente
+              <br /><strong>Solução:</strong> Crie um NOVO projeto no Google Cloud Console seguindo as instruções acima.
+            </p>
+          </div>
+          
+          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
+            <p className="text-blue-800 text-xs">
+              <strong>💡 Dica:</strong> O Client ID deve terminar com <code>.googleusercontent.com</code> 
+              (ex: 123456789-abc123.apps.googleusercontent.com)
             </p>
           </div>
         </div>
