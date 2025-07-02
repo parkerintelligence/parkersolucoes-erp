@@ -1,9 +1,8 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/AppSidebar';
 import { TopHeader } from '@/components/TopHeader';
+import { HorizontalNav } from '@/components/HorizontalNav';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -28,18 +27,14 @@ export const Layout = ({ children }: LayoutProps) => {
   }
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="min-h-screen flex w-full bg-gray-50">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <TopHeader />
-          <main className="flex-1 overflow-auto p-4 md:p-6">
-            <div className="w-full max-w-none">
-              {children}
-            </div>
-          </main>
+    <div className="min-h-screen flex flex-col w-full bg-background">
+      <TopHeader />
+      <HorizontalNav />
+      <main className="flex-1 overflow-auto p-4 md:p-6">
+        <div className="w-full max-w-7xl mx-auto">
+          {children}
         </div>
-      </div>
-    </SidebarProvider>
+      </main>
+    </div>
   );
 };
