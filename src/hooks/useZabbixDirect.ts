@@ -21,86 +21,54 @@ interface ZabbixResponse {
 
 export class ZabbixDirectClient {
   private config: ZabbixConfig;
-  private authToken: string | null = null;
-  private requestId = 1;
 
   constructor(config: ZabbixConfig) {
     this.config = config;
-    // Try to get cached auth token
-    this.authToken = localStorage.getItem(`zabbix_auth_${config.url}`);
   }
 
-  private async makeRequest(method: string, params: any = {}, useAuth = true): Promise<any> {
-    const url = this.config.url.replace(/\/$/, '') + '/api_jsonrpc.php';
-    
-    const payload = {
-      jsonrpc: '2.0',
-      method,
-      params: useAuth && this.authToken ? { ...params, auth: this.authToken } : params,
-      id: this.requestId++
-    };
-
-    console.log('Zabbix Direct Request:', { method, url, params });
+  private async makeProxyRequest(method: string, params: any = {}): Promise<any> {
+    console.log('Zabbix Proxy Request:', { method, params });
 
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(payload)
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      const response = await supabase.functions.invoke('zabbix-direct-proxy', {
+        body: {
+          config: {
+            base_url: this.config.url,
+            api_token: this.config.apiToken,
+            username: this.config.username,
+            password: this.config.password
+          },
+          method,
+          params
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (response.error) {
+        throw new Error(response.error.message || 'Proxy request failed');
       }
 
-      const data: ZabbixResponse = await response.json();
-      
-      if (data.error) {
-        // If auth error, clear token and retry once
-        if (data.error.code === -32602 && this.authToken && useAuth) {
-          console.log('Auth token expired, retrying with new token');
-          this.authToken = null;
-          localStorage.removeItem(`zabbix_auth_${this.config.url}`);
-          await this.authenticate();
-          return this.makeRequest(method, params, useAuth);
-        }
-        throw new Error(`Zabbix API Error: ${data.error.message}`);
-      }
-
-      console.log('Zabbix Direct Response:', { method, result: data.result });
-      return data.result;
+      console.log('Zabbix Proxy Response:', { method, result: response.data?.result });
+      return response.data?.result;
     } catch (error) {
-      console.error('Zabbix Direct Error:', error);
+      console.error('Zabbix Proxy Error:', error);
       throw error;
     }
   }
 
-  async authenticate(): Promise<string> {
-    if (this.config.apiToken) {
-      this.authToken = this.config.apiToken;
-      localStorage.setItem(`zabbix_auth_${this.config.url}`, this.authToken);
-      return this.authToken;
+  async authenticate(): Promise<boolean> {
+    try {
+      await this.makeProxyRequest('apiinfo.version', {});
+      return true;
+    } catch (error) {
+      console.error('Zabbix authentication failed:', error);
+      return false;
     }
-
-    const result = await this.makeRequest('user.login', {
-      username: this.config.username,
-      password: this.config.password
-    }, false);
-
-    this.authToken = result;
-    localStorage.setItem(`zabbix_auth_${this.config.url}`, this.authToken);
-    return this.authToken;
   }
 
   async getHosts() {
-    if (!this.authToken) {
-      await this.authenticate();
-    }
-
-    return this.makeRequest('host.get', {
+    return this.makeProxyRequest('host.get', {
       output: ['hostid', 'name', 'status', 'available'],
       selectInterfaces: ['interfaceid', 'ip', 'port', 'type'],
       selectGroups: ['groupid', 'name'],
@@ -109,11 +77,7 @@ export class ZabbixDirectClient {
   }
 
   async getProblems() {
-    if (!this.authToken) {
-      await this.authenticate();
-    }
-
-    return this.makeRequest('problem.get', {
+    return this.makeProxyRequest('problem.get', {
       output: ['eventid', 'objectid', 'name', 'severity', 'clock', 'acknowledged'],
       selectHosts: ['hostid', 'name'],
       selectTriggers: ['triggerid', 'description', 'priority'],
@@ -124,11 +88,7 @@ export class ZabbixDirectClient {
   }
 
   async getItems(hostids?: string[]) {
-    if (!this.authToken) {
-      await this.authenticate();
-    }
-
-    return this.makeRequest('item.get', {
+    return this.makeProxyRequest('item.get', {
       output: ['itemid', 'name', 'key_', 'value_type', 'units', 'lastvalue', 'lastclock'],
       selectHosts: ['hostid', 'name'],
       ...(hostids && { hostids }),
@@ -137,11 +97,7 @@ export class ZabbixDirectClient {
   }
 
   async getTriggers(hostids?: string[]) {
-    if (!this.authToken) {
-      await this.authenticate();
-    }
-
-    return this.makeRequest('trigger.get', {
+    return this.makeProxyRequest('trigger.get', {
       output: ['triggerid', 'description', 'status', 'priority', 'lastchange'],
       selectHosts: ['hostid', 'name'],
       selectFunctions: ['functionid', 'itemid'],
@@ -152,11 +108,7 @@ export class ZabbixDirectClient {
   }
 
   async getGraphs(hostids?: string[]) {
-    if (!this.authToken) {
-      await this.authenticate();
-    }
-
-    return this.makeRequest('graph.get', {
+    return this.makeProxyRequest('graph.get', {
       output: ['graphid', 'name', 'width', 'height'],
       selectGraphItems: ['itemid', 'color'],
       ...(hostids && { hostids }),
@@ -165,11 +117,7 @@ export class ZabbixDirectClient {
   }
 
   async getTemplates() {
-    if (!this.authToken) {
-      await this.authenticate();
-    }
-
-    return this.makeRequest('template.get', {
+    return this.makeProxyRequest('template.get', {
       output: ['templateid', 'name', 'description'],
       selectHosts: ['hostid', 'name'],
       selectItems: 'count',
@@ -179,11 +127,7 @@ export class ZabbixDirectClient {
   }
 
   async getInventory(hostids?: string[]) {
-    if (!this.authToken) {
-      await this.authenticate();
-    }
-
-    return this.makeRequest('host.get', {
+    return this.makeProxyRequest('host.get', {
       output: ['hostid', 'name'],
       selectInventory: ['hardware', 'software', 'os', 'serialno_a', 'tag'],
       ...(hostids && { hostids }),
@@ -192,11 +136,7 @@ export class ZabbixDirectClient {
   }
 
   async getMaintenances() {
-    if (!this.authToken) {
-      await this.authenticate();
-    }
-
-    return this.makeRequest('maintenance.get', {
+    return this.makeProxyRequest('maintenance.get', {
       output: ['maintenanceid', 'name', 'description', 'active_since', 'active_till'],
       selectHosts: ['hostid', 'name'],
       selectTimeperiods: ['timeperiodid', 'timeperiod_type', 'start_date', 'period'],
@@ -205,11 +145,7 @@ export class ZabbixDirectClient {
   }
 
   async getServices() {
-    if (!this.authToken) {
-      await this.authenticate();
-    }
-
-    return this.makeRequest('service.get', {
+    return this.makeProxyRequest('service.get', {
       output: ['serviceid', 'name', 'status', 'algorithm'],
       selectParents: ['serviceid', 'name'],
       selectDependencies: ['serviceid', 'name'],
@@ -218,11 +154,7 @@ export class ZabbixDirectClient {
   }
 
   async getUsers() {
-    if (!this.authToken) {
-      await this.authenticate();
-    }
-
-    return this.makeRequest('user.get', {
+    return this.makeProxyRequest('user.get', {
       output: ['userid', 'username', 'name', 'surname', 'autologin', 'autologout'],
       selectUsrgrps: ['usrgrpid', 'name'],
       sortfield: 'username'
@@ -230,11 +162,7 @@ export class ZabbixDirectClient {
   }
 
   async getNetworkMaps() {
-    if (!this.authToken) {
-      await this.authenticate();
-    }
-
-    return this.makeRequest('map.get', {
+    return this.makeProxyRequest('map.get', {
       output: ['sysmapid', 'name', 'width', 'height'],
       selectShapes: ['shapeid', 'type', 'x', 'y'],
       selectLines: ['lineid', 'x1', 'y1', 'x2', 'y2'],
@@ -244,11 +172,7 @@ export class ZabbixDirectClient {
   }
 
   async getLatestData(itemids?: string[]) {
-    if (!this.authToken) {
-      await this.authenticate();
-    }
-
-    return this.makeRequest('history.get', {
+    return this.makeProxyRequest('history.get', {
       output: ['itemid', 'clock', 'value'],
       ...(itemids && { itemids }),
       history: 0, // numeric values
@@ -259,14 +183,7 @@ export class ZabbixDirectClient {
   }
 
   async testConnection(): Promise<boolean> {
-    try {
-      await this.authenticate();
-      await this.makeRequest('apiinfo.version', {});
-      return true;
-    } catch (error) {
-      console.error('Zabbix connection test failed:', error);
-      return false;
-    }
+    return await this.authenticate();
   }
 }
 

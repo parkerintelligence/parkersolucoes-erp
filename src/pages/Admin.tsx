@@ -185,6 +185,23 @@ const Admin = () => {
             </CardContent>
           </Card>
         );
+      case 'unifi':
+        return (
+          <Card className="border-blue-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
+                <Wifi className="h-5 w-5" />
+                Configuração UNIFI
+              </CardTitle>
+              <CardDescription>
+                Configure a integração com a controladora UNIFI
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <UnifiAdminConfig />
+            </CardContent>
+          </Card>
+        );
       case 'users':
         return (
           <Card className="border-blue-200">
@@ -342,6 +359,20 @@ const Admin = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                <Card className="border-blue-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('unifi')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-blue-100 p-3 rounded-lg">
+                        <Wifi className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-blue-900">UNIFI</h3>
+                        <p className="text-sm text-blue-600">Controladora WiFi</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
 
@@ -491,6 +522,7 @@ const Admin = () => {
               {activeSection === 'grafana' && 'Grafana'}
               {activeSection === 'bomcontrole' && 'Bom Controle'}
               {activeSection === 'ftp' && 'FTP'}
+              {activeSection === 'unifi' && 'UNIFI'}
             </span>
           </div>
         )}
