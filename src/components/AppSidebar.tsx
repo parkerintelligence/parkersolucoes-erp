@@ -39,8 +39,6 @@ const menuItems = [
   { title: 'Links', url: '/links', icon: Link, role: 'user' },
   { title: 'Conversas WhatsApp', url: '/whatsapp-chats', icon: MessageCircle, role: 'user' },
   { title: 'Wasabi', url: '/wasabi', icon: HardDrive, role: 'user' },
-  { title: 'Google Drive', url: '/google-drive', icon: Cloud, role: 'user' },
-  { title: 'Monitoramento', url: '/monitoring', icon: Activity, role: 'user' },
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
 ];
 

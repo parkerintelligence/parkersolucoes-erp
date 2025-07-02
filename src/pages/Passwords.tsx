@@ -1,6 +1,7 @@
-
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
+import { usePasswords, useCreatePassword, useUpdatePassword, useDeletePassword } from '@/hooks/usePasswords';
+import { useCompanies } from '@/hooks/useCompanies';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,40 +10,45 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
 import { Lock, Plus, Eye, EyeOff, Edit, Trash2, Building, Search } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import type { Tables } from '@/integrations/supabase/types';
+
+type Password = Tables<'passwords'>;
 
 const Passwords = () => {
-  const [passwords, setPasswords] = useState([
-    { id: '1', client: 'Empresa A', system: 'ERP Sistema', url: 'https://erp.empresaa.com', username: 'admin', password: 'SecurePass123!', category: 'Sistema' },
-    { id: '2', client: 'Empresa A', system: 'Email Corporativo', url: 'https://mail.empresaa.com', username: 'admin@empresaa.com', password: 'EmailPass456@', category: 'Email' },
-    { id: '3', client: 'Empresa B', system: 'Painel Hospedagem', url: 'https://cpanel.empresab.com', username: 'root', password: 'HostPass789#', category: 'Hosting' },
-    { id: '4', client: 'Empresa C', system: 'Banco de Dados', url: 'mysql://db.empresac.com', username: 'dbadmin', password: 'DbPass321$', category: 'Database' },
-  ]);
+  const { data: passwords = [], isLoading } = usePasswords();
+  const { data: companies = [] } = useCompanies();
+  const createPassword = useCreatePassword();
+  const updatePassword = useUpdatePassword();
+  const deletePassword = useDeletePassword();
 
   const [showPassword, setShowPassword] = useState<{ [key: string]: boolean }>({});
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingPassword, setEditingPassword] = useState<any>(null);
+  const [editingPassword, setEditingPassword] = useState<Password | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
   
   const [formData, setFormData] = useState({
-    client: '',
-    system: '',
+    name: '',
+    company_id: '',
     url: '',
     username: '',
     password: '',
-    category: ''
+    service: '',
+    gera_link: false,
+    notes: ''
   });
 
-  const companies = ['Empresa A', 'Empresa B', 'Empresa C'];
-
   const filteredPasswords = passwords.filter(password => {
-    const matchesSearch = password.system.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         password.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         password.username.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCompany = selectedCompany === '' || password.client === selectedCompany;
+    const companyName = companies.find(c => c.id === password.company_id)?.name || '';
+    const matchesSearch = password.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         password.username?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCompany = selectedCompany === '' || password.company_id === selectedCompany;
     return matchesSearch && matchesCompany;
   });
 
@@ -53,14 +59,14 @@ const Passwords = () => {
     }));
   };
 
-  const getCategoryBadge = (category: string) => {
+  const getCategoryBadge = (service: string) => {
     const colors = {
       'Sistema': 'bg-blue-100 text-blue-800 border-blue-200',
       'Email': 'bg-green-100 text-green-800 border-green-200',
       'Hosting': 'bg-purple-100 text-purple-800 border-purple-200',
       'Database': 'bg-orange-100 text-orange-800 border-orange-200',
     };
-    return <Badge className={colors[category] || 'bg-gray-100 text-gray-800 border-gray-200'}>{category}</Badge>;
+    return <Badge className={colors[service] || 'bg-gray-100 text-gray-800 border-gray-200'}>{service}</Badge>;
   };
 
   const handleCopyPassword = (password: string) => {
@@ -72,7 +78,7 @@ const Passwords = () => {
   };
 
   const handleSavePassword = () => {
-    if (!formData.client || !formData.system || !formData.username || !formData.password) {
+    if (!formData.name || !formData.username || !formData.password) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -81,37 +87,37 @@ const Passwords = () => {
       return;
     }
 
-    const newPassword = {
-      id: Date.now().toString(),
-      ...formData
-    };
-
-    setPasswords(prev => [...prev, newPassword]);
-    
-    toast({
-      title: "Senha adicionada!",
-      description: "A senha foi adicionada com sucesso ao cofre.",
+    createPassword.mutate(formData);
+    setFormData({ 
+      name: '', 
+      company_id: '', 
+      url: '', 
+      username: '', 
+      password: '', 
+      service: '', 
+      gera_link: false, 
+      notes: '' 
     });
-
-    setFormData({ client: '', system: '', url: '', username: '', password: '', category: '' });
     setIsDialogOpen(false);
   };
 
-  const handleEditPassword = (password: any) => {
+  const handleEditPassword = (password: Password) => {
     setEditingPassword(password);
     setFormData({
-      client: password.client,
-      system: password.system,
-      url: password.url,
-      username: password.username,
-      password: password.password,
-      category: password.category
+      name: password.name,
+      company_id: password.company_id || '',
+      url: password.url || '',
+      username: password.username || '',
+      password: password.password || '',
+      service: password.service || '',
+      gera_link: password.gera_link,
+      notes: password.notes || ''
     });
     setIsEditDialogOpen(true);
   };
 
   const handleSaveEdit = () => {
-    if (!formData.client || !formData.system || !formData.username || !formData.password) {
+    if (!formData.name || !formData.username || !formData.password || !editingPassword) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -120,29 +126,34 @@ const Passwords = () => {
       return;
     }
 
-    setPasswords(prev => prev.map(p => 
-      p.id === editingPassword.id 
-        ? { ...p, ...formData }
-        : p
-    ));
-
-    toast({
-      title: "Senha atualizada!",
-      description: "A senha foi atualizada com sucesso.",
-    });
-    
+    updatePassword.mutate({ id: editingPassword.id, updates: formData });
     setIsEditDialogOpen(false);
     setEditingPassword(null);
-    setFormData({ client: '', system: '', url: '', username: '', password: '', category: '' });
+    setFormData({ 
+      name: '', 
+      company_id: '', 
+      url: '', 
+      username: '', 
+      password: '', 
+      service: '', 
+      gera_link: false, 
+      notes: '' 
+    });
   };
 
   const handleDeletePassword = (id: string) => {
-    setPasswords(prev => prev.filter(p => p.id !== id));
-    toast({
-      title: "Senha removida!",
-      description: "A senha foi removida do cofre.",
-    });
+    deletePassword.mutate(id);
   };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center h-96">
+          <div className="text-slate-600">Carregando senhas...</div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -169,22 +180,26 @@ const Passwords = () => {
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="client">Empresa Cliente *</Label>
+                  <Label htmlFor="name">Nome do Sistema *</Label>
                   <Input 
-                    id="client" 
-                    placeholder="Nome da empresa"
-                    value={formData.client}
-                    onChange={(e) => setFormData({...formData, client: e.target.value})}
+                    id="name" 
+                    placeholder="Nome do sistema"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="system">Sistema *</Label>
-                  <Input 
-                    id="system" 
-                    placeholder="Nome do sistema"
-                    value={formData.system}
-                    onChange={(e) => setFormData({...formData, system: e.target.value})}
-                  />
+                  <Label htmlFor="company">Empresa Cliente</Label>
+                  <Select value={formData.company_id} onValueChange={(value) => setFormData({...formData, company_id: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a empresa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.map((company) => (
+                        <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="url">URL</Label>
@@ -215,10 +230,10 @@ const Passwords = () => {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="category">Categoria</Label>
-                  <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+                  <Label htmlFor="service">Serviço</Label>
+                  <Select value={formData.service} onValueChange={(value) => setFormData({...formData, service: value})}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione a categoria" />
+                      <SelectValue placeholder="Selecione o serviço" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Sistema">Sistema</SelectItem>
@@ -227,6 +242,23 @@ const Passwords = () => {
                       <SelectItem value="Database">Database</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="gera_link"
+                    checked={formData.gera_link}
+                    onCheckedChange={(checked) => setFormData({...formData, gera_link: checked as boolean})}
+                  />
+                  <Label htmlFor="gera_link">Gerar Link na tela de Links</Label>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="notes">Observações</Label>
+                  <Textarea 
+                    id="notes" 
+                    placeholder="Observações adicionais"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  />
                 </div>
               </div>
               <div className="flex gap-2">
@@ -270,8 +302,8 @@ const Passwords = () => {
               <div className="flex items-center gap-2">
                 <Lock className="h-5 w-5 text-yellow-500" />
                 <div>
-                  <p className="text-2xl font-bold text-blue-900">100%</p>
-                  <p className="text-sm text-blue-600">Segurança</p>
+                  <p className="text-2xl font-bold text-blue-900">{passwords.filter(p => p.gera_link).length}</p>
+                  <p className="text-sm text-blue-600">Links Gerados</p>
                 </div>
               </div>
             </CardContent>
@@ -300,7 +332,7 @@ const Passwords = () => {
                 <SelectContent>
                   <SelectItem value="">Todas as empresas</SelectItem>
                   {companies.map((company) => (
-                    <SelectItem key={company} value={company}>{company}</SelectItem>
+                    <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -318,71 +350,78 @@ const Passwords = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Empresa</TableHead>
                   <TableHead>Sistema</TableHead>
+                  <TableHead>Empresa</TableHead>
                   <TableHead>URL</TableHead>
                   <TableHead>Usuário</TableHead>
                   <TableHead>Senha</TableHead>
-                  <TableHead>Categoria</TableHead>
+                  <TableHead>Serviço</TableHead>
+                  <TableHead>Link</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPasswords.map((item) => (
-                  <TableRow key={item.id} className="hover:bg-blue-50">
-                    <TableCell className="font-medium">{item.client}</TableCell>
-                    <TableCell>{item.system}</TableCell>
-                    <TableCell>
-                      {item.url && (
-                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-                          Acessar
-                        </a>
-                      )}
-                    </TableCell>
-                    <TableCell>{item.username}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono">
-                          {showPassword[item.id] ? item.password : '••••••••'}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => togglePasswordVisibility(item.id)}
-                        >
-                          {showPassword[item.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCopyPassword(item.password)}
-                        >
-                          Copiar
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getCategoryBadge(item.category)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleEditPassword(item)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-red-600 hover:text-red-700"
-                          onClick={() => handleDeletePassword(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filteredPasswords.map((item) => {
+                  const company = companies.find(c => c.id === item.company_id);
+                  return (
+                    <TableRow key={item.id} className="hover:bg-blue-50">
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell>{company?.name || 'N/A'}</TableCell>
+                      <TableCell>
+                        {item.url && (
+                          <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                            Acessar
+                          </a>
+                        )}
+                      </TableCell>
+                      <TableCell>{item.username}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono">
+                            {showPassword[item.id] ? item.password : '••••••••'}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => togglePasswordVisibility(item.id)}
+                          >
+                            {showPassword[item.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCopyPassword(item.password || '')}
+                          >
+                            Copiar
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell>{item.service && getCategoryBadge(item.service)}</TableCell>
+                      <TableCell>
+                        {item.gera_link && <Badge className="bg-green-100 text-green-800 border-green-200">Sim</Badge>}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleEditPassword(item)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleDeletePassword(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
             {filteredPasswords.length === 0 && (
@@ -402,20 +441,25 @@ const Passwords = () => {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="edit-client">Empresa Cliente *</Label>
+                <Label htmlFor="edit-name">Nome do Sistema *</Label>
                 <Input 
-                  id="edit-client" 
-                  value={formData.client}
-                  onChange={(e) => setFormData({...formData, client: e.target.value})}
+                  id="edit-name" 
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-system">Sistema *</Label>
-                <Input 
-                  id="edit-system" 
-                  value={formData.system}
-                  onChange={(e) => setFormData({...formData, system: e.target.value})}
-                />
+                <Label htmlFor="edit-company">Empresa Cliente</Label>
+                <Select value={formData.company_id} onValueChange={(value) => setFormData({...formData, company_id: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map((company) => (
+                      <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-url">URL</Label>
@@ -443,8 +487,8 @@ const Passwords = () => {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-category">Categoria</Label>
-                <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+                <Label htmlFor="edit-service">Serviço</Label>
+                <Select value={formData.service} onValueChange={(value) => setFormData({...formData, service: value})}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -455,6 +499,22 @@ const Passwords = () => {
                     <SelectItem value="Database">Database</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="edit-gera_link"
+                  checked={formData.gera_link}
+                  onCheckedChange={(checked) => setFormData({...formData, gera_link: checked as boolean})}
+                />
+                <Label htmlFor="edit-gera_link">Gerar Link na tela de Links</Label>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-notes">Observações</Label>
+                <Textarea 
+                  id="edit-notes" 
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                />
               </div>
             </div>
             <div className="flex gap-2">

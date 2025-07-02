@@ -328,6 +328,59 @@ export type Database = {
         }
         Relationships: []
       }
+      passwords: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          gera_link: boolean | null
+          id: string
+          name: string
+          notes: string | null
+          password: string | null
+          service: string | null
+          updated_at: string
+          url: string | null
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          gera_link?: boolean | null
+          id?: string
+          name: string
+          notes?: string | null
+          password?: string | null
+          service?: string | null
+          updated_at?: string
+          url?: string | null
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          gera_link?: boolean | null
+          id?: string
+          name?: string
+          notes?: string | null
+          password?: string | null
+          service?: string | null
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "passwords_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schedule_items: {
         Row: {
           company: string
