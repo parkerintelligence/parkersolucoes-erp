@@ -65,8 +65,8 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
   const filteredItems = items.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.company.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === '' || item.status === statusFilter;
-    const matchesType = typeFilter === '' || item.type === typeFilter;
+    const matchesStatus = statusFilter === '' || statusFilter === 'all' || item.status === statusFilter;
+    const matchesType = typeFilter === '' || typeFilter === 'all' || item.type === typeFilter;
     
     return matchesSearch && matchesStatus && matchesType;
   });
@@ -99,7 +99,7 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="pending">Pendente</SelectItem>
               <SelectItem value="completed">Concluído</SelectItem>
             </SelectContent>
@@ -109,7 +109,7 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os tipos</SelectItem>
+              <SelectItem value="all">Todos os tipos</SelectItem>
               {uniqueTypes.map(type => (
                 <SelectItem key={type} value={type}>{type}</SelectItem>
               ))}
