@@ -86,16 +86,10 @@ export function AppSidebar() {
       collapsible="icon"
     >
       <SidebarHeader className="p-4 border-b border-blue-900 bg-blue-950">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center">
           <div className="bg-blue-600 p-2 rounded-lg">
             <Shield className="h-6 w-6 text-white" />
           </div>
-          {!isCollapsed && (
-            <div>
-              <h2 className="font-bold text-white">Gestão TI</h2>
-              <p className="text-xs text-blue-200">Sistema Integrado</p>
-            </div>
-          )}
         </div>
       </SidebarHeader>
 
