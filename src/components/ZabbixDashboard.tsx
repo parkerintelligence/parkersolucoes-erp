@@ -19,7 +19,18 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export const ZabbixDashboard = () => {
-  const { hosts, problems, items, triggers, isLoading, refetchAll } = useZabbixIntegration();
+  const { 
+    hosts, 
+    problems, 
+    graphs, 
+    templates, 
+    inventory, 
+    maintenances, 
+    services, 
+    latestData,
+    isLoading, 
+    refetchAll 
+  } = useZabbixIntegration();
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -261,10 +272,10 @@ export const ZabbixDashboard = () => {
               </div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{triggers.length}</div>
-              <div className="text-sm text-gray-600">Triggers Ativas</div>
+              <div className="text-2xl font-bold text-green-600">{templates.length}</div>
+              <div className="text-sm text-gray-600">Templates Ativos</div>
               <div className="text-xs text-gray-500 mt-1">
-                {items.length} itens monitorados
+                {graphs.length} gráficos disponíveis
               </div>
             </div>
           </div>

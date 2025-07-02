@@ -8,6 +8,11 @@ import { useZabbixIntegration } from '@/hooks/useZabbixIntegration';
 import { ZabbixDashboard } from '@/components/ZabbixDashboard';
 import { ZabbixHostsGrid } from '@/components/ZabbixHostsGrid';
 import { ZabbixProblemsGrid } from '@/components/ZabbixProblemsGrid';
+import { ZabbixGraphsGrid } from '@/components/ZabbixGraphsGrid';
+import { ZabbixInventoryGrid } from '@/components/ZabbixInventoryGrid';
+import { ZabbixMaintenanceGrid } from '@/components/ZabbixMaintenanceGrid';
+import { ZabbixTemplatesGrid } from '@/components/ZabbixTemplatesGrid';
+import { ZabbixServicesGrid } from '@/components/ZabbixServicesGrid';
 
 const Zabbix = () => {
   const { isConfigured } = useZabbixIntegration();
@@ -59,7 +64,7 @@ const Zabbix = () => {
 
         {/* Interface Principal com Abas */}
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid grid-cols-5 w-full">
+          <TabsList className="grid grid-cols-8 w-full">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Dashboard
@@ -72,13 +77,25 @@ const Zabbix = () => {
               <AlertTriangle className="h-4 w-4" />
               Problemas
             </TabsTrigger>
-            <TabsTrigger value="monitoring" className="flex items-center gap-2">
+            <TabsTrigger value="graphs" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
-              Monitoramento
+              Gráficos
             </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center gap-2">
+            <TabsTrigger value="inventory" className="flex items-center gap-2">
               <Database className="h-4 w-4" />
-              Relatórios
+              Inventário
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Templates
+            </TabsTrigger>
+            <TabsTrigger value="maintenance" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Manutenção
+            </TabsTrigger>
+            <TabsTrigger value="services" className="flex items-center gap-2">
+              <Server className="h-4 w-4" />
+              Serviços
             </TabsTrigger>
           </TabsList>
 
@@ -94,40 +111,24 @@ const Zabbix = () => {
             <ZabbixProblemsGrid />
           </TabsContent>
 
-          <TabsContent value="monitoring" className="mt-6">
-            <Card className="border-blue-200">
-              <CardContent className="p-8 text-center">
-                <TrendingUp className="h-12 w-12 mx-auto mb-4 text-blue-600" />
-                <h3 className="text-lg font-semibold mb-2">Monitoramento Avançado</h3>
-                <p className="text-gray-600 mb-4">
-                  Funcionalidades avançadas de monitoramento em desenvolvimento
-                </p>
-                <div className="text-sm text-gray-500">
-                  • Gráficos de tendências<br/>
-                  • Análise de performance<br/>
-                  • Alertas personalizados<br/>
-                  • SLA tracking
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="graphs" className="mt-6">
+            <ZabbixGraphsGrid />
           </TabsContent>
 
-          <TabsContent value="reports" className="mt-6">
-            <Card className="border-blue-200">
-              <CardContent className="p-8 text-center">
-                <Database className="h-12 w-12 mx-auto mb-4 text-blue-600" />
-                <h3 className="text-lg font-semibold mb-2">Relatórios Detalhados</h3>
-                <p className="text-gray-600 mb-4">
-                  Sistema de relatórios avançados em desenvolvimento
-                </p>
-                <div className="text-sm text-gray-500">
-                  • Relatórios de disponibilidade<br/>
-                  • Análise de problemas<br/>
-                  • Histórico de eventos<br/>
-                  • Exportação de dados
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="inventory" className="mt-6">
+            <ZabbixInventoryGrid />
+          </TabsContent>
+
+          <TabsContent value="templates" className="mt-6">
+            <ZabbixTemplatesGrid />
+          </TabsContent>
+
+          <TabsContent value="maintenance" className="mt-6">
+            <ZabbixMaintenanceGrid />
+          </TabsContent>
+
+          <TabsContent value="services" className="mt-6">
+            <ZabbixServicesGrid />
           </TabsContent>
         </Tabs>
       </div>

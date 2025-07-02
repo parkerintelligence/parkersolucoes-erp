@@ -69,7 +69,7 @@ export const useZabbixIntegration = () => {
   );
   
   // Use the new direct client
-  const zabbixDirect = useZabbixDirect(zabbixIntegration?.id);
+  const zabbixDirect = useZabbixDirect(zabbixIntegration);
   
   const [errorDialog, setErrorDialog] = useState<{isOpen: boolean; error: string; details?: string}>({
     isOpen: false,
@@ -159,8 +159,18 @@ export const useZabbixIntegration = () => {
     isConfigured: !!zabbixIntegration,
     hosts: transformHosts(zabbixDirect.hosts || []),
     problems: transformProblems(zabbixDirect.problems || []),
-    items: [], // Will be implemented with direct client methods
-    triggers: [], // Will be implemented with direct client methods
+    graphs: zabbixDirect.graphs || [],
+    templates: zabbixDirect.templates || [],
+    inventory: zabbixDirect.inventory || [],
+    maintenances: zabbixDirect.maintenances || [],
+    services: zabbixDirect.services || [],
+    users: zabbixDirect.users || [],
+    networkMaps: zabbixDirect.networkMaps || [],
+    latestData: zabbixDirect.latestData || [],
+    items: [], // Available via getItems callback
+    triggers: [], // Available via getTriggers callback
+    getItems: zabbixDirect.getItems,
+    getTriggers: zabbixDirect.getTriggers,
     isLoading: zabbixDirect.isLoading,
     error: zabbixDirect.error,
     testConnection,
