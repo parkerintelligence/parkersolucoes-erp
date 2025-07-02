@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIntegrations } from './useIntegrations';
-import { useUnifiDirect } from './useUnifiDirect';
+import { useUnifiHTTP } from './useUnifiHTTP';
 import { toast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
@@ -59,8 +59,8 @@ export const useUnifiIntegration = () => {
     (integration.type as any) === 'unifi' && integration.is_active
   );
   
-  // Use the direct client
-  const unifiDirect = useUnifiDirect(unifiIntegration);
+  // Use the HTTP client
+  const unifiHTTP = useUnifiHTTP(unifiIntegration);
   
   const [errorDialog, setErrorDialog] = useState<{isOpen: boolean; error: string; details?: string}>({
     isOpen: false,
@@ -95,12 +95,12 @@ export const useUnifiIntegration = () => {
       console.log('Base URL:', base_url);
       console.log('Username:', username);
       
-      if (!unifiDirect.client) {
+      if (!unifiHTTP.client) {
         throw new Error('Cliente UNIFI não inicializado');
       }
       
       try {
-        const result = await unifiDirect.client.testConnection();
+        const result = await unifiHTTP.client.testConnection();
         console.log('Teste de conexão bem-sucedido:', result);
         return result;
       } catch (error) {
@@ -163,20 +163,20 @@ export const useUnifiIntegration = () => {
 
   return {
     isConfigured: !!unifiIntegration,
-    devices: transformDevices(unifiDirect.devices || []),
-    clients: transformClients(unifiDirect.clients || []),
-    networks: transformNetworks(unifiDirect.networks || []),
-    statistics: unifiDirect.statistics || {
+    devices: transformDevices(unifiHTTP.devices || []),
+    clients: transformClients(unifiHTTP.clients || []),
+    networks: transformNetworks(unifiHTTP.networks || []),
+    statistics: unifiHTTP.statistics || {
       total_devices: 0,
       online_devices: 0,
       total_clients: 0,
       total_bytes: 0,
       wan_ip: ''
     },
-    isLoading: unifiDirect.isLoading,
-    error: unifiDirect.error,
+    isLoading: unifiHTTP.isLoading,
+    error: unifiHTTP.error,
     testConnection,
-    refetchAll: unifiDirect.refetchAll,
+    refetchAll: unifiHTTP.refetchAll,
     errorDialog,
     closeErrorDialog: () => setErrorDialog(prev => ({ ...prev, isOpen: false })),
   };

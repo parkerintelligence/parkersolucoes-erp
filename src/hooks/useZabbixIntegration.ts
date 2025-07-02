@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIntegrations } from './useIntegrations';
-import { useZabbixDirect } from './useZabbixDirect';
+import { useZabbixHTTP } from './useZabbixHTTP';
 import { toast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
@@ -68,8 +68,8 @@ export const useZabbixIntegration = () => {
     integration.type === 'zabbix' && integration.is_active
   );
   
-  // Use the new direct client
-  const zabbixDirect = useZabbixDirect(zabbixIntegration);
+  // Use the HTTP client
+  const zabbixHTTP = useZabbixHTTP(zabbixIntegration);
   
   const [errorDialog, setErrorDialog] = useState<{isOpen: boolean; error: string; details?: string}>({
     isOpen: false,
@@ -104,12 +104,12 @@ export const useZabbixIntegration = () => {
       console.log('Base URL:', base_url);
       console.log('Token length:', api_token.length);
       
-      if (!zabbixDirect.client) {
+      if (!zabbixHTTP.client) {
         throw new Error('Cliente Zabbix não inicializado');
       }
       
       try {
-        const result = await zabbixDirect.client.testConnection();
+        const result = await zabbixHTTP.client.testConnection();
         console.log('Teste de conexão bem-sucedido:', result);
         return result;
       } catch (error) {
@@ -157,24 +157,24 @@ export const useZabbixIntegration = () => {
 
   return {
     isConfigured: !!zabbixIntegration,
-    hosts: transformHosts(zabbixDirect.hosts || []),
-    problems: transformProblems(zabbixDirect.problems || []),
-    graphs: zabbixDirect.graphs || [],
-    templates: zabbixDirect.templates || [],
-    inventory: zabbixDirect.inventory || [],
-    maintenances: zabbixDirect.maintenances || [],
-    services: zabbixDirect.services || [],
-    users: zabbixDirect.users || [],
-    networkMaps: zabbixDirect.networkMaps || [],
-    latestData: zabbixDirect.latestData || [],
+    hosts: transformHosts(zabbixHTTP.hosts || []),
+    problems: transformProblems(zabbixHTTP.problems || []),
+    graphs: zabbixHTTP.graphs || [],
+    templates: zabbixHTTP.templates || [],
+    inventory: zabbixHTTP.inventory || [],
+    maintenances: zabbixHTTP.maintenances || [],
+    services: zabbixHTTP.services || [],
+    users: zabbixHTTP.users || [],
+    networkMaps: zabbixHTTP.networkMaps || [],
+    latestData: zabbixHTTP.latestData || [],
     items: [], // Available via getItems callback
     triggers: [], // Available via getTriggers callback
-    getItems: zabbixDirect.getItems,
-    getTriggers: zabbixDirect.getTriggers,
-    isLoading: zabbixDirect.isLoading,
-    error: zabbixDirect.error,
+    getItems: zabbixHTTP.getItems,
+    getTriggers: zabbixHTTP.getTriggers,
+    isLoading: zabbixHTTP.isLoading,
+    error: zabbixHTTP.error,
     testConnection,
-    refetchAll: zabbixDirect.refetchAll,
+    refetchAll: zabbixHTTP.refetchAll,
     errorDialog,
     closeErrorDialog: () => setErrorDialog(prev => ({ ...prev, isOpen: false })),
   };

@@ -8,74 +8,122 @@ interface ZabbixConfig {
   apiToken?: string;
 }
 
-interface ZabbixResponse {
-  jsonrpc: string;
-  result?: any;
-  error?: {
-    code: number;
-    message: string;
-    data?: string;
-  };
-  id: number;
+interface ZabbixAuth {
+  token: string;
+  expiry: number;
 }
 
-export class ZabbixDirectClient {
+export class ZabbixHTTPClient {
   private config: ZabbixConfig;
+  private auth: ZabbixAuth | null = null;
 
   constructor(config: ZabbixConfig) {
     this.config = config;
+    this.loadAuth();
   }
 
-  private async makeProxyRequest(method: string, params: any = {}): Promise<any> {
-    console.log('🔍 Zabbix Proxy Request:', { method, params, config: this.config });
+  private saveAuth(auth: ZabbixAuth) {
+    this.auth = auth;
+    localStorage.setItem('zabbix_auth', JSON.stringify(auth));
+  }
+
+  private loadAuth() {
+    try {
+      const stored = localStorage.getItem('zabbix_auth');
+      if (stored) {
+        const auth = JSON.parse(stored);
+        if (auth.expiry > Date.now()) {
+          this.auth = auth;
+        } else {
+          localStorage.removeItem('zabbix_auth');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading auth:', error);
+      localStorage.removeItem('zabbix_auth');
+    }
+  }
+
+  private async makeRequest(method: string, params: any = {}): Promise<any> {
+    console.log('🔍 Zabbix HTTP Request:', { method, params });
+
+    const apiUrl = this.config.url.replace(/\/$/, '');
+    const zabbixApiUrl = `${apiUrl}/api_jsonrpc.php`;
+
+    // Use stored API token if available, otherwise authenticate
+    let authToken = this.config.apiToken;
+    if (!authToken) {
+      if (!this.auth || this.auth.expiry <= Date.now()) {
+        await this.authenticate();
+      }
+      authToken = this.auth?.token;
+    }
+
+    const payload = {
+      jsonrpc: "2.0",
+      method,
+      params: {
+        ...params,
+        ...(authToken && { auth: authToken })
+      },
+      id: Date.now()
+    };
+
+    console.log('📡 Sending to Zabbix API:', payload);
 
     try {
-      const { supabase } = await import('@/integrations/supabase/client');
-      
-      const requestBody = {
-        config: {
-          base_url: this.config.url,
-          api_token: this.config.apiToken,
-          username: this.config.username,
-          password: this.config.password
+      const response = await fetch(zabbixApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Zabbix-HTTP-Client/1.0',
         },
-        method,
-        params
-      };
-
-      console.log('📡 Sending to proxy:', requestBody);
-      
-      const response = await supabase.functions.invoke('zabbix-direct-proxy', {
-        body: requestBody
+        body: JSON.stringify(payload),
       });
 
-      console.log('📥 Proxy response:', response);
-
-      if (response.error) {
-        console.error('❌ Proxy error:', response.error);
-        throw new Error(response.error.message || 'Proxy request failed');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      console.log('✅ Zabbix Proxy Success:', { method, result: response.data?.result });
-      return response.data?.result;
+      const data = await response.json();
+      console.log('📥 Zabbix response:', data);
+
+      if (data.error) {
+        console.error('❌ Zabbix API Error:', data.error);
+        throw new Error(data.error.message || data.error.data || 'Unknown Zabbix error');
+      }
+
+      console.log('✅ Zabbix HTTP Success:', { method, result: data.result });
+      return data.result;
     } catch (error) {
-      console.error('💥 Zabbix Proxy Error:', error);
+      console.error('💥 Zabbix HTTP Error:', error);
       throw error;
     }
   }
 
-  async authenticate(): Promise<boolean> {
-    try {
-      await this.makeProxyRequest('apiinfo.version', {});
-      return true;
-    } catch (error) {
-      console.error('Zabbix authentication failed:', error);
-      return false;
+  private async authenticate(): Promise<void> {
+    console.log('🔐 Authenticating with Zabbix...');
+    
+    const response = await this.makeRequest('user.login', {
+      username: this.config.username,
+      password: this.config.password
+    });
+
+    if (!response) {
+      throw new Error('Authentication failed - no token received');
     }
+
+    // Save auth token with 1 hour expiry
+    this.saveAuth({
+      token: response,
+      expiry: Date.now() + 3600000 // 1 hour
+    });
+
+    console.log('✅ Zabbix authentication successful');
   }
 
   async getHosts() {
-    return this.makeProxyRequest('host.get', {
+    return this.makeRequest('host.get', {
       output: ['hostid', 'name', 'status', 'available'],
       selectInterfaces: ['interfaceid', 'ip', 'port', 'type'],
       selectGroups: ['groupid', 'name'],
@@ -84,7 +132,7 @@ export class ZabbixDirectClient {
   }
 
   async getProblems() {
-    return this.makeProxyRequest('problem.get', {
+    return this.makeRequest('problem.get', {
       output: ['eventid', 'objectid', 'name', 'severity', 'clock', 'acknowledged'],
       selectHosts: ['hostid', 'name'],
       selectTriggers: ['triggerid', 'description', 'priority'],
@@ -95,7 +143,7 @@ export class ZabbixDirectClient {
   }
 
   async getItems(hostids?: string[]) {
-    return this.makeProxyRequest('item.get', {
+    return this.makeRequest('item.get', {
       output: ['itemid', 'name', 'key_', 'value_type', 'units', 'lastvalue', 'lastclock'],
       selectHosts: ['hostid', 'name'],
       ...(hostids && { hostids }),
@@ -104,7 +152,7 @@ export class ZabbixDirectClient {
   }
 
   async getTriggers(hostids?: string[]) {
-    return this.makeProxyRequest('trigger.get', {
+    return this.makeRequest('trigger.get', {
       output: ['triggerid', 'description', 'status', 'priority', 'lastchange'],
       selectHosts: ['hostid', 'name'],
       selectFunctions: ['functionid', 'itemid'],
@@ -115,7 +163,7 @@ export class ZabbixDirectClient {
   }
 
   async getGraphs(hostids?: string[]) {
-    return this.makeProxyRequest('graph.get', {
+    return this.makeRequest('graph.get', {
       output: ['graphid', 'name', 'width', 'height'],
       selectGraphItems: ['itemid', 'color'],
       ...(hostids && { hostids }),
@@ -124,7 +172,7 @@ export class ZabbixDirectClient {
   }
 
   async getTemplates() {
-    return this.makeProxyRequest('template.get', {
+    return this.makeRequest('template.get', {
       output: ['templateid', 'name', 'description'],
       selectHosts: ['hostid', 'name'],
       selectItems: 'count',
@@ -134,7 +182,7 @@ export class ZabbixDirectClient {
   }
 
   async getInventory(hostids?: string[]) {
-    return this.makeProxyRequest('host.get', {
+    return this.makeRequest('host.get', {
       output: ['hostid', 'name'],
       selectInventory: ['hardware', 'software', 'os', 'serialno_a', 'tag'],
       ...(hostids && { hostids }),
@@ -143,7 +191,7 @@ export class ZabbixDirectClient {
   }
 
   async getMaintenances() {
-    return this.makeProxyRequest('maintenance.get', {
+    return this.makeRequest('maintenance.get', {
       output: ['maintenanceid', 'name', 'description', 'active_since', 'active_till'],
       selectHosts: ['hostid', 'name'],
       selectTimeperiods: ['timeperiodid', 'timeperiod_type', 'start_date', 'period'],
@@ -152,7 +200,7 @@ export class ZabbixDirectClient {
   }
 
   async getServices() {
-    return this.makeProxyRequest('service.get', {
+    return this.makeRequest('service.get', {
       output: ['serviceid', 'name', 'status', 'algorithm'],
       selectParents: ['serviceid', 'name'],
       selectDependencies: ['serviceid', 'name'],
@@ -161,7 +209,7 @@ export class ZabbixDirectClient {
   }
 
   async getUsers() {
-    return this.makeProxyRequest('user.get', {
+    return this.makeRequest('user.get', {
       output: ['userid', 'username', 'name', 'surname', 'autologin', 'autologout'],
       selectUsrgrps: ['usrgrpid', 'name'],
       sortfield: 'username'
@@ -169,7 +217,7 @@ export class ZabbixDirectClient {
   }
 
   async getNetworkMaps() {
-    return this.makeProxyRequest('map.get', {
+    return this.makeRequest('map.get', {
       output: ['sysmapid', 'name', 'width', 'height'],
       selectShapes: ['shapeid', 'type', 'x', 'y'],
       selectLines: ['lineid', 'x1', 'y1', 'x2', 'y2'],
@@ -179,7 +227,7 @@ export class ZabbixDirectClient {
   }
 
   async getLatestData(itemids?: string[]) {
-    return this.makeProxyRequest('history.get', {
+    return this.makeRequest('history.get', {
       output: ['itemid', 'clock', 'value'],
       ...(itemids && { itemids }),
       history: 0, // numeric values
@@ -190,29 +238,34 @@ export class ZabbixDirectClient {
   }
 
   async testConnection(): Promise<boolean> {
-    return await this.authenticate();
+    try {
+      await this.makeRequest('apiinfo.version', {});
+      return true;
+    } catch (error) {
+      console.error('Zabbix connection test failed:', error);
+      return false;
+    }
   }
 }
 
-export const useZabbixDirect = (integration?: any) => {
+export const useZabbixHTTP = (integration?: any) => {
   const queryClient = useQueryClient();
-  const [client, setClient] = useState<ZabbixDirectClient | null>(null);
+  const [client, setClient] = useState<ZabbixHTTPClient | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   // Create client when integration is provided
   useEffect(() => {
-    console.log('🔧 ZabbixDirect useEffect triggered:', { integration });
+    console.log('🔧 ZabbixHTTP useEffect triggered:', { integration });
     
-    if (integration?.base_url && integration?.api_token) {
-      console.log('✅ Creating Zabbix client with:', {
+    if (integration?.base_url && (integration?.api_token || (integration?.username && integration?.password))) {
+      console.log('✅ Creating Zabbix HTTP client with:', {
         url: integration.base_url,
         hasToken: !!integration.api_token,
-        tokenLength: integration.api_token.length,
         hasUsername: !!integration.username,
         hasPassword: !!integration.password
       });
       
-      const newClient = new ZabbixDirectClient({
+      const newClient = new ZabbixHTTPClient({
         url: integration.base_url,
         username: integration.username || '',
         password: integration.password || '',
@@ -223,11 +276,11 @@ export const useZabbixDirect = (integration?: any) => {
       // Test connection automatically and set connected state
       newClient.testConnection()
         .then((connected) => {
-          console.log('🎯 Zabbix connection test result:', connected);
+          console.log('🎯 Zabbix HTTP connection test result:', connected);
           setIsConnected(connected);
         })
         .catch((error) => {
-          console.error('❌ Zabbix connection test failed:', error);
+          console.error('❌ Zabbix HTTP connection test failed:', error);
           setIsConnected(false);
         });
     } else {
@@ -255,7 +308,7 @@ export const useZabbixDirect = (integration?: any) => {
 
   // Get hosts
   const hosts = useQuery({
-    queryKey: ['zabbix-hosts', integration?.id],
+    queryKey: ['zabbix-http-hosts', integration?.id],
     queryFn: () => client?.getHosts() || [],
     enabled: !!client && isConnected,
     refetchInterval: 30000
@@ -263,7 +316,7 @@ export const useZabbixDirect = (integration?: any) => {
 
   // Get problems
   const problems = useQuery({
-    queryKey: ['zabbix-problems', integration?.id],
+    queryKey: ['zabbix-http-problems', integration?.id],
     queryFn: () => client?.getProblems() || [],
     enabled: !!client && isConnected,
     refetchInterval: 10000
@@ -271,7 +324,7 @@ export const useZabbixDirect = (integration?: any) => {
 
   // Enhanced queries with caching
   const graphs = useQuery({
-    queryKey: ['zabbix-graphs', integration?.id],
+    queryKey: ['zabbix-http-graphs', integration?.id],
     queryFn: () => client?.getGraphs() || [],
     enabled: !!client && isConnected,
     refetchInterval: 300000, // 5 minutes
@@ -279,7 +332,7 @@ export const useZabbixDirect = (integration?: any) => {
   });
 
   const templates = useQuery({
-    queryKey: ['zabbix-templates', integration?.id],
+    queryKey: ['zabbix-http-templates', integration?.id],
     queryFn: () => client?.getTemplates() || [],
     enabled: !!client && isConnected,
     refetchInterval: 900000, // 15 minutes
@@ -287,7 +340,7 @@ export const useZabbixDirect = (integration?: any) => {
   });
 
   const inventory = useQuery({
-    queryKey: ['zabbix-inventory', integration?.id],
+    queryKey: ['zabbix-http-inventory', integration?.id],
     queryFn: () => client?.getInventory() || [],
     enabled: !!client && isConnected,
     refetchInterval: 1800000, // 30 minutes
@@ -295,7 +348,7 @@ export const useZabbixDirect = (integration?: any) => {
   });
 
   const maintenances = useQuery({
-    queryKey: ['zabbix-maintenances', integration?.id],
+    queryKey: ['zabbix-http-maintenances', integration?.id],
     queryFn: () => client?.getMaintenances() || [],
     enabled: !!client && isConnected,
     refetchInterval: 600000, // 10 minutes
@@ -303,7 +356,7 @@ export const useZabbixDirect = (integration?: any) => {
   });
 
   const services = useQuery({
-    queryKey: ['zabbix-services', integration?.id],
+    queryKey: ['zabbix-http-services', integration?.id],
     queryFn: () => client?.getServices() || [],
     enabled: !!client && isConnected,
     refetchInterval: 120000, // 2 minutes
@@ -311,7 +364,7 @@ export const useZabbixDirect = (integration?: any) => {
   });
 
   const users = useQuery({
-    queryKey: ['zabbix-users', integration?.id],
+    queryKey: ['zabbix-http-users', integration?.id],
     queryFn: () => client?.getUsers() || [],
     enabled: !!client && isConnected,
     refetchInterval: 1800000, // 30 minutes
@@ -319,7 +372,7 @@ export const useZabbixDirect = (integration?: any) => {
   });
 
   const networkMaps = useQuery({
-    queryKey: ['zabbix-maps', integration?.id],
+    queryKey: ['zabbix-http-maps', integration?.id],
     queryFn: () => client?.getNetworkMaps() || [],
     enabled: !!client && isConnected,
     refetchInterval: 900000, // 15 minutes
@@ -327,7 +380,7 @@ export const useZabbixDirect = (integration?: any) => {
   });
 
   const latestData = useQuery({
-    queryKey: ['zabbix-latest', integration?.id],
+    queryKey: ['zabbix-http-latest', integration?.id],
     queryFn: () => client?.getLatestData() || [],
     enabled: !!client && isConnected,
     refetchInterval: 30000, // 30 seconds
@@ -347,16 +400,16 @@ export const useZabbixDirect = (integration?: any) => {
   }, [client]);
 
   const refetchAll = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['zabbix-hosts'] });
-    queryClient.invalidateQueries({ queryKey: ['zabbix-problems'] });
-    queryClient.invalidateQueries({ queryKey: ['zabbix-graphs'] });
-    queryClient.invalidateQueries({ queryKey: ['zabbix-templates'] });
-    queryClient.invalidateQueries({ queryKey: ['zabbix-inventory'] });
-    queryClient.invalidateQueries({ queryKey: ['zabbix-maintenances'] });
-    queryClient.invalidateQueries({ queryKey: ['zabbix-services'] });
-    queryClient.invalidateQueries({ queryKey: ['zabbix-users'] });
-    queryClient.invalidateQueries({ queryKey: ['zabbix-maps'] });
-    queryClient.invalidateQueries({ queryKey: ['zabbix-latest'] });
+    queryClient.invalidateQueries({ queryKey: ['zabbix-http-hosts'] });
+    queryClient.invalidateQueries({ queryKey: ['zabbix-http-problems'] });
+    queryClient.invalidateQueries({ queryKey: ['zabbix-http-graphs'] });
+    queryClient.invalidateQueries({ queryKey: ['zabbix-http-templates'] });
+    queryClient.invalidateQueries({ queryKey: ['zabbix-http-inventory'] });
+    queryClient.invalidateQueries({ queryKey: ['zabbix-http-maintenances'] });
+    queryClient.invalidateQueries({ queryKey: ['zabbix-http-services'] });
+    queryClient.invalidateQueries({ queryKey: ['zabbix-http-users'] });
+    queryClient.invalidateQueries({ queryKey: ['zabbix-http-maps'] });
+    queryClient.invalidateQueries({ queryKey: ['zabbix-http-latest'] });
   }, [queryClient]);
 
   return {
