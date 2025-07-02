@@ -1,7 +1,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIntegrations } from './useIntegrations';
-import { useZabbixProxy } from './useZabbixProxy';
+import { useZabbixDirect } from './useZabbixDirect';
 import { toast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { ZabbixErrorDialog } from '@/components/ZabbixErrorDialog';
@@ -66,7 +66,10 @@ export interface ZabbixTrigger {
 
 export const useZabbixIntegration = () => {
   const { data: integrations } = useIntegrations();
-  const { makeZabbixProxyRequest } = useZabbixProxy();
+  const zabbixIntegration = integrations?.find(integration => 
+    integration.type === 'zabbix' && integration.is_active
+  );
+  const zabbixDirect = useZabbixDirect(zabbixIntegration?.id);
   const queryClient = useQueryClient();
   const [errorDialog, setErrorDialog] = useState<{isOpen: boolean; error: string; details?: string}>({
     isOpen: false,
