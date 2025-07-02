@@ -8,95 +8,113 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%; /* branco */
-    --foreground: 210 40% 15%; /* azul escuro para texto */
+    /* Modern Golden & Blue Theme */
+    --background: 0 0% 100%; /* Pure white background */
+    --foreground: 220 50% 15%; /* Deep blue-navy for text */
 
-    --card: 0 0% 100%;
-    --card-foreground: 210 40% 15%;
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 220 50% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 210 40% 15%;
+    --popover-foreground: 220 50% 15%;
 
-    --primary: 210 40% 20%; /* azul escuro */
+    --primary: 220 50% 15%; /* Deep blue-navy */
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 45 90% 60%; /* dourado */
-    --secondary-foreground: 210 40% 15%;
+    --secondary: 43 96% 56%; /* Rich golden */
+    --secondary-foreground: 220 50% 15%;
 
-    --muted: 210 10% 95%;
-    --muted-foreground: 210 10% 40%;
+    --muted: 220 13% 96%; /* Very light blue-gray */
+    --muted-foreground: 220 20% 50%;
 
-    --accent: 45 90% 60%; /* dourado */
-    --accent-foreground: 210 40% 15%;
+    --accent: 43 96% 56%; /* Rich golden accent */
+    --accent-foreground: 220 50% 15%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 210 20% 85%;
-    --input: 210 20% 85%;
-    --ring: 210 40% 20%;
+    --border: 220 20% 88%; /* Light blue-gray borders */
+    --input: 220 20% 95%; /* Light input backgrounds */
+    --ring: 43 96% 56%; /* Golden focus rings */
 
-    --radius: 0.5rem;
+    --radius: 0.75rem; /* Increased border radius for modern look */
 
+    /* Navigation specific colors */
+    --nav-background: 0 0% 100%;
+    --nav-card: 220 13% 98%;
+    --nav-card-active: 43 96% 56%;
+    --nav-card-hover: 220 13% 95%;
+
+    /* Sidebar colors */
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-foreground: 220 20% 30%;
+    --sidebar-primary: 220 50% 15%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 220 13% 96%;
+    --sidebar-accent-foreground: 220 50% 15%;
+    --sidebar-border: 220 20% 88%;
+    --sidebar-ring: 43 96% 56%;
 
-    --chart-1: 210 40% 20%;
-    --chart-2: 45 90% 60%;
-    --chart-3: 210 20% 70%;
-    --chart-4: 45 80% 70%;
-    --chart-5: 210 30% 50%;
+    /* Chart colors */
+    --chart-1: 220 50% 15%;
+    --chart-2: 43 96% 56%;
+    --chart-3: 220 30% 60%;
+    --chart-4: 43 80% 70%;
+    --chart-5: 220 40% 40%;
   }
 
   .dark {
-    --background: 210 40% 15%; /* azul escuro */
-    --foreground: 0 0% 98%; /* branco para texto */
+    /* Dark mode with inverted golden & blue theme */
+    --background: 220 50% 8%; /* Very dark blue */
+    --foreground: 0 0% 98%; /* White text */
 
-    --card: 210 40% 18%;
+    --card: 220 50% 12%; /* Dark blue cards */
     --card-foreground: 0 0% 98%;
 
-    --popover: 210 40% 18%;
+    --popover: 220 50% 12%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 45 90% 60%; /* dourado */
-    --primary-foreground: 210 40% 15%;
+    --primary: 43 96% 56%; /* Golden primary in dark mode */
+    --primary-foreground: 220 50% 8%;
 
-    --secondary: 210 40% 25%;
+    --secondary: 220 40% 20%; /* Dark blue secondary */
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 210 40% 25%;
-    --muted-foreground: 210 10% 70%;
+    --muted: 220 40% 18%; /* Dark muted */
+    --muted-foreground: 220 10% 70%;
 
-    --accent: 45 90% 60%; /* dourado */
-    --accent-foreground: 210 40% 15%;
+    --accent: 43 96% 56%; /* Golden accent */
+    --accent-foreground: 220 50% 8%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 210 40% 25%;
-    --input: 210 40% 25%;
-    --ring: 45 90% 60%;
+    --border: 220 40% 25%; /* Dark borders */
+    --input: 220 40% 22%; /* Dark inputs */
+    --ring: 43 96% 56%; /* Golden focus rings */
 
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Navigation specific colors for dark mode */
+    --nav-background: 220 50% 8%;
+    --nav-card: 220 40% 15%;
+    --nav-card-active: 43 96% 56%;
+    --nav-card-hover: 220 40% 20%;
 
-    --chart-1: 45 90% 60%;
-    --chart-2: 210 40% 20%;
-    --chart-3: 210 20% 70%;
-    --chart-4: 45 80% 70%;
-    --chart-5: 210 30% 50%;
+    /* Dark sidebar colors */
+    --sidebar-background: 220 50% 6%;
+    --sidebar-foreground: 220 10% 80%;
+    --sidebar-primary: 43 96% 56%;
+    --sidebar-primary-foreground: 220 50% 8%;
+    --sidebar-accent: 220 40% 15%;
+    --sidebar-accent-foreground: 220 10% 80%;
+    --sidebar-border: 220 40% 20%;
+    --sidebar-ring: 43 96% 56%;
+
+    /* Dark chart colors */
+    --chart-1: 43 96% 56%;
+    --chart-2: 220 50% 15%;
+    --chart-3: 220 30% 60%;
+    --chart-4: 43 80% 70%;
+    --chart-5: 220 40% 50%;
   }
 }
 
@@ -107,5 +125,20 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Modern navigation card styles */
+@layer components {
+  .nav-card {
+    @apply bg-white/80 backdrop-blur-sm border border-border/50 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02];
+  }
+  
+  .nav-card-active {
+    @apply bg-secondary text-secondary-foreground shadow-md scale-[1.02] border-secondary/20;
+  }
+  
+  .nav-dropdown {
+    @apply bg-card/95 backdrop-blur-sm border border-border shadow-lg rounded-lg;
   }
 }

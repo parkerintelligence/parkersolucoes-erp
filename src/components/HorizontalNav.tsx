@@ -64,17 +64,17 @@ export const HorizontalNav = () => {
   );
 
   const getNavClass = (active: boolean) =>
-    `flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-      active 
-        ? 'bg-secondary text-secondary-foreground shadow-sm' 
-        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-    }`;
+    `nav-card ${active ? 'nav-card-active' : ''} flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200`;
+
+  const getFinancialActive = () => {
+    return filteredFinancialItems.some(item => isActive(item.url));
+  };
 
   return (
-    <nav className="bg-background border-b border-border">
+    <nav className="bg-gradient-to-r from-background via-background to-background border-b border-border/50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center space-x-8">
+        <div className="flex items-center justify-between py-4">
+          <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide">
             {/* Menu Principal */}
             {filteredMainItems.map((item) => (
               <NavLink 
@@ -82,8 +82,8 @@ export const HorizontalNav = () => {
                 to={item.url} 
                 className={getNavClass(isActive(item.url))}
               >
-                <item.icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{item.title}</span>
+                <item.icon className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline whitespace-nowrap">{item.title}</span>
               </NavLink>
             ))}
 
@@ -93,17 +93,17 @@ export const HorizontalNav = () => {
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="ghost" 
-                    className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
+                    className={`nav-card ${getFinancialActive() ? 'nav-card-active' : ''} flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200`}
                   >
-                    <Calculator className="h-4 w-4" />
-                    <span className="hidden sm:inline">Financeiro</span>
-                    <ChevronDown className="h-3 w-3" />
+                    <Calculator className="h-4 w-4 flex-shrink-0" />
+                    <span className="hidden sm:inline whitespace-nowrap">Financeiro</span>
+                    <ChevronDown className="h-3 w-3 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
+                <DropdownMenuContent align="start" className="nav-dropdown w-48">
                   {filteredFinancialItems.map((item) => (
                     <DropdownMenuItem key={item.title} asChild>
-                      <NavLink to={item.url} className="flex items-center gap-2 w-full">
+                      <NavLink to={item.url} className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-lg hover:bg-secondary/10 transition-colors">
                         <item.icon className="h-4 w-4" />
                         {item.title}
                       </NavLink>
@@ -113,17 +113,7 @@ export const HorizontalNav = () => {
               </DropdownMenu>
             )}
 
-            {/* Menu Admin */}
-            {filteredAdminItems.map((item) => (
-              <NavLink 
-                key={item.title}
-                to={item.url} 
-                className={getNavClass(isActive(item.url))}
-              >
-                <item.icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{item.title}</span>
-              </NavLink>
-            ))}
+            {/* Removemos o Menu Admin da navegação horizontal pois está no TopHeader */}
           </div>
         </div>
       </div>
