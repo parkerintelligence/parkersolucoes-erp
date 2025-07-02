@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,17 +63,15 @@ const Monitoring = () => {
   if (!grafanaIntegration) {
     return (
       <div className="space-y-6">
-
-          <Card className="border-yellow-200 bg-yellow-50">
-            <CardContent className="p-6 text-center">
-              <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-600" />
-              <h3 className="text-lg font-semibold text-yellow-800 mb-2">Integração não configurada</h3>
-              <p className="text-yellow-700">
-                Para usar o monitoramento, configure a integração com o Grafana no painel de administração.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-600" />
+            <h3 className="text-lg font-semibold text-yellow-800 mb-2">Integração não configurada</h3>
+            <p className="text-yellow-700">
+              Para usar o monitoramento, configure a integração com o Grafana no painel de administração.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -138,95 +135,95 @@ const Monitoring = () => {
 
   return (
     <div className="space-y-6">
-        <div className="flex justify-end">
-          <Button variant="outline" onClick={handleLogout}>
-            Sair
-          </Button>
-        </div>
-
-        <Tabs defaultValue="dashboards" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="dashboards">Dashboards</TabsTrigger>
-            <TabsTrigger value="alerts">Alertas</TabsTrigger>
-            <TabsTrigger value="metrics">Métricas</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="dashboards" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {dashboards.map((dashboard: any) => (
-                <Card key={dashboard.id} className="border-blue-200 hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="text-blue-900 flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5" />
-                      {dashboard.name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Button 
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                      onClick={() => window.open(dashboard.url, '_blank')}
-                    >
-                      Abrir Dashboard
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="alerts" className="mt-6">
-            <Card className="border-blue-200">
-              <CardHeader>
-                <CardTitle className="text-blue-900 flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5" />
-                  Sistema de Alertas
-                </CardTitle>
-                <CardDescription>
-                  Alertas e notificações do sistema
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-gray-500">
-                  <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Nenhum alerta ativo no momento.</p>
-                  <p className="text-sm mt-2">Sistema funcionando normalmente.</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="metrics" className="mt-6">
-            <Card className="border-blue-200">
-              <CardHeader>
-                <CardTitle className="text-blue-900 flex items-center gap-2">
-                  <Server className="h-5 w-5" />
-                  Métricas do Sistema
-                </CardTitle>
-                <CardDescription>
-                  Estatísticas e performance do sistema
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-2xl font-bold text-green-600">99.9%</p>
-                    <p className="text-sm text-slate-600">Uptime</p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-2xl font-bold text-blue-600">45ms</p>
-                    <p className="text-sm text-slate-600">Latência</p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-2xl font-bold text-purple-600">12GB</p>
-                    <p className="text-sm text-slate-600">Uso de Memória</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={handleLogout}>
+          Sair
+        </Button>
       </div>
-    );
+
+      <Tabs defaultValue="dashboards" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="dashboards">Dashboards</TabsTrigger>
+          <TabsTrigger value="alerts">Alertas</TabsTrigger>
+          <TabsTrigger value="metrics">Métricas</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dashboards" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {dashboards.map((dashboard: any) => (
+              <Card key={dashboard.id} className="border-blue-200 hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-blue-900 flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    {dashboard.name}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    onClick={() => window.open(dashboard.url, '_blank')}
+                  >
+                    Abrir Dashboard
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="alerts" className="mt-6">
+          <Card className="border-blue-200">
+            <CardHeader>
+              <CardTitle className="text-blue-900 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                Sistema de Alertas
+              </CardTitle>
+              <CardDescription>
+                Alertas e notificações do sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-gray-500">
+                <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Nenhum alerta ativo no momento.</p>
+                <p className="text-sm mt-2">Sistema funcionando normalmente.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="metrics" className="mt-6">
+          <Card className="border-blue-200">
+            <CardHeader>
+              <CardTitle className="text-blue-900 flex items-center gap-2">
+                <Server className="h-5 w-5" />
+                Métricas do Sistema
+              </CardTitle>
+              <CardDescription>
+                Estatísticas e performance do sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="text-center p-4 border rounded-lg">
+                  <p className="text-2xl font-bold text-green-600">99.9%</p>
+                  <p className="text-sm text-slate-600">Uptime</p>
+                </div>
+                <div className="text-center p-4 border rounded-lg">
+                  <p className="text-2xl font-bold text-blue-600">45ms</p>
+                  <p className="text-sm text-slate-600">Latência</p>
+                </div>
+                <div className="text-center p-4 border rounded-lg">
+                  <p className="text-2xl font-bold text-purple-600">12GB</p>
+                  <p className="text-sm text-slate-600">Uso de Memória</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
 };
 
 export default Monitoring;
