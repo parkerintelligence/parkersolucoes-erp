@@ -542,6 +542,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_schedule_type_name: {
+        Args: { schedule_type_id_param: string }
+        Returns: string
+      }
       get_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string

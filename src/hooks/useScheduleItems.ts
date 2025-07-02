@@ -5,10 +5,12 @@ import { toast } from '@/hooks/use-toast';
 export interface ScheduleItem {
   id: string;
   title: string;
-  type: 'certificate' | 'license' | 'system_update';
+  type: string;
+  schedule_type_id: string | null;
   due_date: string;
   description: string | null;
   company: string;
+  company_id: string | null;
   status: 'pending' | 'completed' | 'overdue';
   created_at: string;
   updated_at: string;
@@ -45,7 +47,7 @@ export const useCreateScheduleItem = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (item: Omit<ScheduleItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'status'>) => {
+    mutationFn: async (item: Omit<ScheduleItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'status' | 'type'>) => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError || !user) {
@@ -63,7 +65,7 @@ export const useCreateScheduleItem = () => {
 
       const { data, error } = await supabase
         .from('schedule_items')
-        .insert([itemData])
+        .insert(itemData as any) // O trigger preencherá o campo 'type' automaticamente
         .select()
         .single();
 

@@ -12,7 +12,7 @@ import { useCompanies } from '@/hooks/useCompanies';
 import { useScheduleTypes } from '@/hooks/useScheduleTypes';
 
 interface ScheduleFormProps {
-  onSubmit: (item: Omit<ScheduleItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'status'>) => void;
+  onSubmit: (item: Omit<ScheduleItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'status' | 'type'>) => void;
 }
 
 export const ScheduleForm = ({ onSubmit }: ScheduleFormProps) => {
@@ -47,7 +47,7 @@ export const ScheduleForm = ({ onSubmit }: ScheduleFormProps) => {
       description: formData.description,
       company: formData.company,
       company_id: formData.company_id || null
-    } as any);
+    });
     
     setFormData({
       title: '',
