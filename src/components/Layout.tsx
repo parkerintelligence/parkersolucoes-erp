@@ -1,6 +1,6 @@
 
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { TopHeader } from '@/components/TopHeader';
 import { HorizontalNav } from '@/components/HorizontalNav';
 
@@ -10,6 +10,7 @@ interface LayoutProps {
 
 export const Layout = ({ children }: LayoutProps) => {
   const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
 
   console.log('Layout - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
 
@@ -28,7 +29,7 @@ export const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="min-h-screen flex flex-col w-full bg-background">
-      <TopHeader />
+      {location.pathname === '/dashboard' && <TopHeader />}
       <HorizontalNav />
       <main className="flex-1 overflow-auto p-4 md:p-6">
         <div className="w-full max-w-7xl mx-auto">
