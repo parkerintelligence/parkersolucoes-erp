@@ -46,7 +46,7 @@ export const GLPIDashboard = () => {
   const isLoading = tickets.isLoading || problems.isLoading || changes.isLoading;
 
   return (
-    <div className="space-y-8 p-6 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen rounded-xl">
+    <div className="space-y-6 w-full">
       {/* Header com KPIs Principais */}
       <GLPIKPIHeader 
         tickets={tickets.data || []}
@@ -60,7 +60,7 @@ export const GLPIDashboard = () => {
           size="sm"
           onClick={handleRefresh}
           disabled={isLoading}
-          className="gap-2 bg-white/80 backdrop-blur-sm hover:bg-white/90 border-blue-200"
+          className="gap-2"
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           Atualizar Dados
@@ -68,12 +68,12 @@ export const GLPIDashboard = () => {
       </div>
 
       {/* Gestão de Chamados */}
-      <div className="bg-blue-900 rounded-2xl p-6 shadow-lg border border-blue-200">
+      <div className="bg-card rounded-lg p-6 border">
         <GLPITicketMetrics tickets={tickets.data || []} />
       </div>
       
       {/* Inventário de Ativos */}
-      <div className="bg-blue-900 rounded-2xl p-6 shadow-lg border border-blue-200">
+      <div className="bg-card rounded-lg p-6 border">
         <GLPIAssetMetrics 
           computers={computers.data || []}
           monitors={monitors.data || []}
