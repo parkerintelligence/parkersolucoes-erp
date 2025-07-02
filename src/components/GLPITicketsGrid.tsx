@@ -324,24 +324,24 @@ export const GLPITicketsGrid = () => {
   );
 
   return (
-    <div className="space-y-6">
-      <Card className="border-glpi-border bg-glpi-surface">
-        <CardHeader className="bg-glpi-surface-2 border-b border-glpi-border">
-          <CardTitle className="flex items-center gap-2 text-glpi-text">
-            <AlertTriangle className="h-5 w-5 text-glpi-secondary" />
-            Central de Chamados
+    <div className="space-y-6 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen p-6 rounded-xl">
+      <Card className="bg-white/90 backdrop-blur-sm border-blue-200 shadow-xl">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
+          <CardTitle className="flex items-center gap-2 text-white">
+            <AlertTriangle className="h-6 w-6" />
+            Central de Chamados GLPI
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 p-4">
+        <CardContent className="space-y-4">
           {/* Filtros */}
-          <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex flex-wrap gap-4 items-center">
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-              <Search className="h-4 w-4 text-glpi-text-muted" />
+              <Search className="h-4 w-4 text-gray-500" />
               <Input
                 placeholder="Buscar por ID, título ou conteúdo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 border-glpi-border bg-glpi-surface text-glpi-text"
+                className="flex-1"
               />
             </div>
 

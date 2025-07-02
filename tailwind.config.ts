@@ -61,21 +61,6 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				},
-				glpi: {
-					primary: 'hsl(var(--glpi-primary))',
-					'primary-light': 'hsl(var(--glpi-primary-light))',
-					secondary: 'hsl(var(--glpi-secondary))',
-					background: 'hsl(var(--glpi-background))',
-					surface: 'hsl(var(--glpi-surface))',
-					'surface-2': 'hsl(var(--glpi-surface-2))',
-					border: 'hsl(var(--glpi-border))',
-					text: 'hsl(var(--glpi-text))',
-					'text-muted': 'hsl(var(--glpi-text-muted))',
-					success: 'hsl(var(--glpi-success))',
-					warning: 'hsl(var(--glpi-warning))',
-					error: 'hsl(var(--glpi-error))',
-					info: 'hsl(var(--glpi-info))'
 				}
 			},
 			borderRadius: {
