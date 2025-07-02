@@ -88,7 +88,7 @@ export function AppSidebar() {
 
       <SidebarContent className="bg-primary">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-primary-foreground/70 font-medium">
+          <SidebarGroupLabel className="text-white font-medium">
             {!isCollapsed && "Menu Principal"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -98,7 +98,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink 
                       to={item.url} 
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all text-white hover:text-white"
                     >
                       <item.icon className="h-4 w-4 flex-shrink-0" />
                       {!isCollapsed && <span>{item.title}</span>}
@@ -112,7 +112,7 @@ export function AppSidebar() {
 
         {filteredFinancialItems.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-primary-foreground/70 font-medium">
+            <SidebarGroupLabel className="text-white font-medium">
               {!isCollapsed && "Financeiro"}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -122,7 +122,7 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild isActive={isActive(item.url)}>
                       <NavLink 
                         to={item.url} 
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all text-white hover:text-white"
                       >
                         <item.icon className="h-4 w-4 flex-shrink-0" />
                         {!isCollapsed && <span>{item.title}</span>}
@@ -137,7 +137,7 @@ export function AppSidebar() {
 
         {filteredAdminItems.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-primary-foreground/70 font-medium">
+            <SidebarGroupLabel className="text-white font-medium">
               {!isCollapsed && "Administração"}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -145,12 +145,12 @@ export function AppSidebar() {
                 {filteredAdminItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                      <NavLink 
-                        to={item.url} 
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all"
-                      >
-                        <item.icon className="h-4 w-4 flex-shrink-0" />
-                        {!isCollapsed && <span>{item.title}</span>}
+                        <NavLink 
+                          to={item.url} 
+                          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all text-white hover:text-white"
+                        >
+                          <item.icon className="h-4 w-4 flex-shrink-0" />
+                          {!isCollapsed && <span>{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
