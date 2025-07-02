@@ -171,7 +171,7 @@ export const GoogleDriveAdminConfig = () => {
 
     // Generate OAuth URL usando o Client ID salvo na integração
     const clientId = googleDriveIntegration.api_token;
-    const redirectUri = window.location.origin; // Usar origem atual ao invés de OOB
+    const redirectUri = `${window.location.origin}/admin`; // Específico para a página de admin
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&` +
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
@@ -309,10 +309,10 @@ export const GoogleDriveAdminConfig = () => {
             <li>Nome: <strong>Gestão TI - Google Drive</strong></li>
             <li><strong>URLs de redirecionamento autorizados:</strong></li>
             <li className="ml-4 font-mono text-xs bg-gray-100 p-1 rounded">
-              {window.location.origin}
+              {window.location.origin}/admin
             </li>
             <li className="ml-4 font-mono text-xs bg-gray-100 p-1 rounded">
-              http://localhost:3000 (para desenvolvimento)
+              http://localhost:3000/admin (para desenvolvimento)
             </li>
             <li>Copie o <strong>Client ID</strong> e <strong>Client Secret</strong> e cole nos campos acima</li>
             <li>Clique em "Salvar Configuração" e depois "Autorizar Conta Google"</li>

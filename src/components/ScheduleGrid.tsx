@@ -69,7 +69,6 @@ export const ScheduleGrid = ({ items, onUpdate, onDelete }: ScheduleGridProps) =
     system_update: AlertTriangle
   };
 
-
   const handleDelete = (id: string) => {
     onDelete(id);
   };
@@ -86,7 +85,7 @@ export const ScheduleGrid = ({ items, onUpdate, onDelete }: ScheduleGridProps) =
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {items.map((item) => {
-        const Icon = typeIcons[item.type];
+        const Icon = typeIcons[item.type] || Calendar; // Fallback para Calendar se o tipo não existir
         return (
           <Card key={item.id} className={`${getBackgroundColor(item)} transition-all duration-200 hover:shadow-md`}>
             <CardHeader className="pb-3">
@@ -105,7 +104,7 @@ export const ScheduleGrid = ({ items, onUpdate, onDelete }: ScheduleGridProps) =
             <CardContent className="pt-0 space-y-3">
               <div className="space-y-2">
                 <div className="flex justify-between text-xs text-slate-600">
-                  <span className="font-medium">{typeLabels[item.type]}</span>
+                  <span className="font-medium">{typeLabels[item.type] || item.type || 'Geral'}</span>
                   <span className="font-medium">{item.company}</span>
                 </div>
                 <div className="text-xs text-slate-600">
