@@ -12,6 +12,7 @@ import { GrafanaAdminConfig } from '@/components/GrafanaAdminConfig';
 import { BomControleAdminConfig } from '@/components/BomControleAdminConfig';
 import { FtpAdminConfig } from '@/components/FtpAdminConfig';
 import { WasabiAdminConfig } from '@/components/WasabiAdminConfig';
+import { GoogleDriveAdminConfig } from '@/components/GoogleDriveAdminConfig';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -150,6 +151,23 @@ const Admin = () => {
             </CardContent>
           </Card>
         );
+      case 'google_drive':
+        return (
+          <Card className="border-blue-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
+                <Cloud className="h-5 w-5" />
+                Configuração Google Drive
+              </CardTitle>
+              <CardDescription>
+                Configure a integração com o Google Drive para armazenamento
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <GoogleDriveAdminConfig />
+            </CardContent>
+          </Card>
+        );
       case 'users':
         return (
           <Card className="border-blue-200">
@@ -275,6 +293,20 @@ const Admin = () => {
                       <div>
                         <h3 className="font-semibold text-gray-900">FTP</h3>
                         <p className="text-sm text-gray-600">Backup e Transferências</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-blue-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('google_drive')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-blue-100 p-3 rounded-lg">
+                        <Cloud className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-blue-900">Google Drive</h3>
+                        <p className="text-sm text-blue-600">Armazenamento em Nuvem</p>
                       </div>
                     </div>
                   </CardContent>

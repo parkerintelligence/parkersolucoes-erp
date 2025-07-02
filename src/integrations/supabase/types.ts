@@ -567,6 +567,7 @@ export type Database = {
         | "glpi"
         | "mikrotik"
         | "unifi"
+        | "google_drive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -693,6 +694,7 @@ export const Constants = {
         "glpi",
         "mikrotik",
         "unifi",
+        "google_drive",
       ],
     },
   },

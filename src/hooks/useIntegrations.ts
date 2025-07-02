@@ -5,7 +5,7 @@ import { toast } from '@/hooks/use-toast';
 
 export interface Integration {
   id: string;
-  type: 'chatwoot' | 'evolution_api' | 'wasabi' | 'grafana' | 'bomcontrole' | 'zabbix' | 'ftp' | 'glpi' | 'mikrotik';
+  type: 'chatwoot' | 'evolution_api' | 'wasabi' | 'grafana' | 'bomcontrole' | 'zabbix' | 'ftp' | 'glpi' | 'mikrotik' | 'google_drive';
   name: string;
   base_url: string;
   api_token: string | null;

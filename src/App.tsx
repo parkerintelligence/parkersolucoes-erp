@@ -21,6 +21,7 @@ import Wasabi from "./pages/Wasabi";
 import Monitoring from "./pages/Monitoring";
 import Schedule from "./pages/Schedule";
 import Admin from "./pages/Admin";
+import GoogleDrive from "./pages/GoogleDrive";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/wasabi" element={<Layout><Wasabi /></Layout>} />
             <Route path="/monitoring" element={<Layout><Monitoring /></Layout>} />
             <Route path="/schedule" element={<Layout><Schedule /></Layout>} />
+            <Route path="/google-drive" element={<Layout><GoogleDrive /></Layout>} />
             <Route path="/admin" element={<Layout><Admin /></Layout>} />
             
             {/* Página 404 */}
