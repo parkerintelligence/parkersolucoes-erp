@@ -69,6 +69,7 @@ export class UnifiHTTPClient {
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,
+        mode: 'cors', // Explicitly set CORS mode
         credentials: 'include',
       });
 
@@ -85,8 +86,14 @@ export class UnifiHTTPClient {
       console.log('✅ Unifi HTTP Success:', { endpoint, result: data });
       
       return data.data || data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('💥 Unifi HTTP Error:', error);
+      
+      // If CORS error, throw a more specific error
+      if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+        throw new Error('CORS error: Não foi possível conectar diretamente à controladora UNIFI. Verifique se HTTPS está configurado ou se a controladora permite conexões cross-origin.');
+      }
+      
       throw error;
     }
   }
@@ -97,36 +104,48 @@ export class UnifiHTTPClient {
     const apiUrl = this.config.base_url.replace(/\/$/, '');
     const loginUrl = `${apiUrl}/api/login`;
 
-    const response = await fetch(loginUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        username: this.config.username,
-        password: this.config.password,
-        remember: false
-      }),
-      credentials: 'include',
-    });
+    try {
+      const response = await fetch(loginUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          username: this.config.username,
+          password: this.config.password,
+          remember: false
+        }),
+        mode: 'cors',
+        credentials: 'include',
+      });
 
-    if (!response.ok) {
-      throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
+      if (!response.ok) {
+        throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
+      }
+
+      // Extract cookies from response
+      const setCookieHeader = response.headers.get('set-cookie');
+      if (!setCookieHeader) {
+        throw new Error('No session cookie received');
+      }
+
+      // Save session with 1 hour expiry
+      this.saveSession({
+        cookies: setCookieHeader,
+        expiry: Date.now() + 3600000 // 1 hour
+      });
+
+      console.log('✅ UNIFI authentication successful');
+    } catch (error: any) {
+      console.error('❌ UNIFI authentication failed:', error);
+      
+      if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+        throw new Error('CORS error: Não foi possível conectar à controladora UNIFI. Verifique se HTTPS está configurado e CORS está habilitado.');
+      }
+      
+      throw error;
     }
-
-    // Extract cookies from response
-    const setCookieHeader = response.headers.get('set-cookie');
-    if (!setCookieHeader) {
-      throw new Error('No session cookie received');
-    }
-
-    // Save session with 1 hour expiry
-    this.saveSession({
-      cookies: setCookieHeader,
-      expiry: Date.now() + 3600000 // 1 hour
-    });
-
-    console.log('✅ UNIFI authentication successful');
   }
 
   async getDevices() {

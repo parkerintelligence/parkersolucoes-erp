@@ -77,8 +77,10 @@ export class ZabbixHTTPClient {
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'Zabbix-HTTP-Client/1.0',
+          'Accept': 'application/json',
         },
         body: JSON.stringify(payload),
+        mode: 'cors', // Explicitly set CORS mode
       });
 
       if (!response.ok) {
@@ -95,8 +97,14 @@ export class ZabbixHTTPClient {
 
       console.log('✅ Zabbix HTTP Success:', { method, result: data.result });
       return data.result;
-    } catch (error) {
+    } catch (error: any) {
       console.error('💥 Zabbix HTTP Error:', error);
+      
+      // If CORS error, throw a more specific error
+      if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+        throw new Error('CORS error: Não foi possível conectar diretamente ao Zabbix. Verifique se HTTPS está configurado ou se o servidor permite conexões cross-origin.');
+      }
+      
       throw error;
     }
   }

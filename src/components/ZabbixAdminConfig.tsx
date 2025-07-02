@@ -214,12 +214,13 @@ export const ZabbixAdminConfig = () => {
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Resolução de CORS:</strong>
+            <strong>Problemas de CORS:</strong>
+            Se você receber erros de conexão, pode ser um problema de CORS. A implementação atual faz requisições diretas ao Zabbix.
             <ul className="mt-2 space-y-1 text-sm">
-              <li>• A nova implementação usa proxy via Supabase</li>
-              <li>• Resolve problemas de CORS e protocolo misto</li>
-              <li>• Permite conectar com servidores HTTP</li>
-              <li>• Credenciais ficam seguras no servidor</li>
+              <li>• Verifique se o Zabbix aceita conexões HTTPS</li>
+              <li>• Configure CORS no servidor web (Apache/Nginx)</li>
+              <li>• Use HTTPS tanto no app quanto no Zabbix</li>
+              <li>• Se continuar com erro, entre em contato com o suporte</li>
             </ul>
           </AlertDescription>
         </Alert>

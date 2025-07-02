@@ -179,12 +179,14 @@ export const UnifiAdminConfig = () => {
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Configuração necessária:</strong>
+            <strong>Problemas de CORS:</strong>
+            Se você receber erros de conexão, pode ser um problema de CORS. A controladora UNIFI precisa permitir conexões cross-origin.
             <ul className="mt-2 space-y-1 text-sm">
               <li>• Acesse a controladora UNIFI</li>
               <li>• Crie um usuário com permissões administrativas</li>
-              <li>• Configure certificado SSL se necessário</li>
+              <li>• Configure certificado SSL (HTTPS recomendado)</li>
               <li>• Identifique o Site ID correto</li>
+              <li>• Se continuar com erro, entre em contato com o suporte</li>
             </ul>
           </AlertDescription>
         </Alert>
