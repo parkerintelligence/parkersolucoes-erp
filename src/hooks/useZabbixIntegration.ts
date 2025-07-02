@@ -1,10 +1,8 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIntegrations } from './useIntegrations';
 import { useZabbixDirect } from './useZabbixDirect';
 import { toast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
-import { ZabbixErrorDialog } from '@/components/ZabbixErrorDialog';
+import { useState } from 'react';
 
 interface ZabbixConnection {
   base_url: string;
@@ -69,17 +67,15 @@ export const useZabbixIntegration = () => {
   const zabbixIntegration = integrations?.find(integration => 
     integration.type === 'zabbix' && integration.is_active
   );
+  
+  // Use the new direct client
   const zabbixDirect = useZabbixDirect(zabbixIntegration?.id);
-  const queryClient = useQueryClient();
+  
   const [errorDialog, setErrorDialog] = useState<{isOpen: boolean; error: string; details?: string}>({
     isOpen: false,
     error: '',
     details: ''
   });
-  
-  const zabbixIntegration = integrations?.find(integration => 
-    integration.type === 'zabbix' && integration.is_active
-  );
 
   console.log('Zabbix integration found:', zabbixIntegration);
 
@@ -108,20 +104,12 @@ export const useZabbixIntegration = () => {
       console.log('Base URL:', base_url);
       console.log('Token length:', api_token.length);
       
-      if (!zabbixIntegration) {
-        throw new Error('Integração Zabbix não encontrada');
+      if (!zabbixDirect.client) {
+        throw new Error('Cliente Zabbix não inicializado');
       }
       
       try {
-        const result = await makeZabbixProxyRequest(
-          'user.get',
-          { 
-            output: ['userid', 'username'],
-            limit: 1 
-          },
-          zabbixIntegration.id
-        );
-        
+        const result = await zabbixDirect.client.testConnection();
         console.log('Teste de conexão bem-sucedido:', result);
         return result;
       } catch (error) {
@@ -133,7 +121,7 @@ export const useZabbixIntegration = () => {
       console.log('Conexão testada com sucesso:', data);
       toast({
         title: "Conexão bem-sucedida!",
-        description: `Conectado ao Zabbix com sucesso. Usuários encontrados: ${Array.isArray(data) ? data.length : 0}`,
+        description: "Conectado ao Zabbix com sucesso",
       });
     },
     onError: (error: Error) => {
@@ -141,155 +129,42 @@ export const useZabbixIntegration = () => {
     },
   });
 
-  const hostsQuery = useQuery({
-    queryKey: ['zabbix-hosts'],
-    queryFn: async () => {
-      if (!zabbixIntegration) {
-        throw new Error('Zabbix não configurado');
-      }
+  // Transform data from direct client to match existing interfaces
+  const transformHosts = (hosts: any[]): ZabbixHost[] => {
+    return hosts.map(host => ({
+      hostid: host.hostid,
+      host: host.host || host.name,
+      name: host.name,
+      status: host.status?.toString() || '0',
+      available: host.available?.toString() || '1',
+      error: host.error || '',
+      interfaces: host.interfaces || []
+    }));
+  };
 
-      console.log('Buscando hosts...');
-      return await makeZabbixProxyRequest(
-        'host.get',
-        {
-          output: ['hostid', 'host', 'name', 'status', 'available', 'error'],
-          selectInterfaces: ['ip', 'port'],
-          filter: {
-            status: 0
-          }
-        },
-        zabbixIntegration.id
-      ) as ZabbixHost[];
-    },
-    enabled: !!zabbixIntegration,
-    refetchInterval: 30000,
-    retry: 2,
-    staleTime: 10000,
-  });
-
-  const problemsQuery = useQuery({
-    queryKey: ['zabbix-problems'],
-    queryFn: async () => {
-      if (!zabbixIntegration) {
-        throw new Error('Zabbix não configurado');
-      }
-
-      console.log('Buscando problemas...');
-      return await makeZabbixProxyRequest(
-        'problem.get',
-        {
-          output: ['eventid', 'objectid', 'name', 'severity', 'clock', 'r_clock', 'acknowledged'],
-          selectHosts: ['hostid', 'name'],
-          sortfield: ['clock'],
-          sortorder: 'DESC',
-          limit: 50
-        },
-        zabbixIntegration.id
-      ) as ZabbixProblem[];
-    },
-    enabled: !!zabbixIntegration,
-    refetchInterval: 15000,
-    retry: 2,
-    staleTime: 5000,
-  });
-
-  const itemsQuery = useQuery({
-    queryKey: ['zabbix-items'],
-    queryFn: async () => {
-      if (!zabbixIntegration) {
-        throw new Error('Zabbix não configurado');
-      }
-
-      console.log('Buscando itens...');
-      return await makeZabbixProxyRequest(
-        'item.get',
-        {
-          output: ['itemid', 'name', 'key_', 'hostid', 'status', 'type', 'value_type', 'lastvalue', 'lastclock', 'units'],
-          filter: {
-            status: 0
-          },
-          webitems: true,
-          limit: 100
-        },
-        zabbixIntegration.id
-      ) as ZabbixItem[];
-    },
-    enabled: !!zabbixIntegration,
-    refetchInterval: 60000,
-    retry: 2,
-    staleTime: 30000,
-  });
-
-  const triggersQuery = useQuery({
-    queryKey: ['zabbix-triggers'],
-    queryFn: async () => {
-      if (!zabbixIntegration) {
-        throw new Error('Zabbix não configurado');
-      }
-
-      console.log('Buscando triggers...');
-      return await makeZabbixProxyRequest(
-        'trigger.get',
-        {
-          output: ['triggerid', 'description', 'status', 'value', 'priority', 'lastchange'],
-          selectHosts: ['hostid', 'name'],
-          filter: {
-            status: 0
-          },
-          limit: 100
-        },
-        zabbixIntegration.id
-      ) as ZabbixTrigger[];
-    },
-    enabled: !!zabbixIntegration,
-    refetchInterval: 30000,
-    retry: 2,
-    staleTime: 15000,
-  });
-
-  // Handle errors using useEffect instead of onError
-  useEffect(() => {
-    if (hostsQuery.error) {
-      handleError(hostsQuery.error, 'Busca de Hosts');
-    }
-  }, [hostsQuery.error]);
-
-  useEffect(() => {
-    if (problemsQuery.error) {
-      handleError(problemsQuery.error, 'Busca de Problemas');
-    }
-  }, [problemsQuery.error]);
-
-  useEffect(() => {
-    if (itemsQuery.error) {
-      handleError(itemsQuery.error, 'Busca de Itens');
-    }
-  }, [itemsQuery.error]);
-
-  useEffect(() => {
-    if (triggersQuery.error) {
-      handleError(triggersQuery.error, 'Busca de Triggers');
-    }
-  }, [triggersQuery.error]);
-
-  const refetchAll = () => {
-    console.log('Recarregando todos os dados do Zabbix...');
-    queryClient.invalidateQueries({ queryKey: ['zabbix-hosts'] });
-    queryClient.invalidateQueries({ queryKey: ['zabbix-problems'] });
-    queryClient.invalidateQueries({ queryKey: ['zabbix-items'] });
-    queryClient.invalidateQueries({ queryKey: ['zabbix-triggers'] });
+  const transformProblems = (problems: any[]): ZabbixProblem[] => {
+    return problems.map(problem => ({
+      eventid: problem.eventid,
+      objectid: problem.objectid,
+      name: problem.name,
+      severity: problem.severity?.toString() || '0',
+      clock: problem.clock?.toString() || '0',
+      r_clock: problem.r_clock?.toString() || '0',
+      acknowledged: problem.acknowledged?.toString() || '0',
+      hosts: problem.hosts || []
+    }));
   };
 
   return {
     isConfigured: !!zabbixIntegration,
-    hosts: hostsQuery.data || [],
-    problems: problemsQuery.data || [],
-    items: itemsQuery.data || [],
-    triggers: triggersQuery.data || [],
-    isLoading: hostsQuery.isLoading || problemsQuery.isLoading || itemsQuery.isLoading || triggersQuery.isLoading,
-    error: hostsQuery.error || problemsQuery.error || itemsQuery.error || triggersQuery.error,
+    hosts: transformHosts(zabbixDirect.hosts || []),
+    problems: transformProblems(zabbixDirect.problems || []),
+    items: [], // Will be implemented with direct client methods
+    triggers: [], // Will be implemented with direct client methods
+    isLoading: zabbixDirect.isLoading,
+    error: zabbixDirect.error,
     testConnection,
-    refetchAll,
+    refetchAll: zabbixDirect.refetchAll,
     errorDialog,
     closeErrorDialog: () => setErrorDialog(prev => ({ ...prev, isOpen: false })),
   };
