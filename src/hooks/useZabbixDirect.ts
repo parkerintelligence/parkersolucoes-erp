@@ -278,6 +278,12 @@ export const useZabbixDirect = (integration?: any) => {
   // Create client when integration is provided
   useEffect(() => {
     if (integration?.base_url && integration?.api_token) {
+      console.log('Creating Zabbix client with:', {
+        url: integration.base_url,
+        hasToken: !!integration.api_token,
+        tokenLength: integration.api_token.length
+      });
+      
       const newClient = new ZabbixDirectClient({
         url: integration.base_url,
         username: integration.username || '',
@@ -286,8 +292,23 @@ export const useZabbixDirect = (integration?: any) => {
       });
       setClient(newClient);
       
-      // Test connection automatically
-      newClient.testConnection().then(setIsConnected);
+      // Test connection automatically and set connected state
+      newClient.testConnection()
+        .then((connected) => {
+          console.log('Zabbix connection test result:', connected);
+          setIsConnected(connected);
+        })
+        .catch((error) => {
+          console.error('Zabbix connection test failed:', error);
+          setIsConnected(false);
+        });
+    } else {
+      console.log('Missing Zabbix credentials:', {
+        hasBaseUrl: !!integration?.base_url,
+        hasToken: !!integration?.api_token
+      });
+      setClient(null);
+      setIsConnected(false);
     }
   }, [integration]);
 

@@ -8,9 +8,15 @@ import { AdminCompaniesPanel } from '@/components/AdminCompaniesPanel';
 import { GLPIConfig } from '@/components/GLPIConfig';
 import { ZabbixAdminConfig } from '@/components/ZabbixAdminConfig';
 import { MikrotikAdminConfig } from '@/components/MikrotikAdminConfig';
+import { ChatwootAdminConfig } from '@/components/ChatwootAdminConfig';
+import { EvolutionAPIAdminConfig } from '@/components/EvolutionAPIAdminConfig';
+import { GrafanaAdminConfig } from '@/components/GrafanaAdminConfig';
+import { BomControleAdminConfig } from '@/components/BomControleAdminConfig';
+import { FtpAdminConfig } from '@/components/FtpAdminConfig';
+import { WasabiAdminConfig } from '@/components/WasabiAdminConfig';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Settings, Users, Database, Key, Building, Activity, DollarSign, MessageCircle, HardDrive, Monitor, Headphones, Router } from 'lucide-react';
+import { Settings, Users, Database, Key, Building, Activity, DollarSign, MessageCircle, HardDrive, Monitor, Headphones, Router, BarChart3, FileText, MessageSquare, Wifi, Cloud } from 'lucide-react';
 
 const Admin = () => {
   const { isMaster } = useAuth();
@@ -77,6 +83,108 @@ const Admin = () => {
             </CardContent>
           </Card>
         );
+      case 'chatwoot':
+        return (
+          <Card className="border-blue-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
+                <MessageSquare className="h-5 w-5" />
+                Configuração Chatwoot
+              </CardTitle>
+              <CardDescription>
+                Configure a integração com o Chatwoot para atendimento ao cliente
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChatwootAdminConfig />
+            </CardContent>
+          </Card>
+        );
+      case 'evolution_api':
+        return (
+          <Card className="border-blue-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
+                <MessageCircle className="h-5 w-5" />
+                Configuração Evolution API
+              </CardTitle>
+              <CardDescription>
+                Configure a integração com a Evolution API para WhatsApp Business
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <EvolutionAPIAdminConfig />
+            </CardContent>
+          </Card>
+        );
+      case 'wasabi':
+        return (
+          <Card className="border-blue-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
+                <Cloud className="h-5 w-5" />
+                Configuração Wasabi
+              </CardTitle>
+              <CardDescription>
+                Configure a integração com o Wasabi Cloud Storage
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <WasabiAdminConfig />
+            </CardContent>
+          </Card>
+        );
+      case 'grafana':
+        return (
+          <Card className="border-blue-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
+                <BarChart3 className="h-5 w-5" />
+                Configuração Grafana
+              </CardTitle>
+              <CardDescription>
+                Configure a integração com o Grafana para dashboards
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <GrafanaAdminConfig />
+            </CardContent>
+          </Card>
+        );
+      case 'bomcontrole':
+        return (
+          <Card className="border-blue-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
+                <FileText className="h-5 w-5" />
+                Configuração Bom Controle
+              </CardTitle>
+              <CardDescription>
+                Configure a integração com o sistema Bom Controle
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BomControleAdminConfig />
+            </CardContent>
+          </Card>
+        );
+      case 'ftp':
+        return (
+          <Card className="border-blue-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
+                <HardDrive className="h-5 w-5" />
+                Configuração FTP
+              </CardTitle>
+              <CardDescription>
+                Configure a integração com servidor FTP para backup
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FtpAdminConfig />
+            </CardContent>
+          </Card>
+        );
       case 'users':
         return (
           <Card className="border-blue-200">
@@ -101,132 +209,192 @@ const Admin = () => {
       case 'overview':
       default:
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card className="border-blue-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('integrations')}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="bg-blue-100 p-3 rounded-lg">
-                    <Key className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-blue-900">Integrações & APIs</h3>
-                    <p className="text-sm text-blue-600">Configure WhatsApp, Wasabi, Grafana, Bom Controle, Zabbix</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="space-y-6">
+            {/* Seção de Integrações */}
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <Key className="h-6 w-6" />
+                Integrações de Sistemas
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Card className="border-cyan-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('glpi')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-cyan-100 p-3 rounded-lg">
+                        <Headphones className="h-6 w-6 text-cyan-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-cyan-900">GLPI</h3>
+                        <p className="text-sm text-cyan-600">Service Desk e Inventário</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card className="border-green-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('companies')}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="bg-green-100 p-3 rounded-lg">
-                    <Building className="h-6 w-6 text-green-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-green-900">Empresas</h3>
-                    <p className="text-sm text-green-600">Gerenciar cadastro de empresas</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <Card className="border-red-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('zabbix')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-red-100 p-3 rounded-lg">
+                        <Activity className="h-6 w-6 text-red-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-red-900">Zabbix</h3>
+                        <p className="text-sm text-red-600">Monitoramento de Infraestrutura</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card className="border-purple-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('users')}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="bg-purple-100 p-3 rounded-lg">
-                    <Users className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-purple-900">Usuários</h3>
-                    <p className="text-sm text-purple-600">Controle de acesso e permissions</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <Card className="border-yellow-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('mikrotik')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-yellow-100 p-3 rounded-lg">
+                        <Router className="h-6 w-6 text-yellow-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-yellow-900">Mikrotik</h3>
+                        <p className="text-sm text-yellow-600">Gerenciamento RouterOS</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card className="border-cyan-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('glpi')}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="bg-cyan-100 p-3 rounded-lg">
-                    <Headphones className="h-6 w-6 text-cyan-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-cyan-900">GLPI</h3>
-                    <p className="text-sm text-cyan-600">Configurar integração com GLPI</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <Card className="border-blue-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('chatwoot')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-blue-100 p-3 rounded-lg">
+                        <MessageSquare className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-blue-900">Chatwoot</h3>
+                        <p className="text-sm text-blue-600">Atendimento ao Cliente</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card className="border-red-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('zabbix')}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="bg-red-100 p-3 rounded-lg">
-                    <Activity className="h-6 w-6 text-red-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-red-900">Zabbix</h3>
-                    <p className="text-sm text-red-600">Monitoramento de infraestrutura</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <Card className="border-green-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('evolution_api')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-green-100 p-3 rounded-lg">
+                        <MessageCircle className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-green-900">Evolution API</h3>
+                        <p className="text-sm text-green-600">WhatsApp Business</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card className="border-yellow-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('mikrotik')}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="bg-yellow-100 p-3 rounded-lg">
-                    <Router className="h-6 w-6 text-yellow-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-yellow-900">Mikrotik</h3>
-                    <p className="text-sm text-yellow-600">Gerenciamento RouterOS</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <Card className="border-purple-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('wasabi')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-purple-100 p-3 rounded-lg">
+                        <Cloud className="h-6 w-6 text-purple-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-purple-900">Wasabi</h3>
+                        <p className="text-sm text-purple-600">Cloud Storage</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card className="border-orange-200">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="bg-orange-100 p-3 rounded-lg">
-                    <Database className="h-6 w-6 text-orange-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-orange-900">Banco de Dados</h3>
-                    <p className="text-sm text-orange-600">Backup e configurações</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <Card className="border-indigo-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('grafana')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-indigo-100 p-3 rounded-lg">
+                        <BarChart3 className="h-6 w-6 text-indigo-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-indigo-900">Grafana</h3>
+                        <p className="text-sm text-indigo-600">Dashboards Avançados</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card className="border-indigo-200">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="bg-indigo-100 p-3 rounded-lg">
-                    <Monitor className="h-6 w-6 text-indigo-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-indigo-900">Monitoramento</h3>
-                    <p className="text-sm text-indigo-600">Status do sistema</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <Card className="border-orange-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('bomcontrole')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-orange-100 p-3 rounded-lg">
+                        <FileText className="h-6 w-6 text-orange-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-orange-900">Bom Controle</h3>
+                        <p className="text-sm text-orange-600">Gestão Empresarial</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card className="border-red-200">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="bg-red-100 p-3 rounded-lg">
-                    <Settings className="h-6 w-6 text-red-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-red-900">Configurações</h3>
-                    <p className="text-sm text-red-600">Parâmetros gerais</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <Card className="border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('ftp')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-gray-100 p-3 rounded-lg">
+                        <HardDrive className="h-6 w-6 text-gray-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">FTP</h3>
+                        <p className="text-sm text-gray-600">Backup e Transferências</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Seção de Administração */}
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <Settings className="h-6 w-6" />
+                Administração Geral
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Card className="border-green-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('companies')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-green-100 p-3 rounded-lg">
+                        <Building className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-green-900">Empresas</h3>
+                        <p className="text-sm text-green-600">Gerenciar cadastro de empresas</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-purple-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('users')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-purple-100 p-3 rounded-lg">
+                        <Users className="h-6 w-6 text-purple-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-purple-900">Usuários</h3>
+                        <p className="text-sm text-purple-600">Controle de acesso e permissões</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-blue-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('integrations')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-blue-100 p-3 rounded-lg">
+                        <Key className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-blue-900">APIs Gerais</h3>
+                        <p className="text-sm text-blue-600">Configurações de API não específicas</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </div>
         );
     }
@@ -311,12 +479,18 @@ const Admin = () => {
             </button>
             <span>/</span>
             <span className="font-medium text-slate-900">
-              {activeSection === 'integrations' && 'Integrações & APIs'}
+              {activeSection === 'integrations' && 'APIs Gerais'}
               {activeSection === 'companies' && 'Empresas'}
               {activeSection === 'users' && 'Usuários'}
               {activeSection === 'glpi' && 'GLPI'}
               {activeSection === 'zabbix' && 'Zabbix'}
               {activeSection === 'mikrotik' && 'Mikrotik'}
+              {activeSection === 'chatwoot' && 'Chatwoot'}
+              {activeSection === 'evolution_api' && 'Evolution API'}
+              {activeSection === 'wasabi' && 'Wasabi'}
+              {activeSection === 'grafana' && 'Grafana'}
+              {activeSection === 'bomcontrole' && 'Bom Controle'}
+              {activeSection === 'ftp' && 'FTP'}
             </span>
           </div>
         )}
