@@ -14,6 +14,7 @@ import {
   Calendar,
   Shield,
   Router,
+  DollarSign,
 } from 'lucide-react';
 
 import {
@@ -31,9 +32,6 @@ import {
 
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, role: 'user' },
-  { title: 'Serviços', url: '/services', icon: Settings, role: 'user' },
-  { title: 'Orçamentos', url: '/budgets', icon: Calculator, role: 'user' },
-  { title: 'Contratos', url: '/contracts', icon: FileText, role: 'user' },
   { title: 'GLPI', url: '/glpi', icon: Headphones, role: 'user' },
   { title: 'Zabbix', url: '/zabbix', icon: Activity, role: 'user' },
   { title: 'Mikrotik', url: '/mikrotik', icon: Router, role: 'user' },
@@ -44,6 +42,15 @@ const menuItems = [
   { title: 'Wasabi', url: '/wasabi', icon: HardDrive, role: 'user' },
   { title: 'Monitoramento', url: '/monitoring', icon: Activity, role: 'user' },
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
+];
+
+const financialItems = [
+  { title: 'Serviços', url: '/services', icon: Settings, role: 'master' },
+  { title: 'Orçamentos', url: '/budgets', icon: Calculator, role: 'master' },
+  { title: 'Contratos', url: '/contracts', icon: FileText, role: 'master' },
+];
+
+const adminItems = [
   { title: 'Administração', url: '/admin', icon: Shield, role: 'master' },
 ];
 
@@ -56,7 +63,15 @@ export function AppSidebar() {
   const isActive = (path: string) => currentPath === path;
   const isCollapsed = state === 'collapsed';
   
-  const filteredItems = menuItems.filter(item => 
+  const filteredMainItems = menuItems.filter(item => 
+    item.role === 'user' || (item.role === 'master' && isMaster)
+  );
+  
+  const filteredFinancialItems = financialItems.filter(item => 
+    item.role === 'user' || (item.role === 'master' && isMaster)
+  );
+  
+  const filteredAdminItems = adminItems.filter(item => 
     item.role === 'user' || (item.role === 'master' && isMaster)
   );
 
@@ -90,7 +105,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
-              {filteredItems.map((item) => (
+              {filteredMainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink 
@@ -106,6 +121,56 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {filteredFinancialItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-blue-200 font-medium">
+              {!isCollapsed && "Financeiro"}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-1">
+                {filteredFinancialItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink 
+                        to={item.url} 
+                        className={getNavClass(isActive(item.url))}
+                      >
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        {!isCollapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {filteredAdminItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-blue-200 font-medium">
+              {!isCollapsed && "Administração"}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-1">
+                {filteredAdminItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink 
+                        to={item.url} 
+                        className={getNavClass(isActive(item.url))}
+                      >
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        {!isCollapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );
