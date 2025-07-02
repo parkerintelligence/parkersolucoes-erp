@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Layout } from '@/components/Layout';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -76,8 +76,7 @@ const Wasabi = () => {
 
   if (!wasabiIntegration) {
     return (
-      <Layout>
-        <div className="space-y-6">
+      <div className="space-y-6">
           <Card className="border-orange-200 bg-orange-50 max-w-2xl mx-auto">
             <CardContent className="p-8 text-center">
               <HardDrive className="h-20 w-20 text-orange-500 mx-auto mb-6" />
@@ -92,14 +91,13 @@ const Wasabi = () => {
             </CardContent>
           </Card>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   if (bucketsError) {
     return (
-      <Layout>
-        <div className="space-y-6">
+      <div className="space-y-6">
           <Card className="border-red-200 bg-red-50 max-w-2xl mx-auto">
             <CardContent className="p-8 text-center">
               <AlertTriangle className="h-20 w-20 text-red-500 mx-auto mb-6" />
@@ -123,13 +121,12 @@ const Wasabi = () => {
             </CardContent>
           </Card>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-end gap-2">
           <WasabiCreateBucketDialog
             onCreateBucket={handleCreateBucket}
@@ -328,7 +325,7 @@ const Wasabi = () => {
           </CardContent>
         </Card>
       </div>
-    </Layout>
+    </div>
   );
 };
 

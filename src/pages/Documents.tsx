@@ -1,5 +1,5 @@
 
-import { Layout } from '@/components/Layout';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,8 +48,7 @@ const Documents = () => {
   };
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-end">
           <Button className="bg-blue-600 hover:bg-blue-700">
             <Upload className="mr-2 h-4 w-4" />
@@ -231,7 +230,7 @@ const Documents = () => {
           </CardContent>
         </Card>
       </div>
-    </Layout>
+    </div>
   );
 };
 

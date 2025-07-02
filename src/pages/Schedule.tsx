@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Layout } from '@/components/Layout';
+
 import { ScheduleTable } from '@/components/ScheduleTable';
 import { ScheduleDialog } from '@/components/ScheduleDialog';
 import { ScheduleTypeDialog } from '@/components/ScheduleTypeDialog';
@@ -26,17 +26,14 @@ const Schedule = () => {
 
   if (isLoading) {
     return (
-      <Layout>
-        <div className="flex justify-center items-center h-96">
-          <div className="text-slate-600">Carregando agendamentos...</div>
-        </div>
-      </Layout>
+      <div className="flex justify-center items-center h-96">
+        <div className="text-muted-foreground">Carregando agenda...</div>
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-end gap-2">
           <Button onClick={() => setShowTypeDialog(true)} variant="outline">
             <Settings className="mr-2 h-4 w-4" />
@@ -115,8 +112,7 @@ const Schedule = () => {
           onOpenChange={setShowTypeDialog} 
         />
       </div>
-    </Layout>
-  );
-};
+    );
+  };
 
-export default Schedule;
+  export default Schedule;

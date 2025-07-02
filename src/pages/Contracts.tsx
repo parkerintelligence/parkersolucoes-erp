@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -142,17 +141,14 @@ _______________________        _______________________
 
   if (isLoading) {
     return (
-      <Layout>
-        <div className="flex justify-center items-center h-96">
-          <div className="text-slate-600">Carregando contratos...</div>
-        </div>
-      </Layout>
+      <div className="flex justify-center items-center h-96">
+        <div className="text-muted-foreground">Carregando contratos...</div>
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-end">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -328,8 +324,7 @@ _______________________        _______________________
           </CardContent>
         </Card>
       </div>
-    </Layout>
-  );
-};
+    );
+  };
 
-export default Contracts;
+  export default Contracts;

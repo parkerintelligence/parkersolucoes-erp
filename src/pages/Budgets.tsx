@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,17 +65,14 @@ const Budgets = () => {
 
   if (isLoading) {
     return (
-      <Layout>
-        <div className="flex justify-center items-center h-96">
-          <div className="text-slate-600">Carregando orçamentos...</div>
-        </div>
-      </Layout>
+      <div className="flex justify-center items-center h-96">
+        <div className="text-muted-foreground">Carregando orçamentos...</div>
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-end">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -260,8 +256,7 @@ const Budgets = () => {
           </Card>
         </div>
       </div>
-    </Layout>
-  );
-};
+    );
+  };
 
-export default Budgets;
+  export default Budgets;

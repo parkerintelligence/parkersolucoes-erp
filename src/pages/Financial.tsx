@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Layout } from '@/components/Layout';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -68,8 +68,7 @@ const Financial = () => {
   }, [bomControleIntegration]);
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-end">
           <Button 
             onClick={fetchFinancialData}
@@ -243,7 +242,7 @@ const Financial = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
+    </div>
   );
 };
 

@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Layout } from '@/components/Layout';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -68,8 +68,7 @@ const WhatsApp = () => {
   };
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-end">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -237,7 +236,7 @@ const WhatsApp = () => {
           </Card>
         )}
       </div>
-    </Layout>
+    </div>
   );
 };
 

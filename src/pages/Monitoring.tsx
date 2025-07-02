@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Layout } from '@/components/Layout';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,8 +63,7 @@ const Monitoring = () => {
 
   if (!grafanaIntegration) {
     return (
-      <Layout>
-        <div className="space-y-6">
+      <div className="space-y-6">
 
           <Card className="border-yellow-200 bg-yellow-50">
             <CardContent className="p-6 text-center">
@@ -76,14 +75,13 @@ const Monitoring = () => {
             </CardContent>
           </Card>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <Layout>
-        <div className="space-y-6">
+      <div className="space-y-6">
 
           <div className="max-w-md mx-auto">
             <Card className="border-blue-200">
@@ -136,13 +134,12 @@ const Monitoring = () => {
             </Card>
           </div>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-end">
           <Button variant="outline" onClick={handleLogout}>
             Sair
@@ -231,7 +228,7 @@ const Monitoring = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
+    </div>
   );
 };
 
