@@ -54,19 +54,39 @@ export const GoogleDriveAdminConfig = () => {
 
   const handleAuthCode = async (authCode: string) => {
     setIsLoading(true);
+    
+    toast({
+      title: "Processando autorização...",
+      description: "Conectando com o Google Drive.",
+    });
+
     try {
-      console.log('Processing authorization code:', authCode.substring(0, 10) + '...');
+      console.log('🔄 Processing authorization code:', authCode.substring(0, 10) + '...');
       
       // Buscar a integração atualizada
       const urlParams = new URLSearchParams(window.location.search);
       const state = urlParams.get('state');
-      const targetIntegration = integrations?.find(i => i.id === state && i.type === 'google_drive');
+      console.log('🔍 State from URL:', state);
       
-      if (!targetIntegration) {
-        throw new Error('Integração não encontrada');
+      // Verificar se temos uma integração válida
+      if (!googleDriveIntegration) {
+        console.error('❌ No Google Drive integration found');
+        throw new Error('Integração Google Drive não encontrada. Configure primeiro as credenciais.');
       }
 
-      console.log('Invoking google-drive-proxy for authorization...');
+      // Usar a integração atual ou buscar pelo state
+      const targetIntegration = state ? 
+        integrations?.find(i => i.id === state && i.type === 'google_drive') || googleDriveIntegration 
+        : googleDriveIntegration;
+      
+      if (!targetIntegration) {
+        console.error('❌ Target integration not found for state:', state);
+        throw new Error('Integração não encontrada. Tente salvar a configuração primeiro.');
+      }
+
+      console.log('✅ Using integration:', targetIntegration.id, targetIntegration.name);
+      console.log('🚀 Invoking google-drive-proxy for authorization...');
+      
       const { data, error } = await supabase.functions.invoke('google-drive-proxy', {
         body: {
           action: 'authorize',
@@ -75,33 +95,45 @@ export const GoogleDriveAdminConfig = () => {
         }
       });
 
+      console.log('📡 Edge function response:', { data, error });
+
       if (error) {
-        console.error('Edge function error:', error);
-        throw new Error(error.message || 'Erro na função de autorização');
+        console.error('❌ Edge function error:', error);
+        throw new Error(error.message || 'Erro na comunicação com o servidor');
       }
 
       if (data?.error) {
-        console.error('Authorization error from function:', data.error);
+        console.error('❌ Authorization error from function:', data.error);
         throw new Error(data.error);
       }
 
-      console.log('Authorization successful:', data);
+      console.log('✅ Authorization successful:', data);
       
+      // Verificar se os tokens foram salvos
       toast({
         title: "Autorização realizada!",
-        description: "Conta Google Drive conectada com sucesso.",
+        description: "Verificando conexão com Google Drive...",
       });
       
-      // Aguardar um pouco antes de recarregar para garantir que os dados foram salvos
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // Aguardar e verificar se a integração foi atualizada
+      setTimeout(async () => {
+        try {
+          // Recarregar dados da integração
+          window.location.reload();
+        } catch (verifyError) {
+          console.error('❌ Verification error:', verifyError);
+          toast({
+            title: "Autorização concluída",
+            description: "Recarregue a página para verificar o status da conexão.",
+          });
+        }
+      }, 2000);
 
     } catch (error) {
-      console.error('Authorization error:', error);
+      console.error('❌ Authorization error:', error);
       toast({
         title: "Erro na autorização",
-        description: error.message || "Falha ao conectar com o Google Drive. Tente novamente.",
+        description: error.message || "Falha ao conectar com o Google Drive. Verifique as credenciais e tente novamente.",
         variant: "destructive"
       });
     } finally {
@@ -116,10 +148,15 @@ export const GoogleDriveAdminConfig = () => {
     const state = urlParams.get('state');
     const error = urlParams.get('error');
     
-    console.log('OAuth callback detection:', { authCode: !!authCode, state, error });
+    console.log('🔍 OAuth callback detection:', { 
+      hasCode: !!authCode, 
+      state, 
+      error,
+      hasIntegrations: !!integrations?.length 
+    });
     
     if (error) {
-      console.error('OAuth error:', error);
+      console.error('❌ OAuth error:', error);
       toast({
         title: "Erro na autorização",
         description: "A autorização foi cancelada ou falhou. Tente novamente.",
@@ -130,21 +167,38 @@ export const GoogleDriveAdminConfig = () => {
       return;
     }
     
-    if (authCode && state) {
-      console.log('Processing OAuth callback with state:', state);
-      // Verificar se state corresponde a alguma integração
-      const targetIntegration = integrations?.find(i => i.id === state && i.type === 'google_drive');
+    if (authCode) {
+      console.log('✅ Processing OAuth callback with code');
       
-      if (targetIntegration) {
-        console.log('Found matching integration for state:', targetIntegration.id);
+      // Se temos state, verificar se corresponde a uma integração
+      if (state) {
+        const targetIntegration = integrations?.find(i => i.id === state && i.type === 'google_drive');
+        if (targetIntegration) {
+          console.log('🎯 Found matching integration for state:', targetIntegration.id);
+          handleAuthCode(authCode);
+          window.history.replaceState(null, '', window.location.pathname);
+          return;
+        } else {
+          console.warn('⚠️ No matching integration found for state:', state);
+        }
+      }
+      
+      // Se não temos state válido mas temos uma integração Google Drive, usar ela
+      if (googleDriveIntegration) {
+        console.log('📄 Using current Google Drive integration for authorization');
         handleAuthCode(authCode);
-        // Limpar URL
         window.history.replaceState(null, '', window.location.pathname);
       } else {
-        console.warn('No matching integration found for state:', state);
+        console.warn('⚠️ No Google Drive integration available for callback');
+        toast({
+          title: "Erro na autorização",
+          description: "Nenhuma integração Google Drive encontrada. Configure primeiro as credenciais.",
+          variant: "destructive"
+        });
+        window.history.replaceState(null, '', window.location.pathname);
       }
     }
-  }, [integrations]);
+  }, [integrations, googleDriveIntegration]);
 
   const handleSave = async () => {
     if (!formData.name || !formData.client_id || !formData.client_secret) {

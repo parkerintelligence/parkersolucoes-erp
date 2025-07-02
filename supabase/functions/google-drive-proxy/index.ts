@@ -300,60 +300,131 @@ serve(async (req) => {
         // Handle OAuth callback
         const authCode = params.authCode;
         if (!authCode) {
+          console.error('❌ No authorization code provided');
           throw new Error('Authorization code is required');
         }
 
-        console.log('Processing authorization code for integration:', integrationId);
+        console.log('🔄 Processing authorization code for integration:', integrationId);
+        console.log('📋 Integration details:', {
+          id: integration.id,
+          name: integration.name,
+          hasClientId: !!clientId,
+          hasClientSecret: !!clientSecret
+        });
 
         const origin = req.headers.get('origin') || 'http://localhost:3000';
-        const redirectUri = `${origin}/admin`; // Específico para a página de admin
+        const redirectUri = `${origin}/admin`;
         
-        console.log('Exchanging code for tokens with redirect URI:', redirectUri);
+        console.log('🔗 Token exchange details:', {
+          redirectUri,
+          clientIdPreview: clientId?.substring(0, 20) + '...',
+          hasSecret: !!clientSecret
+        });
         
+        const tokenRequestBody = new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          code: authCode,
+          grant_type: 'authorization_code',
+          redirect_uri: redirectUri
+        });
+
+        console.log('📡 Making token exchange request to Google...');
         const tokenResponse = await fetch(`${GOOGLE_AUTH_BASE}/token`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            client_id: clientId,
-            client_secret: clientSecret,
-            code: authCode,
-            grant_type: 'authorization_code',
-            redirect_uri: redirectUri
-          })
+          body: tokenRequestBody
         });
+
+        console.log('📥 Token response status:', tokenResponse.status);
 
         if (!tokenResponse.ok) {
           const errorText = await tokenResponse.text();
-          console.error('Token exchange failed:', tokenResponse.status, errorText);
-          throw new Error(`Failed to exchange authorization code for tokens: ${errorText}`);
+          console.error('❌ Token exchange failed:', {
+            status: tokenResponse.status,
+            statusText: tokenResponse.statusText,
+            error: errorText
+          });
+          
+          // Parse specific error messages
+          let userMessage = 'Falha na troca de tokens com o Google';
+          if (errorText.includes('invalid_client')) {
+            userMessage = 'Client ID ou Secret inválido. Verifique as credenciais no Google Cloud Console.';
+          } else if (errorText.includes('invalid_grant')) {
+            userMessage = 'Código de autorização expirado ou inválido. Tente autorizar novamente.';
+          } else if (errorText.includes('redirect_uri_mismatch')) {
+            userMessage = 'URL de redirecionamento não configurada no Google Cloud Console.';
+          }
+          
+          throw new Error(userMessage);
         }
 
         const tokens = await tokenResponse.json();
-        console.log('Tokens received:', { 
+        console.log('✅ Tokens received successfully:', { 
           hasAccessToken: !!tokens.access_token, 
           hasRefreshToken: !!tokens.refresh_token,
-          expiresIn: tokens.expires_in 
+          expiresIn: tokens.expires_in,
+          tokenType: tokens.token_type,
+          scope: tokens.scope
         });
+
+        if (!tokens.access_token) {
+          console.error('❌ No access token in response:', tokens);
+          throw new Error('Nenhum token de acesso recebido do Google');
+        }
         
         // Store tokens in integration record
-        const { error: updateError } = await supabase
+        console.log('💾 Saving tokens to database...');
+        const { data: updateData, error: updateError } = await supabase
           .from('integrations')
           .update({
-            webhook_url: tokens.access_token, // Access token
-            username: tokens.refresh_token    // Refresh token
+            webhook_url: tokens.access_token, // Access token stored in webhook_url
+            username: tokens.refresh_token || null // Refresh token stored in username
           })
-          .eq('id', integrationId);
+          .eq('id', integrationId)
+          .select();
 
         if (updateError) {
-          console.error('Failed to save tokens:', updateError);
-          throw new Error('Failed to save authorization tokens');
+          console.error('❌ Failed to save tokens:', updateError);
+          throw new Error('Falha ao salvar tokens de autorização no banco de dados');
         }
 
-        console.log('Tokens saved successfully for integration:', integrationId);
+        console.log('✅ Tokens saved successfully:', {
+          integrationId,
+          updateData: updateData?.[0] ? {
+            id: updateData[0].id,
+            hasWebhookUrl: !!updateData[0].webhook_url,
+            hasUsername: !!updateData[0].username
+          } : null
+        });
+
+        // Test the connection with a simple API call
+        console.log('🧪 Testing Google Drive API connection...');
+        try {
+          const testResponse = await fetch(`${GOOGLE_DRIVE_API_BASE}/about?fields=user`, {
+            headers: {
+              'Authorization': `Bearer ${tokens.access_token}`
+            }
+          });
+          
+          if (testResponse.ok) {
+            const userInfo = await testResponse.json();
+            console.log('✅ Google Drive API test successful:', {
+              userEmail: userInfo.user?.emailAddress,
+              userDisplayName: userInfo.user?.displayName
+            });
+          } else {
+            console.warn('⚠️ Google Drive API test failed but tokens were saved');
+          }
+        } catch (testError) {
+          console.warn('⚠️ Could not test Google Drive API:', testError);
+        }
 
         return new Response(JSON.stringify({
           success: true,
-          message: 'Authorization successful'
+          message: 'Autorização realizada com sucesso',
+          hasAccessToken: !!tokens.access_token,
+          hasRefreshToken: !!tokens.refresh_token
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
