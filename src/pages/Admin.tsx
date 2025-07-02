@@ -1,8 +1,6 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
-import { Layout } from '@/components/Layout';
 import AdminApiPanel from '@/components/AdminApiPanel';
 import { AdminCompaniesPanel } from '@/components/AdminCompaniesPanel';
 import { GLPIConfig } from '@/components/GLPIConfig';
@@ -341,98 +339,93 @@ const Admin = () => {
   };
 
   return (
-    <Layout>
-      <div className="space-y-4">
-        <div className="flex justify-end">
-          {activeSection !== 'overview' && (
-            <Button 
-              variant="outline" 
-              onClick={() => setActiveSection('overview')}
-              className="flex items-center gap-2"
-            >
-              <Settings className="h-4 w-4" />
-              Voltar ao Menu
-            </Button>
-          )}
-        </div>
-
-        {/* Estatísticas Rápidas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <Card className="border-blue-200">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-blue-500" />
-                <div>
-                  <p className="text-xl font-bold text-blue-900">15</p>
-                  <p className="text-xs text-blue-600">Usuários Ativos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-green-200">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2">
-                <Key className="h-5 w-5 text-green-500" />
-                <div>
-                  <p className="text-xl font-bold text-green-900">5</p>
-                  <p className="text-xs text-green-600">APIs Ativas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-purple-200">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2">
-                <Building className="h-5 w-5 text-purple-500" />
-                <div>
-                  <p className="text-xl font-bold text-purple-900">12</p>
-                  <p className="text-xs text-purple-600">Empresas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-orange-200">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2">
-                <Database className="h-5 w-5 text-orange-500" />
-                <div>
-                  <p className="text-xl font-bold text-orange-900">98%</p>
-                  <p className="text-xs text-orange-600">Uptime</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Navegação por Breadcrumb */}
+    <div className="space-y-4">
+      <div className="flex justify-end">
         {activeSection !== 'overview' && (
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <button onClick={() => setActiveSection('overview')} className="hover:text-blue-600">
-              Painel
-            </button>
-            <span>/</span>
-            <span className="font-medium text-slate-900">
-              {activeSection === 'integrations' && 'APIs Gerais'}
-              {activeSection === 'companies' && 'Empresas'}
-              {activeSection === 'users' && 'Usuários'}
-              {activeSection === 'glpi' && 'GLPI'}
-              {activeSection === 'zabbix' && 'Zabbix'}
-              {activeSection === 'mikrotik' && 'Mikrotik'}
-              {activeSection === 'chatwoot' && 'Chatwoot'}
-              {activeSection === 'evolution_api' && 'Evolution API'}
-              {activeSection === 'wasabi' && 'Wasabi'}
-              {activeSection === 'grafana' && 'Grafana'}
-              {activeSection === 'bomcontrole' && 'Bom Controle'}
-              {activeSection === 'ftp' && 'FTP'}
-              {activeSection === 'unifi' && 'UNIFI'}
-            </span>
-          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => setActiveSection('overview')}
+            className="flex items-center gap-2"
+          >
+            <Settings className="h-4 w-4" />
+            Voltar ao Menu
+          </Button>
         )}
-
-        {/* Conteúdo da Seção Ativa */}
-        {renderContent()}
       </div>
-    </Layout>
+
+      {/* Estatísticas Rápidas */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <Card className="border-blue-200">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-500" />
+              <div>
+                <p className="text-xl font-bold text-blue-900">15</p>
+                <p className="text-xs text-blue-600">Usuários Ativos</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-green-200">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <Key className="h-5 w-5 text-green-500" />
+              <div>
+                <p className="text-xl font-bold text-green-900">5</p>
+                <p className="text-xs text-green-600">APIs Ativas</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-purple-200">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <Building className="h-5 w-5 text-purple-500" />
+              <div>
+                <p className="text-xl font-bold text-purple-900">12</p>
+                <p className="text-xs text-purple-600">Empresas</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-orange-200">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <Database className="h-5 w-5 text-orange-500" />
+              <div>
+                <p className="text-xl font-bold text-orange-900">98%</p>
+                <p className="text-xs text-orange-600">Uptime</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Navegação por Breadcrumb */}
+      {activeSection !== 'overview' && (
+        <div className="flex items-center gap-2 text-sm text-slate-600">
+          <button onClick={() => setActiveSection('overview')} className="hover:text-blue-600">
+            Painel
+          </button>
+          <span>/</span>
+          <span className="font-medium text-slate-900">
+            {activeSection === 'integrations' && 'APIs Gerais'}
+            {activeSection === 'companies' && 'Empresas'}
+            {activeSection === 'users' && 'Usuários'}
+            {activeSection === 'glpi' && 'GLPI'}
+            {activeSection === 'chatwoot' && 'Chatwoot'}
+            {activeSection === 'evolution_api' && 'Evolution API'}
+            {activeSection === 'wasabi' && 'Wasabi'}
+            {activeSection === 'grafana' && 'Grafana'}
+            {activeSection === 'bomcontrole' && 'Bom Controle'}
+            {activeSection === 'ftp' && 'FTP'}
+          </span>
+        </div>
+      )}
+
+      {/* Conteúdo da Seção Ativa */}
+      {renderContent()}
+    </div>
   );
 };
 

@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChatwootSimpleConfig } from '@/components/ChatwootSimpleConfig';
@@ -17,26 +16,24 @@ const WhatsAppChats = () => {
   };
 
   return (
-    <Layout>
-      <div className="container mx-auto py-10">
-        <Card className="w-full max-w-4xl mx-auto">
-          <CardHeader>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {chatwootIntegration ? (
-              <>
-                <p className="text-sm text-gray-500">
-                  Conectado via Chatwoot: {chatwootIntegration.base_url}
-                </p>
-                <Button onClick={handleStartChat}>Iniciar Nova Conversa</Button>
-              </>
-            ) : (
-              <ChatwootSimpleConfig />
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </Layout>
+    <div className="container mx-auto py-10">
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardHeader>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {chatwootIntegration ? (
+            <>
+              <p className="text-sm text-gray-500">
+                Conectado via Chatwoot: {chatwootIntegration.base_url}
+              </p>
+              <Button onClick={handleStartChat}>Iniciar Nova Conversa</Button>
+            </>
+          ) : (
+            <ChatwootSimpleConfig />
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
