@@ -1,6 +1,6 @@
 
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { TopHeader } from '@/components/TopHeader';
@@ -11,6 +11,7 @@ interface LayoutProps {
 
 export const Layout = ({ children }: LayoutProps) => {
   const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
 
   console.log('Layout - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
 
@@ -32,7 +33,7 @@ export const Layout = ({ children }: LayoutProps) => {
       <div className="min-h-screen flex w-full bg-gray-50">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <TopHeader />
+          {location.pathname === '/dashboard' && <TopHeader />}
           <main className="flex-1 overflow-auto p-4 md:p-6">
             <div className="w-full max-w-none">
               {children}
