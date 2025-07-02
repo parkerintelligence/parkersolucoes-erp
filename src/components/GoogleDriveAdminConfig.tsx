@@ -37,6 +37,45 @@ export const GoogleDriveAdminConfig = () => {
     }
   }, [googleDriveIntegration]);
 
+  const handleAuthCode = async (authCode: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('google-drive-proxy', {
+        body: {
+          action: 'authorize',
+          authCode,
+          integrationId: googleDriveIntegration?.id
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Autorização realizada!",
+        description: "Conta Google Drive conectada com sucesso.",
+      });
+    } catch (error) {
+      console.error('Authorization error:', error);
+      toast({
+        title: "Erro na autorização",
+        description: "Falha ao conectar com o Google Drive. Tente novamente.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Detectar callback OAuth automaticamente
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const authCode = urlParams.get('code');
+    const state = urlParams.get('state');
+    
+    if (authCode && state && googleDriveIntegration) {
+      handleAuthCode(authCode);
+      // Limpar URL
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, [googleDriveIntegration]);
+
   const handleSave = async () => {
     if (!formData.name || !formData.client_id || !formData.client_secret) {
       toast({
@@ -117,57 +156,36 @@ export const GoogleDriveAdminConfig = () => {
 
     // Generate OAuth URL usando o Client ID salvo na integração
     const clientId = googleDriveIntegration.api_token;
+    const redirectUri = window.location.origin; // Usar origem atual ao invés de OOB
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&` +
-      `redirect_uri=${encodeURIComponent('urn:ietf:wg:oauth:2.0:oob')}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `scope=${encodeURIComponent('https://www.googleapis.com/auth/drive')}&` +
       `response_type=code&` +
       `access_type=offline&` +
-      `prompt=consent`;
+      `prompt=consent&` +
+      `state=${encodeURIComponent(JSON.stringify({ integrationId: googleDriveIntegration.id }))}`;
 
-    // Open OAuth window
-    const authWindow = window.open(authUrl, 'google-auth', 'width=500,height=600');
+    // Verificar se já estamos processando um callback
+    const urlParams = new URLSearchParams(window.location.search);
+    const authCode = urlParams.get('code');
+    
+    if (authCode) {
+      // Já estamos em um callback, processar
+      await handleAuthCode(authCode);
+      window.history.replaceState(null, '', window.location.pathname);
+      return;
+    }
+
+    // Redirecionar para autorização
+    window.location.href = authUrl;
     
     toast({
-      title: "Autorização necessária",
-      description: "Uma nova janela foi aberta. Complete a autorização e cole o código aqui.",
+      title: "Redirecionando...",
+      description: "Você será redirecionado para autorizar o Google Drive.",
     });
-
-    // Prompt for authorization code
-    setTimeout(() => {
-      const authCode = prompt('Cole o código de autorização do Google aqui:');
-      if (authCode) {
-        handleAuthCode(authCode);
-      }
-      authWindow?.close();
-    }, 5000);
   };
 
-  const handleAuthCode = async (authCode: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('google-drive-proxy', {
-        body: {
-          action: 'authorize',
-          authCode,
-          integrationId: googleDriveIntegration?.id
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Autorização realizada!",
-        description: "Conta Google Drive conectada com sucesso.",
-      });
-    } catch (error) {
-      console.error('Authorization error:', error);
-      toast({
-        title: "Erro na autorização",
-        description: "Falha ao conectar com o Google Drive. Tente novamente.",
-        variant: "destructive"
-      });
-    }
-  };
 
   const getStatusBadge = () => {
     if (!googleDriveIntegration) {
@@ -265,15 +283,32 @@ export const GoogleDriveAdminConfig = () => {
         </div>
 
         <div className="text-sm text-muted-foreground">
-          <p><strong>Instruções:</strong></p>
+          <p><strong>Instruções para Google Cloud Console:</strong></p>
           <ol className="list-decimal list-inside space-y-1 mt-2">
-            <li>Acesse o Google Cloud Console</li>
-            <li>Crie um projeto ou use um existente</li>
-            <li>Ative a Google Drive API</li>
-            <li>Crie credenciais OAuth 2.0</li>
-            <li>Configure as URLs de redirect autorizadas</li>
-            <li>Copie o Client ID e Client Secret aqui</li>
+            <li>Acesse o <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cloud Console</a></li>
+            <li>Crie um projeto ou selecione um existente</li>
+            <li>Vá em "APIs e Serviços" → "Biblioteca" e ative a <strong>Google Drive API</strong></li>
+            <li>Vá em "APIs e Serviços" → "Credenciais"</li>
+            <li>Clique em "Criar credenciais" → "ID do cliente OAuth 2.0"</li>
+            <li>Tipo de aplicação: <strong>Aplicação da Web</strong></li>
+            <li>Nome: <strong>Gestão TI - Google Drive</strong></li>
+            <li><strong>URLs de redirecionamento autorizados:</strong></li>
+            <li className="ml-4 font-mono text-xs bg-gray-100 p-1 rounded">
+              {window.location.origin}
+            </li>
+            <li className="ml-4 font-mono text-xs bg-gray-100 p-1 rounded">
+              http://localhost:3000 (para desenvolvimento)
+            </li>
+            <li>Copie o <strong>Client ID</strong> e <strong>Client Secret</strong> e cole nos campos acima</li>
+            <li>Clique em "Salvar Configuração" e depois "Autorizar Conta Google"</li>
           </ol>
+          
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+            <p className="text-yellow-800 text-xs">
+              <strong>⚠️ Importante:</strong> Se você receber "Acesso bloqueado", verifique se as URLs de redirecionamento 
+              estão configuradas exatamente como mostrado acima no Google Cloud Console.
+            </p>
+          </div>
         </div>
       </CardContent>
     </Card>

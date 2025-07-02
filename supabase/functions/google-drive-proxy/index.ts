@@ -52,15 +52,17 @@ serve(async (req) => {
     // If no access token, we need to implement OAuth flow
     if (!accessToken) {
       console.log('No access token found. OAuth flow needed.');
+      const redirectUri = req.headers.get('origin') || 'http://localhost:3000';
       return new Response(JSON.stringify({
         error: 'OAuth authorization required',
         authUrl: `https://accounts.google.com/o/oauth2/v2/auth?` +
           `client_id=${clientId}&` +
-          `redirect_uri=${encodeURIComponent('urn:ietf:wg:oauth:2.0:oob')}&` +
+          `redirect_uri=${encodeURIComponent(redirectUri)}&` +
           `scope=${encodeURIComponent('https://www.googleapis.com/auth/drive')}&` +
           `response_type=code&` +
           `access_type=offline&` +
-          `prompt=consent`
+          `prompt=consent&` +
+          `state=${encodeURIComponent(integrationId)}`
       }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -274,7 +276,7 @@ serve(async (req) => {
             client_secret: clientSecret,
             code: authCode,
             grant_type: 'authorization_code',
-            redirect_uri: 'urn:ietf:wg:oauth:2.0:oob'
+            redirect_uri: req.headers.get('origin') || 'http://localhost:3000'
           })
         });
 
