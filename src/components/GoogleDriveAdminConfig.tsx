@@ -181,51 +181,13 @@ export const GoogleDriveAdminConfig = () => {
       `prompt=consent&` +
       `state=${encodeURIComponent(googleDriveIntegration.id)}`;
 
-    // Abrir janela pop-up para autorização
-    const popup = window.open(
-      authUrl,
-      'google-drive-auth',
-      'width=600,height=600,scrollbars=yes,resizable=yes'
-    );
-
-    if (!popup) {
-      toast({
-        title: "Pop-up bloqueado",
-        description: "Por favor, permita pop-ups para este site e tente novamente.",
-        variant: "destructive"
-      });
-      return;
-    }
-
+    // Usar redirect direto ao invés de popup
+    window.location.href = authUrl;
+    
     toast({
-      title: "Autorizando...",
-      description: "Complete a autorização na janela que foi aberta.",
+      title: "Redirecionando...",
+      description: "Você será redirecionado para autorizar o Google Drive.",
     });
-
-    // Monitorar o pop-up para detectar quando a autorização foi concluída
-    const checkClosed = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(checkClosed);
-        // Verificar se a URL atual tem o código de autorização
-        const urlParams = new URLSearchParams(window.location.search);
-        const authCode = urlParams.get('code');
-        const state = urlParams.get('state');
-        
-        if (authCode && state === googleDriveIntegration.id) {
-          handleAuthCode(authCode);
-          // Limpar URL
-          window.history.replaceState(null, '', window.location.pathname);
-        }
-      }
-    }, 1000);
-
-    // Timeout para evitar verificação infinita
-    setTimeout(() => {
-      clearInterval(checkClosed);
-      if (!popup.closed) {
-        popup.close();
-      }
-    }, 300000); // 5 minutos
   };
 
 
