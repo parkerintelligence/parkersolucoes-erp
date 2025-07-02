@@ -1,7 +1,5 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,209 +17,102 @@ serve(async (req) => {
     console.log('=== Zabbix Proxy Request Started ===');
     
     const body = await req.json();
-    const { method, params, integrationId } = body;
+    const { config, method, params, id = 1 } = body;
     
     console.log('Request body:', { 
       method, 
-      integrationId,
-      paramsKeys: params ? Object.keys(params) : 'no params'
+      params: params ? Object.keys(params) : null,
+      hasConfig: !!config,
+      id
     });
 
-    if (!method || !integrationId) {
-      console.error('Missing required fields:', { method: !!method, integrationId: !!integrationId });
+    if (!config || !method) {
+      console.error('Missing required fields:', { hasConfig: !!config, method: !!method });
       return new Response(JSON.stringify({ 
-        error: 'Campos obrigatórios: method e integrationId' 
+        error: 'Campos obrigatórios: config e method' 
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Inicializar cliente Supabase
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    console.log('Environment check:', {
-      hasSupabaseUrl: !!supabaseUrl,
-      hasSupabaseKey: !!supabaseKey
-    });
+    const { base_url, username, password } = config;
 
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing Supabase environment variables');
+    if (!base_url || !username || !password) {
+      console.error('Missing config fields:', { 
+        hasBaseUrl: !!base_url, 
+        hasUsername: !!username, 
+        hasPassword: !!password 
+      });
       return new Response(JSON.stringify({ 
-        error: 'Configuração do servidor incompleta' 
+        error: 'Configuração incompleta: base_url, username e password são obrigatórios' 
       }), {
-        status: 500,
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Buscar configuração do Zabbix
-    console.log('Fetching integration with ID:', integrationId);
-    
-    const { data: integration, error: integrationError } = await supabase
-      .from('integrations')
-      .select('base_url, api_token')
-      .eq('id', integrationId)
-      .eq('type', 'zabbix')
-      .eq('is_active', true)
-      .single();
-
-    if (integrationError) {
-      console.error('Database error:', integrationError);
-      return new Response(JSON.stringify({ 
-        error: 'Erro ao buscar configuração da integração',
-        details: integrationError.message
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (!integration) {
-      console.error('Integration not found or inactive');
-      return new Response(JSON.stringify({ 
-        error: 'Integração Zabbix não encontrada ou inativa' 
-      }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    console.log('Integration found:', {
-      base_url: integration.base_url,
-      hasApiToken: !!integration.api_token,
-      tokenLength: integration.api_token?.length || 0
-    });
-
-    // Preparar URL da API - permitir HTTP para desenvolvimento
-    let apiUrl = integration.base_url.replace(/\/$/, '');
-    
-    // Tentar detectar o protocolo automaticamente
-    if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
-      // Se não tem protocolo, tentar HTTP primeiro
-      apiUrl = 'http://' + apiUrl;
+    // Preparar URL da API Zabbix
+    let apiUrl = base_url.replace(/\/$/, '');
+    if (!apiUrl.startsWith('http')) {
+      apiUrl = 'https://' + apiUrl;
     }
     
-    // Adicionar endpoint da API se não estiver presente
-    if (!apiUrl.endsWith('/api_jsonrpc.php')) {
-      apiUrl = apiUrl + '/api_jsonrpc.php';
-    }
+    const zabbixApiUrl = `${apiUrl}/api_jsonrpc.php`;
+    console.log('Zabbix API URL:', zabbixApiUrl);
 
-    console.log('Final API URL:', apiUrl);
-
-    // Preparar requisição para o Zabbix
-    const requestBody = {
-      jsonrpc: '2.0',
-      method: method,
+    // Preparar payload JSON-RPC
+    const payload = {
+      jsonrpc: "2.0",
+      method,
       params: params || {},
-      auth: integration.api_token,
-      id: 1,
+      id
     };
 
-    // Função para tentar requisição com fallback para HTTP
-    const tryRequest = async (url: string) => {
-      console.log('Tentando URL:', url);
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'User-Agent': 'Supabase-Zabbix-Proxy/1.0',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        },
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(25000),
-      });
-      
-      return response;
-    };
+    console.log('Zabbix payload:', JSON.stringify(payload, null, 2));
 
-    console.log('Zabbix request:', {
-      jsonrpc: requestBody.jsonrpc,
-      method: requestBody.method,
-      paramsCount: Object.keys(requestBody.params).length,
-      hasAuth: !!requestBody.auth,
-      id: requestBody.id
-    });
+    // Fazer requisição para o Zabbix
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.log('Request timeout triggered');
+      controller.abort();
+    }, 30000);
 
-    // Teste de conectividade básica primeiro
-    console.log('Testing basic connectivity...');
-    
-    try {
-      const testUrl = new URL(apiUrl);
-      console.log('Testing DNS resolution for:', testUrl.hostname);
-      
-      // Teste básico de conectividade
-      const connectivityTest = await fetch(`${testUrl.protocol}//${testUrl.host}/`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(10000),
-      }).catch(e => {
-        console.log('Basic connectivity test failed:', e.message);
-        return null;
-      });
-      
-      if (connectivityTest) {
-        console.log('Basic connectivity OK, status:', connectivityTest.status);
-      }
-    } catch (connectivityError) {
-      console.log('Connectivity test error:', connectivityError.message);
-    }
-
-    // Fazer requisição para o Zabbix com fallback automático
     try {
       console.log('Making request to Zabbix...');
       
-      let response;
-      try {
-        // Tentar primeiro com a URL configurada
-        response = await tryRequest(apiUrl);
-      } catch (originalError) {
-        console.log('Primeira tentativa falhou:', originalError.message);
-        
-        // Se HTTPS falhou, tentar HTTP
-        if (apiUrl.startsWith('https://')) {
-          const httpUrl = apiUrl.replace('https://', 'http://');
-          console.log('Tentando fallback para HTTP:', httpUrl);
-          
-          try {
-            response = await tryRequest(httpUrl);
-            console.log('Fallback HTTP bem-sucedido!');
-          } catch (fallbackError) {
-            console.log('Fallback HTTP também falhou:', fallbackError.message);
-            throw originalError; // Lançar o erro original
-          }
-        } else {
-          throw originalError;
-        }
-      }
+      const response = await fetch(zabbixApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Supabase-Zabbix-Proxy/1.0',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
 
+      clearTimeout(timeoutId);
       
       console.log('Response received:', {
         status: response.status,
         statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries())
+        ok: response.ok
       });
 
       const responseText = await response.text();
       console.log('Response text length:', responseText.length);
-      console.log('Response preview:', responseText.substring(0, 500));
+      console.log('Response text preview:', responseText.substring(0, 500));
 
       if (!response.ok) {
         console.error('HTTP Error details:', {
           status: response.status,
           statusText: response.statusText,
-          responseText: responseText.substring(0, 1000)
+          responseText: responseText.substring(0, 500)
         });
         
         return new Response(JSON.stringify({
           error: `Erro HTTP ${response.status}: ${response.statusText}`,
-          details: responseText.substring(0, 500)
+          details: responseText.substring(0, 200)
         }), {
           status: response.status,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -233,30 +124,29 @@ serve(async (req) => {
         data = JSON.parse(responseText);
       } catch (parseError) {
         console.error('JSON parse error:', parseError);
-        console.error('Raw response:', responseText);
         
         return new Response(JSON.stringify({
-          error: 'Resposta inválida do Zabbix (não é JSON válido)',
-          details: responseText.substring(0, 200)
+          error: 'Resposta inválida do Zabbix',
+          details: 'Não foi possível processar a resposta JSON'
         }), {
-          status: 502,
+          status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       console.log('Parsed response:', { 
-        hasResult: !!data.result, 
+        hasResult: !!data.result,
         hasError: !!data.error,
         resultType: typeof data.result,
-        resultLength: Array.isArray(data.result) ? data.result.length : 'N/A'
+        errorCode: data.error?.code
       });
-      
+
       if (data.error) {
         console.error('Zabbix API Error:', data.error);
         return new Response(JSON.stringify({
-          error: `Erro da API Zabbix: ${data.error.message || 'Erro desconhecido'}`,
-          code: data.error.code || 'N/A',
-          details: JSON.stringify(data.error)
+          error: 'Erro da API Zabbix',
+          details: data.error.message || data.error.data || 'Erro desconhecido',
+          code: data.error.code
         }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -269,62 +159,27 @@ serve(async (req) => {
       });
 
     } catch (fetchError) {
+      clearTimeout(timeoutId);
       
       console.error('Fetch error details:', {
         name: fetchError.name,
-        message: fetchError.message,
-        stack: fetchError.stack
+        message: fetchError.message
       });
       
       if (fetchError.name === 'AbortError') {
         console.error('Request timeout');
         return new Response(JSON.stringify({
           error: 'Timeout na conexão com o Zabbix (30s)',
-          details: 'Verifique se o servidor está acessível e respondendo',
-          troubleshooting: {
-            dns_check: 'Execute: nslookup seu-servidor-zabbix.com',
-            port_check: 'Execute: telnet seu-servidor-zabbix.com 80',
-            firewall: 'Verifique se as portas 80/443 estão abertas',
-            network: 'Teste a conectividade da rede local'
-          }
+          details: 'Verifique se o servidor Zabbix está acessível'
         }), {
           status: 408,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       
-      // Diagnóstico detalhado de erro de conectividade
-      let diagnosticInfo = {
-        error_type: fetchError.name,
-        error_message: fetchError.message,
-        url_tested: apiUrl,
-        timestamp: new Date().toISOString()
-      };
-      
-      if (fetchError.message.includes('ENOTFOUND')) {
-        diagnosticInfo = { 
-          ...diagnosticInfo, 
-          issue: 'DNS Resolution Failed',
-          solution: 'Verifique se o hostname está correto e acessível'
-        };
-      } else if (fetchError.message.includes('ECONNREFUSED')) {
-        diagnosticInfo = { 
-          ...diagnosticInfo, 
-          issue: 'Connection Refused',
-          solution: 'Verifique se o serviço Zabbix está rodando na porta correta'
-        };
-      } else if (fetchError.message.includes('certificate')) {
-        diagnosticInfo = { 
-          ...diagnosticInfo, 
-          issue: 'SSL Certificate Error',
-          solution: 'Use HTTP ao invés de HTTPS ou configure certificado válido'
-        };
-      }
-      
       return new Response(JSON.stringify({
         error: 'Erro de conectividade com o Zabbix',
-        details: fetchError.message,
-        diagnostic: diagnosticInfo
+        details: fetchError.message
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
