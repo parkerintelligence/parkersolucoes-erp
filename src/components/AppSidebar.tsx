@@ -81,7 +81,10 @@ export function AppSidebar() {
     }`;
 
   return (
-    <Sidebar className="border-r border-blue-900 bg-blue-950">
+    <Sidebar 
+      className="border-r border-blue-900 bg-blue-950 z-30" 
+      collapsible="icon"
+    >
       <SidebarHeader className="p-4 border-b border-blue-900 bg-blue-950">
         <div className="flex items-center gap-2">
           <div className="bg-blue-600 p-2 rounded-lg">

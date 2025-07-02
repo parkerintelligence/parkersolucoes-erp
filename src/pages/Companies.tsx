@@ -36,50 +36,50 @@ const Companies = () => {
       </div>
 
       {/* Estatísticas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <Card className="border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <Building2 className="h-8 w-8 text-blue-500" />
-              <div>
-                <p className="text-2xl font-bold text-blue-900">{companies.length}</p>
-                <p className="text-sm text-blue-600">Total</p>
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-2 md:gap-3">
+              <Building2 className="h-6 w-6 md:h-8 md:w-8 text-blue-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xl md:text-2xl font-bold text-blue-900">{companies.length}</p>
+                <p className="text-xs md:text-sm text-blue-600">Total</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
         <Card className="border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <Badge className="h-8 w-8 bg-green-100 text-green-800 rounded-full flex items-center justify-center">A</Badge>
-              <div>
-                <p className="text-2xl font-bold text-blue-900">{companies.filter(c => c.name).length}</p>
-                <p className="text-sm text-blue-600">Ativas</p>
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-2 md:gap-3">
+              <Badge className="h-6 w-6 md:h-8 md:w-8 bg-green-100 text-green-800 rounded-full flex items-center justify-center flex-shrink-0">A</Badge>
+              <div className="min-w-0">
+                <p className="text-xl md:text-2xl font-bold text-blue-900">{companies.filter(c => c.name).length}</p>
+                <p className="text-xs md:text-sm text-blue-600">Ativas</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
         <Card className="border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <Mail className="h-8 w-8 text-purple-500" />
-              <div>
-                <p className="text-2xl font-bold text-blue-900">{companies.filter(c => c.email).length}</p>
-                <p className="text-sm text-blue-600">Com E-mail</p>
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-2 md:gap-3">
+              <Mail className="h-6 w-6 md:h-8 md:w-8 text-purple-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xl md:text-2xl font-bold text-blue-900">{companies.filter(c => c.email).length}</p>
+                <p className="text-xs md:text-sm text-blue-600">Com E-mail</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
         <Card className="border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <Phone className="h-8 w-8 text-orange-500" />
-              <div>
-                <p className="text-2xl font-bold text-blue-900">{companies.filter(c => c.phone).length}</p>
-                <p className="text-sm text-blue-600">Com Telefone</p>
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-2 md:gap-3">
+              <Phone className="h-6 w-6 md:h-8 md:w-8 text-orange-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xl md:text-2xl font-bold text-blue-900">{companies.filter(c => c.phone).length}</p>
+                <p className="text-xs md:text-sm text-blue-600">Com Telefone</p>
               </div>
             </div>
           </CardContent>

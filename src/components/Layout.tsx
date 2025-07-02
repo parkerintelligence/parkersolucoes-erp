@@ -31,10 +31,10 @@ export const Layout = ({ children }: LayoutProps) => {
     <SidebarProvider defaultOpen={true}>
       <div className="min-h-screen flex w-full bg-gray-50">
         <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0 ml-0">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <TopHeader />
-          <main className="flex-1 overflow-auto p-6">
-            <div className="max-w-7xl mx-auto">
+          <main className="flex-1 overflow-auto p-4 md:p-6">
+            <div className="w-full max-w-none">
               {children}
             </div>
           </main>

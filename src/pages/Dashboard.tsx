@@ -16,50 +16,50 @@ const Dashboard = () => {
       </div>
 
       {/* Estatísticas principais */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <Card className="border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <Users className="h-8 w-8 text-blue-500" />
-              <div>
-                <p className="text-2xl font-bold text-blue-900">28</p>
-                <p className="text-sm text-blue-600">Empresas</p>
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-2 md:gap-3">
+              <Users className="h-6 w-6 md:h-8 md:w-8 text-blue-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xl md:text-2xl font-bold text-blue-900">28</p>
+                <p className="text-xs md:text-sm text-blue-600">Empresas</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
         <Card className="border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <DollarSign className="h-8 w-8 text-green-500" />
-              <div>
-                <p className="text-2xl font-bold text-blue-900">R$ 15.240</p>
-                <p className="text-sm text-blue-600">Receita Mensal</p>
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-2 md:gap-3">
+              <DollarSign className="h-6 w-6 md:h-8 md:w-8 text-green-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xl md:text-2xl font-bold text-blue-900">R$ 15.240</p>
+                <p className="text-xs md:text-sm text-blue-600">Receita Mensal</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
         <Card className="border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <FileText className="h-8 w-8 text-purple-500" />
-              <div>
-                <p className="text-2xl font-bold text-blue-900">12</p>
-                <p className="text-sm text-blue-600">Contratos Ativos</p>
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-2 md:gap-3">
+              <FileText className="h-6 w-6 md:h-8 md:w-8 text-purple-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xl md:text-2xl font-bold text-blue-900">12</p>
+                <p className="text-xs md:text-sm text-blue-600">Contratos Ativos</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
         <Card className="border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <Calendar className="h-8 w-8 text-orange-500" />
-              <div>
-                <p className="text-2xl font-bold text-blue-900">5</p>
-                <p className="text-sm text-blue-600">Tarefas Hoje</p>
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-2 md:gap-3">
+              <Calendar className="h-6 w-6 md:h-8 md:w-8 text-orange-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xl md:text-2xl font-bold text-blue-900">5</p>
+                <p className="text-xs md:text-sm text-blue-600">Tarefas Hoje</p>
               </div>
             </div>
           </CardContent>
@@ -67,7 +67,7 @@ const Dashboard = () => {
       </div>
 
       {/* Cards de informações */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         <Card className="border-blue-200">
           <CardHeader>
             <CardTitle className="text-blue-900 flex items-center gap-2">
