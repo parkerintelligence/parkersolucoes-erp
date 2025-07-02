@@ -27,32 +27,39 @@ export class ZabbixDirectClient {
   }
 
   private async makeProxyRequest(method: string, params: any = {}): Promise<any> {
-    console.log('Zabbix Proxy Request:', { method, params });
+    console.log('🔍 Zabbix Proxy Request:', { method, params, config: this.config });
 
     try {
       const { supabase } = await import('@/integrations/supabase/client');
       
+      const requestBody = {
+        config: {
+          base_url: this.config.url,
+          api_token: this.config.apiToken,
+          username: this.config.username,
+          password: this.config.password
+        },
+        method,
+        params
+      };
+
+      console.log('📡 Sending to proxy:', requestBody);
+      
       const response = await supabase.functions.invoke('zabbix-direct-proxy', {
-        body: {
-          config: {
-            base_url: this.config.url,
-            api_token: this.config.apiToken,
-            username: this.config.username,
-            password: this.config.password
-          },
-          method,
-          params
-        }
+        body: requestBody
       });
 
+      console.log('📥 Proxy response:', response);
+
       if (response.error) {
+        console.error('❌ Proxy error:', response.error);
         throw new Error(response.error.message || 'Proxy request failed');
       }
 
-      console.log('Zabbix Proxy Response:', { method, result: response.data?.result });
+      console.log('✅ Zabbix Proxy Success:', { method, result: response.data?.result });
       return response.data?.result;
     } catch (error) {
-      console.error('Zabbix Proxy Error:', error);
+      console.error('💥 Zabbix Proxy Error:', error);
       throw error;
     }
   }
@@ -194,11 +201,15 @@ export const useZabbixDirect = (integration?: any) => {
 
   // Create client when integration is provided
   useEffect(() => {
+    console.log('🔧 ZabbixDirect useEffect triggered:', { integration });
+    
     if (integration?.base_url && integration?.api_token) {
-      console.log('Creating Zabbix client with:', {
+      console.log('✅ Creating Zabbix client with:', {
         url: integration.base_url,
         hasToken: !!integration.api_token,
-        tokenLength: integration.api_token.length
+        tokenLength: integration.api_token.length,
+        hasUsername: !!integration.username,
+        hasPassword: !!integration.password
       });
       
       const newClient = new ZabbixDirectClient({
@@ -212,17 +223,19 @@ export const useZabbixDirect = (integration?: any) => {
       // Test connection automatically and set connected state
       newClient.testConnection()
         .then((connected) => {
-          console.log('Zabbix connection test result:', connected);
+          console.log('🎯 Zabbix connection test result:', connected);
           setIsConnected(connected);
         })
         .catch((error) => {
-          console.error('Zabbix connection test failed:', error);
+          console.error('❌ Zabbix connection test failed:', error);
           setIsConnected(false);
         });
     } else {
-      console.log('Missing Zabbix credentials:', {
+      console.log('⚠️ Missing Zabbix credentials:', {
         hasBaseUrl: !!integration?.base_url,
-        hasToken: !!integration?.api_token
+        hasToken: !!integration?.api_token,
+        hasUsername: !!integration?.username,
+        hasPassword: !!integration?.password
       });
       setClient(null);
       setIsConnected(false);

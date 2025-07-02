@@ -16,33 +16,40 @@ export class UnifiDirectClient {
   }
 
   private async makeProxyRequest(endpoint: string, method: string = 'GET', body?: any): Promise<any> {
-    console.log('Unifi Proxy Request:', { endpoint, method });
+    console.log('🔍 Unifi Proxy Request:', { endpoint, method, config: this.config });
 
     try {
       const { supabase } = await import('@/integrations/supabase/client');
       
+      const requestBody = {
+        config: {
+          base_url: this.config.base_url,
+          username: this.config.username,
+          password: this.config.password,
+          site: this.config.site || 'default'
+        },
+        endpoint,
+        method,
+        body
+      };
+
+      console.log('📡 Sending to Unifi proxy:', requestBody);
+      
       const response = await supabase.functions.invoke('unifi-proxy', {
-        body: {
-          config: {
-            base_url: this.config.base_url,
-            username: this.config.username,
-            password: this.config.password,
-            site: this.config.site || 'default'
-          },
-          endpoint,
-          method,
-          body
-        }
+        body: requestBody
       });
 
+      console.log('📥 Unifi proxy response:', response);
+
       if (response.error) {
+        console.error('❌ Unifi proxy error:', response.error);
         throw new Error(response.error.message || 'Proxy request failed');
       }
 
-      console.log('Unifi Proxy Response:', { endpoint, result: response.data?.result });
+      console.log('✅ Unifi Proxy Success:', { endpoint, result: response.data?.result });
       return response.data?.result;
     } catch (error) {
-      console.error('Unifi Proxy Error:', error);
+      console.error('💥 Unifi Proxy Error:', error);
       throw error;
     }
   }
