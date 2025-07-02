@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Layout } from '@/components/Layout';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,13 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Headphones, Settings, RefreshCw, Plus, Loader2, BarChart3, AlertTriangle, HardDrive, FileText, Users, Building2 } from 'lucide-react';
+import { Settings, Plus, Loader2, Building2, AlertTriangle, FileText, Users } from 'lucide-react';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { GLPIDashboard } from '@/components/GLPIDashboard';
 import { GLPITicketsGrid } from '@/components/GLPITicketsGrid';
 import { GLPIInventory } from '@/components/GLPIInventory';
 import { GLPIConnectionStatus } from '@/components/GLPIConnectionStatus';
+import { GLPISidebar } from '@/components/glpi/GLPISidebar';
+import { GLPIHeader } from '@/components/glpi/GLPIHeader';
 
 const GLPI = () => {
   const { 
@@ -22,6 +23,7 @@ const GLPI = () => {
     createTicket, 
     initSession,
     hasValidSession,
+    tickets,
     problems,
     changes,
     suppliers,
@@ -66,65 +68,83 @@ const GLPI = () => {
 
   if (!glpiIntegration) {
     return (
-      <Layout>
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
-                <Headphones className="h-8 w-8" />
-                GLPI - Sistema Completo de Gestão
-              </h1>
-              <p className="text-blue-600">Plataforma integrada para gestão de TI</p>
-            </div>
-          </div>
-
-          <Card className="border-blue-200">
-            <CardContent className="p-8 text-center">
-              <Settings className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-semibold mb-2">GLPI não configurado</h3>
-              <p className="text-gray-600 mb-4">
-                Configure a integração com GLPI no painel administrativo para acessar todas as funcionalidades.
-              </p>
-              <Button onClick={() => window.location.href = '/admin'}>
-                <Settings className="mr-2 h-4 w-4" />
-                Ir para Configurações
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
+      <div className="min-h-screen bg-glpi-background flex items-center justify-center p-6">
+        <Card className="max-w-lg w-full border-glpi-border">
+          <CardContent className="p-8 text-center">
+            <Settings className="h-12 w-12 mx-auto mb-4 text-glpi-text-muted" />
+            <h3 className="text-lg font-semibold mb-2 text-glpi-text">GLPI não configurado</h3>
+            <p className="text-glpi-text-muted mb-4">
+              Configure a integração com GLPI no painel administrativo para acessar todas as funcionalidades.
+            </p>
+            <Button 
+              onClick={() => window.location.href = '/admin'}
+              className="bg-glpi-secondary hover:bg-glpi-secondary/90 text-white"
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Ir para Configurações
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
+  const handleRefresh = () => {
+    tickets.refetch();
+    problems.refetch();
+    changes.refetch();
+    suppliers.refetch();
+    contracts.refetch();
+    users.refetch();
+    entities.refetch();
+    locations.refetch();
+    groups.refetch();
+  };
+
+  const isLoading = tickets.isLoading || problems.isLoading || changes.isLoading;
+
   return (
-    <Layout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-blue-900 flex items-center gap-2">
-              <Headphones className="h-8 w-8" />
-              GLPI - Sistema Completo de Gestão
-            </h1>
-            <p className="text-blue-600">Gestão integrada de TI - Chamados, Ativos, Inventário e muito mais</p>
-          </div>
-          <div className="flex gap-2">
+    <SidebarProvider defaultOpen>
+      <div className="min-h-screen w-full flex bg-glpi-background">
+        <GLPISidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        
+        <SidebarInset className="flex-1">
+          <GLPIHeader 
+            activeTab={activeTab}
+            onRefresh={handleRefresh}
+            onCreateTicket={() => setIsCreatingTicket(true)}
+            isLoading={isLoading}
+          />
+
+          <div className="p-6">
             {!hasValidSession && (
-              <Button variant="outline" onClick={() => initSession.mutate()}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Iniciar Sessão
-              </Button>
+              <div className="mb-6">
+                <Card className="border-glpi-warning/20 bg-glpi-warning/5">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-glpi-text font-medium">Sessão GLPI não iniciada</p>
+                      <p className="text-glpi-text-muted text-sm">Inicie uma sessão para acessar os dados</p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => initSession.mutate()}
+                      className="border-glpi-warning text-glpi-warning hover:bg-glpi-warning/10"
+                    >
+                      Iniciar Sessão
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
             )}
+
             <Dialog open={isCreatingTicket} onOpenChange={setIsCreatingTicket}>
               <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Novo Chamado
-                </Button>
+                <div></div>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="bg-glpi-surface border-glpi-border">
                 <DialogHeader>
-                  <DialogTitle>Criar Novo Chamado</DialogTitle>
-                  <DialogDescription>
+                  <DialogTitle className="text-glpi-text">Criar Novo Chamado</DialogTitle>
+                  <DialogDescription className="text-glpi-text-muted">
                     Preencha os dados para criar um novo chamado no GLPI
                   </DialogDescription>
                 </DialogHeader>
@@ -229,6 +249,7 @@ const GLPI = () => {
                     <Button 
                       onClick={handleCreateTicket} 
                       disabled={createTicket.isPending || !newTicket.name || !newTicket.content || !newTicket.entities_id}
+                      className="bg-glpi-secondary hover:bg-glpi-secondary/90 text-white"
                     >
                       {createTicket.isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -237,220 +258,138 @@ const GLPI = () => {
                       )}
                       Criar Chamado
                     </Button>
-                    <Button variant="outline" onClick={() => setIsCreatingTicket(false)}>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsCreatingTicket(false)}
+                      className="border-glpi-border hover:bg-glpi-surface-2"
+                    >
                       Cancelar
                     </Button>
                   </div>
                 </div>
               </DialogContent>
             </Dialog>
+
+            {/* Conteúdo dinâmico baseado na aba ativa */}
+            <div className="space-y-6">
+              {activeTab === 'dashboard' && <GLPIDashboard />}
+              {activeTab === 'tickets' && <GLPITicketsGrid />}
+              {activeTab === 'inventory' && <GLPIInventory />}
+              {activeTab === 'itil' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Problemas */}
+                  <Card className="border-glpi-border bg-glpi-surface">
+                    <CardContent className="p-4">
+                      <h3 className="text-lg font-semibold text-glpi-text mb-4 flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-glpi-warning" />
+                        Problemas ({problems.data?.length || 0})
+                      </h3>
+                      {problems.isLoading ? (
+                        <div className="text-center py-4">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-glpi-text-muted" />
+                          <p className="text-sm text-glpi-text-muted">Carregando problemas...</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {problems.data?.slice(0, 5).map((problem) => (
+                            <div key={problem.id} className="p-3 bg-glpi-surface-2 rounded-lg border border-glpi-border">
+                              <div className="font-medium text-sm text-glpi-text">#{problem.id} - {problem.name}</div>
+                              <div className="text-xs text-glpi-text-muted truncate mt-1">{problem.content}</div>
+                            </div>
+                          )) || <p className="text-sm text-glpi-text-muted">Nenhum problema encontrado</p>}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Mudanças */}
+                  <Card className="border-glpi-border bg-glpi-surface">
+                    <CardContent className="p-4">
+                      <h3 className="text-lg font-semibold text-glpi-text mb-4 flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-glpi-secondary" />
+                        Mudanças ({changes.data?.length || 0})
+                      </h3>
+                      {changes.isLoading ? (
+                        <div className="text-center py-4">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-glpi-text-muted" />
+                          <p className="text-sm text-glpi-text-muted">Carregando mudanças...</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {changes.data?.slice(0, 5).map((change) => (
+                            <div key={change.id} className="p-3 bg-glpi-surface-2 rounded-lg border border-glpi-border">
+                              <div className="font-medium text-sm text-glpi-text">#{change.id} - {change.name}</div>
+                              <div className="text-xs text-glpi-text-muted truncate mt-1">{change.content}</div>
+                            </div>
+                          )) || <p className="text-sm text-glpi-text-muted">Nenhuma mudança encontrada</p>}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+              {activeTab === 'organization' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Usuários */}
+                  <Card className="border-glpi-border bg-glpi-surface">
+                    <CardContent className="p-4">
+                      <h3 className="text-lg font-semibold text-glpi-text mb-4 flex items-center gap-2">
+                        <Users className="h-5 w-5 text-glpi-info" />
+                        Usuários ({users.data?.length || 0})
+                      </h3>
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {users.data?.slice(0, 10).map((user) => (
+                          <div key={user.id} className="p-3 bg-glpi-surface-2 rounded-lg border border-glpi-border">
+                            <div className="font-medium text-sm text-glpi-text">{user.realname} {user.firstname}</div>
+                            <div className="text-xs text-glpi-text-muted">{user.email}</div>
+                          </div>
+                        )) || <p className="text-sm text-glpi-text-muted">Nenhum usuário encontrado</p>}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Entidades */}
+                  <Card className="border-glpi-border bg-glpi-surface">
+                    <CardContent className="p-4">
+                      <h3 className="text-lg font-semibold text-glpi-text mb-4 flex items-center gap-2">
+                        <Building2 className="h-5 w-5 text-glpi-success" />
+                        Entidades ({entities.data?.length || 0})
+                      </h3>
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {entities.data?.slice(0, 10).map((entity) => (
+                          <div key={entity.id} className="p-3 bg-glpi-surface-2 rounded-lg border border-glpi-border">
+                            <div className="font-medium text-sm text-glpi-text">{entity.name}</div>
+                            <div className="text-xs text-glpi-text-muted">{entity.comment}</div>
+                          </div>
+                        )) || <p className="text-sm text-glpi-text-muted">Nenhuma entidade encontrada</p>}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Localizações */}
+                  <Card className="border-glpi-border bg-glpi-surface">
+                    <CardContent className="p-4">
+                      <h3 className="text-lg font-semibold text-glpi-text mb-4 flex items-center gap-2">
+                        <Settings className="h-5 w-5 text-glpi-secondary" />
+                        Localizações ({locations.data?.length || 0})
+                      </h3>
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {locations.data?.slice(0, 10).map((location) => (
+                          <div key={location.id} className="p-3 bg-glpi-surface-2 rounded-lg border border-glpi-border">
+                            <div className="font-medium text-sm text-glpi-text">{location.name}</div>
+                            {location.address && <div className="text-xs text-glpi-text-muted">{location.address}</div>}
+                          </div>
+                        )) || <p className="text-sm text-glpi-text-muted">Nenhuma localização encontrada</p>}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-
-        {/* Status da Conexão */}
-        <GLPIConnectionStatus />
-
-        {/* Interface Principal com Botões Grandes */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-          <Button 
-            variant={activeTab === 'dashboard' ? 'default' : 'outline'}
-            size="lg"
-            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
-              activeTab === 'dashboard' 
-                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
-                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
-            }`}
-            onClick={() => setActiveTab('dashboard')}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <BarChart3 className="h-8 w-8" />
-              <span className="font-semibold">Dashboard</span>
-            </div>
-          </Button>
-          
-          <Button 
-            variant={activeTab === 'tickets' ? 'default' : 'outline'}
-            size="lg"
-            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
-              activeTab === 'tickets' 
-                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
-                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
-            }`}
-            onClick={() => setActiveTab('tickets')}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <AlertTriangle className="h-8 w-8" />
-              <span className="font-semibold">Chamados</span>
-            </div>
-          </Button>
-          
-          <Button 
-            variant={activeTab === 'inventory' ? 'default' : 'outline'}
-            size="lg"
-            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
-              activeTab === 'inventory' 
-                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
-                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
-            }`}
-            onClick={() => setActiveTab('inventory')}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <HardDrive className="h-8 w-8" />
-              <span className="font-semibold">Inventário</span>
-            </div>
-          </Button>
-          
-          <Button 
-            variant={activeTab === 'itil' ? 'default' : 'outline'}
-            size="lg"
-            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
-              activeTab === 'itil' 
-                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
-                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
-            }`}
-            onClick={() => setActiveTab('itil')}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <FileText className="h-8 w-8" />
-              <span className="font-semibold">ITIL</span>
-            </div>
-          </Button>
-          
-          <Button 
-            variant={activeTab === 'organization' ? 'default' : 'outline'}
-            size="lg"
-            className={`h-24 transition-all duration-300 shadow-lg hover:shadow-xl ${
-              activeTab === 'organization' 
-                ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white border-blue-700' 
-                : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-700 hover:from-blue-700 hover:to-blue-800'
-            }`}
-            onClick={() => setActiveTab('organization')}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <Users className="h-8 w-8" />
-              <span className="font-semibold">Organização</span>
-            </div>
-          </Button>
-        </div>
-
-        {/* Conteúdo dinâmico baseado na aba ativa */}
-        <div className="mt-6">
-          {activeTab === 'dashboard' && <GLPIDashboard />}
-          {activeTab === 'tickets' && <GLPITicketsGrid />}
-          {activeTab === 'inventory' && <GLPIInventory />}
-          {activeTab === 'itil' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Problemas */}
-              <Card className="border-orange-200">
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold text-orange-900 mb-4 flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" />
-                    Problemas ({problems.data?.length || 0})
-                  </h3>
-                  {problems.isLoading ? (
-                    <div className="text-center py-4">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">Carregando problemas...</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {problems.data?.slice(0, 5).map((problem) => (
-                        <div key={problem.id} className="p-2 bg-orange-50 rounded border border-orange-200">
-                          <div className="font-medium text-sm">#{problem.id} - {problem.name}</div>
-                          <div className="text-xs text-gray-600 truncate">{problem.content}</div>
-                        </div>
-                      )) || <p className="text-sm text-gray-500">Nenhum problema encontrado</p>}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Mudanças */}
-              <Card className="border-purple-200">
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold text-purple-900 mb-4 flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Mudanças ({changes.data?.length || 0})
-                  </h3>
-                  {changes.isLoading ? (
-                    <div className="text-center py-4">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">Carregando mudanças...</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {changes.data?.slice(0, 5).map((change) => (
-                        <div key={change.id} className="p-2 bg-purple-50 rounded border border-purple-200">
-                          <div className="font-medium text-sm">#{change.id} - {change.name}</div>
-                          <div className="text-xs text-gray-600 truncate">{change.content}</div>
-                        </div>
-                      )) || <p className="text-sm text-gray-500">Nenhuma mudança encontrada</p>}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-          {activeTab === 'organization' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Usuários */}
-              <Card className="border-blue-200">
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Usuários ({users.data?.length || 0})
-                  </h3>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {users.data?.slice(0, 10).map((user) => (
-                      <div key={user.id} className="p-2 bg-blue-50 rounded border border-blue-200">
-                        <div className="font-medium text-sm">{user.realname} {user.firstname}</div>
-                        <div className="text-xs text-gray-600">{user.email}</div>
-                      </div>
-                    )) || <p className="text-sm text-gray-500">Nenhum usuário encontrado</p>}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Entidades */}
-              <Card className="border-green-200">
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold text-green-900 mb-4 flex items-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    Entidades ({entities.data?.length || 0})
-                  </h3>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {entities.data?.slice(0, 10).map((entity) => (
-                      <div key={entity.id} className="p-2 bg-green-50 rounded border border-green-200">
-                        <div className="font-medium text-sm">{entity.name}</div>
-                        <div className="text-xs text-gray-600">{entity.comment}</div>
-                      </div>
-                    )) || <p className="text-sm text-gray-500">Nenhuma entidade encontrada</p>}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Localizações */}
-              <Card className="border-teal-200">
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold text-teal-900 mb-4 flex items-center gap-2">
-                    <Settings className="h-5 w-5" />
-                    Localizações ({locations.data?.length || 0})
-                  </h3>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {locations.data?.slice(0, 10).map((location) => (
-                      <div key={location.id} className="p-2 bg-teal-50 rounded border border-teal-200">
-                        <div className="font-medium text-sm">{location.name}</div>
-                        {location.address && <div className="text-xs text-gray-600">{location.address}</div>}
-                      </div>
-                    )) || <p className="text-sm text-gray-500">Nenhuma localização encontrada</p>}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
+        </SidebarInset>
       </div>
-    </Layout>
+    </SidebarProvider>
   );
 };
 
