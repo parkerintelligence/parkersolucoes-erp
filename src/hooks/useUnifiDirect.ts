@@ -199,7 +199,13 @@ export const useUnifiDirect = (integration?: any) => {
   // Get statistics
   const statistics = useQuery({
     queryKey: ['unifi-statistics', integration?.id],
-    queryFn: () => client?.getStatistics() || {},
+    queryFn: () => client?.getStatistics() || {
+      total_devices: 0,
+      online_devices: 0,
+      total_clients: 0,
+      total_bytes: 0,
+      wan_ip: ''
+    },
     enabled: !!client && isConnected,
     refetchInterval: 30000
   });
@@ -218,7 +224,13 @@ export const useUnifiDirect = (integration?: any) => {
     devices: devices.data || [],
     clients: clients.data || [],
     networks: networks.data || [],
-    statistics: statistics.data || {},
+    statistics: statistics.data || {
+      total_devices: 0,
+      online_devices: 0,
+      total_clients: 0,
+      total_bytes: 0,
+      wan_ip: ''
+    },
     isLoading: devices.isLoading || clients.isLoading || networks.isLoading,
     error: devices.error || clients.error || networks.error,
     refetchAll
