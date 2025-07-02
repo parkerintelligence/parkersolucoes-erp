@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,11 +19,23 @@ export const GoogleDriveAdminConfig = () => {
   );
 
   const [formData, setFormData] = useState({
-    name: googleDriveIntegration?.name || 'Google Drive Principal',
-    client_id: googleDriveIntegration?.api_token || '',
-    client_secret: googleDriveIntegration?.password || '',
-    is_active: googleDriveIntegration?.is_active ?? true,
+    name: 'Google Drive Principal',
+    client_id: '',
+    client_secret: '',
+    is_active: true,
   });
+
+  // Atualizar o formulário quando a integração for carregada
+  useEffect(() => {
+    if (googleDriveIntegration) {
+      setFormData({
+        name: googleDriveIntegration.name || 'Google Drive Principal',
+        client_id: googleDriveIntegration.api_token || '',
+        client_secret: googleDriveIntegration.password || '',
+        is_active: googleDriveIntegration.is_active ?? true,
+      });
+    }
+  }, [googleDriveIntegration]);
 
   const handleSave = async () => {
     if (!formData.name || !formData.client_id || !formData.client_secret) {
@@ -56,14 +68,27 @@ export const GoogleDriveAdminConfig = () => {
         keep_logged: null,
       };
 
+      console.log('Saving Google Drive integration:', {
+        type: integrationData.type,
+        name: integrationData.name,
+        hasApiToken: !!integrationData.api_token,
+        hasPassword: !!integrationData.password,
+        apiTokenLength: integrationData.api_token?.length || 0,
+        passwordLength: integrationData.password?.length || 0
+      });
+
       if (googleDriveIntegration) {
+        console.log('Updating existing integration:', googleDriveIntegration.id);
         await updateIntegration.mutateAsync({
           id: googleDriveIntegration.id,
           updates: integrationData
         });
       } else {
+        console.log('Creating new integration');
         await createIntegration.mutateAsync(integrationData);
       }
+      
+      console.log('Google Drive integration saved successfully');
     } catch (error) {
       console.error('Error saving Google Drive integration:', error);
     } finally {
@@ -81,8 +106,17 @@ export const GoogleDriveAdminConfig = () => {
       return;
     }
 
-    // Generate OAuth URL
-    const clientId = formData.client_id;
+    if (!googleDriveIntegration.api_token) {
+      toast({
+        title: "Erro",
+        description: "Client ID não configurado. Configure primeiro no formulário acima.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Generate OAuth URL usando o Client ID salvo na integração
+    const clientId = googleDriveIntegration.api_token;
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&` +
       `redirect_uri=${encodeURIComponent('urn:ietf:wg:oauth:2.0:oob')}&` +
@@ -142,16 +176,22 @@ export const GoogleDriveAdminConfig = () => {
     if (!googleDriveIntegration.is_active) {
       return <Badge variant="destructive">Inativo</Badge>;
     }
-    // TODO: Verificar conexão real
-    return <Badge variant="default">Ativo</Badge>;
+    // Verificar se tem tokens de acesso
+    if (googleDriveIntegration.webhook_url) {
+      return <Badge variant="default" className="bg-green-600">Autorizado</Badge>;
+    }
+    return <Badge variant="outline">Configurado - Não autorizado</Badge>;
   };
 
   const getConnectionIcon = () => {
     if (!googleDriveIntegration || !googleDriveIntegration.is_active) {
       return <XCircle className="h-5 w-5 text-red-500" />;
     }
-    // TODO: Verificar conexão real
-    return <CheckCircle className="h-5 w-5 text-green-500" />;
+    // Verificar se tem access token
+    if (googleDriveIntegration.webhook_url) {
+      return <CheckCircle className="h-5 w-5 text-green-500" />;
+    }
+    return <XCircle className="h-5 w-5 text-orange-500" />;
   };
 
   return (
