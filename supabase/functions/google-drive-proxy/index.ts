@@ -269,8 +269,12 @@ serve(async (req) => {
           throw new Error('Authorization code is required');
         }
 
+        console.log('Processing authorization code for integration:', integrationId);
+
         const origin = req.headers.get('origin') || 'http://localhost:3000';
         const redirectUri = `${origin}/admin`; // Específico para a página de admin
+        
+        console.log('Exchanging code for tokens with redirect URI:', redirectUri);
         
         const tokenResponse = await fetch(`${GOOGLE_AUTH_BASE}/token`, {
           method: 'POST',
@@ -285,19 +289,33 @@ serve(async (req) => {
         });
 
         if (!tokenResponse.ok) {
-          throw new Error('Failed to exchange authorization code for tokens');
+          const errorText = await tokenResponse.text();
+          console.error('Token exchange failed:', tokenResponse.status, errorText);
+          throw new Error(`Failed to exchange authorization code for tokens: ${errorText}`);
         }
 
         const tokens = await tokenResponse.json();
+        console.log('Tokens received:', { 
+          hasAccessToken: !!tokens.access_token, 
+          hasRefreshToken: !!tokens.refresh_token,
+          expiresIn: tokens.expires_in 
+        });
         
         // Store tokens in integration record
-        await supabase
+        const { error: updateError } = await supabase
           .from('integrations')
           .update({
             webhook_url: tokens.access_token, // Access token
             username: tokens.refresh_token    // Refresh token
           })
           .eq('id', integrationId);
+
+        if (updateError) {
+          console.error('Failed to save tokens:', updateError);
+          throw new Error('Failed to save authorization tokens');
+        }
+
+        console.log('Tokens saved successfully for integration:', integrationId);
 
         return new Response(JSON.stringify({
           success: true,

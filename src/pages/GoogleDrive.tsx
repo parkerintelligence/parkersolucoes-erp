@@ -85,10 +85,18 @@ const GoogleDrive = () => {
               Conexão necessária
             </CardTitle>
             <CardDescription>
-              Para usar o Google Drive, você precisa configurar a integração no painel de administração.
+              Para usar o Google Drive, você precisa configurar a integração no painel de administração e autorizar sua conta Google.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              <p><strong>Passos necessários:</strong></p>
+              <ol className="list-decimal list-inside space-y-1 mt-2">
+                <li>Configure o Client ID e Secret no painel de administração</li>
+                <li>Clique em "Autorizar Conta Google" para conectar sua conta</li>
+                <li>Complete a autorização no Google</li>
+              </ol>
+            </div>
             <Button asChild>
               <a href="/admin">Ir para Administração</a>
             </Button>

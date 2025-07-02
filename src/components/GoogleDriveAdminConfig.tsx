@@ -54,6 +54,7 @@ export const GoogleDriveAdminConfig = () => {
 
   const handleAuthCode = async (authCode: string) => {
     try {
+      console.log('Processing authorization code:', authCode);
       const { data, error } = await supabase.functions.invoke('google-drive-proxy', {
         body: {
           action: 'authorize',
@@ -62,7 +63,15 @@ export const GoogleDriveAdminConfig = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
+
+      console.log('Authorization successful:', data);
+      
+      // Refresh integrations data to get updated tokens
+      window.location.reload();
 
       toast({
         title: "Autorização realizada!",
@@ -72,7 +81,7 @@ export const GoogleDriveAdminConfig = () => {
       console.error('Authorization error:', error);
       toast({
         title: "Erro na autorização",
-        description: "Falha ao conectar com o Google Drive. Tente novamente.",
+        description: error.message || "Falha ao conectar com o Google Drive. Tente novamente.",
         variant: "destructive"
       });
     }
@@ -198,15 +207,23 @@ export const GoogleDriveAdminConfig = () => {
     if (!googleDriveIntegration.is_active) {
       return <Badge variant="destructive">Inativo</Badge>;
     }
+    // Verificar se tem configuração básica (Client ID e Secret)
+    if (!googleDriveIntegration.api_token || !googleDriveIntegration.password) {
+      return <Badge variant="outline">Configuração incompleta</Badge>;
+    }
     // Verificar se tem tokens de acesso
     if (googleDriveIntegration.webhook_url) {
       return <Badge variant="default" className="bg-green-600">Autorizado</Badge>;
     }
-    return <Badge variant="outline">Configurado - Não autorizado</Badge>;
+    return <Badge variant="outline">Configurado - Aguardando autorização</Badge>;
   };
 
   const getConnectionIcon = () => {
     if (!googleDriveIntegration || !googleDriveIntegration.is_active) {
+      return <XCircle className="h-5 w-5 text-red-500" />;
+    }
+    // Verificar se tem configuração básica
+    if (!googleDriveIntegration.api_token || !googleDriveIntegration.password) {
       return <XCircle className="h-5 w-5 text-red-500" />;
     }
     // Verificar se tem access token

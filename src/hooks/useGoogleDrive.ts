@@ -29,7 +29,13 @@ export const useGoogleDrive = () => {
     (integration) => integration.type === 'google_drive' && integration.is_active
   );
 
-  const isConnected = !!googleDriveIntegration;
+  // Check if integration has valid tokens (access token and optionally refresh token)
+  const isConnected = !!(
+    googleDriveIntegration && 
+    googleDriveIntegration.api_token && // Client ID
+    googleDriveIntegration.password && // Client Secret
+    googleDriveIntegration.webhook_url // Access Token
+  );
 
   // Fetch files from current folder
   const { data: files, isLoading, refetch } = useQuery({
