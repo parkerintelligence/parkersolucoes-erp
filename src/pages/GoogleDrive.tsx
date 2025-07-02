@@ -97,9 +97,23 @@ const GoogleDrive = () => {
                 <li>Complete a autorização no Google</li>
               </ol>
             </div>
-            <Button asChild>
-              <a href="/admin">Ir para Administração</a>
-            </Button>
+            
+            {/* Debug information */}
+            <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+              <strong>Status da Integração:</strong><br/>
+              Configurada: {files ? 'Sim' : 'Não'}<br/>
+              Client ID: {files?.length ? 'Presente' : 'Não encontrado'}<br/>
+              Access Token: Ausente (necessário autorizar)
+            </div>
+            
+            <div className="flex gap-2">
+              <Button asChild>
+                <a href="/admin">Ir para Administração</a>
+              </Button>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Recarregar Página
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

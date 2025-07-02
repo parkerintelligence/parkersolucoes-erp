@@ -363,7 +363,7 @@ export const GoogleDriveAdminConfig = () => {
     if (googleDriveIntegration.webhook_url) {
       return <Badge variant="default" className="bg-green-600">Autorizado</Badge>;
     }
-    return <Badge variant="outline">Configurado - Aguardando autorização</Badge>;
+    return <Badge variant="outline" className="bg-orange-500 text-white">Configurado - Aguardando autorização</Badge>;
   };
 
   const getConnectionIcon = () => {
@@ -451,6 +451,31 @@ export const GoogleDriveAdminConfig = () => {
             >
               <ExternalLink className="mr-2 h-4 w-4" />
               {googleDriveIntegration.webhook_url ? 'Re-autorizar Conta Google' : 'Autorizar Conta Google'}
+            </Button>
+          )}
+
+          {googleDriveIntegration && !googleDriveIntegration.webhook_url && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => {
+                console.log('🔍 Current integration status:', {
+                  id: googleDriveIntegration.id,
+                  hasApiToken: !!googleDriveIntegration.api_token,
+                  hasPassword: !!googleDriveIntegration.password,
+                  hasWebhookUrl: !!googleDriveIntegration.webhook_url,
+                  hasUsername: !!googleDriveIntegration.username,
+                  webhookUrl: googleDriveIntegration.webhook_url,
+                  username: googleDriveIntegration.username
+                });
+                
+                toast({
+                  title: "Status da Integração",
+                  description: `ID: ${googleDriveIntegration.id.substring(0, 8)}... | Token: ${googleDriveIntegration.webhook_url ? 'Presente' : 'Ausente'}`,
+                });
+              }}
+            >
+              🔍 Debug Status
             </Button>
           )}
         </div>
