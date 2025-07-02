@@ -5,7 +5,9 @@ import {
   HardDrive, 
   FileText, 
   Users, 
-  Settings
+  Settings,
+  Home,
+  Ticket
 } from 'lucide-react';
 import {
   Sidebar,

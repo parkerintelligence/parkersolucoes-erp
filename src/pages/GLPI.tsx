@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Settings, Plus, Loader2, Building2, AlertTriangle, FileText, Users } from 'lucide-react';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { GLPIDashboard } from '@/components/GLPIDashboard';
-import { GLPITicketsGrid } from '@/components/GLPITicketsGridModern';
+import { GLPITicketsGrid } from '@/components/GLPITicketsGrid';
 import { GLPIInventory } from '@/components/GLPIInventory';
 import { GLPIConnectionStatus } from '@/components/GLPIConnectionStatus';
 import { GLPISidebar } from '@/components/glpi/GLPISidebar';
