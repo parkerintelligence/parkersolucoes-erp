@@ -6,14 +6,6 @@ import { BarChart3, Users, DollarSign, FileText, Calendar, TrendingUp } from 'lu
 const Dashboard = () => {
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-          <BarChart3 className="h-6 w-6" />
-          Dashboard
-        </h1>
-        <p className="text-slate-600 text-sm">Visão geral do seu negócio</p>
-      </div>
 
       {/* Estatísticas principais */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">

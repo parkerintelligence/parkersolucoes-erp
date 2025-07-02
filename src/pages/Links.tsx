@@ -50,15 +50,6 @@ const Links = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-              <Link className="h-6 w-6" />
-              Links por Empresa
-            </h1>
-            <p className="text-slate-600 text-sm">Links gerados automaticamente do sistema de senhas</p>
-          </div>
-        </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

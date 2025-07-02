@@ -343,14 +343,7 @@ const Admin = () => {
   return (
     <Layout>
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-              <Settings className="h-6 w-6" />
-              Administração
-            </h1>
-            <p className="text-slate-600 text-sm">Configurações e gerenciamento do sistema</p>
-          </div>
+        <div className="flex justify-end">
           {activeSection !== 'overview' && (
             <Button 
               variant="outline" 

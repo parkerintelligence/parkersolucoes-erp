@@ -158,14 +158,7 @@ const Passwords = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-              <Lock className="h-6 w-6" />
-              Gerenciador de Senhas
-            </h1>
-            <p className="text-slate-600 text-sm">Cofre seguro para senhas organizadas por empresa</p>
-          </div>
+        <div className="flex justify-end">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-blue-600 hover:bg-blue-700">

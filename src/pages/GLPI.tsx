@@ -68,15 +68,6 @@ const GLPI = () => {
     return (
       <Layout>
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-                <Headphones className="h-6 w-6" />
-                GLPI
-              </h1>
-              <p className="text-slate-600 text-sm">Gestão integrada de TI</p>
-            </div>
-          </div>
 
           <Card className="border-blue-200">
             <CardContent className="p-8 text-center">
@@ -99,152 +90,143 @@ const GLPI = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-              <Headphones className="h-6 w-6" />
-              GLPI
-            </h1>
-            <p className="text-slate-600 text-sm">Gestão integrada de TI</p>
-          </div>
-          <div className="flex gap-2">
-            {!hasValidSession && (
-              <Button variant="outline" onClick={() => initSession.mutate()}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Iniciar Sessão
+        <div className="flex justify-end gap-2">
+          {!hasValidSession && (
+            <Button variant="outline" onClick={() => initSession.mutate()}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Iniciar Sessão
+            </Button>
+          )}
+          <Dialog open={isCreatingTicket} onOpenChange={setIsCreatingTicket}>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Chamado
               </Button>
-            )}
-            <Dialog open={isCreatingTicket} onOpenChange={setIsCreatingTicket}>
-              <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Novo Chamado
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Criar Novo Chamado</DialogTitle>
-                  <DialogDescription>
-                    Preencha os dados para criar um novo chamado no GLPI
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="ticket-name">Título do Chamado</Label>
-                    <Input
-                      id="ticket-name"
-                      value={newTicket.name}
-                      onChange={(e) => setNewTicket({ ...newTicket, name: e.target.value })}
-                      placeholder="Descreva brevemente o problema"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="ticket-content">Descrição</Label>
-                    <Textarea
-                      id="ticket-content"
-                      value={newTicket.content}
-                      onChange={(e) => setNewTicket({ ...newTicket, content: e.target.value })}
-                      placeholder="Descreva detalhadamente o problema"
-                      rows={4}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="ticket-entity">Entidade</Label>
-                    <Select 
-                      value={newTicket.entities_id.toString()} 
-                      onValueChange={(value) => setNewTicket({ ...newTicket, entities_id: parseInt(value) })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma entidade">
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Criar Novo Chamado</DialogTitle>
+                <DialogDescription>
+                  Preencha os dados para criar um novo chamado no GLPI
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="ticket-name">Título do Chamado</Label>
+                  <Input
+                    id="ticket-name"
+                    value={newTicket.name}
+                    onChange={(e) => setNewTicket({ ...newTicket, name: e.target.value })}
+                    placeholder="Descreva brevemente o problema"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="ticket-content">Descrição</Label>
+                  <Textarea
+                    id="ticket-content"
+                    value={newTicket.content}
+                    onChange={(e) => setNewTicket({ ...newTicket, content: e.target.value })}
+                    placeholder="Descreva detalhadamente o problema"
+                    rows={4}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="ticket-entity">Entidade</Label>
+                  <Select 
+                    value={newTicket.entities_id.toString()} 
+                    onValueChange={(value) => setNewTicket({ ...newTicket, entities_id: parseInt(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma entidade">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4" />
+                          {newTicket.entities_id > 0 
+                            ? entities.data?.find(e => e.id === newTicket.entities_id)?.name 
+                            : "Selecione uma entidade"
+                          }
+                        </div>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {entities.data?.map((entity) => (
+                        <SelectItem key={entity.id} value={entity.id.toString()}>
                           <div className="flex items-center gap-2">
                             <Building2 className="h-4 w-4" />
-                            {newTicket.entities_id > 0 
-                              ? entities.data?.find(e => e.id === newTicket.entities_id)?.name 
-                              : "Selecione uma entidade"
-                            }
+                            {entity.name}
                           </div>
-                        </SelectValue>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="priority">Prioridade</Label>
+                    <Select value={newTicket.priority.toString()} onValueChange={(value) => setNewTicket({ ...newTicket, priority: parseInt(value) })}>
+                      <SelectTrigger>
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {entities.data?.map((entity) => (
-                          <SelectItem key={entity.id} value={entity.id.toString()}>
-                            <div className="flex items-center gap-2">
-                              <Building2 className="h-4 w-4" />
-                              {entity.name}
-                            </div>
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="1">Muito Baixa</SelectItem>
+                        <SelectItem value="2">Baixa</SelectItem>
+                        <SelectItem value="3">Média</SelectItem>
+                        <SelectItem value="4">Alta</SelectItem>
+                        <SelectItem value="5">Muito Alta</SelectItem>
+                        <SelectItem value="6">Crítica</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="priority">Prioridade</Label>
-                      <Select value={newTicket.priority.toString()} onValueChange={(value) => setNewTicket({ ...newTicket, priority: parseInt(value) })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">Muito Baixa</SelectItem>
-                          <SelectItem value="2">Baixa</SelectItem>
-                          <SelectItem value="3">Média</SelectItem>
-                          <SelectItem value="4">Alta</SelectItem>
-                          <SelectItem value="5">Muito Alta</SelectItem>
-                          <SelectItem value="6">Crítica</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="urgency">Urgência</Label>
-                      <Select value={newTicket.urgency.toString()} onValueChange={(value) => setNewTicket({ ...newTicket, urgency: parseInt(value) })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">Muito Baixa</SelectItem>
-                          <SelectItem value="2">Baixa</SelectItem>
-                          <SelectItem value="3">Média</SelectItem>
-                          <SelectItem value="4">Alta</SelectItem>
-                          <SelectItem value="5">Muito Alta</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="impact">Impacto</Label>
-                      <Select value={newTicket.impact.toString()} onValueChange={(value) => setNewTicket({ ...newTicket, impact: parseInt(value) })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">Muito Baixo</SelectItem>
-                          <SelectItem value="2">Baixo</SelectItem>
-                          <SelectItem value="3">Médio</SelectItem>
-                          <SelectItem value="4">Alto</SelectItem>
-                          <SelectItem value="5">Muito Alto</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div>
+                    <Label htmlFor="urgency">Urgência</Label>
+                    <Select value={newTicket.urgency.toString()} onValueChange={(value) => setNewTicket({ ...newTicket, urgency: parseInt(value) })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Muito Baixa</SelectItem>
+                        <SelectItem value="2">Baixa</SelectItem>
+                        <SelectItem value="3">Média</SelectItem>
+                        <SelectItem value="4">Alta</SelectItem>
+                        <SelectItem value="5">Muito Alta</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="flex gap-2 pt-4">
-                    <Button 
-                      onClick={handleCreateTicket} 
-                      disabled={createTicket.isPending || !newTicket.name || !newTicket.content || !newTicket.entities_id}
-                    >
-                      {createTicket.isPending ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Plus className="mr-2 h-4 w-4" />
-                      )}
-                      Criar Chamado
-                    </Button>
-                    <Button variant="outline" onClick={() => setIsCreatingTicket(false)}>
-                      Cancelar
-                    </Button>
+                  <div>
+                    <Label htmlFor="impact">Impacto</Label>
+                    <Select value={newTicket.impact.toString()} onValueChange={(value) => setNewTicket({ ...newTicket, impact: parseInt(value) })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Muito Baixo</SelectItem>
+                        <SelectItem value="2">Baixo</SelectItem>
+                        <SelectItem value="3">Médio</SelectItem>
+                        <SelectItem value="4">Alto</SelectItem>
+                        <SelectItem value="5">Muito Alto</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+                <div className="flex gap-2 pt-4">
+                  <Button 
+                    onClick={handleCreateTicket} 
+                    disabled={createTicket.isPending || !newTicket.name || !newTicket.content || !newTicket.entities_id}
+                  >
+                    {createTicket.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="mr-2 h-4 w-4" />
+                    )}
+                    Criar Chamado
+                  </Button>
+                  <Button variant="outline" onClick={() => setIsCreatingTicket(false)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Status da Conexão */}

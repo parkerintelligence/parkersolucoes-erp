@@ -54,15 +54,6 @@ const Backups = () => {
     return (
       <Layout>
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-                <HardDrive className="h-6 w-6" />
-                Backups FTP
-              </h1>
-              <p className="text-slate-600 text-sm">Gerencie seus backups via FTP</p>
-            </div>
-          </div>
 
           <Alert>
             <Settings className="h-4 w-4" />
@@ -109,14 +100,7 @@ const Backups = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-              <HardDrive className="h-6 w-6" />
-              Backups FTP
-            </h1>
-            <p className="text-slate-600 text-sm">Gerencie seus backups via FTP - Arquivos ordenados por data (mais antigos primeiro)</p>
-          </div>
+        <div className="flex justify-end">
           <Button onClick={() => refetchFiles()} disabled={isLoadingFiles} className="bg-blue-600 hover:bg-blue-700">
             <RefreshCw className={`mr-2 h-4 w-4 ${isLoadingFiles ? 'animate-spin' : ''}`} />
             Atualizar

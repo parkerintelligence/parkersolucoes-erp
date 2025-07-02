@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,21 +20,14 @@ const Companies = () => {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-            <Building2 className="h-6 w-6" />
-            Empresas
-          </h1>
-          <p className="text-slate-600 text-sm">Gerencie suas empresas clientes</p>
+    <Layout>
+      <div className="space-y-6">
+        <div className="flex justify-end">
+          <Button className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Empresa
+          </Button>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Empresa
-        </Button>
-      </div>
 
       {/* Estatísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
@@ -163,7 +157,8 @@ const Companies = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </Layout>
   );
 };
 
