@@ -242,8 +242,7 @@ const Financial = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-export default Financial;
+  export default Financial;

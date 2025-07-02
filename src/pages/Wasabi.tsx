@@ -94,9 +94,8 @@ const Wasabi = () => {
       </div>
     );
   }
-
-  if (bucketsError) {
-    return (
+  
+  return (
       <div className="space-y-6">
           <Card className="border-red-200 bg-red-50 max-w-2xl mx-auto">
             <CardContent className="p-8 text-center">
@@ -124,8 +123,6 @@ const Wasabi = () => {
       </div>
     );
   }
-
-  return (
     <div className="space-y-6">
         <div className="flex justify-end gap-2">
           <WasabiCreateBucketDialog
@@ -324,6 +321,7 @@ const Wasabi = () => {
             )}
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   );

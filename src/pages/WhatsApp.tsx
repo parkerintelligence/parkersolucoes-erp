@@ -236,8 +236,7 @@ const WhatsApp = () => {
           </Card>
         )}
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-export default WhatsApp;
+  export default WhatsApp;

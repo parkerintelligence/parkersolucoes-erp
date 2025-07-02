@@ -82,57 +82,55 @@ const Monitoring = () => {
   if (!isAuthenticated) {
     return (
       <div className="space-y-6">
-
-          <div className="max-w-md mx-auto">
-            <Card className="border-blue-200">
-              <CardHeader>
-                <CardTitle className="text-blue-900 text-center">Login do Grafana</CardTitle>
-                <CardDescription className="text-center">
-                  Entre com suas credenciais para acessar os dashboards
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Usuário</Label>
+        <div className="max-w-md mx-auto">
+          <Card className="border-blue-200">
+            <CardHeader>
+              <CardTitle className="text-blue-900 text-center">Login do Grafana</CardTitle>
+              <CardDescription className="text-center">
+                Entre com suas credenciais para acessar os dashboards
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username">Usuário</Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    value={credentials.username}
+                    onChange={(e) => setCredentials({...credentials, username: e.target.value})}
+                    placeholder="Digite seu usuário"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Senha</Label>
+                  <div className="relative">
                     <Input
-                      id="username"
-                      type="text"
-                      value={credentials.username}
-                      onChange={(e) => setCredentials({...credentials, username: e.target.value})}
-                      placeholder="Digite seu usuário"
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={credentials.password}
+                      onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+                      placeholder="Digite sua senha"
                       required
                     />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Senha</Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        value={credentials.password}
-                        onChange={(e) => setCredentials({...credentials, password: e.target.value})}
-                        placeholder="Digite sua senha"
-                        required
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </div>
-                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-                    Fazer Login
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
+                </div>
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
+                  Fazer Login
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -228,8 +226,7 @@ const Monitoring = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
+    );
 };
 
 export default Monitoring;

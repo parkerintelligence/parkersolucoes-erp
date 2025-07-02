@@ -230,8 +230,7 @@ const Documents = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-export default Documents;
+  export default Documents;
