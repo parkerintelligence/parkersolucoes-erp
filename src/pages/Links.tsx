@@ -23,7 +23,7 @@ const Links = () => {
     const matchesSearch = link.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          company?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          link.notes?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCompany = selectedCompany === '' || link.company_id === selectedCompany;
+    const matchesCompany = selectedCompany === '' || selectedCompany === 'all' || link.company_id === selectedCompany;
     return matchesSearch && matchesCompany;
   });
 
@@ -117,7 +117,7 @@ const Links = () => {
                   <SelectValue placeholder="Filtrar por empresa" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas as empresas</SelectItem>
+                  <SelectItem value="all">Todas as empresas</SelectItem>
                   {companies.map((company) => (
                     <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
                   ))}

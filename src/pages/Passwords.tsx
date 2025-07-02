@@ -48,7 +48,7 @@ const Passwords = () => {
     const matchesSearch = password.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          password.username?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCompany = selectedCompany === '' || password.company_id === selectedCompany;
+    const matchesCompany = selectedCompany === '' || selectedCompany === 'all' || password.company_id === selectedCompany;
     return matchesSearch && matchesCompany;
   });
 
@@ -330,7 +330,7 @@ const Passwords = () => {
                   <SelectValue placeholder="Filtrar por empresa" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas as empresas</SelectItem>
+                  <SelectItem value="all">Todas as empresas</SelectItem>
                   {companies.map((company) => (
                     <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
                   ))}
