@@ -7,7 +7,7 @@ import AdminApiPanel from '@/components/AdminApiPanel';
 import { AdminCompaniesPanel } from '@/components/AdminCompaniesPanel';
 import { GLPIConfig } from '@/components/GLPIConfig';
 import { ZabbixAdminConfig } from '@/components/ZabbixAdminConfig';
-import { MikrotikAdminConfig } from '@/components/MikrotikAdminConfig';
+
 import { ChatwootAdminConfig } from '@/components/ChatwootAdminConfig';
 import { EvolutionAPIAdminConfig } from '@/components/EvolutionAPIAdminConfig';
 import { GrafanaAdminConfig } from '@/components/GrafanaAdminConfig';
@@ -64,23 +64,6 @@ const Admin = () => {
             </CardHeader>
             <CardContent>
               <ZabbixAdminConfig />
-            </CardContent>
-          </Card>
-        );
-      case 'mikrotik':
-        return (
-          <Card className="border-blue-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
-                <Router className="h-5 w-5" />
-                Configuração Mikrotik
-              </CardTitle>
-              <CardDescription>
-                Configure a integração com RouterOS para gerenciamento de rede
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <MikrotikAdminConfig />
             </CardContent>
           </Card>
         );
@@ -263,19 +246,6 @@ const Admin = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-yellow-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('mikrotik')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-yellow-100 p-3 rounded-lg">
-                        <Router className="h-6 w-6 text-yellow-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-yellow-900">Mikrotik</h3>
-                        <p className="text-sm text-yellow-600">Gerenciamento RouterOS</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
 
                 <Card className="border-blue-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('chatwoot')}>
                   <CardContent className="p-4">
