@@ -123,71 +123,80 @@ export const RecurringScheduleDialog = ({ isOpen, onOpenChange, editingSchedule 
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="name">Nome do Agendamento *</Label>
-            <Input
-              id="name"
-              placeholder="Ex: Backup diário do sistema"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            />
+        <div className="grid gap-3 py-4">
+          {/* Linha 1 - Nome e Cliente */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1">
+              <Label htmlFor="name" className="text-sm font-medium">Nome do Agendamento *</Label>
+              <Input
+                id="name"
+                placeholder="Ex: Backup diário"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="h-8"
+              />
+            </div>
+
+            <div className="grid gap-1">
+              <Label htmlFor="client" className="text-sm font-medium">Cliente</Label>
+              <Select value={formData.client_id} onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value }))}>
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder="Selecione o cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies.map((company) => (
+                    <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="client">Cliente</Label>
-            <Select value={formData.client_id} onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {companies.map((company) => (
-                  <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Linha 2 - Sistema/Serviço e Local */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1">
+              <Label htmlFor="system" className="text-sm font-medium">Sistema/Serviço *</Label>
+              <Select value={formData.system_name} onValueChange={(value) => setFormData(prev => ({ ...prev, system_name: value }))}>
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder="Selecione um sistema/serviço" />
+                </SelectTrigger>
+                <SelectContent>
+                  {services.map((service) => (
+                    <SelectItem key={service.id} value={service.name}>
+                      <div className="flex items-center gap-2">
+                        <span className="capitalize">{service.category}</span>
+                        <span>-</span>
+                        <span>{service.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {services.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Nenhum sistema/serviço cadastrado.
+                </p>
+              )}
+            </div>
+
+            <div className="grid gap-1">
+              <Label htmlFor="location" className="text-sm font-medium">Local</Label>
+              <Input
+                id="location"
+                placeholder="Ex: Servidor principal"
+                value={formData.location}
+                onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                className="h-8"
+              />
+            </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="system">Sistema/Serviço *</Label>
-            <Select value={formData.system_name} onValueChange={(value) => setFormData(prev => ({ ...prev, system_name: value }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um sistema/serviço" />
-              </SelectTrigger>
-              <SelectContent>
-                {services.map((service) => (
-                  <SelectItem key={service.id} value={service.name}>
-                    <div className="flex items-center gap-2">
-                      <span className="capitalize">{service.category}</span>
-                      <span>-</span>
-                      <span>{service.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {services.length === 0 && (
-              <p className="text-xs text-muted-foreground">
-                Nenhum sistema/serviço cadastrado. Use o botão "Gerenciar Sistemas/Serviços" para criar.
-              </p>
-            )}
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="location">Local</Label>
-            <Input
-              id="location"
-              placeholder="Ex: Servidor principal, Sala de TI, etc."
-              value={formData.location}
-              onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="hour">Hora</Label>
+          {/* Linha 3 - Horário */}
+          <div className="grid grid-cols-4 gap-3">
+            <div className="grid gap-1">
+              <Label htmlFor="hour" className="text-sm font-medium">Hora</Label>
               <Select value={formData.time_hour.toString()} onValueChange={(value) => setFormData(prev => ({ ...prev, time_hour: parseInt(value) }))}>
-                <SelectTrigger>
+                <SelectTrigger className="h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -200,10 +209,10 @@ export const RecurringScheduleDialog = ({ isOpen, onOpenChange, editingSchedule 
               </Select>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="minute">Minutos</Label>
+            <div className="grid gap-1">
+              <Label htmlFor="minute" className="text-sm font-medium">Minutos</Label>
               <Select value={formData.time_minute.toString()} onValueChange={(value) => setFormData(prev => ({ ...prev, time_minute: parseInt(value) }))}>
-                <SelectTrigger>
+                <SelectTrigger className="h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -215,41 +224,47 @@ export const RecurringScheduleDialog = ({ isOpen, onOpenChange, editingSchedule 
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="col-span-2 flex items-end">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="is_active"
+                  checked={formData.is_active}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked as boolean }))}
+                />
+                <Label htmlFor="is_active" className="text-sm">Ativo</Label>
+              </div>
+            </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label>Dias da Semana *</Label>
-            <div className="grid grid-cols-2 gap-2">
+          {/* Linha 4 - Dias da Semana */}
+          <div className="grid gap-1">
+            <Label className="text-sm font-medium">Dias da Semana *</Label>
+            <div className="grid grid-cols-4 gap-1">
               {DAYS_OF_WEEK.map((day) => (
-                <div key={day.value} className="flex items-center space-x-2">
+                <div key={day.value} className="flex items-center space-x-1">
                   <Checkbox
                     id={`day-${day.value}`}
                     checked={formData.days_of_week.includes(day.value)}
                     onCheckedChange={(checked) => handleDayToggle(day.value, checked as boolean)}
                   />
-                  <Label htmlFor={`day-${day.value}`} className="text-sm">{day.label}</Label>
+                  <Label htmlFor={`day-${day.value}`} className="text-xs">{day.label}</Label>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="description">Descrição</Label>
+          {/* Linha 5 - Descrição */}
+          <div className="grid gap-1">
+            <Label htmlFor="description" className="text-sm font-medium">Descrição</Label>
             <Textarea
               id="description"
-              placeholder="Detalhes adicionais sobre o agendamento"
+              placeholder="Detalhes adicionais"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              rows={2}
+              className="text-sm"
             />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="is_active"
-              checked={formData.is_active}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked as boolean }))}
-            />
-            <Label htmlFor="is_active">Agendamento ativo</Label>
           </div>
 
           {/* Preview */}

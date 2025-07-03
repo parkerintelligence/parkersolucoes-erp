@@ -142,8 +142,13 @@ export const WhatsAppScheduleDialog = ({ open, onOpenChange, scheduleItem }: Wha
         throw new Error('Integração não encontrada');
       }
 
-      // Simulação da chamada para Evolution API
-      // Em produção, isso seria uma chamada real para a API
+      console.log('Enviando mensagem via Evolution API:', {
+        url: `${integration.base_url}/message/sendText/${integration.phone_number}`,
+        phoneNumber: phoneNumber,
+        messageLength: message.length,
+        integration: integration.name
+      });
+
       const response = await fetch(`${integration.base_url}/message/sendText/${integration.phone_number}`, {
         method: 'POST',
         headers: {
@@ -151,9 +156,15 @@ export const WhatsAppScheduleDialog = ({ open, onOpenChange, scheduleItem }: Wha
           'apikey': integration.api_token || '',
         },
         body: JSON.stringify({
-          number: phoneNumber.replace(/\D/g, ''), // Remove caracteres não numéricos
+          number: phoneNumber,
           text: message,
         }),
+      });
+
+      console.log('Resposta da Evolution API:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
       });
 
       if (response.ok) {
@@ -180,13 +191,6 @@ export const WhatsAppScheduleDialog = ({ open, onOpenChange, scheduleItem }: Wha
     }
   };
 
-  const formatPhoneNumber = (value: string) => {
-    const numbers = value.replace(/\D/g, '');
-    if (numbers.length <= 11) {
-      return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-    }
-    return numbers.slice(0, 11).replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -235,12 +239,15 @@ export const WhatsAppScheduleDialog = ({ open, onOpenChange, scheduleItem }: Wha
               <Input
                 id="phone"
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(formatPhoneNumber(e.target.value))}
-                placeholder="(11) 99999-9999"
+                onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                placeholder="5511999999999"
                 className="pl-8"
-                maxLength={15}
+                maxLength={13}
               />
             </div>
+            <p className="text-xs text-muted-foreground">
+              Digite apenas números (ex: 5511999999999)
+            </p>
           </div>
 
           {/* Modelo de mensagem */}

@@ -12,6 +12,7 @@ import { ScheduleDialog } from './ScheduleDialog';
 import { toast } from '@/hooks/use-toast';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { WhatsAppScheduleDialog } from './WhatsAppScheduleDialog';
+import { GLPITicketConfirmDialog } from './GLPITicketConfirmDialog';
 
 interface ScheduleItem {
   id: string;
@@ -36,22 +37,14 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
+  const [showGLPIDialog, setShowGLPIDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ScheduleItem | null>(null);
 
   const { createTicket } = useGLPIExpanded();
 
   const handleOpenGLPITicket = (item: ScheduleItem) => {
-    const ticketData = {
-      name: `Agendamento: ${item.title}`,
-      content: `Empresa: ${item.company}\nTipo: ${item.type}\nVencimento: ${format(new Date(item.due_date), 'dd/MM/yyyy', { locale: ptBR })}\nDescrição: ${item.description || 'N/A'}`,
-      urgency: getDaysUntilDue(item.due_date) <= 7 ? 5 : 3,
-      impact: 3,
-      priority: getDaysUntilDue(item.due_date) <= 7 ? 5 : 3,
-      status: 1, // Novo
-      type: 1, // Incidente
-    };
-
-    createTicket.mutate(ticketData);
+    setSelectedItem(item);
+    setShowGLPIDialog(true);
   };
 
   const handleWhatsAppShare = (item: ScheduleItem) => {
@@ -261,6 +254,15 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
         <WhatsAppScheduleDialog
           open={showWhatsAppDialog}
           onOpenChange={setShowWhatsAppDialog}
+          scheduleItem={selectedItem}
+        />
+      )}
+
+      {/* Dialog para GLPI */}
+      {selectedItem && (
+        <GLPITicketConfirmDialog
+          open={showGLPIDialog}
+          onOpenChange={setShowGLPIDialog}
           scheduleItem={selectedItem}
         />
       )}
