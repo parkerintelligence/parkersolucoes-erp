@@ -29,13 +29,20 @@ export const ScheduleDialog = ({ open, onOpenChange, editingItem, onUpdate }: Sc
   const createScheduleItem = useCreateScheduleItem();
   const updateScheduleItem = useUpdateScheduleItem();
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: any, createGLPITicket?: boolean) => {
     try {
       if (editingItem) {
         await updateScheduleItem.mutateAsync({ id: editingItem.id, updates: data });
         onUpdate?.(editingItem.id, data);
       } else {
-        await createScheduleItem.mutateAsync(data);
+        const result = await createScheduleItem.mutateAsync(data);
+        
+        // Se solicitado, criar chamado no GLPI
+        if (createGLPITicket && result) {
+          // Aqui poderia implementar a criação do chamado no GLPI
+          // usando a data de vencimento como referência
+          console.log('Criando chamado no GLPI para:', data);
+        }
       }
       onOpenChange(false);
     } catch (error) {

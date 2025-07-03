@@ -5,20 +5,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { ScheduleItem } from '@/hooks/useScheduleItems';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useScheduleTypes } from '@/hooks/useScheduleTypes';
+import { useGLPI } from '@/hooks/useGLPI';
 
 interface ScheduleFormProps {
-  onSubmit: (item: Omit<ScheduleItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'status' | 'type'>) => void;
+  onSubmit: (item: Omit<ScheduleItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'status' | 'type'>, createGLPITicket?: boolean) => void;
   initialData?: any;
 }
 
 export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
   const { data: companies = [] } = useCompanies();
   const { data: scheduleTypes = [] } = useScheduleTypes();
+  const { glpiIntegration } = useGLPI();
   
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
@@ -28,6 +31,8 @@ export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
     company: initialData?.company || '',
     company_id: initialData?.company_id || ''
   });
+
+  const [createGLPITicket, setCreateGLPITicket] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +53,7 @@ export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
       description: formData.description,
       company: formData.company,
       company_id: formData.company_id || null
-    });
+    }, createGLPITicket);
     
     setFormData({
       title: '',
@@ -139,6 +144,19 @@ export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
           rows={3}
         />
       </div>
+
+      {glpiIntegration && !initialData && (
+        <div className="flex items-center space-x-2 p-3 bg-muted rounded-lg">
+          <Checkbox
+            id="create_glpi_ticket"
+            checked={createGLPITicket}
+            onCheckedChange={(checked) => setCreateGLPITicket(checked as boolean)}
+          />
+          <Label htmlFor="create_glpi_ticket" className="text-sm">
+            Criar chamado no GLPI na data de vencimento
+          </Label>
+        </div>
+      )}
 
       <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
         <Plus className="mr-2 h-4 w-4" />

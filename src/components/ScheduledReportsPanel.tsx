@@ -74,12 +74,15 @@ const ScheduledReportsPanel = () => {
 
   // Buscar tipos de relatório únicos dos templates ativos
   const availableReportTypes = useMemo(() => {
+    console.log('Templates disponíveis:', templates);
     const activeTemplates = templates.filter(template => template.is_active);
+    console.log('Templates ativos:', activeTemplates);
     const uniqueTypes = [...new Set(activeTemplates.map(template => template.template_type))];
+    console.log('Tipos únicos encontrados:', uniqueTypes);
     
     return uniqueTypes.map(type => ({
       value: type,
-      ...reportTypes[type],
+      ...reportTypes[type as keyof typeof reportTypes],
       template: activeTemplates.find(t => t.template_type === type)
     }));
   }, [templates]);
