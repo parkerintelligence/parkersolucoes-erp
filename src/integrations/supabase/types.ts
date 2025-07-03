@@ -616,6 +616,54 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_reports: {
+        Row: {
+          created_at: string
+          cron_expression: string
+          execution_count: number
+          id: string
+          is_active: boolean
+          last_execution: string | null
+          name: string
+          next_execution: string | null
+          phone_number: string
+          report_type: string
+          settings: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cron_expression: string
+          execution_count?: number
+          id?: string
+          is_active?: boolean
+          last_execution?: string | null
+          name: string
+          next_execution?: string | null
+          phone_number: string
+          report_type: string
+          settings?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cron_expression?: string
+          execution_count?: number
+          id?: string
+          is_active?: boolean
+          last_execution?: string | null
+          name?: string
+          next_execution?: string | null
+          phone_number?: string
+          report_type?: string
+          settings?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           category: string | null
@@ -770,6 +818,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_next_execution: {
+        Args: { cron_expr: string; from_time?: string }
+        Returns: string
+      }
       get_schedule_type_name: {
         Args: { schedule_type_id_param: string }
         Returns: string

@@ -12,11 +12,12 @@ import { FtpAdminConfig } from '@/components/FtpAdminConfig';
 import { WasabiAdminConfig } from '@/components/WasabiAdminConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SystemSettingsPanel from '@/components/SystemSettingsPanel';
+import ScheduledReportsPanel from '@/components/ScheduledReportsPanel';
 
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Settings, Users, Database, Key, Building, Activity, DollarSign, MessageCircle, HardDrive, Monitor, Headphones, Router, BarChart3, FileText, MessageSquare, Wifi, Cloud } from 'lucide-react';
+import { Settings, Users, Database, Key, Building, Activity, DollarSign, MessageCircle, HardDrive, Monitor, Headphones, Router, BarChart3, FileText, MessageSquare, Wifi, Cloud, Clock } from 'lucide-react';
 
 const Admin = () => {
   const { isMaster } = useAuth();
@@ -28,6 +29,8 @@ const Admin = () => {
 
   const renderContent = () => {
     switch (activeSection) {
+      case 'scheduled_reports':
+        return <ScheduledReportsPanel />;
       case 'settings':
         return <SystemSettingsPanel />;
       case 'integrations':
@@ -336,6 +339,20 @@ const Admin = () => {
                   </CardContent>
                 </Card>
 
+                <Card className="border-indigo-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('scheduled_reports')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-indigo-100 p-3 rounded-lg">
+                        <Clock className="h-6 w-6 text-indigo-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-indigo-900">Relatórios Agendados</h3>
+                        <p className="text-sm text-indigo-600">Automação de relatórios via WhatsApp</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <Card className="border-yellow-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('settings')}>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
@@ -431,6 +448,7 @@ const Admin = () => {
             {activeSection === 'companies' && 'Empresas'}
             {activeSection === 'users' && 'Usuários'}
             {activeSection === 'glpi' && 'GLPI'}
+            {activeSection === 'scheduled_reports' && 'Relatórios Agendados'}
             {activeSection === 'settings' && 'Configurações'}
             {activeSection === 'chatwoot' && 'Chatwoot'}
             {activeSection === 'evolution_api' && 'Evolution API'}
