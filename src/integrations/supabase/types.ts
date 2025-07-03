@@ -428,6 +428,62 @@ export type Database = {
           },
         ]
       }
+      recurring_schedules: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          days_of_week: number[]
+          description: string | null
+          id: string
+          is_active: boolean | null
+          location: string | null
+          name: string
+          system_name: string
+          time_hour: number
+          time_minute: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          days_of_week: number[]
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          name: string
+          system_name: string
+          time_hour: number
+          time_minute?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          days_of_week?: number[]
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          name?: string
+          system_name?: string
+          time_hour?: number
+          time_minute?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_recurring_schedules_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schedule_items: {
         Row: {
           company: string
