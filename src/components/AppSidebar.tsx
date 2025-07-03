@@ -16,6 +16,7 @@ import {
   Wifi,
   DollarSign,
   Cloud,
+  Notebook,
 } from 'lucide-react';
 
 import {
@@ -36,6 +37,7 @@ const menuItems = [
   { title: 'GLPI', url: '/glpi', icon: Headphones, role: 'user' },
   { title: 'Backups FTP', url: '/backups', icon: HardDrive, role: 'user' },
   { title: 'Senhas', url: '/passwords', icon: Lock, role: 'user' },
+  { title: 'Anotações', url: '/annotations', icon: Notebook, role: 'user' },
   { title: 'Links', url: '/links', icon: Link, role: 'user' },
   { title: 'Conversas WhatsApp', url: '/whatsapp-chats', icon: MessageCircle, role: 'user' },
   { title: 'Modelos WhatsApp', url: '/whatsapp-templates', icon: MessageCircle, role: 'user' },

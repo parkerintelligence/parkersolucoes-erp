@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Edit, Trash2, Calendar, Building, Search, ExternalLink, MessageCircle } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ScheduleDialog } from './ScheduleDialog';
@@ -37,19 +38,23 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
-  
+  const [showGLPIConfirm, setShowGLPIConfirm] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ScheduleItem | null>(null);
 
   const { createTicket } = useGLPIExpanded();
 
-  const handleOpenGLPITicket = async (item: ScheduleItem) => {
-    const confirmOpen = window.confirm('Deseja abrir um ticket?');
-    if (!confirmOpen) return;
+  const handleOpenGLPITicket = (item: ScheduleItem) => {
+    setSelectedItem(item);
+    setShowGLPIConfirm(true);
+  };
 
+  const confirmCreateTicket = async () => {
+    if (!selectedItem) return;
+    
     try {
       const ticketData = {
-        name: `${item.title} - ${item.type}`,
-        content: `Empresa: ${item.company}\nTipo: ${item.type}\nVencimento: ${format(new Date(item.due_date), 'dd/MM/yyyy', { locale: ptBR })}\nDescrição: ${item.description || 'N/A'}`,
+        name: `${selectedItem.title} - ${selectedItem.type}`,
+        content: `Empresa: ${selectedItem.company}\nTipo: ${selectedItem.type}\nVencimento: ${format(new Date(selectedItem.due_date), 'dd/MM/yyyy', { locale: ptBR })}\nDescrição: ${selectedItem.description || 'N/A'}`,
         urgency: 3,
         impact: 3,
         priority: 3,
@@ -62,6 +67,8 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
         title: "✅ Ticket criado com sucesso!",
         description: "O ticket foi criado no GLPI.",
       });
+      setShowGLPIConfirm(false);
+      setSelectedItem(null);
     } catch (error) {
       console.error('Erro ao criar ticket:', error);
       toast({
@@ -283,6 +290,26 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
         />
       )}
 
+      {/* Dialog de confirmação GLPI */}
+      <AlertDialog open={showGLPIConfirm} onOpenChange={setShowGLPIConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ExternalLink className="h-5 w-5 text-blue-600" />
+              Criar Ticket GLPI
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja criar um ticket no GLPI para o agendamento "{selectedItem?.title}" da empresa "{selectedItem?.company}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCreateTicket} className="bg-blue-600 hover:bg-blue-700">
+              Criar Ticket
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
