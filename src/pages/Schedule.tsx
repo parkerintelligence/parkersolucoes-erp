@@ -59,11 +59,11 @@ const Schedule = () => {
           <div className="flex justify-end gap-2">
             <Button onClick={() => setShowTypeDialog(true)} variant="outline">
               <Settings className="mr-2 h-4 w-4" />
-              Novo Tipo
+              Gerenciar Sistemas/Serviços
             </Button>
             <Button onClick={() => setShowScheduleDialog(true)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="mr-2 h-4 w-4" />
-              Nova Agenda
+              Novo Agendamento
             </Button>
           </div>
 

@@ -5,9 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Edit, Trash2, Calendar, Building, Search } from 'lucide-react';
+import { Edit, Trash2, Calendar, Building, Search, ExternalLink } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { ScheduleDialog } from './ScheduleDialog';
 
 interface ScheduleItem {
   id: string;
@@ -29,6 +30,18 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+
+  const handleOpenGLPITicket = (item: ScheduleItem) => {
+    // Implementar integração com GLPI aqui
+    console.log('Abrir chamado GLPI para:', item);
+  };
+
+  const handleEditItem = (item: ScheduleItem) => {
+    setEditingItem(item);
+    setShowEditDialog(true);
+  };
 
   const getDaysUntilDue = (dueDate: string) => {
     return differenceInDays(new Date(dueDate), new Date());
@@ -126,16 +139,19 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
               <TableHead>Empresa</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Vencimento</TableHead>
-              <TableHead>Status</TableHead>
               <TableHead>Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredItems.map((item) => {
               const daysUntil = getDaysUntilDue(item.due_date);
+              const isUrgent = daysUntil <= 7;
               
               return (
-                <TableRow key={item.id} className="hover:bg-blue-50">
+                <TableRow 
+                  key={item.id} 
+                  className={`hover:bg-blue-50 ${isUrgent ? 'bg-red-50 border-l-4 border-l-red-500' : ''}`}
+                >
                   <TableCell className="font-medium">{item.title}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -154,18 +170,24 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>{getStatusBadge(item.status, daysUntil)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <Button 
-                        variant="ghost" 
+                        variant="outline" 
                         size="sm"
-                        onClick={() => {
-                          const newStatus = item.status === 'completed' ? 'pending' : 'completed';
-                          onUpdate(item.id, { status: newStatus });
-                        }}
+                        onClick={() => handleEditItem(item)}
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-4 w-4 mr-1" />
+                        Editar
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleOpenGLPITicket(item)}
+                        className="text-blue-600 hover:text-blue-700"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        GLPI
                       </Button>
                       <Button 
                         variant="ghost" 
@@ -190,6 +212,16 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
           </div>
         )}
       </CardContent>
+
+      {/* Dialog para edição */}
+      {editingItem && (
+        <ScheduleDialog 
+          open={showEditDialog} 
+          onOpenChange={setShowEditDialog}
+          editingItem={editingItem}
+          onUpdate={onUpdate}
+        />
+      )}
     </Card>
   );
 };

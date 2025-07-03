@@ -13,19 +13,20 @@ import { useScheduleTypes } from '@/hooks/useScheduleTypes';
 
 interface ScheduleFormProps {
   onSubmit: (item: Omit<ScheduleItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'status' | 'type'>) => void;
+  initialData?: any;
 }
 
-export const ScheduleForm = ({ onSubmit }: ScheduleFormProps) => {
+export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
   const { data: companies = [] } = useCompanies();
   const { data: scheduleTypes = [] } = useScheduleTypes();
   
   const [formData, setFormData] = useState({
-    title: '',
-    schedule_type_id: '',
-    due_date: '',
-    description: '',
-    company: '',
-    company_id: ''
+    title: initialData?.title || '',
+    schedule_type_id: initialData?.schedule_type_id || '',
+    due_date: initialData?.due_date || '',
+    description: initialData?.description || '',
+    company: initialData?.company || '',
+    company_id: initialData?.company_id || ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -141,7 +142,7 @@ export const ScheduleForm = ({ onSubmit }: ScheduleFormProps) => {
 
       <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
         <Plus className="mr-2 h-4 w-4" />
-        Adicionar Agendamento
+        {initialData ? 'Atualizar Agendamento' : 'Adicionar Agendamento'}
       </Button>
     </form>
   );
