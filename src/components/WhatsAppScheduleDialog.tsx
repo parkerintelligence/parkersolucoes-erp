@@ -143,15 +143,18 @@ export const WhatsAppScheduleDialog = ({ open, onOpenChange, scheduleItem }: Wha
       }
 
       const integrationAny = integration as any;
+      const instanceName = integrationAny.instance_name || 'main_instance';
+      
       console.log('Enviando mensagem via Evolution API:', {
-        url: `${integration.base_url}/message/sendText/${integrationAny.instance_name}`,
+        url: `${integration.base_url}/message/sendText/${instanceName}`,
         phoneNumber: phoneNumber,
         messageLength: message.length,
         integration: integration.name,
-        instance: integrationAny.instance_name
+        instance: instanceName,
+        apiToken: integration.api_token ? '***masked***' : 'missing'
       });
 
-      const response = await fetch(`${integration.base_url}/message/sendText/${integrationAny.instance_name}`, {
+      const response = await fetch(`${integration.base_url}/message/sendText/${instanceName}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
