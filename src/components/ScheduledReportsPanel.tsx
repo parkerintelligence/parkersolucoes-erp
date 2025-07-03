@@ -72,18 +72,20 @@ const ScheduledReportsPanel = () => {
     }
   };
 
-  // Buscar tipos de relatório únicos dos templates ativos
+  // Buscar templates ativos disponíveis
   const availableReportTypes = useMemo(() => {
-    console.log('Templates disponíveis:', templates);
+    console.log('Templates carregados:', templates);
     const activeTemplates = templates.filter(template => template.is_active);
-    console.log('Templates ativos:', activeTemplates);
-    const uniqueTypes = [...new Set(activeTemplates.map(template => template.template_type))];
-    console.log('Tipos únicos encontrados:', uniqueTypes);
+    console.log('Templates ativos filtrados:', activeTemplates);
     
-    return uniqueTypes.map(type => ({
-      value: type,
-      ...reportTypes[type as keyof typeof reportTypes],
-      template: activeTemplates.find(t => t.template_type === type)
+    // Mapear templates para opções de tipo de relatório
+    return activeTemplates.map(template => ({
+      value: template.template_type,
+      name: template.name,
+      description: `Template: ${template.name}`,
+      icon: reportTypes[template.template_type as keyof typeof reportTypes]?.icon || reportTypes.backup_alert.icon,
+      color: reportTypes[template.template_type as keyof typeof reportTypes]?.color || reportTypes.backup_alert.color,
+      template: template
     }));
   }, [templates]);
 
@@ -107,8 +109,8 @@ const ScheduledReportsPanel = () => {
     }
 
     // Verificar se existe template ativo para o tipo selecionado
-    const templateExists = availableReportTypes.some(type => type.value === formData.report_type);
-    if (!templateExists) {
+    const selectedTemplate = availableReportTypes.find(type => type.value === formData.report_type);
+    if (!selectedTemplate) {
       toast({
         title: "Template não encontrado",
         description: "Não há template ativo para o tipo de relatório selecionado.",
@@ -225,19 +227,21 @@ const ScheduledReportsPanel = () => {
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button 
+               <Button 
                 onClick={() => {
                   setEditingReport(null);
-                  // Definir o primeiro tipo disponível como padrão
-                  const firstAvailableType = availableReportTypes[0]?.value || 'backup_alert';
-                  setFormData({
-                    name: '',
-                    report_type: firstAvailableType,
-                    phone_number: '',
-                    cron_expression: '0 9 * * *',
-                    is_active: true,
-                    settings: {}
-                  });
+                  // Definir o primeiro template disponível como padrão
+                  const firstAvailableTemplate = availableReportTypes[0];
+                  if (firstAvailableTemplate) {
+                    setFormData({
+                      name: '',
+                      report_type: firstAvailableTemplate.value,
+                      phone_number: '',
+                      cron_expression: '0 9 * * *',
+                      is_active: true,
+                      settings: {}
+                    });
+                  }
                 }}
                 disabled={availableReportTypes.length === 0}
               >
@@ -271,29 +275,29 @@ const ScheduledReportsPanel = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um tipo de relatório" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {availableReportTypes.length === 0 ? (
-                      <div className="p-4 text-center text-gray-500">
-                        <p>Nenhum template ativo encontrado.</p>
-                        <p className="text-xs mt-1">Crie templates na aba "Templates" primeiro.</p>
-                      </div>
-                    ) : (
-                      availableReportTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          <div className="flex items-center gap-2">
-                            <type.icon className="h-4 w-4" />
-                            <div>
-                              <div>{type.name}</div>
-                              <div className="text-xs text-gray-500">{type.description}</div>
-                              <div className="text-xs text-blue-600">
-                                Template: {type.template?.name}
-                              </div>
-                            </div>
-                          </div>
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
+                   <SelectContent>
+                     {availableReportTypes.length === 0 ? (
+                       <div className="p-4 text-center text-gray-500">
+                         <p>Nenhum template ativo encontrado.</p>
+                         <p className="text-xs mt-1">Crie templates na aba "Templates" primeiro.</p>
+                       </div>
+                     ) : (
+                       availableReportTypes.map((template, index) => (
+                         <SelectItem key={`${template.value}-${index}`} value={template.value}>
+                           <div className="flex items-center gap-2">
+                             <template.icon className="h-4 w-4" />
+                             <div>
+                               <div>{template.name}</div>
+                               <div className="text-xs text-gray-500">{template.description}</div>
+                               <div className="text-xs text-blue-600">
+                                 Tipo: {reportTypes[template.value as keyof typeof reportTypes]?.name || template.value}
+                               </div>
+                             </div>
+                           </div>
+                         </SelectItem>
+                       ))
+                     )}
+                   </SelectContent>
                 </Select>
                 {availableReportTypes.length === 0 && (
                   <p className="text-xs text-amber-600 mt-1">
