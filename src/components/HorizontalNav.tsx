@@ -14,6 +14,7 @@ import {
   Calendar,
   Shield,
   ChevronDown,
+  MessageSquare,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -32,6 +33,7 @@ const menuItems = [
   { title: 'Anotações', url: '/annotations', icon: StickyNote, role: 'user' },
   { title: 'Links', url: '/links', icon: Link, role: 'user' },
   { title: 'Conversas WhatsApp', url: '/whatsapp-chats', icon: MessageCircle, role: 'user' },
+  { title: 'Modelos WhatsApp', url: '/whatsapp-templates', icon: MessageSquare, role: 'user' },
   { title: 'Wasabi', url: '/wasabi', icon: HardDrive, role: 'user' },
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
 ];

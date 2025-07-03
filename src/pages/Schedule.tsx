@@ -100,9 +100,9 @@ const Schedule = () => {
                       const today = new Date();
                       const dueDate = new Date(item.due_date);
                       const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                      return diffDays <= 30 && item.status === 'pending';
+                      return diffDays <= 7 && item.status === 'pending';
                     }).length}</p>
-                    <p className="text-sm text-blue-600">Críticos (≤30 dias)</p>
+                    <p className="text-sm text-blue-600">Críticos (&lt;7 dias)</p>
                   </div>
                 </div>
               </CardContent>

@@ -18,6 +18,7 @@ import Passwords from "./pages/Passwords";
 import Annotations from "./pages/Annotations";
 import Links from "./pages/Links";
 import WhatsAppChats from "./pages/WhatsAppChats";
+import WhatsAppTemplates from "./pages/WhatsAppTemplates";
 import Wasabi from "./pages/Wasabi";
 import Monitoring from "./pages/Monitoring";
 import Schedule from "./pages/Schedule";
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/annotations" element={<Layout><Annotations /></Layout>} />
             <Route path="/links" element={<Layout><Links /></Layout>} />
             <Route path="/whatsapp-chats" element={<Layout><WhatsAppChats /></Layout>} />
+            <Route path="/whatsapp-templates" element={<Layout><WhatsAppTemplates /></Layout>} />
             <Route path="/wasabi" element={<Layout><Wasabi /></Layout>} />
             <Route path="/monitoring" element={<Layout><Monitoring /></Layout>} />
             <Route path="/schedule" element={<Layout><Schedule /></Layout>} />

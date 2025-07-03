@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Edit, Trash2, Calendar, Building, Search, ExternalLink } from 'lucide-react';
+import { Edit, Trash2, Calendar, Building, Search, ExternalLink, MessageCircle } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ScheduleDialog } from './ScheduleDialog';
+import { toast } from '@/hooks/use-toast';
 
 interface ScheduleItem {
   id: string;
@@ -33,9 +34,42 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
-  const handleOpenGLPITicket = (item: ScheduleItem) => {
-    // Implementar integração com GLPI aqui
-    console.log('Abrir chamado GLPI para:', item);
+  const handleOpenGLPITicket = async (item: ScheduleItem) => {
+    try {
+      const response = await fetch('/api/glpi/tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: `Agendamento: ${item.title}`,
+          content: `Empresa: ${item.company}\nTipo: ${item.type}\nVencimento: ${format(new Date(item.due_date), 'dd/MM/yyyy', { locale: ptBR })}\nDescrição: ${item.description || 'N/A'}`,
+          urgency: getDaysUntilDue(item.due_date) <= 7 ? 5 : 3,
+          impact: 3,
+          priority: getDaysUntilDue(item.due_date) <= 7 ? 5 : 3
+        }),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Chamado criado com sucesso!",
+          description: "O chamado foi criado no GLPI.",
+        });
+      } else {
+        throw new Error('Erro ao criar chamado');
+      }
+    } catch (error) {
+      toast({
+        title: "Erro ao criar chamado",
+        description: "Não foi possível criar o chamado no GLPI.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleWhatsAppShare = (item: ScheduleItem) => {
+    // Implementar popup do WhatsApp aqui
+    console.log('Enviar via WhatsApp:', item);
   };
 
   const handleEditItem = (item: ScheduleItem) => {
@@ -146,11 +180,15 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
             {filteredItems.map((item) => {
               const daysUntil = getDaysUntilDue(item.due_date);
               const isUrgent = daysUntil <= 7;
+              const isGood = daysUntil > 7;
               
               return (
                 <TableRow 
                   key={item.id} 
-                  className={`hover:bg-blue-50 ${isUrgent ? 'bg-red-50 border-l-4 border-l-red-500' : ''}`}
+                  className={`hover:bg-blue-50 ${
+                    isUrgent ? 'bg-red-50 border-l-4 border-l-red-500' : 
+                    isGood ? 'bg-green-50 border-l-4 border-l-green-500' : ''
+                  }`}
                 >
                   <TableCell className="font-medium">{item.title}</TableCell>
                   <TableCell>
@@ -196,6 +234,14 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
                         onClick={() => onDelete(item.id)}
                       >
                         <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleWhatsAppShare(item)}
+                        className="text-green-600 hover:text-green-700"
+                      >
+                        <MessageCircle className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
