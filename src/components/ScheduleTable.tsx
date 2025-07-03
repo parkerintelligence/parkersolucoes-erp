@@ -12,7 +12,7 @@ import { ScheduleDialog } from './ScheduleDialog';
 import { toast } from '@/hooks/use-toast';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { WhatsAppScheduleDialog } from './WhatsAppScheduleDialog';
-import { GLPITicketConfirmDialog } from './GLPITicketConfirmDialog';
+
 
 interface ScheduleItem {
   id: string;
@@ -37,14 +37,39 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
-  const [showGLPIDialog, setShowGLPIDialog] = useState(false);
+  
   const [selectedItem, setSelectedItem] = useState<ScheduleItem | null>(null);
 
   const { createTicket } = useGLPIExpanded();
 
-  const handleOpenGLPITicket = (item: ScheduleItem) => {
-    setSelectedItem(item);
-    setShowGLPIDialog(true);
+  const handleOpenGLPITicket = async (item: ScheduleItem) => {
+    const confirmOpen = window.confirm('Deseja abrir um ticket?');
+    if (!confirmOpen) return;
+
+    try {
+      const ticketData = {
+        name: `${item.title} - ${item.type}`,
+        content: `Empresa: ${item.company}\nTipo: ${item.type}\nVencimento: ${format(new Date(item.due_date), 'dd/MM/yyyy', { locale: ptBR })}\nDescrição: ${item.description || 'N/A'}`,
+        urgency: 3,
+        impact: 3,
+        priority: 3,
+        status: 1,
+        type: 1,
+      };
+
+      await createTicket.mutateAsync(ticketData);
+      toast({
+        title: "✅ Ticket criado com sucesso!",
+        description: "O ticket foi criado no GLPI.",
+      });
+    } catch (error) {
+      console.error('Erro ao criar ticket:', error);
+      toast({
+        title: "❌ Erro ao criar ticket",
+        description: "Não foi possível criar o ticket no GLPI. Verifique a configuração.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleWhatsAppShare = (item: ScheduleItem) => {
@@ -258,14 +283,6 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
         />
       )}
 
-      {/* Dialog para GLPI */}
-      {selectedItem && (
-        <GLPITicketConfirmDialog
-          open={showGLPIDialog}
-          onOpenChange={setShowGLPIDialog}
-          scheduleItem={selectedItem}
-        />
-      )}
     </Card>
   );
 };
