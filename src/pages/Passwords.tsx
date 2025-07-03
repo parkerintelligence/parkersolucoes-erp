@@ -11,7 +11,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { Lock, Plus, Eye, EyeOff, Edit, Trash2, Building, Search } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { ServiceDialog } from '@/components/ServiceDialog';
+import { 
+  Lock, Plus, Eye, EyeOff, Edit, Trash2, Building, Search, Settings, 
+  Code, Mail, Server, Database, Cloud, Shield, Monitor, Globe, Filter
+} from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -27,9 +32,23 @@ const Passwords = () => {
   const [showPassword, setShowPassword] = useState<{ [key: string]: boolean }>({});
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
   const [editingPassword, setEditingPassword] = useState<Password | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
+  const [selectedService, setSelectedService] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [groupByService, setGroupByService] = useState(true);
+  const [availableServices, setAvailableServices] = useState([
+    { name: 'Sistema', icon: 'code', color: 'blue' },
+    { name: 'Email', icon: 'mail', color: 'green' },
+    { name: 'Hosting', icon: 'server', color: 'purple' },
+    { name: 'Database', icon: 'database', color: 'orange' },
+    { name: 'Cloud', icon: 'cloud', color: 'sky' },
+    { name: 'Security', icon: 'shield', color: 'red' },
+    { name: 'Monitoring', icon: 'monitor', color: 'indigo' },
+    { name: 'Config', icon: 'settings', color: 'gray' },
+  ]);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -48,8 +67,46 @@ const Passwords = () => {
                          companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          password.username?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCompany = selectedCompany === '' || selectedCompany === 'all' || password.company_id === selectedCompany;
-    return matchesSearch && matchesCompany;
+    const matchesService = selectedService === '' || selectedService === 'all' || password.service === selectedService;
+    const matchesStatus = selectedStatus === '' || selectedStatus === 'all' || 
+                         (selectedStatus === 'with_link' && password.gera_link) ||
+                         (selectedStatus === 'without_link' && !password.gera_link);
+    return matchesSearch && matchesCompany && matchesService && matchesStatus;
   });
+
+  const groupedPasswords = groupByService 
+    ? filteredPasswords.reduce((groups, password) => {
+        const service = password.service || 'Sem Categoria';
+        if (!groups[service]) groups[service] = [];
+        groups[service].push(password);
+        return groups;
+      }, {} as Record<string, Password[]>)
+    : { 'Todas as Senhas': filteredPasswords };
+
+  const getServiceIcon = (serviceName: string) => {
+    const service = availableServices.find(s => s.name === serviceName);
+    const iconMap = {
+      'code': Code,
+      'mail': Mail,
+      'server': Server,
+      'database': Database,
+      'cloud': Cloud,
+      'shield': Shield,
+      'monitor': Monitor,
+      'settings': Settings,
+      'globe': Globe,
+    };
+    const IconComponent = iconMap[service?.icon as keyof typeof iconMap] || Code;
+    return <IconComponent className="h-4 w-4" />;
+  };
+
+  const handleSaveService = (serviceData: any) => {
+    setAvailableServices(prev => [...prev, serviceData]);
+    toast({
+      title: "Serviço adicionado!",
+      description: `Serviço "${serviceData.name}" foi criado com sucesso.`,
+    });
+  };
 
   const togglePasswordVisibility = (id: string) => {
     setShowPassword(prev => ({
@@ -154,14 +211,33 @@ const Passwords = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="mr-2 h-4 w-4" />
-              Adicionar Senha
-            </Button>
-          </DialogTrigger>
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-foreground">Cofre de Senhas</h1>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="group-by-service"
+              checked={groupByService}
+              onCheckedChange={setGroupByService}
+            />
+            <Label htmlFor="group-by-service" className="text-sm">Agrupar por Serviço</Label>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setIsServiceDialogOpen(true)}
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            Gerenciar Serviços
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Adicionar Senha
+              </Button>
+            </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Adicionar Nova Senha</DialogTitle>
@@ -225,10 +301,14 @@ const Passwords = () => {
                     <SelectValue placeholder="Selecione o serviço" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Sistema">Sistema</SelectItem>
-                    <SelectItem value="Email">Email</SelectItem>
-                    <SelectItem value="Hosting">Hosting</SelectItem>
-                    <SelectItem value="Database">Database</SelectItem>
+                    {availableServices.map((service) => (
+                      <SelectItem key={service.name} value={service.name}>
+                        <div className="flex items-center gap-2">
+                          {getServiceIcon(service.name)}
+                          {service.name}
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -260,63 +340,39 @@ const Passwords = () => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Lock className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="text-2xl font-bold text-blue-900">{passwords.length}</p>
-                <p className="text-sm text-blue-600">Senhas Armazenadas</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Building className="h-5 w-5 text-purple-500" />
-              <div>
-                <p className="text-2xl font-bold text-blue-900">{companies.length}</p>
-                <p className="text-sm text-blue-600">Empresas Clientes</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Lock className="h-5 w-5 text-yellow-500" />
-              <div>
-                <p className="text-2xl font-bold text-blue-900">{passwords.filter(p => p.gera_link).length}</p>
-                <p className="text-sm text-blue-600">Links Gerados</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* ServiceDialog */}
+      <ServiceDialog 
+        isOpen={isServiceDialogOpen}
+        onOpenChange={setIsServiceDialogOpen}
+        onSave={handleSaveService}
+      />
 
-      {/* Filtros */}
-      <Card className="border-blue-200">
-        <CardContent className="p-4">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-                <Input
-                  placeholder="Buscar senhas..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
+      {/* Filtros Avançados */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            <CardTitle>Filtros</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar senhas..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
             </div>
+            
             <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filtrar por empresa" />
+              <SelectTrigger>
+                <SelectValue placeholder="Todas as empresas" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as empresas</SelectItem>
@@ -325,101 +381,143 @@ const Passwords = () => {
                 ))}
               </SelectContent>
             </Select>
+
+            <Select value={selectedService} onValueChange={setSelectedService}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos os serviços" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os serviços</SelectItem>
+                {availableServices.map((service) => (
+                  <SelectItem key={service.name} value={service.name}>
+                    <div className="flex items-center gap-2">
+                      {getServiceIcon(service.name)}
+                      {service.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Status do link" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="with_link">Com link gerado</SelectItem>
+                <SelectItem value="without_link">Sem link gerado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Passwords Table */}
-      <Card className="border-blue-200">
-        <CardHeader>
-          <CardTitle className="text-blue-900">Cofre de Senhas por Empresa</CardTitle>
-          <CardDescription>Senhas organizadas por empresa cliente</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Sistema</TableHead>
-                <TableHead>Empresa</TableHead>
-                <TableHead>URL</TableHead>
-                <TableHead>Usuário</TableHead>
-                <TableHead>Senha</TableHead>
-                <TableHead>Serviço</TableHead>
-                <TableHead>Link</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPasswords.map((item) => {
-                const company = companies.find(c => c.id === item.company_id);
-                return (
-                  <TableRow key={item.id} className="hover:bg-blue-50">
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{company?.name || 'N/A'}</TableCell>
-                    <TableCell>
-                      {item.url && (
-                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-                          Acessar
-                        </a>
-                      )}
-                    </TableCell>
-                    <TableCell>{item.username}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono">
-                          {showPassword[item.id] ? item.password : '••••••••'}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => togglePasswordVisibility(item.id)}
-                        >
-                          {showPassword[item.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCopyPassword(item.password || '')}
-                        >
-                          Copiar
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>{item.service && getCategoryBadge(item.service)}</TableCell>
-                    <TableCell>
-                      {item.gera_link && <Badge className="bg-green-100 text-green-800 border-green-200">Sim</Badge>}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleEditPassword(item)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-red-600 hover:text-red-700"
-                          onClick={() => handleDeletePassword(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-          {filteredPasswords.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              Nenhuma senha encontrada com os filtros aplicados.
+      {/* Lista de Senhas Agrupadas ou Normal */}
+      {Object.entries(groupedPasswords).map(([groupName, groupPasswords]) => (
+        <Card key={groupName}>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              {groupByService && groupName !== 'Todas as Senhas' && getServiceIcon(groupName)}
+              <CardTitle>{groupName}</CardTitle>
+              <Badge variant="secondary">{groupPasswords.length}</Badge>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Sistema</TableHead>
+                  <TableHead>Empresa</TableHead>
+                  <TableHead>URL</TableHead>
+                  <TableHead>Usuário</TableHead>
+                  <TableHead>Senha</TableHead>
+                  {!groupByService && <TableHead>Serviço</TableHead>}
+                  <TableHead>Link</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {groupPasswords.map((item) => {
+                  const company = companies.find(c => c.id === item.company_id);
+                  return (
+                    <TableRow key={item.id} className="hover:bg-muted/50">
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell>{company?.name || 'N/A'}</TableCell>
+                      <TableCell>
+                        {item.url && (
+                          <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                            Acessar
+                          </a>
+                        )}
+                      </TableCell>
+                      <TableCell>{item.username}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono">
+                            {showPassword[item.id] ? item.password : '••••••••'}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => togglePasswordVisibility(item.id)}
+                          >
+                            {showPassword[item.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCopyPassword(item.password || '')}
+                          >
+                            Copiar
+                          </Button>
+                        </div>
+                      </TableCell>
+                      {!groupByService && (
+                        <TableCell>
+                          {item.service && (
+                            <div className="flex items-center gap-1">
+                              {getServiceIcon(item.service)}
+                              <span>{item.service}</span>
+                            </div>
+                          )}
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        {item.gera_link && <Badge className="bg-green-100 text-green-800">Sim</Badge>}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleEditPassword(item)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => handleDeletePassword(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            {groupPasswords.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                Nenhuma senha encontrada neste grupo.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ))}
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -482,10 +580,14 @@ const Passwords = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Sistema">Sistema</SelectItem>
-                  <SelectItem value="Email">Email</SelectItem>
-                  <SelectItem value="Hosting">Hosting</SelectItem>
-                  <SelectItem value="Database">Database</SelectItem>
+                  {availableServices.map((service) => (
+                    <SelectItem key={service.name} value={service.name}>
+                      <div className="flex items-center gap-2">
+                        {getServiceIcon(service.name)}
+                        {service.name}
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
