@@ -8,6 +8,7 @@ import { MessageCircle, ExternalLink, Calendar } from 'lucide-react';
 import { format, differenceInHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useIntegrations } from '@/hooks/useIntegrations';
+import { useSystemSetting } from '@/hooks/useSystemSettings';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { toast } from '@/hooks/use-toast';
 
@@ -28,13 +29,17 @@ interface BackupAlertDialogProps {
 export const BackupAlertDialog = ({ open, onOpenChange, files, type }: BackupAlertDialogProps) => {
   const { data: integrations } = useIntegrations();
   const { createTicket } = useGLPIExpanded();
+  const { data: alertHoursSetting } = useSystemSetting('ftp_backup_alert_hours', '48');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Filtrar arquivos/pastas com mais de 48 horas sem modificação
+  // Obter o valor de horas da configuração
+  const alertHours = alertHoursSetting ? parseInt(alertHoursSetting.setting_value) : 48;
+
+  // Filtrar arquivos/pastas com mais de X horas sem modificação (configurável)
   const oldFiles = files.filter(file => {
     const hoursDiff = differenceInHours(new Date(), file.lastModified);
-    return hoursDiff > 48;
+    return hoursDiff > alertHours;
   });
 
   const formatFilesList = () => {
@@ -43,7 +48,7 @@ export const BackupAlertDialog = ({ open, onOpenChange, files, type }: BackupAle
     }
 
     let message = `🚨 *ALERTA DE BACKUPS NÃO REALIZADOS*\n\n`;
-    message += `⚠️ *${oldFiles.length} ${oldFiles.length === 1 ? 'item encontrado' : 'itens encontrados'}* com mais de 48 horas sem modificação:\n\n`;
+    message += `⚠️ *${oldFiles.length} ${oldFiles.length === 1 ? 'item encontrado' : 'itens encontrados'}* com mais de ${alertHours} horas sem modificação:\n\n`;
 
     oldFiles.forEach((file, index) => {
       const hoursDiff = differenceInHours(new Date(), file.lastModified);
@@ -187,8 +192,9 @@ export const BackupAlertDialog = ({ open, onOpenChange, files, type }: BackupAle
           <div className="p-3 bg-muted/50 rounded-lg space-y-2">
             <h4 className="text-sm font-medium">Resumo do relatório:</h4>
             <div className="text-xs space-y-1">
+              <p><strong>Parâmetro de alerta:</strong> {alertHours} horas</p>
               <p><strong>Total de itens:</strong> {files.length}</p>
-              <p><strong>Itens desatualizados ({'>'}48h):</strong> 
+              <p><strong>Itens desatualizados ({`>${alertHours}h`}):</strong>
                 <span className={oldFiles.length > 0 ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
                   {oldFiles.length}
                 </span>

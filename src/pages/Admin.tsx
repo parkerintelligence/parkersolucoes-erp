@@ -10,6 +10,8 @@ import { GrafanaAdminConfig } from '@/components/GrafanaAdminConfig';
 import { BomControleAdminConfig } from '@/components/BomControleAdminConfig';
 import { FtpAdminConfig } from '@/components/FtpAdminConfig';
 import { WasabiAdminConfig } from '@/components/WasabiAdminConfig';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import SystemSettingsPanel from '@/components/SystemSettingsPanel';
 
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +28,8 @@ const Admin = () => {
 
   const renderContent = () => {
     switch (activeSection) {
+      case 'settings':
+        return <SystemSettingsPanel />;
       case 'integrations':
         return <AdminApiPanel />;
       case 'companies':
@@ -331,6 +335,20 @@ const Admin = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                <Card className="border-yellow-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('settings')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-yellow-100 p-3 rounded-lg">
+                        <Settings className="h-6 w-6 text-yellow-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-yellow-900">Configurações</h3>
+                        <p className="text-sm text-yellow-600">Parâmetros do sistema</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </div>
@@ -413,6 +431,7 @@ const Admin = () => {
             {activeSection === 'companies' && 'Empresas'}
             {activeSection === 'users' && 'Usuários'}
             {activeSection === 'glpi' && 'GLPI'}
+            {activeSection === 'settings' && 'Configurações'}
             {activeSection === 'chatwoot' && 'Chatwoot'}
             {activeSection === 'evolution_api' && 'Evolution API'}
             {activeSection === 'wasabi' && 'Wasabi'}

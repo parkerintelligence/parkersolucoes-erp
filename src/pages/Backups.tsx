@@ -28,10 +28,15 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BackupAlertDialog } from '@/components/BackupAlertDialog';
+import { useSystemSetting } from '@/hooks/useSystemSettings';
 
 const Backups = () => {
   const { data: integrations } = useIntegrations();
+  const { data: alertHoursSetting } = useSystemSetting('ftp_backup_alert_hours', '48');
   const ftpIntegration = integrations?.find(integration => integration.type === 'ftp');
+  
+  // Obter o valor de horas da configuração
+  const alertHours = alertHoursSetting ? parseInt(alertHoursSetting.setting_value) : 48;
   
   const {
     files,
@@ -72,19 +77,19 @@ const Backups = () => {
     return new Date(a.lastModified).getTime() - new Date(b.lastModified).getTime();
   }) || [];
 
-  // Function to get row background color based on file age
+  // Function to get row background color based on file age (using configurable parameter)
   const getRowBackgroundColor = (lastModified: Date) => {
-    const daysDiff = Math.floor((Date.now() - lastModified.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysDiff > 2) {
-      return 'bg-red-50 hover:bg-red-100 border-red-200'; // Red for old files (more than 2 days)
+    const hoursDiff = Math.floor((Date.now() - lastModified.getTime()) / (1000 * 60 * 60));
+    if (hoursDiff > alertHours) {
+      return 'bg-red-50 hover:bg-red-100 border-red-200'; // Red for old files
     }
     return 'bg-green-50 hover:bg-green-100 border-green-200'; // Green for recent files
   };
 
-  // Function to get age badge color
+  // Function to get age badge color (using configurable parameter)
   const getAgeBadgeColor = (lastModified: Date) => {
-    const daysDiff = Math.floor((Date.now() - lastModified.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysDiff > 2) {
+    const hoursDiff = Math.floor((Date.now() - lastModified.getTime()) / (1000 * 60 * 60));
+    if (hoursDiff > alertHours) {
       return 'bg-red-100 text-red-800 border-red-300';
     }
     return 'bg-green-100 text-green-800 border-green-300';
