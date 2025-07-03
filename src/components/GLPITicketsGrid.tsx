@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,10 @@ import {
   ChevronRight,
   RefreshCw,
   Building2,
-  CalendarIcon
+  CalendarIcon,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { useGLPIExpanded, GLPITicket } from '@/hooks/useGLPIExpanded';
 import { format } from 'date-fns';
@@ -38,6 +41,10 @@ export const GLPITicketsGrid = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTicket, setSelectedTicket] = useState<GLPITicket | null>(null);
   
+  // Sorting states
+  const [sortField, setSortField] = useState<keyof GLPITicket>('date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  
   // Date filter states - defaulting to current month
   const currentDate = new Date();
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
@@ -48,6 +55,25 @@ export const GLPITicketsGrid = () => {
   
   const itemsPerPage = 20;
 
+  // Load saved sorting preferences
+  useEffect(() => {
+    const savedSortField = localStorage.getItem('glpi-sort-field') as keyof GLPITicket;
+    const savedSortDirection = localStorage.getItem('glpi-sort-direction') as 'asc' | 'desc';
+    
+    if (savedSortField) setSortField(savedSortField);
+    if (savedSortDirection) setSortDirection(savedSortDirection);
+  }, []);
+
+  // Save sorting preferences
+  const updateSort = (field: keyof GLPITicket) => {
+    const newDirection = sortField === field && sortDirection === 'desc' ? 'asc' : 'desc';
+    setSortField(field);
+    setSortDirection(newDirection);
+    
+    localStorage.setItem('glpi-sort-field', field);
+    localStorage.setItem('glpi-sort-direction', newDirection);
+  };
+
   const getEntityName = (entityId: number) => {
     const entity = entities.data?.find(e => e.id === entityId);
     return entity?.name || `Entidade ${entityId}`;
@@ -56,7 +82,7 @@ export const GLPITicketsGrid = () => {
   const filteredTickets = useMemo(() => {
     if (!tickets.data) return [];
     
-    return tickets.data.filter((ticket: GLPITicket) => {
+    let filtered = tickets.data.filter((ticket: GLPITicket) => {
       const matchesSearch = ticket.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            ticket.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            ticket.id.toString().includes(searchTerm);
@@ -71,7 +97,36 @@ export const GLPITicketsGrid = () => {
       
       return matchesSearch && matchesStatus && matchesPriority && matchesEntity && matchesDate;
     });
-  }, [tickets.data, searchTerm, statusFilter, priorityFilter, entityFilter, dateFrom, dateTo]);
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aValue = a[sortField];
+      let bValue = b[sortField];
+      
+      // Handle date fields
+      if (sortField === 'date' || sortField === 'date_mod' || sortField === 'solvedate') {
+        aValue = new Date(aValue as string).getTime();
+        bValue = new Date(bValue as string).getTime();
+      }
+      
+      // Handle numeric fields
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      // Handle string fields
+      const aStr = String(aValue).toLowerCase();
+      const bStr = String(bValue).toLowerCase();
+      
+      if (sortDirection === 'asc') {
+        return aStr.localeCompare(bStr);
+      } else {
+        return bStr.localeCompare(aStr);
+      }
+    });
+
+    return filtered;
+  }, [tickets.data, searchTerm, statusFilter, priorityFilter, entityFilter, dateFrom, dateTo, sortField, sortDirection]);
 
   const groupedTickets = useMemo(() => {
     if (!groupByEntity) {
@@ -150,6 +205,15 @@ export const GLPITicketsGrid = () => {
     return urgencyMap[urgency] || `Urgência ${urgency}`;
   };
 
+  const getSortIcon = (field: keyof GLPITicket) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-4 w-4 opacity-50" />;
+    }
+    return sortDirection === 'asc' ? 
+      <ArrowUp className="h-4 w-4" /> : 
+      <ArrowDown className="h-4 w-4" />;
+  };
+
   const renderTicketTable = (tickets: GLPITicket[], groupName: string) => (
     <div key={groupName} className="mb-8">
       {groupByEntity && (
@@ -164,15 +228,57 @@ export const GLPITicketsGrid = () => {
         <Table>
           <TableHeader>
             <TableRow className="bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800">
-              <TableHead className="w-[80px] text-white font-semibold">ID</TableHead>
-              <TableHead className="text-white font-semibold">Título</TableHead>
+              <TableHead 
+                className="w-[80px] text-white font-semibold cursor-pointer hover:bg-blue-800/50 transition-colors"
+                onClick={() => updateSort('id')}
+              >
+                <div className="flex items-center gap-1">
+                  ID {getSortIcon('id')}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-white font-semibold cursor-pointer hover:bg-blue-800/50 transition-colors"
+                onClick={() => updateSort('name')}
+              >
+                <div className="flex items-center gap-1">
+                  Título {getSortIcon('name')}
+                </div>
+              </TableHead>
               <TableHead className="w-[140px] text-white font-semibold">Entidade</TableHead>
-              <TableHead className="w-[120px] text-white font-semibold">Status</TableHead>
-              <TableHead className="w-[120px] text-white font-semibold">Prioridade</TableHead>
+              <TableHead 
+                className="w-[120px] text-white font-semibold cursor-pointer hover:bg-blue-800/50 transition-colors"
+                onClick={() => updateSort('status')}
+              >
+                <div className="flex items-center gap-1">
+                  Status {getSortIcon('status')}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="w-[120px] text-white font-semibold cursor-pointer hover:bg-blue-800/50 transition-colors"
+                onClick={() => updateSort('priority')}
+              >
+                <div className="flex items-center gap-1">
+                  Prioridade {getSortIcon('priority')}
+                </div>
+              </TableHead>
               <TableHead className="w-[100px] text-white font-semibold">Urgência</TableHead>
               <TableHead className="w-[100px] text-white font-semibold">Impacto</TableHead>
-              <TableHead className="w-[130px] text-white font-semibold">Criado em</TableHead>
-              <TableHead className="w-[130px] text-white font-semibold">Modificado</TableHead>
+              <TableHead 
+                className="w-[130px] text-white font-semibold cursor-pointer hover:bg-blue-800/50 transition-colors"
+                onClick={() => updateSort('date')}
+              >
+                <div className="flex items-center gap-1">
+                  Criado em {getSortIcon('date')}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="w-[130px] text-white font-semibold cursor-pointer hover:bg-blue-800/50 transition-colors"
+                onClick={() => updateSort('date_mod')}
+              >
+                <div className="flex items-center gap-1">
+                  Modificado {getSortIcon('date_mod')}
+                </div>
+              </TableHead>
               <TableHead className="w-[100px] text-white font-semibold">Ações</TableHead>
             </TableRow>
           </TableHeader>
