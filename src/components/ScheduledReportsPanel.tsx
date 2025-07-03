@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,11 +21,13 @@ import {
   useTestScheduledReport,
   ScheduledReport 
 } from '@/hooks/useScheduledReports';
+import { useWhatsAppTemplates } from '@/hooks/useWhatsAppTemplates';
 import { toast } from '@/hooks/use-toast';
 import WhatsAppTemplatesPanel from './WhatsAppTemplatesPanel';
 
 const ScheduledReportsPanel = () => {
   const { data: reports = [], isLoading, refetch } = useScheduledReports();
+  const { data: templates = [] } = useWhatsAppTemplates();
   const createReport = useCreateScheduledReport();
   const updateReport = useUpdateScheduledReport();
   const deleteReport = useDeleteScheduledReport();
@@ -70,6 +72,18 @@ const ScheduledReportsPanel = () => {
     }
   };
 
+  // Buscar tipos de relatório únicos dos templates ativos
+  const availableReportTypes = useMemo(() => {
+    const activeTemplates = templates.filter(template => template.is_active);
+    const uniqueTypes = [...new Set(activeTemplates.map(template => template.template_type))];
+    
+    return uniqueTypes.map(type => ({
+      value: type,
+      ...reportTypes[type],
+      template: activeTemplates.find(t => t.template_type === type)
+    }));
+  }, [templates]);
+
   const cronPresets = [
     { label: '6:00 - Todo dia', value: '0 6 * * *' },
     { label: '9:00 - Todo dia', value: '0 9 * * *' },
@@ -84,6 +98,17 @@ const ScheduledReportsPanel = () => {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha nome, telefone e horário.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Verificar se existe template ativo para o tipo selecionado
+    const templateExists = availableReportTypes.some(type => type.value === formData.report_type);
+    if (!templateExists) {
+      toast({
+        title: "Template não encontrado",
+        description: "Não há template ativo para o tipo de relatório selecionado.",
         variant: "destructive"
       });
       return;
@@ -196,22 +221,27 @@ const ScheduledReportsPanel = () => {
           <p className="text-muted-foreground">Configure relatórios automáticos e templates de mensagens WhatsApp</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => {
-              setEditingReport(null);
-              setFormData({
-                name: '',
-                report_type: 'backup_alert',
-                phone_number: '',
-                cron_expression: '0 9 * * *',
-                is_active: true,
-                settings: {}
-              });
-            }}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Agendamento
-            </Button>
-          </DialogTrigger>
+            <DialogTrigger asChild>
+              <Button 
+                onClick={() => {
+                  setEditingReport(null);
+                  // Definir o primeiro tipo disponível como padrão
+                  const firstAvailableType = availableReportTypes[0]?.value || 'backup_alert';
+                  setFormData({
+                    name: '',
+                    report_type: firstAvailableType,
+                    phone_number: '',
+                    cron_expression: '0 9 * * *',
+                    is_active: true,
+                    settings: {}
+                  });
+                }}
+                disabled={availableReportTypes.length === 0}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                {availableReportTypes.length === 0 ? 'Configure Templates Primeiro' : 'Novo Agendamento'}
+              </Button>
+            </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>
@@ -236,22 +266,37 @@ const ScheduledReportsPanel = () => {
                 <Label htmlFor="report_type">Tipo de Relatório *</Label>
                 <Select value={formData.report_type} onValueChange={(value: any) => setFormData({...formData, report_type: value})}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Selecione um tipo de relatório" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(reportTypes).map(([key, type]) => (
-                      <SelectItem key={key} value={key}>
-                        <div className="flex items-center gap-2">
-                          <type.icon className="h-4 w-4" />
-                          <div>
-                            <div>{type.name}</div>
-                            <div className="text-xs text-gray-500">{type.description}</div>
+                    {availableReportTypes.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500">
+                        <p>Nenhum template ativo encontrado.</p>
+                        <p className="text-xs mt-1">Crie templates na aba "Templates" primeiro.</p>
+                      </div>
+                    ) : (
+                      availableReportTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          <div className="flex items-center gap-2">
+                            <type.icon className="h-4 w-4" />
+                            <div>
+                              <div>{type.name}</div>
+                              <div className="text-xs text-gray-500">{type.description}</div>
+                              <div className="text-xs text-blue-600">
+                                Template: {type.template?.name}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </SelectItem>
-                    ))}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
+                {availableReportTypes.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    ⚠️ Configure templates ativos na aba "Templates" para criar agendamentos.
+                  </p>
+                )}
               </div>
 
               <div className="grid gap-2">
