@@ -48,22 +48,21 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Evolution API não configurada para este usuário');
     }
 
-    let message = '';
-    
-    // Gerar mensagem baseada no tipo de relatório
-    switch (report.report_type) {
-      case 'backup_alert':
-        message = await generateBackupAlertReport(report.user_id, report.settings);
-        break;
-      case 'schedule_critical':
-        message = await generateScheduleCriticalReport(report.user_id, report.settings);
-        break;
-      case 'glpi_summary':
-        message = await generateGLPISummaryReport(report.user_id, report.settings);
-        break;
-      default:
-        throw new Error('Tipo de relatório não suportado');
+    // Buscar template da mensagem
+    const { data: template, error: templateError } = await supabase
+      .from('whatsapp_message_templates')
+      .select('*')
+      .eq('template_type', report.report_type)
+      .eq('user_id', report.user_id)
+      .eq('is_active', true)
+      .single();
+
+    if (templateError || !template) {
+      throw new Error(`Template não encontrado para o tipo: ${report.report_type}`);
     }
+
+    // Gerar conteúdo baseado no template
+    const message = await generateMessageFromTemplate(template, report.report_type, report.user_id, report.settings);
 
     // Enviar mensagem via WhatsApp
     const instanceName = integration.instance_name || 'main_instance';
@@ -114,7 +113,45 @@ const handler = async (req: Request): Promise<Response> => {
   }
 };
 
-async function generateBackupAlertReport(userId: string, settings: any): Promise<string> {
+// Função para gerar mensagem baseada em template
+async function generateMessageFromTemplate(template: any, reportType: string, userId: string, settings: any): Promise<string> {
+  const currentDate = new Date().toLocaleDateString('pt-BR');
+  let messageContent = template.body;
+
+  // Substituir variáveis do template baseadas no tipo de relatório
+  switch (reportType) {
+    case 'backup_alert':
+      const backupData = await getBackupData(userId, settings);
+      messageContent = messageContent
+        .replace(/\{\{date\}\}/g, currentDate)
+        .replace(/\{\{hours_threshold\}\}/g, backupData.hoursThreshold.toString())
+        .replace(/\{\{backup_list\}\}/g, backupData.list);
+      break;
+
+    case 'schedule_critical':
+      const scheduleData = await getScheduleData(userId, settings);
+      messageContent = messageContent
+        .replace(/\{\{date\}\}/g, currentDate)
+        .replace(/\{\{schedule_items\}\}/g, scheduleData.items)
+        .replace(/\{\{total_items\}\}/g, scheduleData.total.toString());
+      break;
+
+    case 'glpi_summary':
+      const glpiData = await getGLPIData(userId, settings);
+      messageContent = messageContent
+        .replace(/\{\{date\}\}/g, currentDate)
+        .replace(/\{\{open_tickets\}\}/g, glpiData.open.toString())
+        .replace(/\{\{critical_tickets\}\}/g, glpiData.critical.toString())
+        .replace(/\{\{pending_tickets\}\}/g, glpiData.pending.toString())
+        .replace(/\{\{ticket_list\}\}/g, glpiData.list);
+      break;
+  }
+
+  return messageContent;
+}
+
+// Funções para obter dados específicos
+async function getBackupData(userId: string, settings: any) {
   // Buscar configuração de horas de alerta
   const { data: alertSetting } = await supabase
     .from('system_settings')
@@ -124,34 +161,30 @@ async function generateBackupAlertReport(userId: string, settings: any): Promise
     .single();
 
   const alertHours = alertSetting ? parseInt(alertSetting.setting_value) : 48;
-  const cutoffTime = new Date(Date.now() - (alertHours * 60 * 60 * 1000));
-
+  
   // Simular dados de backup (aqui você integraria com sua API FTP real)
   const outdatedBackups = [
     { name: 'backup_servidor1', lastModified: new Date(Date.now() - (72 * 60 * 60 * 1000)) },
     { name: 'backup_bd_principal', lastModified: new Date(Date.now() - (96 * 60 * 60 * 1000)) }
   ];
 
-  let message = `🚨 *RELATÓRIO AUTOMÁTICO - BACKUPS*\n\n`;
-  
+  let backupList = '';
   if (outdatedBackups.length === 0) {
-    message += `✅ *Todos os backups estão atualizados!*\n`;
-    message += `📊 Verificação: últimas ${alertHours} horas\n`;
+    backupList = '✅ Todos os backups estão atualizados!';
   } else {
-    message += `⚠️ *${outdatedBackups.length} backup(s) desatualizado(s):*\n\n`;
-    
     outdatedBackups.forEach((backup, index) => {
       const hoursAgo = Math.floor((Date.now() - backup.lastModified.getTime()) / (1000 * 60 * 60));
-      message += `${index + 1}. 📁 *${backup.name}*\n`;
-      message += `   ⏰ Há ${hoursAgo} horas\n\n`;
+      backupList += `• ${backup.name} - há ${hoursAgo} horas\n`;
     });
   }
 
-  message += `🕒 Relatório gerado: ${new Date().toLocaleString('pt-BR')}`;
-  return message;
+  return {
+    hoursThreshold: alertHours,
+    list: backupList.trim()
+  };
 }
 
-async function generateScheduleCriticalReport(userId: string, settings: any): Promise<string> {
+async function getScheduleData(userId: string, settings: any) {
   // Buscar itens da agenda críticos (vencimento em 30 dias ou menos)
   const { data: criticalItems } = await supabase
     .from('schedule_items')
@@ -162,29 +195,25 @@ async function generateScheduleCriticalReport(userId: string, settings: any): Pr
     .lte('due_date', new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0])
     .order('due_date', { ascending: true });
 
-  let message = `📅 *RELATÓRIO AUTOMÁTICO - VENCIMENTOS CRÍTICOS*\n\n`;
-  
+  let itemsList = '';
   if (!criticalItems || criticalItems.length === 0) {
-    message += `✅ *Nenhum vencimento crítico nos próximos 30 dias!*\n`;
+    itemsList = '✅ Nenhum vencimento crítico nos próximos 30 dias!';
   } else {
-    message += `⚠️ *${criticalItems.length} item(ns) com vencimento crítico:*\n\n`;
-    
     criticalItems.forEach((item, index) => {
       const daysUntil = Math.ceil((new Date(item.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       const urgencyIcon = daysUntil <= 7 ? '🔴' : daysUntil <= 15 ? '🟡' : '🟢';
       
-      message += `${index + 1}. ${urgencyIcon} *${item.title}*\n`;
-      message += `   🏢 ${item.company}\n`;
-      message += `   📋 ${item.type}\n`;
-      message += `   📅 Vence em ${daysUntil} dias\n\n`;
+      itemsList += `${urgencyIcon} ${item.title} - ${item.company} (${daysUntil} dias)\n`;
     });
   }
 
-  message += `🕒 Relatório gerado: ${new Date().toLocaleString('pt-BR')}`;
-  return message;
+  return {
+    items: itemsList.trim(),
+    total: criticalItems?.length || 0
+  };
 }
 
-async function generateGLPISummaryReport(userId: string, settings: any): Promise<string> {
+async function getGLPIData(userId: string, settings: any) {
   // Buscar integração GLPI do usuário
   const { data: glpiIntegration } = await supabase
     .from('integrations')
@@ -195,33 +224,32 @@ async function generateGLPISummaryReport(userId: string, settings: any): Promise
     .single();
 
   if (!glpiIntegration) {
-    return `❌ *RELATÓRIO GLPI*\n\nGLPI não configurado para este usuário.`;
+    return {
+      open: 0,
+      critical: 0,
+      pending: 0,
+      list: 'GLPI não configurado para este usuário.'
+    };
   }
 
   // Simular dados do GLPI (aqui você faria a chamada real para a API do GLPI)
   const glpiSummary = {
     openTickets: 15,
-    newTickets: 3,
-    assignedTickets: 8,
+    criticalTickets: 2,
     pendingTickets: 4,
-    urgentTickets: 2
+    urgentTickets: ['#1234 - Sistema fora do ar', '#1235 - Falha de segurança']
   };
 
-  let message = `🎫 *RELATÓRIO AUTOMÁTICO - GLPI*\n\n`;
-  message += `📊 *Resumo dos Chamados:*\n\n`;
-  message += `🔓 Chamados abertos: *${glpiSummary.openTickets}*\n`;
-  message += `🆕 Novos chamados: *${glpiSummary.newTickets}*\n`;
-  message += `👤 Atribuídos a você: *${glpiSummary.assignedTickets}*\n`;
-  message += `⏳ Pendentes: *${glpiSummary.pendingTickets}*\n`;
-  message += `🚨 Urgentes: *${glpiSummary.urgentTickets}*\n\n`;
+  const ticketList = glpiSummary.urgentTickets.join('\n• ');
 
-  if (glpiSummary.urgentTickets > 0) {
-    message += `⚠️ *Atenção:* Há ${glpiSummary.urgentTickets} chamado(s) urgente(s) pendente(s)!\n\n`;
-  }
-
-  message += `🕒 Relatório gerado: ${new Date().toLocaleString('pt-BR')}`;
-  return message;
+  return {
+    open: glpiSummary.openTickets,
+    critical: glpiSummary.criticalTickets,
+    pending: glpiSummary.pendingTickets,
+    list: ticketList ? `• ${ticketList}` : 'Nenhum chamado urgente'
+  };
 }
+
 
 function calculateNextExecution(cronExpression: string): string {
   // Implementação simplificada para agendamentos diários

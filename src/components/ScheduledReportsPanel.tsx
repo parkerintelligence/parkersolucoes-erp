@@ -22,6 +22,7 @@ import {
   ScheduledReport 
 } from '@/hooks/useScheduledReports';
 import { toast } from '@/hooks/use-toast';
+import WhatsAppTemplatesPanel from './WhatsAppTemplatesPanel';
 
 const ScheduledReportsPanel = () => {
   const { data: reports = [], isLoading, refetch } = useScheduledReports();
@@ -191,8 +192,8 @@ const ScheduledReportsPanel = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Relatórios Agendados</h2>
-          <p className="text-muted-foreground">Configure relatórios automáticos via WhatsApp</p>
+          <h2 className="text-2xl font-bold text-foreground">Automação</h2>
+          <p className="text-muted-foreground">Configure relatórios automáticos e templates de mensagens WhatsApp</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -300,12 +301,17 @@ const ScheduledReportsPanel = () => {
         </Dialog>
       </div>
 
-      <Tabs defaultValue="active" className="space-y-4">
+      <Tabs defaultValue="templates" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="active">Ativos</TabsTrigger>
-          <TabsTrigger value="all">Todos</TabsTrigger>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
+          <TabsTrigger value="active">Agendamentos Ativos</TabsTrigger>
+          <TabsTrigger value="all">Todos os Agendamentos</TabsTrigger>
           <TabsTrigger value="inactive">Inativos</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="templates">
+          <WhatsAppTemplatesPanel />
+        </TabsContent>
 
         <TabsContent value="active">
           <Card>

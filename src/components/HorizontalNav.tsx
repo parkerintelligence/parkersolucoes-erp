@@ -36,6 +36,7 @@ const menuItems = [
   { title: 'Modelos WhatsApp', url: '/whatsapp-templates', icon: MessageSquare, role: 'user' },
   { title: 'Wasabi', url: '/wasabi', icon: HardDrive, role: 'user' },
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
+  { title: 'Automação', url: '/automation', icon: Settings, role: 'user' },
 ];
 
 const financialItems = [

@@ -12,7 +12,7 @@ import { FtpAdminConfig } from '@/components/FtpAdminConfig';
 import { WasabiAdminConfig } from '@/components/WasabiAdminConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SystemSettingsPanel from '@/components/SystemSettingsPanel';
-import ScheduledReportsPanel from '@/components/ScheduledReportsPanel';
+
 
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +30,26 @@ const Admin = () => {
   const renderContent = () => {
     switch (activeSection) {
       case 'scheduled_reports':
-        return <ScheduledReportsPanel />;
+        return (
+          <Card className="border-blue-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
+                <Clock className="h-5 w-5" />
+                Relatórios Agendados
+              </CardTitle>
+              <CardDescription>
+                Esta funcionalidade foi movida para o menu principal como "Automação"
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-6 text-gray-500">
+                <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Funcionalidade movida para a seção Automação.</p>
+                <p className="text-sm mt-2">Acesse através do menu principal.</p>
+              </div>
+            </CardContent>
+          </Card>
+        );
       case 'settings':
         return <SystemSettingsPanel />;
       case 'integrations':

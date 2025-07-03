@@ -22,6 +22,7 @@ import WhatsAppTemplates from "./pages/WhatsAppTemplates";
 import Wasabi from "./pages/Wasabi";
 import Monitoring from "./pages/Monitoring";
 import Schedule from "./pages/Schedule";
+import Automation from "./pages/Automation";
 import Admin from "./pages/Admin";
 
 import NotFound from "./pages/NotFound";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/wasabi" element={<Layout><Wasabi /></Layout>} />
             <Route path="/monitoring" element={<Layout><Monitoring /></Layout>} />
             <Route path="/schedule" element={<Layout><Schedule /></Layout>} />
+            <Route path="/automation" element={<Layout><Automation /></Layout>} />
             
             <Route path="/admin" element={<Layout><Admin /></Layout>} />
             
