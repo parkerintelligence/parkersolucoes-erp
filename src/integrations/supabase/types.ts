@@ -314,6 +314,7 @@ export type Database = {
           created_at: string
           directory: string | null
           id: string
+          instance_name: string | null
           is_active: boolean | null
           keep_logged: boolean | null
           name: string
@@ -336,6 +337,7 @@ export type Database = {
           created_at?: string
           directory?: string | null
           id?: string
+          instance_name?: string | null
           is_active?: boolean | null
           keep_logged?: boolean | null
           name: string
@@ -358,6 +360,7 @@ export type Database = {
           created_at?: string
           directory?: string | null
           id?: string
+          instance_name?: string | null
           is_active?: boolean | null
           keep_logged?: boolean | null
           name?: string

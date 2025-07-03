@@ -142,14 +142,16 @@ export const WhatsAppScheduleDialog = ({ open, onOpenChange, scheduleItem }: Wha
         throw new Error('Integração não encontrada');
       }
 
+      const integrationAny = integration as any;
       console.log('Enviando mensagem via Evolution API:', {
-        url: `${integration.base_url}/message/sendText/${integration.phone_number}`,
+        url: `${integration.base_url}/message/sendText/${integrationAny.instance_name}`,
         phoneNumber: phoneNumber,
         messageLength: message.length,
-        integration: integration.name
+        integration: integration.name,
+        instance: integrationAny.instance_name
       });
 
-      const response = await fetch(`${integration.base_url}/message/sendText/${integration.phone_number}`, {
+      const response = await fetch(`${integration.base_url}/message/sendText/${integrationAny.instance_name}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
