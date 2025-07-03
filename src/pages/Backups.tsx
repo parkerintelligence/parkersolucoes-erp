@@ -21,10 +21,13 @@ import {
   Trash2,
   Download,
   Calendar,
-  Clock
+  Clock,
+  MessageCircle,
+  ExternalLink
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { BackupAlertDialog } from '@/components/BackupAlertDialog';
 
 const Backups = () => {
   const { data: integrations } = useIntegrations();
@@ -47,6 +50,8 @@ const Backups = () => {
 
   const [newFolderName, setNewFolderName] = useState('');
   const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showWhatsAppAlert, setShowWhatsAppAlert] = useState(false);
+  const [showGLPIAlert, setShowGLPIAlert] = useState(false);
 
   if (!ftpIntegration) {
     return (
@@ -94,11 +99,28 @@ const Backups = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button onClick={() => refetchFiles()} disabled={isLoadingFiles} className="bg-blue-600 hover:bg-blue-700">
-          <RefreshCw className={`mr-2 h-4 w-4 ${isLoadingFiles ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
+      <div className="flex justify-between items-center">
+        <div></div>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setShowWhatsAppAlert(true)} 
+            className="bg-green-600 hover:bg-green-700"
+            size="sm"
+          >
+            <MessageCircle className="h-4 w-4" />
+          </Button>
+          <Button 
+            onClick={() => setShowGLPIAlert(true)} 
+            className="bg-blue-600 hover:bg-blue-700"
+            size="sm"
+          >
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+          <Button onClick={() => refetchFiles()} disabled={isLoadingFiles} className="bg-gray-600 hover:bg-gray-700">
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoadingFiles ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* Connection Status */}
@@ -255,6 +277,21 @@ const Backups = () => {
           </TabsContent>
         </Tabs>
       )}
+
+      {/* Dialogs de Alerta */}
+      <BackupAlertDialog
+        open={showWhatsAppAlert}
+        onOpenChange={setShowWhatsAppAlert}
+        files={sortedFiles}
+        type="whatsapp"
+      />
+      
+      <BackupAlertDialog
+        open={showGLPIAlert}
+        onOpenChange={setShowGLPIAlert}
+        files={sortedFiles}
+        type="glpi"
+      />
     </div>
   );
 };
