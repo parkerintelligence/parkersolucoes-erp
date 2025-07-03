@@ -9,6 +9,53 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      annotations: {
+        Row: {
+          annotation: string | null
+          company_id: string | null
+          created_at: string
+          gera_link: boolean | null
+          id: string
+          name: string
+          notes: string | null
+          service: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          annotation?: string | null
+          company_id?: string | null
+          created_at?: string
+          gera_link?: boolean | null
+          id?: string
+          name: string
+          notes?: string | null
+          service?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          annotation?: string | null
+          company_id?: string | null
+          created_at?: string
+          gera_link?: boolean | null
+          id?: string
+          name?: string
+          notes?: string | null
+          service?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "annotations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_items: {
         Row: {
           budget_id: string

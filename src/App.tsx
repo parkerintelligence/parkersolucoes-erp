@@ -15,6 +15,7 @@ import Contracts from "./pages/Contracts";
 import GLPI from "./pages/GLPI";
 import Backups from "./pages/Backups";
 import Passwords from "./pages/Passwords";
+import Annotations from "./pages/Annotations";
 import Links from "./pages/Links";
 import WhatsAppChats from "./pages/WhatsAppChats";
 import Wasabi from "./pages/Wasabi";
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/glpi" element={<Layout><GLPI /></Layout>} />
             <Route path="/backups" element={<Layout><Backups /></Layout>} />
             <Route path="/passwords" element={<Layout><Passwords /></Layout>} />
+            <Route path="/annotations" element={<Layout><Annotations /></Layout>} />
             <Route path="/links" element={<Layout><Links /></Layout>} />
             <Route path="/whatsapp-chats" element={<Layout><WhatsAppChats /></Layout>} />
             <Route path="/wasabi" element={<Layout><Wasabi /></Layout>} />
