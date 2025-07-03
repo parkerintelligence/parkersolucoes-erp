@@ -16,12 +16,16 @@ import { Switch } from '@/components/ui/switch';
 import { ServiceDialog } from '@/components/ServiceDialog';
 import { 
   StickyNote, Plus, Edit, Trash2, Building, Search, Settings, 
-  Code, Mail, Server, Database, Cloud, Shield, Monitor, Globe, Filter, FileDown
+  Code, Mail, Server, Database, Cloud, Shield, Monitor, Globe, Filter, FileDown,
+  MessageCircle, Eye
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { WhatsAppAnnotationDialog } from '@/components/WhatsAppAnnotationDialog';
+import { ViewAnnotationDialog } from '@/components/ViewAnnotationDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Annotation = Tables<'annotations'>;
+type AnnotationWithCompany = Annotation & { company?: string };
 
 const Annotations = () => {
   const { data: annotations = [], isLoading } = useAnnotations();
@@ -34,7 +38,11 @@ const Annotations = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
+  const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingAnnotation, setEditingAnnotation] = useState<Annotation | null>(null);
+  const [viewingAnnotation, setViewingAnnotation] = useState<AnnotationWithCompany | null>(null);
+  const [whatsAppAnnotation, setWhatsAppAnnotation] = useState<AnnotationWithCompany | null>(null);
   const [editingService, setEditingService] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
@@ -57,7 +65,6 @@ const Annotations = () => {
     company_id: '',
     annotation: '',
     service: '',
-    gera_link: false,
     notes: ''
   });
 
@@ -308,7 +315,6 @@ const Annotations = () => {
       company_id: '', 
       annotation: '', 
       service: '', 
-      gera_link: false, 
       notes: '' 
     });
     setIsDialogOpen(false);
@@ -321,7 +327,6 @@ const Annotations = () => {
       company_id: annotation.company_id || '',
       annotation: annotation.annotation || '',
       service: annotation.service || '',
-      gera_link: annotation.gera_link,
       notes: annotation.notes || ''
     });
     setIsEditDialogOpen(true);
@@ -345,13 +350,30 @@ const Annotations = () => {
       company_id: '', 
       annotation: '', 
       service: '', 
-      gera_link: false, 
       notes: '' 
     });
   };
 
   const handleDeleteAnnotation = (id: string) => {
     deleteAnnotation.mutate(id);
+  };
+
+  const handleWhatsAppShare = (annotation: Annotation) => {
+    const company = companies.find(c => c.id === annotation.company_id);
+    setWhatsAppAnnotation({
+      ...annotation,
+      company: company?.name
+    });
+    setIsWhatsAppDialogOpen(true);
+  };
+
+  const handleViewAnnotation = (annotation: Annotation) => {
+    const company = companies.find(c => c.id === annotation.company_id);
+    setViewingAnnotation({
+      ...annotation,
+      company: company?.name
+    });
+    setIsViewDialogOpen(true);
   };
 
   if (isLoading) {
@@ -454,14 +476,6 @@ const Annotations = () => {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="gera_link"
-                  checked={formData.gera_link}
-                  onCheckedChange={(checked) => setFormData({...formData, gera_link: checked as boolean})}
-                />
-                <Label htmlFor="gera_link">Gerar Link na tela de Links</Label>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="notes">Observações</Label>
@@ -579,7 +593,6 @@ const Annotations = () => {
                     <TableHead className="font-semibold">Empresa</TableHead>
                     <TableHead className="font-semibold">Anotação</TableHead>
                     {!groupByService && <TableHead className="font-semibold">Serviço</TableHead>}
-                    <TableHead className="font-semibold">Link</TableHead>
                     <TableHead className="font-semibold">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -606,22 +619,30 @@ const Annotations = () => {
                           </TableCell>
                         )}
                         <TableCell>
-                          {item.gera_link && (
-                            <Badge className="bg-green-100 text-green-800 border-green-200">
-                              Ativo
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
                           <div className="flex items-center gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleViewAnnotation(item)}
+                              className="h-8 px-3 text-blue-600 hover:text-blue-700 border-blue-200 hover:bg-blue-50"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleWhatsAppShare(item)}
+                              className="h-8 px-3 text-green-600 hover:text-green-700 border-green-200 hover:bg-green-50"
+                            >
+                              <MessageCircle className="h-4 w-4" />
+                            </Button>
                             <Button 
                               variant="outline" 
                               size="sm"
                               onClick={() => handleEditAnnotation(item)}
                               className="h-8 px-3"
                             >
-                              <Edit className="h-4 w-4 mr-1" />
-                              Editar
+                              <Edit className="h-4 w-4" />
                             </Button>
                             <Button 
                               variant="outline" 
@@ -629,8 +650,7 @@ const Annotations = () => {
                               className="text-destructive hover:text-destructive border-destructive/20 hover:bg-destructive/10 h-8 px-3"
                               onClick={() => handleDeleteAnnotation(item.id)}
                             >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Excluir
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -704,14 +724,6 @@ const Annotations = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="edit-gera_link"
-                checked={formData.gera_link}
-                onCheckedChange={(checked) => setFormData({...formData, gera_link: checked as boolean})}
-              />
-              <Label htmlFor="edit-gera_link">Gerar Link na tela de Links</Label>
-            </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-notes">Observações</Label>
               <Textarea 
@@ -731,6 +743,24 @@ const Annotations = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog para WhatsApp */}
+      {whatsAppAnnotation && (
+        <WhatsAppAnnotationDialog
+          open={isWhatsAppDialogOpen}
+          onOpenChange={setIsWhatsAppDialogOpen}
+          annotation={whatsAppAnnotation}
+        />
+      )}
+
+      {/* Dialog para Visualização */}
+      {viewingAnnotation && (
+        <ViewAnnotationDialog
+          open={isViewDialogOpen}
+          onOpenChange={setIsViewDialogOpen}
+          annotation={viewingAnnotation}
+        />
+      )}
     </div>
   );
 };
