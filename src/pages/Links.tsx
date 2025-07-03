@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { 
   Link, 
   ExternalLink, 
@@ -18,27 +20,60 @@ import {
   Database,
   Cloud,
   Code,
-  Zap,
   Monitor,
-  Settings
+  Settings,
+  Filter,
+  Grid,
+  List,
+  Copy,
+  Eye,
+  EyeOff
 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 const Links = () => {
   const { data: passwords = [], isLoading } = usePasswords();
   const { data: companies = [] } = useCompanies();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
+  const [selectedService, setSelectedService] = useState('');
+  const [showPasswords, setShowPasswords] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState('name');
 
   // Filtrar apenas senhas que têm gera_link = true
   const links = passwords.filter(password => password.gera_link);
+
+  // Obter serviços únicos
+  const uniqueServices = [...new Set(links.map(link => link.service).filter(Boolean))];
 
   const filteredLinks = links.filter(link => {
     const company = companies.find(c => c.id === link.company_id);
     const matchesSearch = link.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          company?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         link.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+                         link.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         link.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         link.url?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCompany = selectedCompany === '' || selectedCompany === 'all' || link.company_id === selectedCompany;
-    return matchesSearch && matchesCompany;
+    const matchesService = selectedService === '' || selectedService === 'all' || link.service === selectedService;
+    return matchesSearch && matchesCompany && matchesService;
+  });
+
+  // Ordenar links
+  const sortedLinks = [...filteredLinks].sort((a, b) => {
+    const companyA = companies.find(c => c.id === a.company_id);
+    const companyB = companies.find(c => c.id === b.company_id);
+    
+    switch (sortBy) {
+      case 'company':
+        return (companyA?.name || '').localeCompare(companyB?.name || '');
+      case 'service':
+        return (a.service || '').localeCompare(b.service || '');
+      case 'recent':
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      default:
+        return a.name.localeCompare(b.name);
+    }
   });
 
   const getServiceIcon = (service: string) => {
@@ -84,6 +119,15 @@ const Links = () => {
     return badgeColors[service] || 'bg-slate-100 text-slate-800 border-slate-200';
   };
 
+  const handleCopyCredentials = (link: any) => {
+    const credentials = `URL: ${link.url || 'N/A'}\nUsuário: ${link.username || 'N/A'}\nSenha: ${link.password || 'N/A'}`;
+    navigator.clipboard.writeText(credentials);
+    toast({
+      title: "Credenciais copiadas!",
+      description: "As informações de acesso foram copiadas para a área de transferência.",
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -93,69 +137,53 @@ const Links = () => {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-secondary/20 rounded-2xl p-8 text-primary-foreground">
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-secondary/20 p-3 rounded-xl backdrop-blur-sm">
-              <Link className="h-8 w-8" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold">Links de Acesso</h1>
-              <p className="text-primary-foreground/80">Gerencie todos os seus links de sistemas e serviços</p>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-xl p-4">
-              <div className="flex items-center gap-3">
-                <Globe className="h-6 w-6 text-secondary" />
-                <div>
-                  <p className="text-2xl font-bold">{links.length}</p>
-                  <p className="text-sm text-primary-foreground/80">Total de Links</p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-xl p-4">
-              <div className="flex items-center gap-3">
-                <Building className="h-6 w-6 text-secondary" />
-                <div>
-                  <p className="text-2xl font-bold">{companies.length}</p>
-                  <p className="text-sm text-primary-foreground/80">Empresas</p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-xl p-4">
-              <div className="flex items-center gap-3">
-                <Zap className="h-6 w-6 text-secondary" />
-                <div>
-                  <p className="text-2xl font-bold">{filteredLinks.length}</p>
-                  <p className="text-sm text-primary-foreground/80">Links Ativos</p>
-                </div>
-              </div>
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Links de Acesso</h1>
+          <p className="text-muted-foreground">Gerencie todos os seus links de sistemas e serviços</p>
         </div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-secondary/5 rounded-full blur-2xl"></div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('grid')}
+          >
+            <Grid className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+          >
+            <List className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* Filtros Modernos */}
-      <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      {/* Filtros Avançados */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            <CardTitle>Filtros Avançados</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar links, empresas ou notas..."
+                placeholder="Buscar links..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-12 bg-background/50 border-border/50"
+                className="pl-8"
               />
             </div>
+            
             <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-              <SelectTrigger className="w-full md:w-64 h-12 bg-background/50 border-border/50">
+              <SelectTrigger>
                 <SelectValue placeholder="Todas as empresas" />
               </SelectTrigger>
               <SelectContent>
@@ -165,54 +193,226 @@ const Links = () => {
                 ))}
               </SelectContent>
             </Select>
+
+            <Select value={selectedService} onValueChange={setSelectedService}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos os serviços" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os serviços</SelectItem>
+                {uniqueServices.map((service) => (
+                  <SelectItem key={service} value={service}>{service}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger>
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Nome</SelectItem>
+                <SelectItem value="company">Empresa</SelectItem>
+                <SelectItem value="service">Serviço</SelectItem>
+                <SelectItem value="recent">Mais recentes</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="show-passwords"
+                checked={showPasswords}
+                onCheckedChange={setShowPasswords}
+              />
+              <Label htmlFor="show-passwords" className="text-sm">Mostrar credenciais</Label>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Grid de Links Coloridos */}
-      {filteredLinks.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredLinks.map((link) => {
-            const company = companies.find(c => c.id === link.company_id);
-            const service = link.service || 'Sistema';
-            
-            return (
-              <Card key={link.id} className="group border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-card/50 backdrop-blur-sm overflow-hidden">
-                <CardContent className="p-0">
-                  {/* Header colorido */}
-                  <div className={`bg-gradient-to-r ${getServiceColor(service)} p-4 text-white`}>
-                    <div className="flex items-center justify-between mb-2">
-                      {getServiceIcon(service)}
-                      <Badge className={`${getBadgeColor(service)} text-xs font-medium`}>
-                        {service}
-                      </Badge>
-                    </div>
-                    <h3 className="font-semibold text-lg truncate">{link.name}</h3>
-                    <p className="text-white/80 text-sm truncate">{company?.name || 'Empresa'}</p>
-                  </div>
+      {/* Estatísticas rápidas */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-2xl font-bold text-primary">{sortedLinks.length}</p>
+                <p className="text-sm text-muted-foreground">Links Ativos</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Building className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="text-2xl font-bold text-blue-900">{companies.length}</p>
+                <p className="text-sm text-blue-600">Empresas</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-green-50 border-green-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Server className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="text-2xl font-bold text-green-900">{uniqueServices.length}</p>
+                <p className="text-sm text-green-600">Serviços</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-purple-50 border-purple-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-purple-600" />
+              <div>
+                <p className="text-2xl font-bold text-purple-900">{links.length}</p>
+                <p className="text-sm text-purple-600">Total de Links</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-                  {/* Conteúdo */}
-                  <div className="p-4">
-                    {link.notes && (
-                      <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{link.notes}</p>
-                    )}
-                    
-                    <Button 
-                      className={`w-full bg-gradient-to-r ${getServiceColor(service)} text-white border-0 shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105`}
-                      onClick={() => window.open(link.url || '#', '_blank')}
-                      disabled={!link.url}
-                    >
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Acessar Sistema
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+      {/* Lista/Grid de Links */}
+      {sortedLinks.length > 0 ? (
+        viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {sortedLinks.map((link) => {
+              const company = companies.find(c => c.id === link.company_id);
+              const service = link.service || 'Sistema';
+              
+              return (
+                <Card key={link.id} className="group hover:shadow-lg transition-all duration-300 hover:scale-105 bg-card/50 backdrop-blur-sm overflow-hidden">
+                  <CardContent className="p-0">
+                    {/* Header colorido */}
+                    <div className={`bg-gradient-to-r ${getServiceColor(service)} p-4 text-white relative`}>
+                      <div className="flex items-center justify-between mb-2">
+                        {getServiceIcon(service)}
+                        <Badge className="bg-white/20 text-white text-xs font-medium border-white/30">
+                          {service}
+                        </Badge>
+                      </div>
+                      <h3 className="font-semibold text-lg truncate">{link.name}</h3>
+                      <p className="text-white/80 text-sm truncate">{company?.name || 'Sem empresa'}</p>
+                    </div>
+
+                    {/* Conteúdo */}
+                    <div className="p-4 space-y-3">
+                      {showPasswords && (
+                        <div className="space-y-2">
+                          {link.username && (
+                            <div className="text-xs">
+                              <span className="text-muted-foreground">Usuário:</span>
+                              <p className="font-mono text-sm truncate">{link.username}</p>
+                            </div>
+                          )}
+                          {link.password && (
+                            <div className="text-xs">
+                              <span className="text-muted-foreground">Senha:</span>
+                              <p className="font-mono text-sm truncate">{link.password}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {link.notes && (
+                        <p className="text-muted-foreground text-sm line-clamp-2">{link.notes}</p>
+                      )}
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          className={`flex-1 bg-gradient-to-r ${getServiceColor(service)} text-white border-0 shadow-md hover:shadow-lg transition-all duration-300`}
+                          onClick={() => window.open(link.url || '#', '_blank')}
+                          disabled={!link.url}
+                        >
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Acessar
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCopyCredentials(link)}
+                          className="px-3"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {sortedLinks.map((link) => {
+                  const company = companies.find(c => c.id === link.company_id);
+                  const service = link.service || 'Sistema';
+                  
+                  return (
+                    <div key={link.id} className="p-4 hover:bg-muted/30 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className={`p-2 rounded-lg bg-gradient-to-r ${getServiceColor(service)} text-white`}>
+                            {getServiceIcon(service)}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold truncate">{link.name}</h3>
+                              <Badge className={`${getBadgeColor(service)} text-xs`}>
+                                {service}
+                              </Badge>
+                            </div>
+                            <p className="text-muted-foreground text-sm truncate">{company?.name || 'Sem empresa'}</p>
+                            {showPasswords && (
+                              <div className="mt-2 text-xs space-y-1">
+                                {link.username && (
+                                  <p><span className="text-muted-foreground">Usuário:</span> <code className="bg-muted px-1 rounded">{link.username}</code></p>
+                                )}
+                                {link.password && (
+                                  <p><span className="text-muted-foreground">Senha:</span> <code className="bg-muted px-1 rounded">{link.password}</code></p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCopyCredentials(link)}
+                          >
+                            <Copy className="h-4 w-4 mr-1" />
+                            Copiar
+                          </Button>
+                          <Button 
+                            onClick={() => window.open(link.url || '#', '_blank')}
+                            disabled={!link.url}
+                            className="bg-primary"
+                          >
+                            <ExternalLink className="h-4 w-4 mr-1" />
+                            Acessar
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )
       ) : (
-        <Card className="border-0 shadow-lg">
+        <Card className="border-dashed">
           <CardContent className="p-12">
             <div className="text-center text-muted-foreground">
               <div className="bg-muted/20 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
