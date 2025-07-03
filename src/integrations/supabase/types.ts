@@ -306,6 +306,81 @@ export type Database = {
           },
         ]
       }
+      glpi_scheduled_tickets: {
+        Row: {
+          assign_group_id: number | null
+          assign_user_id: number | null
+          category_id: number | null
+          content: string
+          created_at: string
+          cron_expression: string
+          entity_id: number
+          execution_count: number
+          id: string
+          impact: number
+          is_active: boolean
+          last_execution: string | null
+          name: string
+          next_execution: string | null
+          priority: number
+          requester_user_id: number | null
+          settings: Json | null
+          title: string
+          type: number
+          updated_at: string
+          urgency: number
+          user_id: string
+        }
+        Insert: {
+          assign_group_id?: number | null
+          assign_user_id?: number | null
+          category_id?: number | null
+          content: string
+          created_at?: string
+          cron_expression: string
+          entity_id?: number
+          execution_count?: number
+          id?: string
+          impact?: number
+          is_active?: boolean
+          last_execution?: string | null
+          name: string
+          next_execution?: string | null
+          priority?: number
+          requester_user_id?: number | null
+          settings?: Json | null
+          title: string
+          type?: number
+          updated_at?: string
+          urgency?: number
+          user_id: string
+        }
+        Update: {
+          assign_group_id?: number | null
+          assign_user_id?: number | null
+          category_id?: number | null
+          content?: string
+          created_at?: string
+          cron_expression?: string
+          entity_id?: number
+          execution_count?: number
+          id?: string
+          impact?: number
+          is_active?: boolean
+          last_execution?: string | null
+          name?: string
+          next_execution?: string | null
+          priority?: number
+          requester_user_id?: number | null
+          settings?: Json | null
+          title?: string
+          type?: number
+          updated_at?: string
+          urgency?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       integrations: {
         Row: {
           api_token: string | null
