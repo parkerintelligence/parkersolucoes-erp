@@ -3,12 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Clock, MapPin, Building, Settings, Edit, Trash2, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, MapPin, Building, Settings, Edit, Trash2, Calendar, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useRecurringSchedules, useDeleteRecurringSchedule } from '@/hooks/useRecurringSchedules';
+import { useCompanies } from '@/hooks/useCompanies';
 import { RecurringScheduleDialog } from './RecurringScheduleDialog';
+import { ScheduleTypeDialog } from './ScheduleTypeDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
 type RecurringSchedule = Tables<'recurring_schedules'>;
+type Company = Tables<'companies'>;
 
 const DAYS_OF_WEEK = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTH_NAMES = [
@@ -18,12 +21,19 @@ const MONTH_NAMES = [
 
 interface WeeklyViewProps {
   schedules: RecurringSchedule[];
+  companies: any[];
   onEdit: (schedule: RecurringSchedule) => void;
   onDelete: (id: string) => void;
 }
 
-const WeeklyView = ({ schedules, onEdit, onDelete }: WeeklyViewProps) => {
+const WeeklyView = ({ schedules, companies, onEdit, onDelete }: WeeklyViewProps) => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
+
+  const getCompanyName = (clientId: string | null) => {
+    if (!clientId) return 'N/A';
+    const company = companies.find(c => c.id === clientId);
+    return company?.name || 'N/A';
+  };
 
   const getWeekDates = (date: Date) => {
     const week = [];
@@ -94,23 +104,33 @@ const WeeklyView = ({ schedules, onEdit, onDelete }: WeeklyViewProps) => {
                 </div>
                 
                 <div className="space-y-1">
-                  {daySchedules.map((schedule) => (
-                    <div
-                      key={schedule.id}
-                      className="p-2 bg-background rounded border text-xs cursor-pointer hover:bg-accent"
-                      onClick={() => onEdit(schedule)}
-                    >
-                      <div className="font-medium truncate">{schedule.name}</div>
-                      <div className="text-muted-foreground">
-                        {formatTime(schedule.time_hour, schedule.time_minute)}
-                      </div>
-                      {schedule.system_name && (
-                        <div className="text-muted-foreground truncate">
-                          {schedule.system_name}
+                  {daySchedules.map((schedule) => {
+                    const companyName = getCompanyName(schedule.client_id);
+                    
+                    return (
+                      <div
+                        key={schedule.id}
+                        className="p-2 bg-background rounded border text-xs cursor-pointer hover:bg-accent"
+                        onClick={() => onEdit(schedule)}
+                      >
+                        <div className="font-medium truncate">{schedule.name}</div>
+                        <div className="text-muted-foreground">
+                          {formatTime(schedule.time_hour, schedule.time_minute)}
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        {companyName !== 'N/A' && (
+                          <div className="text-muted-foreground truncate flex items-center gap-1">
+                            <Building className="h-3 w-3" />
+                            {companyName}
+                          </div>
+                        )}
+                        {schedule.system_name && (
+                          <div className="text-muted-foreground truncate">
+                            📱 {schedule.system_name}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -123,11 +143,18 @@ const WeeklyView = ({ schedules, onEdit, onDelete }: WeeklyViewProps) => {
 
 interface MonthlyViewProps {
   schedules: RecurringSchedule[];
+  companies: any[];
   onEdit: (schedule: RecurringSchedule) => void;
 }
 
-const MonthlyView = ({ schedules, onEdit }: MonthlyViewProps) => {
+const MonthlyView = ({ schedules, companies, onEdit }: MonthlyViewProps) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  const getCompanyName = (clientId: string | null) => {
+    if (!clientId) return 'N/A';
+    const company = companies.find(c => c.id === clientId);
+    return company?.name || 'N/A';
+  };
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -227,15 +254,29 @@ const MonthlyView = ({ schedules, onEdit }: MonthlyViewProps) => {
                 </div>
                 
                 <div className="space-y-1">
-                  {daySchedules.slice(0, 2).map((schedule) => (
-                    <div
-                      key={schedule.id}
-                      className="p-1 bg-accent rounded cursor-pointer hover:bg-accent/80"
-                      onClick={() => onEdit(schedule)}
-                    >
-                      <div className="truncate font-medium">{schedule.name}</div>
-                    </div>
-                  ))}
+                  {daySchedules.slice(0, 2).map((schedule) => {
+                    const companyName = getCompanyName(schedule.client_id);
+                    
+                    return (
+                      <div
+                        key={schedule.id}
+                        className="p-1 bg-accent rounded cursor-pointer hover:bg-accent/80"
+                        onClick={() => onEdit(schedule)}
+                      >
+                        <div className="truncate font-medium">{schedule.name}</div>
+                        {companyName !== 'N/A' && (
+                          <div className="truncate text-xs text-muted-foreground">
+                            {companyName}
+                          </div>
+                        )}
+                        {schedule.system_name && (
+                          <div className="truncate text-xs text-muted-foreground">
+                            📱 {schedule.system_name}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                   {daySchedules.length > 2 && (
                     <div className="text-center text-muted-foreground">
                       +{daySchedules.length - 2} mais
@@ -253,11 +294,19 @@ const MonthlyView = ({ schedules, onEdit }: MonthlyViewProps) => {
 
 export const ScheduleCalendarView = () => {
   const { data: schedules = [], isLoading } = useRecurringSchedules();
+  const { data: companies = [] } = useCompanies();
   const deleteSchedule = useDeleteRecurringSchedule();
   
   const [showDialog, setShowDialog] = useState(false);
+  const [showTypeDialog, setShowTypeDialog] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<RecurringSchedule | null>(null);
   const [activeView, setActiveView] = useState<'week' | 'month' | 'list'>('week');
+
+  const getCompanyName = (clientId: string | null) => {
+    if (!clientId) return 'N/A';
+    const company = companies.find(c => c.id === clientId);
+    return company?.name || 'N/A';
+  };
 
   const handleEdit = (schedule: RecurringSchedule) => {
     setEditingSchedule(schedule);
@@ -313,14 +362,25 @@ export const ScheduleCalendarView = () => {
           </Button>
         </div>
         
-        <Button onClick={() => { setEditingSchedule(null); setShowDialog(true); }}>
-          Novo Agendamento
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setShowTypeDialog(true)} 
+            variant="outline"
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            Gerenciar Sistemas/Serviços
+          </Button>
+          <Button onClick={() => { setEditingSchedule(null); setShowDialog(true); }}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Agendamento
+          </Button>
+        </div>
       </div>
 
       {activeView === 'week' && (
         <WeeklyView 
-          schedules={schedules} 
+          schedules={schedules}
+          companies={companies}
           onEdit={handleEdit} 
           onDelete={handleDelete}
         />
@@ -328,7 +388,8 @@ export const ScheduleCalendarView = () => {
 
       {activeView === 'month' && (
         <MonthlyView 
-          schedules={schedules} 
+          schedules={schedules}
+          companies={companies}
           onEdit={handleEdit}
         />
       )}
@@ -357,7 +418,7 @@ export const ScheduleCalendarView = () => {
                   <TableRow key={schedule.id}>
                     <TableCell className="font-medium">{schedule.name}</TableCell>
                     <TableCell>
-                      {(schedule as any).companies?.name || 'N/A'}
+                      {getCompanyName(schedule.client_id)}
                     </TableCell>
                     <TableCell>{schedule.system_name}</TableCell>
                     <TableCell className="flex items-center gap-1">
@@ -411,6 +472,11 @@ export const ScheduleCalendarView = () => {
         isOpen={showDialog}
         onOpenChange={setShowDialog}
         editingSchedule={editingSchedule}
+      />
+      
+      <ScheduleTypeDialog 
+        open={showTypeDialog} 
+        onOpenChange={setShowTypeDialog} 
       />
     </div>
   );
