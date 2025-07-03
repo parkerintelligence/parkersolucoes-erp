@@ -38,7 +38,8 @@ const Links = () => {
   const [selectedCompany, setSelectedCompany] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [showPasswords, setShowPasswords] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [groupByService, setGroupByService] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [sortBy, setSortBy] = useState('name');
 
   // Filtrar apenas senhas que têm gera_link = true
@@ -163,7 +164,7 @@ const Links = () => {
       </div>
 
       {/* Filtros Avançados */}
-      <Card>
+      <Card className="bg-muted/20">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
@@ -227,56 +228,18 @@ const Links = () => {
               <Label htmlFor="show-passwords" className="text-sm">Mostrar credenciais</Label>
             </div>
           </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="group-by-service"
+              checked={groupByService}
+              onCheckedChange={setGroupByService}
+            />
+            <Label htmlFor="group-by-service" className="text-sm">Agrupar por serviço</Label>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Estatísticas rápidas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Globe className="h-5 w-5 text-primary" />
-              <div>
-                <p className="text-2xl font-bold text-primary">{sortedLinks.length}</p>
-                <p className="text-sm text-muted-foreground">Links Ativos</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Building className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="text-2xl font-bold text-blue-900">{companies.length}</p>
-                <p className="text-sm text-blue-600">Empresas</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-green-50 border-green-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Server className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="text-2xl font-bold text-green-900">{uniqueServices.length}</p>
-                <p className="text-sm text-green-600">Serviços</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-purple-50 border-purple-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-purple-600" />
-              <div>
-                <p className="text-2xl font-bold text-purple-900">{links.length}</p>
-                <p className="text-sm text-purple-600">Total de Links</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Lista/Grid de Links */}
       {sortedLinks.length > 0 ? (
