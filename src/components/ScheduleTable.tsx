@@ -10,6 +10,8 @@ import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ScheduleDialog } from './ScheduleDialog';
 import { toast } from '@/hooks/use-toast';
+import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
+import { WhatsAppScheduleDialog } from './WhatsAppScheduleDialog';
 
 interface ScheduleItem {
   id: string;
@@ -33,43 +35,28 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
   const [typeFilter, setTypeFilter] = useState('');
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ScheduleItem | null>(null);
 
-  const handleOpenGLPITicket = async (item: ScheduleItem) => {
-    try {
-      const response = await fetch('/api/glpi/tickets', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: `Agendamento: ${item.title}`,
-          content: `Empresa: ${item.company}\nTipo: ${item.type}\nVencimento: ${format(new Date(item.due_date), 'dd/MM/yyyy', { locale: ptBR })}\nDescrição: ${item.description || 'N/A'}`,
-          urgency: getDaysUntilDue(item.due_date) <= 7 ? 5 : 3,
-          impact: 3,
-          priority: getDaysUntilDue(item.due_date) <= 7 ? 5 : 3
-        }),
-      });
-      
-      if (response.ok) {
-        toast({
-          title: "Chamado criado com sucesso!",
-          description: "O chamado foi criado no GLPI.",
-        });
-      } else {
-        throw new Error('Erro ao criar chamado');
-      }
-    } catch (error) {
-      toast({
-        title: "Erro ao criar chamado",
-        description: "Não foi possível criar o chamado no GLPI.",
-        variant: "destructive"
-      });
-    }
+  const { createTicket } = useGLPIExpanded();
+
+  const handleOpenGLPITicket = (item: ScheduleItem) => {
+    const ticketData = {
+      name: `Agendamento: ${item.title}`,
+      content: `Empresa: ${item.company}\nTipo: ${item.type}\nVencimento: ${format(new Date(item.due_date), 'dd/MM/yyyy', { locale: ptBR })}\nDescrição: ${item.description || 'N/A'}`,
+      urgency: getDaysUntilDue(item.due_date) <= 7 ? 5 : 3,
+      impact: 3,
+      priority: getDaysUntilDue(item.due_date) <= 7 ? 5 : 3,
+      status: 1, // Novo
+      type: 1, // Incidente
+    };
+
+    createTicket.mutate(ticketData);
   };
 
   const handleWhatsAppShare = (item: ScheduleItem) => {
-    // Implementar popup do WhatsApp aqui
-    console.log('Enviar via WhatsApp:', item);
+    setSelectedItem(item);
+    setShowWhatsAppDialog(true);
   };
 
   const handleEditItem = (item: ScheduleItem) => {
@@ -266,6 +253,15 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
           onOpenChange={setShowEditDialog}
           editingItem={editingItem}
           onUpdate={onUpdate}
+        />
+      )}
+
+      {/* Dialog para WhatsApp */}
+      {selectedItem && (
+        <WhatsAppScheduleDialog
+          open={showWhatsAppDialog}
+          onOpenChange={setShowWhatsAppDialog}
+          scheduleItem={selectedItem}
         />
       )}
     </Card>
