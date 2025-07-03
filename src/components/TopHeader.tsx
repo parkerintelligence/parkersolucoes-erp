@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Crown, Shield, ChevronRight, Home, PanelLeft } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
@@ -14,7 +15,11 @@ import {
 
 export const TopHeader = () => {
   const { user, userProfile, logout, isMaster } = useAuth();
+  const { data: settings } = useSystemSettings();
   const location = useLocation();
+
+  const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Sistema de Gestão de TI';
+  const logoUrl = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value;
 
   const handleLogout = async () => {
     await logout();
@@ -50,12 +55,20 @@ export const TopHeader = () => {
         {/* Menu Toggle e Título */}
         <div className="flex items-center gap-3 min-w-0">
           <SidebarTrigger className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/10" />
-          <div className="bg-secondary p-2 rounded-xl flex-shrink-0 shadow-sm">
-            <Shield className="h-5 w-5 md:h-6 md:w-6 text-secondary-foreground" />
-          </div>
+          {logoUrl ? (
+            <img 
+              src={logoUrl} 
+              alt="Logo da empresa" 
+              className="h-10 w-auto object-contain flex-shrink-0"
+            />
+          ) : (
+            <div className="bg-secondary p-2 rounded-xl flex-shrink-0 shadow-sm">
+              <Shield className="h-5 w-5 md:h-6 md:w-6 text-secondary-foreground" />
+            </div>
+          )}
           <div className="min-w-0 hidden sm:block">
             <h1 className="text-lg md:text-xl font-bold text-primary-foreground truncate">
-              Sistema de Gestão de TI
+              {companyName}
             </h1>
             <p className="text-sm text-primary-foreground/80">Plataforma Integrada</p>
           </div>
@@ -78,7 +91,7 @@ export const TopHeader = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10 px-3 py-2 rounded-lg">
                 {isMaster ? (
-                  <Crown className="h-4 w-4 text-secondary" />
+                  <Shield className="h-4 w-4 text-secondary" />
                 ) : (
                   <User className="h-4 w-4" />
                 )}
@@ -96,7 +109,7 @@ export const TopHeader = () => {
                   <p className="text-xs text-muted-foreground flex items-center gap-2">
                     {isMaster ? (
                       <>
-                        <Crown className="h-3 w-3 text-secondary" />
+                        <Shield className="h-3 w-3 text-secondary" />
                         Administrador Master
                       </>
                     ) : (

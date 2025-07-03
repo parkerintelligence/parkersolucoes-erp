@@ -12,6 +12,7 @@ import { FtpAdminConfig } from '@/components/FtpAdminConfig';
 import { WasabiAdminConfig } from '@/components/WasabiAdminConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SystemSettingsPanel from '@/components/SystemSettingsPanel';
+import { BrandingSettingsPanel } from '@/components/BrandingSettingsPanel';
 
 
 
@@ -56,6 +57,8 @@ const Admin = () => {
         return <AdminApiPanel />;
       case 'companies':
         return <AdminCompaniesPanel />;
+      case 'branding':
+        return <BrandingSettingsPanel />;
       case 'glpi':
         return (
           <Card className="border-blue-200">
@@ -385,6 +388,20 @@ const Admin = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                <Card className="border-rose-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('branding')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-rose-100 p-3 rounded-lg">
+                        <Building className="h-6 w-6 text-rose-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-rose-900">Configurações de Marca</h3>
+                        <p className="text-sm text-rose-600">Logo e identidade visual</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </div>
@@ -475,6 +492,7 @@ const Admin = () => {
             {activeSection === 'grafana' && 'Grafana'}
             {activeSection === 'bomcontrole' && 'Bom Controle'}
             {activeSection === 'ftp' && 'FTP'}
+            {activeSection === 'branding' && 'Configurações de Marca'}
           </span>
         </div>
       )}

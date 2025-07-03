@@ -10,8 +10,6 @@ import { Upload, Image as ImageIcon, X } from 'lucide-react';
 
 export const BrandingSettingsPanel = () => {
   const { data: settings, refetch } = useSystemSettings();
-  const updateSetting = { mutateAsync: async () => {} }; // Placeholder
-  const createSetting = { mutateAsync: async () => {} }; // Placeholder
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -121,19 +119,32 @@ export const BrandingSettingsPanel = () => {
       // Salvar URL nas configurações
       const logoSetting = settings?.find(s => s.setting_key === 'company_logo_url');
       if (logoSetting) {
-        await updateSetting.mutateAsync({
-          id: logoSetting.id,
-          updates: { setting_value: urlData.publicUrl }
-        });
+        const { error: updateError } = await supabase
+          .from('system_settings')
+          .update({ setting_value: urlData.publicUrl })
+          .eq('id', logoSetting.id);
+        
+        if (updateError) throw updateError;
       } else {
-        await createSetting.mutateAsync({
-          setting_key: 'company_logo_url',
-          setting_value: urlData.publicUrl,
-          category: 'branding',
-          setting_type: 'text',
-          description: 'URL da logo da empresa exibida no sistema'
-        });
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) throw new Error('Usuário não autenticado');
+        
+        const { error: insertError } = await supabase
+          .from('system_settings')
+          .insert({
+            user_id: userData.user.id,
+            setting_key: 'company_logo_url',
+            setting_value: urlData.publicUrl,
+            category: 'branding',
+            setting_type: 'text',
+            description: 'URL da logo da empresa exibida no sistema'
+          });
+          
+        if (insertError) throw insertError;
       }
+
+      // Refetch para atualizar a UI
+      refetch();
 
       toast({
         title: "Logo atualizada!",
@@ -173,11 +184,16 @@ export const BrandingSettingsPanel = () => {
       // Atualizar configuração
       const logoSetting = settings?.find(s => s.setting_key === 'company_logo_url');
       if (logoSetting) {
-        await updateSetting.mutateAsync({
-          id: logoSetting.id,
-          updates: { setting_value: '' }
-        });
+        const { error: updateError } = await supabase
+          .from('system_settings')
+          .update({ setting_value: '' })
+          .eq('id', logoSetting.id);
+          
+        if (updateError) throw updateError;
       }
+
+      // Refetch para atualizar a UI
+      refetch();
 
       toast({
         title: "Logo removida",
@@ -197,19 +213,32 @@ export const BrandingSettingsPanel = () => {
     const nameSetting = settings?.find(s => s.setting_key === 'company_name');
     try {
       if (nameSetting) {
-        await updateSetting.mutateAsync({
-          id: nameSetting.id,
-          updates: { setting_value: newName }
-        });
+        const { error: updateError } = await supabase
+          .from('system_settings')
+          .update({ setting_value: newName })
+          .eq('id', nameSetting.id);
+          
+        if (updateError) throw updateError;
       } else {
-        await createSetting.mutateAsync({
-          setting_key: 'company_name',
-          setting_value: newName,
-          category: 'branding',
-          setting_type: 'text',
-          description: 'Nome da empresa exibido no sistema'
-        });
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) throw new Error('Usuário não autenticado');
+        
+        const { error: insertError } = await supabase
+          .from('system_settings')
+          .insert({
+            user_id: userData.user.id,
+            setting_key: 'company_name',
+            setting_value: newName,
+            category: 'branding',
+            setting_type: 'text',
+            description: 'Nome da empresa exibido no sistema'
+          });
+          
+        if (insertError) throw insertError;
       }
+
+      // Refetch para atualizar a UI
+      refetch();
 
       toast({
         title: "Nome atualizado!",
