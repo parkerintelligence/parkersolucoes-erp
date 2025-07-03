@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { useCreateRecurringSchedule, useUpdateRecurringSchedule } from '@/hooks/useRecurringSchedules';
 import { useCompanies } from '@/hooks/useCompanies';
+import { useScheduleServices } from '@/hooks/useScheduleServices';
 import { toast } from '@/hooks/use-toast';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -31,6 +32,7 @@ const DAYS_OF_WEEK = [
 
 export const RecurringScheduleDialog = ({ isOpen, onOpenChange, editingSchedule }: RecurringScheduleDialogProps) => {
   const { data: companies = [] } = useCompanies();
+  const { data: services = [] } = useScheduleServices();
   const createSchedule = useCreateRecurringSchedule();
   const updateSchedule = useUpdateRecurringSchedule();
 
@@ -148,12 +150,27 @@ export const RecurringScheduleDialog = ({ isOpen, onOpenChange, editingSchedule 
 
           <div className="grid gap-2">
             <Label htmlFor="system">Sistema/Serviço *</Label>
-            <Input
-              id="system"
-              placeholder="Ex: Sistema ERP, Backup servidor, etc."
-              value={formData.system_name}
-              onChange={(e) => setFormData(prev => ({ ...prev, system_name: e.target.value }))}
-            />
+            <Select value={formData.system_name} onValueChange={(value) => setFormData(prev => ({ ...prev, system_name: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um sistema/serviço" />
+              </SelectTrigger>
+              <SelectContent>
+                {services.map((service) => (
+                  <SelectItem key={service.id} value={service.name}>
+                    <div className="flex items-center gap-2">
+                      <span className="capitalize">{service.category}</span>
+                      <span>-</span>
+                      <span>{service.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {services.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Nenhum sistema/serviço cadastrado. Use o botão "Gerenciar Sistemas/Serviços" para criar.
+              </p>
+            )}
           </div>
 
           <div className="grid gap-2">

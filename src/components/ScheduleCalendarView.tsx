@@ -7,7 +7,7 @@ import { Clock, MapPin, Building, Settings, Edit, Trash2, Calendar, ChevronLeft,
 import { useRecurringSchedules, useDeleteRecurringSchedule } from '@/hooks/useRecurringSchedules';
 import { useCompanies } from '@/hooks/useCompanies';
 import { RecurringScheduleDialog } from './RecurringScheduleDialog';
-import { ScheduleTypeDialog } from './ScheduleTypeDialog';
+import { ScheduleServicesDialog } from './ScheduleServicesDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
 type RecurringSchedule = Tables<'recurring_schedules'>;
@@ -298,7 +298,7 @@ export const ScheduleCalendarView = () => {
   const deleteSchedule = useDeleteRecurringSchedule();
   
   const [showDialog, setShowDialog] = useState(false);
-  const [showTypeDialog, setShowTypeDialog] = useState(false);
+  const [showServicesDialog, setShowServicesDialog] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<RecurringSchedule | null>(null);
   const [activeView, setActiveView] = useState<'week' | 'month' | 'list'>('week');
 
@@ -364,7 +364,7 @@ export const ScheduleCalendarView = () => {
         
         <div className="flex gap-2">
           <Button 
-            onClick={() => setShowTypeDialog(true)} 
+            onClick={() => setShowServicesDialog(true)} 
             variant="outline"
           >
             <Settings className="mr-2 h-4 w-4" />
@@ -474,9 +474,9 @@ export const ScheduleCalendarView = () => {
         editingSchedule={editingSchedule}
       />
       
-      <ScheduleTypeDialog 
-        open={showTypeDialog} 
-        onOpenChange={setShowTypeDialog} 
+      <ScheduleServicesDialog 
+        open={showServicesDialog} 
+        onOpenChange={setShowServicesDialog} 
       />
     </div>
   );
