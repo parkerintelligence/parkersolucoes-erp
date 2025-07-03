@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { usePasswords, useCreatePassword, useUpdatePassword, useDeletePassword } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { ServiceDialog } from '@/components/ServiceDialog';
 import { 
   Lock, Plus, Eye, EyeOff, Edit, Trash2, Building, Search, Settings, 
-  Code, Mail, Server, Database, Cloud, Shield, Monitor, Globe, Filter
+  Code, Mail, Server, Database, Cloud, Shield, Monitor, Globe, Filter, FileDown
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import type { Tables } from '@/integrations/supabase/types';
@@ -25,6 +26,7 @@ type Password = Tables<'passwords'>;
 const Passwords = () => {
   const { data: passwords = [], isLoading } = usePasswords();
   const { data: companies = [] } = useCompanies();
+  const { isMaster } = useAuth();
   const createPassword = useCreatePassword();
   const updatePassword = useUpdatePassword();
   const deletePassword = useDeletePassword();
@@ -34,20 +36,21 @@ const Passwords = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
   const [editingPassword, setEditingPassword] = useState<Password | null>(null);
+  const [editingService, setEditingService] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [groupByService, setGroupByService] = useState(true);
   const [availableServices, setAvailableServices] = useState([
-    { name: 'Sistema', icon: 'code', color: 'blue' },
-    { name: 'Email', icon: 'mail', color: 'green' },
-    { name: 'Hosting', icon: 'server', color: 'purple' },
-    { name: 'Database', icon: 'database', color: 'orange' },
-    { name: 'Cloud', icon: 'cloud', color: 'sky' },
-    { name: 'Security', icon: 'shield', color: 'red' },
-    { name: 'Monitoring', icon: 'monitor', color: 'indigo' },
-    { name: 'Config', icon: 'settings', color: 'gray' },
+    { name: 'Sistema', icon: 'code', color: 'blue', description: '' },
+    { name: 'Email', icon: 'mail', color: 'green', description: '' },
+    { name: 'Hosting', icon: 'server', color: 'purple', description: '' },
+    { name: 'Database', icon: 'database', color: 'orange', description: '' },
+    { name: 'Cloud', icon: 'cloud', color: 'sky', description: '' },
+    { name: 'Security', icon: 'shield', color: 'red', description: '' },
+    { name: 'Monitoring', icon: 'monitor', color: 'indigo', description: '' },
+    { name: 'Config', icon: 'settings', color: 'gray', description: '' },
   ]);
   
   const [formData, setFormData] = useState({
@@ -106,6 +109,89 @@ const Passwords = () => {
       title: "Serviço adicionado!",
       description: `Serviço "${serviceData.name}" foi criado com sucesso.`,
     });
+  };
+
+  const handleEditService = (serviceData: any) => {
+    setAvailableServices(prev => 
+      prev.map(service => 
+        service.name === editingService?.name ? serviceData : service
+      )
+    );
+    setEditingService(null);
+    toast({
+      title: "Serviço atualizado!",
+      description: `Serviço "${serviceData.name}" foi atualizado com sucesso.`,
+    });
+  };
+
+  const handleDeleteService = (serviceName: string) => {
+    setAvailableServices(prev => prev.filter(service => service.name !== serviceName));
+    toast({
+      title: "Serviço removido!",
+      description: `Serviço "${serviceName}" foi removido com sucesso.`,
+    });
+  };
+
+  const exportToPDF = async () => {
+    if (!isMaster) {
+      toast({
+        title: "Acesso negado",
+        description: "Apenas usuários master podem exportar dados.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { jsPDF } = await import('jspdf');
+      const autoTable = (await import('jspdf-autotable')).default;
+      
+      const doc = new jsPDF();
+      
+      // Título
+      doc.setFontSize(20);
+      doc.text('Relatório do Cofre de Senhas', 20, 20);
+      
+      // Data
+      doc.setFontSize(12);
+      doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 20, 30);
+      
+      // Preparar dados para a tabela
+      const tableData = filteredPasswords.map(password => {
+        const company = companies.find(c => c.id === password.company_id);
+        return [
+          password.name,
+          company?.name || 'N/A',
+          password.service || 'N/A',
+          password.username || 'N/A',
+          password.url || 'N/A',
+          password.gera_link ? 'Sim' : 'Não'
+        ];
+      });
+      
+      // Adicionar tabela
+      autoTable(doc, {
+        head: [['Sistema', 'Empresa', 'Serviço', 'Usuário', 'URL', 'Gera Link']],
+        body: tableData,
+        startY: 40,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [41, 128, 185] }
+      });
+      
+      // Salvar o PDF
+      doc.save('cofre-de-senhas.pdf');
+      
+      toast({
+        title: "PDF gerado!",
+        description: "O relatório foi exportado com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao gerar PDF",
+        description: "Ocorreu um erro ao exportar os dados.",
+        variant: "destructive"
+      });
+    }
   };
 
   const togglePasswordVisibility = (id: string) => {
@@ -224,6 +310,15 @@ const Passwords = () => {
           </div>
         </div>
         <div className="flex gap-2">
+          {isMaster && (
+            <Button
+              variant="outline"
+              onClick={exportToPDF}
+            >
+              <FileDown className="mr-2 h-4 w-4" />
+              Exportar PDF
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => setIsServiceDialogOpen(true)}
@@ -348,6 +443,10 @@ const Passwords = () => {
         isOpen={isServiceDialogOpen}
         onOpenChange={setIsServiceDialogOpen}
         onSave={handleSaveService}
+        editingService={editingService}
+        onEdit={handleEditService}
+        onDelete={handleDeleteService}
+        existingServices={availableServices}
       />
 
       {/* Filtros Avançados */}
