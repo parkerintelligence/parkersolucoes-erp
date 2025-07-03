@@ -152,34 +152,137 @@ const Passwords = () => {
       doc.setFontSize(20);
       doc.text('Relatório do Cofre de Senhas', 20, 20);
       
-      // Data
+      // Data e filtros aplicados
       doc.setFontSize(12);
       doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 20, 30);
       
-      // Preparar dados para a tabela
-      const tableData = filteredPasswords.map(password => {
-        const company = companies.find(c => c.id === password.company_id);
-        return [
-          password.name,
-          company?.name || 'N/A',
-          password.service || 'N/A',
-          password.username || 'N/A',
-          password.url || 'N/A',
-          password.gera_link ? 'Sim' : 'Não'
-        ];
-      });
+      let yPosition = 40;
       
-      // Adicionar tabela
-      autoTable(doc, {
-        head: [['Sistema', 'Empresa', 'Serviço', 'Usuário', 'URL', 'Gera Link']],
-        body: tableData,
-        startY: 40,
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [41, 128, 185] }
+      // Mostrar filtros aplicados
+      if (searchTerm || selectedCompany || selectedService || selectedStatus) {
+        doc.setFontSize(10);
+        doc.text('Filtros aplicados:', 20, yPosition);
+        yPosition += 5;
+        
+        if (searchTerm) {
+          doc.text(`• Busca: ${searchTerm}`, 25, yPosition);
+          yPosition += 5;
+        }
+        if (selectedCompany && selectedCompany !== 'all') {
+          const company = companies.find(c => c.id === selectedCompany);
+          doc.text(`• Empresa: ${company?.name}`, 25, yPosition);
+          yPosition += 5;
+        }
+        if (selectedService && selectedService !== 'all') {
+          doc.text(`• Serviço: ${selectedService}`, 25, yPosition);
+          yPosition += 5;
+        }
+        if (selectedStatus && selectedStatus !== 'all') {
+          const statusText = selectedStatus === 'with_link' ? 'Com link' : 'Sem link';
+          doc.text(`• Status: ${statusText}`, 25, yPosition);
+          yPosition += 5;
+        }
+        yPosition += 5;
+      }
+
+      // Agrupar dados por empresa e serviço
+      const groupedData = filteredPasswords.reduce((acc, password) => {
+        const company = companies.find(c => c.id === password.company_id);
+        const companyName = company?.name || 'Sem Empresa';
+        const serviceName = password.service || 'Sem Serviço';
+        
+        if (!acc[companyName]) {
+          acc[companyName] = {};
+        }
+        if (!acc[companyName][serviceName]) {
+          acc[companyName][serviceName] = [];
+        }
+        
+        acc[companyName][serviceName].push(password);
+        return acc;
+      }, {} as Record<string, Record<string, typeof filteredPasswords>>);
+
+      // Gerar tabelas por empresa e serviço
+      Object.entries(groupedData).forEach(([companyName, services]) => {
+        // Título da empresa
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text(`Empresa: ${companyName}`, 20, yPosition);
+        yPosition += 10;
+        doc.setFont(undefined, 'normal');
+        
+        Object.entries(services).forEach(([serviceName, passwords]) => {
+          // Título do serviço
+          doc.setFontSize(12);
+          doc.setFont(undefined, 'bold');
+          doc.text(`  Serviço: ${serviceName}`, 25, yPosition);
+          yPosition += 5;
+          doc.setFont(undefined, 'normal');
+          
+          // Preparar dados da tabela
+          const tableData = passwords.map(password => [
+            password.name,
+            password.username || 'N/A',
+            password.password || 'N/A',
+            password.url || 'N/A',
+            password.gera_link ? 'Sim' : 'Não'
+          ]);
+          
+          // Verificar se há espaço na página
+          if (yPosition > 250) {
+            doc.addPage();
+            yPosition = 20;
+          }
+          
+          // Adicionar tabela
+          autoTable(doc, {
+            head: [['Sistema', 'Usuário', 'Senha', 'URL', 'Gera Link']],
+            body: tableData,
+            startY: yPosition,
+            margin: { left: 30 },
+            styles: { 
+              fontSize: 8,
+              cellPadding: 2
+            },
+            headStyles: { 
+              fillColor: [41, 128, 185],
+              textColor: [255, 255, 255]
+            },
+            columnStyles: {
+              2: { fontStyle: 'bold' } // Destacar coluna da senha
+            }
+          });
+          
+          yPosition = (doc as any).lastAutoTable.finalY + 10;
+        });
+        
+        yPosition += 5; // Espaço extra entre empresas
       });
+
+      // Resumo no final
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text('Resumo:', 20, yPosition);
+      yPosition += 10;
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(10);
+      doc.text(`Total de senhas exportadas: ${filteredPasswords.length}`, 20, yPosition);
+      yPosition += 5;
+      doc.text(`Total de empresas: ${Object.keys(groupedData).length}`, 20, yPosition);
+      yPosition += 5;
+      
+      const totalServices = Object.values(groupedData).reduce((acc, services) => {
+        return acc + Object.keys(services).length;
+      }, 0);
+      doc.text(`Total de serviços: ${totalServices}`, 20, yPosition);
       
       // Salvar o PDF
-      doc.save('cofre-de-senhas.pdf');
+      doc.save('cofre-de-senhas-detalhado.pdf');
       
       toast({
         title: "PDF gerado!",
