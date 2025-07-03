@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Clock, MapPin, Building, Settings, Edit, Trash2, Calendar, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Clock, MapPin, Building, Settings, Edit, Trash2, Calendar, ChevronLeft, ChevronRight, Plus, CalendarDays } from 'lucide-react';
 import { useRecurringSchedules, useDeleteRecurringSchedule } from '@/hooks/useRecurringSchedules';
 import { useCompanies } from '@/hooks/useCompanies';
 import { RecurringScheduleDialog } from './RecurringScheduleDialog';
@@ -19,9 +19,135 @@ const MONTH_NAMES = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
+// Cores das empresas baseadas no CSS
+const COMPANY_COLORS = [
+  'hsl(var(--company-color-1))',
+  'hsl(var(--company-color-2))',
+  'hsl(var(--company-color-3))',
+  'hsl(var(--company-color-4))',
+  'hsl(var(--company-color-5))',
+  'hsl(var(--company-color-6))',
+  'hsl(var(--company-color-7))',
+  'hsl(var(--company-color-8))',
+  'hsl(var(--company-color-9))',
+  'hsl(var(--company-color-10))',
+];
+
+interface DailySchedulePanelProps {
+  schedules: RecurringSchedule[];
+  companies: Company[];
+  onEdit: (schedule: RecurringSchedule) => void;
+}
+
+const DailySchedulePanel = ({ schedules, companies, onEdit }: DailySchedulePanelProps) => {
+  const today = new Date();
+  const todayDayOfWeek = today.getDay();
+
+  const getCompanyName = (clientId: string | null) => {
+    if (!clientId) return 'N/A';
+    const company = companies.find(c => c.id === clientId);
+    return company?.name || 'N/A';
+  };
+
+  const getCompanyColor = (clientId: string | null) => {
+    if (!clientId) return COMPANY_COLORS[0];
+    const companyIndex = companies.findIndex(c => c.id === clientId);
+    return companyIndex >= 0 ? COMPANY_COLORS[companyIndex % COMPANY_COLORS.length] : COMPANY_COLORS[0];
+  };
+
+  const todaySchedules = schedules
+    .filter(schedule => schedule.is_active && schedule.days_of_week?.includes(todayDayOfWeek))
+    .sort((a, b) => {
+      const timeA = a.time_hour * 60 + a.time_minute;
+      const timeB = b.time_hour * 60 + b.time_minute;
+      return timeA - timeB;
+    });
+
+  const formatTime = (hour: number, minute: number) => {
+    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CalendarDays className="h-5 w-5" />
+          Agendamentos de Hoje ({today.toLocaleDateString('pt-BR', { 
+            weekday: 'long', 
+            day: '2-digit', 
+            month: 'long' 
+          })})
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {todaySchedules.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Nenhum agendamento para hoje.</p>
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {todaySchedules.map((schedule) => {
+              const companyName = getCompanyName(schedule.client_id);
+              const companyColor = getCompanyColor(schedule.client_id);
+              
+              return (
+                <div
+                  key={schedule.id}
+                  className="p-4 rounded-lg cursor-pointer hover:opacity-90 transition-all"
+                  style={{ 
+                    backgroundColor: companyColor,
+                    color: 'hsl(var(--company-text))'
+                  }}
+                  onClick={() => onEdit(schedule)}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-semibold text-lg">{schedule.name}</div>
+                    <div className="flex items-center gap-1 text-sm font-medium">
+                      <Clock className="h-4 w-4" />
+                      {formatTime(schedule.time_hour, schedule.time_minute)}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                    {companyName !== 'N/A' && (
+                      <div className="flex items-center gap-1">
+                        <Building className="h-4 w-4" />
+                        {companyName}
+                      </div>
+                    )}
+                    {schedule.system_name && (
+                      <div className="flex items-center gap-1">
+                        <span>📱</span>
+                        {schedule.system_name}
+                      </div>
+                    )}
+                    {schedule.location && (
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-4 w-4" />
+                        {schedule.location}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {schedule.description && (
+                    <div className="mt-2 text-sm opacity-90">
+                      {schedule.description}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 interface WeeklyViewProps {
   schedules: RecurringSchedule[];
-  companies: any[];
+  companies: Company[];
   onEdit: (schedule: RecurringSchedule) => void;
   onDelete: (id: string) => void;
 }
@@ -33,6 +159,12 @@ const WeeklyView = ({ schedules, companies, onEdit, onDelete }: WeeklyViewProps)
     if (!clientId) return 'N/A';
     const company = companies.find(c => c.id === clientId);
     return company?.name || 'N/A';
+  };
+
+  const getCompanyColor = (clientId: string | null) => {
+    if (!clientId) return COMPANY_COLORS[0];
+    const companyIndex = companies.findIndex(c => c.id === clientId);
+    return companyIndex >= 0 ? COMPANY_COLORS[companyIndex % COMPANY_COLORS.length] : COMPANY_COLORS[0];
   };
 
   const getWeekDates = (date: Date) => {
@@ -106,25 +238,30 @@ const WeeklyView = ({ schedules, companies, onEdit, onDelete }: WeeklyViewProps)
                 <div className="space-y-1">
                   {daySchedules.map((schedule) => {
                     const companyName = getCompanyName(schedule.client_id);
+                    const companyColor = getCompanyColor(schedule.client_id);
                     
                     return (
                       <div
                         key={schedule.id}
-                        className="p-2 bg-background rounded border text-xs cursor-pointer hover:bg-accent"
+                        className="p-2 rounded border text-xs cursor-pointer hover:opacity-90 transition-all"
+                        style={{ 
+                          backgroundColor: companyColor,
+                          color: 'hsl(var(--company-text))'
+                        }}
                         onClick={() => onEdit(schedule)}
                       >
                         <div className="font-medium truncate">{schedule.name}</div>
-                        <div className="text-muted-foreground">
+                        <div className="opacity-90">
                           {formatTime(schedule.time_hour, schedule.time_minute)}
                         </div>
                         {companyName !== 'N/A' && (
-                          <div className="text-muted-foreground truncate flex items-center gap-1">
+                          <div className="opacity-90 truncate flex items-center gap-1">
                             <Building className="h-3 w-3" />
                             {companyName}
                           </div>
                         )}
                         {schedule.system_name && (
-                          <div className="text-muted-foreground truncate">
+                          <div className="opacity-90 truncate">
                             📱 {schedule.system_name}
                           </div>
                         )}
@@ -143,7 +280,7 @@ const WeeklyView = ({ schedules, companies, onEdit, onDelete }: WeeklyViewProps)
 
 interface MonthlyViewProps {
   schedules: RecurringSchedule[];
-  companies: any[];
+  companies: Company[];
   onEdit: (schedule: RecurringSchedule) => void;
 }
 
@@ -154,6 +291,12 @@ const MonthlyView = ({ schedules, companies, onEdit }: MonthlyViewProps) => {
     if (!clientId) return 'N/A';
     const company = companies.find(c => c.id === clientId);
     return company?.name || 'N/A';
+  };
+
+  const getCompanyColor = (clientId: string | null) => {
+    if (!clientId) return COMPANY_COLORS[0];
+    const companyIndex = companies.findIndex(c => c.id === clientId);
+    return companyIndex >= 0 ? COMPANY_COLORS[companyIndex % COMPANY_COLORS.length] : COMPANY_COLORS[0];
   };
 
   const getDaysInMonth = (date: Date) => {
@@ -256,21 +399,26 @@ const MonthlyView = ({ schedules, companies, onEdit }: MonthlyViewProps) => {
                 <div className="space-y-1">
                   {daySchedules.slice(0, 2).map((schedule) => {
                     const companyName = getCompanyName(schedule.client_id);
+                    const companyColor = getCompanyColor(schedule.client_id);
                     
                     return (
                       <div
                         key={schedule.id}
-                        className="p-1 bg-accent rounded cursor-pointer hover:bg-accent/80"
+                        className="p-1 rounded cursor-pointer hover:opacity-90 transition-all"
+                        style={{ 
+                          backgroundColor: companyColor,
+                          color: 'hsl(var(--company-text))'
+                        }}
                         onClick={() => onEdit(schedule)}
                       >
                         <div className="truncate font-medium">{schedule.name}</div>
                         {companyName !== 'N/A' && (
-                          <div className="truncate text-xs text-muted-foreground">
+                          <div className="truncate text-xs opacity-90">
                             {companyName}
                           </div>
                         )}
                         {schedule.system_name && (
-                          <div className="truncate text-xs text-muted-foreground">
+                          <div className="truncate text-xs opacity-90">
                             📱 {schedule.system_name}
                           </div>
                         )}
@@ -306,6 +454,12 @@ export const ScheduleCalendarView = () => {
     if (!clientId) return 'N/A';
     const company = companies.find(c => c.id === clientId);
     return company?.name || 'N/A';
+  };
+
+  const getCompanyColor = (clientId: string | null) => {
+    if (!clientId) return COMPANY_COLORS[0];
+    const companyIndex = companies.findIndex(c => c.id === clientId);
+    return companyIndex >= 0 ? COMPANY_COLORS[companyIndex % COMPANY_COLORS.length] : COMPANY_COLORS[0];
   };
 
   const handleEdit = (schedule: RecurringSchedule) => {
@@ -377,10 +531,17 @@ export const ScheduleCalendarView = () => {
         </div>
       </div>
 
+      {/* Quadro diário sempre visível */}
+      <DailySchedulePanel 
+        schedules={schedules}
+        companies={companies as Company[]}
+        onEdit={handleEdit} 
+      />
+
       {activeView === 'week' && (
         <WeeklyView 
           schedules={schedules}
-          companies={companies}
+          companies={companies as Company[]}
           onEdit={handleEdit} 
           onDelete={handleDelete}
         />
@@ -389,7 +550,7 @@ export const ScheduleCalendarView = () => {
       {activeView === 'month' && (
         <MonthlyView 
           schedules={schedules}
-          companies={companies}
+          companies={companies as Company[]}
           onEdit={handleEdit}
         />
       )}
@@ -414,48 +575,65 @@ export const ScheduleCalendarView = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {schedules.map((schedule) => (
-                  <TableRow key={schedule.id}>
-                    <TableCell className="font-medium">{schedule.name}</TableCell>
-                    <TableCell>
-                      {getCompanyName(schedule.client_id)}
-                    </TableCell>
-                    <TableCell>{schedule.system_name}</TableCell>
-                    <TableCell className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      {formatTime(schedule.time_hour, schedule.time_minute)}
-                    </TableCell>
-                    <TableCell>{getDayNames(schedule.days_of_week || [])}</TableCell>
-                    <TableCell>
-                      {schedule.location && (
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          {schedule.location}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={schedule.is_active ? 'default' : 'secondary'}>
-                        {schedule.is_active ? 'Ativo' : 'Inativo'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(schedule)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="text-destructive"
-                          onClick={() => handleDelete(schedule.id)}
+                {schedules.map((schedule) => {
+                  const companyColor = getCompanyColor(schedule.client_id);
+                  
+                  return (
+                    <TableRow 
+                      key={schedule.id}
+                      style={{ 
+                        backgroundColor: companyColor + '20', // 20% opacity
+                      }}
+                    >
+                      <TableCell className="font-medium">{schedule.name}</TableCell>
+                      <TableCell>
+                        <div 
+                          className="inline-block px-2 py-1 rounded text-xs font-medium"
+                          style={{ 
+                            backgroundColor: companyColor,
+                            color: 'hsl(var(--company-text))'
+                          }}
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          {getCompanyName(schedule.client_id)}
+                        </div>
+                      </TableCell>
+                      <TableCell>{schedule.system_name}</TableCell>
+                      <TableCell className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" />
+                        {formatTime(schedule.time_hour, schedule.time_minute)}
+                      </TableCell>
+                      <TableCell>{getDayNames(schedule.days_of_week || [])}</TableCell>
+                      <TableCell>
+                        {schedule.location && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            {schedule.location}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={schedule.is_active ? 'default' : 'secondary'}>
+                          {schedule.is_active ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => handleEdit(schedule)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-destructive"
+                            onClick={() => handleDelete(schedule.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
             
@@ -474,9 +652,9 @@ export const ScheduleCalendarView = () => {
         editingSchedule={editingSchedule}
       />
       
-      <ScheduleServicesDialog 
-        open={showServicesDialog} 
-        onOpenChange={setShowServicesDialog} 
+      <ScheduleServicesDialog
+        open={showServicesDialog}
+        onOpenChange={setShowServicesDialog}
       />
     </div>
   );

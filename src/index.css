@@ -48,6 +48,19 @@ All colors MUST be HSL.
     /* Sidebar colors */
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 220 20% 30%;
+
+    /* Company colors - Dark backgrounds with white text */
+    --company-color-1: 0 0% 15%; /* Dark charcoal */
+    --company-color-2: 259 33% 15%; /* Dark purple */
+    --company-color-3: 207 90% 15%; /* Dark blue */
+    --company-color-4: 142 71% 15%; /* Dark green */
+    --company-color-5: 14 88% 15%; /* Dark red */
+    --company-color-6: 45 93% 15%; /* Dark orange */
+    --company-color-7: 300 47% 15%; /* Dark magenta */
+    --company-color-8: 180 100% 15%; /* Dark cyan */
+    --company-color-9: 60 80% 15%; /* Dark yellow-green */
+    --company-color-10: 330 81% 15%; /* Dark pink */
+    --company-text: 0 0% 100%; /* White text for all company colors */
     --sidebar-primary: 220 50% 15%;
     --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 220 13% 96%;
