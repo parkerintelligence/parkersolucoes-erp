@@ -415,101 +415,118 @@ const Passwords = () => {
 
       {/* Lista de Senhas Agrupadas ou Normal */}
       {Object.entries(groupedPasswords).map(([groupName, groupPasswords]) => (
-        <Card key={groupName}>
-          <CardHeader>
+        <Card key={groupName} className="bg-muted/30 border-border/50">
+          <CardHeader className="bg-muted/50 border-b">
             <div className="flex items-center gap-2">
               {groupByService && groupName !== 'Todas as Senhas' && getServiceIcon(groupName)}
-              <CardTitle>{groupName}</CardTitle>
-              <Badge variant="secondary">{groupPasswords.length}</Badge>
+              <CardTitle className="text-foreground">{groupName}</CardTitle>
+              <Badge variant="secondary" className="bg-primary/10 text-primary">{groupPasswords.length}</Badge>
             </div>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sistema</TableHead>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>URL</TableHead>
-                  <TableHead>Usuário</TableHead>
-                  <TableHead>Senha</TableHead>
-                  {!groupByService && <TableHead>Serviço</TableHead>}
-                  <TableHead>Link</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {groupPasswords.map((item) => {
-                  const company = companies.find(c => c.id === item.company_id);
-                  return (
-                    <TableRow key={item.id} className="hover:bg-muted/50">
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell>{company?.name || 'N/A'}</TableCell>
-                      <TableCell>
-                        {item.url && (
-                          <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                            Acessar
-                          </a>
-                        )}
-                      </TableCell>
-                      <TableCell>{item.username}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono">
-                            {showPassword[item.id] ? item.password : '••••••••'}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => togglePasswordVisibility(item.id)}
-                          >
-                            {showPassword[item.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleCopyPassword(item.password || '')}
-                          >
-                            Copiar
-                          </Button>
-                        </div>
-                      </TableCell>
-                      {!groupByService && (
+          <CardContent className="p-6 bg-background/50">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/50">
+                    <TableHead className="font-semibold">Sistema</TableHead>
+                    <TableHead className="font-semibold">Empresa</TableHead>
+                    <TableHead className="font-semibold">URL</TableHead>
+                    <TableHead className="font-semibold">Usuário</TableHead>
+                    <TableHead className="font-semibold">Senha</TableHead>
+                    {!groupByService && <TableHead className="font-semibold">Serviço</TableHead>}
+                    <TableHead className="font-semibold">Link</TableHead>
+                    <TableHead className="font-semibold">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {groupPasswords.map((item) => {
+                    const company = companies.find(c => c.id === item.company_id);
+                    return (
+                      <TableRow key={item.id} className="hover:bg-muted/20 border-border/30">
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell className="font-medium text-muted-foreground">{company?.name || 'N/A'}</TableCell>
                         <TableCell>
-                          {item.service && (
-                            <div className="flex items-center gap-1">
-                              {getServiceIcon(item.service)}
-                              <span>{item.service}</span>
-                            </div>
+                          {item.url ? (
+                            <Button
+                              size="sm"
+                              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                              onClick={() => window.open(item.url, '_blank')}
+                            >
+                              Acessar
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">Sem URL</span>
                           )}
                         </TableCell>
-                      )}
-                      <TableCell>
-                        {item.gera_link && <Badge className="bg-green-100 text-green-800">Sim</Badge>}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleEditPassword(item)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => handleDeletePassword(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        <TableCell className="font-mono text-sm">{item.username}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-sm">
+                              {showPassword[item.id] ? item.password : '••••••••'}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => togglePasswordVisibility(item.id)}
+                              className="h-8 w-8 p-0"
+                            >
+                              {showPassword[item.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopyPassword(item.password || '')}
+                              className="h-8 w-8 p-0"
+                            >
+                              📋
+                            </Button>
+                          </div>
+                        </TableCell>
+                        {!groupByService && (
+                          <TableCell>
+                            {item.service && (
+                              <div className="flex items-center gap-1">
+                                {getServiceIcon(item.service)}
+                                <span className="text-sm">{item.service}</span>
+                              </div>
+                            )}
+                          </TableCell>
+                        )}
+                        <TableCell>
+                          {item.gera_link && (
+                            <Badge className="bg-green-100 text-green-800 border-green-200">
+                              Ativo
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEditPassword(item)}
+                              className="h-8 px-3"
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Editar
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-destructive hover:text-destructive border-destructive/20 hover:bg-destructive/10 h-8 px-3"
+                              onClick={() => handleDeletePassword(item.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Excluir
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
             {groupPasswords.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 Nenhuma senha encontrada neste grupo.
