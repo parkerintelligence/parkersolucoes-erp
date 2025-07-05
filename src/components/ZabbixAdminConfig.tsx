@@ -55,14 +55,21 @@ const ZabbixAdminConfig = () => {
 
     setIsLoading(true);
     try {
+      // Obter o usuário atual
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const integrationData = {
         name: formData.name,
-        type: 'zabbix',
+        type: 'zabbix' as const,
         base_url: formData.base_url,
         username: formData.username || null,
         password: formData.password || null,
         api_token: formData.api_token || null,
         is_active: formData.is_active,
+        user_id: userData.user.id,
       };
 
       const { data, error } = zabbixIntegration
