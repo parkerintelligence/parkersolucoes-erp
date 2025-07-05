@@ -10,6 +10,7 @@ import { GrafanaAdminConfig } from '@/components/GrafanaAdminConfig';
 import { BomControleAdminConfig } from '@/components/BomControleAdminConfig';
 import { FtpAdminConfig } from '@/components/FtpAdminConfig';
 import { WasabiAdminConfig } from '@/components/WasabiAdminConfig';
+import ZabbixAdminConfig from '@/components/ZabbixAdminConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SystemSettingsPanel from '@/components/SystemSettingsPanel';
 import { BrandingSettingsPanel } from '@/components/BrandingSettingsPanel';
@@ -18,7 +19,7 @@ import { BrandingSettingsPanel } from '@/components/BrandingSettingsPanel';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Settings, Users, Database, Key, Building, Activity, DollarSign, MessageCircle, HardDrive, Monitor, Headphones, Router, BarChart3, FileText, MessageSquare, Wifi, Cloud, Clock } from 'lucide-react';
+import { Settings, Users, Database, Key, Building, Activity, DollarSign, MessageCircle, HardDrive, Monitor, Headphones, Router, BarChart3, FileText, MessageSquare, Wifi, Cloud, Clock, Shield } from 'lucide-react';
 
 const Admin = () => {
   const { isMaster } = useAuth();
@@ -178,6 +179,23 @@ const Admin = () => {
             </CardContent>
           </Card>
         );
+      case 'zabbix':
+        return (
+          <Card className="border-blue-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
+                <Shield className="h-5 w-5" />
+                Configuração Zabbix
+              </CardTitle>
+              <CardDescription>
+                Configure a integração com o Zabbix para monitoramento
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ZabbixAdminConfig />
+            </CardContent>
+          </Card>
+        );
       case 'users':
         return (
           <Card className="border-blue-200">
@@ -308,6 +326,19 @@ const Admin = () => {
                   </CardContent>
                 </Card>
 
+                <Card className="border-red-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('zabbix')}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-red-100 p-3 rounded-lg">
+                        <Shield className="h-6 w-6 text-red-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-red-900">Zabbix</h3>
+                        <p className="text-sm text-red-600">Monitoramento Avançado</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
               </div>
             </div>
