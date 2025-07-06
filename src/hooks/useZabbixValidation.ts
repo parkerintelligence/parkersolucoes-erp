@@ -11,210 +11,64 @@ export const validateZabbixConnection = async (
   baseUrl: string,
   username?: string,
   password?: string,
-  apiToken?: string
+  apiToken?: string,
+  integrationId?: string
 ): Promise<ZabbixValidationResult> => {
   try {
     console.log('Validating Zabbix connection...', { baseUrl, hasApiToken: !!apiToken, hasCredentials: !!(username && password) });
     
-    // Clean URL - remove trailing slash and ensure it ends with api_jsonrpc.php
-    let cleanUrl = baseUrl.replace(/\/$/, '');
-    if (!cleanUrl.endsWith('/api_jsonrpc.php')) {
-      cleanUrl = cleanUrl + '/api_jsonrpc.php';
-    }
-    
-    console.log('Clean URL:', cleanUrl);
-
-    // Test if the URL is reachable first
-    try {
-      console.log('Testing API version endpoint...');
-      const testResponse = await fetch(cleanUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'apiinfo.version',
-          params: {},
-          id: 1,
-        }),
-      });
-
-      console.log('API version response status:', testResponse.status);
-
-      if (!testResponse.ok) {
-        console.error('Zabbix URL not reachable:', testResponse.status, testResponse.statusText);
-        
-        if (testResponse.status === 404) {
-          return {
-            isValid: false,
-            error: 'URL não encontrada (404)',
-            details: `A URL ${cleanUrl} não foi encontrada. Verifique se:\n• A URL está correta\n• O Zabbix está instalado e rodando\n• O caminho para api_jsonrpc.php está correto\n• Não há problemas de firewall ou proxy`
-          };
-        } else if (testResponse.status === 403) {
-          return {
-            isValid: false,
-            error: 'Acesso negado (403)',
-            details: `Acesso negado ao endpoint ${cleanUrl}. Verifique se:\n• O servidor web está configurado corretamente\n• Não há restrições de IP\n• As permissões do Zabbix estão corretas`
-          };
-        } else if (testResponse.status >= 500) {
-          return {
-            isValid: false,
-            error: 'Erro interno do servidor',
-            details: `Erro interno do servidor (${testResponse.status}). O Zabbix pode estar:\n• Fora do ar\n• Com problemas de configuração\n• Com problemas de banco de dados\n• Sobrecarregado`
-          };
-        } else {
-          return {
-            isValid: false,
-            error: `Erro HTTP ${testResponse.status}`,
-            details: `${testResponse.statusText}. Verifique se a URL está correta e o Zabbix está acessível.`
-          };
-        }
-      }
-
-      const versionData = await testResponse.json();
-      console.log('API version data:', versionData);
-
-      if (versionData.error) {
-        return {
-          isValid: false,
-          error: 'Erro na API do Zabbix',
-          details: `A API retornou erro: ${versionData.error.message || 'Erro desconhecido'}\nCódigo: ${versionData.error.code || 'N/A'}`
-        };
-      }
-
-    } catch (networkError: any) {
-      console.error('Network error:', networkError);
-      
-      if (networkError.name === 'TypeError' && networkError.message.includes('fetch')) {
-        return {
-          isValid: false,
-          error: 'Erro de conexão de rede',
-          details: `Não foi possível conectar ao servidor ${cleanUrl}. Possíveis causas:\n• Servidor fora do ar\n• URL incorreta\n• Problemas de DNS\n• Firewall bloqueando a conexão\n• Certificado SSL inválido (se HTTPS)\n\nErro técnico: ${networkError.message}`
-        };
-      } else {
-        return {
-          isValid: false,
-          error: 'Erro de rede',
-          details: `Falha na conexão: ${networkError.message}`
-        };
-      }
-    }
-
-    // Test authentication - use API token if provided, otherwise use username/password
-    console.log('Testing authentication...');
-    
-    let authMethod: string;
-    let authParams: any;
-    let authHeader = '';
-
-    if (apiToken) {
-      // Use API token authentication
-      authMethod = 'user.get';
-      authParams = {
-        output: ['userid', 'username']
-      };
-      authHeader = apiToken;
-      console.log('Using API Token authentication');
-    } else if (username && password) {
-      // Use username/password authentication
-      authMethod = 'user.login';
-      authParams = {
-        user: username,
-        password: password,
-      };
-      console.log('Using username/password authentication');
-    } else {
+    if (!integrationId) {
       return {
         isValid: false,
-        error: 'Credenciais não fornecidas',
-        details: 'É necessário fornecer um API Token ou usuário e senha para autenticação.'
+        error: 'ID da integração é obrigatório para validação',
+        details: 'Salve a configuração primeiro para poder testar a conexão.'
       };
     }
 
-    const authResponse = await fetch(cleanUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(apiToken && { 'Authorization': `Bearer ${apiToken}` })
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        method: authMethod,
-        params: authParams,
-        ...(apiToken && { auth: apiToken }),
-        id: 1,
-      }),
+    // Usar a edge function para fazer a validação
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    console.log('Using zabbix-proxy function for validation...');
+    
+    const { data, error } = await supabase.functions.invoke('zabbix-proxy', {
+      body: {
+        method: 'apiinfo.version',
+        params: {},
+        integrationId: integrationId
+      }
     });
 
-    console.log('Auth response status:', authResponse.status);
+    console.log('Zabbix proxy response:', { data, error });
 
-    if (!authResponse.ok) {
-      console.error('Auth request failed:', authResponse.status);
+    if (error) {
+      console.error('Zabbix proxy error:', error);
       return {
         isValid: false,
-        error: `Erro HTTP ${authResponse.status}`,
-        details: `Falha na requisição de autenticação. Código: ${authResponse.status}`
+        error: 'Erro na comunicação com o Zabbix',
+        details: error.message || 'Erro desconhecido na comunicação'
       };
     }
 
-    const authData = await authResponse.json();
-    console.log('Auth response data:', authData);
-
-    if (authData.error) {
-      console.error('Zabbix auth error:', authData.error);
-      
-      // Check for specific error types
-      if (authData.error.code === -32602) {
-        return {
-          isValid: false,
-          error: 'Parâmetros de autenticação inválidos',
-          details: `Os parâmetros de autenticação estão em formato incorreto.\nCódigo do erro: ${authData.error.code}\nMensagem: ${authData.error.message || 'N/A'}\n\nVerifique se o ${apiToken ? 'API Token' : 'usuário e senha'} está correto.`
-        };
-      } else if (authData.error.code === -32500 || authData.error.code === -32000) {
-        return {
-          isValid: false,
-          error: apiToken ? 'API Token inválido' : 'Credenciais incorretas',
-          details: `${apiToken ? 'O API Token fornecido é inválido' : 'Usuário ou senha incorretos'}.\nCódigo do erro: ${authData.error.code}\nMensagem: ${authData.error.message || 'N/A'}\n\nVerifique:\n${apiToken ? '• Se o API Token existe e está ativo\n• Se o token tem as permissões necessárias\n• Se o token não expirou' : '• Se o usuário existe no Zabbix\n• Se a senha está correta\n• Se o usuário tem permissão para fazer login via API\n• Se o usuário não está desabilitado'}`
-        };
-      } else if (authData.error.message?.toLowerCase().includes('login name or password is incorrect')) {
-        return {
-          isValid: false,
-          error: 'Nome de usuário ou senha incorretos',
-          details: `As credenciais fornecidas são inválidas:\nUsuário: ${username}\n\nVerifique:\n• Se o usuário existe no Zabbix\n• Se a senha está correta (cuidado com maiúsculas/minúsculas)\n• Se o usuário tem permissão de API habilitada\n• Se o usuário não está bloqueado`
-        };
-      } else {
-        return {
-          isValid: false,
-          error: 'Erro de autenticação do Zabbix',
-          details: `Falha na autenticação.\nCódigo: ${authData.error.code || 'N/A'}\nMensagem: ${authData.error.message || 'Erro desconhecido'}\nDados: ${authData.error.data || 'N/A'}`
-        };
-      }
+    if (data?.error) {
+      console.error('Zabbix API error:', data.error);
+      return {
+        isValid: false,
+        error: data.error,
+        details: data.details || 'Erro na API do Zabbix'
+      };
     }
 
-    if (apiToken) {
-      // For API token, check if we got user data back
-      if (!authData.result || (Array.isArray(authData.result) && authData.result.length === 0)) {
-        return {
-          isValid: false,
-          error: 'API Token sem permissões suficientes',
-          details: 'O API Token é válido, mas não tem permissões para acessar dados de usuário. Verifique se o token tem as permissões necessárias no Zabbix.'
-        };
-      }
-    } else {
-      // For username/password, check if we got a token back
-      if (!authData.result) {
-        return {
-          isValid: false,
-          error: 'Falha na obtenção do token',
-          details: 'A autenticação não retornou um token válido. Isso pode indicar:\n• Problema interno do Zabbix\n• Configuração incorreta da API\n• Versão incompatível do Zabbix'
-        };
-      }
+    if (data?.result) {
+      console.log('Zabbix validation successful, version:', data.result);
+      return {
+        isValid: true
+      };
     }
 
-    console.log('Zabbix connection validated successfully.');
     return {
-      isValid: true
+      isValid: false,
+      error: 'Resposta inválida da API',
+      details: 'A API do Zabbix não retornou dados válidos'
     };
 
   } catch (error: any) {
@@ -222,7 +76,7 @@ export const validateZabbixConnection = async (
     return {
       isValid: false,
       error: 'Erro interno de validação',
-      details: `Erro inesperado durante a validação:\n${error.message || error.toString()}\n\nTipo: ${error.name || 'Desconhecido'}\nStack: ${error.stack || 'N/A'}`
+      details: error.message || 'Erro desconhecido durante a validação'
     };
   }
 };

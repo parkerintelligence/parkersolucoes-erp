@@ -116,6 +116,16 @@ const ZabbixAdminConfig = () => {
       return;
     }
 
+    // Verificar se a integração foi salva
+    if (!zabbixIntegration?.id) {
+      toast({
+        title: "Salve primeiro a configuração",
+        description: "É necessário salvar a configuração antes de testar a conexão.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsTesting(true);
     setTestResult(null);
 
@@ -124,7 +134,8 @@ const ZabbixAdminConfig = () => {
         formData.base_url,
         formData.username || undefined,
         formData.password || undefined,
-        formData.api_token || undefined
+        formData.api_token || undefined,
+        zabbixIntegration.id
       );
 
       setTestResult(result);
