@@ -63,7 +63,7 @@ const ZabbixAdminConfig = () => {
 
       const integrationData = {
         name: formData.name,
-        type: 'zabbix' as const,
+        type: 'zabbix',
         base_url: formData.base_url,
         username: formData.username || null,
         password: formData.password || null,
