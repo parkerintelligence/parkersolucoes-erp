@@ -122,7 +122,6 @@ serve(async (req) => {
     // Adicionar autenticação
     if (integration.api_token) {
       console.log('Using API Token authentication')
-      headers['Authorization'] = `Bearer ${integration.api_token}`
       requestBody.auth = integration.api_token
     } else if (integration.username && integration.password) {
       console.log('Using username/password authentication')

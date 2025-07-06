@@ -44,7 +44,7 @@ const menuItems = [
   { title: 'Wasabi', url: '/wasabi', icon: Cloud, role: 'user' },
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
   { title: 'Automação', url: '/automation', icon: Settings, role: 'user' },
-  { title: 'Monitoramento', url: '/monitoring', icon: Activity, role: 'user' },
+  { title: 'Zabbix', url: '/zabbix', icon: Activity, role: 'user' },
 ];
 
 const financialItems = [

@@ -21,6 +21,7 @@ import WhatsAppChats from "./pages/WhatsAppChats";
 import WhatsAppTemplates from "./pages/WhatsAppTemplates";
 import Wasabi from "./pages/Wasabi";
 import Monitoring from "./pages/Monitoring";
+import Zabbix from "./pages/Zabbix";
 import Schedule from "./pages/Schedule";
 import Automation from "./pages/Automation";
 import Admin from "./pages/Admin";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/whatsapp-templates" element={<Layout><WhatsAppTemplates /></Layout>} />
             <Route path="/wasabi" element={<Layout><Wasabi /></Layout>} />
             <Route path="/monitoring" element={<Layout><Monitoring /></Layout>} />
+            <Route path="/zabbix" element={<Layout><Zabbix /></Layout>} />
             <Route path="/schedule" element={<Layout><Schedule /></Layout>} />
             <Route path="/automation" element={<Layout><Automation /></Layout>} />
             
