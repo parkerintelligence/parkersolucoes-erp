@@ -101,11 +101,49 @@ serve(async (req) => {
 
     // Preparar URL da API
     let apiUrl = integration.base_url.replace(/\/$/, '')
+    
+    // Verificar se a URL termina com /api_jsonrpc.php
     if (!apiUrl.endsWith('/api_jsonrpc.php')) {
       apiUrl = apiUrl + '/api_jsonrpc.php'
     }
 
-    console.log('API URL:', apiUrl)
+    console.log('Final API URL:', apiUrl)
+
+    // Testar se a URL existe antes de fazer a requisição principal
+    try {
+      const testResponse = await fetch(apiUrl, {
+        method: 'HEAD',
+        headers: {
+          'User-Agent': 'Zabbix-Proxy-Function/1.0'
+        }
+      })
+      
+      if (!testResponse.ok && testResponse.status === 404) {
+        console.error('API endpoint not found:', apiUrl)
+        return new Response(
+          JSON.stringify({ 
+            error: 'Endpoint da API Zabbix não encontrado',
+            details: `A URL ${apiUrl} retornou 404. Verifique se:\n- O Zabbix está rodando\n- A URL base está correta\n- O caminho /api_jsonrpc.php está acessível\n- Não há problemas de DNS ou firewall`
+          }),
+          { 
+            status: 404, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      }
+    } catch (testError) {
+      console.error('Error testing API endpoint:', testError)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Erro ao conectar com o Zabbix',
+          details: `Não foi possível conectar com ${apiUrl}. Erro: ${testError.message}`
+        }),
+        { 
+          status: 503, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
 
     // Preparar cabeçalhos da requisição
     const headers: Record<string, string> = {

@@ -175,6 +175,17 @@ const Zabbix = () => {
               {hostsError && (
                 <div className="bg-red-100 p-3 rounded border-l-4 border-red-400">
                   <strong>Erro ao buscar hosts:</strong> {hostsError.message}
+                  {hostsError.message.includes('404') && (
+                    <div className="mt-2 text-xs text-red-600">
+                      <strong>Erro 404:</strong> A API do Zabbix não foi encontrada. Verifique se:
+                      <ul className="ml-4 mt-1 list-disc">
+                        <li>A URL base está correta (deve apontar para seu servidor Zabbix)</li>
+                        <li>O Zabbix está rodando e acessível</li>
+                        <li>O caminho /api_jsonrpc.php existe no servidor</li>
+                        <li>Não há problemas de firewall ou DNS</li>
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
               {problemsError && (
