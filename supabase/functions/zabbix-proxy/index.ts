@@ -14,10 +14,11 @@ serve(async (req) => {
   try {
     const { method, params, integrationId } = await req.json()
     
-    console.log('=== Zabbix Proxy Function ===')
+    console.log('=== Zabbix Proxy Function Start ===')
     console.log('Method:', method)
     console.log('Integration ID:', integrationId)
     console.log('Params:', JSON.stringify(params, null, 2))
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()))
 
     // Verificar se temos o integration ID
     if (!integrationId) {

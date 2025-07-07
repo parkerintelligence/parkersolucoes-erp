@@ -27,15 +27,25 @@ const Zabbix = () => {
     useTriggers, 
     useAcknowledgeProblem, 
     useToggleHost,
-    isConfigured 
+    isConfigured,
+    integration 
   } = useZabbixAPI();
 
   const [refreshing, setRefreshing] = useState(false);
 
   // Carregar dados do Zabbix
-  const { data: hosts = [], isLoading: hostsLoading, refetch: refetchHosts } = useHosts();
-  const { data: problems = [], isLoading: problemsLoading, refetch: refetchProblems } = useProblems();
-  const { data: triggers = [], isLoading: triggersLoading, refetch: refetchTriggers } = useTriggers();
+  const { data: hosts = [], isLoading: hostsLoading, refetch: refetchHosts, error: hostsError } = useHosts();
+  const { data: problems = [], isLoading: problemsLoading, refetch: refetchProblems, error: problemsError } = useProblems();
+  const { data: triggers = [], isLoading: triggersLoading, refetch: refetchTriggers, error: triggersError } = useTriggers();
+
+  // Debug information
+  console.log('=== Zabbix Page Debug ===');
+  console.log('isConfigured:', isConfigured);
+  console.log('integration:', integration);
+  console.log('hosts:', hosts);
+  console.log('problems:', problems);
+  console.log('triggers:', triggers);
+  console.log('errors:', { hostsError, problemsError, triggersError });
 
   const acknowledgeProblemMutation = useAcknowledgeProblem();
   const toggleHostMutation = useToggleHost();
@@ -150,6 +160,72 @@ const Zabbix = () => {
           Atualizar
         </Button>
       </div>
+
+      {/* Debug Section - Show errors if any */}
+      {(hostsError || problemsError || triggersError) && (
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="text-red-800 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Erros de Comunicação
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 text-sm">
+              {hostsError && (
+                <div className="bg-red-100 p-3 rounded border-l-4 border-red-400">
+                  <strong>Erro ao buscar hosts:</strong> {hostsError.message}
+                </div>
+              )}
+              {problemsError && (
+                <div className="bg-red-100 p-3 rounded border-l-4 border-red-400">
+                  <strong>Erro ao buscar problemas:</strong> {problemsError.message}
+                </div>
+              )}
+              {triggersError && (
+                <div className="bg-red-100 p-3 rounded border-l-4 border-red-400">
+                  <strong>Erro ao buscar triggers:</strong> {triggersError.message}
+                </div>
+              )}
+              <div className="mt-3 p-3 bg-blue-50 rounded">
+                <strong>Dicas de solução:</strong>
+                <ul className="mt-2 space-y-1 text-xs">
+                  <li>• Verifique se o Zabbix está acessível via HTTPS</li>
+                  <li>• Confirme se as credenciais estão corretas</li>
+                  <li>• Verifique se a API está habilitada no Zabbix</li>
+                  <li>• Consulte os logs do navegador para mais detalhes</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Configuration Debug Info */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardHeader>
+          <CardTitle className="text-blue-800 flex items-center gap-2">
+            <Monitor className="h-5 w-5" />
+            Informações de Configuração
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <strong>URL Base:</strong> {integration?.base_url || 'Não configurada'}
+            </div>
+            <div>
+              <strong>Status:</strong> {integration?.is_active ? 'Ativa' : 'Inativa'}
+            </div>
+            <div>
+              <strong>Método de Auth:</strong> {integration?.api_token ? 'API Token' : integration?.username ? 'Usuário/Senha' : 'Não configurado'}
+            </div>
+            <div>
+              <strong>Integração ID:</strong> {integration?.id || 'N/A'}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Cards de estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
