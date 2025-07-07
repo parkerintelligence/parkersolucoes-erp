@@ -29,7 +29,7 @@ serve(async (req) => {
           details: 'integrationId não fornecido na requisição'
         }),
         { 
-          status: 400, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
@@ -58,7 +58,7 @@ serve(async (req) => {
           details: integrationError.message
         }),
         { 
-          status: 400, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
@@ -72,7 +72,7 @@ serve(async (req) => {
           details: 'Verifique se a integração está configurada corretamente'
         }),
         { 
-          status: 404, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
@@ -86,7 +86,7 @@ serve(async (req) => {
           details: 'Ative a integração no painel de administração'
         }),
         { 
-          status: 400, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
@@ -109,37 +109,86 @@ serve(async (req) => {
 
     console.log('Final API URL:', apiUrl)
 
-    // Testar se a URL existe antes de fazer a requisição principal
+    // Testar conectividade com timeout mais curto
     try {
+      console.log('Testing connectivity to:', apiUrl)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 segundos timeout
+      
       const testResponse = await fetch(apiUrl, {
-        method: 'HEAD',
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'User-Agent': 'Zabbix-Proxy-Function/1.0'
-        }
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'apiinfo.version',
+          params: {},
+          id: 1
+        }),
+        signal: controller.signal
       })
       
-      if (!testResponse.ok && testResponse.status === 404) {
-        console.error('API endpoint not found:', apiUrl)
+      clearTimeout(timeoutId)
+      console.log('Test connection response status:', testResponse.status)
+      
+      if (!testResponse.ok) {
+        console.error('API endpoint error:', testResponse.status, testResponse.statusText)
+        const errorText = await testResponse.text()
+        console.error('Error response:', errorText)
+        
+        if (testResponse.status === 404) {
+          return new Response(
+            JSON.stringify({ 
+              error: 'Endpoint da API Zabbix não encontrado',
+              details: `A URL ${apiUrl} retornou 404. Verifique se:\n- O Zabbix está rodando\n- A URL base está correta\n- O caminho /api_jsonrpc.php está acessível\n- Não há problemas de DNS ou firewall`
+            }),
+            { 
+              status: 200, // Retorna 200 mas com erro interno
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          )
+        } else {
+          return new Response(
+            JSON.stringify({ 
+              error: `Erro HTTP ${testResponse.status} ao conectar com Zabbix`,
+              details: `${testResponse.statusText}: ${errorText || 'Sem detalhes adicionais'}`
+            }),
+            { 
+              status: 200, // Retorna 200 mas com erro interno
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          )
+        }
+      }
+      
+      const testData = await testResponse.json()
+      console.log('Test response data:', testData)
+      
+    } catch (testError) {
+      console.error('Error testing API endpoint:', testError)
+      
+      if (testError.name === 'AbortError') {
         return new Response(
           JSON.stringify({ 
-            error: 'Endpoint da API Zabbix não encontrado',
-            details: `A URL ${apiUrl} retornou 404. Verifique se:\n- O Zabbix está rodando\n- A URL base está correta\n- O caminho /api_jsonrpc.php está acessível\n- Não há problemas de DNS ou firewall`
+            error: 'Timeout ao conectar com o Zabbix',
+            details: `Conexão com ${apiUrl} demorou mais de 10 segundos. Verifique a conectividade de rede.`
           }),
           { 
-            status: 404, 
+            status: 200, // Retorna 200 mas com erro interno
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         )
       }
-    } catch (testError) {
-      console.error('Error testing API endpoint:', testError)
+      
       return new Response(
         JSON.stringify({ 
           error: 'Erro ao conectar com o Zabbix',
           details: `Não foi possível conectar com ${apiUrl}. Erro: ${testError.message}`
         }),
         { 
-          status: 503, 
+          status: 200, // Retorna 200 mas com erro interno
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
@@ -192,7 +241,7 @@ serve(async (req) => {
               details: `${loginData.error.message || 'Erro desconhecido'} (Código: ${loginData.error.code || 'N/A'})`
             }),
             { 
-              status: 401, 
+              status: 200, 
               headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
             }
           )
@@ -206,7 +255,7 @@ serve(async (req) => {
               details: 'Não foi possível obter token de autenticação'
             }),
             { 
-              status: 401, 
+              status: 200, 
               headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
             }
           )
@@ -223,7 +272,7 @@ serve(async (req) => {
           details: 'Configure um API Token ou credenciais de usuário'
         }),
         { 
-          status: 400, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
@@ -252,7 +301,7 @@ serve(async (req) => {
           details: `${response.statusText}: ${errorText}`
         }),
         { 
-          status: response.status, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
@@ -269,7 +318,7 @@ serve(async (req) => {
           details: `Código: ${data.error.code || 'N/A'}, Dados: ${data.error.data || 'N/A'}`
         }),
         { 
-          status: 400, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
@@ -291,7 +340,7 @@ serve(async (req) => {
         details: error.message || 'Erro desconhecido'
       }),
       { 
-        status: 500, 
+        status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     )
