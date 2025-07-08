@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import { GuacamoleAdminConfig } from '@/components/GuacamoleAdminConfig';
-import { ZabbixAdminConfig } from '@/components/ZabbixAdminConfig';
+import ZabbixAdminConfig from '@/components/ZabbixAdminConfig';
 import { GLPIConfig } from '@/components/GLPIConfig';
 import { FtpAdminConfig } from '@/components/FtpAdminConfig';
 import { WasabiAdminConfig } from '@/components/WasabiAdminConfig';
