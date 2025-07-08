@@ -88,10 +88,18 @@ const GLPI = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="space-y-6 p-6">
-        <div className="flex justify-between items-center">
-          <div className="flex gap-2">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
+              <Headphones className="h-6 w-6 text-blue-400" />
+              Central de Chamados GLPI
+            </h1>
+            <p className="text-gray-400">Gerencie seus chamados e inventário de TI</p>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
             {!hasValidSession && (
-              <Button variant="outline" onClick={() => initSession.mutate()} className="border-gray-600 text-gray-200 hover:bg-gray-800">
+              <Button variant="outline" onClick={() => initSession.mutate()} className="border-gray-600 text-gray-200 hover:bg-gray-700">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Iniciar Sessão
               </Button>
@@ -145,35 +153,35 @@ const GLPI = () => {
                       )}
                       Criar Chamado
                     </Button>
-                    <Button variant="outline" onClick={() => setIsCreatingTicket(false)} className="border-gray-600 text-gray-200 hover:bg-gray-800">
+                    <Button variant="outline" onClick={() => setIsCreatingTicket(false)} className="border-gray-600 text-gray-200 hover:bg-gray-700">
                       Cancelar
                     </Button>
                   </div>
                 </div>
               </DialogContent>
             </Dialog>
+          
+            {/* Botão de Resumo no canto superior direito */}
+            <Dialog open={showSummary} onOpenChange={setShowSummary}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline" className="bg-yellow-900/20 border-yellow-600 text-yellow-400 hover:bg-yellow-900/30">
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  Resumo Executivo
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700">
+                <DialogHeader>
+                  <DialogTitle className="text-white">📊 Resumo Executivo GLPI</DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    Visão geral das métricas e indicadores principais
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="mt-6">
+                  <GLPITicketMetrics tickets={tickets.data || []} />
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
-
-          {/* Botão de Resumo no canto superior direito */}
-          <Dialog open={showSummary} onOpenChange={setShowSummary}>
-            <DialogTrigger asChild>
-              <Button size="sm" variant="outline" className="bg-yellow-900/20 border-yellow-600 text-yellow-400 hover:bg-yellow-900/30">
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Resumo Executivo
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700">
-              <DialogHeader>
-                <DialogTitle className="text-white">📊 Resumo Executivo GLPI</DialogTitle>
-                <DialogDescription className="text-gray-400">
-                  Visão geral das métricas e indicadores principais
-                </DialogDescription>
-              </DialogHeader>
-              <div className="mt-6">
-                <GLPITicketMetrics tickets={tickets.data || []} />
-              </div>
-            </DialogContent>
-          </Dialog>
         </div>
 
         {/* Status da Conexão */}
@@ -184,16 +192,18 @@ const GLPI = () => {
           <Button 
             variant={activeTab === 'tickets' ? 'default' : 'outline'}
             onClick={() => setActiveTab('tickets')}
-            className={`h-12 ${activeTab === 'tickets' ? 'bg-blue-600 hover:bg-blue-700' : 'border-gray-600 text-gray-200 hover:bg-gray-800'}`}
+            className={`h-12 ${activeTab === 'tickets' ? 'bg-blue-600 hover:bg-blue-700' : 'border-gray-600 text-gray-200 hover:bg-gray-700'}`}
           >
-            📞 Central de Chamados
+            <Headphones className="mr-2 h-4 w-4" />
+            Central de Chamados
           </Button>
           <Button 
             variant={activeTab === 'inventory' ? 'default' : 'outline'}
             onClick={() => setActiveTab('inventory')}
-            className={`h-12 ${activeTab === 'inventory' ? 'bg-blue-600 hover:bg-blue-700' : 'border-gray-600 text-gray-200 hover:bg-gray-800'}`}
+            className={`h-12 ${activeTab === 'inventory' ? 'bg-blue-600 hover:bg-blue-700' : 'border-gray-600 text-gray-200 hover:bg-gray-700'}`}
           >
-            💻 Inventário de Ativos
+            <Settings className="mr-2 h-4 w-4" />
+            Inventário de Ativos
           </Button>
         </div>
 
