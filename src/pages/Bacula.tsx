@@ -2,13 +2,13 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Database, Settings, AlertCircle, TrendingUp, Activity, Users, FileBarChart } from 'lucide-react';
+import { Database, Settings, AlertCircle, TrendingUp, Activity, FileBarChart } from 'lucide-react';
 import { useBaculaAPI } from '@/hooks/useBaculaAPI';
-import { BaculaJobsGrid } from '@/components/BaculaJobsGrid';
 import { BaculaStatusCards } from '@/components/BaculaStatusCards';
 import { BaculaFilters } from '@/components/BaculaFilters';
 import { BaculaStatusTabs } from '@/components/BaculaStatusTabs';
 import { BaculaAdvancedStats } from '@/components/BaculaAdvancedStats';
+import { BaculaJobsByClient } from '@/components/BaculaJobsByClient';
 import { useBaculaJobsRecent } from '@/hooks/useBaculaAPI';
 
 const Bacula = () => {
@@ -16,7 +16,12 @@ const Bacula = () => {
   const { data: jobsData } = useBaculaJobsRecent();
   
   // Estados para filtros
-  const [dateFilter, setDateFilter] = useState(() => {
+  const [startDate, setStartDate] = useState(() => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return yesterday.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     return yesterday.toISOString().split('T')[0];
@@ -49,7 +54,9 @@ const Bacula = () => {
   const handleResetFilters = () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    setDateFilter(yesterday.toISOString().split('T')[0]);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    setStartDate(yesterdayStr);
+    setEndDate(yesterdayStr);
     setStatusFilter('all');
     setClientFilter('');
   };
@@ -79,7 +86,7 @@ const Bacula = () => {
                     <li>• Senha do usuário</li>
                   </ul>
                 </div>
-                <Button onClick={() => window.location.href = '/admin'} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={() => window.location.href = '/admin'} className="bg-blue-800 hover:bg-blue-700 text-white">
                   <Settings className="mr-2 h-4 w-4" />
                   Configurar BaculaWeb
                 </Button>
@@ -110,7 +117,7 @@ const Bacula = () => {
             <Button 
               variant="outline"
               size="sm"
-              className="border-slate-600 text-slate-200 hover:bg-slate-700"
+              className="border-slate-600 text-slate-200 hover:bg-slate-700 bg-blue-800 hover:bg-blue-700 text-white border-blue-800"
             >
               <TrendingUp className="mr-2 h-4 w-4" />
               Relatórios
@@ -118,7 +125,7 @@ const Bacula = () => {
             <Button 
               variant="outline"
               size="sm"
-              className="border-slate-600 text-slate-200 hover:bg-slate-700"
+              className="border-slate-600 text-slate-200 hover:bg-slate-700 bg-blue-800 hover:bg-blue-700 text-white border-blue-800"
             >
               <Activity className="mr-2 h-4 w-4" />
               Monitoramento
@@ -126,7 +133,7 @@ const Bacula = () => {
             <Button 
               variant="outline"
               size="sm"
-              className="border-slate-600 text-slate-200 hover:bg-slate-700"
+              className="border-slate-600 text-slate-200 hover:bg-slate-700 bg-blue-800 hover:bg-blue-700 text-white border-blue-800"
             >
               <FileBarChart className="mr-2 h-4 w-4" />
               Logs
@@ -139,18 +146,21 @@ const Bacula = () => {
         <BaculaAdvancedStats jobs={jobs} />
 
         <BaculaFilters
-          dateFilter={dateFilter}
+          startDate={startDate}
+          endDate={endDate}
           statusFilter={statusFilter}
           clientFilter={clientFilter}
-          onDateFilterChange={setDateFilter}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
           onStatusFilterChange={setStatusFilter}
           onClientFilterChange={setClientFilter}
           onReset={handleResetFilters}
         />
 
         <BaculaStatusTabs jobs={jobs}>
-          <BaculaJobsGrid 
-            dateFilter={dateFilter}
+          <BaculaJobsByClient 
+            startDate={startDate}
+            endDate={endDate}
             statusFilter={statusFilter}
             clientFilter={clientFilter}
           />

@@ -8,20 +8,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar, Filter, RotateCcw } from 'lucide-react';
 
 interface BaculaFiltersProps {
-  dateFilter: string;
+  startDate: string;
+  endDate: string;
   statusFilter: string;
   clientFilter: string;
-  onDateFilterChange: (value: string) => void;
+  onStartDateChange: (value: string) => void;
+  onEndDateChange: (value: string) => void;
   onStatusFilterChange: (value: string) => void;
   onClientFilterChange: (value: string) => void;
   onReset: () => void;
 }
 
 export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
-  dateFilter,
+  startDate,
+  endDate,
   statusFilter,
   clientFilter,
-  onDateFilterChange,
+  onStartDateChange,
+  onEndDateChange,
   onStatusFilterChange,
   onClientFilterChange,
   onReset
@@ -41,14 +45,25 @@ export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
-            <Label htmlFor="date-filter" className="text-slate-300">Data</Label>
+            <Label htmlFor="start-date-filter" className="text-slate-300">Data Inicial</Label>
             <Input
-              id="date-filter"
+              id="start-date-filter"
               type="date"
-              value={dateFilter}
-              onChange={(e) => onDateFilterChange(e.target.value)}
+              value={startDate}
+              onChange={(e) => onStartDateChange(e.target.value)}
+              className="bg-slate-700 border-slate-600 text-white"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="end-date-filter" className="text-slate-300">Data Final</Label>
+            <Input
+              id="end-date-filter"
+              type="date"
+              value={endDate}
+              onChange={(e) => onEndDateChange(e.target.value)}
               className="bg-slate-700 border-slate-600 text-white"
             />
           </div>
