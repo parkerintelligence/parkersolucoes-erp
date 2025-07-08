@@ -1,13 +1,24 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Activity, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Activity, Eye, EyeOff, AlertTriangle, Loader } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
+
+interface GrafanaDashboard {
+  id: number;
+  uid: string;
+  title: string;
+  tags: string[];
+  type: string;
+  uri: string;
+  url: string;
+  slug: string;
+}
 
 const Monitoring = () => {
   const { data: integrations = [] } = useIntegrations();
@@ -15,10 +26,49 @@ const Monitoring = () => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [selectedDashboard, setSelectedDashboard] = useState('');
+  const [dashboards, setDashboards] = useState<GrafanaDashboard[]>([]);
+  const [loadingDashboards, setLoadingDashboards] = useState(false);
 
   const grafanaIntegration = integrations.find(integration => 
     integration.type === 'grafana' && integration.is_active
   );
+
+  const fetchDashboards = async () => {
+    if (!grafanaIntegration) return;
+
+    setLoadingDashboards(true);
+    try {
+      const authHeader = btoa(`${credentials.username}:${credentials.password}`);
+      
+      const response = await fetch(`${grafanaIntegration.base_url}/api/search?type=dash-db`, {
+        headers: {
+          'Authorization': `Basic ${authHeader}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao buscar dashboards');
+      }
+
+      const data = await response.json();
+      setDashboards(data);
+      
+      toast({
+        title: "Dashboards carregados",
+        description: `${data.length} painéis encontrados.`,
+      });
+    } catch (error) {
+      console.error('Erro ao buscar dashboards:', error);
+      toast({
+        title: "Erro ao carregar dashboards",
+        description: "Verifique as credenciais e a conexão com o Grafana.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingDashboards(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,17 +82,37 @@ const Monitoring = () => {
       return;
     }
 
-    if (credentials.username === grafanaIntegration.username && 
-        credentials.password === grafanaIntegration.password) {
-      setIsAuthenticated(true);
-      toast({
-        title: "Login realizado com sucesso",
-        description: "Acesso aos dashboards do Grafana liberado.",
+    // Primeiro tenta autenticar
+    try {
+      const authHeader = btoa(`${credentials.username}:${credentials.password}`);
+      
+      const response = await fetch(`${grafanaIntegration.base_url}/api/user`, {
+        headers: {
+          'Authorization': `Basic ${authHeader}`,
+          'Content-Type': 'application/json',
+        },
       });
-    } else {
+
+      if (response.ok) {
+        setIsAuthenticated(true);
+        toast({
+          title: "Login realizado com sucesso",
+          description: "Acesso aos dashboards do Grafana liberado.",
+        });
+        // Busca os dashboards após login bem-sucedido
+        await fetchDashboards();
+      } else {
+        toast({
+          title: "Credenciais inválidas",
+          description: "Usuário ou senha incorretos.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Erro no login:', error);
       toast({
-        title: "Credenciais inválidas",
-        description: "Usuário ou senha incorretos.",
+        title: "Erro de conexão",
+        description: "Não foi possível conectar ao Grafana.",
         variant: "destructive"
       });
     }
@@ -52,36 +122,10 @@ const Monitoring = () => {
     setIsAuthenticated(false);
     setCredentials({ username: '', password: '' });
     setSelectedDashboard('');
+    setDashboards([]);
   };
 
-  const dashboards = [
-    { 
-      id: 'system-overview', 
-      name: 'Visão Geral do Sistema', 
-      path: '/d/system-overview',
-      description: 'Dashboard principal com métricas gerais'
-    },
-    { 
-      id: 'server-metrics', 
-      name: 'Métricas de Servidores', 
-      path: '/d/server-metrics',
-      description: 'Monitoramento de CPU, RAM e Disco'
-    },
-    { 
-      id: 'network-monitoring', 
-      name: 'Monitoramento de Rede', 
-      path: '/d/network-monitoring',
-      description: 'Tráfego de rede e latência'
-    },
-    { 
-      id: 'application-performance', 
-      name: 'Performance de Aplicações', 
-      path: '/d/application-performance',
-      description: 'Monitoramento de aplicações e serviços'
-    }
-  ];
-
-  const selectedDashboardData = dashboards.find(d => d.id === selectedDashboard);
+  const selectedDashboardData = dashboards.find(d => d.uid === selectedDashboard);
 
   if (!grafanaIntegration) {
     return (
@@ -178,16 +222,26 @@ const Monitoring = () => {
             </h1>
             <p className="text-gray-400">Selecione um painel de controle para visualizar</p>
           </div>
-          <Button variant="outline" onClick={handleLogout} className="border-gray-600 text-gray-200 hover:bg-gray-800">
-            Sair
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={fetchDashboards}
+              disabled={loadingDashboards}
+              className="border-gray-600 text-gray-200 hover:bg-gray-800"
+            >
+              {loadingDashboards ? <Loader className="h-4 w-4 animate-spin" /> : "Atualizar"}
+            </Button>
+            <Button variant="outline" onClick={handleLogout} className="border-gray-600 text-gray-200 hover:bg-gray-800">
+              Sair
+            </Button>
+          </div>
         </div>
 
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
             <CardTitle className="text-white">Seleção de Painel</CardTitle>
             <CardDescription className="text-gray-400">
-              Escolha um painel de controle do Grafana para visualizar
+              Escolha um painel de controle do Grafana para visualizar ({dashboards.length} disponíveis)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -200,8 +254,8 @@ const Monitoring = () => {
                   </SelectTrigger>
                   <SelectContent className="bg-gray-700 border-gray-600">
                     {dashboards.map((dashboard) => (
-                      <SelectItem key={dashboard.id} value={dashboard.id} className="text-white hover:bg-gray-600">
-                        {dashboard.name}
+                      <SelectItem key={dashboard.uid} value={dashboard.uid} className="text-white hover:bg-gray-600">
+                        {dashboard.title}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -210,17 +264,21 @@ const Monitoring = () => {
               
               {selectedDashboardData && (
                 <div className="p-4 bg-gray-700 rounded-lg">
-                  <h3 className="text-white font-semibold mb-2">{selectedDashboardData.name}</h3>
-                  <p className="text-gray-300 text-sm mb-4">{selectedDashboardData.description}</p>
+                  <h3 className="text-white font-semibold mb-2">{selectedDashboardData.title}</h3>
+                  {selectedDashboardData.tags.length > 0 && (
+                    <p className="text-gray-300 text-sm mb-4">
+                      Tags: {selectedDashboardData.tags.join(', ')}
+                    </p>
+                  )}
                   
                   <div className="bg-gray-800 rounded-lg p-4 min-h-[400px] border border-gray-600">
                     <iframe
-                      src={`${grafanaIntegration.base_url}${selectedDashboardData.path}?orgId=1&refresh=10s&from=now-1h&to=now&kiosk`}
+                      src={`${grafanaIntegration.base_url}/d/${selectedDashboardData.uid}?orgId=1&refresh=10s&from=now-1h&to=now&kiosk&auth=${btoa(`${credentials.username}:${credentials.password}`)}`}
                       width="100%"
-                      height="400"
+                      height="600"
                       frameBorder="0"
                       className="rounded"
-                      title={selectedDashboardData.name}
+                      title={selectedDashboardData.title}
                     />
                   </div>
                 </div>
