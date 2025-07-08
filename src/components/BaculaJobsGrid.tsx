@@ -6,7 +6,19 @@ import { RefreshCw, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-reac
 import { useBaculaJobsRecent } from '@/hooks/useBaculaAPI';
 import { Button } from '@/components/ui/button';
 
-export const BaculaJobsGrid = () => {
+interface BaculaJobsGridProps {
+  filteredJobs?: any[];
+  dateFilter?: string;
+  statusFilter?: string;
+  clientFilter?: string;
+}
+
+export const BaculaJobsGrid: React.FC<BaculaJobsGridProps> = ({ 
+  filteredJobs, 
+  dateFilter, 
+  statusFilter, 
+  clientFilter 
+}) => {
   const { data: jobsData, isLoading, error, refetch } = useBaculaJobsRecent();
 
   console.log('Jobs raw data:', jobsData);
@@ -34,8 +46,34 @@ export const BaculaJobsGrid = () => {
     return [];
   };
 
-  const jobs = extractJobs(jobsData);
-  console.log('Extracted jobs:', jobs);
+  const rawJobs = extractJobs(jobsData);
+  
+  // Aplicar filtros se não foram fornecidos jobs filtrados
+  const jobs = filteredJobs || rawJobs.filter((job: any) => {
+    let passesFilter = true;
+    
+    // Filtro por data
+    if (dateFilter) {
+      const jobDate = new Date(job.starttime || job.schedtime || job.realendtime);
+      const filterDate = new Date(dateFilter);
+      passesFilter = passesFilter && jobDate.toDateString() === filterDate.toDateString();
+    }
+    
+    // Filtro por status
+    if (statusFilter && statusFilter !== 'all') {
+      passesFilter = passesFilter && job.jobstatus === statusFilter;
+    }
+    
+    // Filtro por cliente
+    if (clientFilter) {
+      const client = (job.client || job.clientname || job.clientid || '').toLowerCase();
+      passesFilter = passesFilter && client.includes(clientFilter.toLowerCase());
+    }
+    
+    return passesFilter;
+  });
+
+  console.log('Filtered jobs:', jobs);
 
   const getJobStatusBadge = (status: string) => {
     switch (status) {
@@ -151,7 +189,7 @@ export const BaculaJobsGrid = () => {
         <div className="flex items-center justify-between">
           <CardTitle className="text-white flex items-center gap-2">
             <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
-            Jobs Recentes
+            Jobs de Backup
           </CardTitle>
           <Button
             variant="outline"
@@ -174,15 +212,7 @@ export const BaculaJobsGrid = () => {
         ) : !jobs || jobs.length === 0 ? (
           <div className="text-center py-8">
             <Clock className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-            <p className="text-slate-400">Nenhum job encontrado</p>
-            {jobsData && (
-              <div className="mt-4 p-4 bg-slate-900 rounded-lg text-left">
-                <p className="text-xs text-slate-500 mb-2">Dados brutos recebidos:</p>
-                <pre className="text-xs text-slate-300 overflow-x-auto max-h-32">
-                  {JSON.stringify(jobsData, null, 2)}
-                </pre>
-              </div>
-            )}
+            <p className="text-slate-400">Nenhum job encontrado para os filtros selecionados</p>
           </div>
         ) : (
           <div className="overflow-x-auto">

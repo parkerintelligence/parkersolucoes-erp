@@ -1,0 +1,113 @@
+
+import React from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle, AlertCircle, XCircle, Clock, RefreshCw } from 'lucide-react';
+
+interface BaculaStatusTabsProps {
+  jobs: any[];
+  children: React.ReactNode;
+}
+
+export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({ jobs, children }) => {
+  const getJobsByStatus = (status: string) => {
+    if (status === 'all') return jobs;
+    return jobs.filter((job: any) => job.jobstatus === status);
+  };
+
+  const getStatusCount = (status: string) => {
+    return getJobsByStatus(status).length;
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-400" />;
+      case 'warning':
+        return <AlertCircle className="h-4 w-4 text-yellow-400" />;
+      case 'error':
+        return <XCircle className="h-4 w-4 text-red-400" />;
+      case 'running':
+        return <RefreshCw className="h-4 w-4 text-blue-400" />;
+      default:
+        return <Clock className="h-4 w-4 text-gray-400" />;
+    }
+  };
+
+  return (
+    <Tabs defaultValue="all" className="w-full">
+      <TabsList className="grid w-full grid-cols-6 bg-slate-800 border-slate-700">
+        <TabsTrigger value="all" className="text-slate-300 data-[state=active]:bg-slate-700">
+          Todos
+          <Badge className="ml-2 bg-slate-600 text-white">
+            {jobs.length}
+          </Badge>
+        </TabsTrigger>
+        <TabsTrigger value="T" className="text-slate-300 data-[state=active]:bg-slate-700">
+          {getStatusIcon('success')}
+          Sucesso
+          <Badge className="ml-2 bg-green-900/20 text-green-400">
+            {getStatusCount('T') + getStatusCount('W')}
+          </Badge>
+        </TabsTrigger>
+        <TabsTrigger value="E" className="text-slate-300 data-[state=active]:bg-slate-700">
+          {getStatusIcon('error')}
+          Erro
+          <Badge className="ml-2 bg-red-900/20 text-red-400">
+            {getStatusCount('E') + getStatusCount('f')}
+          </Badge>
+        </TabsTrigger>
+        <TabsTrigger value="R" className="text-slate-300 data-[state=active]:bg-slate-700">
+          {getStatusIcon('running')}
+          Executando
+          <Badge className="ml-2 bg-blue-900/20 text-blue-400">
+            {getStatusCount('R')}
+          </Badge>
+        </TabsTrigger>
+        <TabsTrigger value="W" className="text-slate-300 data-[state=active]:bg-slate-700">
+          {getStatusIcon('warning')}
+          Aviso
+          <Badge className="ml-2 bg-yellow-900/20 text-yellow-400">
+            {getStatusCount('W')}
+          </Badge>
+        </TabsTrigger>
+        <TabsTrigger value="pending" className="text-slate-300 data-[state=active]:bg-slate-700">
+          {getStatusIcon('pending')}
+          Pendente
+          <Badge className="ml-2 bg-gray-900/20 text-gray-400">
+            {getStatusCount('C') + getStatusCount('c')}
+          </Badge>
+        </TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="all" className="mt-6">
+        {children}
+      </TabsContent>
+      <TabsContent value="T" className="mt-6">
+        {React.cloneElement(children as React.ReactElement, { 
+          filteredJobs: getJobsByStatus('T').concat(getJobsByStatus('W'))
+        })}
+      </TabsContent>
+      <TabsContent value="E" className="mt-6">
+        {React.cloneElement(children as React.ReactElement, { 
+          filteredJobs: getJobsByStatus('E').concat(getJobsByStatus('f'))
+        })}
+      </TabsContent>
+      <TabsContent value="R" className="mt-6">
+        {React.cloneElement(children as React.ReactElement, { 
+          filteredJobs: getJobsByStatus('R')
+        })}
+      </TabsContent>
+      <TabsContent value="W" className="mt-6">
+        {React.cloneElement(children as React.ReactElement, { 
+          filteredJobs: getJobsByStatus('W')
+        })}
+      </TabsContent>
+      <TabsContent value="pending" className="mt-6">
+        {React.cloneElement(children as React.ReactElement, { 
+          filteredJobs: getJobsByStatus('C').concat(getJobsByStatus('c'))
+        })}
+      </TabsContent>
+    </Tabs>
+  );
+};

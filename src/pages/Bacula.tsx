@@ -2,14 +2,57 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Database, Settings, BarChart3, Server, HardDrive, AlertCircle } from 'lucide-react';
+import { Database, Settings, AlertCircle, TrendingUp, Activity, Users, FileBarChart } from 'lucide-react';
 import { useBaculaAPI } from '@/hooks/useBaculaAPI';
 import { BaculaJobsGrid } from '@/components/BaculaJobsGrid';
 import { BaculaStatusCards } from '@/components/BaculaStatusCards';
+import { BaculaFilters } from '@/components/BaculaFilters';
+import { BaculaStatusTabs } from '@/components/BaculaStatusTabs';
+import { BaculaAdvancedStats } from '@/components/BaculaAdvancedStats';
+import { useBaculaJobsRecent } from '@/hooks/useBaculaAPI';
 
 const Bacula = () => {
   const { baculaIntegration, isEnabled } = useBaculaAPI();
-  const [activeTab, setActiveTab] = useState('jobs');
+  const { data: jobsData } = useBaculaJobsRecent();
+  
+  // Estados para filtros
+  const [dateFilter, setDateFilter] = useState(() => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return yesterday.toISOString().split('T')[0];
+  });
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [clientFilter, setClientFilter] = useState('');
+
+  // Extrair jobs da resposta
+  const extractJobs = (data: any) => {
+    if (!data) return [];
+    
+    if (data.output && Array.isArray(data.output)) {
+      return data.output;
+    }
+    if (data.result && Array.isArray(data.result)) {
+      return data.result;
+    }
+    if (data.data && Array.isArray(data.data)) {
+      return data.data;
+    }
+    if (Array.isArray(data)) {
+      return data;
+    }
+    
+    return [];
+  };
+
+  const jobs = extractJobs(jobsData);
+
+  const handleResetFilters = () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    setDateFilter(yesterday.toISOString().split('T')[0]);
+    setStatusFilter('all');
+    setClientFilter('');
+  };
 
   if (!baculaIntegration) {
     return (
@@ -62,62 +105,56 @@ const Bacula = () => {
               <span className="font-medium">Conectado a:</span> {baculaIntegration.name} ({baculaIntegration.base_url})
             </div>
           </div>
+          
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline"
+              size="sm"
+              className="border-slate-600 text-slate-200 hover:bg-slate-700"
+            >
+              <TrendingUp className="mr-2 h-4 w-4" />
+              Relatórios
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              className="border-slate-600 text-slate-200 hover:bg-slate-700"
+            >
+              <Activity className="mr-2 h-4 w-4" />
+              Monitoramento
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              className="border-slate-600 text-slate-200 hover:bg-slate-700"
+            >
+              <FileBarChart className="mr-2 h-4 w-4" />
+              Logs
+            </Button>
+          </div>
         </div>
 
         <BaculaStatusCards />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Button 
-            variant={activeTab === 'jobs' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('jobs')}
-            className={`h-12 ${activeTab === 'jobs' ? 'bg-blue-600 hover:bg-blue-700' : 'border-slate-600 text-slate-200 hover:bg-slate-700'}`}
-          >
-            <BarChart3 className="mr-2 h-4 w-4" />
-            Jobs de Backup
-          </Button>
-          <Button 
-            variant={activeTab === 'clients' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('clients')}
-            className={`h-12 ${activeTab === 'clients' ? 'bg-blue-600 hover:bg-blue-700' : 'border-slate-600 text-slate-200 hover:bg-slate-700'}`}
-          >
-            <Server className="mr-2 h-4 w-4" />
-            Clientes
-          </Button>
-          <Button 
-            variant={activeTab === 'storage' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('storage')}
-            className={`h-12 ${activeTab === 'storage' ? 'bg-blue-600 hover:bg-blue-700' : 'border-slate-600 text-slate-200 hover:bg-slate-700'}`}
-          >
-            <HardDrive className="mr-2 h-4 w-4" />
-            Storages & Volumes
-          </Button>
-        </div>
+        <BaculaAdvancedStats jobs={jobs} />
 
-        <div className="mt-6">
-          {activeTab === 'jobs' && <BaculaJobsGrid />}
-          {activeTab === 'clients' && (
-            <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-8 text-center">
-                <Server className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-                <h3 className="text-lg font-semibold mb-2 text-white">Clientes em desenvolvimento</h3>
-                <p className="text-slate-400">
-                  A visualização de clientes será implementada em breve.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-          {activeTab === 'storage' && (
-            <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-8 text-center">
-                <HardDrive className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-                <h3 className="text-lg font-semibold mb-2 text-white">Storages em desenvolvimento</h3>
-                <p className="text-slate-400">
-                  A visualização de storages e volumes será implementada em breve.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        <BaculaFilters
+          dateFilter={dateFilter}
+          statusFilter={statusFilter}
+          clientFilter={clientFilter}
+          onDateFilterChange={setDateFilter}
+          onStatusFilterChange={setStatusFilter}
+          onClientFilterChange={setClientFilter}
+          onReset={handleResetFilters}
+        />
+
+        <BaculaStatusTabs jobs={jobs}>
+          <BaculaJobsGrid 
+            dateFilter={dateFilter}
+            statusFilter={statusFilter}
+            clientFilter={clientFilter}
+          />
+        </BaculaStatusTabs>
       </div>
     </div>
   );
