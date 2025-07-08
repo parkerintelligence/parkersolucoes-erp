@@ -40,7 +40,7 @@ const menuItems = [
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
   { title: 'Automação', url: '/automation', icon: Settings, role: 'user' },
   { title: 'Bacula', url: '/bacula', icon: HardDrive, role: 'user' },
-  { title: 'Monitoramento', url: '/monitoring', icon: Activity, role: 'user' },
+  { title: 'Grafana', url: '/monitoring', icon: Activity, role: 'user' },
 ];
 
 const financialItems = [
@@ -121,8 +121,6 @@ export const HorizontalNav = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-
-            {/* Removemos o Menu Admin da navegação horizontal pois está no TopHeader */}
           </div>
         </div>
       </div>
