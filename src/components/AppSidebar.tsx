@@ -47,6 +47,7 @@ const menuItems = [
   { title: 'Automação', url: '/automation', icon: Settings, role: 'user' },
   { title: 'Zabbix', url: '/zabbix', icon: Activity, role: 'user' },
   { title: 'Guacamole', url: '/guacamole', icon: Monitor, role: 'user' },
+  { title: 'UniFi', url: '/unifi', icon: Wifi, role: 'user' },
 ];
 
 const financialItems = [

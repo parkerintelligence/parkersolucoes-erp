@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { HardDrive, Plus, Download, Trash2, RefreshCw, Calendar, Database, CheckCircle, XCircle, Folder, Home } from 'lucide-react';
 import { useRealFtp } from '@/hooks/useRealFtp';
 import { toast } from '@/hooks/use-toast';
+import FtpOldFoldersDialog from '@/components/FtpOldFoldersDialog';
 const Backups = () => {
   const {
     files: ftpFiles = [],
@@ -181,6 +182,8 @@ const Backups = () => {
             <p className="text-gray-400">Diretório: {currentPath}</p>
           </div>
           <div className="flex gap-2">
+            <FtpOldFoldersDialog files={ftpFiles} />
+            
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-blue-600 hover:bg-blue-700">

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Plus, Edit, Trash2, Database, Cloud, Shield, Server, Zap, Globe } from 'lucide-react';
+import { Settings, Plus, Edit, Trash2, Database, Cloud, Shield, Server, Zap, Globe, Wifi } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
 
 const Admin = () => {
@@ -73,6 +72,12 @@ const Admin = () => {
       label: 'Evolution API', 
       icon: <Globe className="h-5 w-5 text-teal-400" />,
       description: 'API para WhatsApp Business'
+    },
+    { 
+      value: 'unifi', 
+      label: 'UniFi Controller', 
+      icon: <Wifi className="h-5 w-5 text-cyan-400" />,
+      description: 'Controladora UniFi para gerenciamento de rede'
     }
   ];
 
@@ -89,6 +94,8 @@ const Admin = () => {
       case 'chatwoot':
       case 'evolution_api':
         return ['name', 'base_url', 'api_token', 'phone_number', 'webhook_url'];
+      case 'unifi':
+        return ['name', 'base_url', 'username', 'password', 'port'];
       default:
         return ['name', 'base_url'];
     }
