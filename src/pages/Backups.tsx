@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { HardDrive, Plus, Download, Trash2, RefreshCw, Calendar, Database, CheckCircle, XCircle, Folder, Home } from 'lucide-react';
+import { HardDrive, Plus, Download, Trash2, RefreshCw, Calendar, Database, CheckCircle, XCircle, Folder, Home, Clock } from 'lucide-react';
 import { useRealFtp } from '@/hooks/useRealFtp';
 import { toast } from '@/hooks/use-toast';
 import FtpOldFoldersDialog from '@/components/FtpOldFoldersDialog';
@@ -149,6 +149,30 @@ const Backups = () => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getDaysFromLastModification = (lastModified: string) => {
+    const lastModifiedDate = new Date(lastModified);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - lastModifiedDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const getTimeLabel = (lastModified: string, isDirectory: boolean) => {
+    if (!isDirectory) return null;
+    
+    const days = getDaysFromLastModification(lastModified);
+    const isOld = days > 2; // Mais de 48 horas (2 dias)
+    
+    return (
+      <div className="flex items-center gap-1">
+        <Clock className="h-3 w-3" />
+        <span className={`text-xs px-2 py-1 rounded ${isOld ? 'bg-red-900/20 text-red-400' : 'bg-green-900/20 text-green-400'}`}>
+          {days} {days === 1 ? 'dia' : 'dias'}
+        </span>
+      </div>
+    );
   };
 
   const getAvailabilityBadge = () => {
@@ -410,6 +434,7 @@ const Backups = () => {
                       <TableHead className="text-gray-300">Nome</TableHead>
                       <TableHead className="text-gray-300">Tamanho</TableHead>
                       <TableHead className="text-gray-300">Data de Modificação</TableHead>
+                      <TableHead className="text-gray-300">Tempo</TableHead>
                       <TableHead className="text-gray-300">Permissões</TableHead>
                       <TableHead className="text-right text-gray-300">Ações</TableHead>
                     </TableRow>
@@ -433,6 +458,9 @@ const Backups = () => {
                         </TableCell>
                         <TableCell className="text-gray-300">
                           {new Date(file.lastModified).toLocaleString('pt-BR')}
+                        </TableCell>
+                        <TableCell className="text-gray-300">
+                          {getTimeLabel(file.lastModified, file.isDirectory)}
                         </TableCell>
                         <TableCell className="text-gray-300">
                           {file.permissions || '-'}
