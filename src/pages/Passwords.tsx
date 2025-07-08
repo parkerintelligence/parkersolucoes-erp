@@ -639,7 +639,9 @@ const Passwords = () => {
                     className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 m-1"
                   >
                     <div className="flex items-center gap-2">
-                      {getServiceIcon(tab.label)}
+                      {tab.name === 'all' && <Globe className="h-4 w-4" />}
+                      {tab.name === 'no_service' && <Settings className="h-4 w-4" />}
+                      {tab.name !== 'all' && tab.name !== 'no_service' && getServiceIcon(tab.name)}
                       <span>{tab.label}</span>
                       <Badge variant="secondary" className="bg-blue-600 text-white ml-1">
                         {tab.count}
