@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Monitor, Save, TestTube, AlertCircle, CheckCircle } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export const GuacamoleAdminConfig = () => {
   const { data: integrations, createIntegration, updateIntegration } = useIntegrations();
@@ -100,45 +101,102 @@ export const GuacamoleAdminConfig = () => {
     }
 
     setTesting(true);
+    
     try {
-      let response;
+      // Primeiro salvar/atualizar a integração para garantir que existe
+      let testIntegrationId = guacamoleIntegration?.id;
       
-      if (authMethod === 'credentials') {
-        // Teste básico de conectividade com credenciais
-        response = await fetch(`${config.base_url.replace(/\/$/, '')}/api/tokens`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            username: config.username,
-            password: config.password,
-          }),
-        });
+      if (!testIntegrationId) {
+        // Criar integração temporária para teste
+        const tempIntegrationData = {
+          type: 'guacamole' as const,
+          name: config.name,
+          base_url: config.base_url,
+          username: authMethod === 'credentials' ? config.username : null,
+          password: authMethod === 'credentials' ? config.password : null,
+          api_token: authMethod === 'token' ? config.api_token : null,
+          is_active: true,
+          webhook_url: null,
+          phone_number: null,
+          region: null,
+          bucket_name: null,
+          port: null,
+          directory: null,
+          passive_mode: null,
+          use_ssl: null,
+          keep_logged: null,
+        };
+        
+        const createdIntegration = await createIntegration.mutateAsync(tempIntegrationData);
+        testIntegrationId = createdIntegration.id;
       } else {
-        // Teste com token da API
-        response = await fetch(`${config.base_url.replace(/\/$/, '')}/api/session/data/mysql/connections`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${config.api_token}`,
-            'Content-Type': 'application/json',
-          },
+        // Atualizar integração existente
+        await updateIntegration.mutateAsync({
+          id: testIntegrationId,
+          updates: {
+            name: config.name,
+            base_url: config.base_url,
+            username: authMethod === 'credentials' ? config.username : null,
+            password: authMethod === 'credentials' ? config.password : null,
+            api_token: authMethod === 'token' ? config.api_token : null,
+            is_active: true,
+          }
         });
       }
 
-      if (response.ok) {
-        toast({
-          title: "Conexão bem-sucedida!",
-          description: `A conexão com o Apache Guacamole foi estabelecida com sucesso usando ${authMethod === 'credentials' ? 'credenciais' : 'token de API'}.`,
-        });
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Aguardar um momento para garantir que a integração foi salva
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Testar usando a Edge Function
+      console.log('=== Testando conexão Guacamole ===');
+      console.log('Integration ID:', testIntegrationId);
+      console.log('Base URL:', config.base_url);
+      console.log('Auth Method:', authMethod);
+
+      const { data, error } = await supabase.functions.invoke('guacamole-proxy', {
+        body: {
+          integrationId: testIntegrationId,
+          endpoint: 'connections',
+          method: 'GET'
+        }
+      });
+
+      console.log('Teste - Data:', data);
+      console.log('Teste - Error:', error);
+
+      if (error) {
+        throw new Error(`Erro na comunicação: ${error.message || 'Erro desconhecido'}`);
       }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: "Conexão bem-sucedida!",
+        description: `A conexão com o Apache Guacamole foi estabelecida com sucesso usando ${authMethod === 'credentials' ? 'credenciais' : 'token de API'}.`,
+      });
+
     } catch (error) {
       console.error('Erro ao testar conexão Guacamole:', error);
+      
+      let errorMessage = 'Não foi possível conectar ao Guacamole.';
+      
+      if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'Erro de conectividade: Verifique se a URL do Guacamole está correta e acessível. Certifique-se de que:\n\n• A URL inclui o protocolo (https:// ou http://)\n• O servidor Guacamole está online\n• Não há bloqueios de firewall\n• A URL está no formato correto (ex: https://seu-servidor.com/guacamole)';
+      } else if (error.message.includes('404')) {
+        errorMessage = 'URL não encontrada: Verifique se a URL do Guacamole está correta. Exemplo: https://seu-servidor.com/guacamole';
+      } else if (error.message.includes('401') || error.message.includes('Credenciais inválidas')) {
+        errorMessage = 'Credenciais inválidas: Verifique se o usuário e senha estão corretos e se o usuário tem permissões administrativas.';
+      } else if (error.message.includes('403')) {
+        errorMessage = 'Acesso negado: O usuário não tem permissões suficientes. Certifique-se de usar um usuário com privilégios administrativos no Guacamole.';
+      } else {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Erro na conexão",
-        description: `Não foi possível conectar ao Guacamole: ${error.message}`,
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -190,8 +248,11 @@ export const GuacamoleAdminConfig = () => {
             id="guacamole-url"
             value={config.base_url}
             onChange={(e) => setConfig({ ...config, base_url: e.target.value })}
-            placeholder="https://guacamole.exemplo.com"
+            placeholder="https://guacamole.exemplo.com/guacamole"
           />
+          <p className="text-xs text-muted-foreground">
+            Exemplo: https://seu-servidor.com/guacamole (inclua /guacamole se necessário)
+          </p>
         </div>
 
         <Separator />
@@ -240,6 +301,9 @@ export const GuacamoleAdminConfig = () => {
                   onChange={(e) => setConfig({ ...config, api_token: e.target.value })}
                   placeholder="••••••••••••••••••••••••••••••••"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Token de sessão ou API token gerado pelo Guacamole
+                </p>
               </div>
             </TabsContent>
           </Tabs>
@@ -296,7 +360,8 @@ export const GuacamoleAdminConfig = () => {
                 <li>• <strong>Credenciais:</strong> Use um usuário com permissões administrativas</li>
                 <li>• <strong>Token da API:</strong> Gere um token de acesso nas configurações do Guacamole</li>
                 <li>• Certifique-se de que a API REST esteja habilitada</li>
-                <li>• Exemplo de URL: https://guacamole.exemplo.com</li>
+                <li>• Exemplo de URL: https://guacamole.exemplo.com/guacamole</li>
+                <li>• Verifique se o servidor está acessível e sem bloqueios de firewall</li>
               </ul>
             </div>
           </div>

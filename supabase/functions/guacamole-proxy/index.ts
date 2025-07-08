@@ -81,15 +81,16 @@ serve(async (req) => {
     // Preparar URL da API - garantir formato correto
     let baseUrl = integration.base_url.replace(/\/+$/, '') // Remove barras no final
     
-    // Garantir que a URL seja válida
+    // Garantir que a URL seja válida e acessível
     try {
       const urlTest = new URL(baseUrl)
       baseUrl = urlTest.toString().replace(/\/+$/, '')
+      console.log('Base URL validada:', baseUrl)
     } catch (urlError) {
-      console.error('Invalid base URL:', baseUrl)
+      console.error('Invalid base URL:', baseUrl, urlError)
       return new Response(
         JSON.stringify({ 
-          error: `URL base inválida: ${baseUrl}. Use formato: https://guacamole.exemplo.com`
+          error: `URL base inválida: ${baseUrl}. Use formato: https://guacamole.exemplo.com/guacamole`
         }),
         { 
           status: 200, 
@@ -111,53 +112,73 @@ serve(async (req) => {
       const tokenUrl = `${baseUrl}/api/tokens`
       console.log('Token URL:', tokenUrl)
       
-      const loginResponse = await fetch(tokenUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          username: integration.username,
-          password: integration.password,
-        }),
-      })
+      try {
+        const loginResponse = await fetch(tokenUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            username: integration.username,
+            password: integration.password,
+          }),
+        })
 
-      console.log('Login response status:', loginResponse.status)
-      console.log('Login response headers:', Object.fromEntries(loginResponse.headers.entries()))
+        console.log('Login response status:', loginResponse.status)
+        console.log('Login response headers:', Object.fromEntries(loginResponse.headers.entries()))
 
-      if (!loginResponse.ok) {
-        const errorText = await loginResponse.text()
-        console.error('Login failed:', loginResponse.status, loginResponse.statusText)
-        console.error('Login error response:', errorText)
-        
-        let errorMessage = 'Erro de autenticação no Guacamole'
-        
-        switch (loginResponse.status) {
-          case 401:
-            errorMessage = 'Credenciais inválidas. Verifique usuário e senha.'
-            break
-          case 403:
-            errorMessage = 'Acesso negado. Verifique se o usuário tem permissões administrativas.'
-            break
-          case 404:
-            errorMessage = 'URL do Guacamole não encontrada. Verifique se a URL está correta e inclui /guacamole se necessário.'
-            break
-          case 500:
-            errorMessage = 'Erro interno do servidor Guacamole. Verifique se o serviço está funcionando.'
-            break
-          default:
-            errorMessage = `Erro HTTP ${loginResponse.status}: ${loginResponse.statusText}`
+        if (!loginResponse.ok) {
+          const errorText = await loginResponse.text()
+          console.error('Login failed:', loginResponse.status, loginResponse.statusText)
+          console.error('Login error response:', errorText)
+          
+          let errorMessage = 'Erro de autenticação no Guacamole'
+          
+          switch (loginResponse.status) {
+            case 401:
+              errorMessage = 'Credenciais inválidas. Verifique usuário e senha.'
+              break
+            case 403:
+              errorMessage = 'Acesso negado. Verifique se o usuário tem permissões administrativas.'
+              break
+            case 404:
+              errorMessage = 'URL do Guacamole não encontrada. Verifique se a URL está correta e inclui /guacamole se necessário.'
+              break
+            case 500:
+              errorMessage = 'Erro interno do servidor Guacamole. Verifique se o serviço está funcionando.'
+              break
+            default:
+              errorMessage = `Erro HTTP ${loginResponse.status}: ${loginResponse.statusText}`
+          }
+          
+          return new Response(
+            JSON.stringify({ 
+              error: errorMessage,
+              details: {
+                status: loginResponse.status,
+                statusText: loginResponse.statusText,
+                url: tokenUrl,
+                response: errorText.substring(0, 500)
+              }
+            }),
+            { 
+              status: 200, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          )
         }
-        
+
+        authToken = await loginResponse.text()
+        console.log('Auth token obtained successfully, length:', authToken.length)
+      } catch (fetchError) {
+        console.error('Network error during login:', fetchError)
         return new Response(
           JSON.stringify({ 
-            error: errorMessage,
-            details: {
-              status: loginResponse.status,
-              statusText: loginResponse.statusText,
-              url: tokenUrl,
-              response: errorText.substring(0, 500)
-            }
+            error: `Erro de conectividade: Não foi possível acessar ${tokenUrl}. Verifique se:
+            • A URL está correta e acessível
+            • O servidor Guacamole está online
+            • Não há bloqueios de firewall
+            • A URL inclui /guacamole se necessário`
           }),
           { 
             status: 200, 
@@ -165,9 +186,6 @@ serve(async (req) => {
           }
         )
       }
-
-      authToken = await loginResponse.text()
-      console.log('Auth token obtained successfully, length:', authToken.length)
     } else {
       return new Response(
         JSON.stringify({ 
@@ -248,7 +266,26 @@ serve(async (req) => {
       requestOptions.body = JSON.stringify(data)
     }
 
-    const apiResponse = await fetch(apiUrl, requestOptions)
+    let apiResponse: Response
+    try {
+      apiResponse = await fetch(apiUrl, requestOptions)
+    } catch (fetchError) {
+      console.error('Network error during API call:', fetchError)
+      return new Response(
+        JSON.stringify({ 
+          error: `Erro de conectividade com a API: Não foi possível acessar ${baseUrl}${apiPath}. Verifique se:
+          • O servidor Guacamole está online
+          • A URL está correta
+          • Não há bloqueios de firewall
+          • A API REST está habilitada no Guacamole`
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
     console.log('API response status:', apiResponse.status)
     console.log('API response headers:', Object.fromEntries(apiResponse.headers.entries()))
 
