@@ -128,6 +128,48 @@ const Zabbix = () => {
     }
   };
 
+  // Função para determinar disponibilidade do host
+  const getHostAvailability = (host: any) => {
+    console.log('Host availability data:', {
+      hostid: host.hostid,
+      name: host.name,
+      available: host.available,
+      status: host.status,
+      interfaces: host.interfaces
+    });
+    
+    // Verificar se o host está habilitado primeiro
+    if (host.status !== '0') {
+      return { status: 'disabled', label: 'Desabilitado', color: 'bg-gray-600 text-white' };
+    }
+    
+    // Verificar disponibilidade através das interfaces
+    if (host.interfaces && host.interfaces.length > 0) {
+      const mainInterface = host.interfaces.find(iface => iface.main === '1') || host.interfaces[0];
+      console.log('Main interface:', mainInterface);
+      
+      if (mainInterface.available === '1') {
+        return { status: 'available', label: 'Disponível', color: 'bg-green-600 text-white' };
+      } else if (mainInterface.available === '2') {
+        return { status: 'unavailable', label: 'Indisponível', color: 'bg-red-600 text-white' };
+      } else if (mainInterface.available === '0') {
+        return { status: 'unknown', label: 'Desconhecido', color: 'bg-yellow-600 text-white' };
+      }
+    }
+    
+    // Fallback para o campo available do host (se disponível)
+    if (host.available === '1') {
+      return { status: 'available', label: 'Disponível', color: 'bg-green-600 text-white' };
+    } else if (host.available === '2') {
+      return { status: 'unavailable', label: 'Indisponível', color: 'bg-red-600 text-white' };
+    } else if (host.available === '0') {
+      return { status: 'unknown', label: 'Desconhecido', color: 'bg-yellow-600 text-white' };
+    }
+    
+    // Default para unknown se não conseguir determinar
+    return { status: 'unknown', label: 'Desconhecido', color: 'bg-gray-600 text-white' };
+  };
+
   // Agrupar hosts por grupo
   const groupedHosts = hosts.reduce((acc, host) => {
     const groupName = host.groups?.[0]?.name || 'Sem Grupo';
@@ -354,7 +396,7 @@ const Zabbix = () => {
                                       variant="outline"
                                       onClick={() => handleCreateGLPITicket(problem)}
                                       disabled={createTicket.isPending}
-                                      className="border-blue-600 text-blue-400 hover:bg-blue-900/30 p-2"
+                                      className="bg-blue-800 border-blue-700 text-white hover:bg-blue-700 p-2"
                                       title="Criar chamado no GLPI"
                                     >
                                       <ExternalLink className="h-4 w-4" />
@@ -408,24 +450,27 @@ const Zabbix = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {groupHosts.map((host) => (
-                              <TableRow key={host.hostid} className="h-8 border-gray-700 hover:bg-gray-800/30">
-                                <TableCell className="font-medium py-2 text-gray-200">{host.name}</TableCell>
-                                <TableCell className="py-2 text-gray-300">
-                                  {host.interfaces?.[0]?.ip || host.interfaces?.[0]?.dns || 'N/A'}
-                                </TableCell>
-                                <TableCell className="py-2">
-                                  <Badge className={host.status === '0' ? 'bg-green-600 text-white' : 'bg-gray-600 text-white'}>
-                                    {host.status === '0' ? 'Ativo' : 'Inativo'}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="py-2">
-                                  <Badge className={host.available === '1' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}>
-                                    {host.available === '1' ? 'Disponível' : 'Indisponível'}
-                                  </Badge>
-                                </TableCell>
-                              </TableRow>
-                            ))}
+                            {groupHosts.map((host) => {
+                              const availability = getHostAvailability(host);
+                              return (
+                                <TableRow key={host.hostid} className="h-8 border-gray-700 hover:bg-gray-800/30">
+                                  <TableCell className="font-medium py-2 text-gray-200">{host.name}</TableCell>
+                                  <TableCell className="py-2 text-gray-300">
+                                    {host.interfaces?.[0]?.ip || host.interfaces?.[0]?.dns || 'N/A'}
+                                  </TableCell>
+                                  <TableCell className="py-2">
+                                    <Badge className={host.status === '0' ? 'bg-green-600 text-white' : 'bg-gray-600 text-white'}>
+                                      {host.status === '0' ? 'Ativo' : 'Inativo'}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="py-2">
+                                    <Badge className={availability.color}>
+                                      {availability.label}
+                                    </Badge>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </div>
