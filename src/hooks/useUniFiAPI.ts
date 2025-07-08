@@ -45,10 +45,6 @@ export interface UniFiSite {
   name: string;
   role: string;
   num_new_alarms: number;
-  // UniFi Cloud specific fields
-  host_id?: string;
-  display_name?: string;
-  owner_name?: string;
 }
 
 export interface UniFiSystemInfo {
@@ -61,42 +57,42 @@ export interface UniFiSystemInfo {
 }
 
 export interface UniFiAuth {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
+  cookies: string;
   timestamp: number;
 }
 
-class UniFiCloudService {
+class UniFiControllerService {
+  private baseUrl: string;
   private username: string;
   private password: string;
   private auth: UniFiAuth | null = null;
 
   constructor(integration: any) {
+    this.baseUrl = integration.base_url.replace(/\/$/, ''); // Remove trailing slash
     this.username = integration.username;
     this.password = integration.password;
     
     // Try to load existing auth from localStorage
-    const savedAuth = localStorage.getItem('unifi_cloud_auth');
+    const savedAuth = localStorage.getItem('unifi_controller_auth');
     if (savedAuth) {
       try {
         this.auth = JSON.parse(savedAuth);
-        // Check if token is expired (with 10 minute buffer)
-        if (this.auth && Date.now() - this.auth.timestamp > ((this.auth.expiresIn - 600) * 1000)) {
-          console.log('Saved token expired, clearing auth')
+        // Check if auth is expired (12 hours)
+        if (this.auth && Date.now() - this.auth.timestamp > 12 * 60 * 60 * 1000) {
+          console.log('Saved auth expired, clearing auth')
           this.auth = null;
-          localStorage.removeItem('unifi_cloud_auth');
+          localStorage.removeItem('unifi_controller_auth');
         }
       } catch (error) {
         console.error('Failed to parse saved auth:', error);
-        localStorage.removeItem('unifi_cloud_auth');
+        localStorage.removeItem('unifi_controller_auth');
       }
     }
   }
 
   private async makeRequest(action: string, params: any = {}): Promise<any> {
     try {
-      console.log('UniFi Cloud API Request:', { action, ...params });
+      console.log('UniFi Controller API Request:', { action, ...params });
 
       const response = await fetch('https://mpvxppgoyaddwukkfoccs.supabase.co/functions/v1/unifi-proxy', {
         method: 'POST',
@@ -106,20 +102,21 @@ class UniFiCloudService {
         },
         body: JSON.stringify({
           action,
+          baseUrl: this.baseUrl,
           ...params
         })
       });
 
-      console.log('UniFi Cloud API Response Status:', response.status);
+      console.log('UniFi Controller API Response Status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('UniFi Cloud API Response not OK:', response.status, errorText);
+        console.error('UniFi Controller API Response not OK:', response.status, errorText);
         throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
       }
 
       const result = await response.json();
-      console.log('UniFi Cloud API Response:', result);
+      console.log('UniFi Controller API Response:', result);
       
       if (result.error) {
         throw new Error(result.error + (result.details ? `: ${result.details}` : ''));
@@ -127,39 +124,37 @@ class UniFiCloudService {
 
       return result;
     } catch (error) {
-      console.error('UniFi Cloud API Request failed:', error);
+      console.error('UniFi Controller API Request failed:', error);
       throw error;
     }
   }
 
   async authenticate(): Promise<boolean> {
     try {
-      console.log('Authenticating with UniFi Cloud...', { username: this.username });
+      console.log('Authenticating with UniFi Controller...', { baseUrl: this.baseUrl, username: this.username });
       
       const response = await this.makeRequest('login', {
         username: this.username,
         password: this.password
       });
       
-      if (response.success && response.accessToken) {
+      if (response.success && response.cookies) {
         this.auth = {
-          accessToken: response.accessToken,
-          refreshToken: response.refreshToken || '',
-          expiresIn: response.expiresIn || 3600,
+          cookies: response.cookies,
           timestamp: Date.now()
         };
         
         // Save auth to localStorage
-        localStorage.setItem('unifi_cloud_auth', JSON.stringify(this.auth));
+        localStorage.setItem('unifi_controller_auth', JSON.stringify(this.auth));
         
-        console.log('UniFi Cloud authentication successful');
+        console.log('UniFi Controller authentication successful');
         return true;
       }
       
-      console.error('Authentication failed: no access token received');
+      console.error('Authentication failed: no cookies received');
       return false;
     } catch (error) {
-      console.error('UniFi Cloud authentication failed:', error);
+      console.error('UniFi Controller authentication failed:', error);
       return false;
     }
   }
@@ -170,10 +165,10 @@ class UniFiCloudService {
       return await this.authenticate();
     }
     
-    // Check if token is expired (with 10 minute buffer)
-    const timeRemaining = (this.auth.timestamp + (this.auth.expiresIn * 1000)) - Date.now();
-    if (timeRemaining < 600000) { // 10 minutes
-      console.log('Token expiring soon, re-authenticating...', { timeRemaining });
+    // Check if auth is expired (12 hours)
+    const timeRemaining = (this.auth.timestamp + (12 * 60 * 60 * 1000)) - Date.now();
+    if (timeRemaining < 60000) { // 1 minute buffer
+      console.log('Auth expiring soon, re-authenticating...', { timeRemaining });
       return await this.authenticate();
     }
     
@@ -188,23 +183,10 @@ class UniFiCloudService {
       }
       
       const response = await this.makeRequest('getSites', {
-        accessToken: this.auth!.accessToken
+        cookies: this.auth!.cookies
       });
       
-      // Transform UniFi Cloud host data to match our interface
-      const sites = (response.data || []).map((host: any, index: number) => ({
-        _id: host.id || host._id || `site-${index}`,
-        desc: host.display_name || host.name || host.desc || 'UniFi Site',
-        name: host.name || host.id || `site-${index}`,
-        role: 'admin',
-        num_new_alarms: host.num_new_alarms || 0,
-        host_id: host.id || host._id,
-        display_name: host.display_name || host.name,
-        owner_name: host.owner_name || host.owner
-      }));
-      
-      console.log('Processed sites:', sites);
-      return sites;
+      return response.data || [];
     } catch (error) {
       console.error('Failed to get sites:', error);
       return [];
@@ -218,8 +200,8 @@ class UniFiCloudService {
       }
       
       const response = await this.makeRequest('getDevices', {
-        accessToken: this.auth!.accessToken,
-        hostId: siteId
+        cookies: this.auth!.cookies,
+        siteId
       });
       
       return response.data || [];
@@ -236,8 +218,8 @@ class UniFiCloudService {
       }
       
       const response = await this.makeRequest('getClients', {
-        accessToken: this.auth!.accessToken,
-        hostId: siteId
+        cookies: this.auth!.cookies,
+        siteId
       });
       
       return response.data || [];
@@ -254,8 +236,8 @@ class UniFiCloudService {
       }
       
       const response = await this.makeRequest('getSystemInfo', {
-        accessToken: this.auth!.accessToken,
-        hostId: siteId
+        cookies: this.auth!.cookies,
+        siteId
       });
       
       return response.data?.[0] || null;
@@ -272,8 +254,8 @@ class UniFiCloudService {
       }
       
       const response = await this.makeRequest('restartDevice', {
-        accessToken: this.auth!.accessToken,
-        hostId: siteId,
+        cookies: this.auth!.cookies,
+        siteId,
         deviceMac
       });
       
@@ -291,8 +273,8 @@ class UniFiCloudService {
       }
       
       const response = await this.makeRequest('blockClient', {
-        accessToken: this.auth!.accessToken,
-        hostId: siteId,
+        cookies: this.auth!.cookies,
+        siteId,
         clientMac,
         block
       });
@@ -306,17 +288,19 @@ class UniFiCloudService {
 
   async testConnection(): Promise<boolean> {
     try {
-      console.log('Testing UniFi Cloud connection...');
-      const result = await this.authenticate();
-      if (result) {
-        // Try to fetch sites to verify full connection
-        const sites = await this.getSites();
-        console.log('Connection test successful, sites found:', sites.length);
+      console.log('Testing UniFi Controller connection...');
+      const response = await this.makeRequest('testConnection', {
+        username: this.username,
+        password: this.password
+      });
+      
+      if (response.success) {
+        console.log('Connection test successful');
         return true;
       }
       return false;
     } catch (error) {
-      console.error('UniFi Cloud connection test failed:', error);
+      console.error('UniFi Controller connection test failed:', error);
       return false;
     }
   }
@@ -332,7 +316,7 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
 
   console.log('UniFi Integration found:', unifiIntegration);
 
-  const unifiService = unifiIntegration ? new UniFiCloudService(unifiIntegration) : null;
+  const unifiService = unifiIntegration ? new UniFiControllerService(unifiIntegration) : null;
 
   // Get sites
   const {
@@ -341,15 +325,15 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     error: sitesError,
     refetch: refetchSites
   } = useQuery({
-    queryKey: ['unifi-cloud', 'sites', unifiIntegration?.id],
+    queryKey: ['unifi-controller', 'sites', unifiIntegration?.id],
     queryFn: async () => {
       if (!unifiService) {
-        console.log('No UniFi Cloud service available');
+        console.log('No UniFi Controller service available');
         return [];
       }
-      console.log('Fetching UniFi Cloud sites...');
+      console.log('Fetching UniFi Controller sites...');
       const sites = await unifiService.getSites();
-      console.log('UniFi Cloud sites fetched:', sites);
+      console.log('UniFi Controller sites fetched:', sites);
       return sites;
     },
     enabled: !!unifiService && !integrationsLoading,
@@ -364,15 +348,15 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     error: devicesError,
     refetch: refetchDevices
   } = useQuery({
-    queryKey: ['unifi-cloud', 'devices', selectedSiteId, unifiIntegration?.id],
+    queryKey: ['unifi-controller', 'devices', selectedSiteId, unifiIntegration?.id],
     queryFn: async () => {
       if (!selectedSiteId || !unifiService) {
         console.log('No site selected or no service available');
         return [];
       }
-      console.log('Fetching UniFi Cloud devices for site:', selectedSiteId);
+      console.log('Fetching UniFi Controller devices for site:', selectedSiteId);
       const devices = await unifiService.getDevices(selectedSiteId);
-      console.log('UniFi Cloud devices fetched:', devices);
+      console.log('UniFi Controller devices fetched:', devices);
       return devices;
     },
     enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
@@ -387,15 +371,15 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     error: clientsError,
     refetch: refetchClients
   } = useQuery({
-    queryKey: ['unifi-cloud', 'clients', selectedSiteId, unifiIntegration?.id],
+    queryKey: ['unifi-controller', 'clients', selectedSiteId, unifiIntegration?.id],
     queryFn: async () => {
       if (!selectedSiteId || !unifiService) {
         console.log('No site selected or no service available');
         return [];
       }
-      console.log('Fetching UniFi Cloud clients for site:', selectedSiteId);
+      console.log('Fetching UniFi Controller clients for site:', selectedSiteId);
       const clients = await unifiService.getClients(selectedSiteId);
-      console.log('UniFi Cloud clients fetched:', clients);
+      console.log('UniFi Controller clients fetched:', clients);
       return clients;
     },
     enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
@@ -409,15 +393,15 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     isLoading: systemInfoLoading,
     refetch: refetchSystemInfo
   } = useQuery({
-    queryKey: ['unifi-cloud', 'systemInfo', selectedSiteId, unifiIntegration?.id],
+    queryKey: ['unifi-controller', 'systemInfo', selectedSiteId, unifiIntegration?.id],
     queryFn: async () => {
       if (!selectedSiteId || !unifiService) {
         console.log('No site selected or no service available');
         return null;
       }
-      console.log('Fetching UniFi Cloud system info for site:', selectedSiteId);
+      console.log('Fetching UniFi Controller system info for site:', selectedSiteId);
       const systemInfo = await unifiService.getSystemInfo(selectedSiteId);
-      console.log('UniFi Cloud system info fetched:', systemInfo);
+      console.log('UniFi Controller system info fetched:', systemInfo);
       return systemInfo;
     },
     enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
@@ -432,14 +416,14 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
       if (isConnected) {
         toast({
           title: "✅ Conexão bem-sucedida",
-          description: "Conectado à UniFi Cloud com sucesso."
+          description: "Conectado à Controladora UniFi com sucesso."
         });
         // Refresh sites after successful connection
         refetchSites();
       } else {
         toast({
           title: "❌ Falha na conexão",
-          description: "Não foi possível conectar à UniFi Cloud. Verifique suas credenciais.",
+          description: "Não foi possível conectar à Controladora UniFi. Verifique as configurações.",
           variant: "destructive"
         });
       }
@@ -447,7 +431,7 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     onError: () => {
       toast({
         title: "❌ Erro de conexão",
-        description: "Erro ao tentar conectar à UniFi Cloud.",
+        description: "Erro ao tentar conectar à Controladora UniFi.",
         variant: "destructive"
       });
     }
@@ -499,10 +483,10 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
   const refreshAllData = async () => {
     if (!selectedSiteId) return;
     
-    console.log('Refreshing all UniFi Cloud data for site:', selectedSiteId);
+    console.log('Refreshing all UniFi Controller data for site:', selectedSiteId);
     toast({
       title: "🔄 Atualizando dados",
-      description: "Buscando informações atualizadas da UniFi Cloud..."
+      description: "Buscando informações atualizadas da Controladora UniFi..."
     });
     
     await Promise.all([
@@ -514,12 +498,12 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     
     toast({
       title: "✅ Dados atualizados",
-      description: "Informações da UniFi Cloud foram atualizadas."
+      description: "Informações da Controladora UniFi foram atualizadas."
     });
   };
 
   const handleTestConnection = () => {
-    console.log('Testing UniFi Cloud connection...');
+    console.log('Testing UniFi Controller connection...');
     testConnectionMutation.mutate();
   };
 
@@ -538,7 +522,7 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     devices,
     clients,
     systemInfo,
-    networkSettings: [], // Not available in UniFi Cloud API
+    networkSettings: [], // Not implemented yet
     integration: unifiIntegration,
     
     // Loading states
@@ -570,6 +554,6 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     
     // Utils
     isConnected: !!unifiIntegration,
-    connectionUrl: 'UniFi Cloud (account.ui.com)',
+    connectionUrl: unifiIntegration?.base_url || 'Não configurado',
   };
 };

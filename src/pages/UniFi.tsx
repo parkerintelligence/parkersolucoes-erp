@@ -10,9 +10,9 @@ import {
   Activity, 
   RefreshCw, 
   TestTube,
-  Cloud,
+  Server,
   Network,
-  Key,
+  Settings,
   AlertTriangle
 } from 'lucide-react';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
@@ -63,29 +63,29 @@ const UniFi = () => {
           <Card className="bg-gray-800 border-gray-700">
             <CardContent className="p-6">
               <div className="text-center">
-                <Cloud className="h-12 w-12 mx-auto mb-4 text-gray-600" />
+                <Server className="h-12 w-12 mx-auto mb-4 text-gray-600" />
                 <h3 className="text-lg font-semibold text-white mb-2">
-                  Nenhuma Integração UniFi Cloud Configurada
+                  Nenhuma Controladora UniFi Configurada
                 </h3>
                 <p className="text-gray-400 mb-4">
-                  Configure uma integração UniFi Cloud na seção de Administração para acessar seus dados da nuvem UniFi.
+                  Configure uma integração com sua Controladora UniFi para acessar e gerenciar seus dispositivos de rede.
                 </p>
                 <div className="bg-blue-900/20 border border-blue-600 rounded-lg p-4 mb-4">
                   <div className="flex items-start gap-3">
-                    <Key className="h-5 w-5 text-blue-400 mt-0.5" />
+                    <Settings className="h-5 w-5 text-blue-400 mt-0.5" />
                     <div className="text-left">
-                      <h4 className="font-medium text-blue-400 mb-1">Credenciais Necessárias:</h4>
+                      <h4 className="font-medium text-blue-400 mb-1">Configurações Necessárias:</h4>
                       <ul className="text-sm text-gray-300 space-y-1">
                         <li>• <strong>Nome:</strong> Nome para identificar a integração</li>
-                        <li>• <strong>Base URL:</strong> https://unifi.ui.com/</li>
-                        <li>• <strong>Username:</strong> Seu email da conta Ubiquiti</li>
-                        <li>• <strong>Password:</strong> Sua senha da conta Ubiquiti</li>
+                        <li>• <strong>Base URL:</strong> https://seu-servidor:8443 ou IP da controladora</li>
+                        <li>• <strong>Username:</strong> Usuário admin da controladora</li>
+                        <li>• <strong>Password:</strong> Senha do usuário admin</li>
                       </ul>
                     </div>
                   </div>
                 </div>
                 <Button onClick={() => window.location.href = '/admin'} className="bg-blue-600 hover:bg-blue-700">
-                  Configurar UniFi Cloud
+                  Configurar Controladora UniFi
                 </Button>
               </div>
             </CardContent>
@@ -101,21 +101,21 @@ const UniFi = () => {
         <div className="flex justify-between items-center">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <Cloud className="h-6 w-6 text-blue-400" />
-              <h1 className="text-2xl font-bold text-white">UniFi Cloud - {integration?.name}</h1>
+              <Server className="h-6 w-6 text-blue-400" />
+              <h1 className="text-2xl font-bold text-white">Controladora UniFi - {integration?.name}</h1>
             </div>
-            <p className="text-gray-400">Conectado via: {connectionUrl}</p>
+            <p className="text-gray-400">Conectado em: {connectionUrl}</p>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm text-gray-500">Credenciais: {integration?.username}</span>
+              <span className="text-sm text-gray-500">Usuário: {integration?.username}</span>
               {integration?.password && (
                 <Badge className="bg-green-900/20 text-green-400 border-green-600">
-                  Senha Configurada
+                  Autenticado
                 </Badge>
               )}
             </div>
             {systemInfo && (
               <p className="text-sm text-gray-500">
-                Versão: {systemInfo.version} | Uptime: {formatUptime(systemInfo.uptime)}
+                Versão: {systemInfo.version} | Uptime: {formatUptime(systemInfo.uptime)} | Host: {systemInfo.hostname}
                 {systemInfo.update_available && (
                   <Badge className="ml-2 bg-orange-900/20 text-orange-400 border-orange-600">
                     Atualização Disponível
@@ -145,12 +145,12 @@ const UniFi = () => {
           </div>
         </div>
 
-        {/* Authentication Status */}
+        {/* Connection Status */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader className="pb-3">
             <CardTitle className="text-white flex items-center gap-2">
-              <Key className="h-5 w-5" />
-              Status de Autenticação UniFi Cloud
+              <Network className="h-5 w-5" />
+              Status da Controladora UniFi
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -161,8 +161,8 @@ const UniFi = () => {
                 </Badge>
                 <span className="text-gray-400 text-sm">
                   {sites.length > 0 ? 
-                    `${sites.length} site(s) encontrado(s) na UniFi Cloud` : 
-                    'Autenticando com UniFi Cloud...'
+                    `${sites.length} site(s) encontrado(s) na controladora` : 
+                    'Autenticando com a controladora...'
                   }
                 </span>
               </div>
@@ -174,12 +174,13 @@ const UniFi = () => {
                     <div className="text-sm">
                       <p className="text-yellow-400 font-medium">Nenhum site encontrado</p>
                       <p className="text-gray-300 mt-1">
-                        Verifique se suas credenciais estão corretas e se você possui sites configurados em sua conta UniFi Cloud.
+                        Verifique se a controladora está acessível e se as credenciais estão corretas.
                       </p>
                       <ul className="text-xs text-gray-400 mt-2 space-y-1">
-                        <li>• Acesse https://unifi.ui.com/ para verificar seus sites</li>
-                        <li>• Certifique-se de que não há autenticação de dois fatores ativada</li>
-                        <li>• Verifique se o email e senha estão corretos na configuração</li>
+                        <li>• Verifique se a URL da controladora está correta</li>
+                        <li>• Certifique-se de que o usuário tem privilégios de administrador</li>
+                        <li>• Verifique se não há firewall bloqueando a conexão</li>
+                        <li>• Teste o acesso manual via navegador web</li>
                       </ul>
                     </div>
                   </div>

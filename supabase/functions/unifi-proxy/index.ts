@@ -11,7 +11,7 @@ serve(async (req) => {
   try {
     const { action, ...params } = await req.json()
     
-    console.log('UniFi Cloud Proxy Request:', { action, params })
+    console.log('UniFi Controller Proxy Request:', { action, params })
     
     switch (action) {
       case 'login':
@@ -28,6 +28,8 @@ serve(async (req) => {
         return await restartDevice(params)
       case 'blockClient':
         return await blockClient(params)
+      case 'testConnection':
+        return await testConnection(params)
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
@@ -38,7 +40,7 @@ serve(async (req) => {
         )
     }
   } catch (error) {
-    console.error('UniFi Cloud Proxy Error:', error)
+    console.error('UniFi Controller Proxy Error:', error)
     
     return new Response(
       JSON.stringify({ 
@@ -53,23 +55,22 @@ serve(async (req) => {
   }
 })
 
-async function handleLogin({ username, password }: { username: string, password: string }) {
+async function handleLogin({ baseUrl, username, password }: { baseUrl: string, username: string, password: string }) {
   try {
-    console.log('Attempting login to UniFi Cloud with username:', username)
+    console.log('Attempting login to UniFi Controller:', baseUrl)
     
-    // Step 1: Login to UniFi account with correct endpoint
-    const loginResponse = await fetch('https://account.ui.com/api/sso', {
+    // Step 1: Login to UniFi Controller
+    const loginResponse = await fetch(`${baseUrl}/api/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       },
       body: JSON.stringify({
         username,
         password,
         remember: false,
-        token: ''
+        strict: true
       })
     })
 
@@ -81,7 +82,7 @@ async function handleLogin({ username, password }: { username: string, password:
       return new Response(
         JSON.stringify({ 
           error: 'Login failed', 
-          details: 'Invalid credentials or login endpoint issue',
+          details: 'Invalid credentials or controller unreachable',
           status: loginResponse.status 
         }),
         { 
@@ -92,61 +93,17 @@ async function handleLogin({ username, password }: { username: string, password:
     }
 
     const loginData = await loginResponse.json()
-    console.log('Login successful, response keys:', Object.keys(loginData))
+    console.log('Login successful:', loginData?.meta?.rc === 'ok')
 
-    // Check if we have the required data
-    if (!loginData.data || !loginData.data.access_token) {
-      console.error('No access token in response:', loginData)
-      return new Response(
-        JSON.stringify({ 
-          error: 'Authentication failed',
-          details: 'No access token received' 
-        }),
-        { 
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
+    // Extract cookies from response
+    const cookies = loginResponse.headers.get('set-cookie') || ''
+    console.log('Cookies received:', cookies ? 'Yes' : 'No')
 
-    // Step 2: Get access token for UniFi Cloud API
-    const tokenResponse = await fetch('https://api.ui.com/ea/user', {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${loginData.data.access_token}`,
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    })
-
-    console.log('Token response status:', tokenResponse.status)
-
-    if (!tokenResponse.ok) {
-      console.error('Token request failed:', tokenResponse.status)
-      // Try using the original token directly
-      return new Response(
-        JSON.stringify({
-          success: true,
-          accessToken: loginData.data.access_token,
-          refreshToken: loginData.data.refresh_token || '',
-          expiresIn: loginData.data.expires_in || 3600
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    const tokenData = await tokenResponse.json()
-    console.log('Token data received, keys:', Object.keys(tokenData))
-    
     return new Response(
       JSON.stringify({
         success: true,
-        accessToken: loginData.data.access_token,
-        refreshToken: loginData.data.refresh_token || '',
-        expiresIn: loginData.data.expires_in || 3600
+        cookies: cookies,
+        data: loginData
       }),
       {
         status: 200,
@@ -169,72 +126,39 @@ async function handleLogin({ username, password }: { username: string, password:
   }
 }
 
-async function getSites({ accessToken }: { accessToken: string }) {
+async function getSites({ baseUrl, cookies }: { baseUrl: string, cookies: string }) {
   try {
-    console.log('Fetching sites from UniFi Cloud...')
+    console.log('Fetching sites from UniFi Controller...')
     
-    // Try multiple endpoints for sites
-    const endpoints = [
-      'https://api.ui.com/ea/hosts',
-      'https://api.ui.com/ea/hosts/v1/host',
-      'https://unifi.ui.com/api/sso/v1/user/cloudaccess'
-    ]
-    
-    for (const endpoint of endpoints) {
-      try {
-        console.log('Trying endpoint:', endpoint)
-        const response = await fetch(endpoint, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
-        })
-
-        console.log(`Response from ${endpoint}:`, response.status)
-
-        if (response.ok) {
-          const data = await response.json()
-          console.log('Sites data structure:', Object.keys(data))
-          
-          // Handle different response formats
-          let sites = []
-          if (data.data && Array.isArray(data.data)) {
-            sites = data.data
-          } else if (Array.isArray(data)) {
-            sites = data
-          } else if (data.hosts && Array.isArray(data.hosts)) {
-            sites = data.hosts
-          }
-          
-          console.log('Sites found:', sites.length)
-          
-          return new Response(
-            JSON.stringify({
-              data: sites,
-              meta: { rc: 'ok' }
-            }),
-            {
-              status: 200,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            }
-          )
-        }
-      } catch (endpointError) {
-        console.log(`Endpoint ${endpoint} failed:`, endpointError.message)
-        continue
+    const response = await fetch(`${baseUrl}/api/self/sites`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cookie': cookies
       }
+    })
+
+    console.log('Sites response status:', response.status)
+
+    if (!response.ok) {
+      console.error('Sites fetch failed:', response.status)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to fetch sites',
+          status: response.status 
+        }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
-    
-    // If all endpoints failed, return empty result
-    console.log('All endpoints failed, returning empty sites')
+
+    const data = await response.json()
+    console.log('Sites fetched successfully:', data.data?.length || 0)
+
     return new Response(
-      JSON.stringify({
-        data: [],
-        meta: { rc: 'ok' },
-        message: 'No sites found or endpoints unavailable'
-      }),
+      JSON.stringify(data),
       {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -256,16 +180,15 @@ async function getSites({ accessToken }: { accessToken: string }) {
   }
 }
 
-async function getDevices({ accessToken, hostId }: { accessToken: string, hostId: string }) {
+async function getDevices({ baseUrl, cookies, siteId }: { baseUrl: string, cookies: string, siteId: string }) {
   try {
-    console.log('Fetching devices from UniFi Cloud...', hostId)
+    console.log('Fetching devices from UniFi Controller...', siteId)
     
-    const response = await fetch(`https://api.ui.com/ea/hosts/v1/host/${hostId}/proxy/network/api/s/default/stat/device`, {
+    const response = await fetch(`${baseUrl}/api/s/${siteId}/stat/device`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
         'Accept': 'application/json',
-        'User-Agent': 'UniFi-Integration/1.0'
+        'Cookie': cookies
       }
     })
 
@@ -309,16 +232,15 @@ async function getDevices({ accessToken, hostId }: { accessToken: string, hostId
   }
 }
 
-async function getClients({ accessToken, hostId }: { accessToken: string, hostId: string }) {
+async function getClients({ baseUrl, cookies, siteId }: { baseUrl: string, cookies: string, siteId: string }) {
   try {
-    console.log('Fetching clients from UniFi Cloud...', hostId)
+    console.log('Fetching clients from UniFi Controller...', siteId)
     
-    const response = await fetch(`https://api.ui.com/ea/hosts/v1/host/${hostId}/proxy/network/api/s/default/stat/sta`, {
+    const response = await fetch(`${baseUrl}/api/s/${siteId}/stat/sta`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
         'Accept': 'application/json',
-        'User-Agent': 'UniFi-Integration/1.0'
+        'Cookie': cookies
       }
     })
 
@@ -362,16 +284,15 @@ async function getClients({ accessToken, hostId }: { accessToken: string, hostId
   }
 }
 
-async function getSystemInfo({ accessToken, hostId }: { accessToken: string, hostId: string }) {
+async function getSystemInfo({ baseUrl, cookies, siteId }: { baseUrl: string, cookies: string, siteId: string }) {
   try {
-    console.log('Fetching system info from UniFi Cloud...', hostId)
+    console.log('Fetching system info from UniFi Controller...', siteId)
     
-    const response = await fetch(`https://api.ui.com/ea/hosts/v1/host/${hostId}/proxy/network/api/s/default/stat/sysinfo`, {
+    const response = await fetch(`${baseUrl}/api/s/${siteId}/stat/sysinfo`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
         'Accept': 'application/json',
-        'User-Agent': 'UniFi-Integration/1.0'
+        'Cookie': cookies
       }
     })
 
@@ -415,17 +336,16 @@ async function getSystemInfo({ accessToken, hostId }: { accessToken: string, hos
   }
 }
 
-async function restartDevice({ accessToken, hostId, deviceMac }: { accessToken: string, hostId: string, deviceMac: string }) {
+async function restartDevice({ baseUrl, cookies, siteId, deviceMac }: { baseUrl: string, cookies: string, siteId: string, deviceMac: string }) {
   try {
     console.log('Restarting device...', deviceMac)
     
-    const response = await fetch(`https://api.ui.com/ea/hosts/v1/host/${hostId}/proxy/network/api/s/default/cmd/devmgr`, {
+    const response = await fetch(`${baseUrl}/api/s/${siteId}/cmd/devmgr`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'User-Agent': 'UniFi-Integration/1.0'
+        'Cookie': cookies
       },
       body: JSON.stringify({
         cmd: 'restart',
@@ -473,17 +393,16 @@ async function restartDevice({ accessToken, hostId, deviceMac }: { accessToken: 
   }
 }
 
-async function blockClient({ accessToken, hostId, clientMac, block }: { accessToken: string, hostId: string, clientMac: string, block: boolean }) {
+async function blockClient({ baseUrl, cookies, siteId, clientMac, block }: { baseUrl: string, cookies: string, siteId: string, clientMac: string, block: boolean }) {
   try {
     console.log(`${block ? 'Blocking' : 'Unblocking'} client...`, clientMac)
     
-    const response = await fetch(`https://api.ui.com/ea/hosts/v1/host/${hostId}/proxy/network/api/s/default/cmd/stamgr`, {
+    const response = await fetch(`${baseUrl}/api/s/${siteId}/cmd/stamgr`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'User-Agent': 'UniFi-Integration/1.0'
+        'Cookie': cookies
       },
       body: JSON.stringify({
         cmd: block ? 'block-sta' : 'unblock-sta',
@@ -525,6 +444,71 @@ async function blockClient({ accessToken, hostId, clientMac, block }: { accessTo
       }),
       { 
         status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    )
+  }
+}
+
+async function testConnection({ baseUrl, username, password }: { baseUrl: string, username: string, password: string }) {
+  try {
+    console.log('Testing connection to UniFi Controller:', baseUrl)
+    
+    const response = await fetch(`${baseUrl}/api/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        username,
+        password,
+        remember: false,
+        strict: true
+      })
+    })
+
+    console.log('Test connection response status:', response.status)
+    
+    if (!response.ok) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'Connection test failed', 
+          status: response.status 
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    const data = await response.json()
+    const success = data?.meta?.rc === 'ok'
+
+    return new Response(
+      JSON.stringify({
+        success,
+        message: success ? 'Connection successful' : 'Authentication failed',
+        data
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    )
+
+  } catch (error) {
+    console.error('Test connection error:', error)
+    return new Response(
+      JSON.stringify({ 
+        success: false,
+        error: 'Connection test failed',
+        details: error.message 
+      }),
+      { 
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
