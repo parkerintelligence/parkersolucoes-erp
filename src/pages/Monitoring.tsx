@@ -1,12 +1,11 @@
 
 import { useState, useEffect } from 'react';
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, BarChart3, Server, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { Activity, BarChart3, Server, AlertTriangle, Eye, EyeOff, ExternalLink } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
@@ -15,7 +14,6 @@ const Monitoring = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
-  const [dashboards, setDashboards] = useState([]);
 
   const grafanaIntegration = integrations.find(integration => 
     integration.type === 'grafana' && integration.is_active
@@ -37,11 +35,6 @@ const Monitoring = () => {
     if (credentials.username === grafanaIntegration.username && 
         credentials.password === grafanaIntegration.password) {
       setIsAuthenticated(true);
-      setDashboards([
-        { id: 1, name: 'Sistema Overview', url: `${grafanaIntegration.base_url}/d/sistema-overview` },
-        { id: 2, name: 'Performance Metrics', url: `${grafanaIntegration.base_url}/d/performance` },
-        { id: 3, name: 'Network Status', url: `${grafanaIntegration.base_url}/d/network` },
-      ]);
       toast({
         title: "Login realizado com sucesso",
         description: "Acesso aos dashboards do Grafana liberado.",
@@ -58,8 +51,42 @@ const Monitoring = () => {
   const handleLogout = () => {
     setIsAuthenticated(false);
     setCredentials({ username: '', password: '' });
-    setDashboards([]);
   };
+
+  const openGrafanaDashboard = (path?: string) => {
+    if (!grafanaIntegration) return;
+    
+    const baseUrl = grafanaIntegration.base_url.replace(/\/$/, '');
+    const fullUrl = path ? `${baseUrl}${path}` : baseUrl;
+    window.open(fullUrl, '_blank');
+  };
+
+  const predefinedDashboards = [
+    { 
+      id: 'system-overview', 
+      name: 'Visão Geral do Sistema', 
+      path: '/d/system-overview',
+      description: 'Dashboard principal com métricas gerais'
+    },
+    { 
+      id: 'server-metrics', 
+      name: 'Métricas de Servidores', 
+      path: '/d/server-metrics',
+      description: 'Monitoramento de CPU, RAM e Disco'
+    },
+    { 
+      id: 'network-monitoring', 
+      name: 'Monitoramento de Rede', 
+      path: '/d/network-monitoring',
+      description: 'Tráfego de rede e latência'
+    },
+    { 
+      id: 'application-performance', 
+      name: 'Performance de Aplicações', 
+      path: '/d/application-performance',
+      description: 'Monitoramento de aplicações e serviços'
+    }
+  ];
 
   if (!grafanaIntegration) {
     return (
@@ -92,6 +119,11 @@ const Monitoring = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="mb-4 p-3 bg-blue-900/20 border border-blue-600 rounded-lg">
+                  <p className="text-sm text-blue-200">
+                    <strong>Servidor:</strong> {grafanaIntegration.base_url}
+                  </p>
+                </div>
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="username" className="text-gray-200">Usuário</Label>
@@ -143,87 +175,124 @@ const Monitoring = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="space-y-6 p-6">
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
+              <Activity className="h-6 w-6 text-blue-400" />
+              Monitoramento - Grafana
+            </h1>
+            <p className="text-gray-400">Acesse os dashboards do Grafana para monitoramento em tempo real</p>
+            <div className="mt-2 text-sm text-gray-300">
+              <span className="font-medium">Conectado a:</span> {grafanaIntegration.base_url}
+            </div>
+          </div>
           <Button variant="outline" onClick={handleLogout} className="border-gray-600 text-gray-200 hover:bg-gray-800">
             Sair
           </Button>
         </div>
 
         <Tabs defaultValue="dashboards" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
+          <TabsList className="grid w-full grid-cols-2 bg-gray-800 border-gray-700">
             <TabsTrigger value="dashboards" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Dashboards</TabsTrigger>
-            <TabsTrigger value="alerts" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Alertas</TabsTrigger>
-            <TabsTrigger value="metrics" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Métricas</TabsTrigger>
+            <TabsTrigger value="grafana" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Grafana Completo</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboards" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {dashboards.map((dashboard: any) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {predefinedDashboards.map((dashboard) => (
                 <Card key={dashboard.id} className="bg-gray-800 border-gray-700 hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
                       <BarChart3 className="h-5 w-5" />
                       {dashboard.name}
                     </CardTitle>
+                    <CardDescription className="text-gray-400">
+                      {dashboard.description}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Button 
                       className="w-full bg-blue-600 hover:bg-blue-700"
-                      onClick={() => window.open(dashboard.url, '_blank')}
+                      onClick={() => openGrafanaDashboard(dashboard.path)}
                     >
+                      <ExternalLink className="h-4 w-4 mr-2" />
                       Abrir Dashboard
                     </Button>
                   </CardContent>
                 </Card>
               ))}
             </div>
+
+            <div className="mt-8">
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Server className="h-5 w-5" />
+                    Acesso Rápido
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Button 
+                      variant="outline" 
+                      className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                      onClick={() => openGrafanaDashboard('/explore')}
+                    >
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Explorar Dados
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                      onClick={() => openGrafanaDashboard('/alerting')}
+                    >
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      Alertas
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                      onClick={() => openGrafanaDashboard()}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Grafana Principal
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
-          <TabsContent value="alerts" className="mt-6">
+          <TabsContent value="grafana" className="mt-6">
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5" />
-                  Sistema de Alertas
+                  <BarChart3 className="h-5 w-5" />
+                  Interface Completa do Grafana
                 </CardTitle>
                 <CardDescription className="text-gray-400">
-                  Alertas e notificações do sistema
+                  Acesse a interface completa do Grafana em uma nova aba
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-gray-500">
-                  <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Nenhum alerta ativo no momento.</p>
-                  <p className="text-sm mt-2">Sistema funcionando normalmente.</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="metrics" className="mt-6">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Server className="h-5 w-5" />
-                  Métricas do Sistema
-                </CardTitle>
-                <CardDescription className="text-gray-400">
-                  Estatísticas e performance do sistema
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 border border-gray-700 rounded-lg bg-gray-800">
-                    <p className="text-2xl font-bold text-green-400">99.9%</p>
-                    <p className="text-sm text-gray-400">Uptime</p>
+                <div className="text-center py-8">
+                  <div className="mb-6">
+                    <BarChart3 className="h-16 w-16 mx-auto mb-4 text-blue-400" />
+                    <h3 className="text-lg font-semibold text-white mb-2">Grafana Dashboard</h3>
+                    <p className="text-gray-400 mb-4">
+                      Clique no botão abaixo para abrir a interface completa do Grafana
+                    </p>
                   </div>
-                  <div className="text-center p-4 border border-gray-700 rounded-lg bg-gray-800">
-                    <p className="text-2xl font-bold text-blue-400">45ms</p>
-                    <p className="text-sm text-gray-400">Latência</p>
-                  </div>
-                  <div className="text-center p-4 border border-gray-700 rounded-lg bg-gray-800">
-                    <p className="text-2xl font-bold text-purple-400">12GB</p>
-                    <p className="text-sm text-gray-400">Uso de Memória</p>
+                  <Button 
+                    size="lg"
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => openGrafanaDashboard()}
+                  >
+                    <ExternalLink className="h-5 w-5 mr-2" />
+                    Abrir Grafana Completo
+                  </Button>
+                  <div className="mt-4 text-sm text-gray-500">
+                    <p>URL: {grafanaIntegration.base_url}</p>
                   </div>
                 </div>
               </CardContent>
