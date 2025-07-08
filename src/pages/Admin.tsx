@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Plus, Edit, Trash2, Database, Cloud, Shield, Server, Zap, Globe, Wifi } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
-import { BaculaAdminConfig } from '@/components/BaculaAdminConfig';
 import SystemSettingsPanel from '@/components/SystemSettingsPanel';
 
 const Admin = () => {
@@ -205,9 +204,6 @@ const Admin = () => {
             <TabsTrigger value="integrations" className="data-[state=active]:bg-gray-700">
               Integrações
             </TabsTrigger>
-            <TabsTrigger value="bacula" className="data-[state=active]:bg-gray-700">
-              BaculaWeb
-            </TabsTrigger>
             <TabsTrigger value="settings" className="data-[state=active]:bg-gray-700">
               Configurações
             </TabsTrigger>
@@ -280,7 +276,6 @@ const Admin = () => {
                       </div>
                     )}
 
-                    {/* Render other fields based on type */}
                     {getFieldsForType(formData.type).includes('api_token') && (
                       <div className="grid gap-2">
                         <Label htmlFor="api_token" className="text-gray-200">Token da API</Label>
@@ -405,10 +400,6 @@ const Admin = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="bacula">
-            <BaculaAdminConfig />
           </TabsContent>
 
           <TabsContent value="settings">
