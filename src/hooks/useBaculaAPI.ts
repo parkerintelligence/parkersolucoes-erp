@@ -1,265 +1,187 @@
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useIntegrations } from './useIntegrations';
-import { toast } from '@/hooks/use-toast';
-
-export interface BaculaJob {
-  jobid: number;
-  job: string;
-  name: string;
-  type: string;
-  level: string;
-  clientid: number;
-  client: string;
-  jobstatus: string;
-  schedtime: string;
-  starttime?: string;
-  endtime?: string;
-  realendtime?: string;
-  jobtdate: number;
-  volsessionid: number;
-  volsessiontime: number;
-  jobfiles: number;
-  jobbytes: number;
-  readbytes: number;
-  joberrors: number;
-  jobmissingfiles: number;
-  poolid: number;
-  poolname: string;
-  priorjobid: number;
-  purgedfiles: number;
-  hasbase: number;
-  hascache: number;
-  reviewed: number;
-  comment?: string;
-}
-
-export interface BaculaClient {
-  clientid: number;
-  name: string;
-  uname: string;
-  autoprune: number;
-  fileretention: number;
-  jobretention: number;
-}
-
-export interface BaculaStorage {
-  storageid: number;
-  name: string;
-  autochanger: number;
-  enabled: number;
-}
-
-export interface BaculaVolume {
-  mediaid: number;
-  volumename: string;
-  slot: number;
-  poolid: number;
-  mediatype: string;
-  mediatypeid: number;
-  labeltype: number;
-  firstwritten: string;
-  lastwritten: string;
-  labeldate: string;
-  voljobs: number;
-  volfiles: number;
-  volblocks: number;
-  volmounts: number;
-  volbytes: number;
-  volparts: number;
-  volerrors: number;
-  volwrites: number;
-  volcapacitybytes: number;
-  volstatus: string;
-  enabled: number;
-  recycle: number;
-  actiononpurge: number;
-  volretention: number;
-  voluseduration: number;
-  maxvoljobs: number;
-  maxvolfiles: number;
-  maxvolbytes: number;
-  inchanger: number;
-  storageid: number;
-  deviceid: number;
-  locationid: number;
-  recyclecount: number;
-  initialwrite: string;
-  scratchpoolid: number;
-  recyclepoolid: number;
-  comment?: string;
-}
+import { supabase } from '@/integrations/supabase/client';
 
 export const useBaculaAPI = () => {
   const { data: integrations } = useIntegrations();
   const baculaIntegration = integrations?.find(i => i.type === 'bacula' && i.is_active);
+  
+  const isEnabled = !!baculaIntegration;
 
-  const makeRequest = async (endpoint: string, options: RequestInit = {}) => {
+  const makeBaculaRequest = async (endpoint: string) => {
     if (!baculaIntegration) {
-      throw new Error('Integração BaculaWeb não configurada');
+      throw new Error('Bacula integration not configured');
     }
 
-    console.log('Making request to BaculaWeb:', endpoint);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('User not authenticated');
+    }
 
-    const response = await fetch(`https://f4440219-dd51-4101-bb5d-8216b89db483.supabase.co/functions/v1/bacula-proxy`, {
+    const response = await fetch('/supabase/functions/v1/bacula-proxy', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wdnhwcGdveWFkd3Vra2ZvY2NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzMjYyNjIsImV4cCI6MjA2NjkwMjI2Mn0.tNgNHrabYKZhE2nbFyqhKAyvuBBN3DMfqit8OQZBL3E`,
+        'Authorization': `Bearer ${session.access_token}`
       },
-      body: JSON.stringify({
-        baseUrl: baculaIntegration.base_url,
-        username: baculaIntegration.username,
-        password: baculaIntegration.password,
-        endpoint,
-        method: options.method || 'GET',
-        data: options.body ? JSON.parse(options.body as string) : undefined,
-      }),
+      body: JSON.stringify({ endpoint })
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('BaculaWeb API error:', response.status, errorText);
-      throw new Error(`BaculaWeb API error: ${response.status} ${response.statusText}`);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch data from BaculaWeb');
     }
 
-    const result = await response.json();
-    console.log('BaculaWeb API response:', result);
-    return result;
-  };
-
-  // Hook para buscar jobs
-  const useJobs = (limit = 100) => {
-    return useQuery({
-      queryKey: ['bacula', 'jobs', limit],
-      queryFn: () => makeRequest(`/api/jobs?limit=${limit}`),
-      enabled: !!baculaIntegration,
-      refetchInterval: 30000, // Atualiza a cada 30 segundos
-    });
-  };
-
-  // Hook para buscar jobs por status
-  const useJobsByStatus = (status: string) => {
-    return useQuery({
-      queryKey: ['bacula', 'jobs', 'status', status],
-      queryFn: () => makeRequest(`/api/jobs?status=${status}`),
-      enabled: !!baculaIntegration && !!status,
-      refetchInterval: 15000,
-    });
-  };
-
-  // Hook para buscar clientes
-  const useClients = () => {
-    return useQuery({
-      queryKey: ['bacula', 'clients'],
-      queryFn: () => makeRequest('/api/clients'),
-      enabled: !!baculaIntegration,
-      refetchInterval: 60000,
-    });
-  };
-
-  // Hook para buscar storages
-  const useStorages = () => {
-    return useQuery({
-      queryKey: ['bacula', 'storages'],
-      queryFn: () => makeRequest('/api/storages'),
-      enabled: !!baculaIntegration,
-      refetchInterval: 60000,
-    });
-  };
-
-  // Hook para buscar volumes
-  const useVolumes = () => {
-    return useQuery({
-      queryKey: ['bacula', 'volumes'],
-      queryFn: () => makeRequest('/api/volumes'),
-      enabled: !!baculaIntegration,
-      refetchInterval: 60000,
-    });
-  };
-
-  // Hook para buscar estatísticas gerais
-  const useStatistics = () => {
-    return useQuery({
-      queryKey: ['bacula', 'statistics'],
-      queryFn: () => makeRequest('/api/statistics'),
-      enabled: !!baculaIntegration,
-      refetchInterval: 30000,
-    });
-  };
-
-  // Hook para buscar jobs de um cliente específico
-  const useClientJobs = (clientId: number) => {
-    return useQuery({
-      queryKey: ['bacula', 'client-jobs', clientId],
-      queryFn: () => makeRequest(`/api/jobs?clientid=${clientId}`),
-      enabled: !!baculaIntegration && !!clientId,
-      refetchInterval: 30000,
-    });
-  };
-
-  // Mutation para cancelar job
-  const useCancelJob = () => {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-      mutationFn: (jobId: number) => 
-        makeRequest(`/api/jobs/${jobId}/cancel`, { method: 'POST' }),
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['bacula', 'jobs'] });
-        toast({
-          title: "Job cancelado",
-          description: "O job foi cancelado com sucesso.",
-        });
-      },
-      onError: (error) => {
-        toast({
-          title: "Erro ao cancelar job",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
-  };
-
-  // Mutation para iniciar job
-  const useRunJob = () => {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-      mutationFn: (jobName: string) => 
-        makeRequest('/api/jobs/run', { 
-          method: 'POST',
-          body: JSON.stringify({ job: jobName })
-        }),
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['bacula', 'jobs'] });
-        toast({
-          title: "Job iniciado",
-          description: "O job foi iniciado com sucesso.",
-        });
-      },
-      onError: (error) => {
-        toast({
-          title: "Erro ao iniciar job",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
+    return await response.json();
   };
 
   return {
     baculaIntegration,
-    isEnabled: !!baculaIntegration,
-    useJobs,
-    useJobsByStatus,
-    useClients,
-    useStorages,
-    useVolumes,
-    useStatistics,
-    useClientJobs,
-    useCancelJob,
-    useRunJob,
+    isEnabled,
+    makeBaculaRequest
   };
+};
+
+export const useBaculaJobs = () => {
+  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
+
+  return useQuery({
+    queryKey: ['bacula-jobs'],
+    queryFn: () => makeBaculaRequest('jobs'),
+    enabled: isEnabled,
+    refetchInterval: 30000, // 30 seconds
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000)
+  });
+};
+
+export const useBaculaJobsRecent = () => {
+  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
+
+  return useQuery({
+    queryKey: ['bacula-jobs-recent'],
+    queryFn: () => makeBaculaRequest('jobs/recent'),
+    enabled: isEnabled,
+    refetchInterval: 30000,
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000)
+  });
+};
+
+export const useBaculaJobsRunning = () => {
+  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
+
+  return useQuery({
+    queryKey: ['bacula-jobs-running'],
+    queryFn: () => makeBaculaRequest('jobs/running'),
+    enabled: isEnabled,
+    refetchInterval: 10000, // 10 seconds for running jobs
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000)
+  });
+};
+
+export const useBaculaJobsLast24h = () => {
+  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
+
+  return useQuery({
+    queryKey: ['bacula-jobs-last24h'],
+    queryFn: () => makeBaculaRequest('jobs/last24h'),
+    enabled: isEnabled,
+    refetchInterval: 60000, // 1 minute
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000)
+  });
+};
+
+export const useBaculaClients = () => {
+  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
+
+  return useQuery({
+    queryKey: ['bacula-clients'],
+    queryFn: () => makeBaculaRequest('clients'),
+    enabled: isEnabled,
+    refetchInterval: 60000, // 1 minute
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000)
+  });
+};
+
+export const useBaculaVolumes = () => {
+  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
+
+  return useQuery({
+    queryKey: ['bacula-volumes'],
+    queryFn: () => makeBaculaRequest('volumes'),
+    enabled: isEnabled,
+    refetchInterval: 60000, // 1 minute
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000)
+  });
+};
+
+export const useBaculaStorages = () => {
+  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
+
+  return useQuery({
+    queryKey: ['bacula-storages'],
+    queryFn: () => makeBaculaRequest('storages'),
+    enabled: isEnabled,
+    refetchInterval: 60000, // 1 minute
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000)
+  });
+};
+
+export const useBaculaStatus = () => {
+  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
+
+  return useQuery({
+    queryKey: ['bacula-status'],
+    queryFn: () => makeBaculaRequest('status'),
+    enabled: isEnabled,
+    refetchInterval: 30000, // 30 seconds
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000)
+  });
+};
+
+export const useBaculaDirectorStatus = () => {
+  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
+
+  return useQuery({
+    queryKey: ['bacula-director-status'],
+    queryFn: () => makeBaculaRequest('director'),
+    enabled: isEnabled,
+    refetchInterval: 30000, // 30 seconds
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000)
+  });
+};
+
+export const useBaculaStatistics = () => {
+  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
+
+  return useQuery({
+    queryKey: ['bacula-statistics'],
+    queryFn: () => makeBaculaRequest('statistics'),
+    enabled: isEnabled,
+    refetchInterval: 60000, // 1 minute
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000)
+  });
+};
+
+export const useBaculaConnectionTest = () => {
+  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
+
+  return useQuery({
+    queryKey: ['bacula-connection-test'],
+    queryFn: () => makeBaculaRequest('test'),
+    enabled: isEnabled,
+    retry: 1,
+    refetchOnWindowFocus: false,
+    staleTime: 5000 // 5 seconds
+  });
 };
