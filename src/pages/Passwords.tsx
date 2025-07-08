@@ -393,114 +393,426 @@ const Passwords = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <div className="text-slate-600">Carregando senhas...</div>
+        <div className="text-white">Carregando senhas...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-foreground">Cofre de Senhas</h1>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="group-by-service"
-              checked={groupByService}
-              onCheckedChange={setGroupByService}
-            />
-            <Label htmlFor="group-by-service" className="text-sm">Agrupar por Serviço</Label>
+    <div className="min-h-screen bg-slate-900 text-white">
+      <div className="space-y-6 p-6">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-white">Cofre de Senhas</h1>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="group-by-service"
+                checked={groupByService}
+                onCheckedChange={setGroupByService}
+              />
+              <Label htmlFor="group-by-service" className="text-sm text-white">Agrupar por Serviço</Label>
+            </div>
           </div>
-        </div>
-        <div className="flex gap-2">
-          {isMaster && (
+          <div className="flex gap-2">
+            {isMaster && (
+              <Button
+                variant="outline"
+                onClick={exportToPDF}
+                className="bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+              >
+                <FileDown className="mr-2 h-4 w-4" />
+                Exportar PDF
+              </Button>
+            )}
             <Button
               variant="outline"
-              onClick={exportToPDF}
+              onClick={() => setIsServiceDialogOpen(true)}
+              className="bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
             >
-              <FileDown className="mr-2 h-4 w-4" />
-              Exportar PDF
+              <Settings className="mr-2 h-4 w-4" />
+              Gerenciar Serviços
             </Button>
-          )}
-          <Button
-            variant="outline"
-            onClick={() => setIsServiceDialogOpen(true)}
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            Gerenciar Serviços
-          </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Adicionar Senha
-              </Button>
-            </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Adicionar Senha
+                </Button>
+              </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] bg-slate-800 border-slate-700">
+              <DialogHeader>
+                <DialogTitle className="text-white">Adicionar Nova Senha</DialogTitle>
+                <DialogDescription className="text-slate-400">Preencha os dados para adicionar uma nova senha ao cofre.</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name" className="text-white">Nome do Sistema *</Label>
+                  <Input 
+                    id="name" 
+                    placeholder="Nome do sistema"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    className="bg-slate-700 border-slate-600 text-white"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="company" className="text-white">Empresa Cliente</Label>
+                  <Select value={formData.company_id} onValueChange={(value) => setFormData({...formData, company_id: value})}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectValue placeholder="Selecione a empresa" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-700 border-slate-600">
+                      {companies.map((company) => (
+                        <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="url" className="text-white">URL</Label>
+                  <Input 
+                    id="url" 
+                    placeholder="https://..."
+                    value={formData.url}
+                    onChange={(e) => setFormData({...formData, url: e.target.value})}
+                    className="bg-slate-700 border-slate-600 text-white"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="username" className="text-white">Usuário *</Label>
+                  <Input 
+                    id="username" 
+                    placeholder="Nome de usuário"
+                    value={formData.username}
+                    onChange={(e) => setFormData({...formData, username: e.target.value})}
+                    className="bg-slate-700 border-slate-600 text-white"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="password" className="text-white">Senha *</Label>
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    placeholder="Senha segura"
+                    value={formData.password}
+                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    className="bg-slate-700 border-slate-600 text-white"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="service" className="text-white">Serviço</Label>
+                  <Select value={formData.service} onValueChange={(value) => setFormData({...formData, service: value})}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectValue placeholder="Selecione o serviço" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-700 border-slate-600">
+                      {availableServices.map((service) => (
+                        <SelectItem key={service.name} value={service.name} className="text-white">
+                          <div className="flex items-center gap-2">
+                            {getServiceIcon(service.name)}
+                            {service.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="gera_link"
+                    checked={formData.gera_link}
+                    onCheckedChange={(checked) => setFormData({...formData, gera_link: checked as boolean})}
+                  />
+                  <Label htmlFor="gera_link" className="text-white">Gerar Link na tela de Links</Label>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="notes" className="text-white">Observações</Label>
+                  <Textarea 
+                    id="notes" 
+                    placeholder="Observações adicionais"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                    className="bg-slate-700 border-slate-600 text-white"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSavePassword}>
+                  Salvar
+                </Button>
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-slate-600 text-white hover:bg-slate-700">
+                  Cancelar
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          </div>
+        </div>
+
+        {/* ServiceDialog */}
+        <ServiceDialog 
+          isOpen={isServiceDialogOpen}
+          onOpenChange={setIsServiceDialogOpen}
+          onSave={handleSaveService}
+          editingService={editingService}
+          onEdit={handleEditService}
+          onDelete={handleDeleteService}
+          existingServices={availableServices}
+        />
+
+        {/* Filtros Avançados */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-white" />
+              <CardTitle className="text-white">Filtros</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Buscar senhas..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+              
+              <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue placeholder="Todas as empresas" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600">
+                  <SelectItem value="all" className="text-white">Todas as empresas</SelectItem>
+                  {companies.map((company) => (
+                    <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedService} onValueChange={setSelectedService}>
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue placeholder="Todos os serviços" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600">
+                  <SelectItem value="all" className="text-white">Todos os serviços</SelectItem>
+                  {availableServices.map((service) => (
+                    <SelectItem key={service.name} value={service.name} className="text-white">
+                      <div className="flex items-center gap-2">
+                        {getServiceIcon(service.name)}
+                        {service.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue placeholder="Status do link" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600">
+                  <SelectItem value="all" className="text-white">Todos os status</SelectItem>
+                  <SelectItem value="with_link" className="text-white">Com link gerado</SelectItem>
+                  <SelectItem value="without_link" className="text-white">Sem link gerado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Lista de Senhas Agrupadas ou Normal */}
+        {Object.entries(groupedPasswords).map(([groupName, groupPasswords]) => (
+          <Card key={groupName} className="bg-slate-800 border-slate-700">
+            <CardHeader className="bg-slate-700/50 border-b border-slate-600">
+              <div className="flex items-center gap-2">
+                {groupByService && groupName !== 'Todas as Senhas' && getServiceIcon(groupName)}
+                <CardTitle className="text-white">{groupName}</CardTitle>
+                <Badge variant="secondary" className="bg-blue-600 text-white">{groupPasswords.length}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6 bg-slate-800">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-slate-600">
+                      <TableHead className="font-semibold text-white">Sistema</TableHead>
+                      <TableHead className="font-semibold text-white">Empresa</TableHead>
+                      <TableHead className="font-semibold text-white">URL</TableHead>
+                      <TableHead className="font-semibold text-white">Usuário</TableHead>
+                      <TableHead className="font-semibold text-white">Senha</TableHead>
+                      {!groupByService && <TableHead className="font-semibold text-white">Serviço</TableHead>}
+                      <TableHead className="font-semibold text-white">Link</TableHead>
+                      <TableHead className="font-semibold text-white">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {groupPasswords.map((item) => {
+                      const company = companies.find(c => c.id === item.company_id);
+                      return (
+                        <TableRow key={item.id} className="hover:bg-slate-700/50 border-slate-600">
+                          <TableCell className="font-medium text-white">{item.name}</TableCell>
+                          <TableCell className="font-medium text-slate-300">{company?.name || 'N/A'}</TableCell>
+                          <TableCell>
+                            {item.url ? (
+                              <Button
+                                size="sm"
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                                onClick={() => window.open(item.url, '_blank')}
+                              >
+                                Acessar
+                              </Button>
+                            ) : (
+                              <span className="text-slate-400 text-sm">Sem URL</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm text-white">{item.username}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-sm text-white">
+                                {showPassword[item.id] ? item.password : '••••••••'}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => togglePasswordVisibility(item.id)}
+                                className="h-8 w-8 p-0 text-white hover:bg-slate-700"
+                              >
+                                {showPassword[item.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCopyPassword(item.password || '')}
+                                className="h-8 w-8 p-0 text-white hover:bg-slate-700"
+                              >
+                                📋
+                              </Button>
+                            </div>
+                          </TableCell>
+                          {!groupByService && (
+                            <TableCell>
+                              {item.service && (
+                                <div className="flex items-center gap-1 text-white">
+                                  {getServiceIcon(item.service)}
+                                  <span className="text-sm">{item.service}</span>
+                                </div>
+                              )}
+                            </TableCell>
+                          )}
+                          <TableCell>
+                            {item.gera_link && (
+                              <Badge className="bg-green-700 text-green-100 border-green-600">
+                                Ativo
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleEditPassword(item)}
+                                className="h-8 px-3 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+                              >
+                                <Edit className="h-4 w-4 mr-1" />
+                                Editar
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-red-400 hover:text-red-300 border-red-600 hover:bg-red-900/20 h-8 px-3"
+                                onClick={() => handleDeletePassword(item.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Excluir
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              {groupPasswords.length === 0 && (
+                <div className="text-center py-8 text-slate-400">
+                  Nenhuma senha encontrada neste grupo.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[425px] bg-slate-800 border-slate-700">
             <DialogHeader>
-              <DialogTitle>Adicionar Nova Senha</DialogTitle>
-              <DialogDescription>Preencha os dados para adicionar uma nova senha ao cofre.</DialogDescription>
+              <DialogTitle className="text-white">Editar Senha</DialogTitle>
+              <DialogDescription className="text-slate-400">Atualize as informações da senha.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Nome do Sistema *</Label>
+                <Label htmlFor="edit-name" className="text-white">Nome do Sistema *</Label>
                 <Input 
-                  id="name" 
-                  placeholder="Nome do sistema"
+                  id="edit-name" 
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="bg-slate-700 border-slate-600 text-white"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="company">Empresa Cliente</Label>
+                <Label htmlFor="edit-company" className="text-white">Empresa Cliente</Label>
                 <Select value={formData.company_id} onValueChange={(value) => setFormData({...formData, company_id: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a empresa" />
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-slate-700 border-slate-600">
                     {companies.map((company) => (
-                      <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
+                      <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="url">URL</Label>
+                <Label htmlFor="edit-url" className="text-white">URL</Label>
                 <Input 
-                  id="url" 
-                  placeholder="https://..."
+                  id="edit-url" 
                   value={formData.url}
                   onChange={(e) => setFormData({...formData, url: e.target.value})}
+                  className="bg-slate-700 border-slate-600 text-white"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="username">Usuário *</Label>
+                <Label htmlFor="edit-username" className="text-white">Usuário *</Label>
                 <Input 
-                  id="username" 
-                  placeholder="Nome de usuário"
+                  id="edit-username" 
                   value={formData.username}
                   onChange={(e) => setFormData({...formData, username: e.target.value})}
+                  className="bg-slate-700 border-slate-600 text-white"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password">Senha *</Label>
+                <Label htmlFor="edit-password" className="text-white">Senha *</Label>
                 <Input 
-                  id="password" 
+                  id="edit-password" 
                   type="password" 
-                  placeholder="Senha segura"
                   value={formData.password}
                   onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  className="bg-slate-700 border-slate-600 text-white"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="service">Serviço</Label>
+                <Label htmlFor="edit-service" className="text-white">Serviço</Label>
                 <Select value={formData.service} onValueChange={(value) => setFormData({...formData, service: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o serviço" />
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-slate-700 border-slate-600">
                     {availableServices.map((service) => (
-                      <SelectItem key={service.name} value={service.name}>
+                      <SelectItem key={service.name} value={service.name} className="text-white">
                         <div className="flex items-center gap-2">
                           {getServiceIcon(service.name)}
                           {service.name}
@@ -512,331 +824,33 @@ const Passwords = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox 
-                  id="gera_link"
+                  id="edit-gera_link"
                   checked={formData.gera_link}
                   onCheckedChange={(checked) => setFormData({...formData, gera_link: checked as boolean})}
                 />
-                <Label htmlFor="gera_link">Gerar Link na tela de Links</Label>
+                <Label htmlFor="edit-gera_link" className="text-white">Gerar Link na tela de Links</Label>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="notes">Observações</Label>
+                <Label htmlFor="edit-notes" className="text-white">Observações</Label>
                 <Textarea 
-                  id="notes" 
-                  placeholder="Observações adicionais"
+                  id="edit-notes" 
                   value={formData.notes}
                   onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  className="bg-slate-700 border-slate-600 text-white"
                 />
               </div>
             </div>
             <div className="flex gap-2">
-              <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSavePassword}>
-                Salvar
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSaveEdit}>
+                Atualizar
               </Button>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="border-slate-600 text-white hover:bg-slate-700">
                 Cancelar
               </Button>
             </div>
           </DialogContent>
         </Dialog>
-        </div>
       </div>
-
-      {/* ServiceDialog */}
-      <ServiceDialog 
-        isOpen={isServiceDialogOpen}
-        onOpenChange={setIsServiceDialogOpen}
-        onSave={handleSaveService}
-        editingService={editingService}
-        onEdit={handleEditService}
-        onDelete={handleDeleteService}
-        existingServices={availableServices}
-      />
-
-      {/* Filtros Avançados */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            <CardTitle>Filtros</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar senhas..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            
-            <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todas as empresas" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as empresas</SelectItem>
-                {companies.map((company) => (
-                  <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedService} onValueChange={setSelectedService}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos os serviços" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os serviços</SelectItem>
-                {availableServices.map((service) => (
-                  <SelectItem key={service.name} value={service.name}>
-                    <div className="flex items-center gap-2">
-                      {getServiceIcon(service.name)}
-                      {service.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger>
-                <SelectValue placeholder="Status do link" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="with_link">Com link gerado</SelectItem>
-                <SelectItem value="without_link">Sem link gerado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Lista de Senhas Agrupadas ou Normal */}
-      {Object.entries(groupedPasswords).map(([groupName, groupPasswords]) => (
-        <Card key={groupName} className="bg-muted/30 border-border/50">
-          <CardHeader className="bg-muted/50 border-b">
-            <div className="flex items-center gap-2">
-              {groupByService && groupName !== 'Todas as Senhas' && getServiceIcon(groupName)}
-              <CardTitle className="text-foreground">{groupName}</CardTitle>
-              <Badge variant="secondary" className="bg-primary/10 text-primary">{groupPasswords.length}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6 bg-background/50">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border/50">
-                    <TableHead className="font-semibold">Sistema</TableHead>
-                    <TableHead className="font-semibold">Empresa</TableHead>
-                    <TableHead className="font-semibold">URL</TableHead>
-                    <TableHead className="font-semibold">Usuário</TableHead>
-                    <TableHead className="font-semibold">Senha</TableHead>
-                    {!groupByService && <TableHead className="font-semibold">Serviço</TableHead>}
-                    <TableHead className="font-semibold">Link</TableHead>
-                    <TableHead className="font-semibold">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {groupPasswords.map((item) => {
-                    const company = companies.find(c => c.id === item.company_id);
-                    return (
-                      <TableRow key={item.id} className="hover:bg-muted/20 border-border/30">
-                        <TableCell className="font-medium">{item.name}</TableCell>
-                        <TableCell className="font-medium text-muted-foreground">{company?.name || 'N/A'}</TableCell>
-                        <TableCell>
-                          {item.url ? (
-                            <Button
-                              size="sm"
-                              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                              onClick={() => window.open(item.url, '_blank')}
-                            >
-                              Acessar
-                            </Button>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">Sem URL</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">{item.username}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-sm">
-                              {showPassword[item.id] ? item.password : '••••••••'}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => togglePasswordVisibility(item.id)}
-                              className="h-8 w-8 p-0"
-                            >
-                              {showPassword[item.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCopyPassword(item.password || '')}
-                              className="h-8 w-8 p-0"
-                            >
-                              📋
-                            </Button>
-                          </div>
-                        </TableCell>
-                        {!groupByService && (
-                          <TableCell>
-                            {item.service && (
-                              <div className="flex items-center gap-1">
-                                {getServiceIcon(item.service)}
-                                <span className="text-sm">{item.service}</span>
-                              </div>
-                            )}
-                          </TableCell>
-                        )}
-                        <TableCell>
-                          {item.gera_link && (
-                            <Badge className="bg-green-100 text-green-800 border-green-200">
-                              Ativo
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleEditPassword(item)}
-                              className="h-8 px-3"
-                            >
-                              <Edit className="h-4 w-4 mr-1" />
-                              Editar
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="text-destructive hover:text-destructive border-destructive/20 hover:bg-destructive/10 h-8 px-3"
-                              onClick={() => handleDeletePassword(item.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Excluir
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-            {groupPasswords.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                Nenhuma senha encontrada neste grupo.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
-
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Editar Senha</DialogTitle>
-            <DialogDescription>Atualize as informações da senha.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-name">Nome do Sistema *</Label>
-              <Input 
-                id="edit-name" 
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-company">Empresa Cliente</Label>
-              <Select value={formData.company_id} onValueChange={(value) => setFormData({...formData, company_id: value})}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {companies.map((company) => (
-                    <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-url">URL</Label>
-              <Input 
-                id="edit-url" 
-                value={formData.url}
-                onChange={(e) => setFormData({...formData, url: e.target.value})}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-username">Usuário *</Label>
-              <Input 
-                id="edit-username" 
-                value={formData.username}
-                onChange={(e) => setFormData({...formData, username: e.target.value})}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-password">Senha *</Label>
-              <Input 
-                id="edit-password" 
-                type="password" 
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-service">Serviço</Label>
-              <Select value={formData.service} onValueChange={(value) => setFormData({...formData, service: value})}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableServices.map((service) => (
-                    <SelectItem key={service.name} value={service.name}>
-                      <div className="flex items-center gap-2">
-                        {getServiceIcon(service.name)}
-                        {service.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="edit-gera_link"
-                checked={formData.gera_link}
-                onCheckedChange={(checked) => setFormData({...formData, gera_link: checked as boolean})}
-              />
-              <Label htmlFor="edit-gera_link">Gerar Link na tela de Links</Label>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-notes">Observações</Label>
-              <Textarea 
-                id="edit-notes" 
-                value={formData.notes}
-                onChange={(e) => setFormData({...formData, notes: e.target.value})}
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSaveEdit}>
-              Atualizar
-            </Button>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancelar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
