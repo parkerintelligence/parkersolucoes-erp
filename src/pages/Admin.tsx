@@ -1,535 +1,343 @@
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
-import AdminApiPanel from '@/components/AdminApiPanel';
-import { AdminCompaniesPanel } from '@/components/AdminCompaniesPanel';
-import { GLPIConfig } from '@/components/GLPIConfig';
-import { ChatwootAdminConfig } from '@/components/ChatwootAdminConfig';
-import { EvolutionAPIAdminConfig } from '@/components/EvolutionAPIAdminConfig';
-import { GrafanaAdminConfig } from '@/components/GrafanaAdminConfig';
-import { BomControleAdminConfig } from '@/components/BomControleAdminConfig';
-import { FtpAdminConfig } from '@/components/FtpAdminConfig';
-import { WasabiAdminConfig } from '@/components/WasabiAdminConfig';
-import ZabbixAdminConfig from '@/components/ZabbixAdminConfig';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import SystemSettingsPanel from '@/components/SystemSettingsPanel';
-import { BrandingSettingsPanel } from '@/components/BrandingSettingsPanel';
-
-
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Settings, Users, Database, Key, Building, Activity, DollarSign, MessageCircle, HardDrive, Monitor, Headphones, Router, BarChart3, FileText, MessageSquare, Wifi, Cloud, Clock, Shield } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Shield, Settings, Users, BarChart3, Calendar, MessageSquare, Cloud, Database, HardDrive, Activity, Monitor } from 'lucide-react';
+import { useToast } from "@/components/ui/use-toast"
+import { useSystemSettings } from "@/hooks/useSystemSettings"
+import { useUserProfiles } from "@/hooks/useUserProfiles"
+import { useAuth } from "@/contexts/AuthContext"
+import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { DataTable } from "@/components/ui/data-table"
+import { columns } from "@/components/users/columns"
+import { ZabbixAdminConfig } from '@/components/ZabbixAdminConfig';
+import { FTPAdminConfig } from '@/components/FTPAdminConfig';
+import { GLPIAdminConfig } from '@/components/GLPIAdminConfig';
+import { WasabiAdminConfig } from '@/components/WasabiAdminConfig';
+import { GuacamoleAdminConfig } from '@/components/GuacamoleAdminConfig';
 
 const Admin = () => {
-  const { isMaster } = useAuth();
-  const [activeSection, setActiveSection] = useState<string>('overview');
+  const { toast } = useToast()
+  const { isMaster } = useAuth()
+  const { settings, createSetting, updateSetting, deleteSetting } = useSystemSettings()
+  const { profiles, createProfile, updateProfile, deleteProfile } = useUserProfiles()
 
-  if (!isMaster) {
-    return <Navigate to="/dashboard" />;
+  const [newSetting, setNewSetting] = useState({
+    setting_key: "",
+    setting_value: "",
+    description: "",
+    category: "general",
+  })
+
+  const [newProfile, setNewProfile] = useState({
+    email: "",
+    role: "user",
+  })
+
+  const handleCreateSetting = async () => {
+    try {
+      await createSetting({
+        ...newSetting,
+        setting_type: "string",
+      })
+      setNewSetting({
+        setting_key: "",
+        setting_value: "",
+        description: "",
+        category: "general",
+      })
+      toast({
+        title: "Sucesso!",
+        description: "Configuração criada com sucesso.",
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro!",
+        description: "Falha ao criar configuração.",
+      })
+    }
   }
 
-  const renderContent = () => {
-    switch (activeSection) {
-      case 'scheduled_reports':
-        return (
-          <Card className="border-blue-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
-                <Clock className="h-5 w-5" />
-                Relatórios Agendados
-              </CardTitle>
-              <CardDescription>
-                Esta funcionalidade foi movida para o menu principal como "Automação"
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-6 text-gray-500">
-                <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Funcionalidade movida para a seção Automação.</p>
-                <p className="text-sm mt-2">Acesse através do menu principal.</p>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      case 'settings':
-        return <SystemSettingsPanel />;
-      case 'integrations':
-        return <AdminApiPanel />;
-      case 'companies':
-        return <AdminCompaniesPanel />;
-      case 'branding':
-        return <BrandingSettingsPanel />;
-      case 'glpi':
-        return (
-          <Card className="border-blue-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
-                <Headphones className="h-5 w-5" />
-                Configuração GLPI
-              </CardTitle>
-              <CardDescription>
-                Configure a integração com o sistema GLPI para chamados e inventário
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <GLPIConfig />
-            </CardContent>
-          </Card>
-        );
-      case 'chatwoot':
-        return (
-          <Card className="border-blue-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
-                <MessageSquare className="h-5 w-5" />
-                Configuração Chatwoot
-              </CardTitle>
-              <CardDescription>
-                Configure a integração com o Chatwoot para atendimento ao cliente
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChatwootAdminConfig />
-            </CardContent>
-          </Card>
-        );
-      case 'evolution_api':
-        return (
-          <Card className="border-blue-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
-                <MessageCircle className="h-5 w-5" />
-                Configuração Evolution API
-              </CardTitle>
-              <CardDescription>
-                Configure a integração com a Evolution API para WhatsApp Business
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <EvolutionAPIAdminConfig />
-            </CardContent>
-          </Card>
-        );
-      case 'wasabi':
-        return (
-          <Card className="border-blue-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
-                <Cloud className="h-5 w-5" />
-                Configuração Wasabi
-              </CardTitle>
-              <CardDescription>
-                Configure a integração com o Wasabi Cloud Storage
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <WasabiAdminConfig />
-            </CardContent>
-          </Card>
-        );
-      case 'grafana':
-        return (
-          <Card className="border-blue-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
-                <BarChart3 className="h-5 w-5" />
-                Configuração Grafana
-              </CardTitle>
-              <CardDescription>
-                Configure a integração com o Grafana para dashboards
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <GrafanaAdminConfig />
-            </CardContent>
-          </Card>
-        );
-      case 'bomcontrole':
-        return (
-          <Card className="border-blue-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
-                <FileText className="h-5 w-5" />
-                Configuração Bom Controle
-              </CardTitle>
-              <CardDescription>
-                Configure a integração com o sistema Bom Controle
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <BomControleAdminConfig />
-            </CardContent>
-          </Card>
-        );
-      case 'ftp':
-        return (
-          <Card className="border-blue-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
-                <HardDrive className="h-5 w-5" />
-                Configuração FTP
-              </CardTitle>
-              <CardDescription>
-                Configure a integração com servidor FTP para backup
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FtpAdminConfig />
-            </CardContent>
-          </Card>
-        );
-      case 'zabbix':
-        return (
-          <Card className="border-blue-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
-                <Shield className="h-5 w-5" />
-                Configuração Zabbix
-              </CardTitle>
-              <CardDescription>
-                Configure a integração com o Zabbix para monitoramento
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ZabbixAdminConfig />
-            </CardContent>
-          </Card>
-        );
-      case 'users':
-        return (
-          <Card className="border-blue-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-blue-900 flex items-center gap-2 text-lg">
-                <Users className="h-5 w-5" />
-                Gerenciamento de Usuários
-              </CardTitle>
-              <CardDescription>
-                Controle de acesso e permissões dos usuários do sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-6 text-gray-500">
-                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Gerenciamento de usuários em desenvolvimento.</p>
-                <p className="text-sm mt-2">Em breve você poderá gerenciar permissões e acessos.</p>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      case 'overview':
-      default:
-        return (
-          <div className="space-y-6">
-            {/* Seção de Integrações */}
-            <div>
-              <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <Key className="h-6 w-6" />
-                Integrações de Sistemas
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Card className="border-cyan-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('glpi')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-cyan-100 p-3 rounded-lg">
-                        <Headphones className="h-6 w-6 text-cyan-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-cyan-900">GLPI</h3>
-                        <p className="text-sm text-cyan-600">Service Desk e Inventário</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-blue-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('chatwoot')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-blue-100 p-3 rounded-lg">
-                        <MessageSquare className="h-6 w-6 text-blue-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-blue-900">Chatwoot</h3>
-                        <p className="text-sm text-blue-600">Atendimento ao Cliente</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-green-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('evolution_api')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-green-100 p-3 rounded-lg">
-                        <MessageCircle className="h-6 w-6 text-green-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-green-900">Evolution API</h3>
-                        <p className="text-sm text-green-600">WhatsApp Business</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-purple-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('wasabi')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-purple-100 p-3 rounded-lg">
-                        <Cloud className="h-6 w-6 text-purple-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-purple-900">Wasabi</h3>
-                        <p className="text-sm text-purple-600">Cloud Storage</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-indigo-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('grafana')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-indigo-100 p-3 rounded-lg">
-                        <BarChart3 className="h-6 w-6 text-indigo-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-indigo-900">Grafana</h3>
-                        <p className="text-sm text-indigo-600">Dashboards Avançados</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-orange-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('bomcontrole')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-orange-100 p-3 rounded-lg">
-                        <FileText className="h-6 w-6 text-orange-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-orange-900">Bom Controle</h3>
-                        <p className="text-sm text-orange-600">Gestão Empresarial</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('ftp')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-gray-100 p-3 rounded-lg">
-                        <HardDrive className="h-6 w-6 text-gray-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">FTP</h3>
-                        <p className="text-sm text-gray-600">Backup e Transferências</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-red-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('zabbix')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-red-100 p-3 rounded-lg">
-                        <Shield className="h-6 w-6 text-red-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-red-900">Zabbix</h3>
-                        <p className="text-sm text-red-600">Monitoramento Avançado</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-              </div>
-            </div>
-
-            {/* Seção de Administração */}
-            <div>
-              <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <Settings className="h-6 w-6" />
-                Administração Geral
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Card className="border-green-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('companies')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-green-100 p-3 rounded-lg">
-                        <Building className="h-6 w-6 text-green-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-green-900">Empresas</h3>
-                        <p className="text-sm text-green-600">Gerenciar cadastro de empresas</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-purple-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('users')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-purple-100 p-3 rounded-lg">
-                        <Users className="h-6 w-6 text-purple-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-purple-900">Usuários</h3>
-                        <p className="text-sm text-purple-600">Controle de acesso e permissões</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-blue-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('integrations')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-blue-100 p-3 rounded-lg">
-                        <Key className="h-6 w-6 text-blue-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-blue-900">APIs Gerais</h3>
-                        <p className="text-sm text-blue-600">Configurações de API não específicas</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-indigo-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('scheduled_reports')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-indigo-100 p-3 rounded-lg">
-                        <Clock className="h-6 w-6 text-indigo-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-indigo-900">Relatórios Agendados</h3>
-                        <p className="text-sm text-indigo-600">Automação de relatórios via WhatsApp</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-yellow-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('settings')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-yellow-100 p-3 rounded-lg">
-                        <Settings className="h-6 w-6 text-yellow-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-yellow-900">Configurações</h3>
-                        <p className="text-sm text-yellow-600">Parâmetros do sistema</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-rose-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection('branding')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-rose-100 p-3 rounded-lg">
-                        <Building className="h-6 w-6 text-rose-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-rose-900">Configurações de Marca</h3>
-                        <p className="text-sm text-rose-600">Logo e identidade visual</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </div>
-        );
+  const handleCreateProfile = async () => {
+    try {
+      await createProfile({
+        ...newProfile,
+      })
+      setNewProfile({
+        email: "",
+        role: "user",
+      })
+      toast({
+        title: "Sucesso!",
+        description: "Perfil criado com sucesso.",
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro!",
+        description: "Falha ao criar perfil.",
+      })
     }
-  };
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        {activeSection !== 'overview' && (
-          <Button 
-            variant="outline" 
-            onClick={() => setActiveSection('overview')}
-            className="flex items-center gap-2"
-          >
-            <Settings className="h-4 w-4" />
-            Voltar ao Menu
-          </Button>
-        )}
-      </div>
-
-      {/* Estatísticas Rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <Card className="border-blue-200">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="text-xl font-bold text-blue-900">15</p>
-                <p className="text-xs text-blue-600">Usuários Ativos</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-green-200">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Key className="h-5 w-5 text-green-500" />
-              <div>
-                <p className="text-xl font-bold text-green-900">5</p>
-                <p className="text-xs text-green-600">APIs Ativas</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-purple-200">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Building className="h-5 w-5 text-purple-500" />
-              <div>
-                <p className="text-xl font-bold text-purple-900">12</p>
-                <p className="text-xs text-purple-600">Empresas</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-orange-200">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Database className="h-5 w-5 text-orange-500" />
-              <div>
-                <p className="text-xl font-bold text-orange-900">98%</p>
-                <p className="text-xs text-orange-600">Uptime</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Navegação por Breadcrumb */}
-      {activeSection !== 'overview' && (
-        <div className="flex items-center gap-2 text-sm text-slate-600">
-          <button onClick={() => setActiveSection('overview')} className="hover:text-blue-600">
-            Painel
-          </button>
-          <span>/</span>
-          <span className="font-medium text-slate-900">
-            {activeSection === 'integrations' && 'APIs Gerais'}
-            {activeSection === 'companies' && 'Empresas'}
-            {activeSection === 'users' && 'Usuários'}
-            {activeSection === 'glpi' && 'GLPI'}
-            {activeSection === 'scheduled_reports' && 'Relatórios Agendados'}
-            {activeSection === 'settings' && 'Configurações'}
-            {activeSection === 'chatwoot' && 'Chatwoot'}
-            {activeSection === 'evolution_api' && 'Evolution API'}
-            {activeSection === 'wasabi' && 'Wasabi'}
-            {activeSection === 'grafana' && 'Grafana'}
-            {activeSection === 'bomcontrole' && 'Bom Controle'}
-            {activeSection === 'ftp' && 'FTP'}
-            {activeSection === 'branding' && 'Configurações de Marca'}
-          </span>
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="bg-secondary p-2 rounded-lg">
+          <Shield className="h-6 w-6 text-secondary-foreground" />
         </div>
-      )}
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Painel de Administração</h1>
+          <p className="text-muted-foreground">
+            Gerencie as configurações do sistema e usuários
+          </p>
+        </div>
+      </div>
 
-      {/* Conteúdo da Seção Ativa */}
-      {renderContent()}
+      <Tabs defaultValue="integrations" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="integrations">Integrações</TabsTrigger>
+          <TabsTrigger value="users">Usuários</TabsTrigger>
+          <TabsTrigger value="system">Sistema</TabsTrigger>
+          <TabsTrigger value="reports">Relatórios</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="integrations" className="mt-6">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-100 p-2 rounded-lg">
+                    <MessageSquare className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle>Integrações WhatsApp</CardTitle>
+                    <CardDescription>
+                      Gerencie as integrações com o WhatsApp
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Em breve, você poderá gerenciar as integrações com o WhatsApp
+                  aqui.
+                </p>
+              </CardContent>
+            </Card>
+
+            <ZabbixAdminConfig />
+            
+            <FTPAdminConfig />
+
+            <GLPIAdminConfig />
+
+            <WasabiAdminConfig />
+            
+            {/* Apache Guacamole Integration */}
+            <GuacamoleAdminConfig />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="users" className="mt-6">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-green-100 p-2 rounded-lg">
+                      <Users className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <CardTitle>Gerenciar Usuários</CardTitle>
+                      <CardDescription>
+                        Adicione, edite e remova usuários do sistema
+                      </CardDescription>
+                    </div>
+                  </div>
+                  {isMaster && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline">Adicionar Usuário</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Adicionar Usuário</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Adicione um novo usuário ao sistema.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="email" className="text-right">
+                              Email
+                            </Label>
+                            <Input
+                              type="email"
+                              id="email"
+                              value={newProfile.email}
+                              onChange={(e) =>
+                                setNewProfile({ ...newProfile, email: e.target.value })
+                              }
+                              className="col-span-3"
+                            />
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="role" className="text-right">
+                              Role
+                            </Label>
+                            <select
+                              id="role"
+                              className="col-span-3 rounded-md border-gray-200 shadow-sm focus:border-secondary focus:ring-secondary"
+                              value={newProfile.role}
+                              onChange={(e) =>
+                                setNewProfile({ ...newProfile, role: e.target.value })
+                              }
+                            >
+                              <option value="user">User</option>
+                              <option value="master">Master</option>
+                            </select>
+                          </div>
+                        </div>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleCreateProfile}>
+                            Continuar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isMaster ? (
+                  <DataTable columns={columns} data={profiles} />
+                ) : (
+                  <p className="text-muted-foreground">
+                    Você não tem permissão para gerenciar usuários.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="system" className="mt-6">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="bg-orange-100 p-2 rounded-lg">
+                    <Settings className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <CardTitle>Configurações do Sistema</CardTitle>
+                    <CardDescription>
+                      Gerencie as configurações do sistema
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="setting_key">Chave da Configuração</Label>
+                    <Input
+                      id="setting_key"
+                      placeholder="Nome da configuração"
+                      value={newSetting.setting_key}
+                      onChange={(e) =>
+                        setNewSetting({ ...newSetting, setting_key: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="setting_value">Valor da Configuração</Label>
+                    <Input
+                      id="setting_value"
+                      placeholder="Valor da configuração"
+                      value={newSetting.setting_value}
+                      onChange={(e) =>
+                        setNewSetting({ ...newSetting, setting_value: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Descrição</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Descrição da configuração"
+                    value={newSetting.description}
+                    onChange={(e) =>
+                      setNewSetting({ ...newSetting, description: e.target.value })
+                    }
+                  />
+                </div>
+                <Button onClick={handleCreateSetting}>Criar Configuração</Button>
+                <Separator />
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">Configurações Existentes</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {settings.map((setting) => (
+                      <Card key={setting.id}>
+                        <CardHeader>
+                          <CardTitle>{setting.setting_key}</CardTitle>
+                          <CardDescription>{setting.description}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground">
+                            {setting.setting_value}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="reports" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="bg-red-100 p-2 rounded-lg">
+                  <BarChart3 className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <CardTitle>Relatórios</CardTitle>
+                  <CardDescription>
+                    Visualize os relatórios do sistema
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Em breve, você poderá visualizar os relatórios do sistema aqui.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -17,6 +17,7 @@ import {
   DollarSign,
   Cloud,
   Notebook,
+  Monitor,
 } from 'lucide-react';
 
 import {
@@ -45,6 +46,7 @@ const menuItems = [
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
   { title: 'Automação', url: '/automation', icon: Settings, role: 'user' },
   { title: 'Zabbix', url: '/zabbix', icon: Activity, role: 'user' },
+  { title: 'Guacamole', url: '/guacamole', icon: Monitor, role: 'user' },
 ];
 
 const financialItems = [

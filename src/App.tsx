@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,6 +26,7 @@ import Automation from "./pages/Automation";
 import Admin from "./pages/Admin";
 
 import NotFound from "./pages/NotFound";
+import Guacamole from "./pages/Guacamole";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +57,7 @@ const App = () => (
             <Route path="/wasabi" element={<Layout><Wasabi /></Layout>} />
             <Route path="/monitoring" element={<Layout><Monitoring /></Layout>} />
             <Route path="/zabbix" element={<Layout><Zabbix /></Layout>} />
+            <Route path="/guacamole" element={<Layout><Guacamole /></Layout>} />
             <Route path="/schedule" element={<Layout><Schedule /></Layout>} />
             <Route path="/automation" element={<Layout><Automation /></Layout>} />
             
