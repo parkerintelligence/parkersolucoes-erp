@@ -1,368 +1,408 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, Settings, Users, BarChart3, Calendar, MessageSquare, Cloud, Database, HardDrive, Activity, Monitor, Server, Wrench } from 'lucide-react';
-import { useToast } from "@/components/ui/use-toast"
-import { useAuth } from "@/contexts/AuthContext"
-import { Button } from "@/components/ui/button"
-import { GuacamoleAdminConfig } from '@/components/GuacamoleAdminConfig';
-import ZabbixAdminConfig from '@/components/ZabbixAdminConfig';
-import { GLPIConfig } from '@/components/GLPIConfig';
-import { FtpAdminConfig } from '@/components/FtpAdminConfig';
-import { WasabiAdminConfig } from '@/components/WasabiAdminConfig';
-import { ChatwootAdminConfig } from '@/components/ChatwootAdminConfig';
-import { EvolutionAPIAdminConfig } from '@/components/EvolutionAPIAdminConfig';
-import { GrafanaAdminConfig } from '@/components/GrafanaAdminConfig';
-import { BomControleAdminConfig } from '@/components/BomControleAdminConfig';
-import SystemSettingsPanel from '@/components/SystemSettingsPanel';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Settings, Plus, Edit, Trash2, Database, Cloud, Shield, Server, Zap, Globe } from 'lucide-react';
+import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
 
 const Admin = () => {
-  const { toast } = useToast()
-  const { isMaster } = useAuth()
+  const { data: integrations = [], isLoading } = useIntegrations();
+  const createIntegration = useCreateIntegration();
+  const updateIntegration = useUpdateIntegration();
+  const deleteIntegration = useDeleteIntegration();
 
-  const [showGuacamoleConfig, setShowGuacamoleConfig] = useState(false);
-  const [showZabbixConfig, setShowZabbixConfig] = useState(false);
-  const [showGLPIConfig, setShowGLPIConfig] = useState(false);
-  const [showWhatsAppConfig, setShowWhatsAppConfig] = useState(false);
-  const [showFtpConfig, setShowFtpConfig] = useState(false);
-  const [showWasabiConfig, setShowWasabiConfig] = useState(false);
-  const [showChatwootConfig, setShowChatwootConfig] = useState(false);
-  const [showEvolutionConfig, setShowEvolutionConfig] = useState(false);
-  const [showGrafanaConfig, setShowGrafanaConfig] = useState(false);
-  const [showBomControleConfig, setShowBomControleConfig] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingIntegration, setEditingIntegration] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    type: 'grafana' as const,
+    name: '',
+    base_url: '',
+    api_token: '',
+    username: '',
+    password: '',
+    region: '',
+    bucket_name: '',
+    port: 22,
+    directory: '',
+    passive_mode: false,
+    use_ssl: false,
+    keep_logged: false,
+    phone_number: '',
+    webhook_url: ''
+  });
+
+  const integrationTypes = [
+    { 
+      value: 'grafana', 
+      label: 'Grafana', 
+      icon: <Database className="h-5 w-5 text-orange-400" />,
+      description: 'Sistema de monitoramento e dashboards'
+    },
+    { 
+      value: 'glpi', 
+      label: 'GLPI', 
+      icon: <Shield className="h-5 w-5 text-blue-400" />,
+      description: 'Sistema de gerenciamento de ativos e helpdesk'
+    },
+    { 
+      value: 'wasabi', 
+      label: 'Wasabi Cloud Storage', 
+      icon: <Cloud className="h-5 w-5 text-green-400" />,
+      description: 'Armazenamento em nuvem'
+    },
+    { 
+      value: 'ftp', 
+      label: 'FTP/SFTP', 
+      icon: <Server className="h-5 w-5 text-purple-400" />,
+      description: 'Transferência de arquivos'
+    },
+    { 
+      value: 'chatwoot', 
+      label: 'Chatwoot', 
+      icon: <Zap className="h-5 w-5 text-indigo-400" />,
+      description: 'Plataforma de chat e atendimento'
+    },
+    { 
+      value: 'evolution_api', 
+      label: 'Evolution API', 
+      icon: <Globe className="h-5 w-5 text-teal-400" />,
+      description: 'API para WhatsApp Business'
+    }
+  ];
+
+  const getFieldsForType = (type: string) => {
+    switch (type) {
+      case 'grafana':
+        return ['name', 'base_url', 'username', 'password'];
+      case 'glpi':
+        return ['name', 'base_url', 'api_token'];
+      case 'wasabi':
+        return ['name', 'base_url', 'api_token', 'region', 'bucket_name'];
+      case 'ftp':
+        return ['name', 'base_url', 'username', 'password', 'port', 'directory', 'passive_mode', 'use_ssl'];
+      case 'chatwoot':
+      case 'evolution_api':
+        return ['name', 'base_url', 'api_token', 'phone_number', 'webhook_url'];
+      default:
+        return ['name', 'base_url'];
+    }
+  };
+
+  const handleSave = () => {
+    if (!formData.name || !formData.base_url) return;
+
+    const integrationData = {
+      is_active: true,
+      type: formData.type,
+      name: formData.name,
+      base_url: formData.base_url,
+      api_token: formData.api_token || null,
+      username: formData.username || null,
+      password: formData.password || null,
+      region: formData.region || null,
+      bucket_name: formData.bucket_name || null,
+      port: formData.port || null,
+      directory: formData.directory || null,
+      passive_mode: formData.passive_mode || null,
+      use_ssl: formData.use_ssl || null,
+      keep_logged: formData.keep_logged || null,
+      phone_number: formData.phone_number || null,
+      webhook_url: formData.webhook_url || null
+    };
+
+    if (editingIntegration) {
+      updateIntegration.mutate({ id: editingIntegration, updates: integrationData });
+    } else {
+      createIntegration.mutate(integrationData);
+    }
+
+    setFormData({
+      type: 'grafana',
+      name: '',
+      base_url: '',
+      api_token: '',
+      username: '',
+      password: '',
+      region: '',
+      bucket_name: '',
+      port: 22,
+      directory: '',
+      passive_mode: false,
+      use_ssl: false,
+      keep_logged: false,
+      phone_number: '',
+      webhook_url: ''
+    });
+    setIsDialogOpen(false);
+    setEditingIntegration(null);
+  };
+
+  const handleEdit = (integration: any) => {
+    setFormData({
+      type: integration.type,
+      name: integration.name || '',
+      base_url: integration.base_url || '',
+      api_token: integration.api_token || '',
+      username: integration.username || '',
+      password: integration.password || '',
+      region: integration.region || '',
+      bucket_name: integration.bucket_name || '',
+      port: integration.port || 22,
+      directory: integration.directory || '',
+      passive_mode: integration.passive_mode || false,
+      use_ssl: integration.use_ssl || false,
+      keep_logged: integration.keep_logged || false,
+      phone_number: integration.phone_number || '',
+      webhook_url: integration.webhook_url || ''
+    });
+    setEditingIntegration(integration.id);
+    setIsDialogOpen(true);
+  };
+
+  const getIntegrationIcon = (type: string) => {
+    const typeConfig = integrationTypes.find(t => t.value === type);
+    return typeConfig?.icon || <Settings className="h-5 w-5 text-gray-400" />;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex justify-center items-center">
+        <div className="text-gray-400">Carregando integrações...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="bg-secondary p-2 rounded-lg">
-          <Shield className="h-6 w-6 text-secondary-foreground" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Painel de Administração</h1>
-          <p className="text-muted-foreground">
-            Gerencie as configurações do sistema e usuários
-          </p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="space-y-6 p-6">
+        <div className="flex justify-end">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Integração
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-gray-800 border-gray-700 max-w-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-white">
+                  {editingIntegration ? 'Editar Integração' : 'Nova Integração'}
+                </DialogTitle>
+                <DialogDescription className="text-gray-400">
+                  Configure uma nova integração com serviços externos.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="type" className="text-gray-200">Tipo de Integração *</Label>
+                  <Select value={formData.type} onValueChange={(value: any) => setFormData({...formData, type: value})}>
+                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-700 border-gray-600">
+                      {integrationTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value} className="text-white hover:bg-gray-600">
+                          <div className="flex items-center gap-2">
+                            {type.icon}
+                            <div>
+                              <div className="font-medium">{type.label}</div>
+                              <div className="text-xs text-gray-400">{type.description}</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-      <Tabs defaultValue="integrations" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="integrations">Integrações</TabsTrigger>
-          <TabsTrigger value="system">Sistema</TabsTrigger>
-          <TabsTrigger value="reports">Relatórios</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="integrations" className="mt-6">
-          <div className="space-y-6">
-            {/* GLPI Integration */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-blue-100 p-2 rounded-lg">
-                      <Server className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <CardTitle>GLPI</CardTitle>
-                      <CardDescription>
-                        Configure a integração com GLPI para gestão de tickets e inventário
-                      </CardDescription>
-                    </div>
+                {getFieldsForType(formData.type).includes('name') && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="name" className="text-gray-200">Nome *</Label>
+                    <Input 
+                      id="name" 
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      placeholder="Nome da integração"
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    />
                   </div>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setShowGLPIConfig(!showGLPIConfig)}
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Configurar
-                  </Button>
-                </div>
-              </CardHeader>
-              {showGLPIConfig && (
-                <CardContent>
-                  <GLPIConfig />
-                </CardContent>
-              )}
-            </Card>
+                )}
 
-            {/* WhatsApp Integration */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-green-100 p-2 rounded-lg">
-                      <MessageSquare className="h-6 w-6 text-green-600" />
-                    </div>
-                    <div>
-                      <CardTitle>Evolution API</CardTitle>
-                      <CardDescription>
-                        Gerencie as integrações com Evolution API para WhatsApp
-                      </CardDescription>
-                    </div>
+                {getFieldsForType(formData.type).includes('base_url') && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="base_url" className="text-gray-200">URL Base *</Label>
+                    <Input 
+                      id="base_url" 
+                      value={formData.base_url}
+                      onChange={(e) => setFormData({...formData, base_url: e.target.value})}
+                      placeholder="https://exemplo.com"
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    />
                   </div>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setShowEvolutionConfig(!showEvolutionConfig)}
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Configurar
-                  </Button>
-                </div>
-              </CardHeader>
-              {showEvolutionConfig && (
-                <CardContent>
-                  <EvolutionAPIAdminConfig />
-                </CardContent>
-              )}
-            </Card>
+                )}
 
-            {/* Chatwoot Integration */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-indigo-100 p-2 rounded-lg">
-                      <MessageSquare className="h-6 w-6 text-indigo-600" />
-                    </div>
-                    <div>
-                      <CardTitle>Chatwoot</CardTitle>
-                      <CardDescription>
-                        Configure a integração com Chatwoot para atendimento
-                      </CardDescription>
-                    </div>
+                {/* Render other fields based on type */}
+                {getFieldsForType(formData.type).includes('api_token') && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="api_token" className="text-gray-200">Token da API</Label>
+                    <Input 
+                      id="api_token" 
+                      type="password"
+                      value={formData.api_token}
+                      onChange={(e) => setFormData({...formData, api_token: e.target.value})}
+                      placeholder="Token de acesso"
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    />
                   </div>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setShowChatwootConfig(!showChatwootConfig)}
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Configurar
-                  </Button>
-                </div>
-              </CardHeader>
-              {showChatwootConfig && (
-                <CardContent>
-                  <ChatwootAdminConfig />
-                </CardContent>
-              )}
-            </Card>
+                )}
 
-            {/* Zabbix Integration */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-red-100 p-2 rounded-lg">
-                      <Activity className="h-6 w-6 text-red-600" />
-                    </div>
-                    <div>
-                      <CardTitle>Configuração Zabbix</CardTitle>
-                      <CardDescription>
-                        Configure a integração com o Zabbix para monitoramento
-                      </CardDescription>
-                    </div>
+                {getFieldsForType(formData.type).includes('username') && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="username" className="text-gray-200">Usuário</Label>
+                    <Input 
+                      id="username" 
+                      value={formData.username}
+                      onChange={(e) => setFormData({...formData, username: e.target.value})}
+                      placeholder="Nome de usuário"
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    />
                   </div>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setShowZabbixConfig(!showZabbixConfig)}
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Configurar
-                  </Button>
-                </div>
-              </CardHeader>
-              {showZabbixConfig && (
-                <CardContent>
-                  <ZabbixAdminConfig />
-                </CardContent>
-              )}
-            </Card>
-            
-            {/* Apache Guacamole Integration */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-orange-100 p-2 rounded-lg">
-                      <Monitor className="h-6 w-6 text-orange-600" />
-                    </div>
-                    <div>
-                      <CardTitle>Apache Guacamole</CardTitle>
-                      <CardDescription>
-                        Configure a integração com Apache Guacamole para acesso remoto
-                      </CardDescription>
-                    </div>
+                )}
+
+                {getFieldsForType(formData.type).includes('password') && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="password" className="text-gray-200">Senha</Label>
+                    <Input 
+                      id="password" 
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({...formData, password: e.target.value})}
+                      placeholder="Senha"
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    />
                   </div>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setShowGuacamoleConfig(!showGuacamoleConfig)}
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Configurar
-                  </Button>
-                </div>
-              </CardHeader>
-              {showGuacamoleConfig && (
-                <CardContent>
-                  <GuacamoleAdminConfig />
-                </CardContent>
-              )}
-            </Card>
-
-            {/* Grafana Integration */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-yellow-100 p-2 rounded-lg">
-                      <BarChart3 className="h-6 w-6 text-yellow-600" />
-                    </div>
-                    <div>
-                      <CardTitle>Grafana</CardTitle>
-                      <CardDescription>
-                        Configure a integração com Grafana para dashboards
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setShowGrafanaConfig(!showGrafanaConfig)}
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Configurar
-                  </Button>
-                </div>
-              </CardHeader>
-              {showGrafanaConfig && (
-                <CardContent>
-                  <GrafanaAdminConfig />
-                </CardContent>
-              )}
-            </Card>
-
-            {/* BomControle Integration */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-teal-100 p-2 rounded-lg">
-                      <Wrench className="h-6 w-6 text-teal-600" />
-                    </div>
-                    <div>
-                      <CardTitle>BomControle</CardTitle>
-                      <CardDescription>
-                        Configure a integração com BomControle
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setShowBomControleConfig(!showBomControleConfig)}
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Configurar
-                  </Button>
-                </div>
-              </CardHeader>
-              {showBomControleConfig && (
-                <CardContent>
-                  <BomControleAdminConfig />
-                </CardContent>
-              )}
-            </Card>
-
-            {/* Cloud Storage Integration */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-purple-100 p-2 rounded-lg">
-                      <Cloud className="h-6 w-6 text-purple-600" />
-                    </div>
-                    <div>
-                      <CardTitle>Wasabi Cloud Storage</CardTitle>
-                      <CardDescription>
-                        Configure integrações com Wasabi para armazenamento
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setShowWasabiConfig(!showWasabiConfig)}
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Configurar
-                  </Button>
-                </div>
-              </CardHeader>
-              {showWasabiConfig && (
-                <CardContent>
-                  <WasabiAdminConfig />
-                </CardContent>
-              )}
-            </Card>
-
-            {/* FTP Integration */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-gray-100 p-2 rounded-lg">
-                      <HardDrive className="h-6 w-6 text-gray-600" />
-                    </div>
-                    <div>
-                      <CardTitle>Servidores FTP</CardTitle>
-                      <CardDescription>
-                        Configure conexões FTP para backup e transferência
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setShowFtpConfig(!showFtpConfig)}
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Configurar
-                  </Button>
-                </div>
-              </CardHeader>
-              {showFtpConfig && (
-                <CardContent>
-                  <FtpAdminConfig />
-                </CardContent>
-              )}
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="system" className="mt-6">
-          <SystemSettingsPanel />
-        </TabsContent>
-
-        <TabsContent value="reports" className="mt-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="bg-red-100 p-2 rounded-lg">
-                  <BarChart3 className="h-6 w-6 text-red-600" />
-                </div>
-                <div>
-                  <CardTitle>Relatórios</CardTitle>
-                  <CardDescription>
-                    Visualize os relatórios do sistema
-                  </CardDescription>
-                </div>
+                )}
               </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Em breve, você poderá visualizar os relatórios do sistema aqui.
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              <div className="flex gap-2">
+                <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
+                  {editingIntegration ? 'Atualizar' : 'Salvar'}
+                </Button>
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-gray-600 text-gray-200 hover:bg-gray-700">
+                  Cancelar
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Integration Types Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {integrationTypes.map((type) => {
+            const activeCount = integrations.filter(i => i.type === type.value && i.is_active).length;
+            const totalCount = integrations.filter(i => i.type === type.value).length;
+            
+            return (
+              <Card key={type.value} className="bg-gray-800 border-gray-700 hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-3">
+                    {type.icon}
+                    {type.label}
+                  </CardTitle>
+                  <CardDescription className="text-gray-400">{type.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-300">
+                      <span className="font-semibold text-white">{activeCount}</span> ativas de <span className="font-semibold text-white">{totalCount}</span> total
+                    </div>
+                    <Badge className={activeCount > 0 ? 'bg-green-900/20 text-green-400 border-green-600' : 'bg-gray-700 text-gray-400 border-gray-600'}>
+                      {activeCount > 0 ? 'Configurado' : 'Não configurado'}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Active Integrations Table */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Integrações Ativas
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              Lista de todas as integrações configuradas no sistema
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {integrations.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <Settings className="h-12 w-12 mx-auto mb-4 text-gray-600" />
+                <p className="text-gray-400">Nenhuma integração configurada</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-gray-700 hover:bg-gray-800/50">
+                      <TableHead className="text-gray-300">Tipo</TableHead>
+                      <TableHead className="text-gray-300">Nome</TableHead>
+                      <TableHead className="text-gray-300">URL</TableHead>
+                      <TableHead className="text-gray-300">Status</TableHead>
+                      <TableHead className="text-right text-gray-300">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {integrations.map((integration) => (
+                      <TableRow key={integration.id} className="border-gray-700 hover:bg-gray-800/30">
+                        <TableCell className="flex items-center gap-2">
+                          {getIntegrationIcon(integration.type)}
+                          <span className="font-medium text-gray-200 capitalize">{integration.type}</span>
+                        </TableCell>
+                        <TableCell className="text-gray-200">{integration.name}</TableCell>
+                        <TableCell className="text-gray-300">{integration.base_url}</TableCell>
+                        <TableCell>
+                          <Badge className={integration.is_active ? 'bg-green-900/20 text-green-400 border-green-600' : 'bg-red-900/20 text-red-400 border-red-600'}>
+                            {integration.is_active ? 'Ativa' : 'Inativa'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEdit(integration)}
+                              className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="border-red-600 text-red-400 hover:bg-red-900/30"
+                              onClick={() => deleteIntegration.mutate(integration.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
