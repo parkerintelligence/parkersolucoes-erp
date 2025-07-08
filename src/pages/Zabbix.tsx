@@ -227,8 +227,7 @@ const Zabbix = () => {
           <Button 
             onClick={handleRefreshAll} 
             disabled={refreshing}
-            variant="outline"
-            className="border-gray-600 text-gray-200 hover:bg-gray-800"
+            className="bg-blue-800 hover:bg-blue-700 text-white"
           >
             <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             Atualizar
@@ -383,20 +382,18 @@ const Zabbix = () => {
                                     {problem.acknowledged === '0' && (
                                       <Button
                                         size="sm"
-                                        variant="outline"
+                                        className="bg-blue-800 hover:bg-blue-700 text-white"
                                         onClick={() => handleAcknowledgeProblem(problem.eventid)}
                                         disabled={acknowledgeProblemMutation.isPending}
-                                        className="border-gray-600 text-gray-200 hover:bg-gray-700"
                                       >
                                         Reconhecer
                                       </Button>
                                     )}
                                     <Button
                                       size="sm"
-                                      variant="outline"
                                       onClick={() => handleCreateGLPITicket(problem)}
                                       disabled={createTicket.isPending}
-                                      className="bg-blue-800 border-blue-700 text-white hover:bg-blue-700 p-2"
+                                      className="bg-blue-800 hover:bg-blue-700 text-white p-2"
                                       title="Criar chamado no GLPI"
                                     >
                                       <ExternalLink className="h-4 w-4" />
@@ -445,6 +442,7 @@ const Zabbix = () => {
                             <TableRow className="border-gray-700 hover:bg-gray-800/50">
                               <TableHead className="text-gray-300">Nome do Host</TableHead>
                               <TableHead className="text-gray-300">IP/DNS</TableHead>
+                              <TableHead className="text-gray-300">Porta</TableHead>
                               <TableHead className="text-gray-300">Status</TableHead>
                               <TableHead className="text-gray-300">Disponibilidade</TableHead>
                             </TableRow>
@@ -452,11 +450,15 @@ const Zabbix = () => {
                           <TableBody>
                             {groupHosts.map((host) => {
                               const availability = getHostAvailability(host);
+                              const mainInterface = host.interfaces?.find(iface => iface.main === '1') || host.interfaces?.[0];
                               return (
                                 <TableRow key={host.hostid} className="h-8 border-gray-700 hover:bg-gray-800/30">
                                   <TableCell className="font-medium py-2 text-gray-200">{host.name}</TableCell>
                                   <TableCell className="py-2 text-gray-300">
-                                    {host.interfaces?.[0]?.ip || host.interfaces?.[0]?.dns || 'N/A'}
+                                    {mainInterface?.ip || mainInterface?.dns || 'N/A'}
+                                  </TableCell>
+                                  <TableCell className="py-2 text-gray-300">
+                                    {mainInterface?.port || 'N/A'}
                                   </TableCell>
                                   <TableCell className="py-2">
                                     <Badge className={host.status === '0' ? 'bg-green-600 text-white' : 'bg-gray-600 text-white'}>

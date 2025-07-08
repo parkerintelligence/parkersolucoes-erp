@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, ExternalLink } from 'lucide-react';
 import { useBaculaJobsRecent } from '@/hooks/useBaculaAPI';
-import { useIntegrations } from '@/hooks/useIntegrations';
+import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
+import { toast } from '@/hooks/use-toast';
 
 interface BaculaJobsByClientProps {
   filteredJobs?: any[];
@@ -24,13 +25,11 @@ export const BaculaJobsByClient: React.FC<BaculaJobsByClientProps> = ({
   clientFilter 
 }) => {
   const { data: jobsData, isLoading, error, refetch } = useBaculaJobsRecent();
-  const { data: integrations } = useIntegrations();
+  const { createTicket } = useGLPIExpanded();
 
   console.log('Jobs raw data:', jobsData);
   console.log('Jobs loading:', isLoading);
   console.log('Jobs error:', error);
-
-  const glpiIntegration = integrations?.find(i => i.type === 'glpi' && i.is_active);
 
   // Extrair jobs da resposta, considerando diferentes estruturas do Baculum
   const extractJobs = (data: any) => {
@@ -175,14 +174,11 @@ export const BaculaJobsByClient: React.FC<BaculaJobsByClientProps> = ({
     }
   };
 
-  const handleOpenGLPITicket = (job: any) => {
-    if (!glpiIntegration) {
-      alert('Integração GLPI não configurada');
-      return;
-    }
-
-    const jobDetails = `
-Detalhes do Job de Backup:
+  const handleCreateGLPITicket = async (job: any) => {
+    try {
+      const ticketData = {
+        name: `Falha no Backup - ${job.client || job.clientname || 'Cliente'}`,
+        content: `Detalhes do Job de Backup:
 - Nome: ${job.name || job.jobname || job.job || 'N/A'}
 - Cliente: ${job.client || job.clientname || job.clientid || 'N/A'}
 - Status: ${job.jobstatus || 'N/A'}
@@ -193,14 +189,27 @@ Detalhes do Job de Backup:
 - Bytes: ${job.jobbytes ? formatBytes(job.jobbytes) : 'N/A'}
 - Arquivos: ${job.jobfiles || job.jobfilescount || 'N/A'}
 
-Necessário investigar o motivo da falha no backup.
-    `;
+Necessário investigar o motivo da falha no backup.`,
+        urgency: 3,
+        impact: 3,
+        priority: 3,
+        status: 1,
+        type: 1,
+      };
 
-    // Abrir nova janela com o GLPI (assumindo que há uma integração configurada)
-    const glpiUrl = glpiIntegration.base_url;
-    const ticketUrl = `${glpiUrl}/front/ticket.form.php?helpdesk_item_type=Computer&_title=Falha no Backup - ${job.client || job.clientname || 'Cliente'}&_content=${encodeURIComponent(jobDetails)}`;
-    
-    window.open(ticketUrl, '_blank');
+      await createTicket.mutateAsync(ticketData);
+      toast({
+        title: "✅ Chamado GLPI criado!",
+        description: "O chamado foi criado com sucesso no GLPI.",
+      });
+    } catch (error) {
+      console.error('Erro ao criar chamado GLPI:', error);
+      toast({
+        title: "❌ Erro ao criar chamado",
+        description: "Não foi possível criar o chamado no GLPI. Verifique a configuração.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (error) {
@@ -302,10 +311,10 @@ Necessário investigar o motivo da falha no backup.
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleOpenGLPITicket(job)}
+                            onClick={() => handleCreateGLPITicket(job)}
                             className="h-8 w-8 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20"
-                            disabled={!glpiIntegration}
-                            title="Abrir chamado no GLPI"
+                            disabled={createTicket.isPending}
+                            title="Criar chamado no GLPI"
                           >
                             <ExternalLink className="h-4 w-4" />
                           </Button>
