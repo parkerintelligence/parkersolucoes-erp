@@ -11,6 +11,8 @@ const corsOptions = {
 }
 
 serve(async (req) => {
+  console.log(`Bacula proxy request: ${req.method} ${req.url}`)
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, corsOptions)
@@ -24,6 +26,7 @@ serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
+      console.error('No authorization header provided')
       return new Response(JSON.stringify({ error: 'No authorization header' }), {
         ...corsOptions,
         status: 401
@@ -36,11 +39,14 @@ serve(async (req) => {
     )
 
     if (userError || !user) {
+      console.error('Invalid token:', userError)
       return new Response(JSON.stringify({ error: 'Invalid token' }), {
         ...corsOptions,
         status: 401
       })
     }
+
+    console.log(`User authenticated: ${user.email}`)
 
     // Get Bacula integration
     const { data: integrations, error: integrationError } = await supabase
@@ -51,7 +57,16 @@ serve(async (req) => {
       .eq('is_active', true)
       .limit(1)
 
-    if (integrationError || !integrations || integrations.length === 0) {
+    if (integrationError) {
+      console.error('Integration query error:', integrationError)
+      return new Response(JSON.stringify({ error: 'Database error' }), {
+        ...corsOptions,
+        status: 500
+      })
+    }
+
+    if (!integrations || integrations.length === 0) {
+      console.error('No active Bacula integration found')
       return new Response(JSON.stringify({ error: 'Bacula integration not found' }), {
         ...corsOptions,
         status: 404
@@ -59,7 +74,10 @@ serve(async (req) => {
     }
 
     const integration = integrations[0]
+    console.log(`Found Bacula integration: ${integration.name}`)
+
     const { endpoint } = await req.json()
+    console.log(`Requested endpoint: ${endpoint}`)
 
     // Create base64 auth header
     const auth = btoa(`${integration.username}:${integration.password}`)
@@ -84,60 +102,101 @@ serve(async (req) => {
     }
 
     const apiEndpoint = endpointMap[endpoint] || endpoint
+    const fullUrl = `${baseUrl}${apiEndpoint}`
 
-    console.log(`Making request to: ${baseUrl}${apiEndpoint}`)
+    console.log(`Making request to: ${fullUrl}`)
 
-    // Make request to BaculaWeb API
-    const response = await fetch(`${baseUrl}${apiEndpoint}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'User-Agent': 'Parker Intelligence System'
+    try {
+      // Make request to BaculaWeb API with timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+      const response = await fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'Parker Intelligence System'
+        },
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      console.log(`Response status: ${response.status}`)
+
+      if (!response.ok) {
+        console.error(`BaculaWeb API error: ${response.status} - ${response.statusText}`)
+        
+        // Try to get error details
+        let errorDetail = 'Unknown error'
+        try {
+          const errorText = await response.text()
+          errorDetail = errorText || response.statusText
+          console.error(`Error response body: ${errorDetail}`)
+        } catch (e) {
+          errorDetail = response.statusText
+        }
+
+        return new Response(JSON.stringify({ 
+          error: `BaculaWeb API error: ${response.status}`,
+          details: errorDetail,
+          endpoint: apiEndpoint,
+          url: fullUrl
+        }), {
+          ...corsOptions,
+          status: response.status
+        })
       }
-    })
 
-    if (!response.ok) {
-      console.error(`BaculaWeb API error: ${response.status} - ${response.statusText}`)
+      let data
+      const contentType = response.headers.get('content-type')
+      console.log(`Response content type: ${contentType}`)
+
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await response.json()
+        } catch (jsonError) {
+          console.error('JSON parsing error:', jsonError)
+          const textData = await response.text()
+          data = { raw: textData, error: 'JSON parsing failed' }
+        }
+      } else {
+        // If not JSON, try to get as text
+        const textData = await response.text()
+        data = { raw: textData, contentType }
+      }
+
+      console.log(`BaculaWeb API response data:`, JSON.stringify(data, null, 2))
+
+      return new Response(JSON.stringify(data), {
+        ...corsOptions,
+        headers: {
+          ...corsOptions.headers,
+          'Content-Type': 'application/json'
+        }
+      })
+
+    } catch (fetchError) {
+      console.error('Fetch error:', fetchError)
       
-      // Try to get error details
-      let errorDetail = 'Unknown error'
-      try {
-        const errorText = await response.text()
-        errorDetail = errorText || response.statusText
-      } catch (e) {
-        errorDetail = response.statusText
+      let errorMessage = 'Connection failed'
+      if (fetchError.name === 'AbortError') {
+        errorMessage = 'Request timeout'
+      } else if (fetchError.message) {
+        errorMessage = fetchError.message
       }
 
       return new Response(JSON.stringify({ 
-        error: `BaculaWeb API error: ${response.status}`,
-        details: errorDetail,
+        error: errorMessage,
+        details: `Failed to connect to ${fullUrl}`,
         endpoint: apiEndpoint
       }), {
         ...corsOptions,
-        status: response.status
+        status: 500
       })
     }
-
-    let data
-    try {
-      data = await response.json()
-    } catch (e) {
-      // If JSON parsing fails, try to get as text
-      const textData = await response.text()
-      data = { raw: textData }
-    }
-
-    console.log(`BaculaWeb API response:`, data)
-
-    return new Response(JSON.stringify(data), {
-      ...corsOptions,
-      headers: {
-        ...corsOptions.headers,
-        'Content-Type': 'application/json'
-      }
-    })
 
   } catch (error) {
     console.error('Error in bacula-proxy:', error)

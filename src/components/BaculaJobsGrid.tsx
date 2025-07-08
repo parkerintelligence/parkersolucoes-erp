@@ -9,6 +9,10 @@ import { Button } from '@/components/ui/button';
 export const BaculaJobsGrid = () => {
   const { data: jobs, isLoading, error, refetch } = useBaculaJobsRecent();
 
+  console.log('Jobs data:', jobs);
+  console.log('Jobs loading:', isLoading);
+  console.log('Jobs error:', error);
+
   const getJobStatusBadge = (status: string) => {
     switch (status) {
       case 'T': // Terminated normally
@@ -99,6 +103,7 @@ export const BaculaJobsGrid = () => {
   };
 
   if (error) {
+    console.error('Jobs grid error:', error);
     return (
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="p-8 text-center">
@@ -146,6 +151,11 @@ export const BaculaJobsGrid = () => {
           <div className="text-center py-8">
             <Clock className="h-12 w-12 mx-auto mb-4 text-slate-400" />
             <p className="text-slate-400">Nenhum job encontrado</p>
+            {jobs && (
+              <p className="text-xs text-slate-500 mt-2">
+                Dados recebidos: {JSON.stringify(jobs)}
+              </p>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">

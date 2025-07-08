@@ -1,3 +1,4 @@
+
 project_id = "mpvxppgoyadwukkfoccs"
 
 [api]
@@ -58,3 +59,6 @@ verify_jwt = false
 
 [functions.ftp-delete]
 verify_jwt = false
+
+[functions.bacula-proxy]
+verify_jwt = true

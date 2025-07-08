@@ -6,25 +6,36 @@ import { useBaculaStatus, useBaculaJobsRunning, useBaculaJobsLast24h, useBaculaD
 
 export const BaculaStatusCards = () => {
   const { data: connectionTest, isLoading: isConnectionLoading, error: connectionError } = useBaculaConnectionTest();
-  const { data: directorStatus, isLoading: isDirectorLoading } = useBaculaDirectorStatus();
-  const { data: runningJobs, isLoading: isRunningLoading } = useBaculaJobsRunning();
-  const { data: last24hJobs, isLoading: isLast24hLoading } = useBaculaJobsLast24h();
+  const { data: directorStatus, isLoading: isDirectorLoading, error: directorError } = useBaculaDirectorStatus();
+  const { data: runningJobs, isLoading: isRunningLoading, error: runningError } = useBaculaJobsRunning();
+  const { data: last24hJobs, isLoading: isLast24hLoading, error: last24hError } = useBaculaJobsLast24h();
 
   const getConnectionStatus = () => {
     if (isConnectionLoading) return { status: 'loading', label: 'Verificando...', color: 'bg-yellow-900/20 text-yellow-400 border-yellow-600' };
-    if (connectionError) return { status: 'error', label: 'Erro de Conexão', color: 'bg-red-900/20 text-red-400 border-red-600' };
+    if (connectionError) {
+      console.error('Connection error:', connectionError);
+      return { status: 'error', label: 'Erro de Conexão', color: 'bg-red-900/20 text-red-400 border-red-600' };
+    }
     if (connectionTest) return { status: 'success', label: 'Conectado', color: 'bg-green-900/20 text-green-400 border-green-600' };
     return { status: 'unknown', label: 'Desconhecido', color: 'bg-gray-900/20 text-gray-400 border-gray-600' };
   };
 
   const getRunningJobsCount = () => {
     if (isRunningLoading) return '...';
+    if (runningError) {
+      console.error('Running jobs error:', runningError);
+      return 'Erro';
+    }
     if (!runningJobs) return '0';
     return Array.isArray(runningJobs) ? runningJobs.length.toString() : '0';
   };
 
   const getLast24hStats = () => {
     if (isLast24hLoading || !last24hJobs) return { total: '...', successful: '...', failed: '...' };
+    if (last24hError) {
+      console.error('Last 24h jobs error:', last24hError);
+      return { total: 'Erro', successful: 'Erro', failed: 'Erro' };
+    }
     
     if (Array.isArray(last24hJobs)) {
       const total = last24hJobs.length;
@@ -38,6 +49,10 @@ export const BaculaStatusCards = () => {
 
   const getDirectorStatus = () => {
     if (isDirectorLoading) return { status: 'loading', label: 'Carregando...', color: 'bg-yellow-900/20 text-yellow-400 border-yellow-600' };
+    if (directorError) {
+      console.error('Director status error:', directorError);
+      return { status: 'error', label: 'Erro', color: 'bg-red-900/20 text-red-400 border-red-600' };
+    }
     if (!directorStatus) return { status: 'unknown', label: 'Desconhecido', color: 'bg-gray-900/20 text-gray-400 border-gray-600' };
     
     // Assuming director status returns an object with status information
@@ -69,6 +84,11 @@ export const BaculaStatusCards = () => {
             {connectionStatus.status === 'error' && <AlertCircle className="h-4 w-4 text-red-400" />}
             {connectionStatus.status === 'loading' && <Clock className="h-4 w-4 text-yellow-400" />}
           </div>
+          {connectionError && (
+            <p className="text-xs text-red-400 mt-1">
+              {connectionError.message}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -86,6 +106,11 @@ export const BaculaStatusCards = () => {
             {directorStatusInfo.status === 'online' && <CheckCircle className="h-4 w-4 text-green-400" />}
             {directorStatusInfo.status === 'offline' && <AlertCircle className="h-4 w-4 text-red-400" />}
           </div>
+          {directorError && (
+            <p className="text-xs text-red-400 mt-1">
+              {directorError.message}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -98,6 +123,11 @@ export const BaculaStatusCards = () => {
         <CardContent>
           <div className="text-2xl font-bold text-white">{runningJobsCount}</div>
           <p className="text-xs text-slate-400">jobs ativos</p>
+          {runningError && (
+            <p className="text-xs text-red-400 mt-1">
+              {runningError.message}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -122,6 +152,11 @@ export const BaculaStatusCards = () => {
               <span className="text-red-400 font-medium">{last24hStats.failed}</span>
             </div>
           </div>
+          {last24hError && (
+            <p className="text-xs text-red-400 mt-1">
+              {last24hError.message}
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

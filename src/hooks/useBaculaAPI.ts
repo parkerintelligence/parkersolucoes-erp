@@ -14,26 +14,24 @@ export const useBaculaAPI = () => {
       throw new Error('Bacula integration not configured');
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      throw new Error('User not authenticated');
+    console.log(`Making Bacula request to endpoint: ${endpoint}`);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('bacula-proxy', {
+        body: { endpoint }
+      });
+
+      if (error) {
+        console.error('Bacula proxy error:', error);
+        throw new Error(error.message || 'Failed to connect to BaculaWeb');
+      }
+
+      console.log('Bacula API response:', data);
+      return data;
+    } catch (error) {
+      console.error('Error in makeBaculaRequest:', error);
+      throw error;
     }
-
-    const response = await fetch('/supabase/functions/v1/bacula-proxy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({ endpoint })
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch data from BaculaWeb');
-    }
-
-    return await response.json();
   };
 
   return {
