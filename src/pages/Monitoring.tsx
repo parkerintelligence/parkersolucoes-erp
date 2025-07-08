@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,6 +27,7 @@ const Monitoring = () => {
   const [selectedDashboard, setSelectedDashboard] = useState('');
   const [dashboards, setDashboards] = useState<GrafanaDashboard[]>([]);
   const [loadingDashboards, setLoadingDashboards] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
 
   const grafanaIntegration = integrations.find(integration => 
     integration.type === 'grafana' && integration.is_active
@@ -42,19 +42,29 @@ const Monitoring = () => {
       const proxyUrl = `https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/grafana-proxy`;
       const grafanaUrl = `${grafanaIntegration.base_url}/api/search?type=dash-db`;
       
+      console.log('Buscando dashboards...', { grafanaUrl });
+      
       const response = await fetch(`${proxyUrl}?url=${encodeURIComponent(grafanaUrl)}&auth=${encodeURIComponent(authHeader)}`);
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Erro na resposta:', response.status, errorText);
         throw new Error('Erro ao buscar dashboards');
       }
 
       const data = await response.json();
-      setDashboards(data);
+      console.log('Dashboards encontrados:', data);
       
-      toast({
-        title: "Dashboards carregados",
-        description: `${data.length} painéis encontrados.`,
-      });
+      if (Array.isArray(data)) {
+        setDashboards(data);
+        toast({
+          title: "Dashboards carregados",
+          description: `${data.length} painéis encontrados.`,
+        });
+      } else {
+        console.error('Resposta inesperada:', data);
+        throw new Error('Formato de resposta inválido');
+      }
     } catch (error) {
       console.error('Erro ao buscar dashboards:', error);
       toast({
@@ -79,14 +89,32 @@ const Monitoring = () => {
       return;
     }
 
+    if (!credentials.username || !credentials.password) {
+      toast({
+        title: "Credenciais obrigatórias",
+        description: "Por favor, informe usuário e senha.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoggingIn(true);
+    
     try {
       const authHeader = btoa(`${credentials.username}:${credentials.password}`);
       const proxyUrl = `https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/grafana-proxy`;
       const grafanaUrl = `${grafanaIntegration.base_url}/api/user`;
       
+      console.log('Tentando login...', { grafanaUrl });
+      
       const response = await fetch(`${proxyUrl}?url=${encodeURIComponent(grafanaUrl)}&auth=${encodeURIComponent(authHeader)}`);
 
+      console.log('Resposta do login:', response.status);
+
       if (response.ok) {
+        const userData = await response.json();
+        console.log('Login bem-sucedido:', userData);
+        
         setIsAuthenticated(true);
         toast({
           title: "Login realizado com sucesso",
@@ -94,19 +122,32 @@ const Monitoring = () => {
         });
         await fetchDashboards();
       } else {
-        toast({
-          title: "Credenciais inválidas",
-          description: "Usuário ou senha incorretos.",
-          variant: "destructive"
-        });
+        const errorText = await response.text();
+        console.error('Erro no login:', response.status, errorText);
+        
+        if (response.status === 401) {
+          toast({
+            title: "Credenciais inválidas",
+            description: "Usuário ou senha incorretos.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Erro de conexão",
+            description: `Erro ${response.status}: Verifique a configuração do servidor.`,
+            variant: "destructive"
+          });
+        }
       }
     } catch (error) {
       console.error('Erro no login:', error);
       toast({
         title: "Erro de conexão",
-        description: "Não foi possível conectar ao Grafana.",
+        description: "Não foi possível conectar ao Grafana. Verifique a URL e tente novamente.",
         variant: "destructive"
       });
+    } finally {
+      setLoggingIn(false);
     }
   };
 
@@ -166,6 +207,7 @@ const Monitoring = () => {
                       placeholder="Digite seu usuário"
                       required
                       className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                      disabled={loggingIn}
                     />
                   </div>
                   <div className="space-y-2">
@@ -179,6 +221,7 @@ const Monitoring = () => {
                         placeholder="Digite sua senha"
                         required
                         className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                        disabled={loggingIn}
                       />
                       <Button
                         type="button"
@@ -186,13 +229,25 @@ const Monitoring = () => {
                         size="sm"
                         className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-gray-400 hover:text-white"
                         onClick={() => setShowPassword(!showPassword)}
+                        disabled={loggingIn}
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
                   </div>
-                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-                    Fazer Login
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    disabled={loggingIn}
+                  >
+                    {loggingIn ? (
+                      <>
+                        <Loader className="h-4 w-4 animate-spin mr-2" />
+                        Fazendo Login...
+                      </>
+                    ) : (
+                      'Fazer Login'
+                    )}
                   </Button>
                 </form>
               </CardContent>
