@@ -100,19 +100,42 @@ const Passwords = () => {
   };
 
   const getServiceTabs = () => {
-    const serviceCounts = availableServices.map(service => ({
-      ...service,
-      count: getFilteredPasswordsByService(service.name).length
-    }));
+    const serviceTabs = [];
     
+    // Tab "Todas"
+    const totalCount = filteredPasswordsBase.length;
+    serviceTabs.push({
+      name: 'all',
+      label: 'Todas',
+      count: totalCount,
+      icon: 'globe'
+    });
+    
+    // Tabs dos serviços disponíveis
+    availableServices.forEach(service => {
+      const count = getFilteredPasswordsByService(service.name).length;
+      if (count > 0) {
+        serviceTabs.push({
+          name: service.name,
+          label: service.name,
+          count: count,
+          icon: service.icon
+        });
+      }
+    });
+    
+    // Tab "Sem Categoria"
     const noServiceCount = getFilteredPasswordsByService('no_service').length;
-    const totalCount = getFilteredPasswordsByService('all').length;
+    if (noServiceCount > 0) {
+      serviceTabs.push({
+        name: 'no_service',
+        label: 'Sem Categoria',
+        count: noServiceCount,
+        icon: 'settings'
+      });
+    }
     
-    return [
-      { name: 'all', label: 'Todas', count: totalCount, icon: 'globe' },
-      ...serviceCounts.filter(s => s.count > 0),
-      ...(noServiceCount > 0 ? [{ name: 'no_service', label: 'Sem Categoria', count: noServiceCount, icon: 'settings' }] : [])
-    ];
+    return serviceTabs;
   };
 
   const handleSaveService = (serviceData: any) => {
@@ -316,14 +339,14 @@ const Passwords = () => {
           {passwordsToShow.map((item) => {
             const company = companies.find(c => c.id === item.company_id);
             return (
-              <TableRow key={item.id} className="hover:bg-slate-700/50 border-slate-600 h-12">
-                <TableCell className="font-medium text-white py-2">{item.name}</TableCell>
-                <TableCell className="font-medium text-white py-2">{company?.name || 'N/A'}</TableCell>
-                <TableCell className="py-2">
+              <TableRow key={item.id} className="hover:bg-slate-700/50 border-slate-600 h-10">
+                <TableCell className="font-medium text-white py-1">{item.name}</TableCell>
+                <TableCell className="font-medium text-white py-1">{company?.name || 'N/A'}</TableCell>
+                <TableCell className="py-1">
                   {item.url ? (
                     <Button
                       size="sm"
-                      className="bg-blue-600 hover:bg-blue-700 text-white h-8"
+                      className="bg-blue-600 hover:bg-blue-700 text-white h-7"
                       onClick={() => window.open(item.url, '_blank')}
                     >
                       Acessar
@@ -332,8 +355,8 @@ const Passwords = () => {
                     <span className="text-white text-sm">Sem URL</span>
                   )}
                 </TableCell>
-                <TableCell className="font-mono text-sm text-white py-2">{item.username}</TableCell>
-                <TableCell className="py-2">
+                <TableCell className="font-mono text-sm text-white py-1">{item.username}</TableCell>
+                <TableCell className="py-1">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-sm text-white">
                       {showPassword[item.id] ? item.password : '••••••••'}
@@ -342,7 +365,7 @@ const Passwords = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => togglePasswordVisibility(item.id)}
-                      className="h-8 w-8 p-0 text-white hover:bg-slate-700"
+                      className="h-7 w-7 p-0 text-white hover:bg-slate-700"
                     >
                       {showPassword[item.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
@@ -350,37 +373,37 @@ const Passwords = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleCopyPassword(item.password || '')}
-                      className="h-8 w-8 p-0 text-white hover:bg-slate-700"
+                      className="h-7 w-7 p-0 text-white hover:bg-slate-700"
                     >
                       📋
                     </Button>
                   </div>
                 </TableCell>
-                <TableCell className="py-2">
+                <TableCell className="py-1">
                   {item.gera_link && (
                     <Badge className="bg-green-700 text-green-100 border-green-600">
                       Ativo
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell className="py-2">
+                <TableCell className="py-1">
                   <div className="flex items-center gap-2">
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => handleEditPassword(item)}
-                      className="h-8 px-3 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+                      className="h-7 px-2 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
                     >
-                      <Edit className="h-4 w-4 mr-1" />
+                      <Edit className="h-3 w-3 mr-1" />
                       Editar
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="text-red-400 hover:text-red-300 border-red-600 hover:bg-red-900/20 h-8 px-3"
+                      className="text-red-400 hover:text-red-300 border-red-600 hover:bg-red-900/20 h-7 px-2"
                       onClick={() => handleDeletePassword(item.id)}
                     >
-                      <Trash2 className="h-4 w-4 mr-1" />
+                      <Trash2 className="h-3 w-3 mr-1" />
                       Excluir
                     </Button>
                   </div>
@@ -608,12 +631,12 @@ const Passwords = () => {
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-6">
             <Tabs value={activeServiceTab} onValueChange={setActiveServiceTab}>
-              <TabsList className="grid w-full grid-cols-auto bg-slate-700 mb-6">
+              <TabsList className="bg-slate-700 mb-6 h-auto flex-wrap">
                 {getServiceTabs().map((tab) => (
                   <TabsTrigger 
                     key={tab.name} 
                     value={tab.name}
-                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300"
+                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 m-1"
                   >
                     <div className="flex items-center gap-2">
                       {getServiceIcon(tab.label)}
