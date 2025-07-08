@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { HardDrive, Plus, Download, Trash2, RefreshCw, Calendar, Database, Check
 import { useRealFtp } from '@/hooks/useRealFtp';
 import { toast } from '@/hooks/use-toast';
 import FtpOldFoldersDialog from '@/components/FtpOldFoldersDialog';
+
 const Backups = () => {
   const {
     files: ftpFiles = [],
@@ -29,7 +31,10 @@ const Backups = () => {
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
   const [hostAvailability, setHostAvailability] = useState<'checking' | 'available' | 'unavailable'>('checking');
 
-  // Filtrar apenas arquivos de backup (não diretórios)
+  // Incluir tanto arquivos quanto pastas na seção "Arquivos de Backup"
+  const backupFilesAndFolders = ftpFiles;
+
+  // Filtrar apenas arquivos de backup para as estatísticas
   const backupFiles = ftpFiles.filter(file => !file.isDirectory && (file.name.includes('backup') || file.name.includes('.sql') || file.name.includes('.tar') || file.name.includes('.zip') || file.name.includes('.gz')));
 
   // Verificar disponibilidade do host
@@ -54,6 +59,7 @@ const Backups = () => {
       checkHostAvailability();
     }
   }, [ftpIntegration, ftpFiles.length]);
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -75,6 +81,7 @@ const Backups = () => {
       setIsDialogOpen(false);
     }
   };
+
   const handleDownload = async (fileName: string) => {
     try {
       await downloadFile.mutateAsync(fileName);
@@ -86,6 +93,7 @@ const Backups = () => {
       });
     }
   };
+
   const handleDelete = async (fileName: string) => {
     if (!confirm(`Tem certeza que deseja excluir ${fileName}?`)) return;
     try {
@@ -98,7 +106,18 @@ const Backups = () => {
       });
     }
   };
-  const getStatusBadge = (fileName: string) => {
+
+  const handleFolderClick = (folder: any) => {
+    if (folder.isDirectory) {
+      navigateToDirectory(folder.path);
+    }
+  };
+
+  const getStatusBadge = (fileName: string, isDirectory: boolean) => {
+    if (isDirectory) {
+      return <Badge className="bg-blue-900/20 text-blue-400 border-blue-600">Pasta</Badge>;
+    }
+    
     const today = new Date().toISOString().split('T')[0];
     if (fileName.includes(today)) {
       return <Badge className="bg-green-900/20 text-green-400 border-green-600">Atual</Badge>;
@@ -108,7 +127,12 @@ const Backups = () => {
       return <Badge className="bg-blue-900/20 text-blue-400 border-blue-600">Completo</Badge>;
     }
   };
-  const getStatusIcon = (fileName: string) => {
+
+  const getStatusIcon = (fileName: string, isDirectory: boolean) => {
+    if (isDirectory) {
+      return <Folder className="h-4 w-4 text-blue-400" />;
+    }
+    
     const today = new Date().toISOString().split('T')[0];
     if (fileName.includes(today)) {
       return <CheckCircle className="h-4 w-4 text-green-400" />;
@@ -118,6 +142,7 @@ const Backups = () => {
       return <CheckCircle className="h-4 w-4 text-blue-400" />;
     }
   };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -125,6 +150,7 @@ const Backups = () => {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
+
   const getAvailabilityBadge = () => {
     switch (hostAvailability) {
       case 'checking':
@@ -137,6 +163,7 @@ const Backups = () => {
         return <Badge className="bg-gray-900/20 text-gray-400 border-gray-600">Desconhecido</Badge>;
     }
   };
+
   const totalBackups = backupFiles.length;
   const recentBackups = backupFiles.filter(file => {
     const today = new Date();
@@ -146,7 +173,8 @@ const Backups = () => {
 
   // Se não há integração FTP configurada
   if (!ftpIntegration) {
-    return <div className="min-h-screen bg-gray-900 text-white">
+    return (
+      <div className="min-h-screen bg-gray-900 text-white">
         <div className="space-y-6 p-6">
           <Card className="bg-gray-800 border-gray-700">
             <CardContent className="p-6">
@@ -165,9 +193,12 @@ const Backups = () => {
             </CardContent>
           </Card>
         </div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen bg-gray-900 text-white">
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
       <div className="space-y-6 p-6">
         <div className="flex justify-between items-center">
           <div>
@@ -201,23 +232,35 @@ const Backups = () => {
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
                     <Label htmlFor="backup-file" className="text-gray-200">Arquivo de Backup</Label>
-                    <Input id="backup-file" type="file" accept=".sql,.zip,.tar,.gz,.tar.gz" onChange={handleFileUpload} disabled={uploadFile.isPending} className="bg-gray-700 border-gray-600 text-white" />
+                    <Input 
+                      id="backup-file" 
+                      type="file" 
+                      accept=".sql,.zip,.tar,.gz,.tar.gz" 
+                      onChange={handleFileUpload} 
+                      disabled={uploadFile.isPending} 
+                      className="bg-gray-700 border-gray-600 text-white" 
+                    />
                   </div>
-                  {uploadingFile && <div className="text-sm text-gray-400">
+                  {uploadingFile && (
+                    <div className="text-sm text-gray-400">
                       Enviando: {uploadingFile.name}...
-                    </div>}
+                    </div>
+                  )}
                 </div>
               </DialogContent>
             </Dialog>
             
-            {currentPath !== '/' && <Button variant="outline" onClick={goToParentDirectory} className="border-gray-600 text-gray-200 hover:bg-gray-700">
+            {currentPath !== '/' && (
+              <Button variant="outline" onClick={goToParentDirectory} className="border-gray-600 text-gray-200 hover:bg-gray-700">
                 ← Voltar
-              </Button>}
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Navegação de Diretórios com Combobox */}
-        {directories.length > 0 && <Card className="bg-gray-800 border-gray-700">
+        {directories.length > 0 && (
+          <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <Folder className="h-5 w-5" />
@@ -227,7 +270,13 @@ const Backups = () => {
             <CardContent>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => navigateToDirectory('/')} disabled={currentPath === '/'} className="border-gray-600 bg-gray-900 hover:bg-gray-800 text-gray-50">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => navigateToDirectory('/')} 
+                    disabled={currentPath === '/'} 
+                    className="border-gray-600 bg-gray-900 hover:bg-gray-800 text-gray-50"
+                  >
                     <Home className="h-4 w-4 mr-1" />
                     Raiz
                   </Button>
@@ -239,12 +288,14 @@ const Backups = () => {
                       <SelectValue placeholder="Selecionar diretório" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-800 border-gray-700">
-                      {directories.map(dir => <SelectItem key={dir.path} value={dir.path} className="text-gray-200 hover:bg-gray-700">
+                      {directories.map(dir => (
+                        <SelectItem key={dir.path} value={dir.path} className="text-gray-200 hover:bg-gray-700">
                           <div className="flex items-center gap-2">
                             <Folder className="h-4 w-4 text-blue-400" />
                             {dir.name}
                           </div>
-                        </SelectItem>)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -254,7 +305,8 @@ const Backups = () => {
                 </div>
               </div>
             </CardContent>
-          </Card>}
+          </Card>
+        )}
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
@@ -321,26 +373,36 @@ const Backups = () => {
                   Arquivos de Backup
                 </CardTitle>
                 <CardDescription className="text-gray-400">
-                  Arquivos de backup disponíveis no servidor FTP
+                  Arquivos e pastas disponíveis no servidor FTP
                 </CardDescription>
               </div>
-              <Button variant="outline" onClick={() => refetchFiles()} disabled={isLoadingFiles} className="border-gray-600 text-gray-200 hover:bg-gray-700">
+              <Button 
+                variant="outline" 
+                onClick={() => refetchFiles()} 
+                disabled={isLoadingFiles} 
+                className="border-gray-600 text-gray-200 hover:bg-gray-700"
+              >
                 <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingFiles ? 'animate-spin' : ''}`} />
                 Atualizar
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            {isLoadingFiles ? <div className="text-center py-8">
+            {isLoadingFiles ? (
+              <div className="text-center py-8">
                 <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
                 <p className="text-gray-400">Carregando backups do FTP...</p>
-              </div> : backupFiles.length === 0 ? <div className="text-center py-12 text-gray-500">
+              </div>
+            ) : backupFilesAndFolders.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
                 <Database className="h-12 w-12 mx-auto mb-4 text-gray-600" />
-                <p className="text-gray-400">Nenhum arquivo de backup encontrado</p>
+                <p className="text-gray-400">Nenhum arquivo ou pasta encontrado</p>
                 <p className="text-gray-500 text-sm mt-2">
                   Diretório: {currentPath}
                 </p>
-              </div> : <div className="overflow-x-auto">
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-gray-700 hover:bg-gray-800/50">
@@ -353,16 +415,21 @@ const Backups = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {backupFiles.map(file => <TableRow key={file.name} className="border-gray-700 hover:bg-gray-800/30">
+                    {backupFilesAndFolders.map(file => (
+                      <TableRow 
+                        key={file.name} 
+                        className={`border-gray-700 hover:bg-gray-800/30 ${file.isDirectory ? 'cursor-pointer' : ''}`}
+                        onClick={() => file.isDirectory && handleFolderClick(file)}
+                      >
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {getStatusIcon(file.name)}
-                            {getStatusBadge(file.name)}
+                            {getStatusIcon(file.name, file.isDirectory)}
+                            {getStatusBadge(file.name, file.isDirectory)}
                           </div>
                         </TableCell>
                         <TableCell className="font-medium text-gray-200">{file.name}</TableCell>
                         <TableCell className="text-gray-300">
-                          {formatFileSize(file.size)}
+                          {file.isDirectory ? '-' : formatFileSize(file.size)}
                         </TableCell>
                         <TableCell className="text-gray-300">
                           {new Date(file.lastModified).toLocaleString('pt-BR')}
@@ -372,21 +439,45 @@ const Backups = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-1">
-                            <Button variant="outline" size="sm" onClick={() => handleDownload(file.name)} disabled={downloadFile.isPending} className="border-gray-600 text-gray-200 hover:bg-gray-700">
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleDelete(file.name)} disabled={deleteFile.isPending} className="border-red-600 text-red-400 hover:bg-red-900/30">
+                            {!file.isDirectory && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownload(file.name);
+                                }}
+                                disabled={downloadFile.isPending} 
+                                className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(file.name);
+                              }}
+                              disabled={deleteFile.isPending} 
+                              className="border-red-600 text-red-400 hover:bg-red-900/30"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
-                      </TableRow>)}
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
-              </div>}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default Backups;
