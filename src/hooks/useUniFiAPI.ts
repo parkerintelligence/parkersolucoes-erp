@@ -81,8 +81,9 @@ class UniFiCloudService {
     if (savedAuth) {
       try {
         this.auth = JSON.parse(savedAuth);
-        // Check if token is expired
-        if (this.auth && Date.now() - this.auth.timestamp > (this.auth.expiresIn * 1000)) {
+        // Check if token is expired (with 10 minute buffer)
+        if (this.auth && Date.now() - this.auth.timestamp > ((this.auth.expiresIn - 600) * 1000)) {
+          console.log('Saved token expired, clearing auth')
           this.auth = null;
           localStorage.removeItem('unifi_cloud_auth');
         }
@@ -95,13 +96,13 @@ class UniFiCloudService {
 
   private async makeRequest(action: string, params: any = {}): Promise<any> {
     try {
-      console.log('UniFi Cloud API Request:', { action, params });
+      console.log('UniFi Cloud API Request:', { action, ...params });
 
-      const response = await fetch('/functions/v1/unifi-proxy', {
+      const response = await fetch('https://mpvxppgoyaddwukkfoccs.supabase.co/functions/v1/unifi-proxy', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wdnhwcGdveWFkd3Vra2ZvY2NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzMjYyNjIsImV4cCI6MjA2NjkwMjI2Mn0.tNgNHrabYKZhE2nbFyqhKAyvuBBN3DMfqit8OQZBL3E'}`,
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wdnhwcGdveWFkd3Vra2ZvY2NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzMjYyNjIsImV4cCI6MjA2NjkwMjI2Mn0.tNgNHrabYKZhE2nbFyqhKAyvuBBN3DMfqit8OQZBL3E`,
         },
         body: JSON.stringify({
           action,
@@ -109,9 +110,12 @@ class UniFiCloudService {
         })
       });
 
+      console.log('UniFi Cloud API Response Status:', response.status);
+
       if (!response.ok) {
-        console.error('UniFi Cloud API Response not OK:', response.status, response.statusText);
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('UniFi Cloud API Response not OK:', response.status, errorText);
+        throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
       }
 
       const result = await response.json();
@@ -130,7 +134,7 @@ class UniFiCloudService {
 
   async authenticate(): Promise<boolean> {
     try {
-      console.log('Authenticating with UniFi Cloud...');
+      console.log('Authenticating with UniFi Cloud...', { username: this.username });
       
       const response = await this.makeRequest('login', {
         username: this.username,
@@ -140,8 +144,8 @@ class UniFiCloudService {
       if (response.success && response.accessToken) {
         this.auth = {
           accessToken: response.accessToken,
-          refreshToken: response.refreshToken,
-          expiresIn: response.expiresIn,
+          refreshToken: response.refreshToken || '',
+          expiresIn: response.expiresIn || 3600,
           timestamp: Date.now()
         };
         
@@ -152,6 +156,7 @@ class UniFiCloudService {
         return true;
       }
       
+      console.error('Authentication failed: no access token received');
       return false;
     } catch (error) {
       console.error('UniFi Cloud authentication failed:', error);
@@ -161,16 +166,18 @@ class UniFiCloudService {
 
   private async ensureAuthenticated(): Promise<boolean> {
     if (!this.auth) {
+      console.log('No auth found, authenticating...');
       return await this.authenticate();
     }
     
-    // Check if token is expired (with 5 minute buffer)
+    // Check if token is expired (with 10 minute buffer)
     const timeRemaining = (this.auth.timestamp + (this.auth.expiresIn * 1000)) - Date.now();
-    if (timeRemaining < 300000) { // 5 minutes
-      console.log('Token expiring soon, re-authenticating...');
+    if (timeRemaining < 600000) { // 10 minutes
+      console.log('Token expiring soon, re-authenticating...', { timeRemaining });
       return await this.authenticate();
     }
     
+    console.log('Auth is valid, time remaining:', Math.floor(timeRemaining / 1000 / 60), 'minutes');
     return true;
   }
 
@@ -185,17 +192,18 @@ class UniFiCloudService {
       });
       
       // Transform UniFi Cloud host data to match our interface
-      const sites = (response.data || []).map((host: any) => ({
-        _id: host.id,
-        desc: host.display_name || host.name || 'UniFi Site',
-        name: host.name || host.id,
+      const sites = (response.data || []).map((host: any, index: number) => ({
+        _id: host.id || host._id || `site-${index}`,
+        desc: host.display_name || host.name || host.desc || 'UniFi Site',
+        name: host.name || host.id || `site-${index}`,
         role: 'admin',
-        num_new_alarms: 0,
-        host_id: host.id,
-        display_name: host.display_name,
-        owner_name: host.owner_name
+        num_new_alarms: host.num_new_alarms || 0,
+        host_id: host.id || host._id,
+        display_name: host.display_name || host.name,
+        owner_name: host.owner_name || host.owner
       }));
       
+      console.log('Processed sites:', sites);
       return sites;
     } catch (error) {
       console.error('Failed to get sites:', error);
@@ -298,7 +306,15 @@ class UniFiCloudService {
 
   async testConnection(): Promise<boolean> {
     try {
-      return await this.authenticate();
+      console.log('Testing UniFi Cloud connection...');
+      const result = await this.authenticate();
+      if (result) {
+        // Try to fetch sites to verify full connection
+        const sites = await this.getSites();
+        console.log('Connection test successful, sites found:', sites.length);
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error('UniFi Cloud connection test failed:', error);
       return false;

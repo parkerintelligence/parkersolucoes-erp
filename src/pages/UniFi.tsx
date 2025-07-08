@@ -12,7 +12,8 @@ import {
   TestTube,
   Cloud,
   Network,
-  Key
+  Key,
+  AlertTriangle
 } from 'lucide-react';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { UniFiSiteSelector } from '@/components/UniFiSiteSelector';
@@ -76,7 +77,7 @@ const UniFi = () => {
                       <h4 className="font-medium text-blue-400 mb-1">Credenciais Necessárias:</h4>
                       <ul className="text-sm text-gray-300 space-y-1">
                         <li>• <strong>Nome:</strong> Nome para identificar a integração</li>
-                        <li>• <strong>Base URL:</strong> https://account.ui.com/login?redirect=https%3A%2F%2Funifi.ui.com%2F</li>
+                        <li>• <strong>Base URL:</strong> https://unifi.ui.com/</li>
                         <li>• <strong>Username:</strong> Seu email da conta Ubiquiti</li>
                         <li>• <strong>Password:</strong> Sua senha da conta Ubiquiti</li>
                       </ul>
@@ -104,6 +105,14 @@ const UniFi = () => {
               <h1 className="text-2xl font-bold text-white">UniFi Cloud - {integration?.name}</h1>
             </div>
             <p className="text-gray-400">Conectado via: {connectionUrl}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-sm text-gray-500">Credenciais: {integration?.username}</span>
+              {integration?.password && (
+                <Badge className="bg-green-900/20 text-green-400 border-green-600">
+                  Senha Configurada
+                </Badge>
+              )}
+            </div>
             {systemInfo && (
               <p className="text-sm text-gray-500">
                 Versão: {systemInfo.version} | Uptime: {formatUptime(systemInfo.uptime)}
@@ -127,7 +136,7 @@ const UniFi = () => {
             </Button>
             <Button 
               onClick={refreshAllData} 
-              disabled={isLoading || !selectedSiteId} 
+              disabled={isLoading} 
               className="bg-blue-600 hover:bg-blue-700"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
@@ -141,20 +150,41 @@ const UniFi = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-white flex items-center gap-2">
               <Key className="h-5 w-5" />
-              Status de Autenticação
+              Status de Autenticação UniFi Cloud
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2">
-              <Badge className={sites.length > 0 ? 'bg-green-900/20 text-green-400 border-green-600' : 'bg-yellow-900/20 text-yellow-400 border-yellow-600'}>
-                {sites.length > 0 ? '✅ Autenticado' : '🔄 Autenticando...'}
-              </Badge>
-              <span className="text-gray-400 text-sm">
-                {sites.length > 0 ? 
-                  `${sites.length} site(s) encontrado(s)` : 
-                  'Conectando à UniFi Cloud...'
-                }
-              </span>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Badge className={sites.length > 0 ? 'bg-green-900/20 text-green-400 border-green-600' : 'bg-yellow-900/20 text-yellow-400 border-yellow-600'}>
+                  {sites.length > 0 ? '✅ Conectado' : '🔄 Conectando...'}
+                </Badge>
+                <span className="text-gray-400 text-sm">
+                  {sites.length > 0 ? 
+                    `${sites.length} site(s) encontrado(s) na UniFi Cloud` : 
+                    'Autenticando com UniFi Cloud...'
+                  }
+                </span>
+              </div>
+              
+              {sites.length === 0 && !sitesLoading && (
+                <div className="bg-yellow-900/20 border border-yellow-600 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-yellow-400 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="text-yellow-400 font-medium">Nenhum site encontrado</p>
+                      <p className="text-gray-300 mt-1">
+                        Verifique se suas credenciais estão corretas e se você possui sites configurados em sua conta UniFi Cloud.
+                      </p>
+                      <ul className="text-xs text-gray-400 mt-2 space-y-1">
+                        <li>• Acesse https://unifi.ui.com/ para verificar seus sites</li>
+                        <li>• Certifique-se de que não há autenticação de dois fatores ativada</li>
+                        <li>• Verifique se o email e senha estão corretos na configuração</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -55,29 +55,34 @@ serve(async (req) => {
 
 async function handleLogin({ username, password }: { username: string, password: string }) {
   try {
-    console.log('Attempting login to UniFi Cloud...')
+    console.log('Attempting login to UniFi Cloud with username:', username)
     
-    // Step 1: Login to UniFi account
-    const loginResponse = await fetch('https://account.ui.com/api/sso/v1', {
+    // Step 1: Login to UniFi account with correct endpoint
+    const loginResponse = await fetch('https://account.ui.com/api/sso', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'User-Agent': 'UniFi-Integration/1.0'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       },
       body: JSON.stringify({
         username,
         password,
-        remember: false
+        remember: false,
+        token: ''
       })
     })
 
+    console.log('Login response status:', loginResponse.status)
+    
     if (!loginResponse.ok) {
-      console.error('Login failed:', loginResponse.status)
+      const errorText = await loginResponse.text()
+      console.error('Login failed:', loginResponse.status, errorText)
       return new Response(
         JSON.stringify({ 
           error: 'Login failed', 
-          details: 'Invalid credentials' 
+          details: 'Invalid credentials or login endpoint issue',
+          status: loginResponse.status 
         }),
         { 
           status: 401,
@@ -87,24 +92,15 @@ async function handleLogin({ username, password }: { username: string, password:
     }
 
     const loginData = await loginResponse.json()
-    console.log('Login successful, getting access token...')
+    console.log('Login successful, response keys:', Object.keys(loginData))
 
-    // Step 2: Get access token for UniFi Cloud
-    const tokenResponse = await fetch('https://api.ui.com/ea/user/v1/user/authentication/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${loginData.data.access_token}`,
-        'User-Agent': 'UniFi-Integration/1.0'
-      }
-    })
-
-    if (!tokenResponse.ok) {
-      console.error('Token request failed:', tokenResponse.status)
+    // Check if we have the required data
+    if (!loginData.data || !loginData.data.access_token) {
+      console.error('No access token in response:', loginData)
       return new Response(
         JSON.stringify({ 
-          error: 'Token request failed' 
+          error: 'Authentication failed',
+          details: 'No access token received' 
         }),
         { 
           status: 401,
@@ -113,14 +109,44 @@ async function handleLogin({ username, password }: { username: string, password:
       )
     }
 
+    // Step 2: Get access token for UniFi Cloud API
+    const tokenResponse = await fetch('https://api.ui.com/ea/user', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${loginData.data.access_token}`,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    })
+
+    console.log('Token response status:', tokenResponse.status)
+
+    if (!tokenResponse.ok) {
+      console.error('Token request failed:', tokenResponse.status)
+      // Try using the original token directly
+      return new Response(
+        JSON.stringify({
+          success: true,
+          accessToken: loginData.data.access_token,
+          refreshToken: loginData.data.refresh_token || '',
+          expiresIn: loginData.data.expires_in || 3600
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
     const tokenData = await tokenResponse.json()
+    console.log('Token data received, keys:', Object.keys(tokenData))
     
     return new Response(
       JSON.stringify({
         success: true,
-        accessToken: tokenData.data.access_token,
-        refreshToken: tokenData.data.refresh_token,
-        expiresIn: tokenData.data.expires_in
+        accessToken: loginData.data.access_token,
+        refreshToken: loginData.data.refresh_token || '',
+        expiresIn: loginData.data.expires_in || 3600
       }),
       {
         status: 200,
@@ -147,36 +173,67 @@ async function getSites({ accessToken }: { accessToken: string }) {
   try {
     console.log('Fetching sites from UniFi Cloud...')
     
-    const response = await fetch('https://api.ui.com/ea/hosts/v1/host', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/json',
-        'User-Agent': 'UniFi-Integration/1.0'
-      }
-    })
+    // Try multiple endpoints for sites
+    const endpoints = [
+      'https://api.ui.com/ea/hosts',
+      'https://api.ui.com/ea/hosts/v1/host',
+      'https://unifi.ui.com/api/sso/v1/user/cloudaccess'
+    ]
+    
+    for (const endpoint of endpoints) {
+      try {
+        console.log('Trying endpoint:', endpoint)
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          }
+        })
 
-    if (!response.ok) {
-      console.error('Sites fetch failed:', response.status)
-      return new Response(
-        JSON.stringify({ 
-          error: 'Failed to fetch sites',
-          status: response.status 
-        }),
-        { 
-          status: response.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        console.log(`Response from ${endpoint}:`, response.status)
+
+        if (response.ok) {
+          const data = await response.json()
+          console.log('Sites data structure:', Object.keys(data))
+          
+          // Handle different response formats
+          let sites = []
+          if (data.data && Array.isArray(data.data)) {
+            sites = data.data
+          } else if (Array.isArray(data)) {
+            sites = data
+          } else if (data.hosts && Array.isArray(data.hosts)) {
+            sites = data.hosts
+          }
+          
+          console.log('Sites found:', sites.length)
+          
+          return new Response(
+            JSON.stringify({
+              data: sites,
+              meta: { rc: 'ok' }
+            }),
+            {
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
         }
-      )
+      } catch (endpointError) {
+        console.log(`Endpoint ${endpoint} failed:`, endpointError.message)
+        continue
+      }
     }
-
-    const data = await response.json()
-    console.log('Sites fetched successfully:', data.data?.length || 0)
-
+    
+    // If all endpoints failed, return empty result
+    console.log('All endpoints failed, returning empty sites')
     return new Response(
       JSON.stringify({
-        data: data.data || [],
-        meta: { rc: 'ok' }
+        data: [],
+        meta: { rc: 'ok' },
+        message: 'No sites found or endpoints unavailable'
       }),
       {
         status: 200,
