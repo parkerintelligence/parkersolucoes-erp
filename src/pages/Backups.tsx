@@ -8,8 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { HardDrive, Plus, Download, Trash2, RefreshCw, Calendar, Database, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { HardDrive, Plus, Download, Trash2, RefreshCw, Calendar, Database, CheckCircle, XCircle, Folder, Home } from 'lucide-react';
 import { useRealFtp } from '@/hooks/useRealFtp';
 import { toast } from '@/hooks/use-toast';
 
@@ -30,6 +29,7 @@ const Backups = () => {
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
+  const [hostAvailability, setHostAvailability] = useState<'checking' | 'available' | 'unavailable'>('checking');
 
   // Filtrar apenas arquivos de backup (não diretórios)
   const backupFiles = ftpFiles.filter(file => 
@@ -40,6 +40,31 @@ const Backups = () => {
      file.name.includes('.zip') ||
      file.name.includes('.gz'))
   );
+
+  // Verificar disponibilidade do host
+  React.useEffect(() => {
+    const checkHostAvailability = async () => {
+      if (!ftpIntegration) return;
+      
+      setHostAvailability('checking');
+      try {
+        // Simular verificação de disponibilidade - pode ser substituído por ping real
+        const response = await fetch(`https://${ftpIntegration.base_url}`, { 
+          method: 'HEAD',
+          mode: 'no-cors'
+        });
+        setHostAvailability('available');
+      } catch (error) {
+        console.log('Host check failed, but this is expected for FTP servers');
+        // Para servidores FTP, assumimos disponível se temos arquivos
+        setHostAvailability(ftpFiles.length > 0 ? 'available' : 'unavailable');
+      }
+    };
+
+    if (ftpIntegration) {
+      checkHostAvailability();
+    }
+  }, [ftpIntegration, ftpFiles.length]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -91,7 +116,6 @@ const Backups = () => {
   };
 
   const getStatusBadge = (fileName: string) => {
-    // Simular status baseado no nome do arquivo
     const today = new Date().toISOString().split('T')[0];
     if (fileName.includes(today)) {
       return <Badge className="bg-green-900/20 text-green-400 border-green-600">Atual</Badge>;
@@ -119,6 +143,19 @@ const Backups = () => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getAvailabilityBadge = () => {
+    switch (hostAvailability) {
+      case 'checking':
+        return <Badge className="bg-yellow-900/20 text-yellow-400 border-yellow-600">Verificando...</Badge>;
+      case 'available':
+        return <Badge className="bg-green-900/20 text-green-400 border-green-600">Disponível</Badge>;
+      case 'unavailable':
+        return <Badge className="bg-red-900/20 text-red-400 border-red-600">Indisponível</Badge>;
+      default:
+        return <Badge className="bg-gray-900/20 text-gray-400 border-gray-600">Desconhecido</Badge>;
+    }
   };
 
   const totalBackups = backupFiles.length;
@@ -163,7 +200,13 @@ const Backups = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-white">Backups - {ftpIntegration.name}</h1>
-            <p className="text-gray-400">Servidor: {ftpIntegration.base_url}</p>
+            <div className="flex items-center gap-4 mt-2">
+              <p className="text-gray-400">Servidor: {ftpIntegration.base_url}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">Disponibilidade:</span>
+                {getAvailabilityBadge()}
+              </div>
+            </div>
             <p className="text-gray-400">Diretório: {currentPath}</p>
           </div>
           <div className="flex gap-2">
@@ -214,25 +257,55 @@ const Backups = () => {
           </div>
         </div>
 
-        {/* Navegação de Diretórios */}
+        {/* Navegação de Diretórios com Combobox */}
         {directories.length > 0 && (
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-white">Diretórios</CardTitle>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Folder className="h-5 w-5" />
+                Navegação de Diretórios
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {directories.map((dir) => (
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
                   <Button
-                    key={dir.name}
                     variant="outline"
                     size="sm"
-                    onClick={() => navigateToDirectory(dir.path)}
+                    onClick={() => navigateToDirectory('/')}
                     className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                    disabled={currentPath === '/'}
                   >
-                    📁 {dir.name}
+                    <Home className="h-4 w-4 mr-1" />
+                    Raiz
                   </Button>
-                ))}
+                </div>
+                
+                <div className="flex-1 max-w-md">
+                  <Select onValueChange={(value) => navigateToDirectory(value)}>
+                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectValue placeholder="Selecionar diretório" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-700">
+                      {directories.map((dir) => (
+                        <SelectItem 
+                          key={dir.path} 
+                          value={dir.path}
+                          className="text-gray-200 hover:bg-gray-700"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Folder className="h-4 w-4 text-blue-400" />
+                            {dir.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="text-sm text-gray-400">
+                  Caminho atual: <span className="text-blue-400">{currentPath}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
