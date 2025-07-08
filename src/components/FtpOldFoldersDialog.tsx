@@ -4,14 +4,18 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Folder, AlertTriangle } from 'lucide-react';
+import { Clock, Folder, AlertTriangle, ExternalLink } from 'lucide-react';
 import { RealFtpFile } from '@/services/realFtpService';
+import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
+import { toast } from '@/hooks/use-toast';
 
 interface FtpOldFoldersDialogProps {
   files: RealFtpFile[];
 }
 
 const FtpOldFoldersDialog: React.FC<FtpOldFoldersDialogProps> = ({ files }) => {
+  const { createTicket } = useGLPIExpanded();
+
   const getOldFolders = () => {
     const fortyEightHoursAgo = new Date();
     fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
@@ -33,6 +37,47 @@ const FtpOldFoldersDialog: React.FC<FtpOldFoldersDialogProps> = ({ files }) => {
     } else {
       const days = Math.floor(diffInHours / 24);
       return `${days}d atrás`;
+    }
+  };
+
+  const handleCreateGLPITicket = async (folder: RealFtpFile) => {
+    try {
+      const timeAgo = getTimeAgo(new Date(folder.lastModified));
+      const ticketContent = `🚨 ALERTA DE BACKUP NÃO REALIZADO - URGENTE
+
+📁 Pasta: ${folder.name}
+📅 Última modificação: ${new Date(folder.lastModified).toLocaleString('pt-BR')}
+⏰ Tempo desde última modificação: ${timeAgo}
+
+⚠️ Esta pasta não foi modificada há mais de 48 horas, indicando que o backup pode não estar sendo executado corretamente.
+
+🔍 Ações necessárias:
+- Verificar se o processo de backup está funcionando
+- Identificar possíveis falhas no sistema
+- Garantir que os backups sejam executados regularmente
+
+📊 Status: CRÍTICO - Requer atenção imediata`;
+
+      await createTicket.mutateAsync({
+        name: `BACKUPS NÃO REALIZADOS - URGENTE - ${folder.name}`,
+        content: ticketContent,
+        urgency: 5, // Muito Alta
+        impact: 5,  // Muito Alto
+        priority: 5, // Muito Alta
+        status: 1,   // Novo
+        type: 1,     // Incidente
+      });
+
+      toast({
+        title: "✅ Chamado criado!",
+        description: `Chamado urgente criado no GLPI para a pasta ${folder.name}`,
+      });
+    } catch (error) {
+      toast({
+        title: "❌ Erro ao criar chamado",
+        description: "Não foi possível criar o chamado no GLPI. Verifique a configuração.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -72,9 +117,20 @@ const FtpOldFoldersDialog: React.FC<FtpOldFoldersDialogProps> = ({ files }) => {
                       <Folder className="h-4 w-4 text-blue-400" />
                       <span className="text-sm">{folder.name}</span>
                     </div>
-                    <Badge className="bg-yellow-900/20 text-yellow-400 border-yellow-600">
-                      {getTimeAgo(new Date(folder.lastModified))}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-yellow-900/20 text-yellow-400 border-yellow-600">
+                        {getTimeAgo(new Date(folder.lastModified))}
+                      </Badge>
+                      <Button
+                        size="sm"
+                        onClick={() => handleCreateGLPITicket(folder)}
+                        disabled={createTicket.isPending}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        {createTicket.isPending ? 'Criando...' : 'GLPI'}
+                      </Button>
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
