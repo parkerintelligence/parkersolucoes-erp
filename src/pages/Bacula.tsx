@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Database, Settings, AlertCircle, TrendingUp, Activity, FileBarChart } from 'lucide-react';
+import { Database, Settings, AlertCircle } from 'lucide-react';
 import { useBaculaAPI } from '@/hooks/useBaculaAPI';
 import { BaculaStatusCards } from '@/components/BaculaStatusCards';
 import { BaculaFilters } from '@/components/BaculaFilters';
@@ -111,9 +111,6 @@ const Bacula = () => {
               <span className="font-medium">Conectado a:</span> {baculaIntegration.name} ({baculaIntegration.base_url})
             </div>
           </div>
-          
-          <div className="flex flex-wrap gap-2">
-          </div>
         </div>
 
         <BaculaStatusCards />
@@ -132,7 +129,13 @@ const Bacula = () => {
           onReset={handleResetFilters}
         />
 
-        <BaculaStatusTabs jobs={jobs}>
+        <BaculaStatusTabs 
+          jobs={jobs}
+          startDate={startDate}
+          endDate={endDate}
+          statusFilter={statusFilter}
+          clientFilter={clientFilter}
+        >
           <BaculaJobsByClient 
             startDate={startDate}
             endDate={endDate}

@@ -24,7 +24,6 @@ const Zabbix = () => {
   const { 
     useHosts, 
     useProblems, 
-    useAcknowledgeProblem, 
     isConfigured,
     integration 
   } = useZabbixAPI();
@@ -43,8 +42,6 @@ const Zabbix = () => {
   console.log('hosts:', hosts);
   console.log('problems:', problems);
   console.log('errors:', { hostsError, problemsError });
-
-  const acknowledgeProblemMutation = useAcknowledgeProblem();
 
   const handleRefreshAll = async () => {
     setRefreshing(true);
@@ -65,17 +62,6 @@ const Zabbix = () => {
       });
     } finally {
       setRefreshing(false);
-    }
-  };
-
-  const handleAcknowledgeProblem = async (eventid: string) => {
-    try {
-      await acknowledgeProblemMutation.mutateAsync({
-        eventids: [eventid],
-        message: "Problema reconhecido via interface web"
-      });
-    } catch (error) {
-      console.error('Erro ao reconhecer problema:', error);
     }
   };
 
@@ -180,6 +166,17 @@ const Zabbix = () => {
     return acc;
   }, {} as Record<string, typeof hosts>);
 
+  // Agrupar hosts por status
+  const hostsByStatus = hosts.reduce((acc, host) => {
+    const availability = getHostAvailability(host);
+    const statusKey = availability.status;
+    if (!acc[statusKey]) {
+      acc[statusKey] = [];
+    }
+    acc[statusKey].push(host);
+    return acc;
+  }, {} as Record<string, typeof hosts>);
+
   // Agrupar problemas por host
   const groupedProblems = problems.reduce((acc, problem) => {
     const hostName = problem.hosts?.[0]?.name || 'Host Desconhecido';
@@ -200,9 +197,9 @@ const Zabbix = () => {
             <p className="text-yellow-300 mb-4">
               Para usar o gerenciamento do Zabbix, configure a integração no painel de administração.
             </p>
-            <Button variant="outline" onClick={() => window.location.href = '/admin'} className="border-yellow-600 text-yellow-400 hover:bg-yellow-900/30">
+            <button onClick={() => window.location.href = '/admin'} className="bg-blue-800 hover:bg-blue-700 text-white px-4 py-2 rounded border border-yellow-600">
               Configurar Zabbix
-            </Button>
+            </button>
           </CardContent>
         </Card>
       </div>
@@ -378,27 +375,15 @@ const Zabbix = () => {
                                   )}
                                 </TableCell>
                                 <TableCell className="py-2">
-                                  <div className="flex gap-2">
-                                    {problem.acknowledged === '0' && (
-                                      <Button
-                                        size="sm"
-                                        className="bg-blue-800 hover:bg-blue-700 text-white"
-                                        onClick={() => handleAcknowledgeProblem(problem.eventid)}
-                                        disabled={acknowledgeProblemMutation.isPending}
-                                      >
-                                        Reconhecer
-                                      </Button>
-                                    )}
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleCreateGLPITicket(problem)}
-                                      disabled={createTicket.isPending}
-                                      className="bg-blue-800 hover:bg-blue-700 text-white p-2"
-                                      title="Criar chamado no GLPI"
-                                    >
-                                      <ExternalLink className="h-4 w-4" />
-                                    </Button>
-                                  </div>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleCreateGLPITicket(problem)}
+                                    disabled={createTicket.isPending}
+                                    className="bg-blue-800 hover:bg-blue-700 text-white p-2"
+                                    title="Criar chamado no GLPI"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </Button>
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -420,7 +405,7 @@ const Zabbix = () => {
                   Hosts Monitorados
                 </CardTitle>
                 <CardDescription className="text-gray-400">
-                  Lista de todos os hosts configurados no Zabbix organizados por grupo
+                  Lista de todos os hosts configurados no Zabbix
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -430,54 +415,100 @@ const Zabbix = () => {
                     <p className="text-gray-400">Carregando hosts...</p>
                   </div>
                 ) : (
-                  <div className="space-y-6">
+                  <Tabs defaultValue={Object.keys(groupedHosts)[0] || 'all'} className="w-full">
+                    <TabsList className="grid w-full grid-cols-auto bg-gray-700 border-gray-600 mb-6">
+                      {Object.keys(groupedHosts).map((groupName) => (
+                        <TabsTrigger 
+                          key={groupName} 
+                          value={groupName}
+                          className="data-[state=active]:bg-gray-600 data-[state=active]:text-white text-sm"
+                        >
+                          {groupName}
+                          <Badge variant="outline" className="ml-2 border-gray-500 text-gray-300">
+                            {groupedHosts[groupName].length}
+                          </Badge>
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                    
                     {Object.entries(groupedHosts).map(([groupName, groupHosts]) => (
-                      <div key={groupName} className="border border-gray-700 rounded-lg overflow-hidden bg-gray-900">
-                        <div className="bg-gray-800 px-4 py-2 font-medium text-sm text-gray-200">
-                          <Users className="inline-block h-4 w-4 mr-2" />
-                          {groupName} ({groupHosts.length} host{groupHosts.length !== 1 ? 's' : ''})
-                        </div>
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="border-gray-700 hover:bg-gray-800/50">
-                              <TableHead className="text-gray-300">Nome do Host</TableHead>
-                              <TableHead className="text-gray-300">IP/DNS</TableHead>
-                              <TableHead className="text-gray-300">Porta</TableHead>
-                              <TableHead className="text-gray-300">Status</TableHead>
-                              <TableHead className="text-gray-300">Disponibilidade</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {groupHosts.map((host) => {
-                              const availability = getHostAvailability(host);
-                              const mainInterface = host.interfaces?.find(iface => iface.main === '1') || host.interfaces?.[0];
-                              return (
-                                <TableRow key={host.hostid} className="h-8 border-gray-700 hover:bg-gray-800/30">
-                                  <TableCell className="font-medium py-2 text-gray-200">{host.name}</TableCell>
-                                  <TableCell className="py-2 text-gray-300">
-                                    {mainInterface?.ip || mainInterface?.dns || 'N/A'}
-                                  </TableCell>
-                                  <TableCell className="py-2 text-gray-300">
-                                    {mainInterface?.port || 'N/A'}
-                                  </TableCell>
-                                  <TableCell className="py-2">
-                                    <Badge className={host.status === '0' ? 'bg-green-600 text-white' : 'bg-gray-600 text-white'}>
-                                      {host.status === '0' ? 'Ativo' : 'Inativo'}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="py-2">
-                                    <Badge className={availability.color}>
-                                      {availability.label}
-                                    </Badge>
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
-                      </div>
+                      <TabsContent key={groupName} value={groupName}>
+                        <Tabs defaultValue="available" className="w-full">
+                          <TabsList className="grid w-full grid-cols-4 bg-gray-700 border-gray-600 mb-4">
+                            <TabsTrigger value="available" className="data-[state=active]:bg-gray-600 data-[state=active]:text-white">
+                              Disponível
+                              <Badge className="ml-2 bg-green-900/20 text-green-400">
+                                {hostsByStatus.available?.filter(h => groupHosts.includes(h)).length || 0}
+                              </Badge>
+                            </TabsTrigger>
+                            <TabsTrigger value="unavailable" className="data-[state=active]:bg-gray-600 data-[state=active]:text-white">
+                              Indisponível
+                              <Badge className="ml-2 bg-red-900/20 text-red-400">
+                                {hostsByStatus.unavailable?.filter(h => groupHosts.includes(h)).length || 0}
+                              </Badge>
+                            </TabsTrigger>
+                            <TabsTrigger value="unknown" className="data-[state=active]:bg-gray-600 data-[state=active]:text-white">
+                              Desconhecido
+                              <Badge className="ml-2 bg-yellow-900/20 text-yellow-400">
+                                {hostsByStatus.unknown?.filter(h => groupHosts.includes(h)).length || 0}
+                              </Badge>
+                            </TabsTrigger>
+                            <TabsTrigger value="disabled" className="data-[state=active]:bg-gray-600 data-[state=active]:text-white">
+                              Desabilitado
+                              <Badge className="ml-2 bg-gray-900/20 text-gray-400">
+                                {hostsByStatus.disabled?.filter(h => groupHosts.includes(h)).length || 0}
+                              </Badge>
+                            </TabsTrigger>
+                          </TabsList>
+
+                          {['available', 'unavailable', 'unknown', 'disabled'].map(status => (
+                            <TabsContent key={status} value={status}>
+                              <Table>
+                                <TableHeader>
+                                  <TableRow className="border-gray-700 hover:bg-gray-800/50">
+                                    <TableHead className="text-gray-300">Nome do Host</TableHead>
+                                    <TableHead className="text-gray-300">IP/DNS</TableHead>
+                                    <TableHead className="text-gray-300">Porta</TableHead>
+                                    <TableHead className="text-gray-300">Status</TableHead>
+                                    <TableHead className="text-gray-300">Disponibilidade</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {(hostsByStatus[status] || [])
+                                    .filter(host => groupHosts.includes(host))
+                                    .map((host) => {
+                                      const availability = getHostAvailability(host);
+                                      const mainInterface = host.interfaces?.find(iface => iface.main === '1') || host.interfaces?.[0];
+                                      return (
+                                        <TableRow key={host.hostid} className="h-8 border-gray-700 hover:bg-gray-800/30">
+                                          <TableCell className="font-medium py-2 text-gray-200">{host.name}</TableCell>
+                                          <TableCell className="py-2 text-gray-300">
+                                            {mainInterface?.ip || mainInterface?.dns || 'N/A'}
+                                          </TableCell>
+                                          <TableCell className="py-2 text-gray-300">
+                                            {mainInterface?.port || 'N/A'}
+                                          </TableCell>
+                                          <TableCell className="py-2">
+                                            <Badge className={host.status === '0' ? 'bg-green-600 text-white' : 'bg-gray-600 text-white'}>
+                                              {host.status === '0' ? 'Ativo' : 'Inativo'}
+                                            </Badge>
+                                          </TableCell>
+                                          <TableCell className="py-2">
+                                            <Badge className={availability.color}>
+                                              {availability.label}
+                                            </Badge>
+                                          </TableCell>
+                                        </TableRow>
+                                      );
+                                    })}
+                                </TableBody>
+                              </Table>
+                            </TabsContent>
+                          ))}
+                        </Tabs>
+                      </TabsContent>
                     ))}
-                  </div>
+                  </Tabs>
                 )}
               </CardContent>
             </Card>
