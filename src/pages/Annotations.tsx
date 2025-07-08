@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAnnotations, useCreateAnnotation, useUpdateAnnotation, useDeleteAnnotation } from '@/hooks/useAnnotations';
 import { useCompanies } from '@/hooks/useCompanies';
@@ -13,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ServiceDialog } from '@/components/ServiceDialog';
 import { 
   StickyNote, Plus, Edit, Trash2, Building, Search, Settings, 
@@ -46,9 +48,8 @@ const Annotations = () => {
   const [editingService, setEditingService] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
-  const [selectedService, setSelectedService] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
-  const [groupByService, setGroupByService] = useState(true);
+  const [activeServiceTab, setActiveServiceTab] = useState('all');
   const [availableServices, setAvailableServices] = useState([
     { name: 'Sistema', icon: 'code', color: 'blue', description: '' },
     { name: 'Email', icon: 'mail', color: 'green', description: '' },
@@ -68,28 +69,6 @@ const Annotations = () => {
     notes: ''
   });
 
-  const filteredAnnotations = annotations.filter(annotation => {
-    const companyName = companies.find(c => c.id === annotation.company_id)?.name || '';
-    const matchesSearch = annotation.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         annotation.annotation?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCompany = selectedCompany === '' || selectedCompany === 'all' || annotation.company_id === selectedCompany;
-    const matchesService = selectedService === '' || selectedService === 'all' || annotation.service === selectedService;
-    const matchesStatus = selectedStatus === '' || selectedStatus === 'all' || 
-                         (selectedStatus === 'with_link' && annotation.gera_link) ||
-                         (selectedStatus === 'without_link' && !annotation.gera_link);
-    return matchesSearch && matchesCompany && matchesService && matchesStatus;
-  });
-
-  const groupedAnnotations = groupByService 
-    ? filteredAnnotations.reduce((groups, annotation) => {
-        const service = annotation.service || 'Sem Categoria';
-        if (!groups[service]) groups[service] = [];
-        groups[service].push(annotation);
-        return groups;
-      }, {} as Record<string, Annotation[]>)
-    : { 'Todas as Anotações': filteredAnnotations };
-
   const getServiceIcon = (serviceName: string) => {
     const service = availableServices.find(s => s.name === serviceName);
     const iconMap = {
@@ -105,6 +84,63 @@ const Annotations = () => {
     };
     const IconComponent = iconMap[service?.icon as keyof typeof iconMap] || Code;
     return <IconComponent className="h-4 w-4" />;
+  };
+
+  const filteredAnnotationsBase = annotations.filter(annotation => {
+    const companyName = companies.find(c => c.id === annotation.company_id)?.name || '';
+    const matchesSearch = annotation.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         annotation.annotation?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCompany = selectedCompany === '' || selectedCompany === 'all' || annotation.company_id === selectedCompany;
+    const matchesStatus = selectedStatus === '' || selectedStatus === 'all' || 
+                         (selectedStatus === 'with_link' && annotation.gera_link) ||
+                         (selectedStatus === 'without_link' && !annotation.gera_link);
+    return matchesSearch && matchesCompany && matchesStatus;
+  });
+
+  const getFilteredAnnotationsByService = (serviceName: string) => {
+    if (serviceName === 'all') return filteredAnnotationsBase;
+    if (serviceName === 'no_service') return filteredAnnotationsBase.filter(a => !a.service);
+    return filteredAnnotationsBase.filter(a => a.service === serviceName);
+  };
+
+  const getServiceTabs = () => {
+    const serviceTabs = [];
+    
+    // Tab "Todas"
+    const totalCount = filteredAnnotationsBase.length;
+    serviceTabs.push({
+      name: 'all',
+      label: 'Todas',
+      count: totalCount,
+      icon: 'globe'
+    });
+    
+    // Tabs dos serviços disponíveis
+    availableServices.forEach(service => {
+      const count = getFilteredAnnotationsByService(service.name).length;
+      if (count > 0) {
+        serviceTabs.push({
+          name: service.name,
+          label: service.name,
+          count: count,
+          icon: service.icon
+        });
+      }
+    });
+    
+    // Tab "Sem Categoria"
+    const noServiceCount = getFilteredAnnotationsByService('no_service').length;
+    if (noServiceCount > 0) {
+      serviceTabs.push({
+        name: 'no_service',
+        label: 'Sem Categoria',
+        count: noServiceCount,
+        icon: 'settings'
+      });
+    }
+    
+    return serviceTabs;
   };
 
   const handleSaveService = (serviceData: any) => {
@@ -160,131 +196,37 @@ const Annotations = () => {
       doc.setFontSize(12);
       doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 20, 30);
       
-      let yPosition = 40;
+      const currentAnnotations = getFilteredAnnotationsByService(activeServiceTab);
       
-      // Mostrar filtros aplicados
-      if (searchTerm || selectedCompany || selectedService || selectedStatus) {
-        doc.setFontSize(10);
-        doc.text('Filtros aplicados:', 20, yPosition);
-        yPosition += 5;
-        
-        if (searchTerm) {
-          doc.text(`• Busca: ${searchTerm}`, 25, yPosition);
-          yPosition += 5;
-        }
-        if (selectedCompany && selectedCompany !== 'all') {
-          const company = companies.find(c => c.id === selectedCompany);
-          doc.text(`• Empresa: ${company?.name}`, 25, yPosition);
-          yPosition += 5;
-        }
-        if (selectedService && selectedService !== 'all') {
-          doc.text(`• Serviço: ${selectedService}`, 25, yPosition);
-          yPosition += 5;
-        }
-        if (selectedStatus && selectedStatus !== 'all') {
-          const statusText = selectedStatus === 'with_link' ? 'Com link' : 'Sem link';
-          doc.text(`• Status: ${statusText}`, 25, yPosition);
-          yPosition += 5;
-        }
-        yPosition += 5;
-      }
-
-      // Agrupar dados por empresa e serviço
-      const groupedData = filteredAnnotations.reduce((acc, annotation) => {
+      // Preparar dados da tabela
+      const tableData = currentAnnotations.map(annotation => {
         const company = companies.find(c => c.id === annotation.company_id);
-        const companyName = company?.name || 'Sem Empresa';
-        const serviceName = annotation.service || 'Sem Serviço';
-        
-        if (!acc[companyName]) {
-          acc[companyName] = {};
-        }
-        if (!acc[companyName][serviceName]) {
-          acc[companyName][serviceName] = [];
-        }
-        
-        acc[companyName][serviceName].push(annotation);
-        return acc;
-      }, {} as Record<string, Record<string, typeof filteredAnnotations>>);
-
-      // Gerar tabelas por empresa e serviço
-      Object.entries(groupedData).forEach(([companyName, services]) => {
-        // Título da empresa
-        doc.setFontSize(14);
-        doc.setFont(undefined, 'bold');
-        doc.text(`Empresa: ${companyName}`, 20, yPosition);
-        yPosition += 10;
-        doc.setFont(undefined, 'normal');
-        
-        Object.entries(services).forEach(([serviceName, annotations]) => {
-          // Título do serviço
-          doc.setFontSize(12);
-          doc.setFont(undefined, 'bold');
-          doc.text(`  Serviço: ${serviceName}`, 25, yPosition);
-          yPosition += 5;
-          doc.setFont(undefined, 'normal');
-          
-          // Preparar dados da tabela
-          const tableData = annotations.map(annotation => [
-            annotation.name,
-            annotation.annotation || 'N/A',
-            annotation.gera_link ? 'Sim' : 'Não'
-          ]);
-          
-          // Verificar se há espaço na página
-          if (yPosition > 250) {
-            doc.addPage();
-            yPosition = 20;
-          }
-          
-          // Adicionar tabela
-          autoTable(doc, {
-            head: [['Nome', 'Anotação', 'Gera Link']],
-            body: tableData,
-            startY: yPosition,
-            margin: { left: 30 },
-            styles: { 
-              fontSize: 8,
-              cellPadding: 2
-            },
-            headStyles: { 
-              fillColor: [41, 128, 185],
-              textColor: [255, 255, 255]
-            },
-            columnStyles: {
-              1: { cellWidth: 'auto' } // Ajustar largura da coluna de anotação
-            }
-          });
-          
-          yPosition = (doc as any).lastAutoTable.finalY + 10;
-        });
-        
-        yPosition += 5; // Espaço extra entre empresas
+        return [
+          annotation.name,
+          company?.name || 'N/A',
+          annotation.annotation || 'N/A',
+          annotation.service || 'N/A',
+          annotation.gera_link ? 'Sim' : 'Não'
+        ];
       });
-
-      // Resumo no final
-      if (yPosition > 250) {
-        doc.addPage();
-        yPosition = 20;
-      }
       
-      doc.setFontSize(12);
-      doc.setFont(undefined, 'bold');
-      doc.text('Resumo:', 20, yPosition);
-      yPosition += 10;
-      doc.setFont(undefined, 'normal');
-      doc.setFontSize(10);
-      doc.text(`Total de anotações exportadas: ${filteredAnnotations.length}`, 20, yPosition);
-      yPosition += 5;
-      doc.text(`Total de empresas: ${Object.keys(groupedData).length}`, 20, yPosition);
-      yPosition += 5;
-      
-      const totalServices = Object.values(groupedData).reduce((acc, services) => {
-        return acc + Object.keys(services).length;
-      }, 0);
-      doc.text(`Total de serviços: ${totalServices}`, 20, yPosition);
+      // Adicionar tabela
+      autoTable(doc, {
+        head: [['Nome', 'Empresa', 'Anotação', 'Serviço', 'Gera Link']],
+        body: tableData,
+        startY: 50,
+        styles: { 
+          fontSize: 8,
+          cellPadding: 2
+        },
+        headStyles: { 
+          fillColor: [41, 128, 185],
+          textColor: [255, 255, 255]
+        }
+      });
       
       // Salvar o PDF
-      doc.save('anotacoes-detalhado.pdf');
+      doc.save('anotacoes.pdf');
       
       toast({
         title: "PDF gerado!",
@@ -376,98 +318,349 @@ const Annotations = () => {
     setIsViewDialogOpen(true);
   };
 
+  const renderAnnotationTable = (annotationsToShow: Annotation[]) => (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="border-slate-600">
+            <TableHead className="font-semibold text-white">Nome</TableHead>
+            <TableHead className="font-semibold text-white">Empresa</TableHead>
+            <TableHead className="font-semibold text-white">Anotação</TableHead>
+            <TableHead className="font-semibold text-white">Serviço</TableHead>
+            <TableHead className="font-semibold text-white">Ações</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {annotationsToShow.map((item) => {
+            const company = companies.find(c => c.id === item.company_id);
+            return (
+              <TableRow key={item.id} className="hover:bg-slate-700/50 border-slate-600 h-10">
+                <TableCell className="font-medium text-white py-1">{item.name}</TableCell>
+                <TableCell className="font-medium text-white py-1">{company?.name || 'N/A'}</TableCell>
+                <TableCell className="py-1 max-w-xs">
+                  <div className="truncate text-white" title={item.annotation || ''}>
+                    {item.annotation || 'N/A'}
+                  </div>
+                </TableCell>
+                <TableCell className="py-1">
+                  {item.service && (
+                    <div className="flex items-center gap-1">
+                      {getServiceIcon(item.service)}
+                      <span className="text-sm text-white">{item.service}</span>
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell className="py-1">
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleViewAnnotation(item)}
+                      className="h-7 px-2 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+                    >
+                      <Eye className="h-3 w-3 mr-1" />
+                      Ver
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleWhatsAppShare(item)}
+                      className="h-7 px-2 bg-green-600 border-green-500 text-white hover:bg-green-700"
+                    >
+                      <MessageCircle className="h-3 w-3 mr-1" />
+                      WhatsApp
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleEditAnnotation(item)}
+                      className="h-7 px-2 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+                    >
+                      <Edit className="h-3 w-3 mr-1" />
+                      Editar
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-red-400 hover:text-red-300 border-red-600 hover:bg-red-900/20 h-7 px-2"
+                      onClick={() => handleDeleteAnnotation(item.id)}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Excluir
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+      {annotationsToShow.length === 0 && (
+        <div className="text-center py-8 text-white">
+          Nenhuma anotação encontrada nesta categoria.
+        </div>
+      )}
+    </div>
+  );
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <div className="text-slate-600">Carregando anotações...</div>
+        <div className="text-white">Carregando anotações...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-foreground">Anotações</h1>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="group-by-service"
-              checked={groupByService}
-              onCheckedChange={setGroupByService}
-            />
-            <Label htmlFor="group-by-service" className="text-sm">Agrupar por Serviço</Label>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          {isMaster && (
+    <div className="min-h-screen bg-slate-900 text-white">
+      <div className="space-y-6 p-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-white">Anotações</h1>
+          <div className="flex gap-2">
+            {isMaster && (
+              <Button
+                variant="outline"
+                onClick={exportToPDF}
+                className="bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+              >
+                <FileDown className="mr-2 h-4 w-4" />
+                Exportar PDF
+              </Button>
+            )}
             <Button
               variant="outline"
-              onClick={exportToPDF}
+              onClick={() => setIsServiceDialogOpen(true)}
+              className="bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
             >
-              <FileDown className="mr-2 h-4 w-4" />
-              Exportar PDF
+              <Settings className="mr-2 h-4 w-4" />
+              Gerenciar Serviços
             </Button>
-          )}
-          <Button
-            variant="outline"
-            onClick={() => setIsServiceDialogOpen(true)}
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            Gerenciar Serviços
-          </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Adicionar Anotação
-              </Button>
-            </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Adicionar Anotação
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px] bg-slate-800 border-slate-700">
+                <DialogHeader>
+                  <DialogTitle className="text-white">Adicionar Nova Anotação</DialogTitle>
+                  <DialogDescription className="text-slate-400">Preencha os dados para adicionar uma nova anotação.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="name" className="text-white">Nome da Anotação *</Label>
+                    <Input 
+                      id="name" 
+                      placeholder="Nome da anotação"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      className="bg-slate-700 border-slate-600 text-white"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="company" className="text-white">Empresa Cliente</Label>
+                    <Select value={formData.company_id} onValueChange={(value) => setFormData({...formData, company_id: value})}>
+                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                        <SelectValue placeholder="Selecione a empresa" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-700 border-slate-600">
+                        {companies.map((company) => (
+                          <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="annotation" className="text-white">Anotação *</Label>
+                    <Textarea 
+                      id="annotation" 
+                      placeholder="Sua anotação aqui..."
+                      value={formData.annotation}
+                      onChange={(e) => setFormData({...formData, annotation: e.target.value})}
+                      className="bg-slate-700 border-slate-600 text-white"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="service" className="text-white">Serviço</Label>
+                    <Select value={formData.service} onValueChange={(value) => setFormData({...formData, service: value})}>
+                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                        <SelectValue placeholder="Selecione o serviço" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-700 border-slate-600">
+                        {availableServices.map((service) => (
+                          <SelectItem key={service.name} value={service.name} className="text-white">
+                            <div className="flex items-center gap-2">
+                              {getServiceIcon(service.name)}
+                              {service.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="notes" className="text-white">Observações</Label>
+                    <Textarea 
+                      id="notes" 
+                      placeholder="Observações adicionais"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                      className="bg-slate-700 border-slate-600 text-white"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSaveAnnotation}>
+                    Salvar
+                  </Button>
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-slate-600 text-white hover:bg-slate-700">
+                    Cancelar
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        {/* ServiceDialog */}
+        <ServiceDialog 
+          isOpen={isServiceDialogOpen}
+          onOpenChange={setIsServiceDialogOpen}
+          onSave={handleSaveService}
+          editingService={editingService}
+          onEdit={handleEditService}
+          onDelete={handleDeleteService}
+          existingServices={availableServices}
+        />
+
+        {/* Filtros */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-white" />
+              <CardTitle className="text-white">Filtros</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Buscar anotações..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+              
+              <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue placeholder="Todas as empresas" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600">
+                  <SelectItem value="all" className="text-white">Todas as empresas</SelectItem>
+                  {companies.map((company) => (
+                    <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue placeholder="Status do link" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600">
+                  <SelectItem value="all" className="text-white">Todos os status</SelectItem>
+                  <SelectItem value="with_link" className="text-white">Com link gerado</SelectItem>
+                  <SelectItem value="without_link" className="text-white">Sem link gerado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Abas por Tipo de Serviço */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardContent className="p-6">
+            <Tabs value={activeServiceTab} onValueChange={setActiveServiceTab}>
+              <TabsList className="bg-slate-700 mb-6 h-auto flex-wrap">
+                {getServiceTabs().map((tab) => (
+                  <TabsTrigger 
+                    key={tab.name} 
+                    value={tab.name}
+                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 m-1"
+                  >
+                    <div className="flex items-center gap-2">
+                      {tab.name === 'all' && <Globe className="h-4 w-4" />}
+                      {tab.name === 'no_service' && <Settings className="h-4 w-4" />}
+                      {tab.name !== 'all' && tab.name !== 'no_service' && getServiceIcon(tab.name)}
+                      <span>{tab.label}</span>
+                      <Badge variant="secondary" className="bg-blue-600 text-white ml-1">
+                        {tab.count}
+                      </Badge>
+                    </div>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              {getServiceTabs().map((tab) => (
+                <TabsContent key={tab.name} value={tab.name}>
+                  {renderAnnotationTable(getFilteredAnnotationsByService(tab.name))}
+                </TabsContent>
+              ))}
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[425px] bg-slate-800 border-slate-700">
             <DialogHeader>
-              <DialogTitle>Adicionar Nova Anotação</DialogTitle>
-              <DialogDescription>Preencha os dados para adicionar uma nova anotação.</DialogDescription>
+              <DialogTitle className="text-white">Editar Anotação</DialogTitle>
+              <DialogDescription className="text-slate-400">Atualize as informações da anotação.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Nome da Anotação *</Label>
+                <Label htmlFor="edit-name" className="text-white">Nome da Anotação *</Label>
                 <Input 
-                  id="name" 
-                  placeholder="Nome da anotação"
+                  id="edit-name" 
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="bg-slate-700 border-slate-600 text-white"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="company">Empresa Cliente</Label>
+                <Label htmlFor="edit-company" className="text-white">Empresa Cliente</Label>
                 <Select value={formData.company_id} onValueChange={(value) => setFormData({...formData, company_id: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a empresa" />
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-slate-700 border-slate-600">
                     {companies.map((company) => (
-                      <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
+                      <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="annotation">Anotação *</Label>
+                <Label htmlFor="edit-annotation" className="text-white">Anotação *</Label>
                 <Textarea 
-                  id="annotation" 
-                  placeholder="Sua anotação aqui..."
+                  id="edit-annotation" 
                   value={formData.annotation}
                   onChange={(e) => setFormData({...formData, annotation: e.target.value})}
+                  className="bg-slate-700 border-slate-600 text-white"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="service">Serviço</Label>
+                <Label htmlFor="edit-service" className="text-white">Serviço</Label>
                 <Select value={formData.service} onValueChange={(value) => setFormData({...formData, service: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o serviço" />
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-slate-700 border-slate-600">
                     {availableServices.map((service) => (
-                      <SelectItem key={service.name} value={service.name}>
+                      <SelectItem key={service.name} value={service.name} className="text-white">
                         <div className="flex items-center gap-2">
                           {getServiceIcon(service.name)}
                           {service.name}
@@ -478,289 +671,44 @@ const Annotations = () => {
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="notes">Observações</Label>
+                <Label htmlFor="edit-notes" className="text-white">Observações</Label>
                 <Textarea 
-                  id="notes" 
-                  placeholder="Observações adicionais"
+                  id="edit-notes" 
                   value={formData.notes}
                   onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  className="bg-slate-700 border-slate-600 text-white"
                 />
               </div>
             </div>
             <div className="flex gap-2">
-              <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSaveAnnotation}>
-                Salvar
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSaveEdit}>
+                Atualizar
               </Button>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="border-slate-600 text-white hover:bg-slate-700">
                 Cancelar
               </Button>
             </div>
           </DialogContent>
         </Dialog>
-        </div>
+
+        {/* Dialog para WhatsApp */}
+        {whatsAppAnnotation && (
+          <WhatsAppAnnotationDialog
+            open={isWhatsAppDialogOpen}
+            onOpenChange={setIsWhatsAppDialogOpen}
+            annotation={whatsAppAnnotation}
+          />
+        )}
+
+        {/* Dialog para Visualização */}
+        {viewingAnnotation && (
+          <ViewAnnotationDialog
+            open={isViewDialogOpen}
+            onOpenChange={setIsViewDialogOpen}
+            annotation={viewingAnnotation}
+          />
+        )}
       </div>
-
-      {/* ServiceDialog */}
-      <ServiceDialog 
-        isOpen={isServiceDialogOpen}
-        onOpenChange={setIsServiceDialogOpen}
-        onSave={handleSaveService}
-        editingService={editingService}
-        onEdit={handleEditService}
-        onDelete={handleDeleteService}
-        existingServices={availableServices}
-      />
-
-      {/* Filtros Avançados */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            <CardTitle>Filtros</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar anotações..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            
-            <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todas as empresas" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as empresas</SelectItem>
-                {companies.map((company) => (
-                  <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedService} onValueChange={setSelectedService}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos os serviços" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os serviços</SelectItem>
-                {availableServices.map((service) => (
-                  <SelectItem key={service.name} value={service.name}>
-                    <div className="flex items-center gap-2">
-                      {getServiceIcon(service.name)}
-                      {service.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger>
-                <SelectValue placeholder="Status do link" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="with_link">Com link gerado</SelectItem>
-                <SelectItem value="without_link">Sem link gerado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Lista de Anotações Agrupadas ou Normal */}
-      {Object.entries(groupedAnnotations).map(([groupName, groupAnnotations]) => (
-        <Card key={groupName} className="bg-muted/30 border-border/50">
-          <CardHeader className="bg-muted/50 border-b">
-            <div className="flex items-center gap-2">
-              {groupByService && groupName !== 'Todas as Anotações' && getServiceIcon(groupName)}
-              <CardTitle className="text-foreground">{groupName}</CardTitle>
-              <Badge variant="secondary" className="bg-primary/10 text-primary">{groupAnnotations.length}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6 bg-background/50">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border/50">
-                    <TableHead className="font-semibold">Nome</TableHead>
-                    <TableHead className="font-semibold">Empresa</TableHead>
-                    <TableHead className="font-semibold">Anotação</TableHead>
-                    {!groupByService && <TableHead className="font-semibold">Serviço</TableHead>}
-                    <TableHead className="font-semibold">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {groupAnnotations.map((item) => {
-                    const company = companies.find(c => c.id === item.company_id);
-                    return (
-                      <TableRow key={item.id} className="hover:bg-muted/20 border-border/30">
-                        <TableCell className="font-medium">{item.name}</TableCell>
-                        <TableCell className="font-medium text-muted-foreground">{company?.name || 'N/A'}</TableCell>
-                        <TableCell className="max-w-xs">
-                          <div className="truncate" title={item.annotation || ''}>
-                            {item.annotation || 'N/A'}
-                          </div>
-                        </TableCell>
-                        {!groupByService && (
-                          <TableCell>
-                            {item.service && (
-                              <div className="flex items-center gap-1">
-                                {getServiceIcon(item.service)}
-                                <span className="text-sm">{item.service}</span>
-                              </div>
-                            )}
-                          </TableCell>
-                        )}
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleViewAnnotation(item)}
-                              className="h-8 px-3 text-blue-600 hover:text-blue-700 border-blue-200 hover:bg-blue-50"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleWhatsAppShare(item)}
-                              className="h-8 px-3 text-green-600 hover:text-green-700 border-green-200 hover:bg-green-50"
-                            >
-                              <MessageCircle className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleEditAnnotation(item)}
-                              className="h-8 px-3"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="text-destructive hover:text-destructive border-destructive/20 hover:bg-destructive/10 h-8 px-3"
-                              onClick={() => handleDeleteAnnotation(item.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-            {groupAnnotations.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                Nenhuma anotação encontrada neste grupo.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
-
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Editar Anotação</DialogTitle>
-            <DialogDescription>Atualize as informações da anotação.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-name">Nome da Anotação *</Label>
-              <Input 
-                id="edit-name" 
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-company">Empresa Cliente</Label>
-              <Select value={formData.company_id} onValueChange={(value) => setFormData({...formData, company_id: value})}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {companies.map((company) => (
-                    <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-annotation">Anotação *</Label>
-              <Textarea 
-                id="edit-annotation" 
-                value={formData.annotation}
-                onChange={(e) => setFormData({...formData, annotation: e.target.value})}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-service">Serviço</Label>
-              <Select value={formData.service} onValueChange={(value) => setFormData({...formData, service: value})}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableServices.map((service) => (
-                    <SelectItem key={service.name} value={service.name}>
-                      <div className="flex items-center gap-2">
-                        {getServiceIcon(service.name)}
-                        {service.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-notes">Observações</Label>
-              <Textarea 
-                id="edit-notes" 
-                value={formData.notes}
-                onChange={(e) => setFormData({...formData, notes: e.target.value})}
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSaveEdit}>
-              Atualizar
-            </Button>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancelar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog para WhatsApp */}
-      {whatsAppAnnotation && (
-        <WhatsAppAnnotationDialog
-          open={isWhatsAppDialogOpen}
-          onOpenChange={setIsWhatsAppDialogOpen}
-          annotation={whatsAppAnnotation}
-        />
-      )}
-
-      {/* Dialog para Visualização */}
-      {viewingAnnotation && (
-        <ViewAnnotationDialog
-          open={isViewDialogOpen}
-          onOpenChange={setIsViewDialogOpen}
-          annotation={viewingAnnotation}
-        />
-      )}
     </div>
   );
 };
