@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Database, Settings, AlertCircle, TrendingUp, Activity, FileBarChart } from 'lucide-react';
@@ -84,10 +85,10 @@ const Bacula = () => {
                     <li>• Senha do usuário</li>
                   </ul>
                 </div>
-                <Button onClick={() => window.location.href = '/admin'} className="bg-blue-800 hover:bg-blue-700 text-white">
-                  <Settings className="mr-2 h-4 w-4" />
+                <button onClick={() => window.location.href = '/admin'} className="bg-blue-800 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2 mx-auto">
+                  <Settings className="h-4 w-4" />
                   Configurar BaculaWeb
-                </Button>
+                </button>
               </div>
             </CardContent>
           </Card>
