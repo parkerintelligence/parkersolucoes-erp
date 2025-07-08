@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,142 +19,144 @@ const Companies = () => {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Empresa
-        </Button>
-      </div>
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="space-y-6 p-6">
+        <div className="flex justify-end">
+          <Button className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Empresa
+          </Button>
+        </div>
 
-      {/* Estatísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-        <Card className="border-blue-200">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center gap-2 md:gap-3">
-              <Building2 className="h-6 w-6 md:h-8 md:w-8 text-blue-500 flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="text-xl md:text-2xl font-bold text-blue-900">{companies.length}</p>
-                <p className="text-xs md:text-sm text-blue-600">Total</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-blue-200">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center gap-2 md:gap-3">
-              <Badge className="h-6 w-6 md:h-8 md:w-8 bg-green-100 text-green-800 rounded-full flex items-center justify-center flex-shrink-0">A</Badge>
-              <div className="min-w-0">
-                <p className="text-xl md:text-2xl font-bold text-blue-900">{companies.filter(c => c.name).length}</p>
-                <p className="text-xs md:text-sm text-blue-600">Ativas</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-blue-200">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center gap-2 md:gap-3">
-              <Mail className="h-6 w-6 md:h-8 md:w-8 text-purple-500 flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="text-xl md:text-2xl font-bold text-blue-900">{companies.filter(c => c.email).length}</p>
-                <p className="text-xs md:text-sm text-blue-600">Com E-mail</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-blue-200">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center gap-2 md:gap-3">
-              <Phone className="h-6 w-6 md:h-8 md:w-8 text-orange-500 flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="text-xl md:text-2xl font-bold text-blue-900">{companies.filter(c => c.phone).length}</p>
-                <p className="text-xs md:text-sm text-blue-600">Com Telefone</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Lista de Empresas */}
-      <Card className="border-blue-200">
-        <CardHeader>
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-            <div>
-              <CardTitle className="text-blue-900 flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                Lista de Empresas
-              </CardTitle>
-              <CardDescription>Gerencie informações das suas empresas</CardDescription>
-            </div>
-            <div className="w-full lg:w-64">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-                <Input
-                  placeholder="Buscar empresas..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8">
-              <p className="text-gray-600">Carregando empresas...</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>CNPJ</TableHead>
-                    <TableHead>E-mail</TableHead>
-                    <TableHead className="hidden lg:table-cell">Telefone</TableHead>
-                    <TableHead className="hidden lg:table-cell">Contato</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCompanies.map((company) => (
-                    <TableRow key={company.id} className="hover:bg-blue-50">
-                      <TableCell className="font-medium">{company.name}</TableCell>
-                      <TableCell>{company.cnpj || '-'}</TableCell>
-                      <TableCell>{company.email || '-'}</TableCell>
-                      <TableCell className="hidden lg:table-cell">{company.phone || '-'}</TableCell>
-                      <TableCell className="hidden lg:table-cell">{company.contact || '-'}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:border-red-300">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {filteredCompanies.length === 0 && (
-                <div className="text-center py-12 text-gray-500">
-                  <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p className="text-lg font-medium">Nenhuma empresa encontrada</p>
-                  <p className="text-sm">
-                    {searchTerm ? 'Tente ajustar sua busca' : 'Cadastre sua primeira empresa'}
-                  </p>
+        {/* Estatísticas */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          <Card className="bg-gray-800 border-gray-700">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-2 md:gap-3">
+                <Building2 className="h-6 w-6 md:h-8 md:w-8 text-blue-400 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xl md:text-2xl font-bold text-white">{companies.length}</p>
+                  <p className="text-xs md:text-sm text-gray-400">Total</p>
                 </div>
-              )}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gray-800 border-gray-700">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-2 md:gap-3">
+                <Badge className="h-6 w-6 md:h-8 md:w-8 bg-green-600 text-white rounded-full flex items-center justify-center flex-shrink-0">A</Badge>
+                <div className="min-w-0">
+                  <p className="text-xl md:text-2xl font-bold text-white">{companies.filter(c => c.name).length}</p>
+                  <p className="text-xs md:text-sm text-gray-400">Ativas</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gray-800 border-gray-700">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-2 md:gap-3">
+                <Mail className="h-6 w-6 md:h-8 md:w-8 text-purple-400 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xl md:text-2xl font-bold text-white">{companies.filter(c => c.email).length}</p>
+                  <p className="text-xs md:text-sm text-gray-400">Com E-mail</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gray-800 border-gray-700">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-2 md:gap-3">
+                <Phone className="h-6 w-6 md:h-8 md:w-8 text-orange-400 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xl md:text-2xl font-bold text-white">{companies.filter(c => c.phone).length}</p>
+                  <p className="text-xs md:text-sm text-gray-400">Com Telefone</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Lista de Empresas */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+              <div>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  Lista de Empresas
+                </CardTitle>
+                <CardDescription className="text-gray-400">Gerencie informações das suas empresas</CardDescription>
+              </div>
+              <div className="w-full lg:w-64">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                  <Input
+                    placeholder="Buscar empresas..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  />
+                </div>
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-8">
+                <p className="text-gray-400">Carregando empresas...</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-gray-700 hover:bg-gray-800/50">
+                      <TableHead className="text-gray-300">Nome</TableHead>
+                      <TableHead className="text-gray-300">CNPJ</TableHead>
+                      <TableHead className="text-gray-300">E-mail</TableHead>
+                      <TableHead className="hidden lg:table-cell text-gray-300">Telefone</TableHead>
+                      <TableHead className="hidden lg:table-cell text-gray-300">Contato</TableHead>
+                      <TableHead className="text-right text-gray-300">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCompanies.map((company) => (
+                      <TableRow key={company.id} className="border-gray-700 hover:bg-gray-800/30">
+                        <TableCell className="font-medium text-gray-200">{company.name}</TableCell>
+                        <TableCell className="text-gray-300">{company.cnpj || '-'}</TableCell>
+                        <TableCell className="text-gray-300">{company.email || '-'}</TableCell>
+                        <TableCell className="hidden lg:table-cell text-gray-300">{company.phone || '-'}</TableCell>
+                        <TableCell className="hidden lg:table-cell text-gray-300">{company.contact || '-'}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="outline" size="sm" className="border-gray-600 text-gray-200 hover:bg-gray-700">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="sm" className="border-red-600 text-red-400 hover:bg-red-900/30">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {filteredCompanies.length === 0 && (
+                  <div className="text-center py-12 text-gray-500">
+                    <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                    <p className="text-lg font-medium text-gray-300">Nenhuma empresa encontrada</p>
+                    <p className="text-sm text-gray-400">
+                      {searchTerm ? 'Tente ajustar sua busca' : 'Cadastre sua primeira empresa'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

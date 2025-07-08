@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,7 +69,8 @@ const Financial = () => {
   }, [bomControleIntegration]);
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="space-y-6 p-6">
         <div className="flex justify-end">
           <Button 
             onClick={fetchFinancialData}
@@ -81,9 +83,9 @@ const Financial = () => {
         </div>
 
         {!bomControleIntegration && (
-          <Card className="border-yellow-200 bg-yellow-50">
+          <Card className="bg-yellow-900/20 border-yellow-600">
             <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-yellow-800">
+              <div className="flex items-center gap-2 text-yellow-400">
                 <DollarSign className="h-5 w-5" />
                 <p>Para usar a gestão financeira, configure a integração com o Bom Controle no painel de administração.</p>
               </div>
@@ -93,44 +95,44 @@ const Financial = () => {
 
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border-blue-200">
+          <Card className="bg-gray-800 border-gray-700">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Saldo Atual</p>
-                  <p className="text-2xl font-bold text-blue-900">
+                  <p className="text-sm font-medium text-gray-400">Saldo Atual</p>
+                  <p className="text-2xl font-bold text-white">
                     R$ {financialData.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
-                <CreditCard className="h-8 w-8 text-blue-500" />
+                <CreditCard className="h-8 w-8 text-blue-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-green-200">
+          <Card className="bg-gray-800 border-gray-700">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Receitas</p>
-                  <p className="text-2xl font-bold text-green-900">
+                  <p className="text-sm font-medium text-gray-400">Receitas</p>
+                  <p className="text-2xl font-bold text-green-400">
                     R$ {financialData.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-green-500" />
+                <TrendingUp className="h-8 w-8 text-green-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-red-200">
+          <Card className="bg-gray-800 border-gray-700">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Despesas</p>
-                  <p className="text-2xl font-bold text-red-900">
+                  <p className="text-sm font-medium text-gray-400">Despesas</p>
+                  <p className="text-2xl font-bold text-red-400">
                     R$ {financialData.expenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
-                <TrendingDown className="h-8 w-8 text-red-500" />
+                <TrendingDown className="h-8 w-8 text-red-400" />
               </div>
             </CardContent>
           </Card>
@@ -138,20 +140,20 @@ const Financial = () => {
 
         {/* Abas de Conteúdo */}
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="transactions">Transações</TabsTrigger>
-            <TabsTrigger value="reports">Relatórios</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Visão Geral</TabsTrigger>
+            <TabsTrigger value="transactions" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Transações</TabsTrigger>
+            <TabsTrigger value="reports" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Relatórios</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-6">
-            <Card className="border-blue-200">
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle className="text-blue-900 flex items-center gap-2">
+                <CardTitle className="text-white flex items-center gap-2">
                   <BarChart3 className="h-5 w-5" />
                   Resumo Financeiro
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-gray-400">
                   Visão geral da situação financeira atual
                 </CardDescription>
               </CardHeader>
@@ -160,21 +162,21 @@ const Financial = () => {
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm text-slate-600">Margem de Lucro</p>
-                        <p className="text-lg font-semibold text-green-600">
+                        <p className="text-sm text-gray-400">Margem de Lucro</p>
+                        <p className="text-lg font-semibold text-green-400">
                           {((financialData.revenue - financialData.expenses) / financialData.revenue * 100).toFixed(1)}%
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-slate-600">Total de Movimentações</p>
-                        <p className="text-lg font-semibold text-blue-600">
+                        <p className="text-sm text-gray-400">Total de Movimentações</p>
+                        <p className="text-lg font-semibold text-blue-400">
                           {financialData.transactions.length}
                         </p>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-gray-400">
                     <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>Configure a integração com o Bom Controle para ver os dados financeiros.</p>
                   </div>
@@ -184,10 +186,10 @@ const Financial = () => {
           </TabsContent>
 
           <TabsContent value="transactions" className="mt-6">
-            <Card className="border-blue-200">
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle className="text-blue-900">Últimas Transações</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-white">Últimas Transações</CardTitle>
+                <CardDescription className="text-gray-400">
                   Movimentações financeiras recentes
                 </CardDescription>
               </CardHeader>
@@ -195,26 +197,26 @@ const Financial = () => {
                 {bomControleIntegration && financialData.transactions.length > 0 ? (
                   <div className="space-y-4">
                     {financialData.transactions.map((transaction: any) => (
-                      <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div key={transaction.id} className="flex items-center justify-between p-4 border border-gray-700 rounded-lg bg-gray-700/30">
                         <div className="flex items-center gap-3">
                           {transaction.type === 'income' ? (
-                            <TrendingUp className="h-5 w-5 text-green-500" />
+                            <TrendingUp className="h-5 w-5 text-green-400" />
                           ) : (
-                            <TrendingDown className="h-5 w-5 text-red-500" />
+                            <TrendingDown className="h-5 w-5 text-red-400" />
                           )}
                           <div>
-                            <p className="font-medium">{transaction.description}</p>
-                            <p className="text-sm text-slate-500">{transaction.date}</p>
+                            <p className="font-medium text-white">{transaction.description}</p>
+                            <p className="text-sm text-gray-400">{transaction.date}</p>
                           </div>
                         </div>
-                        <p className={`font-bold ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <p className={`font-bold ${transaction.amount > 0 ? 'text-green-400' : 'text-red-400'}`}>
                           R$ {Math.abs(transaction.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-gray-400">
                     <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>Nenhuma transação encontrada.</p>
                   </div>
@@ -224,15 +226,15 @@ const Financial = () => {
           </TabsContent>
 
           <TabsContent value="reports" className="mt-6">
-            <Card className="border-blue-200">
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle className="text-blue-900">Relatórios</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-white">Relatórios</CardTitle>
+                <CardDescription className="text-gray-400">
                   Relatórios financeiros detalhados
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-gray-400">
                   <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Relatórios em desenvolvimento.</p>
                   <p className="text-sm mt-2">Em breve você terá acesso a relatórios detalhados.</p>
@@ -242,7 +244,8 @@ const Financial = () => {
           </TabsContent>
         </Tabs>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
-  export default Financial;
+export default Financial;
