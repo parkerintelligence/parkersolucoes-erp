@@ -15,6 +15,7 @@ import {
   Shield,
   ChevronDown,
   MessageSquare,
+  Activity,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -37,6 +38,8 @@ const menuItems = [
   { title: 'Wasabi', url: '/wasabi', icon: HardDrive, role: 'user' },
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
   { title: 'Automação', url: '/automation', icon: Settings, role: 'user' },
+  { title: 'Bacula', url: '/bacula', icon: HardDrive, role: 'user' },
+  { title: 'Monitoramento', url: '/monitoring', icon: Activity, role: 'user' },
 ];
 
 const financialItems = [
