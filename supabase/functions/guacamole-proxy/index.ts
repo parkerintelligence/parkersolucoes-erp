@@ -73,13 +73,27 @@ serve(async (req) => {
     console.log('Integration found:', {
       name: integration.name,
       base_url: integration.base_url,
-      username: integration.username
+      username: integration.username,
+      has_password: !!integration.password
     })
 
-    // Preparar URL da API - remover barras duplas e garantir formato correto
+    // Validar dados obrigatórios
+    if (!integration.base_url || !integration.username || !integration.password) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Configuração incompleta do Guacamole. Verifique URL, usuário e senha.'
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Preparar URL da API - garantir formato correto
     let baseUrl = integration.base_url.replace(/\/+$/, '') // Remove barras no final
     
-    // Garantir que a URL não tenha problemas de codificação
+    // Garantir que a URL seja válida
     try {
       const urlTest = new URL(baseUrl)
       baseUrl = urlTest.toString().replace(/\/+$/, '')
@@ -87,7 +101,7 @@ serve(async (req) => {
       console.error('Invalid base URL:', baseUrl)
       return new Response(
         JSON.stringify({ 
-          error: `URL base inválida: ${baseUrl}`
+          error: `URL base inválida: ${baseUrl}. Use formato: https://guacamole.exemplo.com`
         }),
         { 
           status: 200, 
@@ -97,7 +111,7 @@ serve(async (req) => {
     }
 
     // Primeiro, fazer login para obter token
-    console.log('Getting auth token...')
+    console.log('=== Authenticating with Guacamole ===')
     const tokenUrl = `${baseUrl}/api/tokens`
     console.log('Token URL:', tokenUrl)
     
@@ -112,13 +126,42 @@ serve(async (req) => {
       }),
     })
 
+    console.log('Login response status:', loginResponse.status)
+    console.log('Login response headers:', Object.fromEntries(loginResponse.headers.entries()))
+
     if (!loginResponse.ok) {
-      console.error('Login failed:', loginResponse.status, loginResponse.statusText)
       const errorText = await loginResponse.text()
+      console.error('Login failed:', loginResponse.status, loginResponse.statusText)
       console.error('Login error response:', errorText)
+      
+      let errorMessage = 'Erro de autenticação no Guacamole'
+      
+      switch (loginResponse.status) {
+        case 401:
+          errorMessage = 'Credenciais inválidas. Verifique usuário e senha.'
+          break
+        case 403:
+          errorMessage = 'Acesso negado. Verifique se o usuário tem permissões administrativas.'
+          break
+        case 404:
+          errorMessage = 'URL do Guacamole não encontrada. Verifique se a URL está correta e inclui /guacamole se necessário.'
+          break
+        case 500:
+          errorMessage = 'Erro interno do servidor Guacamole. Verifique se o serviço está funcionando.'
+          break
+        default:
+          errorMessage = `Erro HTTP ${loginResponse.status}: ${loginResponse.statusText}`
+      }
+      
       return new Response(
         JSON.stringify({ 
-          error: `Erro de autenticação: ${loginResponse.status} - Verifique as credenciais`
+          error: errorMessage,
+          details: {
+            status: loginResponse.status,
+            statusText: loginResponse.statusText,
+            url: tokenUrl,
+            response: errorText.substring(0, 500) // Limitar tamanho da resposta
+          }
         }),
         { 
           status: 200, 
@@ -128,7 +171,20 @@ serve(async (req) => {
     }
 
     const authToken = await loginResponse.text()
-    console.log('Auth token obtained, length:', authToken.length)
+    console.log('Auth token obtained successfully, length:', authToken.length)
+    
+    // Validar se o token foi realmente obtido
+    if (!authToken || authToken.trim() === '') {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Token de autenticação vazio retornado pelo Guacamole'
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
 
     // Construir URL da API baseada no endpoint solicitado
     let apiPath = ''
@@ -157,7 +213,7 @@ serve(async (req) => {
 
     // Construir URL final com token como parâmetro
     const apiUrl = `${baseUrl}${apiPath}?token=${encodeURIComponent(authToken)}`
-    console.log('Making API call to:', apiUrl)
+    console.log('Making API call to:', apiUrl.replace(authToken, '***TOKEN***'))
 
     const requestOptions: RequestInit = {
       method: method,
@@ -172,13 +228,37 @@ serve(async (req) => {
 
     const apiResponse = await fetch(apiUrl, requestOptions)
     console.log('API response status:', apiResponse.status)
+    console.log('API response headers:', Object.fromEntries(apiResponse.headers.entries()))
 
     if (!apiResponse.ok) {
       const errorText = await apiResponse.text()
       console.error('API error response:', errorText)
+      
+      let errorMessage = 'Erro da API Guacamole'
+      
+      switch (apiResponse.status) {
+        case 401:
+          errorMessage = 'Token de autenticação expirado ou inválido'
+          break
+        case 403:
+          errorMessage = 'Acesso negado à API. Verifique se o usuário tem permissões para acessar dados de conexão.'
+          break
+        case 404:
+          errorMessage = 'Endpoint da API não encontrado. Verifique se a versão do Guacamole é compatível.'
+          break
+        default:
+          errorMessage = `Erro da API Guacamole: ${apiResponse.status} - ${apiResponse.statusText}`
+      }
+      
       return new Response(
         JSON.stringify({ 
-          error: `Erro da API Guacamole: ${apiResponse.status} - ${apiResponse.statusText}`
+          error: errorMessage,
+          details: {
+            status: apiResponse.status,
+            statusText: apiResponse.statusText,
+            endpoint: apiPath,
+            response: errorText.substring(0, 500)
+          }
         }),
         { 
           status: 200, 
@@ -201,7 +281,7 @@ serve(async (req) => {
       console.error('Error parsing API response:', parseError)
       return new Response(
         JSON.stringify({ 
-          error: 'Erro ao processar resposta da API Guacamole'
+          error: 'Erro ao processar resposta da API Guacamole. Resposta não é um JSON válido.'
         }),
         { 
           status: 200, 
@@ -225,7 +305,11 @@ serve(async (req) => {
     console.error('Function error:', error)
     return new Response(
       JSON.stringify({ 
-        error: `Erro interno: ${error.message}`
+        error: `Erro interno: ${error.message}`,
+        details: {
+          name: error.name,
+          stack: error.stack?.substring(0, 500)
+        }
       }),
       { 
         status: 200, 

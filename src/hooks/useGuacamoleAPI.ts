@@ -44,6 +44,8 @@ export const useGuacamoleAPI = () => {
     console.log('Endpoint:', endpoint);
     console.log('Base URL:', integration.base_url);
     console.log('Username:', integration.username);
+    console.log('Has Password:', !!integration.password);
+    console.log('Is Active:', integration.is_active);
     console.log('Options:', options);
 
     try {
@@ -66,7 +68,20 @@ export const useGuacamoleAPI = () => {
 
       if (data?.error) {
         console.error('Erro retornado pela API Guacamole:', data.error);
-        throw new Error(data.error);
+        console.log('Detalhes do erro:', data.details);
+        
+        // Criar mensagem de erro mais informativa
+        let errorMessage = data.error;
+        if (data.details) {
+          errorMessage += `\n\nDetalhes técnicos:\n`;
+          errorMessage += `Status: ${data.details.status || 'N/A'}\n`;
+          errorMessage += `Endpoint: ${data.details.endpoint || 'N/A'}\n`;
+          if (data.details.response) {
+            errorMessage += `Resposta: ${data.details.response.substring(0, 200)}`;
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
       return data?.result || {};
@@ -109,6 +124,14 @@ export const useGuacamoleAPI = () => {
       staleTime: 30000, // 30 segundos
       retry: (failureCount, error) => {
         console.log(`Retry attempt ${failureCount} for connections:`, error);
+        
+        // Não tentar novamente se for erro de configuração
+        if (error.message.includes('Configuração incompleta') || 
+            error.message.includes('Credenciais inválidas') ||
+            error.message.includes('URL base inválida')) {
+          return false;
+        }
+        
         return failureCount < 2;
       },
       retryDelay: 1000,
@@ -145,6 +168,14 @@ export const useGuacamoleAPI = () => {
       staleTime: 60000, // 1 minuto
       retry: (failureCount, error) => {
         console.log(`Retry attempt ${failureCount} for users:`, error);
+        
+        // Não tentar novamente se for erro de configuração
+        if (error.message.includes('Configuração incompleta') || 
+            error.message.includes('Credenciais inválidas') ||
+            error.message.includes('URL base inválida')) {
+          return false;
+        }
+        
         return failureCount < 2;
       },
       retryDelay: 1000,
@@ -183,6 +214,14 @@ export const useGuacamoleAPI = () => {
       staleTime: 10000, // 10 segundos
       retry: (failureCount, error) => {
         console.log(`Retry attempt ${failureCount} for sessions:`, error);
+        
+        // Não tentar novamente se for erro de configuração
+        if (error.message.includes('Configuração incompleta') || 
+            error.message.includes('Credenciais inválidas') ||
+            error.message.includes('URL base inválida')) {
+          return false;
+        }
+        
         return failureCount < 2;
       },
       retryDelay: 1000,
