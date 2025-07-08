@@ -3,7 +3,7 @@ import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Server, AlertCircle, Users } from 'lucide-react';
+import { Server, AlertCircle, Users, Globe } from 'lucide-react';
 import { UniFiSite } from '@/hooks/useUniFiAPI';
 
 interface UniFiSiteSelectorProps {
@@ -22,10 +22,10 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
   const selectedSite = sites.find(site => site._id === selectedSiteId);
 
   return (
-    <Card className="bg-gray-800 border-gray-700">
+    <Card className="bg-blue-900/30 border-blue-500 shadow-lg">
       <CardHeader className="pb-3">
         <CardTitle className="text-white flex items-center gap-2">
-          <Server className="h-5 w-5" />
+          <Globe className="h-5 w-5 text-blue-400" />
           Seleção de Site UniFi
         </CardTitle>
       </CardHeader>
@@ -72,7 +72,7 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
                       {selectedSite.desc || selectedSite.name}
                     </h4>
                   </div>
-                  <div className="space-y-1 text-xs text-gray-400">
+                  <div className="space-y-1 text-xs text-gray-300">
                     <p><strong>Site ID:</strong> {selectedSite._id}</p>
                     <p><strong>Nome:</strong> {selectedSite.name}</p>
                     <div className="flex items-center gap-1">
@@ -92,7 +92,7 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
           )}
 
           {sites.length === 0 && !loading && (
-            <div className="text-center py-6 text-gray-400">
+            <div className="text-center py-6 text-gray-300">
               <Server className="h-10 w-10 mx-auto mb-3 opacity-50" />
               <p className="text-sm font-medium mb-1">Nenhum site encontrado na controladora</p>
               <p className="text-xs">
@@ -102,7 +102,7 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
           )}
 
           {loading && (
-            <div className="text-center py-6 text-gray-400">
+            <div className="text-center py-6 text-gray-300">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-3"></div>
               <p className="text-sm">Carregando sites da controladora...</p>
             </div>

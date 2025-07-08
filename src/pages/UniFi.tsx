@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,9 @@ import {
   XCircle,
   Loader2,
   HelpCircle,
-  Zap
+  Zap,
+  Globe,
+  Info
 } from 'lucide-react';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { UniFiSiteSelector } from '@/components/UniFiSiteSelector';
@@ -244,7 +247,7 @@ const UniFi = () => {
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="space-y-6 p-6">
         {/* Enhanced Header with Better Status */}
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col md:flex-row justify-between items-start gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Server className="h-6 w-6 text-blue-400" />
@@ -271,7 +274,7 @@ const UniFi = () => {
               </p>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               onClick={() => setAutoRefresh(!autoRefresh)}
               variant={autoRefresh ? "default" : "outline"}
@@ -351,30 +354,36 @@ const UniFi = () => {
           </CardContent>
         </Card>
 
-        {/* Site Selection - Made more prominent */}
-        <Card className="bg-blue-900/20 border-blue-500 shadow-md">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-white flex items-center gap-2">
-              <Server className="h-5 w-5 text-blue-400" />
-              Selecione um Site da Controladora UniFi
-            </CardTitle>
-            <CardDescription className="text-gray-300">
-              Selecione um site para visualizar e gerenciar seus dispositivos e redes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <UniFiSiteSelector
-              sites={sites}
-              selectedSiteId={selectedSiteId}
-              onSiteChange={setSelectedSiteId}
-              loading={sitesLoading}
-            />
-          </CardContent>
-        </Card>
+        {/* Enhanced Site Selection - Made more prominent */}
+        <div className="my-8">
+          <div className="mb-4">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <Globe className="h-5 w-5 text-blue-400" />
+              Selecione um Site para Gerenciar
+            </h2>
+            <p className="text-gray-400 mt-1">
+              Escolha um site da controladora UniFi para visualizar e administrar seus dispositivos e configurações
+            </p>
+          </div>
+          
+          <UniFiSiteSelector
+            sites={sites}
+            selectedSiteId={selectedSiteId}
+            onSiteChange={(siteId) => {
+              setSelectedSiteId(siteId);
+              const selectedSite = sites.find(site => site._id === siteId);
+              toast({
+                title: "Site selecionado",
+                description: `${selectedSite?.desc || selectedSite?.name || 'Site'} foi selecionado.`,
+              });
+            }}
+            loading={sitesLoading}
+          />
+        </div>
 
         {!selectedSiteId && sites.length > 0 && (
-          <Alert className="bg-blue-900/20 border-blue-600">
-            <AlertTriangle className="h-4 w-4 text-blue-400" />
+          <Alert className="bg-blue-900/30 border-blue-600">
+            <Info className="h-4 w-4 text-blue-400" />
             <AlertDescription className="text-blue-300">
               Por favor, selecione um site acima para visualizar e gerenciar os dispositivos e redes.
             </AlertDescription>
