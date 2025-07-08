@@ -31,18 +31,27 @@ export const GrafanaDashboardManager = ({ grafanaIntegration, credentials }: Gra
   const fetchDashboards = async () => {
     setLoadingDashboards(true);
     try {
-      const authHeader = btoa(`${credentials.username}:${credentials.password}`);
       const proxyUrl = `https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/grafana-proxy`;
       const grafanaUrl = `${grafanaIntegration.base_url}/api/search?type=dash-db`;
       
       console.log('Buscando dashboards...', { grafanaUrl });
       
-      const response = await fetch(`${proxyUrl}?url=${encodeURIComponent(grafanaUrl)}&auth=${encodeURIComponent(authHeader)}`);
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: grafanaUrl,
+          username: credentials.username,
+          password: credentials.password
+        })
+      });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Erro na resposta:', response.status, errorText);
-        throw new Error('Erro ao buscar dashboards');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Erro na resposta:', response.status, errorData);
+        throw new Error(errorData.message || 'Erro ao buscar dashboards');
       }
 
       const data = await response.json();
@@ -62,7 +71,7 @@ export const GrafanaDashboardManager = ({ grafanaIntegration, credentials }: Gra
       console.error('Erro ao buscar dashboards:', error);
       toast({
         title: "Erro ao carregar dashboards",
-        description: "Erro ao conectar com o Grafana.",
+        description: error instanceof Error ? error.message : "Erro ao conectar com o Grafana.",
         variant: "destructive"
       });
     } finally {
@@ -123,14 +132,15 @@ export const GrafanaDashboardManager = ({ grafanaIntegration, credentials }: Gra
                 </p>
               )}
               
-              <div className="bg-gray-800 rounded-lg p-4 min-h-[400px] border border-gray-600">
+              <div className="bg-gray-800 rounded-lg p-1 min-h-[600px] border border-gray-600">
                 <iframe
-                  src={`${grafanaIntegration.base_url}/d/${selectedDashboardData.uid}?orgId=1&refresh=10s&from=now-1h&to=now&kiosk`}
+                  src={`${grafanaIntegration.base_url}/d/${selectedDashboardData.uid}?orgId=1&refresh=10s&from=now-1h&to=now&kiosk=1&theme=dark`}
                   width="100%"
-                  height="600"
+                  height="700"
                   frameBorder="0"
-                  className="rounded"
+                  className="rounded w-full"
                   title={selectedDashboardData.title}
+                  style={{ minHeight: '700px' }}
                 />
               </div>
             </div>

@@ -28,15 +28,32 @@ export const useGrafanaAuth = () => {
     setAuthError(null);
 
     try {
-      const authHeader = btoa(`${grafanaIntegration.username}:${grafanaIntegration.password}`);
       const proxyUrl = `https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/grafana-proxy`;
       const grafanaUrl = `${grafanaIntegration.base_url}/api/user`;
       
-      console.log('Autenticando automaticamente com Grafana...');
+      console.log('Autenticando automaticamente com Grafana...', {
+        baseUrl: grafanaIntegration.base_url,
+        username: grafanaIntegration.username,
+        hasPassword: !!grafanaIntegration.password
+      });
       
-      const response = await fetch(`${proxyUrl}?url=${encodeURIComponent(grafanaUrl)}&auth=${encodeURIComponent(authHeader)}`);
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: grafanaUrl,
+          username: grafanaIntegration.username,
+          password: grafanaIntegration.password
+        })
+      });
 
+      console.log('Response status:', response.status);
+      
       if (response.ok) {
+        const data = await response.json();
+        console.log('Authentication successful:', data);
         setIsAuthenticated(true);
         toast({
           title: "Conectado ao Grafana",
@@ -44,9 +61,9 @@ export const useGrafanaAuth = () => {
         });
         return true;
       } else {
-        const errorText = await response.text();
-        console.error('Erro na autenticação:', response.status, errorText);
-        setAuthError('Erro na autenticação com o Grafana');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Erro na autenticação:', response.status, errorData);
+        setAuthError(`Erro na autenticação: ${errorData.message || 'Falha na conexão'}`);
         return false;
       }
     } catch (error) {
