@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -126,7 +125,7 @@ const UniFi = () => {
           </div>
           <div className="flex gap-2">
             <Button 
-              onClick={testConnection} 
+              onClick={testConnection}
               disabled={testConnectionLoading}
               variant="outline"
               className="border-gray-600 text-gray-200 hover:bg-gray-700"

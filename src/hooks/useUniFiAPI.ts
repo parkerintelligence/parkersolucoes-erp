@@ -37,6 +37,13 @@ export interface UniFiSite {
   name: string;
 }
 
+interface UniFiSystemInfo {
+  version: string;
+  uptime: number;
+  hostname: string;
+  timezone: string;
+}
+
 class UniFiService {
   private baseUrl: string;
   private username: string;
@@ -50,25 +57,22 @@ class UniFiService {
     this.port = integration.port || 8443;
   }
 
-  async makeRequest(endpoint: string, method: 'GET' | 'POST' = 'GET', data?: any) {
-    // Simulação da API UniFi - em produção, isso seria feito através de uma Edge Function
-    // devido às limitações de CORS e certificados SSL da controladora UniFi
-    
-    // Por enquanto, retornamos dados simulados baseados na configuração
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simula latência de rede
-    
-    console.log(`UniFi API Call: ${method} ${endpoint}`, { baseUrl: this.baseUrl, data });
-    
-    // Simular resposta baseada no endpoint
-    if (endpoint.includes('/stat/device')) {
-      return this.getMockDevices();
-    } else if (endpoint.includes('/stat/sta')) {
-      return this.getMockClients();
-    } else if (endpoint.includes('/stat/sysinfo')) {
-      return this.getMockSystemInfo();
-    }
-    
-    return { data: [] };
+  private async makeDeviceRequest(): Promise<{ data: UniFiDevice[] }> {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log(`UniFi API Call: GET /stat/device`, { baseUrl: this.baseUrl });
+    return this.getMockDevices();
+  }
+
+  private async makeClientRequest(): Promise<{ data: UniFiClient[] }> {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log(`UniFi API Call: GET /stat/sta`, { baseUrl: this.baseUrl });
+    return this.getMockClients();
+  }
+
+  private async makeSystemInfoRequest(): Promise<{ data: UniFiSystemInfo[] }> {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log(`UniFi API Call: GET /stat/sysinfo`, { baseUrl: this.baseUrl });
+    return this.getMockSystemInfo();
   }
 
   private getMockDevices(): { data: UniFiDevice[] } {
@@ -149,7 +153,7 @@ class UniFiService {
     };
   }
 
-  private getMockSystemInfo() {
+  private getMockSystemInfo(): { data: UniFiSystemInfo[] } {
     return {
       data: [{
         version: '7.5.176',
@@ -161,23 +165,23 @@ class UniFiService {
   }
 
   async getDevices(): Promise<UniFiDevice[]> {
-    const response = await this.makeRequest('/stat/device');
+    const response = await this.makeDeviceRequest();
     return response.data;
   }
 
   async getClients(): Promise<UniFiClient[]> {
-    const response = await this.makeRequest('/stat/sta');
+    const response = await this.makeClientRequest();
     return response.data;
   }
 
-  async getSystemInfo() {
-    const response = await this.makeRequest('/stat/sysinfo');
+  async getSystemInfo(): Promise<UniFiSystemInfo> {
+    const response = await this.makeSystemInfoRequest();
     return response.data[0];
   }
 
   async testConnection(): Promise<boolean> {
     try {
-      await this.makeRequest('/stat/sysinfo');
+      await this.makeSystemInfoRequest();
       return true;
     } catch (error) {
       console.error('UniFi connection test failed:', error);
@@ -274,6 +278,10 @@ export const useUniFiAPI = () => {
     });
   };
 
+  const handleTestConnection = () => {
+    testConnectionMutation.mutate();
+  };
+
   return {
     // Data
     devices,
@@ -292,7 +300,7 @@ export const useUniFiAPI = () => {
     clientsError,
     
     // Actions
-    testConnection: testConnectionMutation.mutate,
+    testConnection: handleTestConnection,
     testConnectionLoading: testConnectionMutation.isPending,
     refreshAllData,
     refetchDevices,
