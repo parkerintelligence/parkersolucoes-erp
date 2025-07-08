@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { MessageCircle, Copy } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
+import { EvolutionApiService } from '@/utils/evolutionApiService';
 
 interface WhatsAppAnnotationDialogProps {
   open: boolean;
@@ -56,10 +57,9 @@ export const WhatsAppAnnotationDialog = ({ open, onOpenChange, annotation }: Wha
     });
   };
 
-  const normalizeUrl = (baseUrl: string) => {
-    // Remove trailing slash if present
-    const cleanUrl = baseUrl.replace(/\/$/, '');
-    return cleanUrl;
+  const validatePhoneNumber = (phone: string): boolean => {
+    const cleaned = phone.replace(/\D/g, '');
+    return cleaned.length >= 10 && cleaned.length <= 15;
   };
 
   const handleSend = async () => {
@@ -67,6 +67,15 @@ export const WhatsAppAnnotationDialog = ({ open, onOpenChange, annotation }: Wha
       toast({
         title: "Número obrigatório",
         description: "Digite o número do WhatsApp para enviar a anotação.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validatePhoneNumber(phoneNumber)) {
+      toast({
+        title: "Número inválido",
+        description: "Digite um número válido (10-15 dígitos).",
         variant: "destructive",
       });
       return;
@@ -102,106 +111,31 @@ export const WhatsAppAnnotationDialog = ({ open, onOpenChange, annotation }: Wha
     }
 
     setIsLoading(true);
+    
     try {
-      const integrationAny = evolutionApiIntegration as any;
-      const instanceName = integrationAny.instance_name || 'main_instance';
-      const message = formatMessage();
+      const evolutionService = new EvolutionApiService(evolutionApiIntegration);
+      const result = await evolutionService.sendMessage(phoneNumber, formatMessage());
 
-      // Limpar o número de telefone (remover caracteres especiais)
-      const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
-      
-      // Normalizar a URL base
-      const baseUrl = normalizeUrl(evolutionApiIntegration.base_url);
-      const fullUrl = `${baseUrl}/message/sendText/${instanceName}`;
-      
-      console.log('Tentando enviar anotação para:', cleanPhoneNumber);
-      console.log('Instância:', instanceName);
-      console.log('URL completa:', fullUrl);
-      console.log('Token:', evolutionApiIntegration.api_token ? 'Configurado' : 'Não configurado');
-
-      const requestBody = {
-        number: cleanPhoneNumber,
-        text: message,
-      };
-
-      console.log('Payload da requisição:', requestBody);
-
-      const response = await fetch(fullUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': evolutionApiIntegration.api_token,
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      console.log('Status da resposta:', response.status, response.statusText);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Erro na resposta da API:', errorText);
+      if (result.success) {
+        toast({
+          title: "✅ Anotação enviada!",
+          description: `Anotação enviada com sucesso para ${phoneNumber}`,
+        });
         
-        // Tentar com header Authorization como fallback
-        if (response.status === 401) {
-          console.log('Tentando com header Authorization...');
-          const retryResponse = await fetch(fullUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${evolutionApiIntegration.api_token}`,
-            },
-            body: JSON.stringify(requestBody),
-          });
-
-          if (retryResponse.ok) {
-            const retryResult = await retryResponse.json();
-            console.log('Sucesso com Authorization header:', retryResult);
-            
-            toast({
-              title: "✅ Anotação enviada!",
-              description: `Anotação enviada com sucesso para ${phoneNumber}`,
-            });
-            
-            onOpenChange(false);
-            setPhoneNumber('');
-            return;
-          } else {
-            const retryErrorText = await retryResponse.text();
-            console.error('Erro mesmo com Authorization header:', retryErrorText);
-          }
-        }
-        
-        throw new Error(`Erro ${response.status}: ${response.statusText}\n${errorText}`);
+        onOpenChange(false);
+        setPhoneNumber('');
+      } else {
+        toast({
+          title: "❌ Erro no envio",
+          description: result.error || "Não foi possível enviar a anotação.",
+          variant: "destructive",
+        });
       }
-
-      const result = await response.json();
-      console.log('Resultado do envio:', result);
-
-      toast({
-        title: "✅ Anotação enviada!",
-        description: `Anotação enviada com sucesso para ${phoneNumber}`,
-      });
-      
-      onOpenChange(false);
-      setPhoneNumber('');
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
-      
-      let errorMessage = "Não foi possível enviar a anotação. Verifique a configuração da Evolution API.";
-      
-      if (error instanceof Error) {
-        if (error.message.includes('401')) {
-          errorMessage = "Erro de autenticação. Verifique o token da Evolution API.";
-        } else if (error.message.includes('404')) {
-          errorMessage = "Endpoint não encontrado. Verifique a URL da Evolution API.";
-        } else if (error.message.includes('500')) {
-          errorMessage = "Erro interno do servidor da Evolution API.";
-        }
-      }
-      
       toast({
         title: "❌ Erro no envio",
-        description: errorMessage,
+        description: "Ocorreu um erro inesperado ao enviar a anotação.",
         variant: "destructive",
       });
     } finally {
