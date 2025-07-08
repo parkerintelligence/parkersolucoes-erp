@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useZabbixProxy } from '@/hooks/useZabbixProxy';
 import { useIntegrations } from '@/hooks/useIntegrations';
@@ -64,7 +65,7 @@ export interface ZabbixProblem {
   clock: string;
   acknowledged: string;
   suppressed: string;
-  hosts: Array<{
+  hosts?: Array<{
     hostid: string;
     name: string;
   }>;
@@ -158,7 +159,7 @@ export const useZabbixAPI = () => {
     });
   };
 
-  // Hook para buscar problemas ativos
+  // Hook para buscar problemas ativos - CORRIGIDO: removido selectHosts inválido
   const useProblems = (params = {}) => {
     return useQuery({
       queryKey: ['zabbix-problems', params],
@@ -167,20 +168,65 @@ export const useZabbixAPI = () => {
           throw new Error('Integração do Zabbix não configurada');
         }
 
-        const result = await makeZabbixProxyRequest(
+        console.log('=== Fetching Zabbix Problems ===');
+        console.log('Integration ID:', zabbixIntegration.id);
+
+        // Primeiro, buscar os problemas sem o selectHosts (que é inválido na API problem.get)
+        const problems = await makeZabbixProxyRequest(
           'problem.get',
           {
             output: ['eventid', 'objectid', 'name', 'severity', 'clock', 'acknowledged', 'suppressed'],
-            selectHosts: ['hostid', 'name'],
             recent: true,
             sortfield: ['eventid'],
             sortorder: 'DESC',
+            limit: 100,
             ...params
           },
           zabbixIntegration.id
-        );
+        ) as ZabbixProblem[];
 
-        return result as ZabbixProblem[];
+        console.log('Problems found:', problems.length);
+
+        // Se temos problemas, buscar informações dos hosts relacionados
+        if (problems.length > 0) {
+          try {
+            // Extrair os triggerids dos problemas para fazer uma consulta separada
+            const triggerIds = problems.map(p => p.objectid).filter(Boolean);
+            
+            if (triggerIds.length > 0) {
+              console.log('Fetching trigger details for host information...');
+              
+              // Buscar detalhes dos triggers para obter informações dos hosts
+              const triggers = await makeZabbixProxyRequest(
+                'trigger.get',
+                {
+                  output: ['triggerid'],
+                  triggerids: triggerIds,
+                  selectHosts: ['hostid', 'name'],
+                },
+                zabbixIntegration.id
+              );
+
+              console.log('Triggers with hosts found:', triggers.length);
+
+              // Mapear os problemas com as informações dos hosts
+              const problemsWithHosts = problems.map(problem => {
+                const trigger = triggers.find((t: any) => t.triggerid === problem.objectid);
+                return {
+                  ...problem,
+                  hosts: trigger?.hosts || []
+                };
+              });
+
+              return problemsWithHosts;
+            }
+          } catch (hostError) {
+            console.warn('Erro ao buscar informações dos hosts:', hostError);
+            // Retornar problemas sem informações dos hosts em caso de erro
+          }
+        }
+
+        return problems;
       },
       enabled: !!zabbixIntegration,
       refetchInterval: 10000, // Atualizar a cada 10 segundos

@@ -84,6 +84,22 @@ export const useGuacamoleAPI = () => {
         console.error('Erro retornado pela API Guacamole:', data.error);
         console.log('Detalhes do erro:', data.details);
         
+        // Verificar se é erro de permissões administrativas
+        if (data.details?.needsAdminPermissions) {
+          const errorMsg = `ERRO DE PERMISSÕES: O usuário "${integration.username}" não tem permissões administrativas no Guacamole. Para acessar conexões, usuários e sessões ativas via API, o usuário precisa ter privilégios de administrador no sistema Guacamole.
+
+SOLUÇÃO:
+1. Acesse o painel administrativo do Guacamole
+2. Vá em "Settings" → "Users"  
+3. Edite o usuário "${integration.username}"
+4. Marque a opção "Administer system" ou similar
+5. Salve as alterações e teste novamente
+
+OU crie um novo usuário administrativo e atualize as credenciais na integração.`;
+          
+          throw new Error(errorMsg);
+        }
+        
         // Se for erro de token, invalidar queries para forçar nova autenticação
         if (data.error.includes('Token') || data.details?.status === 401 || data.details?.status === 403) {
           console.log('Invalidando cache devido a erro de autenticação');
@@ -139,6 +155,7 @@ export const useGuacamoleAPI = () => {
         if (error.message.includes('Configuração incompleta') || 
             error.message.includes('Credenciais inválidas') ||
             error.message.includes('URL base inválida') ||
+            error.message.includes('ERRO DE PERMISSÕES') ||
             error.message.includes('Acesso negado')) {
           return false;
         }
@@ -184,6 +201,7 @@ export const useGuacamoleAPI = () => {
         if (error.message.includes('Configuração incompleta') || 
             error.message.includes('Credenciais inválidas') ||
             error.message.includes('URL base inválida') ||
+            error.message.includes('ERRO DE PERMISSÕES') ||
             error.message.includes('Acesso negado')) {
           return false;
         }
@@ -231,6 +249,7 @@ export const useGuacamoleAPI = () => {
         if (error.message.includes('Configuração incompleta') || 
             error.message.includes('Credenciais inválidas') ||
             error.message.includes('URL base inválida') ||
+            error.message.includes('ERRO DE PERMISSÕES') ||
             error.message.includes('Acesso negado')) {
           return false;
         }
@@ -241,112 +260,100 @@ export const useGuacamoleAPI = () => {
     });
   };
 
-  // Hook para criar conexão
-  const useCreateConnection = () => {
-    return useMutation({
-      mutationFn: (connectionData: Partial<GuacamoleConnection>) => 
-        callGuacamoleAPI('connections', { 
-          method: 'POST', 
-          data: connectionData 
-        }),
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['guacamole', 'connections'] });
-        toast({
-          title: "Conexão criada!",
-          description: "A conexão foi criada com sucesso.",
-        });
-      },
-      onError: (error: Error) => {
-        console.error('Error creating connection:', error);
-        toast({
-          title: "Erro ao criar conexão",
-          description: error.message,
-          variant: "destructive"
-        });
-      },
-    });
-  };
-
-  // Hook para atualizar conexão
-  const useUpdateConnection = () => {
-    return useMutation({
-      mutationFn: ({ identifier, updates }: { identifier: string; updates: Partial<GuacamoleConnection> }) => 
-        callGuacamoleAPI(`connections/${identifier}`, { 
-          method: 'PUT', 
-          data: updates 
-        }),
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['guacamole', 'connections'] });
-        toast({
-          title: "Conexão atualizada!",
-          description: "A conexão foi atualizada com sucesso.",
-        });
-      },
-      onError: (error: Error) => {
-        console.error('Error updating connection:', error);
-        toast({
-          title: "Erro ao atualizar conexão",
-          description: error.message,
-          variant: "destructive"
-        });
-      },
-    });
-  };
-
-  // Hook para deletar conexão
-  const useDeleteConnection = () => {
-    return useMutation({
-      mutationFn: (identifier: string) => 
-        callGuacamoleAPI(`connections/${identifier}`, { method: 'DELETE' }),
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['guacamole', 'connections'] });
-        toast({
-          title: "Conexão removida!",
-          description: "A conexão foi removida com sucesso.",
-        });
-      },
-      onError: (error: Error) => {
-        console.error('Error deleting connection:', error);
-        toast({
-          title: "Erro ao remover conexão",
-          description: error.message,
-          variant: "destructive"
-        });
-      },
-    });
-  };
-
-  // Hook para desconectar sessão
-  const useDisconnectSession = () => {
-    return useMutation({
-      mutationFn: (sessionId: string) => 
-        callGuacamoleAPI(`sessions/${sessionId}`, { method: 'DELETE' }),
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['guacamole', 'sessions'] });
-        toast({
-          title: "Sessão desconectada!",
-          description: "A sessão foi desconectada com sucesso.",
-        });
-      },
-      onError: (error: Error) => {
-        console.error('Error disconnecting session:', error);
-        toast({
-          title: "Erro ao desconectar sessão",
-          description: error.message,
-          variant: "destructive"
-        });
-      },
-    });
-  };
-
   return {
     useConnections,
     useUsers,
     useActiveSessions,
-    useCreateConnection,
-    useUpdateConnection,
-    useDeleteConnection,
-    useDisconnectSession,
+    useCreateConnection: () => {
+      return useMutation({
+        mutationFn: (connectionData: Partial<GuacamoleConnection>) => 
+          callGuacamoleAPI('connections', { 
+            method: 'POST', 
+            data: connectionData 
+          }),
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['guacamole', 'connections'] });
+          toast({
+            title: "Conexão criada!",
+            description: "A conexão foi criada com sucesso.",
+          });
+        },
+        onError: (error: Error) => {
+          console.error('Error creating connection:', error);
+          toast({
+            title: "Erro ao criar conexão",
+            description: error.message,
+            variant: "destructive"
+          });
+        },
+      });
+    },
+    useUpdateConnection: () => {
+      return useMutation({
+        mutationFn: ({ identifier, updates }: { identifier: string; updates: Partial<GuacamoleConnection> }) => 
+          callGuacamoleAPI(`connections/${identifier}`, { 
+            method: 'PUT', 
+            data: updates 
+          }),
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['guacamole', 'connections'] });
+          toast({
+            title: "Conexão atualizada!",
+            description: "A conexão foi atualizada com sucesso.",
+          });
+        },
+        onError: (error: Error) => {
+          console.error('Error updating connection:', error);
+          toast({
+            title: "Erro ao atualizar conexão",
+            description: error.message,
+            variant: "destructive"
+          });
+        },
+      });
+    },
+    useDeleteConnection: () => {
+      return useMutation({
+        mutationFn: (identifier: string) => 
+          callGuacamoleAPI(`connections/${identifier}`, { method: 'DELETE' }),
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['guacamole', 'connections'] });
+          toast({
+            title: "Conexão removida!",
+            description: "A conexão foi removida com sucesso.",
+          });
+        },
+        onError: (error: Error) => {
+          console.error('Error deleting connection:', error);
+          toast({
+            title: "Erro ao remover conexão",
+            description: error.message,
+            variant: "destructive"
+          });
+        },
+      });
+    },
+    useDisconnectSession: () => {
+      return useMutation({
+        mutationFn: (sessionId: string) => 
+          callGuacamoleAPI(`sessions/${sessionId}`, { method: 'DELETE' }),
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['guacamole', 'sessions'] });
+          toast({
+            title: "Sessão desconectada!",
+            description: "A sessão foi desconectada com sucesso.",
+          });
+        },
+        onError: (error: Error) => {
+          console.error('Error disconnecting session:', error);
+          toast({
+            title: "Erro ao desconectar sessão",
+            description: error.message,
+            variant: "destructive"
+          });
+        },
+      });
+    },
     isConfigured,
     integration
   };

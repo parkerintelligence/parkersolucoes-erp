@@ -123,7 +123,7 @@ serve(async (req) => {
       console.log('=== Usando token em cache ===')
       authToken = cachedToken.token
     } else {
-      console.log('=== Fazendo login para obter novo token temporário ===')
+      console.log('=== Fazendo login para obter novo token ===')
       const tokenUrl = `${baseUrl}/api/tokens`
       console.log('Token URL:', tokenUrl)
       
@@ -154,7 +154,7 @@ serve(async (req) => {
               errorMessage = 'Credenciais inválidas. Verifique usuário e senha.'
               break
             case 403:
-              errorMessage = 'Acesso negado. Verifique se o usuário tem permissões administrativas.'
+              errorMessage = 'Acesso negado. Verifique se o usuário tem permissões administrativas no Guacamole.'
               break
             case 404:
               errorMessage = 'URL do Guacamole não encontrada. Verifique se a URL está correta e inclui /guacamole se necessário.'
@@ -185,6 +185,7 @@ serve(async (req) => {
 
         authToken = await loginResponse.text()
         console.log('Auth token obtained successfully, length:', authToken.length)
+        console.log('Token preview (first 20 chars):', authToken.substring(0, 20) + '...')
 
         // Cache do token por 50 minutos (tokens do Guacamole geralmente expiram em 60 min)
         tokenCache.set(integrationId, {
@@ -248,13 +249,14 @@ serve(async (req) => {
         }
     }
 
-    // Construir URL final com token como parâmetro conforme solicitado
+    // Construir URL final com token como parâmetro
     const apiUrl = `${baseUrl}${apiPath}?token=${encodeURIComponent(authToken)}`
 
     console.log('=== Making API call ===')
     console.log('API Path:', apiPath)
-    console.log('Full URL (token masked):', `${baseUrl}${apiPath}?token=***`)
+    console.log('Full URL (token masked):', `${baseUrl}${apiPath}?token=***MASKED***`)
     console.log('Token length:', authToken.length)
+    console.log('Token valid:', !!authToken && authToken.length > 0)
 
     const requestOptions: RequestInit = {
       method: method,
@@ -305,13 +307,13 @@ serve(async (req) => {
       
       switch (apiResponse.status) {
         case 401:
-          errorMessage = 'Token de autenticação expirado ou inválido'
+          errorMessage = 'Token de autenticação expirado ou inválido. O sistema irá tentar obter um novo token na próxima requisição.'
           break
         case 403:
-          errorMessage = 'Acesso negado à API. Verifique se o usuário tem permissões para acessar dados de conexão.'
+          errorMessage = `Acesso negado à API do Guacamole. IMPORTANTE: O usuário "${integration.username}" precisa ter permissões ADMINISTRATIVAS no Guacamole para acessar os dados de conexões, usuários e sessões ativas. Verifique no painel administrativo do Guacamole se este usuário tem as permissões corretas.`
           break
         case 404:
-          errorMessage = 'Endpoint da API não encontrado. Verifique se a versão do Guacamole é compatível.'
+          errorMessage = 'Endpoint da API não encontrado. Verifique se a versão do Guacamole é compatível e se a API REST está habilitada.'
           break
         default:
           errorMessage = `Erro da API Guacamole: ${apiResponse.status} - ${apiResponse.statusText}`
@@ -324,7 +326,9 @@ serve(async (req) => {
             status: apiResponse.status,
             statusText: apiResponse.statusText,
             endpoint: apiPath,
-            response: errorText.substring(0, 500)
+            response: errorText.substring(0, 500),
+            username: integration.username,
+            needsAdminPermissions: apiResponse.status === 403
           }
         }),
         { 
@@ -361,6 +365,7 @@ serve(async (req) => {
     console.log('API response processed successfully')
     console.log('Result type:', typeof result)
     console.log('Result keys:', Object.keys(result || {}))
+    console.log('Token cache status:', tokenCache.has(integrationId) ? 'cached' : 'not cached')
 
     return new Response(
       JSON.stringify({ result }),
