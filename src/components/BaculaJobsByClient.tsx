@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -51,40 +52,9 @@ export const BaculaJobsByClient: React.FC<BaculaJobsByClientProps> = ({
     return [];
   };
 
-  const rawJobs = extractJobs(jobsData);
-  
-  // Aplicar filtros padrão se não foram fornecidos jobs filtrados
-  const jobs = filteredJobs || rawJobs.filter((job: any) => {
-    let passesFilter = true;
-    
-    // Filtro por data inicial
-    if (startDate) {
-      const jobDate = new Date(job.starttime || job.schedtime || job.realendtime);
-      const filterStartDate = new Date(startDate);
-      passesFilter = passesFilter && jobDate >= filterStartDate;
-    }
-    
-    // Filtro por data final
-    if (endDate) {
-      const jobDate = new Date(job.starttime || job.schedtime || job.realendtime);
-      const filterEndDate = new Date(endDate);
-      filterEndDate.setHours(23, 59, 59, 999); // Incluir todo o dia final
-      passesFilter = passesFilter && jobDate <= filterEndDate;
-    }
-    
-    // Filtro por status
-    if (statusFilter && statusFilter !== 'all') {
-      passesFilter = passesFilter && job.jobstatus === statusFilter;
-    }
-    
-    // Filtro por cliente
-    if (clientFilter) {
-      const client = (job.client || job.clientname || job.clientid || '').toLowerCase();
-      passesFilter = passesFilter && client.includes(clientFilter.toLowerCase());
-    }
-    
-    return passesFilter;
-  });
+  // Se temos jobs filtrados das abas, usar eles diretamente
+  // Caso contrário, usar os jobs brutos e aplicar os filtros
+  const jobs = filteredJobs || extractJobs(jobsData);
 
   console.log('Filtered jobs:', jobs);
 

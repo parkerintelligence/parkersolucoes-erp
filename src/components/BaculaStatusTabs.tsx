@@ -21,9 +21,40 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
   statusFilter, 
   clientFilter 
 }) => {
+  // Aplicar filtros aos jobs baseado nas datas e filtros ativos
+  const applyFilters = (jobsList: any[]) => {
+    return jobsList.filter((job: any) => {
+      let passesFilter = true;
+      
+      // Filtro por data inicial
+      if (startDate) {
+        const jobDate = new Date(job.starttime || job.schedtime || job.realendtime);
+        const filterStartDate = new Date(startDate);
+        passesFilter = passesFilter && jobDate >= filterStartDate;
+      }
+      
+      // Filtro por data final
+      if (endDate) {
+        const jobDate = new Date(job.starttime || job.schedtime || job.realendtime);
+        const filterEndDate = new Date(endDate);
+        filterEndDate.setHours(23, 59, 59, 999); // Incluir todo o dia final
+        passesFilter = passesFilter && jobDate <= filterEndDate;
+      }
+      
+      // Filtro por cliente
+      if (clientFilter) {
+        const client = (job.client || job.clientname || job.clientid || '').toLowerCase();
+        passesFilter = passesFilter && client.includes(clientFilter.toLowerCase());
+      }
+      
+      return passesFilter;
+    });
+  };
+
   const getJobsByStatus = (status: string) => {
-    if (status === 'all') return jobs;
-    return jobs.filter((job: any) => job.jobstatus === status);
+    const filteredJobs = applyFilters(jobs);
+    if (status === 'all') return filteredJobs;
+    return filteredJobs.filter((job: any) => job.jobstatus === status);
   };
 
   const getStatusCount = (status: string) => {
@@ -51,7 +82,7 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
         <TabsTrigger value="all" className="text-slate-300 data-[state=active]:bg-slate-700">
           Todos
           <Badge className="ml-2 bg-slate-600 text-white">
-            {jobs.length}
+            {getJobsByStatus('all').length}
           </Badge>
         </TabsTrigger>
         <TabsTrigger value="T" className="text-slate-300 data-[state=active]:bg-slate-700">
@@ -93,7 +124,7 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
       
       <TabsContent value="all" className="mt-6">
         {React.cloneElement(children as React.ReactElement, { 
-          filteredJobs: jobs,
+          filteredJobs: getJobsByStatus('all'),
           startDate,
           endDate,
           statusFilter,
