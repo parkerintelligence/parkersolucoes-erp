@@ -99,10 +99,13 @@ export const useBaculaAPI = () => {
       throw new Error('Integração BaculaWeb não configurada');
     }
 
-    const response = await fetch('/api/bacula-proxy', {
+    console.log('Making request to BaculaWeb:', endpoint);
+
+    const response = await fetch(`https://f4440219-dd51-4101-bb5d-8216b89db483.supabase.co/functions/v1/bacula-proxy`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wdnhwcGdveWFkd3Vra2ZvY2NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzMjYyNjIsImV4cCI6MjA2NjkwMjI2Mn0.tNgNHrabYKZhE2nbFyqhKAyvuBBN3DMfqit8OQZBL3E`,
       },
       body: JSON.stringify({
         baseUrl: baculaIntegration.base_url,
@@ -115,10 +118,14 @@ export const useBaculaAPI = () => {
     });
 
     if (!response.ok) {
-      throw new Error(`BaculaWeb API error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('BaculaWeb API error:', response.status, errorText);
+      throw new Error(`BaculaWeb API error: ${response.status} ${response.statusText}`);
     }
 
-    return response.json();
+    const result = await response.json();
+    console.log('BaculaWeb API response:', result);
+    return result;
   };
 
   // Hook para buscar jobs

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Database, Settings, RefreshCw, BarChart3, Server, HardDrive } from 'lucide-react';
+import { Database, Settings, BarChart3, Server, HardDrive, AlertCircle } from 'lucide-react';
 import { useBaculaAPI } from '@/hooks/useBaculaAPI';
 import { BaculaJobsGrid } from '@/components/BaculaJobsGrid';
 import { BaculaStatusCards } from '@/components/BaculaStatusCards';
@@ -15,17 +15,32 @@ const Bacula = () => {
     return (
       <div className="min-h-screen bg-slate-900 text-white p-6">
         <div className="space-y-6">
+          <div className="flex items-center gap-2 mb-6">
+            <Database className="h-6 w-6 text-blue-400" />
+            <h1 className="text-2xl font-bold text-white">Sistema de Backup Bacula</h1>
+          </div>
+          
           <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-8 text-center">
-              <Settings className="h-12 w-12 mx-auto mb-4 text-slate-400" />
+              <AlertCircle className="h-12 w-12 mx-auto mb-4 text-amber-400" />
               <h3 className="text-lg font-semibold mb-2 text-white">BaculaWeb não configurado</h3>
-              <p className="text-slate-400 mb-4">
-                Configure a integração com BaculaWeb no painel administrativo para acessar o sistema de backup.
+              <p className="text-slate-400 mb-6">
+                Para acessar o sistema de backup Bacula, você precisa configurar a integração com BaculaWeb no painel administrativo.
               </p>
-              <Button onClick={() => window.location.href = '/admin'} className="bg-blue-600 hover:bg-blue-700">
-                <Settings className="mr-2 h-4 w-4" />
-                Ir para Configurações
-              </Button>
+              <div className="space-y-4">
+                <div className="text-sm text-slate-300 bg-slate-700 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-2">Informações necessárias:</h4>
+                  <ul className="space-y-1 text-left">
+                    <li>• URL do servidor BaculaWeb</li>
+                    <li>• Usuário com permissões administrativas</li>
+                    <li>• Senha do usuário</li>
+                  </ul>
+                </div>
+                <Button onClick={() => window.location.href = '/admin'} className="bg-blue-600 hover:bg-blue-700">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Configurar BaculaWeb
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -43,6 +58,9 @@ const Bacula = () => {
               Sistema de Backup Bacula
             </h1>
             <p className="text-slate-400">Monitore e gerencie seus backups com BaculaWeb</p>
+            <div className="mt-2 text-sm text-slate-300">
+              <span className="font-medium">Conectado a:</span> {baculaIntegration.name} ({baculaIntegration.base_url})
+            </div>
           </div>
         </div>
 
