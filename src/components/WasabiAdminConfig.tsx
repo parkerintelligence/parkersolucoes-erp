@@ -5,27 +5,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useIntegrations } from '@/hooks/useIntegrations';
+import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Cloud, AlertTriangle, CheckCircle } from 'lucide-react';
 
 export const WasabiAdminConfig = () => {
-  const { data: integrations, createIntegration, updateIntegration } = useIntegrations();
+  const { data: integrations } = useIntegrations();
+  const createIntegration = useCreateIntegration();
+  const updateIntegration = useUpdateIntegration();
   
   const wasabiIntegration = integrations?.find(integration => integration.type === 'wasabi');
 
   const [formData, setFormData] = useState({
     name: wasabiIntegration?.name || 'Wasabi Cloud Storage',
-    base_url: wasabiIntegration?.base_url || 'https://s3.wasabisys.com',
+    base_url: wasabiIntegration?.base_url || '',
     api_token: wasabiIntegration?.api_token || '',
-    password: wasabiIntegration?.password || '',
+    username: wasabiIntegration?.username || '',
     region: wasabiIntegration?.region || 'us-east-1',
     bucket_name: wasabiIntegration?.bucket_name || '',
     is_active: wasabiIntegration?.is_active ?? true,
   });
 
   const handleSave = async () => {
-    if (!formData.api_token || !formData.password || !formData.bucket_name) {
+    if (!formData.base_url || !formData.api_token || !formData.username || !formData.bucket_name) {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha todos os campos obrigatórios.",
@@ -38,12 +40,12 @@ export const WasabiAdminConfig = () => {
       type: 'wasabi' as const,
       name: formData.name,
       base_url: formData.base_url,
-      api_token: formData.api_token, // Access Key
-      password: formData.password, // Secret Key
+      api_token: formData.api_token,
+      username: formData.username,
       region: formData.region,
       bucket_name: formData.bucket_name,
       is_active: formData.is_active,
-      username: null,
+      password: null,
       webhook_url: null,
       phone_number: null,
       port: null,
@@ -82,7 +84,7 @@ export const WasabiAdminConfig = () => {
           Configuração do Wasabi
         </CardTitle>
         <CardDescription>
-          Configure a integração com o Wasabi Cloud Storage para armazenamento de arquivos.
+          Configure a integração com Wasabi Cloud Storage para backup e armazenamento.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -98,7 +100,7 @@ export const WasabiAdminConfig = () => {
           </div>
 
           <div>
-            <Label htmlFor="base_url">URL Base do Serviço</Label>
+            <Label htmlFor="base_url">Endpoint URL *</Label>
             <Input
               id="base_url"
               value={formData.base_url}
@@ -109,22 +111,21 @@ export const WasabiAdminConfig = () => {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="api_token">Access Key *</Label>
+              <Label htmlFor="username">Access Key *</Label>
+              <Input
+                id="username"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                placeholder="WASABI_ACCESS_KEY"
+              />
+            </div>
+            <div>
+              <Label htmlFor="api_token">Secret Key *</Label>
               <Input
                 id="api_token"
                 type="password"
                 value={formData.api_token}
                 onChange={(e) => setFormData({ ...formData, api_token: e.target.value })}
-                placeholder="••••••••••••••••••••"
-              />
-            </div>
-            <div>
-              <Label htmlFor="password">Secret Key *</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="••••••••••••••••••••••••••••••••"
               />
             </div>
@@ -155,7 +156,7 @@ export const WasabiAdminConfig = () => {
             <div>
               <Label htmlFor="is_active">Integração Ativa</Label>
               <p className="text-sm text-gray-500">
-                Ative para habilitar o armazenamento
+                Ative para habilitar o Wasabi
               </p>
             </div>
             <Switch
@@ -186,12 +187,12 @@ export const WasabiAdminConfig = () => {
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Como configurar:</strong>
+            <strong>Configuração do Wasabi:</strong>
             <ul className="mt-2 space-y-1 text-sm">
-              <li>• Acesse o Wasabi Console</li>
-              <li>• Vá em Access Keys e crie uma nova chave</li>
-              <li>• Configure permissões adequadas para o bucket</li>
-              <li>• Use a região correta do seu bucket</li>
+              <li>• Crie uma conta no Wasabi Cloud Storage</li>
+              <li>• Gere as chaves de acesso (Access Key e Secret Key)</li>
+              <li>• Crie um bucket para armazenamento</li>
+              <li>• Use o endpoint correto para sua região</li>
             </ul>
           </AlertDescription>
         </Alert>

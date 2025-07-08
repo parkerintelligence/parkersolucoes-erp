@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,12 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { MessageCircle, TestTube, CheckCircle, AlertCircle } from 'lucide-react';
-import { useIntegrations } from '@/hooks/useIntegrations';
+import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { useChatwootAPI } from '@/hooks/useChatwootAPI';
 import { toast } from '@/hooks/use-toast';
 
 export const ChatwootConfig = () => {
-  const { data: integrations = [], createIntegration, updateIntegration } = useIntegrations();
+  const { data: integrations = [] } = useIntegrations();
+  const createIntegration = useCreateIntegration();
+  const updateIntegration = useUpdateIntegration();
   const { testConnection } = useChatwootAPI();
   
   const chatwootIntegration = integrations.find(integration => integration.type === 'chatwoot');

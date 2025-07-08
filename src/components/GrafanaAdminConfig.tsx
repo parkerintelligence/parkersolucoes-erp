@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useIntegrations } from '@/hooks/useIntegrations';
+import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, BarChart3, AlertTriangle, CheckCircle } from 'lucide-react';
 
 export const GrafanaAdminConfig = () => {
-  const { data: integrations, createIntegration, updateIntegration } = useIntegrations();
+  const { data: integrations } = useIntegrations();
+  const createIntegration = useCreateIntegration();
+  const updateIntegration = useUpdateIntegration();
   
   const grafanaIntegration = integrations?.find(integration => integration.type === 'grafana');
 

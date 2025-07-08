@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,12 +7,14 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Monitor, Save, TestTube, AlertCircle, CheckCircle } from 'lucide-react';
-import { useIntegrations } from '@/hooks/useIntegrations';
+import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 export const GuacamoleAdminConfig = () => {
-  const { data: integrations, createIntegration, updateIntegration } = useIntegrations();
+  const { data: integrations } = useIntegrations();
+  const createIntegration = useCreateIntegration();
+  const updateIntegration = useUpdateIntegration();
   const [testing, setTesting] = useState(false);
 
   const guacamoleIntegration = integrations?.find(i => i.type === 'guacamole');
@@ -44,7 +45,6 @@ export const GuacamoleAdminConfig = () => {
         username: config.username,
         password: config.password,
         is_active: config.is_active,
-        // Campos obrigatórios da interface Integration com valores padrão
         api_token: null,
         webhook_url: null,
         phone_number: null,
@@ -99,11 +99,11 @@ export const GuacamoleAdminConfig = () => {
     setTesting(true);
     
     try {
-      // Primeiro salvar/atualizar a integração para garantir que existe
+      // First save/update the integration to ensure it exists
       let testIntegrationId = guacamoleIntegration?.id;
       
       if (!testIntegrationId) {
-        // Criar integração temporária para teste
+        // Create temporary integration for testing
         const tempIntegrationData = {
           type: 'guacamole' as const,
           name: config.name,
@@ -126,7 +126,7 @@ export const GuacamoleAdminConfig = () => {
         const createdIntegration = await createIntegration.mutateAsync(tempIntegrationData);
         testIntegrationId = createdIntegration.id;
       } else {
-        // Atualizar integração existente
+        // Update existing integration
         await updateIntegration.mutateAsync({
           id: testIntegrationId,
           updates: {
@@ -139,10 +139,10 @@ export const GuacamoleAdminConfig = () => {
         });
       }
 
-      // Aguardar um momento para garantir que a integração foi salva
+      // Wait a moment to ensure integration was saved
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Testar usando a Edge Function
+      // Test using the Edge Function
       console.log('=== Testando conexão Guacamole ===');
       console.log('Integration ID:', testIntegrationId);
       console.log('Base URL:', config.base_url);
@@ -260,10 +260,9 @@ export const GuacamoleAdminConfig = () => {
                 id="guacamole-username"
                 value={config.username}
                 onChange={(e) => setConfig({ ...config, username: e.target.value })}
-                placeholder="admin"
+                placeholder="guacadmin"
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="guacamole-password">Senha *</Label>
               <Input
@@ -275,68 +274,57 @@ export const GuacamoleAdminConfig = () => {
               />
             </div>
           </div>
-          
-          <p className="text-xs text-muted-foreground">
-            Use um usuário com permissões administrativas no Guacamole
-          </p>
         </div>
 
         <Separator />
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="guacamole-active"
-              checked={config.is_active}
-              onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })}
-            />
-            <Label htmlFor="guacamole-active">Integração ativa</Label>
+        <div className="flex items-center justify-between p-4 rounded-lg border">
+          <div>
+            <Label htmlFor="guacamole-active">Integração Ativa</Label>
+            <p className="text-sm text-muted-foreground">
+              Ative para habilitar o acesso remoto
+            </p>
           </div>
-
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleTest}
-              disabled={testing || !isFormValid}
-            >
-              <TestTube className="mr-2 h-4 w-4" />
-              {testing ? 'Testando...' : 'Testar Conexão'}
-            </Button>
-
-            <Button 
-              onClick={handleSave}
-              disabled={createIntegration.isPending || updateIntegration.isPending || !isFormValid}
-            >
-              <Save className="mr-2 h-4 w-4" />
-              Salvar Configuração
-            </Button>
-          </div>
+          <Switch
+            id="guacamole-active"
+            checked={config.is_active}
+            onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })}
+          />
         </div>
 
-        {guacamoleIntegration && (
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <CheckCircle className="h-4 w-4" />
-              Integração configurada em {new Date(guacamoleIntegration.created_at).toLocaleString('pt-BR')}
-            </div>
-          </div>
-        )}
+        <div className="flex gap-3">
+          <Button
+            onClick={handleTest}
+            disabled={testing || !isFormValid}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            {testing ? (
+              <TestTube className="h-4 w-4 animate-spin" />
+            ) : (
+              <TestTube className="h-4 w-4" />
+            )}
+            {testing ? 'Testando...' : 'Testar Conexão'}
+          </Button>
 
-        <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div className="text-sm">
-              <p className="font-medium text-blue-800 mb-1">Como Funciona a Autenticação</p>
-              <ul className="text-blue-700 space-y-1">
-                <li>• A URL base deve apontar para sua instalação do Guacamole</li>
-                <li>• O sistema fará login automaticamente usando suas credenciais</li>
-                <li>• Um token temporário será gerado a cada acesso à tela do Guacamole</li>
-                <li>• Todas as requisições da API usarão este token automaticamente</li>
-                <li>• Certifique-se de que a API REST esteja habilitada no servidor</li>
-                <li>• Exemplo de URL: https://guacamole.exemplo.com/guacamole</li>
-              </ul>
-            </div>
-          </div>
+          <Button
+            onClick={handleSave}
+            disabled={createIntegration.isPending || updateIntegration.isPending || !isFormValid}
+            className="flex-1"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            {guacamoleIntegration ? 'Atualizar' : 'Salvar'}
+          </Button>
+        </div>
+
+        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+          <h4 className="font-medium text-orange-900 mb-2">Configuração:</h4>
+          <ul className="text-sm text-orange-800 space-y-1">
+            <li>• Use um usuário com privilégios administrativos</li>
+            <li>• Certifique-se de que o Guacamole está acessível</li>
+            <li>• A URL deve incluir o contexto (/guacamole)</li>
+            <li>• Teste a conexão antes de ativar</li>
+          </ul>
         </div>
       </CardContent>
     </Card>
