@@ -21,7 +21,6 @@ import Guacamole from '@/pages/Guacamole';
 import Bacula from '@/pages/Bacula';
 import Monitoring from '@/pages/Monitoring';
 import { Layout } from '@/components/Layout';
-import UniFi from '@/pages/UniFi';
 
 // Create a single QueryClient instance
 const queryClient = new QueryClient();
@@ -147,7 +146,6 @@ function App() {
                   </Layout>
                 }
               />
-              <Route path="/unifi" element={<Layout><UniFi /></Layout>} />
               <Route path="/bacula" element={<Layout><Bacula /></Layout>} />
               <Route path="/monitoring" element={<Layout><Monitoring /></Layout>} />
             </Routes>
