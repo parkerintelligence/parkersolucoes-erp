@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -102,6 +101,42 @@ export const BaculaJobsByClient: React.FC<BaculaJobsByClientProps> = ({
         return <RefreshCw className="h-4 w-4 text-blue-400 animate-spin" />;
       default:
         return <Clock className="h-4 w-4 text-gray-400" />;
+    }
+  };
+
+  // Função para mapear o tipo de backup
+  const getBackupTypeBadge = (job: any) => {
+    const level = job.level || job.joblevel || job.backuplevel || '';
+    const type = job.type || job.jobtype || '';
+    
+    // Mapear códigos de nível do Bacula
+    switch (level) {
+      case 'F':
+        return <Badge className="bg-blue-900/20 text-blue-400 border-blue-600">Completo</Badge>;
+      case 'I':
+        return <Badge className="bg-green-900/20 text-green-400 border-green-600">Incremental</Badge>;
+      case 'D':
+        return <Badge className="bg-yellow-900/20 text-yellow-400 border-yellow-600">Diferencial</Badge>;
+      case 'B':
+        return <Badge className="bg-purple-900/20 text-purple-400 border-purple-600">Base</Badge>;
+      case 'C':
+        return <Badge className="bg-orange-900/20 text-orange-400 border-orange-600">Catalog</Badge>;
+      case 'V':
+        return <Badge className="bg-pink-900/20 text-pink-400 border-pink-600">Verify</Badge>;
+      case 'O':
+        return <Badge className="bg-indigo-900/20 text-indigo-400 border-indigo-600">VolumeToCatalog</Badge>;
+      default:
+        // Se não temos level, tentar usar o tipo
+        if (type === 'B' || type === 'Backup') {
+          return <Badge className="bg-slate-900/20 text-slate-400 border-slate-600">Backup</Badge>;
+        } else if (type === 'R' || type === 'Restore') {
+          return <Badge className="bg-cyan-900/20 text-cyan-400 border-cyan-600">Restore</Badge>;
+        } else if (type === 'V' || type === 'Verify') {
+          return <Badge className="bg-pink-900/20 text-pink-400 border-pink-600">Verify</Badge>;
+        } else if (type === 'A' || type === 'Admin') {
+          return <Badge className="bg-gray-900/20 text-gray-400 border-gray-600">Admin</Badge>;
+        }
+        return <Badge className="bg-gray-900/20 text-gray-400 border-gray-600">{level || type || 'N/A'}</Badge>;
     }
   };
 
@@ -237,7 +272,7 @@ Necessário investigar o motivo da falha no backup.`,
                     <TableRow className="border-slate-700">
                       <TableHead className="text-slate-300">Status</TableHead>
                       <TableHead className="text-slate-300">Job</TableHead>
-                      <TableHead className="text-slate-300">Tipo</TableHead>
+                      <TableHead className="text-slate-300">Tipo Backup</TableHead>
                       <TableHead className="text-slate-300">Início</TableHead>
                       <TableHead className="text-slate-300">Fim</TableHead>
                       <TableHead className="text-slate-300">Duração</TableHead>
@@ -258,8 +293,8 @@ Necessário investigar o motivo da falha no backup.`,
                         <TableCell className="font-medium text-slate-200">
                           {job.name || job.jobname || job.job || '-'}
                         </TableCell>
-                        <TableCell className="text-slate-300">
-                          {job.type || job.jobtype || job.level || '-'}
+                        <TableCell>
+                          {getBackupTypeBadge(job)}
                         </TableCell>
                         <TableCell className="text-slate-300">
                           {formatDateTime(job.starttime || job.schedtime || job.realendtime)}
