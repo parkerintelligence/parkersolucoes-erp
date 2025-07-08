@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,28 +16,28 @@ import {
   Shield,
   Clock,
   Users,
-  Database
+  Database,
+  ExternalLink
 } from 'lucide-react';
 import { useZabbixAPI } from '@/hooks/useZabbixAPI';
+import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { toast } from '@/hooks/use-toast';
 
 const Zabbix = () => {
   const { 
     useHosts, 
     useProblems, 
-    useTriggers, 
     useAcknowledgeProblem, 
-    useToggleHost,
     isConfigured,
     integration 
   } = useZabbixAPI();
 
+  const { createTicket } = useGLPIExpanded();
   const [refreshing, setRefreshing] = useState(false);
 
   // Carregar dados do Zabbix
   const { data: hosts = [], isLoading: hostsLoading, refetch: refetchHosts, error: hostsError } = useHosts();
   const { data: problems = [], isLoading: problemsLoading, refetch: refetchProblems, error: problemsError } = useProblems();
-  const { data: triggers = [], isLoading: triggersLoading, refetch: refetchTriggers, error: triggersError } = useTriggers();
 
   // Debug information
   console.log('=== Zabbix Page Debug ===');
@@ -44,19 +45,16 @@ const Zabbix = () => {
   console.log('integration:', integration);
   console.log('hosts:', hosts);
   console.log('problems:', problems);
-  console.log('triggers:', triggers);
-  console.log('errors:', { hostsError, problemsError, triggersError });
+  console.log('errors:', { hostsError, problemsError });
 
   const acknowledgeProblemMutation = useAcknowledgeProblem();
-  const toggleHostMutation = useToggleHost();
 
   const handleRefreshAll = async () => {
     setRefreshing(true);
     try {
       await Promise.all([
         refetchHosts(),
-        refetchProblems(),
-        refetchTriggers()
+        refetchProblems()
       ]);
       toast({
         title: "Dados atualizados",
@@ -84,15 +82,44 @@ const Zabbix = () => {
     }
   };
 
-  const handleToggleHost = async (hostid: string, currentStatus: string) => {
-    const newStatus = currentStatus === '0' ? 1 : 0; // 0 = enabled, 1 = disabled
+  const handleCreateGLPITicket = async (host: any, type: 'host' | 'problem', problem?: any) => {
     try {
-      await toggleHostMutation.mutateAsync({
-        hostid,
-        status: newStatus
+      let ticketData;
+      
+      if (type === 'host') {
+        ticketData = {
+          name: `Zabbix Host Issue - ${host.name}`,
+          content: `Host: ${host.name}\nStatus: ${host.status === '0' ? 'Ativo' : 'Inativo'}\nDisponibilidade: ${host.available === '1' ? 'Disponível' : 'Indisponível'}\nIP: ${host.interfaces?.[0]?.ip || 'N/A'}\nGrupos: ${host.groups?.map(g => g.name).join(', ') || 'N/A'}\n\nEste chamado foi criado automaticamente a partir do monitoramento Zabbix.`,
+          urgency: host.available === '0' ? 4 : 3,
+          impact: 3,
+          priority: host.available === '0' ? 4 : 3,
+          status: 1,
+          type: 1,
+        };
+      } else if (type === 'problem' && problem) {
+        ticketData = {
+          name: `Zabbix Problem - ${problem.name}`,
+          content: `Problema: ${problem.name}\nSeveridade: ${getSeverityLabel(problem.severity)}\nHost: ${problem.hosts?.[0]?.name || 'N/A'}\nData/Hora: ${new Date(parseInt(problem.clock) * 1000).toLocaleString('pt-BR')}\nStatus: ${problem.acknowledged === '1' ? 'Reconhecido' : 'Novo'}\n\nEste chamado foi criado automaticamente a partir do monitoramento Zabbix.`,
+          urgency: parseInt(problem.severity) >= 4 ? 4 : 3,
+          impact: parseInt(problem.severity) >= 4 ? 4 : 3,
+          priority: parseInt(problem.severity) >= 4 ? 4 : 3,
+          status: 1,
+          type: 1,
+        };
+      }
+
+      await createTicket.mutateAsync(ticketData);
+      toast({
+        title: "✅ Chamado GLPI criado!",
+        description: "O chamado foi criado com sucesso no GLPI.",
       });
     } catch (error) {
-      console.error('Erro ao alterar status do host:', error);
+      console.error('Erro ao criar chamado GLPI:', error);
+      toast({
+        title: "❌ Erro ao criar chamado",
+        description: "Não foi possível criar o chamado no GLPI. Verifique a configuração.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -117,6 +144,26 @@ const Zabbix = () => {
       default: return 'Desconhecida';
     }
   };
+
+  // Agrupar hosts por grupo
+  const groupedHosts = hosts.reduce((acc, host) => {
+    const groupName = host.groups?.[0]?.name || 'Sem Grupo';
+    if (!acc[groupName]) {
+      acc[groupName] = [];
+    }
+    acc[groupName].push(host);
+    return acc;
+  }, {} as Record<string, typeof hosts>);
+
+  // Agrupar problemas por host
+  const groupedProblems = problems.reduce((acc, problem) => {
+    const hostName = problem.hosts?.[0]?.name || 'Host Desconhecido';
+    if (!acc[hostName]) {
+      acc[hostName] = [];
+    }
+    acc[hostName].push(problem);
+    return acc;
+  }, {} as Record<string, typeof problems>);
 
   if (!isConfigured) {
     return (
@@ -162,7 +209,7 @@ const Zabbix = () => {
       </div>
 
       {/* Debug Section - Show errors if any */}
-      {(hostsError || problemsError || triggersError) && (
+      {(hostsError || problemsError) && (
         <Card className="border-red-200 bg-red-50">
           <CardHeader>
             <CardTitle className="text-red-800 flex items-center gap-2">
@@ -191,11 +238,6 @@ const Zabbix = () => {
               {problemsError && (
                 <div className="bg-red-100 p-3 rounded border-l-4 border-red-400">
                   <strong>Erro ao buscar problemas:</strong> {problemsError.message}
-                </div>
-              )}
-              {triggersError && (
-                <div className="bg-red-100 p-3 rounded border-l-4 border-red-400">
-                  <strong>Erro ao buscar triggers:</strong> {triggersError.message}
                 </div>
               )}
               <div className="mt-3 p-3 bg-blue-50 rounded">
@@ -239,7 +281,7 @@ const Zabbix = () => {
       </Card>
 
       {/* Cards de estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Hosts Totais</CardTitle>
@@ -268,19 +310,6 @@ const Zabbix = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Triggers</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{triggers.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {triggers.filter(t => t.status === '0').length} habilitados
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Status Geral</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -303,10 +332,9 @@ const Zabbix = () => {
       </div>
 
       <Tabs defaultValue="problems" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="problems">Problemas</TabsTrigger>
           <TabsTrigger value="hosts">Hosts</TabsTrigger>
-          <TabsTrigger value="triggers">Triggers</TabsTrigger>
         </TabsList>
 
         <TabsContent value="problems" className="mt-6">
@@ -317,7 +345,7 @@ const Zabbix = () => {
                 Problemas Ativos
               </CardTitle>
               <CardDescription>
-                Lista de problemas atualmente ativos no Zabbix
+                Lista de problemas atualmente ativos no Zabbix organizados por host
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -333,55 +361,73 @@ const Zabbix = () => {
                   <p className="text-sm">Todos os sistemas estão funcionando normalmente.</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Problema</TableHead>
-                      <TableHead>Severidade</TableHead>
-                      <TableHead>Host</TableHead>
-                      <TableHead>Data/Hora</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {problems.map((problem) => (
-                      <TableRow key={problem.eventid}>
-                        <TableCell className="font-medium">{problem.name}</TableCell>
-                        <TableCell>
-                          <Badge variant={getSeverityColor(problem.severity)}>
-                            {getSeverityLabel(problem.severity)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {problem.hosts?.[0]?.name || 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(parseInt(problem.clock) * 1000).toLocaleString('pt-BR')}
-                        </TableCell>
-                        <TableCell>
-                          {problem.acknowledged === '1' ? (
-                            <Badge variant="secondary">Reconhecido</Badge>
-                          ) : (
-                            <Badge variant="destructive">Novo</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {problem.acknowledged === '0' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleAcknowledgeProblem(problem.eventid)}
-                              disabled={acknowledgeProblemMutation.isPending}
-                            >
-                              Reconhecer
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="space-y-6">
+                  {Object.entries(groupedProblems).map(([hostName, hostProblems]) => (
+                    <div key={hostName} className="border rounded-lg overflow-hidden">
+                      <div className="bg-muted px-4 py-2 font-medium text-sm">
+                        <Server className="inline-block h-4 w-4 mr-2" />
+                        {hostName} ({hostProblems.length} problema{hostProblems.length !== 1 ? 's' : ''})
+                      </div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Problema</TableHead>
+                            <TableHead>Severidade</TableHead>
+                            <TableHead>Data/Hora</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Ações</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {hostProblems.map((problem) => (
+                            <TableRow key={problem.eventid} className="h-12">
+                              <TableCell className="font-medium py-2">{problem.name}</TableCell>
+                              <TableCell className="py-2">
+                                <Badge variant={getSeverityColor(problem.severity)}>
+                                  {getSeverityLabel(problem.severity)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-2">
+                                {new Date(parseInt(problem.clock) * 1000).toLocaleString('pt-BR')}
+                              </TableCell>
+                              <TableCell className="py-2">
+                                {problem.acknowledged === '1' ? (
+                                  <Badge variant="secondary">Reconhecido</Badge>
+                                ) : (
+                                  <Badge variant="destructive">Novo</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="py-2">
+                                <div className="flex gap-2">
+                                  {problem.acknowledged === '0' && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleAcknowledgeProblem(problem.eventid)}
+                                      disabled={acknowledgeProblemMutation.isPending}
+                                    >
+                                      Reconhecer
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleCreateGLPITicket(null, 'problem', problem)}
+                                    disabled={createTicket.isPending}
+                                    className="text-blue-600 hover:text-blue-700"
+                                  >
+                                    <ExternalLink className="h-4 w-4 mr-1" />
+                                    GLPI
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>
@@ -395,7 +441,7 @@ const Zabbix = () => {
                 Hosts Monitorados
               </CardTitle>
               <CardDescription>
-                Lista de todos os hosts configurados no Zabbix
+                Lista de todos os hosts configurados no Zabbix organizados por grupo
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -405,114 +451,59 @@ const Zabbix = () => {
                   <p>Carregando hosts...</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome do Host</TableHead>
-                      <TableHead>IP/DNS</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Disponibilidade</TableHead>
-                      <TableHead>Grupos</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {hosts.map((host) => (
-                      <TableRow key={host.hostid}>
-                        <TableCell className="font-medium">{host.name}</TableCell>
-                        <TableCell>
-                          {host.interfaces?.[0]?.ip || host.interfaces?.[0]?.dns || 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={host.status === '0' ? 'default' : 'secondary'}>
-                            {host.status === '0' ? 'Ativo' : 'Inativo'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={host.available === '1' ? 'default' : 'destructive'}>
-                            {host.available === '1' ? 'Disponível' : 'Indisponível'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {host.groups?.map(group => group.name).join(', ') || 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleToggleHost(host.hostid, host.status)}
-                            disabled={toggleHostMutation.isPending}
-                          >
-                            {host.status === '0' ? 'Desabilitar' : 'Habilitar'}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="triggers" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Triggers Configurados
-              </CardTitle>
-              <CardDescription>
-                Lista de triggers que monitoram condições específicas
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {triggersLoading ? (
-                <div className="text-center py-8">
-                  <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4" />
-                  <p>Carregando triggers...</p>
+                <div className="space-y-6">
+                  {Object.entries(groupedHosts).map(([groupName, groupHosts]) => (
+                    <div key={groupName} className="border rounded-lg overflow-hidden">
+                      <div className="bg-muted px-4 py-2 font-medium text-sm">
+                        <Users className="inline-block h-4 w-4 mr-2" />
+                        {groupName} ({groupHosts.length} host{groupHosts.length !== 1 ? 's' : ''})
+                      </div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nome do Host</TableHead>
+                            <TableHead>IP/DNS</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Disponibilidade</TableHead>
+                            <TableHead>Ações</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {groupHosts.map((host) => (
+                            <TableRow key={host.hostid} className="h-12">
+                              <TableCell className="font-medium py-2">{host.name}</TableCell>
+                              <TableCell className="py-2">
+                                {host.interfaces?.[0]?.ip || host.interfaces?.[0]?.dns || 'N/A'}
+                              </TableCell>
+                              <TableCell className="py-2">
+                                <Badge variant={host.status === '0' ? 'default' : 'secondary'}>
+                                  {host.status === '0' ? 'Ativo' : 'Inativo'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-2">
+                                <Badge variant={host.available === '1' ? 'default' : 'destructive'}>
+                                  {host.available === '1' ? 'Disponível' : 'Indisponível'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleCreateGLPITicket(host, 'host')}
+                                  disabled={createTicket.isPending}
+                                  className="text-blue-600 hover:text-blue-700"
+                                >
+                                  <ExternalLink className="h-4 w-4 mr-1" />
+                                  GLPI
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Host</TableHead>
-                      <TableHead>Prioridade</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Última Alteração</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {triggers.map((trigger) => (
-                      <TableRow key={trigger.triggerid}>
-                        <TableCell className="font-medium">{trigger.description}</TableCell>
-                        <TableCell>
-                          {trigger.hosts?.[0]?.name || 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={getSeverityColor(trigger.priority)}>
-                            {getSeverityLabel(trigger.priority)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={trigger.status === '0' ? 'default' : 'secondary'}>
-                            {trigger.status === '0' ? 'Ativo' : 'Inativo'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={trigger.value === '1' ? 'destructive' : 'default'}>
-                            {trigger.value === '1' ? 'Problema' : 'OK'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(parseInt(trigger.lastchange) * 1000).toLocaleString('pt-BR')}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
               )}
             </CardContent>
           </Card>

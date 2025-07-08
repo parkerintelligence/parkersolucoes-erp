@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useZabbixProxy } from '@/hooks/useZabbixProxy';
 import { useIntegrations } from '@/hooks/useIntegrations';
@@ -80,7 +79,7 @@ export const useZabbixAPI = () => {
     int.type === 'zabbix' && int.is_active
   );
 
-  // Hook para buscar hosts
+  // Hook para buscar hosts com dados de disponibilidade corretos
   const useHosts = (params = {}) => {
     return useQuery({
       queryKey: ['zabbix-hosts', params],
@@ -89,17 +88,26 @@ export const useZabbixAPI = () => {
           throw new Error('Integração do Zabbix não configurada');
         }
 
+        console.log('=== Fetching Zabbix Hosts with Availability ===');
+        console.log('Integration ID:', zabbixIntegration.id);
+
         const result = await makeZabbixProxyRequest(
           'host.get',
           {
-            output: ['hostid', 'host', 'name', 'status', 'available', 'error'],
+            output: ['hostid', 'host', 'name', 'status', 'available', 'error', 'disable_until', 'flags'],
             selectGroups: ['groupid', 'name'],
-            selectInterfaces: ['interfaceid', 'ip', 'dns', 'port', 'type', 'main'],
+            selectInterfaces: ['interfaceid', 'ip', 'dns', 'port', 'type', 'main', 'available', 'error'],
+            filter: {
+              status: [0, 1] // 0 = enabled, 1 = disabled
+            },
             ...params
           },
           zabbixIntegration.id
         );
 
+        console.log('Hosts found:', result?.length || 0);
+        console.log('Sample host data:', result?.[0]);
+        
         return result as ZabbixHost[];
       },
       enabled: !!zabbixIntegration,
@@ -132,34 +140,7 @@ export const useZabbixAPI = () => {
     });
   };
 
-  // Hook para buscar triggers
-  const useTriggers = (params = {}) => {
-    return useQuery({
-      queryKey: ['zabbix-triggers', params],
-      queryFn: async () => {
-        if (!zabbixIntegration) {
-          throw new Error('Integração do Zabbix não configurada');
-        }
-
-        const result = await makeZabbixProxyRequest(
-          'trigger.get',
-          {
-            output: ['triggerid', 'description', 'status', 'priority', 'state', 'value', 'lastchange'],
-            selectHosts: ['hostid', 'name'],
-            expandDescription: true,
-            ...params
-          },
-          zabbixIntegration.id
-        );
-
-        return result as ZabbixTrigger[];
-      },
-      enabled: !!zabbixIntegration,
-      refetchInterval: 15000, // Atualizar a cada 15 segundos
-    });
-  };
-
-  // Hook para buscar problemas ativos - CORRIGIDO: removido selectHosts inválido
+  // Hook para buscar problemas ativos - organizados por host
   const useProblems = (params = {}) => {
     return useQuery({
       queryKey: ['zabbix-problems', params],
@@ -171,7 +152,7 @@ export const useZabbixAPI = () => {
         console.log('=== Fetching Zabbix Problems ===');
         console.log('Integration ID:', zabbixIntegration.id);
 
-        // Primeiro, buscar os problemas sem o selectHosts (que é inválido na API problem.get)
+        // Buscar os problemas sem o selectHosts (que é inválido na API problem.get)
         const problems = await makeZabbixProxyRequest(
           'problem.get',
           {
@@ -339,7 +320,6 @@ export const useZabbixAPI = () => {
     // Queries
     useHosts,
     useItems,
-    useTriggers,
     useProblems,
     useHistory,
     
