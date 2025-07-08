@@ -13,8 +13,6 @@ import {
   MessageCircle,
   Calendar,
   Shield,
-  Wifi,
-  DollarSign,
   Cloud,
   Notebook,
   Monitor,
@@ -48,8 +46,8 @@ const menuItems = [
   { title: 'Automação', url: '/automation', icon: Settings, role: 'user' },
   { title: 'Zabbix', url: '/zabbix', icon: Activity, role: 'user' },
   { title: 'Guacamole', url: '/guacamole', icon: Monitor, role: 'user' },
-  { title: 'UniFi', url: '/unifi', icon: Wifi, role: 'user' },
   { title: 'Bacula', url: '/bacula', icon: Database, role: 'user' },
+  { title: 'Grafana', url: '/monitoring', icon: Activity, role: 'user' },
 ];
 
 const financialItems = [
