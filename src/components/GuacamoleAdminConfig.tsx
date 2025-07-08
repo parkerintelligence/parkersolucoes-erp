@@ -27,16 +27,33 @@ export const GuacamoleAdminConfig = () => {
 
   const handleSave = async () => {
     try {
+      const integrationData = {
+        type: 'guacamole' as const,
+        name: config.name,
+        base_url: config.base_url,
+        username: config.username,
+        password: config.password,
+        is_active: config.is_active,
+        // Campos obrigatórios da interface Integration com valores padrão
+        api_token: null,
+        webhook_url: null,
+        phone_number: null,
+        region: null,
+        bucket_name: null,
+        port: null,
+        directory: null,
+        passive_mode: null,
+        use_ssl: null,
+        keep_logged: null,
+      };
+
       if (guacamoleIntegration) {
         await updateIntegration.mutateAsync({
           id: guacamoleIntegration.id,
           updates: config
         });
       } else {
-        await createIntegration.mutateAsync({
-          type: 'guacamole',
-          ...config
-        });
+        await createIntegration.mutateAsync(integrationData);
       }
     } catch (error) {
       console.error('Erro ao salvar configuração Guacamole:', error);

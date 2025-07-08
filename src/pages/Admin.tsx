@@ -1,10 +1,10 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, Settings, Users, BarChart3, Calendar, MessageSquare, Cloud, Database, HardDrive, Activity, Monitor } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast"
-import { useSystemSettings } from "@/hooks/useSystemSettings"
-import { useUserProfiles } from "@/hooks/useUserProfiles"
+import { useSystemSettings, useCreateSystemSetting } from "@/hooks/useSystemSettings"
 import { useAuth } from "@/contexts/AuthContext"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
@@ -22,19 +22,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { DataTable } from "@/components/ui/data-table"
-import { columns } from "@/components/users/columns"
-import { ZabbixAdminConfig } from '@/components/ZabbixAdminConfig';
-import { FTPAdminConfig } from '@/components/FTPAdminConfig';
-import { GLPIAdminConfig } from '@/components/GLPIAdminConfig';
-import { WasabiAdminConfig } from '@/components/WasabiAdminConfig';
 import { GuacamoleAdminConfig } from '@/components/GuacamoleAdminConfig';
 
 const Admin = () => {
   const { toast } = useToast()
   const { isMaster } = useAuth()
-  const { settings, createSetting, updateSetting, deleteSetting } = useSystemSettings()
-  const { profiles, createProfile, updateProfile, deleteProfile } = useUserProfiles()
+  const { data: settings } = useSystemSettings()
+  const createSetting = useCreateSystemSetting()
 
   const [newSetting, setNewSetting] = useState({
     setting_key: "",
@@ -43,16 +37,11 @@ const Admin = () => {
     category: "general",
   })
 
-  const [newProfile, setNewProfile] = useState({
-    email: "",
-    role: "user",
-  })
-
   const handleCreateSetting = async () => {
     try {
-      await createSetting({
+      await createSetting.mutateAsync({
         ...newSetting,
-        setting_type: "string",
+        setting_type: "text",
       })
       setNewSetting({
         setting_key: "",
@@ -73,28 +62,6 @@ const Admin = () => {
     }
   }
 
-  const handleCreateProfile = async () => {
-    try {
-      await createProfile({
-        ...newProfile,
-      })
-      setNewProfile({
-        email: "",
-        role: "user",
-      })
-      toast({
-        title: "Sucesso!",
-        description: "Perfil criado com sucesso.",
-      })
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erro!",
-        description: "Falha ao criar perfil.",
-      })
-    }
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -110,9 +77,8 @@ const Admin = () => {
       </div>
 
       <Tabs defaultValue="integrations" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="integrations">Integrações</TabsTrigger>
-          <TabsTrigger value="users">Usuários</TabsTrigger>
           <TabsTrigger value="system">Sistema</TabsTrigger>
           <TabsTrigger value="reports">Relatórios</TabsTrigger>
         </TabsList>
@@ -141,100 +107,29 @@ const Admin = () => {
               </CardContent>
             </Card>
 
-            <ZabbixAdminConfig />
-            
-            <FTPAdminConfig />
-
-            <GLPIAdminConfig />
-
-            <WasabiAdminConfig />
-            
-            {/* Apache Guacamole Integration */}
-            <GuacamoleAdminConfig />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="users" className="mt-6">
-          <div className="space-y-6">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-green-100 p-2 rounded-lg">
-                      <Users className="h-6 w-6 text-green-600" />
-                    </div>
-                    <div>
-                      <CardTitle>Gerenciar Usuários</CardTitle>
-                      <CardDescription>
-                        Adicione, edite e remova usuários do sistema
-                      </CardDescription>
-                    </div>
+                <div className="flex items-center gap-3">
+                  <div className="bg-red-100 p-2 rounded-lg">
+                    <Activity className="h-6 w-6 text-red-600" />
                   </div>
-                  {isMaster && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline">Adicionar Usuário</Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Adicionar Usuário</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Adicione um novo usuário ao sistema.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <div className="grid gap-4 py-4">
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="email" className="text-right">
-                              Email
-                            </Label>
-                            <Input
-                              type="email"
-                              id="email"
-                              value={newProfile.email}
-                              onChange={(e) =>
-                                setNewProfile({ ...newProfile, email: e.target.value })
-                              }
-                              className="col-span-3"
-                            />
-                          </div>
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="role" className="text-right">
-                              Role
-                            </Label>
-                            <select
-                              id="role"
-                              className="col-span-3 rounded-md border-gray-200 shadow-sm focus:border-secondary focus:ring-secondary"
-                              value={newProfile.role}
-                              onChange={(e) =>
-                                setNewProfile({ ...newProfile, role: e.target.value })
-                              }
-                            >
-                              <option value="user">User</option>
-                              <option value="master">Master</option>
-                            </select>
-                          </div>
-                        </div>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleCreateProfile}>
-                            Continuar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
+                  <div>
+                    <CardTitle>Configuração Zabbix</CardTitle>
+                    <CardDescription>
+                      Configure a integração com o Zabbix para monitoramento
+                    </CardDescription>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
-                {isMaster ? (
-                  <DataTable columns={columns} data={profiles} />
-                ) : (
-                  <p className="text-muted-foreground">
-                    Você não tem permissão para gerenciar usuários.
-                  </p>
-                )}
+                <p className="text-muted-foreground">
+                  Configure aqui as credenciais do Zabbix para monitoramento.
+                </p>
               </CardContent>
             </Card>
+            
+            {/* Apache Guacamole Integration */}
+            <GuacamoleAdminConfig />
           </div>
         </TabsContent>
 
@@ -295,7 +190,7 @@ const Admin = () => {
                 <div className="space-y-2">
                   <h3 className="text-lg font-medium">Configurações Existentes</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {settings.map((setting) => (
+                    {settings?.map((setting) => (
                       <Card key={setting.id}>
                         <CardHeader>
                           <CardTitle>{setting.setting_key}</CardTitle>
