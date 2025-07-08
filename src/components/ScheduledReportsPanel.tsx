@@ -222,7 +222,7 @@ const ScheduledReportsPanel = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Automação</h2>
+          <h2 className="text-2xl font-bold text-white">Automação</h2>
           <p className="text-muted-foreground">Configure relatórios automáticos e templates de mensagens WhatsApp</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
