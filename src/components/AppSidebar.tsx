@@ -18,6 +18,7 @@ import {
   Cloud,
   Notebook,
   Monitor,
+  Database,
 } from 'lucide-react';
 
 import {
@@ -48,6 +49,7 @@ const menuItems = [
   { title: 'Zabbix', url: '/zabbix', icon: Activity, role: 'user' },
   { title: 'Guacamole', url: '/guacamole', icon: Monitor, role: 'user' },
   { title: 'UniFi', url: '/unifi', icon: Wifi, role: 'user' },
+  { title: 'Bacula', url: '/bacula', icon: Database, role: 'user' },
 ];
 
 const financialItems = [

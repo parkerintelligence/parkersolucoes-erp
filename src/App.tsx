@@ -18,6 +18,7 @@ import Schedule from '@/pages/Schedule';
 import Automation from '@/pages/Automation';
 import Zabbix from '@/pages/Zabbix';
 import Guacamole from '@/pages/Guacamole';
+import Bacula from '@/pages/Bacula';
 import { Layout } from '@/components/Layout';
 import UniFi from '@/pages/UniFi';
 
@@ -146,6 +147,7 @@ function App() {
                 }
               />
               <Route path="/unifi" element={<Layout><UniFi /></Layout>} />
+              <Route path="/bacula" element={<Layout><Bacula /></Layout>} />
             </Routes>
           </div>
         </BrowserRouter>
