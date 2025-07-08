@@ -24,7 +24,8 @@ const Backups = () => {
     type: 'database',
     frequency: 'daily',
     company_id: '',
-    retention_days: 30
+    retention_days: 30,
+    status: 'pending'
   });
 
   const handleCreateBackup = () => {
@@ -37,8 +38,22 @@ const Backups = () => {
       return;
     }
 
-    createBackup.mutate(formData);
-    setFormData({ name: '', type: 'database', frequency: 'daily', company_id: '', retention_days: 30 });
+    createBackup.mutate({
+      name: formData.name,
+      type: formData.type,
+      frequency: formData.frequency,
+      company_id: formData.company_id,
+      retention_days: formData.retention_days,
+      status: formData.status
+    });
+    setFormData({ 
+      name: '', 
+      type: 'database', 
+      frequency: 'daily', 
+      company_id: '', 
+      retention_days: 30,
+      status: 'pending'
+    });
     setIsDialogOpen(false);
   };
 

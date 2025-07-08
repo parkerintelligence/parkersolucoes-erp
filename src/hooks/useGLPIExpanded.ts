@@ -1,5 +1,6 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useIntegrations } from './useIntegrations';
+import { useIntegrations, useUpdateIntegration } from './useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
 export interface GLPITicket {
@@ -286,7 +287,8 @@ const PRIORITY_MAP: Record<number, string> = {
 };
 
 export const useGLPIExpanded = () => {
-  const { data: integrations, updateIntegration } = useIntegrations();
+  const { data: integrations } = useIntegrations();
+  const updateIntegration = useUpdateIntegration();
   const queryClient = useQueryClient();
   
   const glpiIntegration = integrations?.find(int => int.type === 'glpi');
