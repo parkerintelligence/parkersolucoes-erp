@@ -1,7 +1,5 @@
-
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Database, Settings, AlertCircle, TrendingUp, Activity, FileBarChart } from 'lucide-react';
 import { useBaculaAPI } from '@/hooks/useBaculaAPI';
 import { BaculaStatusCards } from '@/components/BaculaStatusCards';
@@ -15,7 +13,7 @@ const Bacula = () => {
   const { baculaIntegration, isEnabled } = useBaculaAPI();
   const { data: jobsData } = useBaculaJobsRecent();
   
-  // Estados para filtros
+  // Estados para filtros - data padrão é ontem
   const [startDate, setStartDate] = useState(() => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -114,30 +112,6 @@ const Bacula = () => {
           </div>
           
           <div className="flex flex-wrap gap-2">
-            <Button 
-              variant="outline"
-              size="sm"
-              className="border-slate-600 text-slate-200 hover:bg-slate-700 bg-blue-800 hover:bg-blue-700 text-white border-blue-800"
-            >
-              <TrendingUp className="mr-2 h-4 w-4" />
-              Relatórios
-            </Button>
-            <Button 
-              variant="outline"
-              size="sm"
-              className="border-slate-600 text-slate-200 hover:bg-slate-700 bg-blue-800 hover:bg-blue-700 text-white border-blue-800"
-            >
-              <Activity className="mr-2 h-4 w-4" />
-              Monitoramento
-            </Button>
-            <Button 
-              variant="outline"
-              size="sm"
-              className="border-slate-600 text-slate-200 hover:bg-slate-700 bg-blue-800 hover:bg-blue-700 text-white border-blue-800"
-            >
-              <FileBarChart className="mr-2 h-4 w-4" />
-              Logs
-            </Button>
           </div>
         </div>
 

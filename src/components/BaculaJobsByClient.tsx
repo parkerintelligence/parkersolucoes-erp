@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -54,7 +53,7 @@ export const BaculaJobsByClient: React.FC<BaculaJobsByClientProps> = ({
 
   const rawJobs = extractJobs(jobsData);
   
-  // Aplicar filtros se não foram fornecidos jobs filtrados
+  // Aplicar filtros padrão se não foram fornecidos jobs filtrados
   const jobs = filteredJobs || rawJobs.filter((job: any) => {
     let passesFilter = true;
     
@@ -254,7 +253,7 @@ Necessário investigar o motivo da falha no backup.`,
               <CardTitle className="text-white flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   <RefreshCw className="h-5 w-5" />
-                  {client}
+                  <span className="text-sm">{client}</span>
                 </span>
                 <Badge variant="outline" className="border-slate-600 text-slate-300">
                   {clientJobs.length} jobs
