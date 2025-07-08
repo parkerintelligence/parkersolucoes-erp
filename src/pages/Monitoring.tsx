@@ -1,11 +1,11 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, BarChart3, Server, AlertTriangle, Eye, EyeOff, ExternalLink } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Activity, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
@@ -14,6 +14,7 @@ const Monitoring = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedDashboard, setSelectedDashboard] = useState('');
 
   const grafanaIntegration = integrations.find(integration => 
     integration.type === 'grafana' && integration.is_active
@@ -31,7 +32,6 @@ const Monitoring = () => {
       return;
     }
 
-    // Verificar credenciais com as configuradas na integração
     if (credentials.username === grafanaIntegration.username && 
         credentials.password === grafanaIntegration.password) {
       setIsAuthenticated(true);
@@ -51,17 +51,10 @@ const Monitoring = () => {
   const handleLogout = () => {
     setIsAuthenticated(false);
     setCredentials({ username: '', password: '' });
+    setSelectedDashboard('');
   };
 
-  const openGrafanaDashboard = (path?: string) => {
-    if (!grafanaIntegration) return;
-    
-    const baseUrl = grafanaIntegration.base_url.replace(/\/$/, '');
-    const fullUrl = path ? `${baseUrl}${path}` : baseUrl;
-    window.open(fullUrl, '_blank');
-  };
-
-  const predefinedDashboards = [
+  const dashboards = [
     { 
       id: 'system-overview', 
       name: 'Visão Geral do Sistema', 
@@ -87,6 +80,8 @@ const Monitoring = () => {
       description: 'Monitoramento de aplicações e serviços'
     }
   ];
+
+  const selectedDashboardData = dashboards.find(d => d.id === selectedDashboard);
 
   if (!grafanaIntegration) {
     return (
@@ -181,124 +176,58 @@ const Monitoring = () => {
               <Activity className="h-6 w-6 text-blue-400" />
               Monitoramento - Grafana
             </h1>
-            <p className="text-gray-400">Acesse os dashboards do Grafana para monitoramento em tempo real</p>
-            <div className="mt-2 text-sm text-gray-300">
-              <span className="font-medium">Conectado a:</span> {grafanaIntegration.base_url}
-            </div>
+            <p className="text-gray-400">Selecione um painel de controle para visualizar</p>
           </div>
           <Button variant="outline" onClick={handleLogout} className="border-gray-600 text-gray-200 hover:bg-gray-800">
             Sair
           </Button>
         </div>
 
-        <Tabs defaultValue="dashboards" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-800 border-gray-700">
-            <TabsTrigger value="dashboards" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Dashboards</TabsTrigger>
-            <TabsTrigger value="grafana" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Grafana Completo</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="dashboards" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {predefinedDashboards.map((dashboard) => (
-                <Card key={dashboard.id} className="bg-gray-800 border-gray-700 hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5" />
-                      {dashboard.name}
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">
-                      {dashboard.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button 
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                      onClick={() => openGrafanaDashboard(dashboard.path)}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Abrir Dashboard
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <div className="mt-8">
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Server className="h-5 w-5" />
-                    Acesso Rápido
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Button 
-                      variant="outline" 
-                      className="border-gray-600 text-gray-200 hover:bg-gray-700"
-                      onClick={() => openGrafanaDashboard('/explore')}
-                    >
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      Explorar Dados
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="border-gray-600 text-gray-200 hover:bg-gray-700"
-                      onClick={() => openGrafanaDashboard('/alerting')}
-                    >
-                      <AlertTriangle className="h-4 w-4 mr-2" />
-                      Alertas
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="border-gray-600 text-gray-200 hover:bg-gray-700"
-                      onClick={() => openGrafanaDashboard()}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Grafana Principal
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="grafana" className="mt-6">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Interface Completa do Grafana
-                </CardTitle>
-                <CardDescription className="text-gray-400">
-                  Acesse a interface completa do Grafana em uma nova aba
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <div className="mb-6">
-                    <BarChart3 className="h-16 w-16 mx-auto mb-4 text-blue-400" />
-                    <h3 className="text-lg font-semibold text-white mb-2">Grafana Dashboard</h3>
-                    <p className="text-gray-400 mb-4">
-                      Clique no botão abaixo para abrir a interface completa do Grafana
-                    </p>
-                  </div>
-                  <Button 
-                    size="lg"
-                    className="bg-blue-600 hover:bg-blue-700"
-                    onClick={() => openGrafanaDashboard()}
-                  >
-                    <ExternalLink className="h-5 w-5 mr-2" />
-                    Abrir Grafana Completo
-                  </Button>
-                  <div className="mt-4 text-sm text-gray-500">
-                    <p>URL: {grafanaIntegration.base_url}</p>
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white">Seleção de Painel</CardTitle>
+            <CardDescription className="text-gray-400">
+              Escolha um painel de controle do Grafana para visualizar
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="dashboard-select" className="text-gray-200">Painel de Controle</Label>
+                <Select value={selectedDashboard} onValueChange={setSelectedDashboard}>
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectValue placeholder="Selecione um painel..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-600">
+                    {dashboards.map((dashboard) => (
+                      <SelectItem key={dashboard.id} value={dashboard.id} className="text-white hover:bg-gray-600">
+                        {dashboard.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {selectedDashboardData && (
+                <div className="p-4 bg-gray-700 rounded-lg">
+                  <h3 className="text-white font-semibold mb-2">{selectedDashboardData.name}</h3>
+                  <p className="text-gray-300 text-sm mb-4">{selectedDashboardData.description}</p>
+                  
+                  <div className="bg-gray-800 rounded-lg p-4 min-h-[400px] border border-gray-600">
+                    <iframe
+                      src={`${grafanaIntegration.base_url}${selectedDashboardData.path}?orgId=1&refresh=10s&from=now-1h&to=now&kiosk`}
+                      width="100%"
+                      height="400"
+                      frameBorder="0"
+                      className="rounded"
+                      title={selectedDashboardData.name}
+                    />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
