@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,7 +26,8 @@ import {
   HelpCircle,
   Zap,
   Globe,
-  Info
+  Info,
+  Stethoscope
 } from 'lucide-react';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { UniFiSiteSelector } from '@/components/UniFiSiteSelector';
@@ -36,6 +36,7 @@ import { UniFiClientManager } from '@/components/UniFiClientManager';
 import { UniFiNetworkManager } from '@/components/UniFiNetworkManager';
 import { UniFiMonitoringDashboard } from '@/components/UniFiMonitoringDashboard';
 import { UniFiAdvancedDeviceManager } from '@/components/UniFiAdvancedDeviceManager';
+import { UniFiConnectionDiagnostic } from '@/components/UniFiConnectionDiagnostic';
 import { toast } from '@/hooks/use-toast';
 
 const UniFi = () => {
@@ -43,6 +44,7 @@ const UniFi = () => {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [connectionStatus, setConnectionStatus] = useState<'testing' | 'connected' | 'error' | 'unknown'>('unknown');
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [diagnosis, setDiagnosis] = useState<any>(null);
   
   const {
     sites,
@@ -60,6 +62,8 @@ const UniFi = () => {
     eventsLoading,
     testConnection,
     testConnectionLoading,
+    diagnose,
+    diagnoseLoading,
     restartDevice,
     restartDeviceLoading,
     blockClient,
@@ -75,7 +79,10 @@ const UniFi = () => {
     refreshAllData,
     refreshAdvancedData,
     isConnected,
-    connectionUrl
+    connectionUrl,
+    sitesError,
+    devicesError,
+    clientsError
   } = useUniFiAPI(selectedSiteId);
 
   // Auto-refresh functionality
@@ -93,7 +100,7 @@ const UniFi = () => {
 
   // Test connection on component mount
   useEffect(() => {
-    if (isConnected && !testConnectionLoading) {
+    if (isConnected && !testConnectionLoading && connectionStatus === 'unknown') {
       handleTestConnection();
     }
   }, [isConnected]);
@@ -127,6 +134,15 @@ const UniFi = () => {
         description: "Falha ao conectar à controladora UniFi.",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleDiagnose = async () => {
+    try {
+      await diagnose();
+      // The diagnosis result will be handled in the mutation's onSuccess
+    } catch (error) {
+      console.error('Diagnosis failed:', error);
     }
   };
 
@@ -170,6 +186,34 @@ const UniFi = () => {
   };
 
   const getConnectionStatusBadge = () => {
+    // Check for specific errors
+    if (sitesError || devicesError || clientsError) {
+      const errorMessage = sitesError?.message || devicesError?.message || clientsError?.message || '';
+      
+      if (errorMessage.includes('Authentication failed') || errorMessage.includes('Invalid credentials')) {
+        return (
+          <Badge className="bg-red-900/20 text-red-400 border-red-600">
+            <XCircle className="h-3 w-3 mr-1" />
+            Falha de Autenticação
+          </Badge>
+        );
+      } else if (errorMessage.includes('certificate') || errorMessage.includes('SSL')) {
+        return (
+          <Badge className="bg-orange-900/20 text-orange-400 border-orange-600">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            Erro SSL/Certificado
+          </Badge>
+        );
+      } else if (errorMessage.includes('timeout') || errorMessage.includes('unreachable')) {
+        return (
+          <Badge className="bg-red-900/20 text-red-400 border-red-600">
+            <XCircle className="h-3 w-3 mr-1" />
+            Controladora Inacessível
+          </Badge>
+        );
+      }
+    }
+    
     switch (connectionStatus) {
       case 'testing':
         return (
@@ -306,6 +350,14 @@ const UniFi = () => {
           </div>
         </div>
 
+        {/* Connection Diagnostic Section */}
+        <UniFiConnectionDiagnostic
+          onRunDiagnosis={handleDiagnose}
+          diagnosisLoading={diagnoseLoading}
+          diagnosis={diagnosis}
+          connectionUrl={connectionUrl}
+        />
+
         {/* Enhanced Connection Status */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader className="pb-3">
@@ -326,16 +378,16 @@ const UniFi = () => {
                 </span>
               </div>
               
-              {connectionStatus === 'error' && (
+              {(sitesError || devicesError || clientsError) && (
                 <Alert className="bg-red-900/20 border-red-600">
                   <AlertTriangle className="h-4 w-4 text-red-400" />
                   <AlertDescription className="text-red-300">
-                    Falha na conexão com a controladora. Verifique a URL, credenciais e conectividade de rede.
+                    {sitesError?.message || devicesError?.message || clientsError?.message}
                   </AlertDescription>
                 </Alert>
               )}
               
-              {sites.length === 0 && !sitesLoading && connectionStatus !== 'testing' && (
+              {sites.length === 0 && !sitesLoading && connectionStatus !== 'testing' && !sitesError && (
                 <Alert className="bg-yellow-900/20 border-yellow-600">
                   <AlertTriangle className="h-4 w-4 text-yellow-400" />
                   <AlertDescription className="text-yellow-300">
@@ -451,7 +503,7 @@ const UniFi = () => {
                 <CardTitle className="text-white">Ações Rápidas</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                   <Button
                     onClick={() => refreshAdvancedData()}
                     disabled={isLoading}
@@ -480,6 +532,15 @@ const UniFi = () => {
                   >
                     <TestTube className="h-4 w-4 mr-2" />
                     Testar
+                  </Button>
+                  <Button
+                    onClick={handleDiagnose}
+                    disabled={diagnoseLoading}
+                    variant="outline"
+                    className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                  >
+                    <Stethoscope className="h-4 w-4 mr-2" />
+                    Diagnóstico
                   </Button>
                   <Button
                     onClick={() => window.location.reload()}
