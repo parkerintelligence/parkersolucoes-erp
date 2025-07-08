@@ -20,6 +20,9 @@ import Zabbix from '@/pages/Zabbix';
 import Guacamole from '@/pages/Guacamole';
 import Bacula from '@/pages/Bacula';
 import Monitoring from '@/pages/Monitoring';
+import Services from '@/pages/Services';
+import Budgets from '@/pages/Budgets';
+import Contracts from '@/pages/Contracts';
 import { Layout } from '@/components/Layout';
 
 // Create a single QueryClient instance
@@ -143,6 +146,30 @@ function App() {
                 element={
                   <Layout>
                     <Guacamole />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/services"
+                element={
+                  <Layout>
+                    <Services />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/budgets"
+                element={
+                  <Layout>
+                    <Budgets />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/contracts"
+                element={
+                  <Layout>
+                    <Contracts />
                   </Layout>
                 }
               />
