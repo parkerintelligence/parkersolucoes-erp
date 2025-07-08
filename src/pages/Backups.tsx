@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -151,15 +150,15 @@ const Backups = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getDaysFromLastModification = (lastModified: string) => {
-    const lastModifiedDate = new Date(lastModified);
+  const getDaysFromLastModification = (lastModified: string | Date) => {
+    const lastModifiedDate = typeof lastModified === 'string' ? new Date(lastModified) : lastModified;
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - lastModifiedDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
 
-  const getTimeLabel = (lastModified: string, isDirectory: boolean) => {
+  const getTimeLabel = (lastModified: string | Date, isDirectory: boolean) => {
     if (!isDirectory) return null;
     
     const days = getDaysFromLastModification(lastModified);
