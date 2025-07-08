@@ -24,17 +24,19 @@ const Contracts = () => {
   const [editingContract, setEditingContract] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
-    description: '',
+    content: '',
     company_id: '',
-    value: 0,
+    contract_number: '',
+    total_value: 0,
     start_date: '',
     end_date: '',
-    status: 'active',
-    type: 'service'
+    status: 'draft',
+    budget_id: '',
+    signed_date: ''
   });
 
   const handleSave = () => {
-    if (!formData.title || !formData.company_id) return;
+    if (!formData.title || !formData.company_id || !formData.contract_number || !formData.content) return;
 
     if (editingContract) {
       updateContract.mutate({ id: editingContract, updates: formData });
@@ -44,13 +46,15 @@ const Contracts = () => {
 
     setFormData({
       title: '',
-      description: '',
+      content: '',
       company_id: '',
-      value: 0,
+      contract_number: '',
+      total_value: 0,
       start_date: '',
       end_date: '',
-      status: 'active',
-      type: 'service'
+      status: 'draft',
+      budget_id: '',
+      signed_date: ''
     });
     setIsDialogOpen(false);
     setEditingContract(null);
@@ -59,13 +63,15 @@ const Contracts = () => {
   const handleEdit = (contract: any) => {
     setFormData({
       title: contract.title || '',
-      description: contract.description || '',
+      content: contract.content || '',
       company_id: contract.company_id || '',
-      value: contract.value || 0,
+      contract_number: contract.contract_number || '',
+      total_value: contract.total_value || 0,
       start_date: contract.start_date || '',
       end_date: contract.end_date || '',
-      status: contract.status || 'active',
-      type: contract.type || 'service'
+      status: contract.status || 'draft',
+      budget_id: contract.budget_id || '',
+      signed_date: contract.signed_date || ''
     });
     setEditingContract(contract.id);
     setIsDialogOpen(true);
@@ -80,7 +86,7 @@ const Contracts = () => {
       case 'cancelled':
         return <Badge className="bg-gray-700 text-gray-400 border-gray-600">Cancelado</Badge>;
       default:
-        return <Badge className="bg-yellow-900/20 text-yellow-400 border-yellow-600">Pendente</Badge>;
+        return <Badge className="bg-yellow-900/20 text-yellow-400 border-yellow-600">Rascunho</Badge>;
     }
   };
 
@@ -96,7 +102,7 @@ const Contracts = () => {
     return company?.name || 'Empresa não encontrada';
   };
 
-  const totalValue = contracts.reduce((sum, contract) => sum + (contract.value || 0), 0);
+  const totalValue = contracts.reduce((sum, contract) => sum + (contract.total_value || 0), 0);
   const activeContracts = contracts.filter(c => c.status === 'active').length;
   const expiredContracts = contracts.filter(c => c.status === 'expired').length;
 
@@ -141,6 +147,17 @@ const Contracts = () => {
                 </div>
                 
                 <div className="grid gap-2">
+                  <Label htmlFor="contract_number" className="text-gray-200">Número do Contrato *</Label>
+                  <Input 
+                    id="contract_number" 
+                    value={formData.contract_number}
+                    onChange={(e) => setFormData({...formData, contract_number: e.target.value})}
+                    placeholder="CONT-001"
+                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  />
+                </div>
+                
+                <div className="grid gap-2">
                   <Label htmlFor="company_id" className="text-gray-200">Empresa *</Label>
                   <Select value={formData.company_id} onValueChange={(value) => setFormData({...formData, company_id: value})}>
                     <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
@@ -157,44 +174,28 @@ const Contracts = () => {
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="description" className="text-gray-200">Descrição</Label>
+                  <Label htmlFor="content" className="text-gray-200">Conteúdo *</Label>
                   <Textarea 
-                    id="description" 
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    placeholder="Descrição detalhada do contrato"
+                    id="content" 
+                    value={formData.content}
+                    onChange={(e) => setFormData({...formData, content: e.target.value})}
+                    placeholder="Conteúdo detalhado do contrato"
                     rows={3}
                     className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="value" className="text-gray-200">Valor</Label>
-                    <Input 
-                      id="value" 
-                      type="number"
-                      step="0.01"
-                      value={formData.value}
-                      onChange={(e) => setFormData({...formData, value: parseFloat(e.target.value) || 0})}
-                      placeholder="0,00"
-                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="type" className="text-gray-200">Tipo</Label>
-                    <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-700 border-gray-600">
-                        <SelectItem value="service" className="text-white hover:bg-gray-600">Serviço</SelectItem>
-                        <SelectItem value="product" className="text-white hover:bg-gray-600">Produto</SelectItem>
-                        <SelectItem value="maintenance" className="text-white hover:bg-gray-600">Manutenção</SelectItem>
-                        <SelectItem value="support" className="text-white hover:bg-gray-600">Suporte</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="total_value" className="text-gray-200">Valor Total</Label>
+                  <Input 
+                    id="total_value" 
+                    type="number"
+                    step="0.01"
+                    value={formData.total_value}
+                    onChange={(e) => setFormData({...formData, total_value: parseFloat(e.target.value) || 0})}
+                    placeholder="0,00"
+                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -229,13 +230,15 @@ const Contracts = () => {
                   setEditingContract(null);
                   setFormData({
                     title: '',
-                    description: '',
+                    content: '',
                     company_id: '',
-                    value: 0,
+                    contract_number: '',
+                    total_value: 0,
                     start_date: '',
                     end_date: '',
-                    status: 'active',
-                    type: 'service'
+                    status: 'draft',
+                    budget_id: '',
+                    signed_date: ''
                   });
                 }} className="border-gray-600 text-gray-200 hover:bg-gray-700">
                   Cancelar
@@ -318,7 +321,7 @@ const Contracts = () => {
                     <TableRow className="border-gray-700 hover:bg-gray-800/50">
                       <TableHead className="text-gray-300">Contrato</TableHead>
                       <TableHead className="text-gray-300">Empresa</TableHead>
-                      <TableHead className="text-gray-300">Tipo</TableHead>
+                      <TableHead className="text-gray-300">Número</TableHead>
                       <TableHead className="text-gray-300">Valor</TableHead>
                       <TableHead className="text-gray-300">Período</TableHead>
                       <TableHead className="text-gray-300">Status</TableHead>
@@ -331,14 +334,11 @@ const Contracts = () => {
                         <TableCell>
                           <div>
                             <div className="font-medium text-gray-200">{contract.title}</div>
-                            {contract.description && (
-                              <div className="text-sm text-gray-400 truncate max-w-xs">{contract.description}</div>
-                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-gray-200">{getCompanyName(contract.company_id)}</TableCell>
-                        <TableCell className="text-gray-300 capitalize">{contract.type}</TableCell>
-                        <TableCell className="text-gray-200 font-medium">{formatCurrency(contract.value)}</TableCell>
+                        <TableCell className="text-gray-300">{contract.contract_number}</TableCell>
+                        <TableCell className="text-gray-200 font-medium">{formatCurrency(contract.total_value || 0)}</TableCell>
                         <TableCell className="text-gray-300">
                           {contract.start_date && contract.end_date ? (
                             <div className="text-sm">
@@ -347,7 +347,7 @@ const Contracts = () => {
                             </div>
                           ) : '-'}
                         </TableCell>
-                        <TableCell>{getStatusBadge(contract.status)}</TableCell>
+                        <TableCell>{getStatusBadge(contract.status || 'draft')}</TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-1">
                             <Button 

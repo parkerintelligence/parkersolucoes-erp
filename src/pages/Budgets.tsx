@@ -24,16 +24,15 @@ const Budgets = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    amount: 0,
-    spent: 0,
-    category: '',
-    start_date: '',
-    end_date: '',
-    status: 'active'
+    budget_number: '',
+    company_id: '',
+    total_amount: 0,
+    valid_until: '',
+    status: 'draft'
   });
 
   const handleSave = () => {
-    if (!formData.title || !formData.amount) return;
+    if (!formData.title || !formData.budget_number) return;
 
     if (editingBudget) {
       updateBudget.mutate({ id: editingBudget, updates: formData });
@@ -44,12 +43,11 @@ const Budgets = () => {
     setFormData({
       title: '',
       description: '',
-      amount: 0,
-      spent: 0,
-      category: '',
-      start_date: '',
-      end_date: '',
-      status: 'active'
+      budget_number: '',
+      company_id: '',
+      total_amount: 0,
+      valid_until: '',
+      status: 'draft'
     });
     setIsDialogOpen(false);
     setEditingBudget(null);
@@ -59,12 +57,11 @@ const Budgets = () => {
     setFormData({
       title: budget.title || '',
       description: budget.description || '',
-      amount: budget.amount || 0,
-      spent: budget.spent || 0,
-      category: budget.category || '',
-      start_date: budget.start_date || '',
-      end_date: budget.end_date || '',
-      status: budget.status || 'active'
+      budget_number: budget.budget_number || '',
+      company_id: budget.company_id || '',
+      total_amount: budget.total_amount || 0,
+      valid_until: budget.valid_until || '',
+      status: budget.status || 'draft'
     });
     setEditingBudget(budget.id);
     setIsDialogOpen(true);
@@ -79,14 +76,8 @@ const Budgets = () => {
       case 'exceeded':
         return <Badge className="bg-red-900/20 text-red-400 border-red-600">Excedido</Badge>;
       default:
-        return <Badge className="bg-gray-700 text-gray-400 border-gray-600">Pausado</Badge>;
+        return <Badge className="bg-gray-700 text-gray-400 border-gray-600">Rascunho</Badge>;
     }
-  };
-
-  const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return 'bg-red-500';
-    if (percentage >= 80) return 'bg-yellow-500';
-    return 'bg-green-500';
   };
 
   const formatCurrency = (value: number) => {
@@ -96,8 +87,8 @@ const Budgets = () => {
     }).format(value);
   };
 
-  const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
-  const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0);
+  const totalBudget = budgets.reduce((sum, budget) => sum + (budget.total_amount || 0), 0);
+  const totalSpent = 0; // Placeholder since we don't have spent tracking in the current schema
   const averageUsage = budgets.length > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
   if (isLoading) {
@@ -141,6 +132,17 @@ const Budgets = () => {
                 </div>
                 
                 <div className="grid gap-2">
+                  <Label htmlFor="budget_number" className="text-gray-200">Número do Orçamento *</Label>
+                  <Input 
+                    id="budget_number" 
+                    value={formData.budget_number}
+                    onChange={(e) => setFormData({...formData, budget_number: e.target.value})}
+                    placeholder="ORÇ-001"
+                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  />
+                </div>
+                
+                <div className="grid gap-2">
                   <Label htmlFor="description" className="text-gray-200">Descrição</Label>
                   <Textarea 
                     id="description" 
@@ -152,70 +154,28 @@ const Budgets = () => {
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="amount" className="text-gray-200">Valor Orçado *</Label>
-                    <Input 
-                      id="amount" 
-                      type="number"
-                      step="0.01"
-                      value={formData.amount}
-                      onChange={(e) => setFormData({...formData, amount: parseFloat(e.target.value) || 0})}
-                      placeholder="0,00"
-                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="spent" className="text-gray-200">Valor Gasto</Label>
-                    <Input 
-                      id="spent" 
-                      type="number"
-                      step="0.01"
-                      value={formData.spent}
-                      onChange={(e) => setFormData({...formData, spent: parseFloat(e.target.value) || 0})}
-                      placeholder="0,00"
-                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    />
-                  </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="total_amount" className="text-gray-200">Valor Total</Label>
+                  <Input 
+                    id="total_amount" 
+                    type="number"
+                    step="0.01"
+                    value={formData.total_amount}
+                    onChange={(e) => setFormData({...formData, total_amount: parseFloat(e.target.value) || 0})}
+                    placeholder="0,00"
+                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  />
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="category" className="text-gray-200">Categoria</Label>
-                  <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
-                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                      <SelectValue placeholder="Selecione uma categoria" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-700 border-gray-600">
-                      <SelectItem value="marketing" className="text-white hover:bg-gray-600">Marketing</SelectItem>
-                      <SelectItem value="infraestrutura" className="text-white hover:bg-gray-600">Infraestrutura</SelectItem>
-                      <SelectItem value="desenvolvimento" className="text-white hover:bg-gray-600">Desenvolvimento</SelectItem>
-                      <SelectItem value="operacional" className="text-white hover:bg-gray-600">Operacional</SelectItem>
-                      <SelectItem value="treinamento" className="text-white hover:bg-gray-600">Treinamento</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="start_date" className="text-gray-200">Data Início</Label>
-                    <Input 
-                      id="start_date" 
-                      type="date"
-                      value={formData.start_date}
-                      onChange={(e) => setFormData({...formData, start_date: e.target.value})}
-                      className="bg-gray-700 border-gray-600 text-white"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="end_date" className="text-gray-200">Data Fim</Label>
-                    <Input 
-                      id="end_date" 
-                      type="date"
-                      value={formData.end_date}
-                      onChange={(e) => setFormData({...formData, end_date: e.target.value})}
-                      className="bg-gray-700 border-gray-600 text-white"
-                    />
-                  </div>
+                  <Label htmlFor="valid_until" className="text-gray-200">Válido até</Label>
+                  <Input 
+                    id="valid_until" 
+                    type="date"
+                    value={formData.valid_until}
+                    onChange={(e) => setFormData({...formData, valid_until: e.target.value})}
+                    className="bg-gray-700 border-gray-600 text-white"
+                  />
                 </div>
               </div>
               <div className="flex gap-2">
@@ -228,12 +188,11 @@ const Budgets = () => {
                   setFormData({
                     title: '',
                     description: '',
-                    amount: 0,
-                    spent: 0,
-                    category: '',
-                    start_date: '',
-                    end_date: '',
-                    status: 'active'
+                    budget_number: '',
+                    company_id: '',
+                    total_amount: 0,
+                    valid_until: '',
+                    status: 'draft'
                   });
                 }} className="border-gray-600 text-gray-200 hover:bg-gray-700">
                   Cancelar
@@ -315,60 +274,52 @@ const Budgets = () => {
                   <TableHeader>
                     <TableRow className="border-gray-700 hover:bg-gray-800/50">
                       <TableHead className="text-gray-300">Orçamento</TableHead>
-                      <TableHead className="text-gray-300">Categoria</TableHead>
-                      <TableHead className="text-gray-300">Orçado</TableHead>
-                      <TableHead className="text-gray-300">Gasto</TableHead>
-                      <TableHead className="text-gray-300">Progresso</TableHead>
+                      <TableHead className="text-gray-300">Número</TableHead>
+                      <TableHead className="text-gray-300">Valor Total</TableHead>
+                      <TableHead className="text-gray-300">Válido até</TableHead>
                       <TableHead className="text-gray-300">Status</TableHead>
                       <TableHead className="text-right text-gray-300">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {budgets.map((budget) => {
-                      const percentage = budget.amount > 0 ? (budget.spent / budget.amount) * 100 : 0;
-                      return (
-                        <TableRow key={budget.id} className="border-gray-700 hover:bg-gray-800/30">
-                          <TableCell>
-                            <div>
-                              <div className="font-medium text-gray-200">{budget.title}</div>
-                              {budget.description && (
-                                <div className="text-sm text-gray-400">{budget.description}</div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-gray-300 capitalize">{budget.category || '-'}</TableCell>
-                          <TableCell className="text-gray-200 font-medium">{formatCurrency(budget.amount)}</TableCell>
-                          <TableCell className="text-gray-200">{formatCurrency(budget.spent)}</TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <Progress value={Math.min(percentage, 100)} className="h-2" />
-                              <p className="text-xs text-gray-400">{percentage.toFixed(1)}%</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>{getStatusBadge(budget.status)}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center justify-end gap-1">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleEdit(budget)}
-                                className="border-gray-600 text-gray-200 hover:bg-gray-700"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="border-red-600 text-red-400 hover:bg-red-900/30"
-                                onClick={() => deleteBudget.mutate(budget.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {budgets.map((budget) => (
+                      <TableRow key={budget.id} className="border-gray-700 hover:bg-gray-800/30">
+                        <TableCell>
+                          <div>
+                            <div className="font-medium text-gray-200">{budget.title}</div>
+                            {budget.description && (
+                              <div className="text-sm text-gray-400">{budget.description}</div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-gray-300">{budget.budget_number}</TableCell>
+                        <TableCell className="text-gray-200 font-medium">{formatCurrency(budget.total_amount || 0)}</TableCell>
+                        <TableCell className="text-gray-300">
+                          {budget.valid_until ? new Date(budget.valid_until).toLocaleDateString('pt-BR') : '-'}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(budget.status || 'draft')}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEdit(budget)}
+                              className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="border-red-600 text-red-400 hover:bg-red-900/30"
+                              onClick={() => deleteBudget.mutate(budget.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>

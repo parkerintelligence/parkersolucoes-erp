@@ -123,3 +123,36 @@ export const useUpdateContract = () => {
     },
   });
 };
+
+export const useDeleteContract = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('contracts')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting contract:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      toast({
+        title: "Contrato excluído!",
+        description: "O contrato foi excluído com sucesso.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting contract:', error);
+      toast({
+        title: "Erro ao excluir contrato",
+        description: "Ocorreu um erro ao excluir o contrato.",
+        variant: "destructive"
+      });
+    },
+  });
+};

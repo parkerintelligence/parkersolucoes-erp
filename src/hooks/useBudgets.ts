@@ -122,6 +122,76 @@ export const useCreateBudget = () => {
   });
 };
 
+export const useUpdateBudget = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Budget> }) => {
+      const { data, error } = await supabase
+        .from('budgets')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating budget:', error);
+        throw error;
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      toast({
+        title: "Orçamento atualizado!",
+        description: "O orçamento foi atualizado com sucesso.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating budget:', error);
+      toast({
+        title: "Erro ao atualizar orçamento",
+        description: "Ocorreu um erro ao atualizar o orçamento.",
+        variant: "destructive"
+      });
+    },
+  });
+};
+
+export const useDeleteBudget = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('budgets')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting budget:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      toast({
+        title: "Orçamento excluído!",
+        description: "O orçamento foi excluído com sucesso.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting budget:', error);
+      toast({
+        title: "Erro ao excluir orçamento",
+        description: "Ocorreu um erro ao excluir o orçamento.",
+        variant: "destructive"
+      });
+    },
+  });
+};
+
 export const useCreateBudgetItem = () => {
   const queryClient = useQueryClient();
 

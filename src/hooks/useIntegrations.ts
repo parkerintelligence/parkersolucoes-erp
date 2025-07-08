@@ -5,42 +5,31 @@ import { toast } from '@/hooks/use-toast';
 
 export interface Integration {
   id: string;
-  type: 'chatwoot' | 'evolution_api' | 'wasabi' | 'grafana' | 'bomcontrole' | 'zabbix' | 'ftp' | 'glpi' | 'mikrotik' | 'google_drive' | 'guacamole';
+  type: string;
   name: string;
   base_url: string;
-  api_token: string | null;
-  webhook_url: string | null;
-  phone_number: string | null;
-  username: string | null;
-  password: string | null;
-  region: string | null;
-  bucket_name: string | null;
-  port: number | null;
-  directory: string | null;
-  passive_mode: boolean | null;
-  use_ssl: boolean | null;
-  keep_logged: boolean | null;
-  is_active: boolean | null;
+  api_token?: string;
+  username?: string;
+  password?: string;
+  region?: string;
+  bucket_name?: string;
+  port?: number;
+  directory?: string;
+  passive_mode?: boolean;
+  use_ssl?: boolean;
+  keep_logged?: boolean;
+  phone_number?: string;
+  webhook_url?: string;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
   user_id: string;
 }
 
 export const useIntegrations = () => {
-  const queryClient = useQueryClient();
-
-  const query = useQuery({
+  return useQuery({
     queryKey: ['integrations'],
     queryFn: async () => {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !user) {
-        console.error('User not authenticated:', authError);
-        throw new Error('User not authenticated');
-      }
-
-      console.log('Fetching integrations for user:', user.email);
-
       const { data, error } = await supabase
         .from('integrations')
         .select('*')
@@ -51,61 +40,25 @@ export const useIntegrations = () => {
         throw error;
       }
 
-      console.log('Integrations fetched successfully:', data?.length || 0, 'integrations');
       return data as Integration[];
     },
   });
+};
 
-  const createIntegration = useMutation({
+export const useCreateIntegration = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationFn: async (integration: Omit<Integration, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !user) {
-        console.error('User not authenticated:', authError);
-        throw new Error('User not authenticated');
-      }
-
-      // Validação preventiva para GLPI
-      if (integration.type === 'glpi') {
-        if (!integration.api_token || integration.api_token.trim() === '') {
-          throw new Error('App Token é obrigatório para integração GLPI');
-        }
-        if (!integration.password || integration.password.trim() === '') {
-          throw new Error('User Token ou Senha é obrigatório para integração GLPI');
-        }
-      }
-
-      const integrationData = {
-        type: integration.type,
-        name: integration.name,
-        base_url: integration.base_url,
-        api_token: integration.api_token || null,
-        webhook_url: integration.webhook_url || null,
-        phone_number: integration.phone_number || null,
-        username: integration.username || null,
-        password: integration.password || null,
-        region: integration.region || null,
-        bucket_name: integration.bucket_name || null,
-        port: integration.port || null,
-        directory: integration.directory || null,
-        passive_mode: integration.passive_mode || null,
-        use_ssl: integration.use_ssl || null,
-        keep_logged: integration.keep_logged || null,
-        is_active: integration.is_active ?? true,
-        user_id: user.id
-      };
-
-      console.log('Creating integration:', {
-        type: integrationData.type,
-        name: integrationData.name,
-        hasApiToken: !!integrationData.api_token,
-        hasPassword: !!integrationData.password,
-        apiTokenLength: integrationData.api_token?.length || 0
-      });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
         .from('integrations')
-        .insert([integrationData])
+        .insert([{
+          ...integration,
+          user_id: user.id
+        }])
         .select()
         .single();
 
@@ -114,72 +67,34 @@ export const useIntegrations = () => {
         throw error;
       }
 
-      console.log('Integration created successfully:', {
-        id: data.id,
-        type: data.type,
-        hasApiToken: !!data.api_token,
-        apiTokenLength: data.api_token?.length || 0
-      });
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
       toast({
         title: "Integração criada!",
-        description: "A integração foi configurada com sucesso.",
+        description: "A integração foi criada com sucesso.",
       });
     },
     onError: (error) => {
       console.error('Error creating integration:', error);
       toast({
         title: "Erro ao criar integração",
-        description: error.message || "Ocorreu um erro ao criar a integração. Tente novamente.",
+        description: "Ocorreu um erro ao criar a integração.",
         variant: "destructive"
       });
     },
   });
+};
 
-  const updateIntegration = useMutation({
+export const useUpdateIntegration = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Integration> }) => {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !user) {
-        console.error('User not authenticated:', authError);
-        throw new Error('User not authenticated');
-      }
-
-      // Validação preventiva para GLPI
-      if (updates.type === 'glpi') {
-        if (updates.api_token !== undefined && (!updates.api_token || updates.api_token.trim() === '')) {
-          throw new Error('App Token é obrigatório para integração GLPI');
-        }
-        if (updates.password !== undefined && (!updates.password || updates.password.trim() === '')) {
-          throw new Error('User Token ou Senha é obrigatório para integração GLPI');
-        }
-      }
-
-      // Corrigir a lógica de conversão - preservar strings vazias, só converter undefined para null
-      const updateData: Record<string, any> = {};
-      
-      // Para cada campo, apenas converter undefined para null, preservando strings vazias
-      for (const [key, value] of Object.entries(updates)) {
-        if (value !== undefined) {
-          updateData[key] = value;
-        }
-      }
-
-      console.log('Updating integration:', {
-        id,
-        fieldsToUpdate: Object.keys(updateData),
-        hasApiToken: !!(updateData.api_token),
-        apiTokenLength: typeof updateData.api_token === 'string' ? updateData.api_token.length : 0,
-        hasPassword: !!(updateData.password),
-        passwordLength: typeof updateData.password === 'string' ? updateData.password.length : 0
-      });
-
       const { data, error } = await supabase
         .from('integrations')
-        .update(updateData)
+        .update(updates)
         .eq('id', id)
         .select()
         .single();
@@ -189,14 +104,6 @@ export const useIntegrations = () => {
         throw error;
       }
 
-      console.log('Integration updated successfully:', {
-        id: data.id,
-        type: data.type,
-        hasApiToken: !!data.api_token,
-        apiTokenLength: data.api_token?.length || 0,
-        hasPassword: !!data.password,
-        passwordLength: data.password?.length || 0
-      });
       return data;
     },
     onSuccess: () => {
@@ -210,23 +117,18 @@ export const useIntegrations = () => {
       console.error('Error updating integration:', error);
       toast({
         title: "Erro ao atualizar integração",
-        description: error.message || "Ocorreu um erro ao atualizar a integração.",
+        description: "Ocorreu um erro ao atualizar a integração.",
         variant: "destructive"
       });
     },
   });
+};
 
-  const deleteIntegration = useMutation({
+export const useDeleteIntegration = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationFn: async (id: string) => {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !user) {
-        console.error('User not authenticated:', authError);
-        throw new Error('User not authenticated');
-      }
-
-      console.log('Deleting integration:', id);
-
       const { error } = await supabase
         .from('integrations')
         .delete()
@@ -236,30 +138,21 @@ export const useIntegrations = () => {
         console.error('Error deleting integration:', error);
         throw error;
       }
-
-      console.log('Integration deleted successfully:', id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
       toast({
-        title: "Integração removida!",
-        description: "A integração foi removida com sucesso.",
+        title: "Integração excluída!",
+        description: "A integração foi excluída com sucesso.",
       });
     },
     onError: (error) => {
       console.error('Error deleting integration:', error);
       toast({
-        title: "Erro ao remover integração",
-        description: error.message || "Ocorreu um erro ao remover a integração.",
+        title: "Erro ao excluir integração",
+        description: "Ocorreu um erro ao excluir a integração.",
         variant: "destructive"
       });
     },
   });
-
-  return {
-    ...query,
-    createIntegration,
-    updateIntegration,
-    deleteIntegration,
-  };
 };
