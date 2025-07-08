@@ -13,10 +13,8 @@ import {
   XCircle, 
   RefreshCcw, 
   Monitor,
-  Shield,
   Clock,
   Users,
-  Database,
   ExternalLink
 } from 'lucide-react';
 import { useZabbixAPI } from '@/hooks/useZabbixAPI';
@@ -380,24 +378,24 @@ const Zabbix = () => {
                         </TableHeader>
                         <TableBody>
                           {hostProblems.map((problem) => (
-                            <TableRow key={problem.eventid} className="h-12">
-                              <TableCell className="font-medium py-2">{problem.name}</TableCell>
-                              <TableCell className="py-2">
+                            <TableRow key={problem.eventid} className="h-10">
+                              <TableCell className="font-medium py-1">{problem.name}</TableCell>
+                              <TableCell className="py-1">
                                 <Badge variant={getSeverityColor(problem.severity)}>
                                   {getSeverityLabel(problem.severity)}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="py-2">
+                              <TableCell className="py-1">
                                 {new Date(parseInt(problem.clock) * 1000).toLocaleString('pt-BR')}
                               </TableCell>
-                              <TableCell className="py-2">
+                              <TableCell className="py-1">
                                 {problem.acknowledged === '1' ? (
                                   <Badge variant="secondary">Reconhecido</Badge>
                                 ) : (
                                   <Badge variant="destructive">Novo</Badge>
                                 )}
                               </TableCell>
-                              <TableCell className="py-2">
+                              <TableCell className="py-1">
                                 <div className="flex gap-2">
                                   {problem.acknowledged === '0' && (
                                     <Button
@@ -470,22 +468,22 @@ const Zabbix = () => {
                         </TableHeader>
                         <TableBody>
                           {groupHosts.map((host) => (
-                            <TableRow key={host.hostid} className="h-12">
-                              <TableCell className="font-medium py-2">{host.name}</TableCell>
-                              <TableCell className="py-2">
+                            <TableRow key={host.hostid} className="h-10">
+                              <TableCell className="font-medium py-1">{host.name}</TableCell>
+                              <TableCell className="py-1">
                                 {host.interfaces?.[0]?.ip || host.interfaces?.[0]?.dns || 'N/A'}
                               </TableCell>
-                              <TableCell className="py-2">
+                              <TableCell className="py-1">
                                 <Badge variant={host.status === '0' ? 'default' : 'secondary'}>
                                   {host.status === '0' ? 'Ativo' : 'Inativo'}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="py-2">
+                              <TableCell className="py-1">
                                 <Badge variant={host.available === '1' ? 'default' : 'destructive'}>
                                   {host.available === '1' ? 'Disponível' : 'Indisponível'}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="py-2">
+                              <TableCell className="py-1">
                                 <Button
                                   size="sm"
                                   variant="outline"

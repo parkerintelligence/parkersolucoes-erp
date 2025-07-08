@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useZabbixProxy } from '@/hooks/useZabbixProxy';
 import { useIntegrations } from '@/hooks/useIntegrations';
@@ -55,7 +56,7 @@ export interface ZabbixTrigger {
   }>;
 }
 
-// Interface para problemas do Zabbix
+// Interface para problemas do Zabbix - hosts agora é obrigatório
 export interface ZabbixProblem {
   eventid: string;
   objectid: string;
@@ -64,7 +65,7 @@ export interface ZabbixProblem {
   clock: string;
   acknowledged: string;
   suppressed: string;
-  hosts?: Array<{
+  hosts: Array<{
     hostid: string;
     name: string;
   }>;
@@ -164,7 +165,7 @@ export const useZabbixAPI = () => {
             ...params
           },
           zabbixIntegration.id
-        ) as ZabbixProblem[];
+        ) as Omit<ZabbixProblem, 'hosts'>[];
 
         console.log('Problems found:', problems.length);
 
@@ -191,7 +192,7 @@ export const useZabbixAPI = () => {
               console.log('Triggers with hosts found:', triggers.length);
 
               // Mapear os problemas com as informações dos hosts
-              const problemsWithHosts = problems.map(problem => {
+              const problemsWithHosts: ZabbixProblem[] = problems.map(problem => {
                 const trigger = triggers.find((t: any) => t.triggerid === problem.objectid);
                 return {
                   ...problem,
@@ -207,7 +208,11 @@ export const useZabbixAPI = () => {
           }
         }
 
-        return problems;
+        // Fallback: retornar problemas com array vazio de hosts
+        return problems.map(problem => ({
+          ...problem,
+          hosts: []
+        })) as ZabbixProblem[];
       },
       enabled: !!zabbixIntegration,
       refetchInterval: 10000, // Atualizar a cada 10 segundos
