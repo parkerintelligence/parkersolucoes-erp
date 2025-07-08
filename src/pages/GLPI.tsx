@@ -65,13 +65,13 @@ const GLPI = () => {
 
   if (!glpiIntegration) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white p-6">
+      <div className="min-h-screen bg-slate-900 text-white p-6">
         <div className="space-y-6">
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-8 text-center">
-              <Settings className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <Settings className="h-12 w-12 mx-auto mb-4 text-slate-400" />
               <h3 className="text-lg font-semibold mb-2 text-white">GLPI não configurado</h3>
-              <p className="text-gray-400 mb-4">
+              <p className="text-slate-400 mb-4">
                 Configure a integração com GLPI no painel administrativo para acessar todas as funcionalidades.
               </p>
               <Button onClick={() => window.location.href = '/admin'} className="bg-blue-600 hover:bg-blue-700">
@@ -86,7 +86,7 @@ const GLPI = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-slate-900 text-white">
       <div className="space-y-6 p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -94,12 +94,12 @@ const GLPI = () => {
               <Headphones className="h-6 w-6 text-blue-400" />
               Central de Chamados GLPI
             </h1>
-            <p className="text-gray-400">Gerencie seus chamados e inventário de TI</p>
+            <p className="text-slate-400">Gerencie seus chamados e inventário de TI</p>
           </div>
           
           <div className="flex flex-wrap gap-2">
             {!hasValidSession && (
-              <Button variant="outline" onClick={() => initSession.mutate()} className="border-gray-600 text-gray-200 hover:bg-gray-700">
+              <Button variant="outline" onClick={() => initSession.mutate()} className="border-slate-600 text-slate-200 hover:bg-slate-700">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Iniciar Sessão
               </Button>
@@ -111,33 +111,33 @@ const GLPI = () => {
                   Novo Chamado
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-gray-800 border-gray-700">
+              <DialogContent className="bg-slate-800 border-slate-700">
                 <DialogHeader>
                   <DialogTitle className="text-white">Criar Novo Chamado</DialogTitle>
-                  <DialogDescription className="text-gray-400">
+                  <DialogDescription className="text-slate-400">
                     Preencha os dados para criar um novo chamado no GLPI
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="ticket-name" className="text-gray-200">Título do Chamado</Label>
+                    <Label htmlFor="ticket-name" className="text-slate-200">Título do Chamado</Label>
                     <Input
                       id="ticket-name"
                       value={newTicket.name}
                       onChange={(e) => setNewTicket({ ...newTicket, name: e.target.value })}
                       placeholder="Descreva brevemente o problema"
-                      className="bg-gray-700 border-gray-600 text-white"
+                      className="bg-slate-700 border-slate-600 text-white"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="ticket-content" className="text-gray-200">Descrição</Label>
+                    <Label htmlFor="ticket-content" className="text-slate-200">Descrição</Label>
                     <Textarea
                       id="ticket-content"
                       value={newTicket.content}
                       onChange={(e) => setNewTicket({ ...newTicket, content: e.target.value })}
                       placeholder="Descreva detalhadamente o problema"
                       rows={4}
-                      className="bg-gray-700 border-gray-600 text-white"
+                      className="bg-slate-700 border-slate-600 text-white"
                     />
                   </div>
                   <div className="flex gap-2 pt-4">
@@ -153,7 +153,7 @@ const GLPI = () => {
                       )}
                       Criar Chamado
                     </Button>
-                    <Button variant="outline" onClick={() => setIsCreatingTicket(false)} className="border-gray-600 text-gray-200 hover:bg-gray-700">
+                    <Button variant="outline" onClick={() => setIsCreatingTicket(false)} className="border-slate-600 text-slate-200 hover:bg-slate-700">
                       Cancelar
                     </Button>
                   </div>
@@ -161,7 +161,6 @@ const GLPI = () => {
               </DialogContent>
             </Dialog>
           
-            {/* Botão de Resumo no canto superior direito */}
             <Dialog open={showSummary} onOpenChange={setShowSummary}>
               <DialogTrigger asChild>
                 <Button size="sm" variant="outline" className="bg-yellow-900/20 border-yellow-600 text-yellow-400 hover:bg-yellow-900/30">
@@ -169,10 +168,10 @@ const GLPI = () => {
                   Resumo Executivo
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700">
+              <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700">
                 <DialogHeader>
                   <DialogTitle className="text-white">📊 Resumo Executivo GLPI</DialogTitle>
-                  <DialogDescription className="text-gray-400">
+                  <DialogDescription className="text-slate-400">
                     Visão geral das métricas e indicadores principais
                   </DialogDescription>
                 </DialogHeader>
@@ -184,15 +183,13 @@ const GLPI = () => {
           </div>
         </div>
 
-        {/* Status da Conexão */}
         <GLPIConnectionStatus />
 
-        {/* Interface Principal - Apenas Chamados e Inventário */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <Button 
             variant={activeTab === 'tickets' ? 'default' : 'outline'}
             onClick={() => setActiveTab('tickets')}
-            className={`h-12 ${activeTab === 'tickets' ? 'bg-blue-600 hover:bg-blue-700' : 'border-gray-600 text-gray-200 hover:bg-gray-700'}`}
+            className={`h-12 ${activeTab === 'tickets' ? 'bg-blue-600 hover:bg-blue-700' : 'border-slate-600 text-slate-200 hover:bg-slate-700'}`}
           >
             <Headphones className="mr-2 h-4 w-4" />
             Central de Chamados
@@ -200,14 +197,13 @@ const GLPI = () => {
           <Button 
             variant={activeTab === 'inventory' ? 'default' : 'outline'}
             onClick={() => setActiveTab('inventory')}
-            className={`h-12 ${activeTab === 'inventory' ? 'bg-blue-600 hover:bg-blue-700' : 'border-gray-600 text-gray-200 hover:bg-gray-700'}`}
+            className={`h-12 ${activeTab === 'inventory' ? 'bg-blue-600 hover:bg-blue-700' : 'border-slate-600 text-slate-200 hover:bg-slate-700'}`}
           >
             <Settings className="mr-2 h-4 w-4" />
             Inventário de Ativos
           </Button>
         </div>
 
-        {/* Conteúdo dinâmico baseado na aba ativa */}
         <div className="mt-6">
           {activeTab === 'tickets' && <GLPITicketsGrid />}
           {activeTab === 'inventory' && <GLPIInventory />}

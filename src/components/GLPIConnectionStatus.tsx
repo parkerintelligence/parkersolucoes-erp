@@ -39,13 +39,13 @@ export const GLPIConnectionStatus = () => {
   };
 
   return (
-    <Card className="border-blue-200 mb-4">
+    <Card className="bg-slate-800 border-slate-700 mb-4">
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               {getStatusIcon()}
-              <span className="font-medium">Status da Conexão GLPI</span>
+              <span className="font-medium text-white">Status da Conexão GLPI</span>
             </div>
             <Badge variant={getStatusColor()}>
               {getStatusText()}
@@ -53,7 +53,7 @@ export const GLPIConnectionStatus = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-slate-400">
               {glpiIntegration.base_url}
             </span>
             <Button 
@@ -61,6 +61,7 @@ export const GLPIConnectionStatus = () => {
               size="sm"
               onClick={() => initSession.mutate()}
               disabled={initSession.isPending}
+              className="border-slate-600 text-slate-200 hover:bg-slate-700"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${initSession.isPending ? 'animate-spin' : ''}`} />
               {hasValidSession ? 'Renovar Sessão' : 'Iniciar Sessão'}
@@ -69,13 +70,13 @@ export const GLPIConnectionStatus = () => {
         </div>
         
         {tickets.error && (
-          <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+          <div className="mt-2 p-2 bg-red-900/20 border border-red-700 rounded text-sm text-red-300">
             Erro: {tickets.error.message}
           </div>
         )}
         
         {hasValidSession && !tickets.isLoading && (
-          <div className="mt-2 text-sm text-gray-600">
+          <div className="mt-2 text-sm text-slate-400">
             Última atualização: {new Date().toLocaleTimeString('pt-BR')}
           </div>
         )}
