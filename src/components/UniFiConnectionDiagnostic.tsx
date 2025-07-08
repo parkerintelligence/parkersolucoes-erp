@@ -25,13 +25,15 @@ import {
   Lock,
   RefreshCw,
   Eye,
-  EyeOff
+  EyeOff,
+  Lightbulb
 } from 'lucide-react';
 
 interface DiagnosticTest {
   name: string;
   success: boolean;
   details: string;
+  suggestion?: string;
 }
 
 interface ConnectionDiagnosis {
@@ -66,12 +68,11 @@ export const UniFiConnectionDiagnostic: React.FC<UniFiConnectionDiagnosticProps>
 }) => {
   const [quickTestLoading, setQuickTestLoading] = useState(false);
   const [quickTestResults, setQuickTestResults] = useState<QuickTestResult[]>([]);
-  const [configExpanded, setConfigExpanded] = useState(false);
   const [tempConfig, setTempConfig] = useState({
     base_url: integration?.base_url || '',
     username: integration?.username || '',
     password: integration?.password || '',
-    ignore_ssl: true
+    ignore_ssl: integration?.ignore_ssl ?? true
   });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -134,7 +135,8 @@ export const UniFiConnectionDiagnostic: React.FC<UniFiConnectionDiagnosticProps>
           },
           body: JSON.stringify({
             action: 'pingController',
-            baseUrl: tempConfig.base_url
+            baseUrl: tempConfig.base_url,
+            ignoreSsl: tempConfig.ignore_ssl
           })
         });
 
@@ -153,7 +155,7 @@ export const UniFiConnectionDiagnostic: React.FC<UniFiConnectionDiagnosticProps>
             name: 'Controller Connectivity',
             success: false,
             details: result.details || 'Controller unreachable',
-            suggestion: 'Check if the controller is running and accessible from your network'
+            suggestion: result.suggestion || 'Check if the controller is running and accessible from your network'
           });
         }
       } catch (error) {
@@ -181,7 +183,8 @@ export const UniFiConnectionDiagnostic: React.FC<UniFiConnectionDiagnosticProps>
               action: 'login',
               baseUrl: tempConfig.base_url,
               username: tempConfig.username,
-              password: tempConfig.password
+              password: tempConfig.password,
+              ignoreSsl: tempConfig.ignore_ssl
             })
           });
 
@@ -200,7 +203,7 @@ export const UniFiConnectionDiagnostic: React.FC<UniFiConnectionDiagnosticProps>
               name: 'Authentication',
               success: false,
               details: result.error || 'Login failed',
-              suggestion: 'Verify username and password are correct'
+              suggestion: result.suggestion || 'Verify username and password are correct'
             });
           }
         } catch (error) {
@@ -296,7 +299,30 @@ export const UniFiConnectionDiagnostic: React.FC<UniFiConnectionDiagnosticProps>
     if (onUpdateIntegration) {
       onUpdateIntegration(tempConfig);
     }
-    setConfigExpanded(false);
+  };
+
+  const getConfigurationTemplates = () => {
+    return [
+      {
+        name: 'Cloud Key / UDM (HTTPS)',
+        config: { base_url: 'https://controller-ip:8443', ignore_ssl: true }
+      },
+      {
+        name: 'Self-Hosted (HTTP)',
+        config: { base_url: 'http://controller-ip:8080', ignore_ssl: false }
+      },
+      {
+        name: 'Local Network (HTTPS)',
+        config: { base_url: 'https://192.168.1.1:8443', ignore_ssl: true }
+      }
+    ];
+  };
+
+  const applyTemplate = (template: any) => {
+    setTempConfig(prev => ({
+      ...prev,
+      ...template.config
+    }));
   };
 
   const overallStatus = getOverallStatus();
@@ -311,18 +337,22 @@ export const UniFiConnectionDiagnostic: React.FC<UniFiConnectionDiagnosticProps>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="status" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
+          <TabsList className="grid w-full grid-cols-4 bg-gray-800 border-gray-700">
             <TabsTrigger value="status" className="flex items-center gap-2">
               <Network className="h-4 w-4" />
               Status
             </TabsTrigger>
-            <TabsTrigger value="tests" className="flex items-center gap-2">
-              <TestTube className="h-4 w-4" />
-              Testes
-            </TabsTrigger>
             <TabsTrigger value="config" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               Configuração
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4" />
+              Templates
+            </TabsTrigger>
+            <TabsTrigger value="tests" className="flex items-center gap-2">
+              <TestTube className="h-4 w-4" />
+              Testes
             </TabsTrigger>
           </TabsList>
 
@@ -377,7 +407,10 @@ export const UniFiConnectionDiagnostic: React.FC<UniFiConnectionDiagnosticProps>
                         <div className="font-medium text-white">{test.name}</div>
                         <div className="text-sm text-gray-400">{test.details}</div>
                         {test.suggestion && (
-                          <div className="text-xs text-yellow-400 mt-1">💡 {test.suggestion}</div>
+                          <div className="text-xs text-yellow-400 mt-1 flex items-center gap-1">
+                            <Lightbulb className="h-3 w-3" />
+                            {test.suggestion}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -404,54 +437,6 @@ export const UniFiConnectionDiagnostic: React.FC<UniFiConnectionDiagnosticProps>
                   {overallStatus.message}
                 </AlertDescription>
               </Alert>
-            )}
-          </TabsContent>
-
-          <TabsContent value="tests" className="space-y-4">
-            {diagnosisLoading && (
-              <Alert className="bg-blue-900/20 border-blue-600">
-                <Loader2 className="h-4 w-4 text-blue-400 animate-spin" />
-                <AlertDescription className="text-blue-300">
-                  Executando diagnóstico completo da conectividade...
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {diagnosis && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm text-gray-400">
-                  <Clock className="h-4 w-4" />
-                  Executado em: {new Date(diagnosis.timestamp).toLocaleString('pt-BR')}
-                </div>
-                
-                <div className="space-y-2">
-                  {diagnosis.tests.map((test, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        {getTestIcon(test.success)}
-                        <div>
-                          <div className="font-medium text-white">{test.name}</div>
-                          <div className="text-sm text-gray-400">{test.details}</div>
-                        </div>
-                      </div>
-                      {getTestBadge(test.success)}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {!diagnosis && !diagnosisLoading && (
-              <div className="text-center py-6">
-                <TestTube className="h-12 w-12 mx-auto mb-3 text-gray-600" />
-                <p className="text-gray-400 mb-2">Clique em "Diagnóstico Completo" para testar a conectividade</p>
-                <p className="text-sm text-gray-500">
-                  O diagnóstico verificará URL, conectividade, SSL e autenticação
-                </p>
-              </div>
             )}
           </TabsContent>
 
@@ -545,6 +530,98 @@ export const UniFiConnectionDiagnostic: React.FC<UniFiConnectionDiagnosticProps>
               </div>
             </div>
           </TabsContent>
+
+          <TabsContent value="templates" className="space-y-4">
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-white">Templates de Configuração</h4>
+              {getConfigurationTemplates().map((template, index) => (
+                <div key={index} className="p-3 bg-gray-700 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-white">{template.name}</div>
+                      <div className="text-sm text-gray-400">{template.config.base_url}</div>
+                    </div>
+                    <Button
+                      onClick={() => applyTemplate(template)}
+                      size="sm"
+                      variant="outline"
+                      className="border-gray-600 text-gray-200 hover:bg-gray-600"
+                    >
+                      Aplicar
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-4 bg-blue-900/20 border border-blue-600 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-blue-400 mt-0.5" />
+                <div className="text-sm text-blue-300">
+                  <p className="font-medium mb-2">Como escolher o template correto:</p>
+                  <ul className="space-y-1 text-xs">
+                    <li>• <strong>Cloud Key / UDM:</strong> Use HTTPS porta 8443 com SSL ignorado</li>
+                    <li>• <strong>Self-Hosted:</strong> Use HTTP porta 8080 sem SSL</li>
+                    <li>• <strong>Local Network:</strong> Use HTTPS com seu IP local e SSL ignorado</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="tests" className="space-y-4">
+            {diagnosisLoading && (
+              <Alert className="bg-blue-900/20 border-blue-600">
+                <Loader2 className="h-4 w-4 text-blue-400 animate-spin" />
+                <AlertDescription className="text-blue-300">
+                  Executando diagnóstico completo da conectividade...
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {diagnosis && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <Clock className="h-4 w-4" />
+                  Executado em: {new Date(diagnosis.timestamp).toLocaleString('pt-BR')}
+                </div>
+                
+                <div className="space-y-2">
+                  {diagnosis.tests.map((test, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        {getTestIcon(test.success)}
+                        <div>
+                          <div className="font-medium text-white">{test.name}</div>
+                          <div className="text-sm text-gray-400">{test.details}</div>
+                          {test.suggestion && (
+                            <div className="text-xs text-yellow-400 mt-1 flex items-center gap-1">
+                              <Lightbulb className="h-3 w-3" />
+                              {test.suggestion}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {getTestBadge(test.success)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!diagnosis && !diagnosisLoading && (
+              <div className="text-center py-6">
+                <TestTube className="h-12 w-12 mx-auto mb-3 text-gray-600" />
+                <p className="text-gray-400 mb-2">Clique em "Diagnóstico Completo" para testar a conectividade</p>
+                <p className="text-sm text-gray-500">
+                  O diagnóstico verificará URL, conectividade, SSL e autenticação
+                </p>
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
 
         <div className="mt-6 p-4 bg-blue-900/20 border border-blue-600 rounded-lg">
@@ -559,6 +636,7 @@ export const UniFiConnectionDiagnostic: React.FC<UniFiConnectionDiagnosticProps>
                 <li>• Verifique se a controladora está acessível na rede</li>
                 <li>• Confirme que as credenciais estão corretas</li>
                 <li>• Certifique-se que a controladora UniFi está em execução</li>
+                <li>• Para certificados SSL auto-assinados, marque "Ignorar verificação SSL"</li>
               </ul>
             </div>
           </div>

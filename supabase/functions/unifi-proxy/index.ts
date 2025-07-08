@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2'
 
@@ -22,6 +21,7 @@ interface UniFiLoginRequest {
   block?: boolean;
   enable?: boolean;
   alias?: string;
+  ignoreSsl?: boolean;
 }
 
 class UniFiController {
@@ -29,34 +29,65 @@ class UniFiController {
   private ignoreSsl: boolean;
 
   constructor(baseUrl: string, ignoreSsl: boolean = true) {
-    this.baseUrl = baseUrl.replace(/\/$/, '');
+    // Remove trailing slashes and normalize URL
+    this.baseUrl = baseUrl.replace(/\/+$/, '');
     this.ignoreSsl = ignoreSsl;
+    
+    console.log(`UniFi Controller initialized: ${this.baseUrl}, ignoreSsl: ${this.ignoreSsl}`);
   }
 
-  private async makeRequest(endpoint: string, options: RequestInit = {}) {
+  private async makeRequest(endpoint: string, options: RequestInit = {}, retryWithHttp: boolean = true) {
     const url = `${this.baseUrl}${endpoint}`;
     
     console.log(`Making request to: ${url}`);
+    console.log(`Request options:`, { 
+      method: options.method || 'GET', 
+      hasBody: !!options.body,
+      ignoreSsl: this.ignoreSsl 
+    });
     
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
       const response = await fetch(url, {
         ...options,
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'User-Agent': 'UniFi-API-Client/1.0',
           ...options.headers,
         },
       });
 
-      console.log(`Response status: ${response.status}`);
+      clearTimeout(timeoutId);
+      console.log(`Response status: ${response.status} ${response.statusText}`);
+      console.log(`Response headers:`, Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
         const text = await response.text();
-        console.log(`Response error: ${text}`);
-        throw new Error(`HTTP ${response.status}: ${text}`);
+        console.log(`Response error body: ${text}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${text}`);
       }
 
-      const data = await response.json();
+      const contentType = response.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+        console.log(`Response data:`, data);
+      } else {
+        const text = await response.text();
+        console.log(`Response text:`, text);
+        // Try to parse as JSON anyway
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { message: text };
+        }
+      }
+
       return {
         success: true,
         data: data.data || data,
@@ -64,14 +95,30 @@ class UniFiController {
         cookies: response.headers.get('set-cookie'),
       };
     } catch (error) {
-      console.error(`Request failed: ${error.message}`);
+      console.error(`Request failed for ${url}:`, error.message);
       
-      if (error.message.includes('certificate') || error.message.includes('SSL')) {
-        throw new Error(`SSL Certificate Error: ${error.message}. Consider using HTTP instead of HTTPS for local controllers.`);
+      // Enhanced error handling with specific suggestions
+      if (error.name === 'AbortError') {
+        throw new Error(`Request timeout after 15 seconds. Controller may be unreachable or overloaded.`);
       }
       
-      if (error.message.includes('timeout') || error.message.includes('unreachable')) {
-        throw new Error(`Connection timeout or unreachable: ${error.message}. Check if controller is accessible.`);
+      if (error.message.includes('certificate') || error.message.includes('SSL') || error.message.includes('TLS')) {
+        const httpsUrl = this.baseUrl.startsWith('https://');
+        if (httpsUrl && retryWithHttp) {
+          console.log('SSL error detected, attempting HTTP fallback...');
+          const httpBaseUrl = this.baseUrl.replace('https://', 'http://').replace(':8443', ':8080');
+          const httpController = new UniFiController(httpBaseUrl, this.ignoreSsl);
+          return await httpController.makeRequest(endpoint, options, false);
+        }
+        throw new Error(`SSL Certificate Error: ${error.message}. Try using HTTP instead of HTTPS for local controllers, or enable "Ignore SSL" option.`);
+      }
+      
+      if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+        throw new Error(`Network Error: Cannot reach controller at ${this.baseUrl}. Check if the IP address and port are correct.`);
+      }
+      
+      if (error.message.includes('timeout')) {
+        throw new Error(`Connection timeout: Controller at ${this.baseUrl} is not responding. Verify it's online and accessible.`);
       }
       
       throw error;
@@ -80,6 +127,9 @@ class UniFiController {
 
   async pingController() {
     try {
+      console.log('Starting ping test...');
+      
+      // Try a simple endpoint first
       const response = await this.makeRequest('/status');
       return {
         success: true,
@@ -87,15 +137,32 @@ class UniFiController {
         data: response.data
       };
     } catch (error) {
+      console.error('Ping failed:', error.message);
       return {
         success: false,
-        details: error.message
+        details: error.message,
+        suggestion: this.getSuggestionForError(error.message)
       };
     }
   }
 
+  private getSuggestionForError(errorMessage: string): string {
+    if (errorMessage.includes('SSL') || errorMessage.includes('certificate')) {
+      return 'Try using HTTP instead of HTTPS, or enable "Ignore SSL errors" option';
+    }
+    if (errorMessage.includes('timeout') || errorMessage.includes('unreachable')) {
+      return 'Verify controller IP address, port, and network connectivity';
+    }
+    if (errorMessage.includes('8443')) {
+      return 'For local controllers, try port 8080 with HTTP instead of 8443 with HTTPS';
+    }
+    return 'Check controller configuration and network settings';
+  }
+
   async login(username: string, password: string) {
     try {
+      console.log(`Attempting login for user: ${username}`);
+      
       const response = await this.makeRequest('/api/login', {
         method: 'POST',
         body: JSON.stringify({
@@ -105,16 +172,20 @@ class UniFiController {
         }),
       });
 
+      console.log('Login successful');
       return {
         success: true,
         cookies: response.cookies,
         data: response.data
       };
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('Login failed:', error.message);
       return {
         success: false,
-        error: error.message
+        error: error.message,
+        suggestion: error.message.includes('401') || error.message.includes('403') 
+          ? 'Check username and password' 
+          : this.getSuggestionForError(error.message)
       };
     }
   }
@@ -122,30 +193,49 @@ class UniFiController {
   async testConnection(username: string, password: string) {
     const tests = [];
     
-    // Test 1: Basic connectivity
+    console.log('=== Starting comprehensive connection test ===');
+    
+    // Test 1: URL Format Validation
+    try {
+      new URL(this.baseUrl);
+      tests.push({
+        name: 'URL Format',
+        success: true,
+        details: 'URL format is valid'
+      });
+    } catch {
+      tests.push({
+        name: 'URL Format',
+        success: false,
+        details: 'Invalid URL format',
+        suggestion: 'Use format: https://controller-ip:8443 or http://controller-ip:8080'
+      });
+      return { timestamp: new Date().toISOString(), tests };
+    }
+
+    // Test 2: Basic connectivity
     const pingResult = await this.pingController();
     tests.push({
       name: 'Controller Connectivity',
       success: pingResult.success,
-      details: pingResult.details
+      details: pingResult.details,
+      suggestion: pingResult.suggestion
     });
 
     if (!pingResult.success) {
-      return {
-        timestamp: new Date().toISOString(),
-        tests
-      };
+      return { timestamp: new Date().toISOString(), tests };
     }
 
-    // Test 2: Authentication
+    // Test 3: Authentication
     const loginResult = await this.login(username, password);
     tests.push({
       name: 'Authentication',
       success: loginResult.success,
-      details: loginResult.success ? 'Authentication successful' : loginResult.error
+      details: loginResult.success ? 'Authentication successful' : loginResult.error,
+      suggestion: loginResult.suggestion
     });
 
-    // Test 3: API Access (if authenticated)
+    // Test 4: API Access (if authenticated)
     if (loginResult.success && loginResult.cookies) {
       try {
         const sitesResult = await this.makeRequest('/api/self/sites', {
@@ -154,20 +244,24 @@ class UniFiController {
           }
         });
         
+        const siteCount = sitesResult.data?.length || 0;
         tests.push({
           name: 'API Access',
           success: true,
-          details: `Found ${sitesResult.data?.length || 0} sites`
+          details: `Found ${siteCount} sites`,
+          suggestion: siteCount === 0 ? 'No sites found - check user permissions' : undefined
         });
       } catch (error) {
         tests.push({
           name: 'API Access',
           success: false,
-          details: error.message
+          details: error.message,
+          suggestion: 'API access failed - check user permissions and controller version'
         });
       }
     }
 
+    console.log('=== Connection test completed ===');
     return {
       timestamp: new Date().toISOString(),
       tests
@@ -289,15 +383,18 @@ serve(async (req) => {
   }
 
   try {
-    const { action, baseUrl, ...params }: UniFiLoginRequest = await req.json();
+    const { action, baseUrl, ignoreSsl = true, ...params }: UniFiLoginRequest = await req.json();
     
-    console.log(`Processing action: ${action} for baseUrl: ${baseUrl}`);
+    console.log(`=== Processing UniFi Action: ${action} ===`);
+    console.log(`Base URL: ${baseUrl}`);
+    console.log(`Ignore SSL: ${ignoreSsl}`);
+    console.log(`Additional params:`, Object.keys(params));
     
     if (!baseUrl) {
       throw new Error('Base URL is required');
     }
 
-    const controller = new UniFiController(baseUrl, true);
+    const controller = new UniFiController(baseUrl, ignoreSsl);
 
     switch (action) {
       case 'pingController':
@@ -307,20 +404,12 @@ serve(async (req) => {
         });
 
       case 'testConnection':
+      case 'diagnoseConnection':
         if (!params.username || !params.password) {
           throw new Error('Username and password are required for connection test');
         }
         const testResult = await controller.testConnection(params.username, params.password);
         return new Response(JSON.stringify({ success: true, diagnosis: testResult }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'diagnoseConnection':
-        if (!params.username || !params.password) {
-          throw new Error('Username and password are required for diagnosis');
-        }
-        const diagnosisResult = await controller.testConnection(params.username, params.password);
-        return new Response(JSON.stringify({ success: true, diagnosis: diagnosisResult }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
 
@@ -463,22 +552,28 @@ serve(async (req) => {
         throw new Error(`Unknown action: ${action}`);
     }
   } catch (error) {
-    console.error('Error processing request:', error);
+    console.error('=== Error processing request ===', error);
     
     let errorType = 'unknown_error';
+    let suggestion = 'Check controller configuration and try again';
+    
     if (error.message.includes('certificate') || error.message.includes('SSL')) {
       errorType = 'ssl_error';
+      suggestion = 'Try using HTTP instead of HTTPS, or enable "Ignore SSL errors" option';
     } else if (error.message.includes('timeout') || error.message.includes('unreachable')) {
       errorType = 'network_error';
-    } else if (error.message.includes('credentials') || error.message.includes('authentication')) {
+      suggestion = 'Check if controller IP and port are correct and controller is online';
+    } else if (error.message.includes('credentials') || error.message.includes('authentication') || error.message.includes('401')) {
       errorType = 'auth_error';
+      suggestion = 'Verify username and password are correct';
     }
 
     return new Response(
       JSON.stringify({
         error: 'Connection failed',
         details: error.message,
-        type: errorType
+        type: errorType,
+        suggestion
       }),
       {
         status: 500,

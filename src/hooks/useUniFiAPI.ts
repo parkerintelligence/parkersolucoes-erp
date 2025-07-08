@@ -123,6 +123,7 @@ export interface ConnectionDiagnosis {
     name: string;
     success: boolean;
     details: string;
+    suggestion?: string;
   }>;
 }
 
@@ -130,12 +131,20 @@ class UniFiControllerService {
   private baseUrl: string;
   private username: string;
   private password: string;
+  private ignoreSsl: boolean;
   private auth: UniFiAuth | null = null;
 
   constructor(integration: any) {
     this.baseUrl = integration.base_url.replace(/\/$/, '');
     this.username = integration.username;
     this.password = integration.password;
+    this.ignoreSsl = integration.ignore_ssl ?? true;
+    
+    console.log('UniFi Service initialized:', {
+      baseUrl: this.baseUrl,
+      username: this.username,
+      ignoreSsl: this.ignoreSsl
+    });
     
     const savedAuth = localStorage.getItem('unifi_controller_auth');
     if (savedAuth) {
@@ -155,7 +164,7 @@ class UniFiControllerService {
 
   private async makeRequest(action: string, params: any = {}): Promise<any> {
     try {
-      console.log('UniFi Controller API Request:', { action, ...params });
+      console.log('UniFi Controller API Request:', { action, baseUrl: this.baseUrl, ignoreSsl: this.ignoreSsl, ...params });
 
       const response = await fetch('https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/unifi-proxy', {
         method: 'POST',
@@ -166,6 +175,7 @@ class UniFiControllerService {
         body: JSON.stringify({
           action,
           baseUrl: this.baseUrl,
+          ignoreSsl: this.ignoreSsl,
           ...params
         })
       });
@@ -180,7 +190,10 @@ class UniFiControllerService {
       
       if (result.error) {
         console.error('API returned error:', result.error, result.details);
-        throw new Error(result.error + (result.details ? `: ${result.details}` : ''));
+        const errorMessage = result.details ? `${result.error}: ${result.details}` : result.error;
+        const error = new Error(errorMessage);
+        (error as any).suggestion = result.suggestion;
+        throw error;
       }
 
       return result;
@@ -242,23 +255,26 @@ class UniFiControllerService {
         tests: [{
           name: 'Connection Diagnosis',
           success: false,
-          details: error.message || 'Failed to run diagnosis'
+          details: error.message || 'Failed to run diagnosis',
+          suggestion: (error as any).suggestion || 'Check controller configuration and try again'
         }]
       };
     }
   }
 
-  async pingController(): Promise<{ success: boolean; details: string }> {
+  async pingController(): Promise<{ success: boolean; details: string; suggestion?: string }> {
     try {
       const response = await this.makeRequest('pingController');
       return {
         success: response.success,
-        details: response.error || 'Controller is responding'
+        details: response.details || 'Controller is responding',
+        suggestion: response.suggestion
       };
     } catch (error) {
       return {
         success: false,
-        details: error.message
+        details: error.message,
+        suggestion: (error as any).suggestion || 'Check controller configuration'
       };
     }
   }
@@ -611,149 +627,6 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
 
   const unifiService = unifiIntegration ? new UniFiControllerService(unifiIntegration) : null;
 
-  // Sites
-  const {
-    data: sites = [],
-    isLoading: sitesLoading,
-    error: sitesError,
-    refetch: refetchSites
-  } = useQuery({
-    queryKey: ['unifi-controller', 'sites', unifiIntegration?.id],
-    queryFn: async () => {
-      if (!unifiService) {
-        return [];
-      }
-      const sites = await unifiService.getSites();
-      return sites;
-    },
-    enabled: !!unifiService && !integrationsLoading,
-    staleTime: 300000,
-    retry: (failureCount, error) => {
-      // Don't retry on authentication errors
-      if (error.message.includes('Authentication failed') || error.message.includes('Invalid credentials')) {
-        return false;
-      }
-      return failureCount < 2;
-    },
-  });
-
-  // Devices with enhanced error handling
-  const {
-    data: devices = [],
-    isLoading: devicesLoading,
-    error: devicesError,
-    refetch: refetchDevices
-  } = useQuery({
-    queryKey: ['unifi-controller', 'devices', selectedSiteId, unifiIntegration?.id],
-    queryFn: async () => {
-      if (!selectedSiteId || !unifiService) {
-        return [];
-      }
-      const devices = await unifiService.getDevices(selectedSiteId);
-      return devices;
-    },
-    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
-    staleTime: 30000,
-    retry: (failureCount, error) => {
-      if (error.message.includes('Authentication failed')) {
-        return false;
-      }
-      return failureCount < 2;
-    },
-  });
-
-  // Clients with enhanced error handling
-  const {
-    data: clients = [],
-    isLoading: clientsLoading,
-    error: clientsError,
-    refetch: refetchClients
-  } = useQuery({
-    queryKey: ['unifi-controller', 'clients', selectedSiteId, unifiIntegration?.id],
-    queryFn: async () => {
-      if (!selectedSiteId || !unifiService) {
-        return [];
-      }
-      const clients = await unifiService.getClients(selectedSiteId);
-      return clients;
-    },
-    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
-    staleTime: 15000,
-    retry: (failureCount, error) => {
-      if (error.message.includes('Authentication failed')) {
-        return false;
-      }
-      return failureCount < 2;
-    },
-  });
-
-  // System Info
-  const {
-    data: systemInfo,
-    isLoading: systemInfoLoading,
-    refetch: refetchSystemInfo
-  } = useQuery({
-    queryKey: ['unifi-controller', 'systemInfo', selectedSiteId, unifiIntegration?.id],
-    queryFn: async () => {
-      if (!selectedSiteId || !unifiService) {
-        return null;
-      }
-      const systemInfo = await unifiService.getSystemInfo(selectedSiteId);
-      return systemInfo;
-    },
-    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
-    staleTime: 60000,
-    retry: 2,
-  });
-
-  // Networks
-  const {
-    data: networks = [],
-    isLoading: networksLoading,
-    refetch: refetchNetworks
-  } = useQuery({
-    queryKey: ['unifi-controller', 'networks', selectedSiteId, unifiIntegration?.id],
-    queryFn: async () => {
-      if (!selectedSiteId || !unifiService) return [];
-      return await unifiService.getNetworks(selectedSiteId);
-    },
-    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
-    staleTime: 60000,
-    retry: 2,
-  });
-
-  // Health Metrics
-  const {
-    data: healthMetrics = [],
-    isLoading: healthMetricsLoading,
-    refetch: refetchHealthMetrics
-  } = useQuery({
-    queryKey: ['unifi-controller', 'healthMetrics', selectedSiteId, unifiIntegration?.id],
-    queryFn: async () => {
-      if (!selectedSiteId || !unifiService) return [];
-      return await unifiService.getHealthMetrics(selectedSiteId);
-    },
-    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
-    staleTime: 30000,
-    retry: 2,
-  });
-
-  // Events
-  const {
-    data: events = [],
-    isLoading: eventsLoading,
-    refetch: refetchEvents
-  } = useQuery({
-    queryKey: ['unifi-controller', 'events', selectedSiteId, unifiIntegration?.id],
-    queryFn: async () => {
-      if (!selectedSiteId || !unifiService) return [];
-      return await unifiService.getEvents(selectedSiteId);
-    },
-    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
-    staleTime: 15000,
-    retry: 2,
-  });
-
   // Enhanced test connection mutation with better error reporting
   const testConnectionMutation = useMutation({
     mutationFn: async () => {
@@ -779,11 +652,11 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
       console.error('Connection test error:', error);
       let errorMessage = "Erro ao tentar conectar à Controladora UniFi.";
       
-      if (error.message.includes('certificate')) {
-        errorMessage = "Erro de certificado SSL. Para controladoras locais, considere usar HTTP ao invés de HTTPS.";
+      if (error.message.includes('certificate') || error.message.includes('SSL')) {
+        errorMessage = "Erro de certificado SSL. Para controladoras locais, considere usar HTTP ao invés de HTTPS ou habilitar 'Ignorar SSL'.";
       } else if (error.message.includes('timeout')) {
         errorMessage = "Timeout na conexão. Verifique se a URL está correta e a controladora está acessível.";
-      } else if (error.message.includes('credentials')) {
+      } else if (error.message.includes('credentials') || error.message.includes('authentication')) {
         errorMessage = "Credenciais inválidas. Verifique o usuário e senha.";
       }
       
@@ -826,6 +699,144 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     }
   });
 
+  // Sites
+  const {
+    data: sites = [],
+    isLoading: sitesLoading,
+    error: sitesError,
+    refetch: refetchSites
+  } = useQuery({
+    queryKey: ['unifi-controller', 'sites', unifiIntegration?.id],
+    queryFn: async () => {
+      if (!unifiService) {
+        return [];
+      }
+      const sites = await unifiService.getSites();
+      return sites;
+    },
+    enabled: !!unifiService && !integrationsLoading,
+    staleTime: 300000,
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors
+      if (error.message.includes('Authentication failed') || error.message.includes('Invalid credentials')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+  });
+
+  const {
+    data: devices = [],
+    isLoading: devicesLoading,
+    error: devicesError,
+    refetch: refetchDevices
+  } = useQuery({
+    queryKey: ['unifi-controller', 'devices', selectedSiteId, unifiIntegration?.id],
+    queryFn: async () => {
+      if (!selectedSiteId || !unifiService) {
+        return [];
+      }
+      const devices = await unifiService.getDevices(selectedSiteId);
+      return devices;
+    },
+    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
+    staleTime: 30000,
+    retry: (failureCount, error) => {
+      if (error.message.includes('Authentication failed')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+  });
+
+  const {
+    data: clients = [],
+    isLoading: clientsLoading,
+    error: clientsError,
+    refetch: refetchClients
+  } = useQuery({
+    queryKey: ['unifi-controller', 'clients', selectedSiteId, unifiIntegration?.id],
+    queryFn: async () => {
+      if (!selectedSiteId || !unifiService) {
+        return [];
+      }
+      const clients = await unifiService.getClients(selectedSiteId);
+      return clients;
+    },
+    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
+    staleTime: 15000,
+    retry: (failureCount, error) => {
+      if (error.message.includes('Authentication failed')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+  });
+
+  const {
+    data: systemInfo,
+    isLoading: systemInfoLoading,
+    refetch: refetchSystemInfo
+  } = useQuery({
+    queryKey: ['unifi-controller', 'systemInfo', selectedSiteId, unifiIntegration?.id],
+    queryFn: async () => {
+      if (!selectedSiteId || !unifiService) {
+        return null;
+      }
+      const systemInfo = await unifiService.getSystemInfo(selectedSiteId);
+      return systemInfo;
+    },
+    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
+    staleTime: 60000,
+    retry: 2,
+  });
+
+  const {
+    data: networks = [],
+    isLoading: networksLoading,
+    refetch: refetchNetworks
+  } = useQuery({
+    queryKey: ['unifi-controller', 'networks', selectedSiteId, unifiIntegration?.id],
+    queryFn: async () => {
+      if (!selectedSiteId || !unifiService) return [];
+      return await unifiService.getNetworks(selectedSiteId);
+    },
+    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
+    staleTime: 60000,
+    retry: 2,
+  });
+
+  const {
+    data: healthMetrics = [],
+    isLoading: healthMetricsLoading,
+    refetch: refetchHealthMetrics
+  } = useQuery({
+    queryKey: ['unifi-controller', 'healthMetrics', selectedSiteId, unifiIntegration?.id],
+    queryFn: async () => {
+      if (!selectedSiteId || !unifiService) return [];
+      return await unifiService.getHealthMetrics(selectedSiteId);
+    },
+    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
+    staleTime: 30000,
+    retry: 2,
+  });
+
+  const {
+    data: events = [],
+    isLoading: eventsLoading,
+    refetch: refetchEvents
+  } = useQuery({
+    queryKey: ['unifi-controller', 'events', selectedSiteId, unifiIntegration?.id],
+    queryFn: async () => {
+      if (!selectedSiteId || !unifiService) return [];
+      return await unifiService.getEvents(selectedSiteId);
+    },
+    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
+    staleTime: 15000,
+    retry: 2,
+  });
+
+  // Mutation hooks for various actions
   const restartDeviceMutation = useMutation({
     mutationFn: ({ siteId, deviceId }: { siteId: string; deviceId: string }) => 
       unifiService?.restartDevice(siteId, deviceId) || Promise.resolve(false),
