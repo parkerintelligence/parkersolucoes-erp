@@ -187,6 +187,47 @@ const Zabbix = () => {
     return acc;
   }, {} as Record<string, typeof problems>);
 
+  const renderHostsTable = (hostsToShow: typeof hosts) => (
+    <Table>
+      <TableHeader>
+        <TableRow className="border-gray-700 hover:bg-gray-800/50">
+          <TableHead className="text-gray-300">Nome do Host</TableHead>
+          <TableHead className="text-gray-300">IP/DNS</TableHead>
+          <TableHead className="text-gray-300">Porta</TableHead>
+          <TableHead className="text-gray-300">Status</TableHead>
+          <TableHead className="text-gray-300">Disponibilidade</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {hostsToShow.map((host) => {
+          const availability = getHostAvailability(host);
+          const mainInterface = host.interfaces?.find(iface => iface.main === '1') || host.interfaces?.[0];
+          return (
+            <TableRow key={host.hostid} className="h-8 border-gray-700 hover:bg-gray-800/30">
+              <TableCell className="font-medium py-2 text-gray-200">{host.name}</TableCell>
+              <TableCell className="py-2 text-gray-300">
+                {mainInterface?.ip || mainInterface?.dns || 'N/A'}
+              </TableCell>
+              <TableCell className="py-2 text-gray-300">
+                {mainInterface?.port || 'N/A'}
+              </TableCell>
+              <TableCell className="py-2">
+                <Badge className={host.status === '0' ? 'bg-green-600 text-white' : 'bg-gray-600 text-white'}>
+                  {host.status === '0' ? 'Ativo' : 'Inativo'}
+                </Badge>
+              </TableCell>
+              <TableCell className="py-2">
+                <Badge className={availability.color}>
+                  {availability.label}
+                </Badge>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
+
   if (!isConfigured) {
     return (
       <div className="min-h-screen bg-gray-900 text-white p-6">
@@ -416,12 +457,13 @@ const Zabbix = () => {
                   </div>
                 ) : (
                   <Tabs defaultValue={Object.keys(groupedHosts)[0] || 'all'} className="w-full">
-                    <TabsList className="grid w-full grid-cols-auto bg-gray-700 border-gray-600 mb-6">
+                    {/* Abas por grupo de hosts */}
+                    <TabsList className="grid w-full bg-gray-700 border-gray-600 mb-6" style={{gridTemplateColumns: `repeat(${Object.keys(groupedHosts).length}, minmax(0, 1fr))`}}>
                       {Object.keys(groupedHosts).map((groupName) => (
                         <TabsTrigger 
                           key={groupName} 
                           value={groupName}
-                          className="data-[state=active]:bg-gray-600 data-[state=active]:text-white text-sm"
+                          className="data-[state=active]:bg-gray-600 data-[state=active]:text-white text-sm px-2"
                         >
                           {groupName}
                           <Badge variant="outline" className="ml-2 border-gray-500 text-gray-300">
@@ -431,78 +473,42 @@ const Zabbix = () => {
                       ))}
                     </TabsList>
                     
+                    {/* Conteúdo das abas por grupo */}
                     {Object.entries(groupedHosts).map(([groupName, groupHosts]) => (
                       <TabsContent key={groupName} value={groupName}>
                         <Tabs defaultValue="available" className="w-full">
+                          {/* Abas por status dentro de cada grupo */}
                           <TabsList className="grid w-full grid-cols-4 bg-gray-700 border-gray-600 mb-4">
                             <TabsTrigger value="available" className="data-[state=active]:bg-gray-600 data-[state=active]:text-white">
                               Disponível
                               <Badge className="ml-2 bg-green-900/20 text-green-400">
-                                {hostsByStatus.available?.filter(h => groupHosts.includes(h)).length || 0}
+                                {groupHosts.filter(h => getHostAvailability(h).status === 'available').length}
                               </Badge>
                             </TabsTrigger>
                             <TabsTrigger value="unavailable" className="data-[state=active]:bg-gray-600 data-[state=active]:text-white">
                               Indisponível
                               <Badge className="ml-2 bg-red-900/20 text-red-400">
-                                {hostsByStatus.unavailable?.filter(h => groupHosts.includes(h)).length || 0}
+                                {groupHosts.filter(h => getHostAvailability(h).status === 'unavailable').length}
                               </Badge>
                             </TabsTrigger>
                             <TabsTrigger value="unknown" className="data-[state=active]:bg-gray-600 data-[state=active]:text-white">
                               Desconhecido
                               <Badge className="ml-2 bg-yellow-900/20 text-yellow-400">
-                                {hostsByStatus.unknown?.filter(h => groupHosts.includes(h)).length || 0}
+                                {groupHosts.filter(h => getHostAvailability(h).status === 'unknown').length}
                               </Badge>
                             </TabsTrigger>
                             <TabsTrigger value="disabled" className="data-[state=active]:bg-gray-600 data-[state=active]:text-white">
                               Desabilitado
                               <Badge className="ml-2 bg-gray-900/20 text-gray-400">
-                                {hostsByStatus.disabled?.filter(h => groupHosts.includes(h)).length || 0}
+                                {groupHosts.filter(h => getHostAvailability(h).status === 'disabled').length}
                               </Badge>
                             </TabsTrigger>
                           </TabsList>
 
+                          {/* Conteúdo das abas por status */}
                           {['available', 'unavailable', 'unknown', 'disabled'].map(status => (
                             <TabsContent key={status} value={status}>
-                              <Table>
-                                <TableHeader>
-                                  <TableRow className="border-gray-700 hover:bg-gray-800/50">
-                                    <TableHead className="text-gray-300">Nome do Host</TableHead>
-                                    <TableHead className="text-gray-300">IP/DNS</TableHead>
-                                    <TableHead className="text-gray-300">Porta</TableHead>
-                                    <TableHead className="text-gray-300">Status</TableHead>
-                                    <TableHead className="text-gray-300">Disponibilidade</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {(hostsByStatus[status] || [])
-                                    .filter(host => groupHosts.includes(host))
-                                    .map((host) => {
-                                      const availability = getHostAvailability(host);
-                                      const mainInterface = host.interfaces?.find(iface => iface.main === '1') || host.interfaces?.[0];
-                                      return (
-                                        <TableRow key={host.hostid} className="h-8 border-gray-700 hover:bg-gray-800/30">
-                                          <TableCell className="font-medium py-2 text-gray-200">{host.name}</TableCell>
-                                          <TableCell className="py-2 text-gray-300">
-                                            {mainInterface?.ip || mainInterface?.dns || 'N/A'}
-                                          </TableCell>
-                                          <TableCell className="py-2 text-gray-300">
-                                            {mainInterface?.port || 'N/A'}
-                                          </TableCell>
-                                          <TableCell className="py-2">
-                                            <Badge className={host.status === '0' ? 'bg-green-600 text-white' : 'bg-gray-600 text-white'}>
-                                              {host.status === '0' ? 'Ativo' : 'Inativo'}
-                                            </Badge>
-                                          </TableCell>
-                                          <TableCell className="py-2">
-                                            <Badge className={availability.color}>
-                                              {availability.label}
-                                            </Badge>
-                                          </TableCell>
-                                        </TableRow>
-                                      );
-                                    })}
-                                </TableBody>
-                              </Table>
+                              {renderHostsTable(groupHosts.filter(host => getHostAvailability(host).status === status))}
                             </TabsContent>
                           ))}
                         </Tabs>
