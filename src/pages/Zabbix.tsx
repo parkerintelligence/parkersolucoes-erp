@@ -13,7 +13,6 @@ import {
   XCircle, 
   RefreshCcw, 
   Monitor,
-  Clock,
   Users,
   ExternalLink
 } from 'lucide-react';
@@ -80,31 +79,17 @@ const Zabbix = () => {
     }
   };
 
-  const handleCreateGLPITicket = async (host: any, type: 'host' | 'problem', problem?: any) => {
+  const handleCreateGLPITicket = async (problem: any) => {
     try {
-      let ticketData;
-      
-      if (type === 'host') {
-        ticketData = {
-          name: `Zabbix Host Issue - ${host.name}`,
-          content: `Host: ${host.name}\nStatus: ${host.status === '0' ? 'Ativo' : 'Inativo'}\nDisponibilidade: ${host.available === '1' ? 'Disponível' : 'Indisponível'}\nIP: ${host.interfaces?.[0]?.ip || 'N/A'}\nGrupos: ${host.groups?.map(g => g.name).join(', ') || 'N/A'}\n\nEste chamado foi criado automaticamente a partir do monitoramento Zabbix.`,
-          urgency: host.available === '0' ? 4 : 3,
-          impact: 3,
-          priority: host.available === '0' ? 4 : 3,
-          status: 1,
-          type: 1,
-        };
-      } else if (type === 'problem' && problem) {
-        ticketData = {
-          name: `Zabbix Problem - ${problem.name}`,
-          content: `Problema: ${problem.name}\nSeveridade: ${getSeverityLabel(problem.severity)}\nHost: ${problem.hosts?.[0]?.name || 'N/A'}\nData/Hora: ${new Date(parseInt(problem.clock) * 1000).toLocaleString('pt-BR')}\nStatus: ${problem.acknowledged === '1' ? 'Reconhecido' : 'Novo'}\n\nEste chamado foi criado automaticamente a partir do monitoramento Zabbix.`,
-          urgency: parseInt(problem.severity) >= 4 ? 4 : 3,
-          impact: parseInt(problem.severity) >= 4 ? 4 : 3,
-          priority: parseInt(problem.severity) >= 4 ? 4 : 3,
-          status: 1,
-          type: 1,
-        };
-      }
+      const ticketData = {
+        name: `Zabbix Problem - ${problem.name}`,
+        content: `Problema: ${problem.name}\nSeveridade: ${getSeverityLabel(problem.severity)}\nHost: ${problem.hosts?.[0]?.name || 'N/A'}\nData/Hora: ${new Date(parseInt(problem.clock) * 1000).toLocaleString('pt-BR')}\nStatus: ${problem.acknowledged === '1' ? 'Reconhecido' : 'Novo'}\n\nEste chamado foi criado automaticamente a partir do monitoramento Zabbix.`,
+        urgency: parseInt(problem.severity) >= 4 ? 4 : 3,
+        impact: parseInt(problem.severity) >= 4 ? 4 : 3,
+        priority: parseInt(problem.severity) >= 4 ? 4 : 3,
+        status: 1,
+        type: 1,
+      };
 
       await createTicket.mutateAsync(ticketData);
       toast({
@@ -123,12 +108,12 @@ const Zabbix = () => {
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case '5': return 'destructive'; // Disaster
-      case '4': return 'destructive'; // High
-      case '3': return 'secondary'; // Average
-      case '2': return 'outline'; // Warning
-      case '1': return 'outline'; // Information
-      default: return 'outline';
+      case '5': return 'bg-red-600 text-white'; // Disaster
+      case '4': return 'bg-red-500 text-white'; // High
+      case '3': return 'bg-orange-500 text-white'; // Average
+      case '2': return 'bg-yellow-500 text-black'; // Warning
+      case '1': return 'bg-blue-500 text-white'; // Information
+      default: return 'bg-gray-500 text-white';
     }
   };
 
@@ -165,15 +150,15 @@ const Zabbix = () => {
 
   if (!isConfigured) {
     return (
-      <div className="space-y-6">
-        <Card className="border-yellow-200 bg-yellow-50">
+      <div className="min-h-screen bg-gray-900 text-white p-6">
+        <Card className="border-yellow-600 bg-yellow-900/20">
           <CardContent className="p-6 text-center">
-            <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-600" />
-            <h3 className="text-lg font-semibold text-yellow-800 mb-2">Zabbix não configurado</h3>
-            <p className="text-yellow-700 mb-4">
+            <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-400" />
+            <h3 className="text-lg font-semibold text-yellow-200 mb-2">Zabbix não configurado</h3>
+            <p className="text-yellow-300 mb-4">
               Para usar o gerenciamento do Zabbix, configure a integração no painel de administração.
             </p>
-            <Button variant="outline" onClick={() => window.location.href = '/admin'}>
+            <Button variant="outline" onClick={() => window.location.href = '/admin'} className="border-yellow-600 text-yellow-400 hover:bg-yellow-900/30">
               Configurar Zabbix
             </Button>
           </CardContent>
@@ -183,330 +168,275 @@ const Zabbix = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="bg-red-100 p-2 rounded-lg">
-            <Monitor className="h-6 w-6 text-red-600" />
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-red-600 p-2 rounded-lg">
+              <Monitor className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Gerenciamento Zabbix</h1>
+              <p className="text-gray-400">
+                Monitore e gerencie seus hosts e problemas do Zabbix
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Gerenciamento Zabbix</h1>
-            <p className="text-muted-foreground">
-              Monitore e gerencie seus hosts e problemas do Zabbix
-            </p>
-          </div>
+          <Button 
+            onClick={handleRefreshAll} 
+            disabled={refreshing}
+            variant="outline"
+            className="border-gray-600 text-gray-200 hover:bg-gray-800"
+          >
+            <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
         </div>
-        <Button 
-          onClick={handleRefreshAll} 
-          disabled={refreshing}
-          variant="outline"
-        >
-          <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
-      </div>
 
-      {/* Debug Section - Show errors if any */}
-      {(hostsError || problemsError) && (
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="text-red-800 flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              Erros de Comunicação
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-sm">
-              {hostsError && (
-                <div className="bg-red-100 p-3 rounded border-l-4 border-red-400">
-                  <strong>Erro ao buscar hosts:</strong> {hostsError.message}
-                  {hostsError.message.includes('404') && (
-                    <div className="mt-2 text-xs text-red-600">
-                      <strong>Erro 404:</strong> A API do Zabbix não foi encontrada. Verifique se:
-                      <ul className="ml-4 mt-1 list-disc">
-                        <li>A URL base está correta (deve apontar para seu servidor Zabbix)</li>
-                        <li>O Zabbix está rodando e acessível</li>
-                        <li>O caminho /api_jsonrpc.php existe no servidor</li>
-                        <li>Não há problemas de firewall ou DNS</li>
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-              {problemsError && (
-                <div className="bg-red-100 p-3 rounded border-l-4 border-red-400">
-                  <strong>Erro ao buscar problemas:</strong> {problemsError.message}
-                </div>
-              )}
-              <div className="mt-3 p-3 bg-blue-50 rounded">
-                <strong>Dicas de solução:</strong>
-                <ul className="mt-2 space-y-1 text-xs">
-                  <li>• Verifique se o Zabbix está acessível via HTTPS</li>
-                  <li>• Confirme se as credenciais estão corretas</li>
-                  <li>• Verifique se a API está habilitada no Zabbix</li>
-                  <li>• Consulte os logs do navegador para mais detalhes</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Configuration Debug Info */}
-      <Card className="border-blue-200 bg-blue-50">
-        <CardHeader>
-          <CardTitle className="text-blue-800 flex items-center gap-2">
-            <Monitor className="h-5 w-5" />
-            Informações de Configuração
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <strong>URL Base:</strong> {integration?.base_url || 'Não configurada'}
-            </div>
-            <div>
-              <strong>Status:</strong> {integration?.is_active ? 'Ativa' : 'Inativa'}
-            </div>
-            <div>
-              <strong>Método de Auth:</strong> {integration?.api_token ? 'API Token' : integration?.username ? 'Usuário/Senha' : 'Não configurado'}
-            </div>
-            <div>
-              <strong>Integração ID:</strong> {integration?.id || 'N/A'}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Cards de estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Hosts Totais</CardTitle>
-            <Server className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{hosts.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {hosts.filter(h => h.status === '0').length} ativos
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Problemas Ativos</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{problems.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {problems.filter(p => p.acknowledged === '0').length} não reconhecidos
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Status Geral</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              {problems.length === 0 ? (
-                <>
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="text-sm font-medium text-green-600">OK</span>
-                </>
-              ) : (
-                <>
-                  <XCircle className="h-5 w-5 text-red-600" />
-                  <span className="text-sm font-medium text-red-600">Problemas</span>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="problems" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="problems">Problemas</TabsTrigger>
-          <TabsTrigger value="hosts">Hosts</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="problems" className="mt-6">
-          <Card>
+        {/* Debug Section - Show errors if any */}
+        {(hostsError || problemsError) && (
+          <Card className="border-red-600 bg-red-900/20">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="text-red-400 flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5" />
-                Problemas Ativos
+                Erros de Comunicação
               </CardTitle>
-              <CardDescription>
-                Lista de problemas atualmente ativos no Zabbix organizados por host
-              </CardDescription>
             </CardHeader>
             <CardContent>
-              {problemsLoading ? (
-                <div className="text-center py-8">
-                  <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4" />
-                  <p>Carregando problemas...</p>
-                </div>
-              ) : problems.length === 0 ? (
-                <div className="text-center py-8 text-green-600">
-                  <CheckCircle className="h-12 w-12 mx-auto mb-4" />
-                  <p className="text-lg font-medium">Nenhum problema ativo!</p>
-                  <p className="text-sm">Todos os sistemas estão funcionando normalmente.</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {Object.entries(groupedProblems).map(([hostName, hostProblems]) => (
-                    <div key={hostName} className="border rounded-lg overflow-hidden">
-                      <div className="bg-muted px-4 py-2 font-medium text-sm">
-                        <Server className="inline-block h-4 w-4 mr-2" />
-                        {hostName} ({hostProblems.length} problema{hostProblems.length !== 1 ? 's' : ''})
-                      </div>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Problema</TableHead>
-                            <TableHead>Severidade</TableHead>
-                            <TableHead>Data/Hora</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Ações</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {hostProblems.map((problem) => (
-                            <TableRow key={problem.eventid} className="h-10">
-                              <TableCell className="font-medium py-1">{problem.name}</TableCell>
-                              <TableCell className="py-1">
-                                <Badge variant={getSeverityColor(problem.severity)}>
-                                  {getSeverityLabel(problem.severity)}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="py-1">
-                                {new Date(parseInt(problem.clock) * 1000).toLocaleString('pt-BR')}
-                              </TableCell>
-                              <TableCell className="py-1">
-                                {problem.acknowledged === '1' ? (
-                                  <Badge variant="secondary">Reconhecido</Badge>
-                                ) : (
-                                  <Badge variant="destructive">Novo</Badge>
-                                )}
-                              </TableCell>
-                              <TableCell className="py-1">
-                                <div className="flex gap-2">
-                                  {problem.acknowledged === '0' && (
+              <div className="space-y-2 text-sm">
+                {hostsError && (
+                  <div className="bg-red-800/30 p-3 rounded border-l-4 border-red-500">
+                    <strong className="text-red-300">Erro ao buscar hosts:</strong> <span className="text-gray-300">{hostsError.message}</span>
+                  </div>
+                )}
+                {problemsError && (
+                  <div className="bg-red-800/30 p-3 rounded border-l-4 border-red-500">
+                    <strong className="text-red-300">Erro ao buscar problemas:</strong> <span className="text-gray-300">{problemsError.message}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Cards de estatísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-200">Hosts Totais</CardTitle>
+              <Server className="h-4 w-4 text-gray-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">{hosts.length}</div>
+              <p className="text-xs text-gray-400">
+                {hosts.filter(h => h.status === '0').length} ativos
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-200">Problemas Ativos</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-gray-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-400">{problems.length}</div>
+              <p className="text-xs text-gray-400">
+                {problems.filter(p => p.acknowledged === '0').length} não reconhecidos
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-200">Status Geral</CardTitle>
+              <Activity className="h-4 w-4 text-gray-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                {problems.length === 0 ? (
+                  <>
+                    <CheckCircle className="h-5 w-5 text-green-400" />
+                    <span className="text-sm font-medium text-green-400">OK</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-5 w-5 text-red-400" />
+                    <span className="text-sm font-medium text-red-400">Problemas</span>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Tabs defaultValue="problems" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 bg-gray-800 border-gray-700">
+            <TabsTrigger value="problems" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Problemas</TabsTrigger>
+            <TabsTrigger value="hosts" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Hosts</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="problems" className="mt-6">
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <AlertTriangle className="h-5 w-5" />
+                  Problemas Ativos
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Lista de problemas atualmente ativos no Zabbix organizados por host
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {problemsLoading ? (
+                  <div className="text-center py-8">
+                    <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4 text-gray-400" />
+                    <p className="text-gray-400">Carregando problemas...</p>
+                  </div>
+                ) : problems.length === 0 ? (
+                  <div className="text-center py-8 text-green-400">
+                    <CheckCircle className="h-12 w-12 mx-auto mb-4" />
+                    <p className="text-lg font-medium">Nenhum problema ativo!</p>
+                    <p className="text-sm text-gray-400">Todos os sistemas estão funcionando normalmente.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {Object.entries(groupedProblems).map(([hostName, hostProblems]) => (
+                      <div key={hostName} className="border border-gray-700 rounded-lg overflow-hidden bg-gray-900">
+                        <div className="bg-gray-800 px-4 py-2 font-medium text-sm text-gray-200">
+                          <Server className="inline-block h-4 w-4 mr-2" />
+                          {hostName} ({hostProblems.length} problema{hostProblems.length !== 1 ? 's' : ''})
+                        </div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="border-gray-700 hover:bg-gray-800/50">
+                              <TableHead className="text-gray-300">Problema</TableHead>
+                              <TableHead className="text-gray-300">Severidade</TableHead>
+                              <TableHead className="text-gray-300">Data/Hora</TableHead>
+                              <TableHead className="text-gray-300">Status</TableHead>
+                              <TableHead className="text-gray-300">Ações</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {hostProblems.map((problem) => (
+                              <TableRow key={problem.eventid} className="h-8 border-gray-700 hover:bg-gray-800/30">
+                                <TableCell className="font-medium py-2 text-gray-200">{problem.name}</TableCell>
+                                <TableCell className="py-2">
+                                  <Badge className={getSeverityColor(problem.severity)}>
+                                    {getSeverityLabel(problem.severity)}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="py-2 text-gray-300">
+                                  {new Date(parseInt(problem.clock) * 1000).toLocaleString('pt-BR')}
+                                </TableCell>
+                                <TableCell className="py-2">
+                                  {problem.acknowledged === '1' ? (
+                                    <Badge className="bg-gray-600 text-white">Reconhecido</Badge>
+                                  ) : (
+                                    <Badge className="bg-red-600 text-white">Novo</Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell className="py-2">
+                                  <div className="flex gap-2">
+                                    {problem.acknowledged === '0' && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleAcknowledgeProblem(problem.eventid)}
+                                        disabled={acknowledgeProblemMutation.isPending}
+                                        className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                                      >
+                                        Reconhecer
+                                      </Button>
+                                    )}
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => handleAcknowledgeProblem(problem.eventid)}
-                                      disabled={acknowledgeProblemMutation.isPending}
+                                      onClick={() => handleCreateGLPITicket(problem)}
+                                      disabled={createTicket.isPending}
+                                      className="border-blue-600 text-blue-400 hover:bg-blue-900/30 p-2"
+                                      title="Criar chamado no GLPI"
                                     >
-                                      Reconhecer
+                                      <ExternalLink className="h-4 w-4" />
                                     </Button>
-                                  )}
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleCreateGLPITicket(null, 'problem', problem)}
-                                    disabled={createTicket.isPending}
-                                    className="text-blue-600 hover:text-blue-700"
-                                  >
-                                    <ExternalLink className="h-4 w-4 mr-1" />
-                                    GLPI
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="hosts" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Server className="h-5 w-5" />
-                Hosts Monitorados
-              </CardTitle>
-              <CardDescription>
-                Lista de todos os hosts configurados no Zabbix organizados por grupo
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {hostsLoading ? (
-                <div className="text-center py-8">
-                  <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4" />
-                  <p>Carregando hosts...</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {Object.entries(groupedHosts).map(([groupName, groupHosts]) => (
-                    <div key={groupName} className="border rounded-lg overflow-hidden">
-                      <div className="bg-muted px-4 py-2 font-medium text-sm">
-                        <Users className="inline-block h-4 w-4 mr-2" />
-                        {groupName} ({groupHosts.length} host{groupHosts.length !== 1 ? 's' : ''})
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
                       </div>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Nome do Host</TableHead>
-                            <TableHead>IP/DNS</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Disponibilidade</TableHead>
-                            <TableHead>Ações</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {groupHosts.map((host) => (
-                            <TableRow key={host.hostid} className="h-10">
-                              <TableCell className="font-medium py-1">{host.name}</TableCell>
-                              <TableCell className="py-1">
-                                {host.interfaces?.[0]?.ip || host.interfaces?.[0]?.dns || 'N/A'}
-                              </TableCell>
-                              <TableCell className="py-1">
-                                <Badge variant={host.status === '0' ? 'default' : 'secondary'}>
-                                  {host.status === '0' ? 'Ativo' : 'Inativo'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="py-1">
-                                <Badge variant={host.available === '1' ? 'default' : 'destructive'}>
-                                  {host.available === '1' ? 'Disponível' : 'Indisponível'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="py-1">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleCreateGLPITicket(host, 'host')}
-                                  disabled={createTicket.isPending}
-                                  className="text-blue-600 hover:text-blue-700"
-                                >
-                                  <ExternalLink className="h-4 w-4 mr-1" />
-                                  GLPI
-                                </Button>
-                              </TableCell>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="hosts" className="mt-6">
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Server className="h-5 w-5" />
+                  Hosts Monitorados
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Lista de todos os hosts configurados no Zabbix organizados por grupo
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {hostsLoading ? (
+                  <div className="text-center py-8">
+                    <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4 text-gray-400" />
+                    <p className="text-gray-400">Carregando hosts...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {Object.entries(groupedHosts).map(([groupName, groupHosts]) => (
+                      <div key={groupName} className="border border-gray-700 rounded-lg overflow-hidden bg-gray-900">
+                        <div className="bg-gray-800 px-4 py-2 font-medium text-sm text-gray-200">
+                          <Users className="inline-block h-4 w-4 mr-2" />
+                          {groupName} ({groupHosts.length} host{groupHosts.length !== 1 ? 's' : ''})
+                        </div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="border-gray-700 hover:bg-gray-800/50">
+                              <TableHead className="text-gray-300">Nome do Host</TableHead>
+                              <TableHead className="text-gray-300">IP/DNS</TableHead>
+                              <TableHead className="text-gray-300">Status</TableHead>
+                              <TableHead className="text-gray-300">Disponibilidade</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                          </TableHeader>
+                          <TableBody>
+                            {groupHosts.map((host) => (
+                              <TableRow key={host.hostid} className="h-8 border-gray-700 hover:bg-gray-800/30">
+                                <TableCell className="font-medium py-2 text-gray-200">{host.name}</TableCell>
+                                <TableCell className="py-2 text-gray-300">
+                                  {host.interfaces?.[0]?.ip || host.interfaces?.[0]?.dns || 'N/A'}
+                                </TableCell>
+                                <TableCell className="py-2">
+                                  <Badge className={host.status === '0' ? 'bg-green-600 text-white' : 'bg-gray-600 text-white'}>
+                                    {host.status === '0' ? 'Ativo' : 'Inativo'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="py-2">
+                                  <Badge className={host.available === '1' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}>
+                                    {host.available === '1' ? 'Disponível' : 'Indisponível'}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };
