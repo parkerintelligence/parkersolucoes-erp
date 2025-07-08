@@ -1,10 +1,7 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -14,163 +11,82 @@ import {
   Activity, 
   Settings, 
   RefreshCw, 
-  Power, 
   Signal,
   Globe,
-  Shield,
   Smartphone,
   Laptop,
-  Monitor
+  Monitor,
+  Zap,
+  Thermometer,
+  Cpu,
+  HardDrive,
+  TestTube
 } from 'lucide-react';
-import { useIntegrations } from '@/hooks/useIntegrations';
-import { toast } from '@/hooks/use-toast';
+import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 
 const UniFi = () => {
-  const { data: integrations = [] } = useIntegrations();
-  const [isLoading, setIsLoading] = useState(false);
-  const [devices, setDevices] = useState([]);
-  const [clients, setClients] = useState([]);
-  const [networks, setNetworks] = useState([]);
-
-  const unifiIntegration = integrations.find(integration => 
-    integration.type === 'unifi' && integration.is_active
-  );
-
-  // Mock data para demonstração
-  const mockDevices = [
-    {
-      id: '1',
-      name: 'UniFi Dream Machine',
-      model: 'UDM-Pro',
-      type: 'gateway',
-      status: 'online',
-      uptime: '15d 4h 32m',
-      clients: 24,
-      cpu: 12,
-      memory: 45,
-      temperature: 42
-    },
-    {
-      id: '2',
-      name: 'Access Point Sala',
-      model: 'U6-Lite',
-      type: 'ap',
-      status: 'online',
-      uptime: '12d 2h 15m',
-      clients: 8,
-      cpu: 5,
-      memory: 32,
-      temperature: 38
-    },
-    {
-      id: '3',
-      name: 'Switch Escritório',
-      model: 'USW-24-POE',
-      type: 'switch',
-      status: 'online',
-      uptime: '20d 1h 45m',
-      clients: 16,
-      cpu: 8,
-      memory: 28,
-      temperature: 35
-    }
-  ];
-
-  const mockClients = [
-    {
-      id: '1',
-      hostname: 'iPhone-John',
-      mac: '00:11:22:33:44:55',
-      ip: '192.168.1.100',
-      type: 'wireless',
-      ap: 'Access Point Sala',
-      signal: -45,
-      uptime: '2h 30m',
-      rx_bytes: '150MB',
-      tx_bytes: '89MB'
-    },
-    {
-      id: '2',
-      hostname: 'Laptop-Office',
-      mac: 'AA:BB:CC:DD:EE:FF',
-      ip: '192.168.1.101',
-      type: 'wired',
-      ap: 'Switch Escritório',
-      signal: null,
-      uptime: '8h 15m',
-      rx_bytes: '2.1GB',
-      tx_bytes: '1.8GB'
-    }
-  ];
+  const {
+    devices,
+    clients,
+    systemInfo,
+    integration,
+    isLoading,
+    testConnection,
+    testConnectionLoading,
+    refreshAllData,
+    isConnected,
+    connectionUrl
+  } = useUniFiAPI();
 
   const getDeviceIcon = (type: string) => {
     switch (type) {
-      case 'gateway':
+      case 'udm':
+      case 'ugw':
         return <Router className="h-5 w-5 text-blue-400" />;
-      case 'ap':
+      case 'uap':
         return <Wifi className="h-5 w-5 text-green-400" />;
-      case 'switch':
+      case 'usw':
         return <Globe className="h-5 w-5 text-purple-400" />;
       default:
         return <Settings className="h-5 w-5 text-gray-400" />;
     }
   };
 
-  const getClientIcon = (type: string) => {
-    switch (type) {
-      case 'wireless':
-        return <Smartphone className="h-4 w-4 text-blue-400" />;
-      case 'wired':
-        return <Laptop className="h-4 w-4 text-green-400" />;
-      default:
-        return <Monitor className="h-4 w-4 text-gray-400" />;
+  const getClientIcon = (isWired: boolean) => {
+    return isWired ? 
+      <Laptop className="h-4 w-4 text-green-400" /> : 
+      <Smartphone className="h-4 w-4 text-blue-400" />;
+  };
+
+  const getStatusBadge = (state: number) => {
+    return state === 1 ? 
+      <Badge className="bg-green-900/20 text-green-400 border-green-600">Online</Badge> :
+      <Badge className="bg-red-900/20 text-red-400 border-red-600">Offline</Badge>;
+  };
+
+  const formatUptime = (seconds: number) => {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (days > 0) {
+      return `${days}d ${hours}h ${minutes}m`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'online':
-        return <Badge className="bg-green-900/20 text-green-400 border-green-600">Online</Badge>;
-      case 'offline':
-        return <Badge className="bg-red-900/20 text-red-400 border-red-600">Offline</Badge>;
-      default:
-        return <Badge className="bg-gray-900/20 text-gray-400 border-gray-600">Desconhecido</Badge>;
-    }
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const handleRefreshData = async () => {
-    if (!unifiIntegration) {
-      toast({
-        title: "Configuração necessária",
-        description: "Configure uma integração UniFi no painel de administração.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // Aqui seria feita a chamada real para a API UniFi
-      // Por enquanto, usando dados mock
-      setDevices(mockDevices);
-      setClients(mockClients);
-      
-      toast({
-        title: "✅ Dados atualizados",
-        description: "Informações da controladora UniFi foram atualizadas."
-      });
-    } catch (error) {
-      toast({
-        title: "❌ Erro ao atualizar",
-        description: "Falha ao conectar com a controladora UniFi.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (!unifiIntegration) {
+  if (!isConnected) {
     return (
       <div className="min-h-screen bg-gray-900 text-white">
         <div className="space-y-6 p-6">
@@ -200,13 +116,33 @@ const UniFi = () => {
       <div className="space-y-6 p-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-white">UniFi Controller - {unifiIntegration.name}</h1>
-            <p className="text-gray-400">Controladora: {unifiIntegration.base_url}</p>
+            <h1 className="text-2xl font-bold text-white">UniFi Controller - {integration?.name}</h1>
+            <p className="text-gray-400">Controladora: {connectionUrl}</p>
+            {systemInfo && (
+              <p className="text-sm text-gray-500">
+                Versão: {systemInfo.version} | Uptime: {formatUptime(systemInfo.uptime)}
+              </p>
+            )}
           </div>
-          <Button onClick={handleRefreshData} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Atualizar Dados
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={testConnection} 
+              disabled={testConnectionLoading}
+              variant="outline"
+              className="border-gray-600 text-gray-200 hover:bg-gray-700"
+            >
+              <TestTube className={`h-4 w-4 mr-2 ${testConnectionLoading ? 'animate-spin' : ''}`} />
+              Testar Conexão
+            </Button>
+            <Button 
+              onClick={refreshAllData} 
+              disabled={isLoading} 
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Atualizar Dados
+            </Button>
+          </div>
         </div>
 
         {/* Statistics Cards */}
@@ -216,7 +152,7 @@ const UniFi = () => {
               <div className="flex items-center gap-2 md:gap-3">
                 <Router className="h-6 w-6 md:h-8 md:w-8 text-blue-400 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-xl md:text-2xl font-bold text-white">{mockDevices.length}</p>
+                  <p className="text-xl md:text-2xl font-bold text-white">{devices.length}</p>
                   <p className="text-xs md:text-sm text-gray-400">Dispositivos</p>
                 </div>
               </div>
@@ -228,7 +164,7 @@ const UniFi = () => {
               <div className="flex items-center gap-2 md:gap-3">
                 <Users className="h-6 w-6 md:h-8 md:w-8 text-green-400 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-xl md:text-2xl font-bold text-white">{mockClients.length}</p>
+                  <p className="text-xl md:text-2xl font-bold text-white">{clients.length}</p>
                   <p className="text-xs md:text-sm text-gray-400">Clientes Conectados</p>
                 </div>
               </div>
@@ -241,7 +177,7 @@ const UniFi = () => {
                 <Wifi className="h-6 w-6 md:h-8 md:w-8 text-purple-400 flex-shrink-0" />
                 <div className="min-w-0">
                   <p className="text-xl md:text-2xl font-bold text-white">
-                    {mockDevices.filter(d => d.type === 'ap').length}
+                    {devices.filter(d => d.type === 'uap').length}
                   </p>
                   <p className="text-xs md:text-sm text-gray-400">Access Points</p>
                 </div>
@@ -255,7 +191,7 @@ const UniFi = () => {
                 <Activity className="h-6 w-6 md:h-8 md:w-8 text-orange-400 flex-shrink-0" />
                 <div className="min-w-0">
                   <p className="text-xl md:text-2xl font-bold text-white">
-                    {mockDevices.filter(d => d.status === 'online').length}
+                    {devices.filter(d => d.state === 1).length}
                   </p>
                   <p className="text-xs md:text-sm text-gray-400">Dispositivos Online</p>
                 </div>
@@ -291,19 +227,34 @@ const UniFi = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockDevices.map((device) => (
-                    <TableRow key={device.id} className="border-gray-700 hover:bg-gray-800/30">
+                  {devices.map((device) => (
+                    <TableRow key={device._id} className="border-gray-700 hover:bg-gray-800/30">
                       <TableCell className="flex items-center gap-2">
                         {getDeviceIcon(device.type)}
                         <span className="font-medium text-gray-200">{device.name}</span>
                       </TableCell>
                       <TableCell className="text-gray-300">{device.model}</TableCell>
-                      <TableCell>{getStatusBadge(device.status)}</TableCell>
-                      <TableCell className="text-gray-300">{device.uptime}</TableCell>
-                      <TableCell className="text-gray-300">{device.clients}</TableCell>
-                      <TableCell className="text-gray-300">{device.cpu}%</TableCell>
-                      <TableCell className="text-gray-300">{device.memory}%</TableCell>
-                      <TableCell className="text-gray-300">{device.temperature}°C</TableCell>
+                      <TableCell>{getStatusBadge(device.state)}</TableCell>
+                      <TableCell className="text-gray-300">{formatUptime(device.uptime)}</TableCell>
+                      <TableCell className="text-gray-300">{device.num_sta}</TableCell>
+                      <TableCell className="text-gray-300">
+                        <div className="flex items-center gap-1">
+                          <Cpu className="h-3 w-3" />
+                          {device['sys-stats']?.cpu || 0}%
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-gray-300">
+                        <div className="flex items-center gap-1">
+                          <HardDrive className="h-3 w-3" />
+                          {device['sys-stats']?.mem || 0}%
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-gray-300">
+                        <div className="flex items-center gap-1">
+                          <Thermometer className="h-3 w-3" />
+                          {device['sys-stats']?.['system-temp'] || 0}°C
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -339,15 +290,21 @@ const UniFi = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockClients.map((client) => (
-                    <TableRow key={client.id} className="border-gray-700 hover:bg-gray-800/30">
+                  {clients.map((client) => (
+                    <TableRow key={client._id} className="border-gray-700 hover:bg-gray-800/30">
                       <TableCell className="flex items-center gap-2">
-                        {getClientIcon(client.type)}
-                        <span className="font-medium text-gray-200">{client.hostname}</span>
+                        {getClientIcon(client.is_wired)}
+                        <span className="font-medium text-gray-200">
+                          {client.hostname || 'Cliente Desconhecido'}
+                        </span>
                       </TableCell>
                       <TableCell className="text-gray-300">{client.ip}</TableCell>
                       <TableCell className="text-gray-300 font-mono text-xs">{client.mac}</TableCell>
-                      <TableCell className="text-gray-300">{client.ap}</TableCell>
+                      <TableCell className="text-gray-300">
+                        <Badge className={client.is_wired ? 'bg-green-900/20 text-green-400 border-green-600' : 'bg-blue-900/20 text-blue-400 border-blue-600'}>
+                          {client.is_wired ? 'Cabeada' : 'Wireless'}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-gray-300">
                         {client.signal ? (
                           <div className="flex items-center gap-1">
@@ -358,9 +315,9 @@ const UniFi = () => {
                           '-'
                         )}
                       </TableCell>
-                      <TableCell className="text-gray-300">{client.uptime}</TableCell>
-                      <TableCell className="text-gray-300">{client.rx_bytes}</TableCell>
-                      <TableCell className="text-gray-300">{client.tx_bytes}</TableCell>
+                      <TableCell className="text-gray-300">{formatUptime(client.uptime)}</TableCell>
+                      <TableCell className="text-gray-300">{formatBytes(client.rx_bytes)}</TableCell>
+                      <TableCell className="text-gray-300">{formatBytes(client.tx_bytes)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
