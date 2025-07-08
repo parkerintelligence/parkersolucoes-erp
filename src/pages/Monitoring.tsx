@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,70 +63,15 @@ const Monitoring = () => {
 
   if (!grafanaIntegration) {
     return (
-      <div className="space-y-6">
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="p-6 text-center">
-            <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-600" />
-            <h3 className="text-lg font-semibold text-yellow-800 mb-2">Integração não configurada</h3>
-            <p className="text-yellow-700">
-              Para usar o monitoramento, configure a integração com o Grafana no painel de administração.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="space-y-6">
-        <div className="max-w-md mx-auto">
-          <Card className="border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-blue-900 text-center">Login do Grafana</CardTitle>
-              <CardDescription className="text-center">
-                Entre com suas credenciais para acessar os dashboards
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Usuário</Label>
-                  <Input
-                    id="username"
-                    type="text"
-                    value={credentials.username}
-                    onChange={(e) => setCredentials({...credentials, username: e.target.value})}
-                    placeholder="Digite seu usuário"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Senha</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={credentials.password}
-                      onChange={(e) => setCredentials({...credentials, password: e.target.value})}
-                      placeholder="Digite sua senha"
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-                  Fazer Login
-                </Button>
-              </form>
+      <div className="min-h-screen bg-gray-900 text-white p-6">
+        <div className="space-y-6">
+          <Card className="border-yellow-600 bg-yellow-900/20">
+            <CardContent className="p-6 text-center">
+              <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-400" />
+              <h3 className="text-lg font-semibold text-yellow-200 mb-2">Integração não configurada</h3>
+              <p className="text-yellow-300">
+                Para usar o monitoramento, configure a integração com o Grafana no painel de administração.
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -133,95 +79,158 @@ const Monitoring = () => {
     );
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button variant="outline" onClick={handleLogout}>
-          Sair
-        </Button>
-      </div>
-
-      <Tabs defaultValue="dashboards" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="dashboards">Dashboards</TabsTrigger>
-          <TabsTrigger value="alerts">Alertas</TabsTrigger>
-          <TabsTrigger value="metrics">Métricas</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="dashboards" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {dashboards.map((dashboard: any) => (
-              <Card key={dashboard.id} className="border-blue-200 hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <CardTitle className="text-blue-900 flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    {dashboard.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Button 
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    onClick={() => window.open(dashboard.url, '_blank')}
-                  >
-                    Abrir Dashboard
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white p-6">
+        <div className="space-y-6">
+          <div className="max-w-md mx-auto">
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <CardTitle className="text-white text-center">Login do Grafana</CardTitle>
+                <CardDescription className="text-center text-gray-400">
+                  Entre com suas credenciais para acessar os dashboards
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="username" className="text-gray-200">Usuário</Label>
+                    <Input
+                      id="username"
+                      type="text"
+                      value={credentials.username}
+                      onChange={(e) => setCredentials({...credentials, username: e.target.value})}
+                      placeholder="Digite seu usuário"
+                      required
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-gray-200">Senha</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={credentials.password}
+                        onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+                        placeholder="Digite sua senha"
+                        required
+                        className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-gray-400 hover:text-white"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
+                    Fazer Login
                   </Button>
-                </CardContent>
-              </Card>
-            ))}
+                </form>
+              </CardContent>
+            </Card>
           </div>
-        </TabsContent>
+        </div>
+      </div>
+    );
+  }
 
-        <TabsContent value="alerts" className="mt-6">
-          <Card className="border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-blue-900 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                Sistema de Alertas
-              </CardTitle>
-              <CardDescription>
-                Alertas e notificações do sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhum alerta ativo no momento.</p>
-                <p className="text-sm mt-2">Sistema funcionando normalmente.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="space-y-6 p-6">
+        <div className="flex justify-end">
+          <Button variant="outline" onClick={handleLogout} className="border-gray-600 text-gray-200 hover:bg-gray-800">
+            Sair
+          </Button>
+        </div>
 
-        <TabsContent value="metrics" className="mt-6">
-          <Card className="border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-blue-900 flex items-center gap-2">
-                <Server className="h-5 w-5" />
-                Métricas do Sistema
-              </CardTitle>
-              <CardDescription>
-                Estatísticas e performance do sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 border rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">99.9%</p>
-                  <p className="text-sm text-slate-600">Uptime</p>
+        <Tabs defaultValue="dashboards" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
+            <TabsTrigger value="dashboards" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Dashboards</TabsTrigger>
+            <TabsTrigger value="alerts" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Alertas</TabsTrigger>
+            <TabsTrigger value="metrics" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Métricas</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="dashboards" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {dashboards.map((dashboard: any) => (
+                <Card key={dashboard.id} className="bg-gray-800 border-gray-700 hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      {dashboard.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Button 
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      onClick={() => window.open(dashboard.url, '_blank')}
+                    >
+                      Abrir Dashboard
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="alerts" className="mt-6">
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  Sistema de Alertas
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Alertas e notificações do sistema
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-gray-500">
+                  <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Nenhum alerta ativo no momento.</p>
+                  <p className="text-sm mt-2">Sistema funcionando normalmente.</p>
                 </div>
-                <div className="text-center p-4 border rounded-lg">
-                  <p className="text-2xl font-bold text-blue-600">45ms</p>
-                  <p className="text-sm text-slate-600">Latência</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="metrics" className="mt-6">
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Server className="h-5 w-5" />
+                  Métricas do Sistema
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Estatísticas e performance do sistema
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 border border-gray-700 rounded-lg bg-gray-800">
+                    <p className="text-2xl font-bold text-green-400">99.9%</p>
+                    <p className="text-sm text-gray-400">Uptime</p>
+                  </div>
+                  <div className="text-center p-4 border border-gray-700 rounded-lg bg-gray-800">
+                    <p className="text-2xl font-bold text-blue-400">45ms</p>
+                    <p className="text-sm text-gray-400">Latência</p>
+                  </div>
+                  <div className="text-center p-4 border border-gray-700 rounded-lg bg-gray-800">
+                    <p className="text-2xl font-bold text-purple-400">12GB</p>
+                    <p className="text-sm text-gray-400">Uso de Memória</p>
+                  </div>
                 </div>
-                <div className="text-center p-4 border rounded-lg">
-                  <p className="text-2xl font-bold text-purple-600">12GB</p>
-                  <p className="text-sm text-slate-600">Uso de Memória</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };
