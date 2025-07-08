@@ -63,6 +63,12 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
     });
   };
 
+  const normalizeUrl = (baseUrl: string) => {
+    // Remove trailing slash if present
+    const cleanUrl = baseUrl.replace(/\/$/, '');
+    return cleanUrl;
+  };
+
   const handleSend = async () => {
     if (!phoneNumber.trim()) {
       toast({
@@ -93,6 +99,15 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
       return;
     }
 
+    if (!evolutionApiIntegration.api_token) {
+      toast({
+        title: "Token da API não configurado",
+        description: "Configure o token da Evolution API no painel administrativo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const integrationAny = evolutionApiIntegration as any;
@@ -102,28 +117,68 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
       // Limpar o número de telefone (remover caracteres especiais)
       const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
       
-      console.log('Enviando mensagem para:', cleanPhoneNumber);
+      // Normalizar a URL base
+      const baseUrl = normalizeUrl(evolutionApiIntegration.base_url);
+      const fullUrl = `${baseUrl}/message/sendText/${instanceName}`;
+      
+      console.log('Tentando enviar mensagem para:', cleanPhoneNumber);
       console.log('Instância:', instanceName);
-      console.log('URL:', `${evolutionApiIntegration.base_url}/message/sendText/${instanceName}`);
+      console.log('URL completa:', fullUrl);
+      console.log('Token:', evolutionApiIntegration.api_token ? 'Configurado' : 'Não configurado');
 
-      const response = await fetch(`${evolutionApiIntegration.base_url}/message/sendText/${instanceName}`, {
+      const requestBody = {
+        number: cleanPhoneNumber,
+        text: message,
+      };
+
+      console.log('Payload da requisição:', requestBody);
+
+      const response = await fetch(fullUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': evolutionApiIntegration.api_token || '',
+          'apikey': evolutionApiIntegration.api_token,
         },
-        body: JSON.stringify({
-          number: cleanPhoneNumber,
-          text: message,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
-      console.log('Resposta da API:', response.status, response.statusText);
+      console.log('Status da resposta:', response.status, response.statusText);
 
       if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Erro na resposta:', errorData);
-        throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Erro na resposta da API:', errorText);
+        
+        // Tentar com header Authorization como fallback
+        if (response.status === 401) {
+          console.log('Tentando com header Authorization...');
+          const retryResponse = await fetch(fullUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${evolutionApiIntegration.api_token}`,
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+          if (retryResponse.ok) {
+            const retryResult = await retryResponse.json();
+            console.log('Sucesso com Authorization header:', retryResult);
+            
+            toast({
+              title: "✅ Senha enviada!",
+              description: `Senha enviada com sucesso para ${phoneNumber}`,
+            });
+            
+            onOpenChange(false);
+            setPhoneNumber('');
+            return;
+          } else {
+            const retryErrorText = await retryResponse.text();
+            console.error('Erro mesmo com Authorization header:', retryErrorText);
+          }
+        }
+        
+        throw new Error(`Erro ${response.status}: ${response.statusText}\n${errorText}`);
       }
 
       const result = await response.json();
@@ -138,9 +193,22 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
       setPhoneNumber('');
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
+      
+      let errorMessage = "Não foi possível enviar a senha. Verifique a configuração da Evolution API.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('401')) {
+          errorMessage = "Erro de autenticação. Verifique o token da Evolution API.";
+        } else if (error.message.includes('404')) {
+          errorMessage = "Endpoint não encontrado. Verifique a URL da Evolution API.";
+        } else if (error.message.includes('500')) {
+          errorMessage = "Erro interno do servidor da Evolution API.";
+        }
+      }
+      
       toast({
         title: "❌ Erro no envio",
-        description: "Não foi possível enviar a senha. Verifique a configuração da Evolution API.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
