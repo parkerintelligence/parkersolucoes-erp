@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIntegrations } from './useIntegrations';
 import { toast } from './use-toast';
@@ -100,6 +99,8 @@ class UniFiService {
         `${this.baseUrl}:${this.port}/api/s/${siteId}${endpoint}` : 
         `${this.baseUrl}:${this.port}/api${endpoint}`;
 
+      console.log('UniFi API Request:', { url, method, siteId, endpoint });
+
       const response = await fetch('/api/unifi-proxy', {
         method: 'POST',
         headers: {
@@ -118,14 +119,22 @@ class UniFiService {
       });
 
       if (!response.ok) {
+        console.error('UniFi API Response not OK:', response.status, response.statusText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
+      console.log('UniFi API Response:', result);
       
-      // Armazenar cookies para próximas requisições
+      // Store cookies for next requests
       if (result.cookies) {
         this.cookies = result.cookies;
+      }
+
+      // Check for UniFi API errors
+      if (result.meta && result.meta.rc !== 'ok') {
+        console.error('UniFi API Error:', result.meta);
+        throw new Error(`UniFi API Error: ${result.meta.msg || 'Unknown error'}`);
       }
 
       return result;
@@ -137,10 +146,12 @@ class UniFiService {
 
   async authenticate(): Promise<boolean> {
     try {
+      console.log('Authenticating with UniFi controller...');
       const response = await this.makeRequest('/login', 'POST', {
         username: this.username,
         password: this.password
       });
+      console.log('Authentication response:', response);
       return response.meta?.rc === 'ok';
     } catch (error) {
       console.error('Authentication failed:', error);
@@ -275,12 +286,15 @@ class UniFiService {
 }
 
 export const useUniFiAPI = (selectedSiteId?: string) => {
-  const { data: integrations = [] } = useIntegrations();
+  const { data: integrations = [], isLoading: integrationsLoading } = useIntegrations();
   const queryClient = useQueryClient();
   
   const unifiIntegration = integrations.find(integration => 
     integration.type === 'unifi' && integration.is_active
   );
+
+  console.log('UniFi Integration found:', unifiIntegration);
+  console.log('All integrations:', integrations);
 
   const unifiService = unifiIntegration ? new UniFiService(unifiIntegration) : null;
 
@@ -291,10 +305,20 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     error: sitesError,
     refetch: refetchSites
   } = useQuery({
-    queryKey: ['unifi', 'sites'],
-    queryFn: () => unifiService?.getSites() || Promise.resolve([]),
-    enabled: !!unifiService,
+    queryKey: ['unifi', 'sites', unifiIntegration?.id],
+    queryFn: async () => {
+      if (!unifiService) {
+        console.log('No UniFi service available');
+        return [];
+      }
+      console.log('Fetching sites...');
+      const sites = await unifiService.getSites();
+      console.log('Sites fetched:', sites);
+      return sites;
+    },
+    enabled: !!unifiService && !integrationsLoading,
     staleTime: 300000, // 5 minutes
+    retry: 2,
   });
 
   // Get devices for selected site
@@ -304,10 +328,20 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     error: devicesError,
     refetch: refetchDevices
   } = useQuery({
-    queryKey: ['unifi', 'devices', selectedSiteId],
-    queryFn: () => selectedSiteId && unifiService ? unifiService.getDevices(selectedSiteId) : Promise.resolve([]),
-    enabled: !!unifiService && !!selectedSiteId,
+    queryKey: ['unifi', 'devices', selectedSiteId, unifiIntegration?.id],
+    queryFn: async () => {
+      if (!selectedSiteId || !unifiService) {
+        console.log('No site selected or no service available');
+        return [];
+      }
+      console.log('Fetching devices for site:', selectedSiteId);
+      const devices = await unifiService.getDevices(selectedSiteId);
+      console.log('Devices fetched:', devices);
+      return devices;
+    },
+    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
     staleTime: 30000, // 30 seconds
+    retry: 2,
   });
 
   // Get clients for selected site
@@ -317,10 +351,20 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     error: clientsError,
     refetch: refetchClients
   } = useQuery({
-    queryKey: ['unifi', 'clients', selectedSiteId],
-    queryFn: () => selectedSiteId && unifiService ? unifiService.getClients(selectedSiteId) : Promise.resolve([]),
-    enabled: !!unifiService && !!selectedSiteId,
+    queryKey: ['unifi', 'clients', selectedSiteId, unifiIntegration?.id],
+    queryFn: async () => {
+      if (!selectedSiteId || !unifiService) {
+        console.log('No site selected or no service available');
+        return [];
+      }
+      console.log('Fetching clients for site:', selectedSiteId);
+      const clients = await unifiService.getClients(selectedSiteId);
+      console.log('Clients fetched:', clients);
+      return clients;
+    },
+    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
     staleTime: 15000, // 15 seconds
+    retry: 2,
   });
 
   // Get system info for selected site
@@ -329,10 +373,20 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     isLoading: systemInfoLoading,
     refetch: refetchSystemInfo
   } = useQuery({
-    queryKey: ['unifi', 'systemInfo', selectedSiteId],
-    queryFn: () => selectedSiteId && unifiService ? unifiService.getSystemInfo(selectedSiteId) : Promise.resolve(null),
-    enabled: !!unifiService && !!selectedSiteId,
+    queryKey: ['unifi', 'systemInfo', selectedSiteId, unifiIntegration?.id],
+    queryFn: async () => {
+      if (!selectedSiteId || !unifiService) {
+        console.log('No site selected or no service available');
+        return null;
+      }
+      console.log('Fetching system info for site:', selectedSiteId);
+      const systemInfo = await unifiService.getSystemInfo(selectedSiteId);
+      console.log('System info fetched:', systemInfo);
+      return systemInfo;
+    },
+    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
     staleTime: 60000, // 1 minute
+    retry: 2,
   });
 
   // Get network settings for selected site
@@ -341,10 +395,20 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     isLoading: networkSettingsLoading,
     refetch: refetchNetworkSettings
   } = useQuery({
-    queryKey: ['unifi', 'networkSettings', selectedSiteId],
-    queryFn: () => selectedSiteId && unifiService ? unifiService.getNetworkSettings(selectedSiteId) : Promise.resolve([]),
-    enabled: !!unifiService && !!selectedSiteId,
+    queryKey: ['unifi', 'networkSettings', selectedSiteId, unifiIntegration?.id],
+    queryFn: async () => {
+      if (!selectedSiteId || !unifiService) {
+        console.log('No site selected or no service available');
+        return [];
+      }
+      console.log('Fetching network settings for site:', selectedSiteId);
+      const networkSettings = await unifiService.getNetworkSettings(selectedSiteId);
+      console.log('Network settings fetched:', networkSettings);
+      return networkSettings;
+    },
+    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
     staleTime: 120000, // 2 minutes
+    retry: 2,
   });
 
   // Test connection
@@ -421,7 +485,14 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
   const refreshAllData = async () => {
     if (!selectedSiteId) return;
     
+    console.log('Refreshing all data for site:', selectedSiteId);
+    toast({
+      title: "🔄 Atualizando dados",
+      description: "Buscando informações atualizadas da controladora UniFi..."
+    });
+    
     await Promise.all([
+      refetchSites(),
       refetchDevices(),
       refetchClients(),
       refetchSystemInfo(),
@@ -435,6 +506,7 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
   };
 
   const handleTestConnection = () => {
+    console.log('Testing UniFi connection...');
     testConnectionMutation.mutate();
   };
 
@@ -457,7 +529,7 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     integration: unifiIntegration,
     
     // Loading states
-    isLoading: sitesLoading || devicesLoading || clientsLoading || systemInfoLoading || networkSettingsLoading,
+    isLoading: integrationsLoading || sitesLoading || devicesLoading || clientsLoading || systemInfoLoading || networkSettingsLoading,
     sitesLoading,
     devicesLoading,
     clientsLoading,

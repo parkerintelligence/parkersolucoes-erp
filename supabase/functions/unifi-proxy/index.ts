@@ -11,6 +11,8 @@ serve(async (req) => {
   try {
     const { url, method, data, credentials } = await req.json()
     
+    console.log('UniFi Proxy Request:', { url, method, hasCredentials: !!credentials })
+    
     if (!url || !credentials) {
       return new Response(
         JSON.stringify({ error: 'URL and credentials are required' }),
@@ -23,42 +25,46 @@ serve(async (req) => {
 
     const { username, password, cookies } = credentials
 
-    // Configurar headers para a requisição
+    // Configure headers for the request
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'User-Agent': 'UniFi-Integration/1.0'
     }
 
-    // Adicionar cookies se disponíveis
+    // Add cookies if available
     if (cookies) {
       headers['Cookie'] = cookies
     }
 
-    // Configurar o corpo da requisição se necessário
+    // Configure request body if needed
     let body: string | undefined
     if (data && (method === 'POST' || method === 'PUT')) {
       body = JSON.stringify(data)
     }
 
-    // Fazer a requisição para a controladora UniFi
+    console.log('Making request to UniFi controller:', url)
+
+    // Make request to UniFi controller
     const response = await fetch(url, {
       method,
       headers,
       body,
-      // Ignorar certificados SSL inválidos (comum em controladoras UniFi)
+      // Ignore invalid SSL certificates (common in UniFi controllers)
       // @ts-ignore
       rejectUnauthorized: false
     })
 
-    // Extrair cookies da resposta
+    console.log('UniFi controller response status:', response.status)
+
+    // Extract cookies from response
     const setCookieHeader = response.headers.get('Set-Cookie')
     let responseCookies = ''
     if (setCookieHeader) {
       responseCookies = setCookieHeader
     }
 
-    // Processar a resposta
+    // Process response
     let responseData
     const contentType = response.headers.get('Content-Type') || ''
     
@@ -68,7 +74,25 @@ serve(async (req) => {
       responseData = await response.text()
     }
 
-    // Retornar a resposta com cookies
+    console.log('UniFi controller response data:', responseData)
+
+    // Handle authentication errors
+    if (response.status === 401 || response.status === 403) {
+      return new Response(
+        JSON.stringify({
+          error: 'Authentication failed',
+          details: 'Invalid credentials or insufficient permissions',
+          status: response.status,
+          data: responseData
+        }),
+        {
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // Return response with cookies and original status
     return new Response(
       JSON.stringify({
         ...responseData,
@@ -77,7 +101,7 @@ serve(async (req) => {
         statusText: response.statusText
       }),
       {
-        status: 200,
+        status: response.ok ? 200 : response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
