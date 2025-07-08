@@ -66,8 +66,9 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
 
   const validatePhoneNumber = (phone: string): boolean => {
     const cleaned = phone.replace(/\D/g, '');
-    // Aceitar números com 10-15 dígitos
-    return cleaned.length >= 10 && cleaned.length <= 15;
+    // Aceitar números brasileiros: 11 dígitos (DDD + número) ou 13 dígitos (55 + DDD + número)
+    return (cleaned.length === 11 || cleaned.length === 13) && 
+           (cleaned.length === 13 ? cleaned.startsWith('55') : true);
   };
 
   const formatPhoneForDisplay = (phone: string): string => {
@@ -91,7 +92,7 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
     if (!validatePhoneNumber(phoneNumber)) {
       toast({
         title: "❌ Número inválido",
-        description: "Digite um número válido (10-15 dígitos). Exemplo: 5511999999999 ou 11999999999",
+        description: "Digite um número válido:\n• 11 dígitos: 11999999999\n• 13 dígitos: 5511999999999",
         variant: "destructive",
       });
       return;
@@ -123,8 +124,9 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
       const evolutionService = new EvolutionApiService(evolutionApiIntegration);
       const formattedPhone = formatPhoneForDisplay(phoneNumber);
       
-      console.log('🚀 Enviando mensagem para:', formattedPhone);
-      console.log('📱 Instância:', (evolutionApiIntegration as any).instance_name);
+      console.log('🚀 Iniciando envio da senha para:', formattedPhone);
+      console.log('📱 Usando instância:', (evolutionApiIntegration as any).instance_name);
+      console.log('🌐 URL base:', evolutionApiIntegration.base_url);
       
       const result = await evolutionService.sendMessage(formattedPhone, formatMessage());
 
@@ -137,18 +139,18 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
         onOpenChange(false);
         setPhoneNumber('');
       } else {
-        console.error('❌ Erro no envio:', result.error);
+        console.error('❌ Erro detalhado:', result.error);
         toast({
-          title: "❌ Erro no envio",
-          description: result.error || "Não foi possível enviar a senha. Verifique a configuração da Evolution API.",
+          title: "❌ Falha no envio",
+          description: result.error || "Erro desconhecido ao enviar mensagem",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('❌ Erro inesperado:', error);
+      console.error('❌ Erro crítico:', error);
       toast({
-        title: "❌ Erro inesperado",
-        description: "Ocorreu um erro ao enviar a senha. Tente novamente.",
+        title: "❌ Erro crítico",
+        description: `Erro inesperado: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
         variant: "destructive",
       });
     } finally {

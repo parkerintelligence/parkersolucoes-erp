@@ -52,37 +52,14 @@ export class EvolutionApiService {
     return cleaned;
   }
 
-  private async testApiConnectivity(): Promise<boolean> {
-    try {
-      const baseUrl = this.normalizeUrl(this.integration.base_url);
-      const integrationAny = this.integration as any;
-      const instanceName = integrationAny.instance_name || 'main_instance';
-      
-      // Test instance status endpoint
-      const response = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': this.integration.api_token!,
-        },
-      });
-
-      console.log('API Connectivity Test:', response.status);
-      return response.ok || response.status === 404; // 404 might mean instance exists but endpoint is different
-    } catch (error) {
-      console.error('API Connectivity Test Failed:', error);
-      return false;
-    }
-  }
-
   private async sendWithAuthMethod(
     url: string, 
     payload: any, 
     authHeaders: Record<string, string>
   ): Promise<Response> {
-    console.log('Sending message to:', url);
-    console.log('Payload:', payload);
-    console.log('Headers:', authHeaders);
+    console.log('🚀 Enviando para:', url);
+    console.log('📦 Payload:', JSON.stringify(payload, null, 2));
+    console.log('🔐 Headers:', authHeaders);
 
     const response = await fetch(url, {
       method: 'POST',
@@ -93,8 +70,15 @@ export class EvolutionApiService {
       body: JSON.stringify(payload),
     });
 
-    console.log('Response status:', response.status);
-    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('📡 Status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ Erro:', errorText);
+    } else {
+      const result = await response.json();
+      console.log('✅ Sucesso:', result);
+    }
 
     return response;
   }
@@ -115,58 +99,107 @@ export class EvolutionApiService {
     const instanceName = integrationAny.instance_name || 'main_instance';
     const baseUrl = this.normalizeUrl(this.integration.base_url);
     
-    // Diferentes formatos de payload que a Evolution API pode aceitar
+    console.log('🔧 Configuração:', {
+      baseUrl,
+      instanceName,
+      phoneNumber: cleanPhoneNumber,
+      hasToken: !!this.integration.api_token
+    });
+
+    // Formatos de payload mais completos
     const payloadFormats = [
-      // Formato padrão
+      // Formato Evolution API v2 padrão
+      {
+        number: `${cleanPhoneNumber}@s.whatsapp.net`,
+        options: {
+          delay: 1200,
+          presence: "composing"
+        },
+        textMessage: {
+          text: message
+        }
+      },
+      // Formato Evolution API v1
       {
         number: cleanPhoneNumber,
-        text: message,
+        text: message
       },
-      // Formato com textMessage
+      // Formato com textMessage simples
       {
         number: cleanPhoneNumber,
         textMessage: {
-          text: message,
-        },
+          text: message
+        }
       },
-      // Formato com message
+      // Formato com message object
       {
         number: cleanPhoneNumber,
-        message: message,
+        message: {
+          text: message
+        }
       },
-      // Formato com remoteJid
+      // Formato usando remoteJid
       {
         remoteJid: `${cleanPhoneNumber}@s.whatsapp.net`,
         message: {
-          text: message,
-        },
+          text: message
+        }
       },
+      // Formato usando to e body
+      {
+        to: `${cleanPhoneNumber}@s.whatsapp.net`,
+        body: message,
+        type: "text"
+      }
     ];
 
-    // Endpoints mais comuns da Evolution API
+    // Endpoints mais comuns da Evolution API (mais completo)
     const endpoints = [
+      // Evolution API v2 padrões
       `/message/sendText/${instanceName}`,
+      `/message/send-text/${instanceName}`,
       `/${instanceName}/message/sendText`,
-      `/message/text/${instanceName}`,
-      `/${instanceName}/message/text`,
+      `/${instanceName}/message/send-text`,
+      
+      // Evolution API v1 padrões
+      `/api/sendText/${instanceName}`,
+      `/api/${instanceName}/sendText`,
       `/sendText/${instanceName}`,
       `/${instanceName}/sendText`,
-      `/message/send-text/${instanceName}`,
-      `/${instanceName}/message/send-text`,
+      
+      // Versões com prefixos API
       `/api/v1/message/sendText/${instanceName}`,
-      `/api/v1/${instanceName}/message/sendText`,
+      `/api/v2/message/sendText/${instanceName}`,
       `/v1/message/sendText/${instanceName}`,
-      `/v1/${instanceName}/message/sendText`,
+      `/v2/message/sendText/${instanceName}`,
+      
+      // Formatos alternativos
+      `/message/text/${instanceName}`,
+      `/text/${instanceName}`,
+      `/${instanceName}/text`,
+      
+      // Endpoints sem nome da instância (alguns Evolution APIs)
+      `/message/sendText`,
+      `/api/sendText`,
+      `/sendText`,
+      `/message/send-text`,
+      `/api/v1/message/sendText`,
+      `/v1/message/sendText`
     ];
 
-    // Métodos de autenticação
+    // Métodos de autenticação expandidos
     const authMethods = [
       { 'apikey': this.integration.api_token },
-      { 'Authorization': `Bearer ${this.integration.api_token}` },
-      { 'x-api-key': this.integration.api_token },
       { 'api-key': this.integration.api_token },
       { 'Api-Key': this.integration.api_token },
+      { 'API-KEY': this.integration.api_token },
+      { 'x-api-key': this.integration.api_token },
       { 'X-API-KEY': this.integration.api_token },
+      { 'Authorization': `Bearer ${this.integration.api_token}` },
+      { 'Authorization': `ApiKey ${this.integration.api_token}` },
+      { 'token': this.integration.api_token },
+      { 'Token': this.integration.api_token },
+      { 'access_token': this.integration.api_token }
     ];
 
     // Testar todas as combinações
@@ -176,32 +209,35 @@ export class EvolutionApiService {
       for (const payload of payloadFormats) {
         for (const authHeaders of authMethods) {
           try {
+            console.log(`🔄 Testando: ${endpoint} | Payload: ${Object.keys(payload)[0]} | Auth: ${Object.keys(authHeaders)[0]}`);
+            
             const response = await this.sendWithAuthMethod(fullUrl, payload, authHeaders);
             
             if (response.ok) {
               const result = await response.json();
-              console.log('✅ Success with:', endpoint, 'payload:', Object.keys(payload)[0], 'auth:', Object.keys(authHeaders)[0]);
-              console.log('Result:', result);
+              console.log('🎉 SUCESSO! Configuração que funcionou:', {
+                endpoint,
+                payloadType: Object.keys(payload)[0],
+                authType: Object.keys(authHeaders)[0],
+                result
+              });
               return { success: true };
             } else {
-              const errorText = await response.text();
-              console.log(`❌ Failed ${endpoint} (${Object.keys(payload)[0]}, ${Object.keys(authHeaders)[0]}):`, response.status, errorText);
-              
-              // Se receber 401, pode ser problema de autenticação, continue tentando
-              // Se receber 404, pode ser endpoint errado, continue tentando
-              continue;
+              console.log(`❌ Falhou: ${endpoint} (${Object.keys(payload)[0]}, ${Object.keys(authHeaders)[0]}) - Status: ${response.status}`);
             }
           } catch (error) {
-            console.error(`❌ Error ${endpoint} (${Object.keys(payload)[0]}, ${Object.keys(authHeaders)[0]}):`, error);
-            continue;
+            console.error(`❌ Erro de rede: ${endpoint} (${Object.keys(payload)[0]}, ${Object.keys(authHeaders)[0]}):`, error);
           }
+          
+          // Small delay between requests to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
     }
 
     return { 
       success: false, 
-      error: 'Não foi possível enviar a mensagem. Verifique se a instância está conectada e ativa na Evolution API. Confira também se o token de API está correto.' 
+      error: 'Não foi possível enviar a mensagem com nenhuma configuração testada. Verifique se:\n\n1. A instância está ativa e conectada\n2. O token da API está correto\n3. A URL base está correta\n4. O nome da instância está correto\n\nConsulte a documentação da sua Evolution API para verificar os endpoints corretos.' 
     };
   }
 }
