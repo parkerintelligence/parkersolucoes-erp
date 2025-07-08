@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Wifi, 
   Router, 
@@ -13,31 +13,55 @@ import {
   Server,
   Network,
   Settings,
-  AlertTriangle
+  AlertTriangle,
+  Monitor,
+  Shield,
+  Database,
+  BarChart3,
+  Gauge
 } from 'lucide-react';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { UniFiSiteSelector } from '@/components/UniFiSiteSelector';
 import { UniFiDeviceManager } from '@/components/UniFiDeviceManager';
 import { UniFiClientManager } from '@/components/UniFiClientManager';
+import { UniFiNetworkManager } from '@/components/UniFiNetworkManager';
+import { UniFiMonitoringDashboard } from '@/components/UniFiMonitoringDashboard';
+import { UniFiAdvancedDeviceManager } from '@/components/UniFiAdvancedDeviceManager';
 
 const UniFi = () => {
   const [selectedSiteId, setSelectedSiteId] = useState<string>('');
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   
   const {
     sites,
     devices,
     clients,
+    networks,
+    healthMetrics,
+    events,
     systemInfo,
     integration,
     isLoading,
     sitesLoading,
+    networksLoading,
+    healthMetricsLoading,
+    eventsLoading,
     testConnection,
     testConnectionLoading,
     restartDevice,
     restartDeviceLoading,
     blockClient,
     blockClientLoading,
+    createNetwork,
+    updateNetwork,
+    deleteNetwork,
+    locateDevice,
+    setDeviceLED,
+    updateDeviceSettings,
+    setClientAlias,
+    disconnectClient,
     refreshAllData,
+    refreshAdvancedData,
     isConnected,
     connectionUrl
   } = useUniFiAPI(selectedSiteId);
@@ -55,6 +79,8 @@ const UniFi = () => {
       return `${minutes}m`;
     }
   };
+
+  const selectedDevice = devices.find(d => d.mac === selectedDeviceId);
 
   if (!isConnected) {
     return (
@@ -98,6 +124,7 @@ const UniFi = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="space-y-6 p-6">
+        {/* Header */}
         <div className="flex justify-between items-center">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -135,7 +162,7 @@ const UniFi = () => {
               Testar Conexão
             </Button>
             <Button 
-              onClick={refreshAllData} 
+              onClick={refreshAdvancedData} 
               disabled={isLoading} 
               className="bg-blue-600 hover:bg-blue-700"
             >
@@ -176,12 +203,6 @@ const UniFi = () => {
                       <p className="text-gray-300 mt-1">
                         Verifique se a controladora está acessível e se as credenciais estão corretas.
                       </p>
-                      <ul className="text-xs text-gray-400 mt-2 space-y-1">
-                        <li>• Verifique se a URL da controladora está correta</li>
-                        <li>• Certifique-se de que o usuário tem privilégios de administrador</li>
-                        <li>• Verifique se não há firewall bloqueando a conexão</li>
-                        <li>• Teste o acesso manual via navegador web</li>
-                      </ul>
                     </div>
                   </div>
                 </div>
@@ -231,10 +252,8 @@ const UniFi = () => {
                   <div className="flex items-center gap-2 md:gap-3">
                     <Wifi className="h-6 w-6 md:h-8 md:w-8 text-purple-400 flex-shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-xl md:text-2xl font-bold text-white">
-                        {devices.filter(d => d.type === 'uap').length}
-                      </p>
-                      <p className="text-xs md:text-sm text-gray-400">Access Points</p>
+                      <p className="text-xl md:text-2xl font-bold text-white">{networks.length}</p>
+                      <p className="text-xs md:text-sm text-gray-400">Redes Wi-Fi</p>
                     </div>
                   </div>
                 </CardContent>
@@ -255,23 +274,253 @@ const UniFi = () => {
               </Card>
             </div>
 
-            {/* Device Management */}
-            <UniFiDeviceManager
-              devices={devices}
-              loading={isLoading}
-              onRestartDevice={restartDevice}
-              restartLoading={restartDeviceLoading}
-              selectedSiteId={selectedSiteId}
-            />
+            {/* Advanced Management Tabs */}
+            <Tabs defaultValue="monitoring" className="w-full">
+              <TabsList className="grid w-full grid-cols-6 bg-gray-800 border-gray-700">
+                <TabsTrigger value="monitoring" className="flex items-center gap-2">
+                  <Gauge className="h-4 w-4" />
+                  <span className="hidden sm:inline">Monitoramento</span>
+                </TabsTrigger>
+                <TabsTrigger value="networks" className="flex items-center gap-2">
+                  <Wifi className="h-4 w-4" />
+                  <span className="hidden sm:inline">Redes</span>
+                </TabsTrigger>
+                <TabsTrigger value="devices" className="flex items-center gap-2">
+                  <Router className="h-4 w-4" />
+                  <span className="hidden sm:inline">Dispositivos</span>
+                </TabsTrigger>
+                <TabsTrigger value="clients" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <span className="hidden sm:inline">Clientes</span>
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  <span className="hidden sm:inline">Configurações</span>
+                </TabsTrigger>
+                <TabsTrigger value="security" className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden sm:inline">Segurança</span>
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Client Management */}
-            <UniFiClientManager
-              clients={clients}
-              loading={isLoading}
-              onBlockClient={blockClient}
-              blockLoading={blockClientLoading}
-              selectedSiteId={selectedSiteId}
-            />
+              <TabsContent value="monitoring" className="space-y-6">
+                <UniFiMonitoringDashboard
+                  healthMetrics={healthMetrics}
+                  events={events}
+                  loading={healthMetricsLoading || eventsLoading}
+                  onRefresh={refreshAdvancedData}
+                />
+              </TabsContent>
+
+              <TabsContent value="networks" className="space-y-6">
+                <UniFiNetworkManager
+                  networks={networks}
+                  loading={networksLoading}
+                  onCreateNetwork={createNetwork}
+                  onUpdateNetwork={updateNetwork}
+                  onDeleteNetwork={deleteNetwork}
+                  onToggleNetwork={(networkId, enabled) => 
+                    updateNetwork(networkId, { enabled })
+                  }
+                  selectedSiteId={selectedSiteId}
+                />
+              </TabsContent>
+
+              <TabsContent value="devices" className="space-y-6">
+                <UniFiDeviceManager
+                  devices={devices}
+                  loading={isLoading}
+                  onRestartDevice={restartDevice}
+                  restartLoading={restartDeviceLoading}
+                  selectedSiteId={selectedSiteId}
+                />
+                
+                {/* Device Selection for Advanced Settings */}
+                {devices.length > 0 && (
+                  <Card className="bg-gray-800 border-gray-700">
+                    <CardHeader>
+                      <CardTitle className="text-white">Configurações Avançadas de Dispositivo</CardTitle>
+                      <CardDescription className="text-gray-400">
+                        Selecione um dispositivo para acessar configurações avançadas
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        {devices.map((device) => (
+                          <Button
+                            key={device.mac}
+                            size="sm"
+                            variant={selectedDeviceId === device.mac ? "default" : "outline"}
+                            onClick={() => setSelectedDeviceId(device.mac)}
+                            className={selectedDeviceId === device.mac ? 
+                              "bg-blue-600 hover:bg-blue-700" : 
+                              "border-gray-600 text-gray-200 hover:bg-gray-700"
+                            }
+                          >
+                            {device.name}
+                          </Button>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {selectedDevice && (
+                  <UniFiAdvancedDeviceManager
+                    device={selectedDevice}
+                    onUpdateDevice={updateDeviceSettings}
+                    onLocateDevice={locateDevice}
+                    onUpgradeDevice={(deviceId) => {
+                      // Placeholder for upgrade functionality
+                      console.log('Upgrade device:', deviceId);
+                    }}
+                    onSetLED={setDeviceLED}
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent value="clients" className="space-y-6">
+                <UniFiClientManager
+                  clients={clients}
+                  loading={isLoading}
+                  onBlockClient={blockClient}
+                  blockLoading={blockClientLoading}
+                  selectedSiteId={selectedSiteId}
+                />
+                
+                {/* Additional Client Management Features */}
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-white">Gerenciamento Avançado de Clientes</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Button
+                        onClick={() => {
+                          // Placeholder for bulk client management
+                          console.log('Bulk client management');
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Gerenciar em Lote
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          // Placeholder for client statistics
+                          console.log('Client statistics');
+                        }}
+                        variant="outline"
+                        className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                      >
+                        Estatísticas Detalhadas
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          // Placeholder for client reports
+                          console.log('Client reports');
+                        }}
+                        variant="outline"
+                        className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                      >
+                        Relatórios de Uso
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="settings" className="space-y-6">
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-white">Configurações do Site</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold text-white">Configurações Gerais</h4>
+                        <div className="space-y-2">
+                          <Button variant="outline" className="w-full justify-start border-gray-600 text-gray-200 hover:bg-gray-700">
+                            <Settings className="h-4 w-4 mr-2" />
+                            Configurações de DHCP
+                          </Button>
+                          <Button variant="outline" className="w-full justify-start border-gray-600 text-gray-200 hover:bg-gray-700">
+                            <Network className="h-4 w-4 mr-2" />
+                            Configurações de DNS
+                          </Button>
+                          <Button variant="outline" className="w-full justify-start border-gray-600 text-gray-200 hover:bg-gray-700">
+                            <Database className="h-4 w-4 mr-2" />
+                            Backup e Restauração
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold text-white">Manutenção</h4>
+                        <div className="space-y-2">
+                          <Button variant="outline" className="w-full justify-start border-gray-600 text-gray-200 hover:bg-gray-700">
+                            <Monitor className="h-4 w-4 mr-2" />
+                            Logs do Sistema
+                          </Button>
+                          <Button variant="outline" className="w-full justify-start border-gray-600 text-gray-200 hover:bg-gray-700">
+                            <BarChart3 className="h-4 w-4 mr-2" />
+                            Relatórios de Performance
+                          </Button>
+                          <Button variant="outline" className="w-full justify-start border-gray-600 text-gray-200 hover:bg-gray-700">
+                            <AlertTriangle className="h-4 w-4 mr-2" />
+                            Alertas e Notificações
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="security" className="space-y-6">
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-white">Configurações de Segurança</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold text-white">Firewall e Controle de Acesso</h4>
+                        <div className="space-y-2">
+                          <Button variant="outline" className="w-full justify-start border-gray-600 text-gray-200 hover:bg-gray-700">
+                            <Shield className="h-4 w-4 mr-2" />
+                            Regras de Firewall
+                          </Button>
+                          <Button variant="outline" className="w-full justify-start border-gray-600 text-gray-200 hover:bg-gray-700">
+                            <Network className="h-4 w-4 mr-2" />
+                            Port Forwarding
+                          </Button>
+                          <Button variant="outline" className="w-full justify-start border-gray-600 text-gray-200 hover:bg-gray-700">
+                            <Users className="h-4 w-4 mr-2" />
+                            Controle de Acesso
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold text-white">Detecção de Intrusão</h4>
+                        <div className="space-y-2">
+                          <Button variant="outline" className="w-full justify-start border-gray-600 text-gray-200 hover:bg-gray-700">
+                            <AlertTriangle className="h-4 w-4 mr-2" />
+                            IDS/IPS Settings
+                          </Button>
+                          <Button variant="outline" className="w-full justify-start border-gray-600 text-gray-200 hover:bg-gray-700">
+                            <Monitor className="h-4 w-4 mr-2" />
+                            Logs de Segurança
+                          </Button>
+                          <Button variant="outline" className="w-full justify-start border-gray-600 text-gray-200 hover:bg-gray-700">
+                            <BarChart3 className="h-4 w-4 mr-2" />
+                            Relatórios de Segurança
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </>
         )}
       </div>

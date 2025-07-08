@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIntegrations } from './useIntegrations';
 import { toast } from './use-toast';
@@ -21,6 +20,16 @@ export interface UniFiDevice {
   version: string;
   adopted: boolean;
   site_id: string;
+  led_override?: string;
+  power_override?: string;
+  alias?: string;
+  radio_table?: Array<{
+    name: string;
+    radio: string;
+    channel: number;
+    tx_power: number;
+    util: number;
+  }>;
 }
 
 export interface UniFiClient {
@@ -37,6 +46,9 @@ export interface UniFiClient {
   network: string;
   site_id: string;
   last_seen: number;
+  name?: string;
+  alias?: string;
+  blocked?: boolean;
 }
 
 export interface UniFiSite {
@@ -56,6 +68,50 @@ export interface UniFiSystemInfo {
   update_downloaded: boolean;
 }
 
+export interface UniFiNetwork {
+  _id: string;
+  name: string;
+  x_password?: string;
+  security: string;
+  enabled: boolean;
+  is_guest: boolean;
+  usergroup_id?: string;
+  wpa_mode?: string;
+  wpa_enc?: string;
+  vlan_enabled?: boolean;
+  vlan?: number;
+  site_id: string;
+}
+
+export interface UniFiHealthMetrics {
+  subsystem: string;
+  status: string;
+  num_user: number;
+  num_guest: number;
+  num_iot: number;
+  tx_bytes: number;
+  rx_bytes: number;
+  num_ap: number;
+  num_adopted: number;
+  num_disabled: number;
+  num_disconnected: number;
+  num_pending: number;
+  num_gw: number;
+  num_sw: number;
+  wan_ip: string;
+  uptime: number;
+}
+
+export interface UniFiEvent {
+  _id: string;
+  datetime: string;
+  msg: string;
+  key: string;
+  subsystem: string;
+  site_id: string;
+  is_negative: boolean;
+}
+
 export interface UniFiAuth {
   cookies: string;
   timestamp: number;
@@ -68,16 +124,14 @@ class UniFiControllerService {
   private auth: UniFiAuth | null = null;
 
   constructor(integration: any) {
-    this.baseUrl = integration.base_url.replace(/\/$/, ''); // Remove trailing slash
+    this.baseUrl = integration.base_url.replace(/\/$/, '');
     this.username = integration.username;
     this.password = integration.password;
     
-    // Try to load existing auth from localStorage
     const savedAuth = localStorage.getItem('unifi_controller_auth');
     if (savedAuth) {
       try {
         this.auth = JSON.parse(savedAuth);
-        // Check if auth is expired (12 hours)
         if (this.auth && Date.now() - this.auth.timestamp > 12 * 60 * 60 * 1000) {
           console.log('Saved auth expired, clearing auth')
           this.auth = null;
@@ -107,16 +161,12 @@ class UniFiControllerService {
         })
       });
 
-      console.log('UniFi Controller API Response Status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('UniFi Controller API Response not OK:', response.status, errorText);
         throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
       }
 
       const result = await response.json();
-      console.log('UniFi Controller API Response:', result);
       
       if (result.error) {
         throw new Error(result.error + (result.details ? `: ${result.details}` : ''));
@@ -131,8 +181,6 @@ class UniFiControllerService {
 
   async authenticate(): Promise<boolean> {
     try {
-      console.log('Authenticating with UniFi Controller...', { baseUrl: this.baseUrl, username: this.username });
-      
       const response = await this.makeRequest('login', {
         username: this.username,
         password: this.password
@@ -144,14 +192,10 @@ class UniFiControllerService {
           timestamp: Date.now()
         };
         
-        // Save auth to localStorage
         localStorage.setItem('unifi_controller_auth', JSON.stringify(this.auth));
-        
-        console.log('UniFi Controller authentication successful');
         return true;
       }
       
-      console.error('Authentication failed: no cookies received');
       return false;
     } catch (error) {
       console.error('UniFi Controller authentication failed:', error);
@@ -161,18 +205,14 @@ class UniFiControllerService {
 
   private async ensureAuthenticated(): Promise<boolean> {
     if (!this.auth) {
-      console.log('No auth found, authenticating...');
       return await this.authenticate();
     }
     
-    // Check if auth is expired (12 hours)
     const timeRemaining = (this.auth.timestamp + (12 * 60 * 60 * 1000)) - Date.now();
-    if (timeRemaining < 60000) { // 1 minute buffer
-      console.log('Auth expiring soon, re-authenticating...', { timeRemaining });
+    if (timeRemaining < 60000) {
       return await this.authenticate();
     }
     
-    console.log('Auth is valid, time remaining:', Math.floor(timeRemaining / 1000 / 60), 'minutes');
     return true;
   }
 
@@ -288,20 +328,232 @@ class UniFiControllerService {
 
   async testConnection(): Promise<boolean> {
     try {
-      console.log('Testing UniFi Controller connection...');
       const response = await this.makeRequest('testConnection', {
         username: this.username,
         password: this.password
       });
       
       if (response.success) {
-        console.log('Connection test successful');
         return true;
       }
       return false;
     } catch (error) {
       console.error('UniFi Controller connection test failed:', error);
       return false;
+    }
+  }
+
+  // Network Management
+  async getNetworks(siteId: string): Promise<UniFiNetwork[]> {
+    try {
+      if (!(await this.ensureAuthenticated())) {
+        throw new Error('Authentication failed');
+      }
+      
+      const response = await this.makeRequest('getNetworks', {
+        cookies: this.auth!.cookies,
+        siteId
+      });
+      
+      return response.data || [];
+    } catch (error) {
+      console.error('Failed to get networks:', error);
+      return [];
+    }
+  }
+
+  async createNetwork(siteId: string, networkData: any): Promise<boolean> {
+    try {
+      if (!(await this.ensureAuthenticated())) {
+        throw new Error('Authentication failed');
+      }
+      
+      const response = await this.makeRequest('createNetwork', {
+        cookies: this.auth!.cookies,
+        siteId,
+        networkData
+      });
+      
+      return response.meta?.rc === 'ok';
+    } catch (error) {
+      console.error('Failed to create network:', error);
+      return false;
+    }
+  }
+
+  async updateNetwork(siteId: string, networkId: string, networkData: any): Promise<boolean> {
+    try {
+      if (!(await this.ensureAuthenticated())) {
+        throw new Error('Authentication failed');
+      }
+      
+      const response = await this.makeRequest('updateNetwork', {
+        cookies: this.auth!.cookies,
+        siteId,
+        networkId,
+        networkData
+      });
+      
+      return response.meta?.rc === 'ok';
+    } catch (error) {
+      console.error('Failed to update network:', error);
+      return false;
+    }
+  }
+
+  async deleteNetwork(siteId: string, networkId: string): Promise<boolean> {
+    try {
+      if (!(await this.ensureAuthenticated())) {
+        throw new Error('Authentication failed');
+      }
+      
+      const response = await this.makeRequest('deleteNetwork', {
+        cookies: this.auth!.cookies,
+        siteId,
+        networkId
+      });
+      
+      return response.meta?.rc === 'ok';
+    } catch (error) {
+      console.error('Failed to delete network:', error);
+      return false;
+    }
+  }
+
+  // Device Management
+  async locateDevice(siteId: string, deviceMac: string): Promise<boolean> {
+    try {
+      if (!(await this.ensureAuthenticated())) {
+        throw new Error('Authentication failed');
+      }
+      
+      const response = await this.makeRequest('locateDevice', {
+        cookies: this.auth!.cookies,
+        siteId,
+        deviceMac
+      });
+      
+      return response.meta?.rc === 'ok';
+    } catch (error) {
+      console.error('Failed to locate device:', error);
+      return false;
+    }
+  }
+
+  async setDeviceLED(siteId: string, deviceMac: string, enabled: boolean): Promise<boolean> {
+    try {
+      if (!(await this.ensureAuthenticated())) {
+        throw new Error('Authentication failed');
+      }
+      
+      const response = await this.makeRequest('setDeviceLED', {
+        cookies: this.auth!.cookies,
+        siteId,
+        deviceMac,
+        enable: enabled
+      });
+      
+      return response.meta?.rc === 'ok';
+    } catch (error) {
+      console.error('Failed to set device LED:', error);
+      return false;
+    }
+  }
+
+  async updateDeviceSettings(siteId: string, deviceMac: string, settings: any): Promise<boolean> {
+    try {
+      if (!(await this.ensureAuthenticated())) {
+        throw new Error('Authentication failed');
+      }
+      
+      const response = await this.makeRequest('setDeviceSettings', {
+        cookies: this.auth!.cookies,
+        siteId,
+        deviceMac,
+        settings
+      });
+      
+      return response.meta?.rc === 'ok';
+    } catch (error) {
+      console.error('Failed to update device settings:', error);
+      return false;
+    }
+  }
+
+  // Client Management
+  async setClientAlias(siteId: string, clientMac: string, alias: string): Promise<boolean> {
+    try {
+      if (!(await this.ensureAuthenticated())) {
+        throw new Error('Authentication failed');
+      }
+      
+      const response = await this.makeRequest('setClientAlias', {
+        cookies: this.auth!.cookies,
+        siteId,
+        clientMac,
+        alias
+      });
+      
+      return response.meta?.rc === 'ok';
+    } catch (error) {
+      console.error('Failed to set client alias:', error);
+      return false;
+    }
+  }
+
+  async disconnectClient(siteId: string, clientMac: string): Promise<boolean> {
+    try {
+      if (!(await this.ensureAuthenticated())) {
+        throw new Error('Authentication failed');
+      }
+      
+      const response = await this.makeRequest('disconnectClient', {
+        cookies: this.auth!.cookies,
+        siteId,
+        clientMac
+      });
+      
+      return response.meta?.rc === 'ok';
+    } catch (error) {
+      console.error('Failed to disconnect client:', error);
+      return false;
+    }
+  }
+
+  // Monitoring
+  async getHealthMetrics(siteId: string): Promise<UniFiHealthMetrics[]> {
+    try {
+      if (!(await this.ensureAuthenticated())) {
+        throw new Error('Authentication failed');
+      }
+      
+      const response = await this.makeRequest('getHealthMetrics', {
+        cookies: this.auth!.cookies,
+        siteId
+      });
+      
+      return response.data || [];
+    } catch (error) {
+      console.error('Failed to get health metrics:', error);
+      return [];
+    }
+  }
+
+  async getEvents(siteId: string): Promise<UniFiEvent[]> {
+    try {
+      if (!(await this.ensureAuthenticated())) {
+        throw new Error('Authentication failed');
+      }
+      
+      const response = await this.makeRequest('getEvents', {
+        cookies: this.auth!.cookies,
+        siteId
+      });
+      
+      return response.data || [];
+    } catch (error) {
+      console.error('Failed to get events:', error);
+      return [];
     }
   }
 }
@@ -314,11 +566,9 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     integration.type === 'unifi' && integration.is_active
   );
 
-  console.log('UniFi Integration found:', unifiIntegration);
-
   const unifiService = unifiIntegration ? new UniFiControllerService(unifiIntegration) : null;
 
-  // Get sites
+  // Sites
   const {
     data: sites = [],
     isLoading: sitesLoading,
@@ -328,20 +578,17 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     queryKey: ['unifi-controller', 'sites', unifiIntegration?.id],
     queryFn: async () => {
       if (!unifiService) {
-        console.log('No UniFi Controller service available');
         return [];
       }
-      console.log('Fetching UniFi Controller sites...');
       const sites = await unifiService.getSites();
-      console.log('UniFi Controller sites fetched:', sites);
       return sites;
     },
     enabled: !!unifiService && !integrationsLoading,
-    staleTime: 300000, // 5 minutes
+    staleTime: 300000,
     retry: 2,
   });
 
-  // Get devices for selected site
+  // Devices
   const {
     data: devices = [],
     isLoading: devicesLoading,
@@ -351,20 +598,17 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     queryKey: ['unifi-controller', 'devices', selectedSiteId, unifiIntegration?.id],
     queryFn: async () => {
       if (!selectedSiteId || !unifiService) {
-        console.log('No site selected or no service available');
         return [];
       }
-      console.log('Fetching UniFi Controller devices for site:', selectedSiteId);
       const devices = await unifiService.getDevices(selectedSiteId);
-      console.log('UniFi Controller devices fetched:', devices);
       return devices;
     },
     enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
-    staleTime: 30000, // 30 seconds
+    staleTime: 30000,
     retry: 2,
   });
 
-  // Get clients for selected site
+  // Clients
   const {
     data: clients = [],
     isLoading: clientsLoading,
@@ -374,20 +618,17 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     queryKey: ['unifi-controller', 'clients', selectedSiteId, unifiIntegration?.id],
     queryFn: async () => {
       if (!selectedSiteId || !unifiService) {
-        console.log('No site selected or no service available');
         return [];
       }
-      console.log('Fetching UniFi Controller clients for site:', selectedSiteId);
       const clients = await unifiService.getClients(selectedSiteId);
-      console.log('UniFi Controller clients fetched:', clients);
       return clients;
     },
     enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
-    staleTime: 15000, // 15 seconds
+    staleTime: 15000,
     retry: 2,
   });
 
-  // Get system info for selected site
+  // System Info
   const {
     data: systemInfo,
     isLoading: systemInfoLoading,
@@ -396,20 +637,65 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     queryKey: ['unifi-controller', 'systemInfo', selectedSiteId, unifiIntegration?.id],
     queryFn: async () => {
       if (!selectedSiteId || !unifiService) {
-        console.log('No site selected or no service available');
         return null;
       }
-      console.log('Fetching UniFi Controller system info for site:', selectedSiteId);
       const systemInfo = await unifiService.getSystemInfo(selectedSiteId);
-      console.log('UniFi Controller system info fetched:', systemInfo);
       return systemInfo;
     },
     enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
-    staleTime: 60000, // 1 minute
+    staleTime: 60000,
     retry: 2,
   });
 
-  // Test connection
+  // Networks
+  const {
+    data: networks = [],
+    isLoading: networksLoading,
+    refetch: refetchNetworks
+  } = useQuery({
+    queryKey: ['unifi-controller', 'networks', selectedSiteId, unifiIntegration?.id],
+    queryFn: async () => {
+      if (!selectedSiteId || !unifiService) return [];
+      return await unifiService.getNetworks(selectedSiteId);
+    },
+    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
+    staleTime: 60000,
+    retry: 2,
+  });
+
+  // Health Metrics
+  const {
+    data: healthMetrics = [],
+    isLoading: healthMetricsLoading,
+    refetch: refetchHealthMetrics
+  } = useQuery({
+    queryKey: ['unifi-controller', 'healthMetrics', selectedSiteId, unifiIntegration?.id],
+    queryFn: async () => {
+      if (!selectedSiteId || !unifiService) return [];
+      return await unifiService.getHealthMetrics(selectedSiteId);
+    },
+    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
+    staleTime: 30000,
+    retry: 2,
+  });
+
+  // Events
+  const {
+    data: events = [],
+    isLoading: eventsLoading,
+    refetch: refetchEvents
+  } = useQuery({
+    queryKey: ['unifi-controller', 'events', selectedSiteId, unifiIntegration?.id],
+    queryFn: async () => {
+      if (!selectedSiteId || !unifiService) return [];
+      return await unifiService.getEvents(selectedSiteId);
+    },
+    enabled: !!unifiService && !!selectedSiteId && !integrationsLoading,
+    staleTime: 15000,
+    retry: 2,
+  });
+
+  // Test connection mutation
   const testConnectionMutation = useMutation({
     mutationFn: () => unifiService?.testConnection() || Promise.resolve(false),
     onSuccess: (isConnected) => {
@@ -418,7 +704,6 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
           title: "✅ Conexão bem-sucedida",
           description: "Conectado à Controladora UniFi com sucesso."
         });
-        // Refresh sites after successful connection
         refetchSites();
       } else {
         toast({
@@ -437,7 +722,7 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     }
   });
 
-  // Restart device
+  // Restart device mutation
   const restartDeviceMutation = useMutation({
     mutationFn: ({ siteId, deviceId }: { siteId: string; deviceId: string }) => 
       unifiService?.restartDevice(siteId, deviceId) || Promise.resolve(false),
@@ -458,7 +743,7 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     }
   });
 
-  // Block/Unblock client
+  // Block/unblock client mutation
   const blockClientMutation = useMutation({
     mutationFn: ({ siteId, clientId, block }: { siteId: string; clientId: string; block: boolean }) => 
       unifiService?.blockClient(siteId, clientId, block) || Promise.resolve(false),
@@ -479,11 +764,147 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     }
   });
 
-  // Refresh all data for selected site
+  // Create network mutation
+  const createNetworkMutation = useMutation({
+    mutationFn: ({ siteId, networkData }: { siteId: string; networkData: any }) => 
+      unifiService?.createNetwork(siteId, networkData) || Promise.resolve(false),
+    onSuccess: (success) => {
+      if (success) {
+        toast({
+          title: "✅ Rede criada",
+          description: "A rede Wi-Fi foi criada com sucesso."
+        });
+        refetchNetworks();
+      } else {
+        toast({
+          title: "❌ Falha ao criar rede",
+          description: "Não foi possível criar a rede Wi-Fi.",
+          variant: "destructive"
+        });
+      }
+    }
+  });
+
+  // Update network mutation
+  const updateNetworkMutation = useMutation({
+    mutationFn: ({ siteId, networkId, networkData }: { siteId: string; networkId: string; networkData: any }) => 
+      unifiService?.updateNetwork(siteId, networkId, networkData) || Promise.resolve(false),
+    onSuccess: (success) => {
+      if (success) {
+        toast({
+          title: "✅ Rede atualizada",
+          description: "A rede Wi-Fi foi atualizada com sucesso."
+        });
+        refetchNetworks();
+      } else {
+        toast({
+          title: "❌ Falha ao atualizar rede",
+          description: "Não foi possível atualizar a rede Wi-Fi.",
+          variant: "destructive"
+        });
+      }
+    }
+  });
+
+  // Delete network mutation
+  const deleteNetworkMutation = useMutation({
+    mutationFn: ({ siteId, networkId }: { siteId: string; networkId: string }) => 
+      unifiService?.deleteNetwork(siteId, networkId) || Promise.resolve(false),
+    onSuccess: (success) => {
+      if (success) {
+        toast({
+          title: "✅ Rede removida",
+          description: "A rede Wi-Fi foi removida com sucesso."
+        });
+        refetchNetworks();
+      } else {
+        toast({
+          title: "❌ Falha ao remover rede",
+          description: "Não foi possível remover a rede Wi-Fi.",
+          variant: "destructive"
+        });
+      }
+    }
+  });
+
+  // Locate device mutation
+  const locateDeviceMutation = useMutation({
+    mutationFn: ({ siteId, deviceId }: { siteId: string; deviceId: string }) => 
+      unifiService?.locateDevice(siteId, deviceId) || Promise.resolve(false),
+    onSuccess: (success) => {
+      if (success) {
+        toast({
+          title: "📍 Dispositivo localizado",
+          description: "O dispositivo está piscando para localização."
+        });
+      }
+    }
+  });
+
+  // Set device LED mutation
+  const setDeviceLEDMutation = useMutation({
+    mutationFn: ({ siteId, deviceId, enabled }: { siteId: string; deviceId: string; enabled: boolean }) => 
+      unifiService?.setDeviceLED(siteId, deviceId, enabled) || Promise.resolve(false),
+    onSuccess: (success) => {
+      if (success) {
+        toast({
+          title: "💡 LED atualizado",
+          description: "O controle de LED do dispositivo foi atualizado."
+        });
+        refetchDevices();
+      }
+    }
+  });
+
+  // Update device settings mutation
+  const updateDeviceSettingsMutation = useMutation({
+    mutationFn: ({ siteId, deviceId, settings }: { siteId: string; deviceId: string; settings: any }) => 
+      unifiService?.updateDeviceSettings(siteId, deviceId, settings) || Promise.resolve(false),
+    onSuccess: (success) => {
+      if (success) {
+        toast({
+          title: "⚙️ Configurações salvas",
+          description: "As configurações do dispositivo foram atualizadas."
+        });
+        refetchDevices();
+      }
+    }
+  });
+
+  // Set client alias mutation
+  const setClientAliasMutation = useMutation({
+    mutationFn: ({ siteId, clientId, alias }: { siteId: string; clientId: string; alias: string }) => 
+      unifiService?.setClientAlias(siteId, clientId, alias) || Promise.resolve(false),
+    onSuccess: (success) => {
+      if (success) {
+        toast({
+          title: "👤 Alias definido",
+          description: "O nome do cliente foi atualizado."
+        });
+        refetchClients();
+      }
+    }
+  });
+
+  // Disconnect client mutation
+  const disconnectClientMutation = useMutation({
+    mutationFn: ({ siteId, clientId }: { siteId: string; clientId: string }) => 
+      unifiService?.disconnectClient(siteId, clientId) || Promise.resolve(false),
+    onSuccess: (success) => {
+      if (success) {
+        toast({
+          title: "🔌 Cliente desconectado",
+          description: "O cliente foi desconectado da rede."
+        });
+        refetchClients();
+      }
+    }
+  });
+
+  // Refresh all data for basic info
   const refreshAllData = async () => {
     if (!selectedSiteId) return;
     
-    console.log('Refreshing all UniFi Controller data for site:', selectedSiteId);
     toast({
       title: "🔄 Atualizando dados",
       description: "Buscando informações atualizadas da Controladora UniFi..."
@@ -502,12 +923,34 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     });
   };
 
+  // Refresh all advanced data
+  const refreshAdvancedData = async () => {
+    if (!selectedSiteId) return;
+    
+    toast({
+      title: "🔄 Atualizando dados avançados",
+      description: "Buscando informações atualizadas da controladora..."
+    });
+    
+    await Promise.all([
+      refetchNetworks(),
+      refetchHealthMetrics(),
+      refetchEvents(),
+      refetchDevices(),
+      refetchClients()
+    ]);
+    
+    toast({
+      title: "✅ Dados atualizados",
+      description: "Todas as informações foram atualizadas."
+    });
+  };
+
+  // Wrapper functions
   const handleTestConnection = () => {
-    console.log('Testing UniFi Controller connection...');
     testConnectionMutation.mutate();
   };
 
-  // Wrapper functions to match expected signatures
   const handleRestartDevice = (siteId: string, deviceId: string) => {
     restartDeviceMutation.mutate({ siteId, deviceId });
   };
@@ -516,13 +959,63 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     blockClientMutation.mutate({ siteId, clientId, block });
   };
 
+  const handleCreateNetwork = (networkData: any) => {
+    if (selectedSiteId) {
+      createNetworkMutation.mutate({ siteId: selectedSiteId, networkData });
+    }
+  };
+
+  const handleUpdateNetwork = (networkId: string, networkData: any) => {
+    if (selectedSiteId) {
+      updateNetworkMutation.mutate({ siteId: selectedSiteId, networkId, networkData });
+    }
+  };
+
+  const handleDeleteNetwork = (networkId: string) => {
+    if (selectedSiteId) {
+      deleteNetworkMutation.mutate({ siteId: selectedSiteId, networkId });
+    }
+  };
+
+  const handleLocateDevice = (deviceId: string) => {
+    if (selectedSiteId) {
+      locateDeviceMutation.mutate({ siteId: selectedSiteId, deviceId });
+    }
+  };
+
+  const handleSetDeviceLED = (deviceId: string, enabled: boolean) => {
+    if (selectedSiteId) {
+      setDeviceLEDMutation.mutate({ siteId: selectedSiteId, deviceId, enabled });
+    }
+  };
+
+  const handleUpdateDeviceSettings = (deviceId: string, settings: any) => {
+    if (selectedSiteId) {
+      updateDeviceSettingsMutation.mutate({ siteId: selectedSiteId, deviceId, settings });
+    }
+  };
+
+  const handleSetClientAlias = (clientId: string, alias: string) => {
+    if (selectedSiteId) {
+      setClientAliasMutation.mutate({ siteId: selectedSiteId, clientId, alias });
+    }
+  };
+
+  const handleDisconnectClient = (clientId: string) => {
+    if (selectedSiteId) {
+      disconnectClientMutation.mutate({ siteId: selectedSiteId, clientId });
+    }
+  };
+
   return {
     // Data
     sites,
     devices,
     clients,
     systemInfo,
-    networkSettings: [], // Not implemented yet
+    networks,
+    healthMetrics,
+    events,
     integration: unifiIntegration,
     
     // Loading states
@@ -531,7 +1024,9 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     devicesLoading,
     clientsLoading,
     systemInfoLoading,
-    networkSettingsLoading: false,
+    networksLoading,
+    healthMetricsLoading,
+    eventsLoading,
     
     // Errors
     sitesError,
@@ -545,12 +1040,33 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     restartDeviceLoading: restartDeviceMutation.isPending,
     blockClient: handleBlockClient,
     blockClientLoading: blockClientMutation.isPending,
+    createNetwork: handleCreateNetwork,
+    updateNetwork: handleUpdateNetwork,
+    deleteNetwork: handleDeleteNetwork,
+    locateDevice: handleLocateDevice,
+    setDeviceLED: handleSetDeviceLED,
+    updateDeviceSettings: handleUpdateDeviceSettings,
+    setClientAlias: handleSetClientAlias,
+    disconnectClient: handleDisconnectClient,
     refreshAllData,
+    refreshAdvancedData,
     refetchSites,
     refetchDevices,
     refetchClients,
     refetchSystemInfo,
-    refetchNetworkSettings: () => Promise.resolve(),
+    refetchNetworks,
+    refetchHealthMetrics,
+    refetchEvents,
+    
+    // Loading states for mutations
+    createNetworkLoading: createNetworkMutation.isPending,
+    updateNetworkLoading: updateNetworkMutation.isPending,
+    deleteNetworkLoading: deleteNetworkMutation.isPending,
+    locateDeviceLoading: locateDeviceMutation.isPending,
+    setDeviceLEDLoading: setDeviceLEDMutation.isPending,
+    updateDeviceSettingsLoading: updateDeviceSettingsMutation.isPending,
+    setClientAliasLoading: setClientAliasMutation.isPending,
+    disconnectClientLoading: disconnectClientMutation.isPending,
     
     // Utils
     isConnected: !!unifiIntegration,
