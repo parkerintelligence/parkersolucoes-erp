@@ -8,12 +8,11 @@ import {
   Router, 
   Users, 
   Activity, 
-  Settings, 
   RefreshCw, 
   TestTube,
-  Globe,
-  Shield,
-  Network
+  Cloud,
+  Network,
+  Key
 } from 'lucide-react';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { UniFiSiteSelector } from '@/components/UniFiSiteSelector';
@@ -28,7 +27,6 @@ const UniFi = () => {
     devices,
     clients,
     systemInfo,
-    networkSettings,
     integration,
     isLoading,
     sitesLoading,
@@ -64,15 +62,29 @@ const UniFi = () => {
           <Card className="bg-gray-800 border-gray-700">
             <CardContent className="p-6">
               <div className="text-center">
-                <Wifi className="h-12 w-12 mx-auto mb-4 text-gray-600" />
+                <Cloud className="h-12 w-12 mx-auto mb-4 text-gray-600" />
                 <h3 className="text-lg font-semibold text-white mb-2">
-                  Nenhuma Controladora UniFi Configurada
+                  Nenhuma Integração UniFi Cloud Configurada
                 </h3>
                 <p className="text-gray-400 mb-4">
-                  Configure uma integração UniFi na seção de Administração para gerenciar sua rede.
+                  Configure uma integração UniFi Cloud na seção de Administração para acessar seus dados da nuvem UniFi.
                 </p>
+                <div className="bg-blue-900/20 border border-blue-600 rounded-lg p-4 mb-4">
+                  <div className="flex items-start gap-3">
+                    <Key className="h-5 w-5 text-blue-400 mt-0.5" />
+                    <div className="text-left">
+                      <h4 className="font-medium text-blue-400 mb-1">Credenciais Necessárias:</h4>
+                      <ul className="text-sm text-gray-300 space-y-1">
+                        <li>• <strong>Nome:</strong> Nome para identificar a integração</li>
+                        <li>• <strong>Base URL:</strong> https://account.ui.com/login?redirect=https%3A%2F%2Funifi.ui.com%2F</li>
+                        <li>• <strong>Username:</strong> Seu email da conta Ubiquiti</li>
+                        <li>• <strong>Password:</strong> Sua senha da conta Ubiquiti</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
                 <Button onClick={() => window.location.href = '/admin'} className="bg-blue-600 hover:bg-blue-700">
-                  Configurar UniFi
+                  Configurar UniFi Cloud
                 </Button>
               </div>
             </CardContent>
@@ -87,8 +99,11 @@ const UniFi = () => {
       <div className="space-y-6 p-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-white">UniFi Controller - {integration?.name}</h1>
-            <p className="text-gray-400">Controladora: {connectionUrl}</p>
+            <div className="flex items-center gap-2 mb-2">
+              <Cloud className="h-6 w-6 text-blue-400" />
+              <h1 className="text-2xl font-bold text-white">UniFi Cloud - {integration?.name}</h1>
+            </div>
+            <p className="text-gray-400">Conectado via: {connectionUrl}</p>
             {systemInfo && (
               <p className="text-sm text-gray-500">
                 Versão: {systemInfo.version} | Uptime: {formatUptime(systemInfo.uptime)}
@@ -121,6 +136,29 @@ const UniFi = () => {
           </div>
         </div>
 
+        {/* Authentication Status */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-white flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              Status de Autenticação
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <Badge className={sites.length > 0 ? 'bg-green-900/20 text-green-400 border-green-600' : 'bg-yellow-900/20 text-yellow-400 border-yellow-600'}>
+                {sites.length > 0 ? '✅ Autenticado' : '🔄 Autenticando...'}
+              </Badge>
+              <span className="text-gray-400 text-sm">
+                {sites.length > 0 ? 
+                  `${sites.length} site(s) encontrado(s)` : 
+                  'Conectando à UniFi Cloud...'
+                }
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Site Selection */}
         <UniFiSiteSelector
           sites={sites}
@@ -132,7 +170,7 @@ const UniFi = () => {
         {selectedSiteId && (
           <>
             {/* Statistics Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
               <Card className="bg-gray-800 border-gray-700">
                 <CardContent className="p-4 md:p-6">
                   <div className="flex items-center gap-2 md:gap-3">
@@ -184,18 +222,6 @@ const UniFi = () => {
                   </div>
                 </CardContent>
               </Card>
-
-              <Card className="bg-gray-800 border-gray-700">
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex items-center gap-2 md:gap-3">
-                    <Network className="h-6 w-6 md:h-8 md:w-8 text-cyan-400 flex-shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-xl md:text-2xl font-bold text-white">{networkSettings.length}</p>
-                      <p className="text-xs md:text-sm text-gray-400">Redes</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
 
             {/* Device Management */}
@@ -215,46 +241,6 @@ const UniFi = () => {
               blockLoading={blockClientLoading}
               selectedSiteId={selectedSiteId}
             />
-
-            {/* Network Settings */}
-            {networkSettings.length > 0 && (
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Network className="h-5 w-5" />
-                    Configurações de Rede
-                  </CardTitle>
-                  <CardDescription className="text-gray-400">
-                    Redes configuradas no site
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {networkSettings.map((network) => (
-                      <Card key={network._id} className="bg-gray-700 border-gray-600">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-medium text-white">{network.name}</h4>
-                            <Badge className={network.enabled ? 'bg-green-900/20 text-green-400 border-green-600' : 'bg-red-900/20 text-red-400 border-red-600'}>
-                              {network.enabled ? 'Ativa' : 'Inativa'}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-400 mb-1">Propósito: {network.purpose}</p>
-                          {network.vlan_enabled && (
-                            <p className="text-sm text-gray-400 mb-1">VLAN: {network.vlan}</p>
-                          )}
-                          {network.dhcp_enabled && (
-                            <p className="text-sm text-gray-400">
-                              DHCP: {network.dhcp_start} - {network.dhcp_stop}
-                            </p>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </>
         )}
       </div>

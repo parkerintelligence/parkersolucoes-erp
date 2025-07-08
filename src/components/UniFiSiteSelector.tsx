@@ -3,7 +3,7 @@ import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2, AlertCircle } from 'lucide-react';
+import { Cloud, AlertCircle, User } from 'lucide-react';
 import { UniFiSite } from '@/hooks/useUniFiAPI';
 
 interface UniFiSiteSelectorProps {
@@ -25,8 +25,8 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
     <Card className="bg-gray-800 border-gray-700">
       <CardHeader className="pb-3">
         <CardTitle className="text-white flex items-center gap-2">
-          <Building2 className="h-5 w-5" />
-          Seleção de Site
+          <Cloud className="h-5 w-5" />
+          Seleção de Site UniFi Cloud
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -37,7 +37,7 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
             disabled={loading || sites.length === 0}
           >
             <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-              <SelectValue placeholder="Selecione um site para gerenciar" />
+              <SelectValue placeholder="Selecione um site da UniFi Cloud para gerenciar" />
             </SelectTrigger>
             <SelectContent className="bg-gray-700 border-gray-600">
               {sites.map((site) => (
@@ -47,7 +47,10 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
                   className="text-white hover:bg-gray-600"
                 >
                   <div className="flex items-center justify-between w-full">
-                    <span>{site.desc || site.name}</span>
+                    <div className="flex items-center gap-2">
+                      <Cloud className="h-4 w-4 text-blue-400" />
+                      <span>{site.display_name || site.desc || site.name}</span>
+                    </div>
                     {site.num_new_alarms > 0 && (
                       <Badge variant="destructive" className="ml-2">
                         {site.num_new_alarms} alertas
@@ -60,12 +63,25 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
           </Select>
 
           {selectedSite && (
-            <div className="mt-3 p-3 bg-gray-700 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-medium text-white">{selectedSite.desc}</h4>
-                  <p className="text-xs text-gray-400">ID: {selectedSite.name}</p>
-                  <p className="text-xs text-gray-400">Role: {selectedSite.role}</p>
+            <div className="mt-3 p-4 bg-gray-700 rounded-lg">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Cloud className="h-4 w-4 text-blue-400" />
+                    <h4 className="text-sm font-medium text-white">
+                      {selectedSite.display_name || selectedSite.desc}
+                    </h4>
+                  </div>
+                  <div className="space-y-1 text-xs text-gray-400">
+                    <p><strong>Host ID:</strong> {selectedSite.host_id || selectedSite._id}</p>
+                    <p><strong>Nome Interno:</strong> {selectedSite.name}</p>
+                    {selectedSite.owner_name && (
+                      <div className="flex items-center gap-1">
+                        <User className="h-3 w-3" />
+                        <span><strong>Proprietário:</strong> {selectedSite.owner_name}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {selectedSite.num_new_alarms > 0 && (
                   <div className="flex items-center gap-1 text-red-400">
@@ -78,10 +94,19 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
           )}
 
           {sites.length === 0 && !loading && (
-            <div className="text-center py-4 text-gray-400">
-              <Building2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Nenhum site encontrado</p>
-              <p className="text-xs">Verifique sua conexão com a controladora</p>
+            <div className="text-center py-6 text-gray-400">
+              <Cloud className="h-10 w-10 mx-auto mb-3 opacity-50" />
+              <p className="text-sm font-medium mb-1">Nenhum site encontrado na UniFi Cloud</p>
+              <p className="text-xs">
+                Verifique se você possui sites configurados em sua conta UniFi Cloud
+              </p>
+            </div>
+          )}
+
+          {loading && (
+            <div className="text-center py-6 text-gray-400">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-3"></div>
+              <p className="text-sm">Carregando sites da UniFi Cloud...</p>
             </div>
           )}
         </div>
