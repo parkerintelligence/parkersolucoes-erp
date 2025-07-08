@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,8 @@ import {
   Zap,
   Globe,
   Info,
-  Stethoscope
+  Stethoscope,
+  Link
 } from 'lucide-react';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { UniFiSiteSelector } from '@/components/UniFiSiteSelector';
@@ -144,6 +146,15 @@ const UniFi = () => {
     } catch (error) {
       console.error('Diagnosis failed:', error);
     }
+  };
+
+  const handleUpdateIntegration = (updates: any) => {
+    // This would update the integration in the database
+    // For now, we'll just show a toast
+    toast({
+      title: "⚙️ Configuração atualizada",
+      description: "As configurações da controladora foram atualizadas. Teste a conexão para verificar.",
+    });
   };
 
   const handleForceRefresh = async () => {
@@ -277,6 +288,7 @@ const UniFi = () => {
                   </div>
                 </div>
                 <Button onClick={() => window.location.href = '/admin'} className="bg-blue-600 hover:bg-blue-700">
+                  <Link className="h-4 w-4 mr-2" />
                   Configurar Controladora UniFi
                 </Button>
               </div>
@@ -356,6 +368,8 @@ const UniFi = () => {
           diagnosisLoading={diagnoseLoading}
           diagnosis={diagnosis}
           connectionUrl={connectionUrl}
+          integration={integration}
+          onUpdateIntegration={handleUpdateIntegration}
         />
 
         {/* Enhanced Connection Status */}

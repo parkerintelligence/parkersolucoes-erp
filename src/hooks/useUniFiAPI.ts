@@ -240,9 +240,9 @@ class UniFiControllerService {
       return {
         timestamp: new Date().toISOString(),
         tests: [{
-          name: 'Connection Test',
+          name: 'Connection Diagnosis',
           success: false,
-          details: error.message
+          details: error.message || 'Failed to run diagnosis'
         }]
       };
     }
@@ -795,7 +795,7 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     }
   });
 
-  // Diagnosis mutation
+  // Enhanced diagnosis mutation
   const diagnoseMutation = useMutation({
     mutationFn: async () => {
       if (!unifiService) throw new Error('UniFi service not available');
@@ -811,10 +811,18 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
       } else {
         toast({
           title: "⚠️ Problemas detectados",
-          description: `${failedTests.length} teste(s) falharam. Verifique os logs para detalhes.`,
+          description: `${failedTests.length} teste(s) falharam. Verifique os detalhes para mais informações.`,
           variant: "destructive"
         });
       }
+      return diagnosis;
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "❌ Erro no diagnóstico",
+        description: error.message,
+        variant: "destructive"
+      });
     }
   });
 
@@ -1067,7 +1075,7 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
   };
 
   const handleDiagnose = () => {
-    diagnoseMutation.mutate();
+    return diagnoseMutation.mutateAsync();
   };
 
   const handleRestartDevice = (siteId: string, deviceId: string) => {
@@ -1192,5 +1200,8 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     // Utils
     isConnected: !!unifiIntegration,
     connectionUrl: unifiIntegration?.base_url || 'Não configurado',
+
+    // Diagnosis result
+    diagnosisResult: diagnoseMutation.data,
   };
 };
