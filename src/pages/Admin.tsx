@@ -334,36 +334,6 @@ const Admin = () => {
               </Dialog>
             </div>
 
-            {/* Integration Types Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {integrationTypes.map((type) => {
-                const activeCount = integrations.filter(i => i.type === type.value && i.is_active).length;
-                const totalCount = integrations.filter(i => i.type === type.value).length;
-                
-                return (
-                  <Card key={type.value} className="bg-gray-800 border-gray-700 hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <CardTitle className="text-white flex items-center gap-3">
-                        {type.icon}
-                        {type.label}
-                      </CardTitle>
-                      <CardDescription className="text-gray-400">{type.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-300">
-                          <span className="font-semibold text-white">{activeCount}</span> ativas de <span className="font-semibold text-white">{totalCount}</span> total
-                        </div>
-                        <Badge className={activeCount > 0 ? 'bg-green-900/20 text-green-400 border-green-600' : 'bg-gray-700 text-gray-400 border-gray-600'}>
-                          {activeCount > 0 ? 'Configurado' : 'Não configurado'}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-
             {/* Active Integrations Table */}
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
