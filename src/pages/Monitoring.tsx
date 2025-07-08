@@ -39,13 +39,10 @@ const Monitoring = () => {
     setLoadingDashboards(true);
     try {
       const authHeader = btoa(`${credentials.username}:${credentials.password}`);
+      const proxyUrl = `https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/grafana-proxy`;
+      const grafanaUrl = `${grafanaIntegration.base_url}/api/search?type=dash-db`;
       
-      const response = await fetch(`${grafanaIntegration.base_url}/api/search?type=dash-db`, {
-        headers: {
-          'Authorization': `Basic ${authHeader}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(`${proxyUrl}?url=${encodeURIComponent(grafanaUrl)}&auth=${encodeURIComponent(authHeader)}`);
 
       if (!response.ok) {
         throw new Error('Erro ao buscar dashboards');
@@ -82,16 +79,12 @@ const Monitoring = () => {
       return;
     }
 
-    // Primeiro tenta autenticar
     try {
       const authHeader = btoa(`${credentials.username}:${credentials.password}`);
+      const proxyUrl = `https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/grafana-proxy`;
+      const grafanaUrl = `${grafanaIntegration.base_url}/api/user`;
       
-      const response = await fetch(`${grafanaIntegration.base_url}/api/user`, {
-        headers: {
-          'Authorization': `Basic ${authHeader}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(`${proxyUrl}?url=${encodeURIComponent(grafanaUrl)}&auth=${encodeURIComponent(authHeader)}`);
 
       if (response.ok) {
         setIsAuthenticated(true);
@@ -99,7 +92,6 @@ const Monitoring = () => {
           title: "Login realizado com sucesso",
           description: "Acesso aos dashboards do Grafana liberado.",
         });
-        // Busca os dashboards após login bem-sucedido
         await fetchDashboards();
       } else {
         toast({
@@ -273,7 +265,7 @@ const Monitoring = () => {
                   
                   <div className="bg-gray-800 rounded-lg p-4 min-h-[400px] border border-gray-600">
                     <iframe
-                      src={`${grafanaIntegration.base_url}/d/${selectedDashboardData.uid}?orgId=1&refresh=10s&from=now-1h&to=now&kiosk&auth=${btoa(`${credentials.username}:${credentials.password}`)}`}
+                      src={`${grafanaIntegration.base_url}/d/${selectedDashboardData.uid}?orgId=1&refresh=10s&from=now-1h&to=now&kiosk`}
                       width="100%"
                       height="600"
                       frameBorder="0"
