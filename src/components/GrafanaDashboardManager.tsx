@@ -20,7 +20,7 @@ interface GrafanaDashboard {
 
 interface GrafanaDashboardManagerProps {
   grafanaIntegration: any;
-  credentials: { username: string; password: string };
+  credentials: { username?: string; password?: string; api_token?: string };
 }
 
 export const GrafanaDashboardManager = ({ grafanaIntegration, credentials }: GrafanaDashboardManagerProps) => {
@@ -35,17 +35,33 @@ export const GrafanaDashboardManager = ({ grafanaIntegration, credentials }: Gra
       const grafanaUrl = `${grafanaIntegration.base_url}/api/search?type=dash-db`;
       
       console.log('Buscando dashboards...', { grafanaUrl });
+
+      // Preparar dados de autenticação
+      const authData: any = {
+        url: grafanaUrl
+      };
+
+      const hasApiToken = credentials.api_token && credentials.api_token.trim() !== '';
+      const hasUserPass = credentials.username && credentials.password && 
+                         credentials.username.trim() !== '' && credentials.password.trim() !== '';
+
+      if (hasApiToken) {
+        authData.api_token = credentials.api_token;
+        authData.auth_type = 'token';
+      } else if (hasUserPass) {
+        authData.username = credentials.username;
+        authData.password = credentials.password;
+        authData.auth_type = 'basic';
+      } else {
+        throw new Error('Credenciais não configuradas');
+      }
       
       const response = await fetch(proxyUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          url: grafanaUrl,
-          username: credentials.username,
-          password: credentials.password
-        })
+        body: JSON.stringify(authData)
       });
 
       if (!response.ok) {
@@ -80,10 +96,10 @@ export const GrafanaDashboardManager = ({ grafanaIntegration, credentials }: Gra
   };
 
   useEffect(() => {
-    if (grafanaIntegration && credentials.username && credentials.password) {
+    if (grafanaIntegration && (credentials.api_token || (credentials.username && credentials.password))) {
       fetchDashboards();
     }
-  }, [grafanaIntegration?.id, credentials.username, credentials.password]);
+  }, [grafanaIntegration?.id, credentials.api_token, credentials.username, credentials.password]);
 
   const selectedDashboardData = dashboards.find(d => d.uid === selectedDashboard);
 

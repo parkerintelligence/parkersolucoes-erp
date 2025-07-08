@@ -37,7 +37,8 @@ const Monitoring = () => {
             grafanaIntegration={grafanaIntegration}
             credentials={{
               username: grafanaIntegration.username || '',
-              password: grafanaIntegration.password || ''
+              password: grafanaIntegration.password || '',
+              api_token: grafanaIntegration.api_token || ''
             }}
           />
         )}
