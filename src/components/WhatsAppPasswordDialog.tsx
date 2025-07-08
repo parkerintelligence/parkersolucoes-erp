@@ -82,27 +82,18 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
     if (!validatePhoneNumber(phoneNumber)) {
       toast({
         title: "Número inválido",
-        description: "Digite um número válido (10-15 dígitos).",
+        description: "Digite um número válido (mínimo 10 dígitos). Exemplo: 5511999999999",
         variant: "destructive",
       });
       return;
     }
 
-    const evolutionApiIntegration = integrations?.find(int => int.type === 'evolution_api');
+    const evolutionApiIntegration = integrations?.find(int => int.type === 'evolution_api' && int.is_active);
     
     if (!evolutionApiIntegration) {
       toast({
         title: "Evolution API não configurada",
-        description: "Configure a Evolution API no painel administrativo primeiro.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!evolutionApiIntegration.is_active) {
-      toast({
-        title: "Evolution API inativa",
-        description: "A Evolution API está desativada. Ative-a no painel administrativo.",
+        description: "Configure uma Evolution API ativa no painel administrativo primeiro.",
         variant: "destructive",
       });
       return;
@@ -176,7 +167,7 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
               className="font-mono bg-slate-700 border-slate-600 text-white"
             />
             <p className="text-xs text-slate-400">
-              Digite o número completo com código do país (ex: 5511999999999)
+              Digite apenas números com código do país. Exemplo: 5511999999999
             </p>
           </div>
 

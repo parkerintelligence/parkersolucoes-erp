@@ -44,6 +44,11 @@ export class EvolutionApiService {
       return `55${cleaned}`;
     }
     
+    // If it's already 13 digits and starts with 55, return as is
+    if (cleaned.length === 13 && cleaned.startsWith('55')) {
+      return cleaned;
+    }
+    
     return cleaned;
   }
 
@@ -95,13 +100,19 @@ export class EvolutionApiService {
       return { success: false, error: 'Token da API não configurado' };
     }
 
+    // Clean and validate phone number
+    const cleanPhoneNumber = this.cleanPhoneNumber(phoneNumber);
+    
+    if (cleanPhoneNumber.length < 10 || cleanPhoneNumber.length > 15) {
+      return { success: false, error: 'Número de telefone inválido. Use o formato: 5511999999999' };
+    }
+
     // Test API connectivity first
     const isConnected = await this.testApiConnectivity();
     if (!isConnected) {
-      return { success: false, error: 'Não foi possível conectar com a Evolution API' };
+      console.log('API connectivity test failed, but continuing anyway...');
     }
 
-    const cleanPhoneNumber = this.cleanPhoneNumber(phoneNumber);
     const integrationAny = this.integration as any;
     const instanceName = integrationAny.instance_name || 'main_instance';
     const baseUrl = this.normalizeUrl(this.integration.base_url);
@@ -118,6 +129,8 @@ export class EvolutionApiService {
       `/sendText/${instanceName}`,
       `/${instanceName}/message/sendText`,
       `/${instanceName}/message/text`,
+      `/message/sendText`, // sem instance name
+      `/sendText`, // mais simples
     ];
 
     // Try different authentication methods
@@ -126,6 +139,7 @@ export class EvolutionApiService {
       { 'Authorization': `Bearer ${this.integration.api_token}` },
       { 'x-api-key': this.integration.api_token },
       { 'api-key': this.integration.api_token },
+      { 'Api-Key': this.integration.api_token },
     ];
 
     for (const endpoint of endpoints) {
@@ -144,10 +158,8 @@ export class EvolutionApiService {
             const errorText = await response.text();
             console.log(`Failed with ${endpoint} and ${Object.keys(authHeaders)[0]}:`, response.status, errorText);
             
-            // Don't continue trying other methods if we get a 403/401 with valid endpoint
-            if (response.status === 403 || response.status === 401) {
-              continue;
-            }
+            // Continue trying other methods even on auth errors
+            continue;
           }
         } catch (error) {
           console.error(`Error with ${endpoint} and ${Object.keys(authHeaders)[0]}:`, error);
@@ -158,7 +170,7 @@ export class EvolutionApiService {
 
     return { 
       success: false, 
-      error: 'Não foi possível enviar a mensagem. Verifique a configuração da Evolution API e o token.' 
+      error: 'Não foi possível enviar a mensagem. Verifique a configuração da Evolution API, o token e se a instância está ativa.' 
     };
   }
 }

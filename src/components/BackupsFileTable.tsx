@@ -76,6 +76,13 @@ const BackupsFileTable: React.FC<BackupsFileTableProps> = ({
     );
   };
 
+  // Ordenar arquivos por data de modificação (decrescente)
+  const sortedFiles = [...files].sort((a, b) => {
+    const dateA = new Date(a.lastModified);
+    const dateB = new Date(b.lastModified);
+    return dateB.getTime() - dateA.getTime();
+  });
+
   return (
     <Card className="bg-gray-800 border-gray-700">
       <CardHeader>
@@ -86,7 +93,7 @@ const BackupsFileTable: React.FC<BackupsFileTableProps> = ({
               Arquivos de Backup
             </CardTitle>
             <CardDescription className="text-gray-400">
-              Arquivos e pastas disponíveis no servidor FTP
+              Arquivos e pastas disponíveis no servidor FTP (ordenados por data de modificação)
             </CardDescription>
           </div>
           <Button 
@@ -106,7 +113,7 @@ const BackupsFileTable: React.FC<BackupsFileTableProps> = ({
             <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
             <p className="text-gray-400">Carregando backups do FTP...</p>
           </div>
-        ) : files.length === 0 ? (
+        ) : sortedFiles.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             <Database className="h-12 w-12 mx-auto mb-4 text-gray-600" />
             <p className="text-gray-400">Nenhum arquivo ou pasta encontrado</p>
@@ -129,7 +136,7 @@ const BackupsFileTable: React.FC<BackupsFileTableProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {files.map(file => (
+                {sortedFiles.map(file => (
                   <TableRow 
                     key={file.name} 
                     className={`border-gray-700 hover:bg-gray-800/30 ${file.isDirectory ? 'cursor-pointer' : ''}`}
