@@ -45,10 +45,10 @@ export const UniFiAdvancedDeviceManager: React.FC<UniFiAdvancedDeviceManagerProp
   const [deviceSettings, setDeviceSettings] = useState({
     led_override: device.led_override || 'default',
     power_override: device.power_override || 'default',
-    channel_2g: device.radio_table?.[0]?.channel || 'auto',
-    channel_5g: device.radio_table?.[1]?.channel || 'auto',
-    tx_power_2g: device.radio_table?.[0]?.tx_power || 'auto',
-    tx_power_5g: device.radio_table?.[1]?.tx_power || 'auto',
+    channel_2g: device.radio_table?.[0]?.channel?.toString() || 'auto',
+    channel_5g: device.radio_table?.[1]?.channel?.toString() || 'auto',
+    tx_power_2g: device.radio_table?.[0]?.tx_power?.toString() || 'auto',
+    tx_power_5g: device.radio_table?.[1]?.tx_power?.toString() || 'auto',
     name: device.name || '',
     alias: device.alias || ''
   });
