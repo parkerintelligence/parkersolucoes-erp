@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Monitor, Save, TestTube, AlertCircle, CheckCircle } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
@@ -22,8 +23,11 @@ export const GuacamoleAdminConfig = () => {
     base_url: guacamoleIntegration?.base_url || '',
     username: guacamoleIntegration?.username || '',
     password: guacamoleIntegration?.password || '',
+    api_token: guacamoleIntegration?.api_token || '',
     is_active: guacamoleIntegration?.is_active ?? true,
   });
+
+  const [authMethod, setAuthMethod] = useState<'credentials' | 'token'>('credentials');
 
   const handleSave = async () => {
     try {
@@ -31,11 +35,11 @@ export const GuacamoleAdminConfig = () => {
         type: 'guacamole' as const,
         name: config.name,
         base_url: config.base_url,
-        username: config.username,
-        password: config.password,
+        username: authMethod === 'credentials' ? config.username : null,
+        password: authMethod === 'credentials' ? config.password : null,
+        api_token: authMethod === 'token' ? config.api_token : null,
         is_active: config.is_active,
         // Campos obrigatórios da interface Integration com valores padrão
-        api_token: null,
         webhook_url: null,
         phone_number: null,
         region: null,
@@ -50,7 +54,14 @@ export const GuacamoleAdminConfig = () => {
       if (guacamoleIntegration) {
         await updateIntegration.mutateAsync({
           id: guacamoleIntegration.id,
-          updates: config
+          updates: {
+            name: config.name,
+            base_url: config.base_url,
+            username: authMethod === 'credentials' ? config.username : null,
+            password: authMethod === 'credentials' ? config.password : null,
+            api_token: authMethod === 'token' ? config.api_token : null,
+            is_active: config.is_active,
+          }
         });
       } else {
         await createIntegration.mutateAsync(integrationData);
@@ -61,10 +72,28 @@ export const GuacamoleAdminConfig = () => {
   };
 
   const handleTest = async () => {
-    if (!config.base_url || !config.username || !config.password) {
+    if (!config.base_url) {
       toast({
         title: "Configuração incompleta",
-        description: "Preencha todos os campos obrigatórios antes de testar.",
+        description: "Preencha a URL base antes de testar.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (authMethod === 'credentials' && (!config.username || !config.password)) {
+      toast({
+        title: "Configuração incompleta",
+        description: "Preencha usuário e senha para autenticação por credenciais.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (authMethod === 'token' && !config.api_token) {
+      toast({
+        title: "Configuração incompleta",
+        description: "Preencha o token da API para autenticação por token.",
         variant: "destructive"
       });
       return;
@@ -72,22 +101,35 @@ export const GuacamoleAdminConfig = () => {
 
     setTesting(true);
     try {
-      // Teste básico de conectividade
-      const response = await fetch(`${config.base_url.replace(/\/$/, '')}/api/tokens`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          username: config.username,
-          password: config.password,
-        }),
-      });
+      let response;
+      
+      if (authMethod === 'credentials') {
+        // Teste básico de conectividade com credenciais
+        response = await fetch(`${config.base_url.replace(/\/$/, '')}/api/tokens`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            username: config.username,
+            password: config.password,
+          }),
+        });
+      } else {
+        // Teste com token da API
+        response = await fetch(`${config.base_url.replace(/\/$/, '')}/api/session/data/mysql/connections`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${config.api_token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+      }
 
       if (response.ok) {
         toast({
           title: "Conexão bem-sucedida!",
-          description: "A conexão com o Apache Guacamole foi estabelecida com sucesso.",
+          description: `A conexão com o Apache Guacamole foi estabelecida com sucesso usando ${authMethod === 'credentials' ? 'credenciais' : 'token de API'}.`,
         });
       } else {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -103,6 +145,10 @@ export const GuacamoleAdminConfig = () => {
       setTesting(false);
     }
   };
+
+  const isTestDisabled = !config.base_url || 
+    (authMethod === 'credentials' && (!config.username || !config.password)) ||
+    (authMethod === 'token' && !config.api_token);
 
   return (
     <Card>
@@ -128,47 +174,75 @@ export const GuacamoleAdminConfig = () => {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="guacamole-name">Nome da Integração</Label>
-            <Input
-              id="guacamole-name"
-              value={config.name}
-              onChange={(e) => setConfig({ ...config, name: e.target.value })}
-              placeholder="Apache Guacamole"
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="guacamole-name">Nome da Integração</Label>
+          <Input
+            id="guacamole-name"
+            value={config.name}
+            onChange={(e) => setConfig({ ...config, name: e.target.value })}
+            placeholder="Apache Guacamole"
+          />
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="guacamole-url">URL Base *</Label>
-            <Input
-              id="guacamole-url"
-              value={config.base_url}
-              onChange={(e) => setConfig({ ...config, base_url: e.target.value })}
-              placeholder="https://guacamole.exemplo.com"
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="guacamole-url">URL Base *</Label>
+          <Input
+            id="guacamole-url"
+            value={config.base_url}
+            onChange={(e) => setConfig({ ...config, base_url: e.target.value })}
+            placeholder="https://guacamole.exemplo.com"
+          />
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="guacamole-username">Usuário *</Label>
-            <Input
-              id="guacamole-username"
-              value={config.username}
-              onChange={(e) => setConfig({ ...config, username: e.target.value })}
-              placeholder="admin"
-            />
-          </div>
+        <Separator />
 
-          <div className="space-y-2">
-            <Label htmlFor="guacamole-password">Senha *</Label>
-            <Input
-              id="guacamole-password"
-              type="password"
-              value={config.password}
-              onChange={(e) => setConfig({ ...config, password: e.target.value })}
-              placeholder="••••••••"
-            />
-          </div>
+        <div className="space-y-4">
+          <Label className="text-base font-medium">Método de Autenticação</Label>
+          
+          <Tabs value={authMethod} onValueChange={(value) => setAuthMethod(value as 'credentials' | 'token')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="credentials">Credenciais</TabsTrigger>
+              <TabsTrigger value="token">Token da API</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="credentials" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="guacamole-username">Usuário *</Label>
+                  <Input
+                    id="guacamole-username"
+                    value={config.username}
+                    onChange={(e) => setConfig({ ...config, username: e.target.value })}
+                    placeholder="admin"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="guacamole-password">Senha *</Label>
+                  <Input
+                    id="guacamole-password"
+                    type="password"
+                    value={config.password}
+                    onChange={(e) => setConfig({ ...config, password: e.target.value })}
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="token" className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="guacamole-token">Token da API *</Label>
+                <Input
+                  id="guacamole-token"
+                  type="password"
+                  value={config.api_token}
+                  onChange={(e) => setConfig({ ...config, api_token: e.target.value })}
+                  placeholder="••••••••••••••••••••••••••••••••"
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
 
         <Separator />
@@ -187,7 +261,7 @@ export const GuacamoleAdminConfig = () => {
             <Button
               variant="outline"
               onClick={handleTest}
-              disabled={testing || !config.base_url || !config.username || !config.password}
+              disabled={testing || isTestDisabled}
             >
               <TestTube className="mr-2 h-4 w-4" />
               {testing ? 'Testando...' : 'Testar Conexão'}
@@ -219,7 +293,8 @@ export const GuacamoleAdminConfig = () => {
               <p className="font-medium text-blue-800 mb-1">Configuração do Guacamole</p>
               <ul className="text-blue-700 space-y-1">
                 <li>• A URL base deve apontar para sua instalação do Guacamole</li>
-                <li>• Use credenciais de um usuário com permissões administrativas</li>
+                <li>• <strong>Credenciais:</strong> Use um usuário com permissões administrativas</li>
+                <li>• <strong>Token da API:</strong> Gere um token de acesso nas configurações do Guacamole</li>
                 <li>• Certifique-se de que a API REST esteja habilitada</li>
                 <li>• Exemplo de URL: https://guacamole.exemplo.com</li>
               </ul>
