@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useIntegrations } from '@/hooks/useIntegrations';
@@ -40,29 +39,41 @@ export const useGuacamoleAPI = () => {
       throw new Error('Integração do Guacamole não configurada');
     }
 
-    console.log('Calling Guacamole API:', endpoint, options);
+    console.log('=== Calling Guacamole API ===');
+    console.log('Integration ID:', integration.id);
+    console.log('Endpoint:', endpoint);
+    console.log('Base URL:', integration.base_url);
+    console.log('Username:', integration.username);
+    console.log('Options:', options);
 
-    const { data, error } = await supabase.functions.invoke('guacamole-proxy', {
-      body: {
-        integrationId: integration.id,
-        endpoint,
-        ...options
+    try {
+      const { data, error } = await supabase.functions.invoke('guacamole-proxy', {
+        body: {
+          integrationId: integration.id,
+          endpoint,
+          ...options
+        }
+      });
+
+      console.log('=== Guacamole API Response ===');
+      console.log('Data:', data);
+      console.log('Error:', error);
+
+      if (error) {
+        console.error('Erro na chamada da função Edge:', error);
+        throw new Error(`Erro na comunicação: ${error.message || 'Erro desconhecido'}`);
       }
-    });
 
-    console.log('Guacamole API response:', { data, error });
+      if (data?.error) {
+        console.error('Erro retornado pela API Guacamole:', data.error);
+        throw new Error(data.error);
+      }
 
-    if (error) {
-      console.error('Erro na chamada da API Guacamole:', error);
-      throw new Error(`Erro na comunicação: ${error.message}`);
+      return data?.result || {};
+    } catch (error) {
+      console.error('Erro geral na chamada da API:', error);
+      throw error;
     }
-
-    if (data?.error) {
-      console.error('Erro retornado pela API Guacamole:', data.error);
-      throw new Error(data.error);
-    }
-
-    return data?.result || {};
   };
 
   // Hook para buscar conexões
@@ -70,6 +81,7 @@ export const useGuacamoleAPI = () => {
     return useQuery({
       queryKey: ['guacamole', 'connections', integration?.id],
       queryFn: async () => {
+        console.log('=== Fetching Connections ===');
         const result = await callGuacamoleAPI('connections');
         console.log('Connections raw result:', result);
         
@@ -95,7 +107,11 @@ export const useGuacamoleAPI = () => {
       },
       enabled: isConfigured,
       staleTime: 30000, // 30 segundos
-      retry: 1,
+      retry: (failureCount, error) => {
+        console.log(`Retry attempt ${failureCount} for connections:`, error);
+        return failureCount < 2;
+      },
+      retryDelay: 1000,
     });
   };
 
@@ -104,6 +120,7 @@ export const useGuacamoleAPI = () => {
     return useQuery({
       queryKey: ['guacamole', 'users', integration?.id],
       queryFn: async () => {
+        console.log('=== Fetching Users ===');
         const result = await callGuacamoleAPI('users');
         console.log('Users raw result:', result);
         
@@ -126,7 +143,11 @@ export const useGuacamoleAPI = () => {
       },
       enabled: isConfigured,
       staleTime: 60000, // 1 minuto
-      retry: 1,
+      retry: (failureCount, error) => {
+        console.log(`Retry attempt ${failureCount} for users:`, error);
+        return failureCount < 2;
+      },
+      retryDelay: 1000,
     });
   };
 
@@ -135,6 +156,7 @@ export const useGuacamoleAPI = () => {
     return useQuery({
       queryKey: ['guacamole', 'sessions', integration?.id],
       queryFn: async () => {
+        console.log('=== Fetching Active Sessions ===');
         const result = await callGuacamoleAPI('sessions');
         console.log('Sessions raw result:', result);
         
@@ -159,7 +181,11 @@ export const useGuacamoleAPI = () => {
       },
       enabled: isConfigured,
       staleTime: 10000, // 10 segundos
-      retry: 1,
+      retry: (failureCount, error) => {
+        console.log(`Retry attempt ${failureCount} for sessions:`, error);
+        return failureCount < 2;
+      },
+      retryDelay: 1000,
     });
   };
 

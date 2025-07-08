@@ -35,6 +35,10 @@ const Guacamole = () => {
 
   const [refreshing, setRefreshing] = useState(false);
 
+  console.log('=== Guacamole Page Debug ===');
+  console.log('Is configured:', isConfigured);
+  console.log('Integration:', integration);
+
   // Carregar dados do Guacamole
   const { data: connections = [], isLoading: connectionsLoading, refetch: refetchConnections, error: connectionsError } = useConnections();
   const { data: users = [], isLoading: usersLoading, refetch: refetchUsers, error: usersError } = useUsers();
@@ -42,6 +46,12 @@ const Guacamole = () => {
 
   const deleteConnectionMutation = useDeleteConnection();
   const disconnectSessionMutation = useDisconnectSession();
+
+  console.log('=== Data Debug ===');
+  console.log('Connections:', connections);
+  console.log('Users:', users);
+  console.log('Sessions:', sessions);
+  console.log('Errors:', { connectionsError, usersError, sessionsError });
 
   const handleRefreshAll = async () => {
     setRefreshing(true);
@@ -56,6 +66,7 @@ const Guacamole = () => {
         description: "Informações do Guacamole foram atualizadas com sucesso.",
       });
     } catch (error) {
+      console.error('Erro ao atualizar dados:', error);
       toast({
         title: "Erro ao atualizar",
         description: "Não foi possível atualizar os dados do Guacamole.",
@@ -99,6 +110,18 @@ const Guacamole = () => {
   if (!isConfigured) {
     return (
       <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="bg-orange-100 p-2 rounded-lg">
+            <Monitor className="h-6 w-6 text-orange-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Apache Guacamole</h1>
+            <p className="text-muted-foreground">
+              Gerencie conexões remotas e sessões ativas
+            </p>
+          </div>
+        </div>
+
         <Card className="border-yellow-200 bg-yellow-50">
           <CardContent className="p-6 text-center">
             <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-600" />
@@ -106,9 +129,20 @@ const Guacamole = () => {
             <p className="text-yellow-700 mb-4">
               Para usar o gerenciamento do Apache Guacamole, configure a integração no painel de administração.
             </p>
-            <Button variant="outline" onClick={() => window.location.href = '/admin'}>
-              Configurar Guacamole
-            </Button>
+            <div className="space-y-2">
+              <Button variant="outline" onClick={() => window.location.href = '/admin'}>
+                <Settings className="mr-2 h-4 w-4" />
+                Configurar Guacamole
+              </Button>
+              {integration && (
+                <div className="text-sm text-yellow-600 mt-2">
+                  <p>Integração encontrada mas incompleta:</p>
+                  <p>URL: {integration.base_url || 'Não definida'}</p>
+                  <p>Usuário: {integration.username || 'Não definido'}</p>
+                  <p>Senha: {integration.password ? 'Definida' : 'Não definida'}</p>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -165,6 +199,14 @@ const Guacamole = () => {
                   <strong>Erro ao buscar sessões:</strong> {sessionsError.message}
                 </div>
               )}
+            </div>
+            <div className="mt-4 p-3 bg-blue-100 rounded border-l-4 border-blue-400">
+              <strong>Informações da Integração:</strong>
+              <ul className="mt-2 text-sm">
+                <li>URL: {integration?.base_url}</li>
+                <li>Usuário: {integration?.username}</li>
+                <li>Ativo: {integration?.is_active ? 'Sim' : 'Não'}</li>
+              </ul>
             </div>
           </CardContent>
         </Card>

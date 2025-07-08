@@ -37,6 +37,10 @@ const Admin = () => {
     category: "general",
   })
 
+  const [showGuacamoleConfig, setShowGuacamoleConfig] = useState(false);
+  const [showZabbixConfig, setShowZabbixConfig] = useState(false);
+  const [showWhatsAppConfig, setShowWhatsAppConfig] = useState(false);
+
   const handleCreateSetting = async () => {
     try {
       await createSetting.mutateAsync({
@@ -85,51 +89,152 @@ const Admin = () => {
 
         <TabsContent value="integrations" className="mt-6">
           <div className="space-y-6">
+            {/* WhatsApp Integration */}
             <Card>
               <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="bg-blue-100 p-2 rounded-lg">
-                    <MessageSquare className="h-6 w-6 text-blue-600" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-green-100 p-2 rounded-lg">
+                      <MessageSquare className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <CardTitle>Integrações WhatsApp</CardTitle>
+                      <CardDescription>
+                        Gerencie as integrações com o WhatsApp Business API
+                      </CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle>Integrações WhatsApp</CardTitle>
-                    <CardDescription>
-                      Gerencie as integrações com o WhatsApp
-                    </CardDescription>
-                  </div>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setShowWhatsAppConfig(!showWhatsAppConfig)}
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    Configurar
+                  </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Em breve, você poderá gerenciar as integrações com o WhatsApp
-                  aqui.
-                </p>
-              </CardContent>
+              {showWhatsAppConfig && (
+                <CardContent>
+                  <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400">
+                    <p className="text-blue-800">
+                      Configure aqui as integrações com WhatsApp Business API, Evolution API e outras plataformas de mensagens.
+                    </p>
+                  </div>
+                </CardContent>
+              )}
             </Card>
 
+            {/* Zabbix Integration */}
             <Card>
               <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="bg-red-100 p-2 rounded-lg">
-                    <Activity className="h-6 w-6 text-red-600" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-red-100 p-2 rounded-lg">
+                      <Activity className="h-6 w-6 text-red-600" />
+                    </div>
+                    <div>
+                      <CardTitle>Configuração Zabbix</CardTitle>
+                      <CardDescription>
+                        Configure a integração com o Zabbix para monitoramento
+                      </CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle>Configuração Zabbix</CardTitle>
-                    <CardDescription>
-                      Configure a integração com o Zabbix para monitoramento
-                    </CardDescription>
-                  </div>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setShowZabbixConfig(!showZabbixConfig)}
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    Configurar
+                  </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Configure aqui as credenciais do Zabbix para monitoramento.
-                </p>
-              </CardContent>
+              {showZabbixConfig && (
+                <CardContent>
+                  <div className="bg-red-50 p-4 rounded-lg border-l-4 border-red-400">
+                    <p className="text-red-800">
+                      Configure aqui as credenciais do Zabbix para monitoramento de infraestrutura.
+                    </p>
+                  </div>
+                </CardContent>
+              )}
             </Card>
             
             {/* Apache Guacamole Integration */}
-            <GuacamoleAdminConfig />
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-orange-100 p-2 rounded-lg">
+                      <Monitor className="h-6 w-6 text-orange-600" />
+                    </div>
+                    <div>
+                      <CardTitle>Apache Guacamole</CardTitle>
+                      <CardDescription>
+                        Configure a integração com Apache Guacamole para acesso remoto
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setShowGuacamoleConfig(!showGuacamoleConfig)}
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    Configurar
+                  </Button>
+                </div>
+              </CardHeader>
+              {showGuacamoleConfig && (
+                <CardContent>
+                  <GuacamoleAdminConfig />
+                </CardContent>
+              )}
+            </Card>
+
+            {/* Cloud Storage Integration */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-100 p-2 rounded-lg">
+                      <Cloud className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <CardTitle>Armazenamento na Nuvem</CardTitle>
+                      <CardDescription>
+                        Configure integrações com serviços de armazenamento
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Button variant="outline">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Configurar
+                  </Button>
+                </div>
+              </CardHeader>
+            </Card>
+
+            {/* FTP Integration */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-purple-100 p-2 rounded-lg">
+                      <HardDrive className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <CardTitle>Servidores FTP</CardTitle>
+                      <CardDescription>
+                        Configure conexões FTP para backup e transferência
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Button variant="outline">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Configurar
+                  </Button>
+                </div>
+              </CardHeader>
+            </Card>
           </div>
         </TabsContent>
 
