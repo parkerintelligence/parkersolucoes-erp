@@ -66,13 +66,22 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
 
   const validatePhoneNumber = (phone: string): boolean => {
     const cleaned = phone.replace(/\D/g, '');
+    // Aceitar números com 10-15 dígitos
     return cleaned.length >= 10 && cleaned.length <= 15;
+  };
+
+  const formatPhoneForDisplay = (phone: string): string => {
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 11 && !cleaned.startsWith('55')) {
+      return `55${cleaned}`;
+    }
+    return cleaned;
   };
 
   const handleSend = async () => {
     if (!phoneNumber.trim()) {
       toast({
-        title: "Número obrigatório",
+        title: "❌ Número obrigatório",
         description: "Digite o número do WhatsApp para enviar a senha.",
         variant: "destructive",
       });
@@ -81,8 +90,8 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
 
     if (!validatePhoneNumber(phoneNumber)) {
       toast({
-        title: "Número inválido",
-        description: "Digite um número válido (mínimo 10 dígitos). Exemplo: 5511999999999",
+        title: "❌ Número inválido",
+        description: "Digite um número válido (10-15 dígitos). Exemplo: 5511999999999 ou 11999999999",
         variant: "destructive",
       });
       return;
@@ -92,7 +101,7 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
     
     if (!evolutionApiIntegration) {
       toast({
-        title: "Evolution API não configurada",
+        title: "❌ Evolution API não configurada",
         description: "Configure uma Evolution API ativa no painel administrativo primeiro.",
         variant: "destructive",
       });
@@ -101,7 +110,7 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
 
     if (!evolutionApiIntegration.api_token) {
       toast({
-        title: "Token da API não configurado",
+        title: "❌ Token da API não configurado",
         description: "Configure o token da Evolution API no painel administrativo.",
         variant: "destructive",
       });
@@ -112,28 +121,34 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
     
     try {
       const evolutionService = new EvolutionApiService(evolutionApiIntegration);
-      const result = await evolutionService.sendMessage(phoneNumber, formatMessage());
+      const formattedPhone = formatPhoneForDisplay(phoneNumber);
+      
+      console.log('🚀 Enviando mensagem para:', formattedPhone);
+      console.log('📱 Instância:', (evolutionApiIntegration as any).instance_name);
+      
+      const result = await evolutionService.sendMessage(formattedPhone, formatMessage());
 
       if (result.success) {
         toast({
-          title: "✅ Senha enviada!",
-          description: `Senha enviada com sucesso para ${phoneNumber}`,
+          title: "✅ Senha enviada com sucesso!",
+          description: `Senha enviada para ${formattedPhone} via WhatsApp`,
         });
         
         onOpenChange(false);
         setPhoneNumber('');
       } else {
+        console.error('❌ Erro no envio:', result.error);
         toast({
           title: "❌ Erro no envio",
-          description: result.error || "Não foi possível enviar a senha.",
+          description: result.error || "Não foi possível enviar a senha. Verifique a configuração da Evolution API.",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
+      console.error('❌ Erro inesperado:', error);
       toast({
-        title: "❌ Erro no envio",
-        description: "Ocorreu um erro inesperado ao enviar a senha.",
+        title: "❌ Erro inesperado",
+        description: "Ocorreu um erro ao enviar a senha. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -161,13 +176,13 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
             <Input
               id="phone"
               type="tel"
-              placeholder="Ex: 5511999999999"
+              placeholder="Ex: 5511999999999 ou 11999999999"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               className="font-mono bg-slate-700 border-slate-600 text-white"
             />
             <p className="text-xs text-slate-400">
-              Digite apenas números com código do país. Exemplo: 5511999999999
+              Digite o número com ou sem código do país (55). Mínimo 10 dígitos.
             </p>
           </div>
 
@@ -209,7 +224,10 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
               className="bg-green-600 hover:bg-green-700"
             >
               {isLoading ? (
-                'Enviando...'
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Enviando...
+                </>
               ) : (
                 <>
                   <MessageCircle className="mr-2 h-4 w-4" />

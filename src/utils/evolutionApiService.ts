@@ -55,7 +55,11 @@ export class EvolutionApiService {
   private async testApiConnectivity(): Promise<boolean> {
     try {
       const baseUrl = this.normalizeUrl(this.integration.base_url);
-      const response = await fetch(`${baseUrl}/instance/fetchInstances`, {
+      const integrationAny = this.integration as any;
+      const instanceName = integrationAny.instance_name || 'main_instance';
+      
+      // Test instance status endpoint
+      const response = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -64,7 +68,7 @@ export class EvolutionApiService {
       });
 
       console.log('API Connectivity Test:', response.status);
-      return response.ok;
+      return response.ok || response.status === 404; // 404 might mean instance exists but endpoint is different
     } catch (error) {
       console.error('API Connectivity Test Failed:', error);
       return false;
@@ -73,7 +77,7 @@ export class EvolutionApiService {
 
   private async sendWithAuthMethod(
     url: string, 
-    payload: EvolutionApiMessage, 
+    payload: any, 
     authHeaders: Record<string, string>
   ): Promise<Response> {
     console.log('Sending message to:', url);
@@ -107,70 +111,97 @@ export class EvolutionApiService {
       return { success: false, error: 'Número de telefone inválido. Use o formato: 5511999999999' };
     }
 
-    // Test API connectivity first
-    const isConnected = await this.testApiConnectivity();
-    if (!isConnected) {
-      console.log('API connectivity test failed, but continuing anyway...');
-    }
-
     const integrationAny = this.integration as any;
     const instanceName = integrationAny.instance_name || 'main_instance';
     const baseUrl = this.normalizeUrl(this.integration.base_url);
     
-    const payload: EvolutionApiMessage = {
-      number: cleanPhoneNumber,
-      text: message,
-    };
-
-    // Try different endpoint formats
-    const endpoints = [
-      `/message/sendText/${instanceName}`,
-      `/message/text/${instanceName}`,
-      `/sendText/${instanceName}`,
-      `/${instanceName}/message/sendText`,
-      `/${instanceName}/message/text`,
-      `/message/sendText`, // sem instance name
-      `/sendText`, // mais simples
+    // Diferentes formatos de payload que a Evolution API pode aceitar
+    const payloadFormats = [
+      // Formato padrão
+      {
+        number: cleanPhoneNumber,
+        text: message,
+      },
+      // Formato com textMessage
+      {
+        number: cleanPhoneNumber,
+        textMessage: {
+          text: message,
+        },
+      },
+      // Formato com message
+      {
+        number: cleanPhoneNumber,
+        message: message,
+      },
+      // Formato com remoteJid
+      {
+        remoteJid: `${cleanPhoneNumber}@s.whatsapp.net`,
+        message: {
+          text: message,
+        },
+      },
     ];
 
-    // Try different authentication methods
+    // Endpoints mais comuns da Evolution API
+    const endpoints = [
+      `/message/sendText/${instanceName}`,
+      `/${instanceName}/message/sendText`,
+      `/message/text/${instanceName}`,
+      `/${instanceName}/message/text`,
+      `/sendText/${instanceName}`,
+      `/${instanceName}/sendText`,
+      `/message/send-text/${instanceName}`,
+      `/${instanceName}/message/send-text`,
+      `/api/v1/message/sendText/${instanceName}`,
+      `/api/v1/${instanceName}/message/sendText`,
+      `/v1/message/sendText/${instanceName}`,
+      `/v1/${instanceName}/message/sendText`,
+    ];
+
+    // Métodos de autenticação
     const authMethods = [
       { 'apikey': this.integration.api_token },
       { 'Authorization': `Bearer ${this.integration.api_token}` },
       { 'x-api-key': this.integration.api_token },
       { 'api-key': this.integration.api_token },
       { 'Api-Key': this.integration.api_token },
+      { 'X-API-KEY': this.integration.api_token },
     ];
 
+    // Testar todas as combinações
     for (const endpoint of endpoints) {
       const fullUrl = `${baseUrl}${endpoint}`;
       
-      for (const authHeaders of authMethods) {
-        try {
-          const response = await this.sendWithAuthMethod(fullUrl, payload, authHeaders);
-          
-          if (response.ok) {
-            const result = await response.json();
-            console.log('Success with endpoint:', endpoint, 'and auth:', Object.keys(authHeaders)[0]);
-            console.log('Result:', result);
-            return { success: true };
-          } else {
-            const errorText = await response.text();
-            console.log(`Failed with ${endpoint} and ${Object.keys(authHeaders)[0]}:`, response.status, errorText);
+      for (const payload of payloadFormats) {
+        for (const authHeaders of authMethods) {
+          try {
+            const response = await this.sendWithAuthMethod(fullUrl, payload, authHeaders);
             
-            // Continue trying other methods even on auth errors
+            if (response.ok) {
+              const result = await response.json();
+              console.log('✅ Success with:', endpoint, 'payload:', Object.keys(payload)[0], 'auth:', Object.keys(authHeaders)[0]);
+              console.log('Result:', result);
+              return { success: true };
+            } else {
+              const errorText = await response.text();
+              console.log(`❌ Failed ${endpoint} (${Object.keys(payload)[0]}, ${Object.keys(authHeaders)[0]}):`, response.status, errorText);
+              
+              // Se receber 401, pode ser problema de autenticação, continue tentando
+              // Se receber 404, pode ser endpoint errado, continue tentando
+              continue;
+            }
+          } catch (error) {
+            console.error(`❌ Error ${endpoint} (${Object.keys(payload)[0]}, ${Object.keys(authHeaders)[0]}):`, error);
             continue;
           }
-        } catch (error) {
-          console.error(`Error with ${endpoint} and ${Object.keys(authHeaders)[0]}:`, error);
-          continue;
         }
       }
     }
 
     return { 
       success: false, 
-      error: 'Não foi possível enviar a mensagem. Verifique a configuração da Evolution API, o token e se a instância está ativa.' 
+      error: 'Não foi possível enviar a mensagem. Verifique se a instância está conectada e ativa na Evolution API. Confira também se o token de API está correto.' 
     };
   }
 }
