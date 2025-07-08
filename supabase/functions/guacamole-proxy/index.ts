@@ -19,7 +19,6 @@ serve(async (req) => {
     console.log('Endpoint:', endpoint)
     console.log('Method:', method)
     console.log('Integration ID:', integrationId)
-    console.log('Data:', data)
 
     if (!integrationId) {
       return new Response(
@@ -77,12 +76,32 @@ serve(async (req) => {
       username: integration.username
     })
 
-    // Preparar URL da API
-    const baseUrl = integration.base_url.replace(/\/$/, '')
+    // Preparar URL da API - remover barras duplas e garantir formato correto
+    let baseUrl = integration.base_url.replace(/\/+$/, '') // Remove barras no final
     
+    // Garantir que a URL não tenha problemas de codificação
+    try {
+      const urlTest = new URL(baseUrl)
+      baseUrl = urlTest.toString().replace(/\/+$/, '')
+    } catch (urlError) {
+      console.error('Invalid base URL:', baseUrl)
+      return new Response(
+        JSON.stringify({ 
+          error: `URL base inválida: ${baseUrl}`
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
     // Primeiro, fazer login para obter token
     console.log('Getting auth token...')
-    const loginResponse = await fetch(`${baseUrl}/api/tokens`, {
+    const tokenUrl = `${baseUrl}/api/tokens`
+    console.log('Token URL:', tokenUrl)
+    
+    const loginResponse = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -96,9 +115,10 @@ serve(async (req) => {
     if (!loginResponse.ok) {
       console.error('Login failed:', loginResponse.status, loginResponse.statusText)
       const errorText = await loginResponse.text()
+      console.error('Login error response:', errorText)
       return new Response(
         JSON.stringify({ 
-          error: `Erro de autenticação: ${loginResponse.status} - ${errorText}`
+          error: `Erro de autenticação: ${loginResponse.status} - Verifique as credenciais`
         }),
         { 
           status: 200, 
@@ -108,34 +128,35 @@ serve(async (req) => {
     }
 
     const authToken = await loginResponse.text()
-    console.log('Auth token obtained')
+    console.log('Auth token obtained, length:', authToken.length)
 
-    // Agora fazer a chamada para o endpoint solicitado
-    let apiUrl = `${baseUrl}/api/session/data/mysql`
+    // Construir URL da API baseada no endpoint solicitado
+    let apiPath = ''
     
-    // Mapear endpoints para URLs da API do Guacamole
     switch (endpoint) {
       case 'connections':
-        apiUrl += `/connections?token=${authToken}`
+        apiPath = '/api/session/data/mysql/connections'
         break
       case 'users':
-        apiUrl += `/users?token=${authToken}`
+        apiPath = '/api/session/data/mysql/users'
         break
       case 'sessions':
-        apiUrl += `/activeConnections?token=${authToken}`
+        apiPath = '/api/session/data/mysql/activeConnections'
         break
       default:
         if (endpoint.startsWith('connections/')) {
           const connectionId = endpoint.split('/')[1]
-          apiUrl += `/connections/${connectionId}?token=${authToken}`
+          apiPath = `/api/session/data/mysql/connections/${encodeURIComponent(connectionId)}`
         } else if (endpoint.startsWith('sessions/')) {
           const sessionId = endpoint.split('/')[1]
-          apiUrl += `/activeConnections/${sessionId}?token=${authToken}`
+          apiPath = `/api/session/data/mysql/activeConnections/${encodeURIComponent(sessionId)}`
         } else {
-          apiUrl += `/${endpoint}?token=${authToken}`
+          apiPath = `/api/session/data/mysql/${endpoint}`
         }
     }
 
+    // Construir URL final com token como parâmetro
+    const apiUrl = `${baseUrl}${apiPath}?token=${encodeURIComponent(authToken)}`
     console.log('Making API call to:', apiUrl)
 
     const requestOptions: RequestInit = {
@@ -150,15 +171,14 @@ serve(async (req) => {
     }
 
     const apiResponse = await fetch(apiUrl, requestOptions)
-
     console.log('API response status:', apiResponse.status)
 
     if (!apiResponse.ok) {
       const errorText = await apiResponse.text()
-      console.error('API error:', errorText)
+      console.error('API error response:', errorText)
       return new Response(
         JSON.stringify({ 
-          error: `Erro da API Guacamole: ${apiResponse.status} - ${errorText}`
+          error: `Erro da API Guacamole: ${apiResponse.status} - ${apiResponse.statusText}`
         }),
         { 
           status: 200, 
@@ -167,8 +187,32 @@ serve(async (req) => {
       )
     }
 
-    const result = await apiResponse.json()
-    console.log('API response received')
+    let result
+    try {
+      const responseText = await apiResponse.text()
+      console.log('Raw API response (first 200 chars):', responseText.substring(0, 200))
+      
+      if (responseText.trim() === '') {
+        result = {}
+      } else {
+        result = JSON.parse(responseText)
+      }
+    } catch (parseError) {
+      console.error('Error parsing API response:', parseError)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Erro ao processar resposta da API Guacamole'
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    console.log('API response processed successfully')
+    console.log('Result type:', typeof result)
+    console.log('Result keys:', Object.keys(result || {}))
 
     return new Response(
       JSON.stringify({ result }),

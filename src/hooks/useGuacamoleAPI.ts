@@ -20,10 +20,11 @@ export interface GuacamoleUser {
 }
 
 export interface GuacamoleSession {
-  authToken: string;
+  id: string;
   username: string;
-  dataSource: string;
-  availableDataSources: string[];
+  connectionName: string;
+  protocol: string;
+  startTime: string;
 }
 
 export const useGuacamoleAPI = () => {
@@ -39,6 +40,8 @@ export const useGuacamoleAPI = () => {
       throw new Error('Integração do Guacamole não configurada');
     }
 
+    console.log('Calling Guacamole API:', endpoint, options);
+
     const { data, error } = await supabase.functions.invoke('guacamole-proxy', {
       body: {
         integrationId: integration.id,
@@ -46,6 +49,8 @@ export const useGuacamoleAPI = () => {
         ...options
       }
     });
+
+    console.log('Guacamole API response:', { data, error });
 
     if (error) {
       console.error('Erro na chamada da API Guacamole:', error);
@@ -57,16 +62,40 @@ export const useGuacamoleAPI = () => {
       throw new Error(data.error);
     }
 
-    return data?.result;
+    return data?.result || {};
   };
 
   // Hook para buscar conexões
   const useConnections = () => {
     return useQuery({
       queryKey: ['guacamole', 'connections', integration?.id],
-      queryFn: () => callGuacamoleAPI('connections'),
+      queryFn: async () => {
+        const result = await callGuacamoleAPI('connections');
+        console.log('Connections raw result:', result);
+        
+        // Processar resultado para garantir formato correto
+        if (Array.isArray(result)) {
+          return result;
+        }
+        
+        // Se o resultado for um objeto, extrair as conexões
+        if (typeof result === 'object' && result !== null) {
+          const connections = Object.keys(result).map(key => ({
+            identifier: key,
+            name: result[key]?.name || key,
+            protocol: result[key]?.protocol || 'unknown',
+            parameters: result[key]?.parameters || {},
+            attributes: result[key]?.attributes || {},
+            activeConnections: result[key]?.activeConnections || 0
+          }));
+          return connections;
+        }
+        
+        return [];
+      },
       enabled: isConfigured,
       staleTime: 30000, // 30 segundos
+      retry: 1,
     });
   };
 
@@ -74,9 +103,30 @@ export const useGuacamoleAPI = () => {
   const useUsers = () => {
     return useQuery({
       queryKey: ['guacamole', 'users', integration?.id],
-      queryFn: () => callGuacamoleAPI('users'),
+      queryFn: async () => {
+        const result = await callGuacamoleAPI('users');
+        console.log('Users raw result:', result);
+        
+        // Processar resultado para garantir formato correto
+        if (Array.isArray(result)) {
+          return result;
+        }
+        
+        // Se o resultado for um objeto, extrair os usuários
+        if (typeof result === 'object' && result !== null) {
+          const users = Object.keys(result).map(username => ({
+            username,
+            attributes: result[username]?.attributes || {},
+            lastActive: result[username]?.lastActive || null
+          }));
+          return users;
+        }
+        
+        return [];
+      },
       enabled: isConfigured,
       staleTime: 60000, // 1 minuto
+      retry: 1,
     });
   };
 
@@ -84,9 +134,32 @@ export const useGuacamoleAPI = () => {
   const useActiveSessions = () => {
     return useQuery({
       queryKey: ['guacamole', 'sessions', integration?.id],
-      queryFn: () => callGuacamoleAPI('sessions'),
+      queryFn: async () => {
+        const result = await callGuacamoleAPI('sessions');
+        console.log('Sessions raw result:', result);
+        
+        // Processar resultado para garantir formato correto
+        if (Array.isArray(result)) {
+          return result;
+        }
+        
+        // Se o resultado for um objeto, extrair as sessões
+        if (typeof result === 'object' && result !== null) {
+          const sessions = Object.keys(result).map(sessionId => ({
+            id: sessionId,
+            username: result[sessionId]?.username || 'unknown',
+            connectionName: result[sessionId]?.connectionName || 'unknown',
+            protocol: result[sessionId]?.protocol || 'unknown',
+            startTime: result[sessionId]?.startTime || new Date().toISOString()
+          }));
+          return sessions;
+        }
+        
+        return [];
+      },
       enabled: isConfigured,
       staleTime: 10000, // 10 segundos
+      retry: 1,
     });
   };
 
@@ -106,6 +179,7 @@ export const useGuacamoleAPI = () => {
         });
       },
       onError: (error: Error) => {
+        console.error('Error creating connection:', error);
         toast({
           title: "Erro ao criar conexão",
           description: error.message,
@@ -131,6 +205,7 @@ export const useGuacamoleAPI = () => {
         });
       },
       onError: (error: Error) => {
+        console.error('Error updating connection:', error);
         toast({
           title: "Erro ao atualizar conexão",
           description: error.message,
@@ -153,6 +228,7 @@ export const useGuacamoleAPI = () => {
         });
       },
       onError: (error: Error) => {
+        console.error('Error deleting connection:', error);
         toast({
           title: "Erro ao remover conexão",
           description: error.message,
@@ -175,6 +251,7 @@ export const useGuacamoleAPI = () => {
         });
       },
       onError: (error: Error) => {
+        console.error('Error disconnecting session:', error);
         toast({
           title: "Erro ao desconectar sessão",
           description: error.message,
