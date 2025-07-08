@@ -306,12 +306,12 @@ const Passwords = () => {
 
   const getCategoryBadge = (service: string) => {
     const colors = {
-      'Sistema': 'bg-blue-100 text-blue-800 border-blue-200',
-      'Email': 'bg-green-100 text-green-800 border-green-200',
-      'Hosting': 'bg-purple-100 text-purple-800 border-purple-200',
-      'Database': 'bg-orange-100 text-orange-800 border-orange-200',
+      'Sistema': 'bg-blue-900/20 text-blue-400 border-blue-600',
+      'Email': 'bg-green-900/20 text-green-400 border-green-600',
+      'Hosting': 'bg-purple-900/20 text-purple-400 border-purple-600',
+      'Database': 'bg-orange-900/20 text-orange-400 border-orange-600',
     };
-    return <Badge className={colors[service] || 'bg-gray-100 text-gray-800 border-gray-200'}>{service}</Badge>;
+    return <Badge className={colors[service] || 'bg-gray-900/20 text-gray-400 border-gray-600'}>{service}</Badge>;
   };
 
   const handleCopyPassword = (password: string) => {
@@ -654,7 +654,7 @@ const Passwords = () => {
                       return (
                         <TableRow key={item.id} className="hover:bg-slate-700/50 border-slate-600">
                           <TableCell className="font-medium text-white">{item.name}</TableCell>
-                          <TableCell className="font-medium text-slate-300">{company?.name || 'N/A'}</TableCell>
+                          <TableCell className="font-medium text-white">{company?.name || 'N/A'}</TableCell>
                           <TableCell>
                             {item.url ? (
                               <Button
@@ -665,7 +665,7 @@ const Passwords = () => {
                                 Acessar
                               </Button>
                             ) : (
-                              <span className="text-slate-400 text-sm">Sem URL</span>
+                              <span className="text-white text-sm">Sem URL</span>
                             )}
                           </TableCell>
                           <TableCell className="font-mono text-sm text-white">{item.username}</TableCell>
@@ -738,7 +738,7 @@ const Passwords = () => {
                 </Table>
               </div>
               {groupPasswords.length === 0 && (
-                <div className="text-center py-8 text-slate-400">
+                <div className="text-center py-8 text-white">
                   Nenhuma senha encontrada neste grupo.
                 </div>
               )}

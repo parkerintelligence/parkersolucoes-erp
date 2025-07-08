@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -96,13 +95,35 @@ const UniFi = () => {
     }
   }, [isConnected]);
 
+  // Auto select the first site if none is selected
+  useEffect(() => {
+    if (sites.length > 0 && !selectedSiteId) {
+      setSelectedSiteId(sites[0]._id);
+      toast({
+        title: "Site selecionado automaticamente",
+        description: `${sites[0].desc || sites[0].name} foi selecionado para você.`,
+      });
+    }
+  }, [sites, selectedSiteId]);
+
   const handleTestConnection = async () => {
     setConnectionStatus('testing');
     try {
       await testConnection();
       setConnectionStatus('connected');
+      
+      toast({
+        title: "✅ Conexão bem sucedida",
+        description: "Conectado à controladora UniFi com sucesso.",
+      });
     } catch (error) {
       setConnectionStatus('error');
+      
+      toast({
+        title: "❌ Erro de conexão",
+        description: "Falha ao conectar à controladora UniFi.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -330,13 +351,35 @@ const UniFi = () => {
           </CardContent>
         </Card>
 
-        {/* Site Selection */}
-        <UniFiSiteSelector
-          sites={sites}
-          selectedSiteId={selectedSiteId}
-          onSiteChange={setSelectedSiteId}
-          loading={sitesLoading}
-        />
+        {/* Site Selection - Made more prominent */}
+        <Card className="bg-blue-900/20 border-blue-500 shadow-md">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-white flex items-center gap-2">
+              <Server className="h-5 w-5 text-blue-400" />
+              Selecione um Site da Controladora UniFi
+            </CardTitle>
+            <CardDescription className="text-gray-300">
+              Selecione um site para visualizar e gerenciar seus dispositivos e redes
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <UniFiSiteSelector
+              sites={sites}
+              selectedSiteId={selectedSiteId}
+              onSiteChange={setSelectedSiteId}
+              loading={sitesLoading}
+            />
+          </CardContent>
+        </Card>
+
+        {!selectedSiteId && sites.length > 0 && (
+          <Alert className="bg-blue-900/20 border-blue-600">
+            <AlertTriangle className="h-4 w-4 text-blue-400" />
+            <AlertDescription className="text-blue-300">
+              Por favor, selecione um site acima para visualizar e gerenciar os dispositivos e redes.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {selectedSiteId && (
           <>

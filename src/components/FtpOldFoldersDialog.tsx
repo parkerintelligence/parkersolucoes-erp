@@ -58,6 +58,8 @@ const FtpOldFoldersDialog: React.FC<FtpOldFoldersDialogProps> = ({ files }) => {
 
 📊 Status: CRÍTICO - Requer atenção imediata`;
 
+      console.log('Criando chamado no GLPI:', folder.name);
+      
       const result = await createTicket.mutateAsync({
         name: `BACKUPS NÃO REALIZADOS - URGENTE - ${folder.name}`,
         content: ticketContent,
@@ -68,15 +70,18 @@ const FtpOldFoldersDialog: React.FC<FtpOldFoldersDialogProps> = ({ files }) => {
         type: 1,     // Incidente
       });
 
+      console.log('Resposta da criação de chamado:', result);
+
       toast({
         title: "✅ Chamado criado com sucesso!",
-        description: `Chamado #${result.id || 'N/A'} criado no GLPI para a pasta ${folder.name}`,
+        description: `Chamado #${result.id || 'N/A'} criado para a pasta ${folder.name}`,
+        variant: "default",
       });
     } catch (error) {
       console.error('Erro ao criar chamado GLPI:', error);
       toast({
         title: "❌ Erro ao criar chamado",
-        description: `Falha ao criar chamado no GLPI: ${error.message || 'Erro desconhecido'}`,
+        description: `Falha ao criar chamado: ${error.message || 'Erro desconhecido'}`,
         variant: "destructive",
       });
     }
@@ -127,7 +132,7 @@ const FtpOldFoldersDialog: React.FC<FtpOldFoldersDialogProps> = ({ files }) => {
                         onClick={() => handleCreateGLPITicket(folder)}
                         disabled={createTicket.isPending}
                         className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 h-8"
-                        title="Criar chamado urgente no GLPI"
+                        title="Criar chamado urgente"
                       >
                         <ExternalLink className="h-3 w-3" />
                       </Button>
