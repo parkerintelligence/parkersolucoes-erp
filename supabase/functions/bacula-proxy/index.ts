@@ -83,22 +83,22 @@ serve(async (req) => {
     const auth = btoa(`${integration.username}:${integration.password}`)
     const baseUrl = integration.base_url.replace(/\/$/, '')
 
-    // BaculaWeb API endpoints mapping
+    // BaculaWeb/Baculum API endpoints mapping - usando endpoints corretos do Baculum
     const endpointMap: Record<string, string> = {
-      'jobs': '/api/jobs',
-      'jobs/recent': '/api/jobs/recent',
-      'jobs/running': '/api/jobs/running',
-      'jobs/last24h': '/api/jobs/last24h',
-      'clients': '/api/clients',
-      'volumes': '/api/volumes',
-      'pools': '/api/pools',
-      'storages': '/api/storages',
-      'status': '/api/status',
-      'director': '/api/director/status',
-      'statistics': '/api/statistics',
-      'catalog': '/api/catalog',
-      'test': '/api/test',
-      'version': '/api/version'
+      'test': '/api/v2/config/api/info',
+      'jobs': '/api/v2/jobs',
+      'jobs/recent': '/api/v2/jobs?limit=50&order_by=jobid&order_direction=desc',
+      'jobs/running': '/api/v2/jobs?jobstatus=R',
+      'jobs/last24h': '/api/v2/jobs?age=86400',
+      'clients': '/api/v2/clients',
+      'volumes': '/api/v2/volumes',
+      'pools': '/api/v2/pools',
+      'storages': '/api/v2/storages',
+      'status': '/api/v2/status',
+      'director': '/api/v2/status/director',
+      'statistics': '/api/v2/jobs/totals',
+      'catalog': '/api/v2/catalog',
+      'version': '/api/v2/config/api/info'
     }
 
     const apiEndpoint = endpointMap[endpoint] || endpoint
@@ -125,6 +125,7 @@ serve(async (req) => {
       clearTimeout(timeoutId)
 
       console.log(`Response status: ${response.status}`)
+      console.log(`Response headers:`, Object.fromEntries(response.headers.entries()))
 
       if (!response.ok) {
         console.error(`BaculaWeb API error: ${response.status} - ${response.statusText}`)
@@ -137,6 +138,38 @@ serve(async (req) => {
           console.error(`Error response body: ${errorDetail}`)
         } catch (e) {
           errorDetail = response.statusText
+        }
+
+        // Se for 404, tentar com endpoints v1
+        if (response.status === 404) {
+          console.log('Tentando com endpoints v1...')
+          const v1Endpoint = apiEndpoint.replace('/api/v2/', '/api/v1/')
+          const v1Url = `${baseUrl}${v1Endpoint}`
+          
+          console.log(`Trying v1 endpoint: ${v1Url}`)
+          
+          const v1Response = await fetch(v1Url, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Basic ${auth}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'User-Agent': 'Parker Intelligence System'
+            },
+            signal: controller.signal
+          })
+          
+          if (v1Response.ok) {
+            const v1Data = await v1Response.json()
+            console.log(`V1 API response successful:`, v1Data)
+            return new Response(JSON.stringify(v1Data), {
+              ...corsOptions,
+              headers: {
+                ...corsOptions.headers,
+                'Content-Type': 'application/json'
+              }
+            })
+          }
         }
 
         return new Response(JSON.stringify({ 
@@ -157,18 +190,47 @@ serve(async (req) => {
       if (contentType && contentType.includes('application/json')) {
         try {
           data = await response.json()
+          console.log(`BaculaWeb API response data:`, JSON.stringify(data, null, 2))
         } catch (jsonError) {
           console.error('JSON parsing error:', jsonError)
           const textData = await response.text()
+          console.error('Raw response:', textData)
+          
+          // Se recebeu HTML, provavelmente é uma página de login
+          if (textData.includes('<html>') || textData.includes('<!DOCTYPE')) {
+            return new Response(JSON.stringify({ 
+              error: 'Received HTML instead of JSON - check authentication or API endpoint',
+              details: 'The server returned an HTML page instead of JSON data. This usually indicates authentication issues or incorrect API endpoint.',
+              endpoint: apiEndpoint,
+              url: fullUrl
+            }), {
+              ...corsOptions,
+              status: 401
+            })
+          }
+          
           data = { raw: textData, error: 'JSON parsing failed' }
         }
       } else {
         // If not JSON, try to get as text
         const textData = await response.text()
+        console.log('Non-JSON response:', textData)
+        
+        // Check if it's HTML (login page)
+        if (textData.includes('<html>') || textData.includes('<!DOCTYPE')) {
+          return new Response(JSON.stringify({ 
+            error: 'Authentication required - received login page',
+            details: 'The server returned a login page instead of API data. Check your credentials and API configuration.',
+            endpoint: apiEndpoint,
+            url: fullUrl
+          }), {
+            ...corsOptions,
+            status: 401
+          })
+        }
+        
         data = { raw: textData, contentType }
       }
-
-      console.log(`BaculaWeb API response data:`, JSON.stringify(data, null, 2))
 
       return new Response(JSON.stringify(data), {
         ...corsOptions,

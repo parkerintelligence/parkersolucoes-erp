@@ -10,23 +10,32 @@ interface WhatsAppErrorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   error: {
-    message: string;
+    message?: string;
     details?: string;
     endpoint?: string;
     statusCode?: number;
     logs?: string[];
-  };
+  } | null;
 }
 
 export const WhatsAppErrorDialog = ({ open, onOpenChange, error }: WhatsAppErrorDialogProps) => {
+  // Garantir que error não seja null ou undefined
+  const safeError = error || {
+    message: 'Erro desconhecido',
+    details: 'Não foi possível obter detalhes do erro',
+    endpoint: 'N/A',
+    statusCode: 500,
+    logs: []
+  };
+
   const copyErrorDetails = () => {
     const errorInfo = `
 Erro no WhatsApp:
-- Mensagem: ${error.message}
-- Endpoint: ${error.endpoint || 'N/A'}
-- Status Code: ${error.statusCode || 'N/A'}
-- Detalhes: ${error.details || 'N/A'}
-- Logs: ${error.logs?.join('\n') || 'Nenhum log disponível'}
+- Mensagem: ${safeError.message || 'Erro desconhecido'}
+- Endpoint: ${safeError.endpoint || 'N/A'}
+- Status Code: ${safeError.statusCode || 'N/A'}
+- Detalhes: ${safeError.details || 'N/A'}
+- Logs: ${safeError.logs?.join('\n') || 'Nenhum log disponível'}
 - Timestamp: ${new Date().toLocaleString('pt-BR')}
     `.trim();
 
@@ -55,37 +64,37 @@ Erro no WhatsApp:
           <Alert variant="destructive" className="bg-red-900/20 border-red-500/50">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription className="text-red-200">
-              {error.message}
+              {safeError.message || 'Erro desconhecido'}
             </AlertDescription>
           </Alert>
 
           {/* Detalhes técnicos */}
-          {(error.details || error.endpoint || error.statusCode) && (
+          {(safeError.details || safeError.endpoint || safeError.statusCode) && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-white flex items-center gap-2">
                 <Bug className="h-4 w-4" />
                 Detalhes Técnicos
               </h4>
               <div className="bg-slate-900 p-3 rounded-md text-xs font-mono text-slate-300 space-y-1">
-                {error.endpoint && (
-                  <div><span className="text-blue-400">Endpoint:</span> {error.endpoint}</div>
+                {safeError.endpoint && (
+                  <div><span className="text-blue-400">Endpoint:</span> {safeError.endpoint}</div>
                 )}
-                {error.statusCode && (
-                  <div><span className="text-blue-400">Status Code:</span> {error.statusCode}</div>
+                {safeError.statusCode && (
+                  <div><span className="text-blue-400">Status Code:</span> {safeError.statusCode}</div>
                 )}
-                {error.details && (
-                  <div><span className="text-blue-400">Detalhes:</span> {error.details}</div>
+                {safeError.details && (
+                  <div><span className="text-blue-400">Detalhes:</span> {safeError.details}</div>
                 )}
               </div>
             </div>
           )}
 
           {/* Logs */}
-          {error.logs && error.logs.length > 0 && (
+          {safeError.logs && safeError.logs.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-white">Logs de Debug</h4>
               <div className="bg-slate-900 p-3 rounded-md text-xs font-mono text-slate-300 max-h-32 overflow-y-auto">
-                {error.logs.map((log, index) => (
+                {safeError.logs.map((log, index) => (
                   <div key={index} className="mb-1">{log}</div>
                 ))}
               </div>

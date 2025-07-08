@@ -16,7 +16,10 @@ export const BaculaStatusCards = () => {
       console.error('Connection error:', connectionError);
       return { status: 'error', label: 'Erro de Conexão', color: 'bg-red-900/20 text-red-400 border-red-600' };
     }
-    if (connectionTest) return { status: 'success', label: 'Conectado', color: 'bg-green-900/20 text-green-400 border-green-600' };
+    // Verificar se a resposta indica sucesso da API
+    if (connectionTest && (connectionTest.output || connectionTest.result || connectionTest.data)) {
+      return { status: 'success', label: 'Conectado', color: 'bg-green-900/20 text-green-400 border-green-600' };
+    }
     return { status: 'unknown', label: 'Desconhecido', color: 'bg-gray-900/20 text-gray-400 border-gray-600' };
   };
 
@@ -27,7 +30,22 @@ export const BaculaStatusCards = () => {
       return 'Erro';
     }
     if (!runningJobs) return '0';
-    return Array.isArray(runningJobs) ? runningJobs.length.toString() : '0';
+    
+    // Verificar diferentes estruturas de resposta do Baculum
+    if (runningJobs.output && Array.isArray(runningJobs.output)) {
+      return runningJobs.output.length.toString();
+    }
+    if (runningJobs.result && Array.isArray(runningJobs.result)) {
+      return runningJobs.result.length.toString();
+    }
+    if (runningJobs.data && Array.isArray(runningJobs.data)) {
+      return runningJobs.data.length.toString();
+    }
+    if (Array.isArray(runningJobs)) {
+      return runningJobs.length.toString();
+    }
+    
+    return '0';
   };
 
   const getLast24hStats = () => {
@@ -37,10 +55,22 @@ export const BaculaStatusCards = () => {
       return { total: 'Erro', successful: 'Erro', failed: 'Erro' };
     }
     
-    if (Array.isArray(last24hJobs)) {
-      const total = last24hJobs.length;
-      const successful = last24hJobs.filter(job => job.jobstatus === 'T' || job.jobstatus === 'W').length;
-      const failed = last24hJobs.filter(job => job.jobstatus === 'E' || job.jobstatus === 'f').length;
+    // Extrair jobs de diferentes estruturas de resposta
+    let jobs = [];
+    if (last24hJobs.output && Array.isArray(last24hJobs.output)) {
+      jobs = last24hJobs.output;
+    } else if (last24hJobs.result && Array.isArray(last24hJobs.result)) {
+      jobs = last24hJobs.result;
+    } else if (last24hJobs.data && Array.isArray(last24hJobs.data)) {
+      jobs = last24hJobs.data;
+    } else if (Array.isArray(last24hJobs)) {
+      jobs = last24hJobs;
+    }
+    
+    if (jobs.length > 0) {
+      const total = jobs.length;
+      const successful = jobs.filter(job => job.jobstatus === 'T' || job.jobstatus === 'W').length;
+      const failed = jobs.filter(job => job.jobstatus === 'E' || job.jobstatus === 'f').length;
       return { total: total.toString(), successful: successful.toString(), failed: failed.toString() };
     }
     
@@ -55,8 +85,26 @@ export const BaculaStatusCards = () => {
     }
     if (!directorStatus) return { status: 'unknown', label: 'Desconhecido', color: 'bg-gray-900/20 text-gray-400 border-gray-600' };
     
-    // Assuming director status returns an object with status information
-    const isOnline = directorStatus.status === 'running' || directorStatus.online === true;
+    // Verificar diferentes estruturas de resposta do Baculum
+    let status = null;
+    if (directorStatus.output) {
+      status = directorStatus.output;
+    } else if (directorStatus.result) {
+      status = directorStatus.result;
+    } else if (directorStatus.data) {
+      status = directorStatus.data;
+    } else {
+      status = directorStatus;
+    }
+    
+    // Verificar se o director está online
+    const isOnline = status && (
+      status.status === 'running' || 
+      status.online === true || 
+      status.state === 'running' ||
+      (typeof status === 'string' && status.includes('running'))
+    );
+    
     return isOnline 
       ? { status: 'online', label: 'Online', color: 'bg-green-900/20 text-green-400 border-green-600' }
       : { status: 'offline', label: 'Offline', color: 'bg-red-900/20 text-red-400 border-red-600' };

@@ -7,11 +7,35 @@ import { useBaculaJobsRecent } from '@/hooks/useBaculaAPI';
 import { Button } from '@/components/ui/button';
 
 export const BaculaJobsGrid = () => {
-  const { data: jobs, isLoading, error, refetch } = useBaculaJobsRecent();
+  const { data: jobsData, isLoading, error, refetch } = useBaculaJobsRecent();
 
-  console.log('Jobs data:', jobs);
+  console.log('Jobs raw data:', jobsData);
   console.log('Jobs loading:', isLoading);
   console.log('Jobs error:', error);
+
+  // Extrair jobs da resposta, considerando diferentes estruturas do Baculum
+  const extractJobs = (data: any) => {
+    if (!data) return [];
+    
+    // Verificar diferentes estruturas de resposta do Baculum
+    if (data.output && Array.isArray(data.output)) {
+      return data.output;
+    }
+    if (data.result && Array.isArray(data.result)) {
+      return data.result;
+    }
+    if (data.data && Array.isArray(data.data)) {
+      return data.data;
+    }
+    if (Array.isArray(data)) {
+      return data;
+    }
+    
+    return [];
+  };
+
+  const jobs = extractJobs(jobsData);
+  console.log('Extracted jobs:', jobs);
 
   const getJobStatusBadge = (status: string) => {
     switch (status) {
@@ -147,14 +171,17 @@ export const BaculaJobsGrid = () => {
             <RefreshCw className="h-8 w-8 mx-auto mb-4 text-slate-400 animate-spin" />
             <p className="text-slate-400">Carregando jobs...</p>
           </div>
-        ) : !jobs || (Array.isArray(jobs) && jobs.length === 0) ? (
+        ) : !jobs || jobs.length === 0 ? (
           <div className="text-center py-8">
             <Clock className="h-12 w-12 mx-auto mb-4 text-slate-400" />
             <p className="text-slate-400">Nenhum job encontrado</p>
-            {jobs && (
-              <p className="text-xs text-slate-500 mt-2">
-                Dados recebidos: {JSON.stringify(jobs)}
-              </p>
+            {jobsData && (
+              <div className="mt-4 p-4 bg-slate-900 rounded-lg text-left">
+                <p className="text-xs text-slate-500 mb-2">Dados brutos recebidos:</p>
+                <pre className="text-xs text-slate-300 overflow-x-auto max-h-32">
+                  {JSON.stringify(jobsData, null, 2)}
+                </pre>
+              </div>
             )}
           </div>
         ) : (
@@ -174,7 +201,7 @@ export const BaculaJobsGrid = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Array.isArray(jobs) && jobs.map((job: any, index: number) => (
+                {jobs.map((job: any, index: number) => (
                   <TableRow key={job.jobid || index} className="border-slate-700 hover:bg-slate-700/50">
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -183,19 +210,19 @@ export const BaculaJobsGrid = () => {
                       </div>
                     </TableCell>
                     <TableCell className="font-medium text-slate-200">
-                      {job.name || job.jobname || '-'}
+                      {job.name || job.jobname || job.job || '-'}
                     </TableCell>
                     <TableCell className="text-slate-300">
-                      {job.client || job.clientname || '-'}
+                      {job.client || job.clientname || job.clientid || '-'}
                     </TableCell>
                     <TableCell className="text-slate-300">
-                      {job.type || job.jobtype || '-'}
+                      {job.type || job.jobtype || job.level || '-'}
                     </TableCell>
                     <TableCell className="text-slate-300">
-                      {formatDateTime(job.starttime || job.schedtime)}
+                      {formatDateTime(job.starttime || job.schedtime || job.realendtime)}
                     </TableCell>
                     <TableCell className="text-slate-300">
-                      {formatDateTime(job.endtime)}
+                      {formatDateTime(job.endtime || job.realendtime)}
                     </TableCell>
                     <TableCell className="text-slate-300">
                       {job.duration ? formatDuration(job.duration) : '-'}
@@ -204,7 +231,7 @@ export const BaculaJobsGrid = () => {
                       {job.jobbytes ? formatBytes(job.jobbytes) : '-'}
                     </TableCell>
                     <TableCell className="text-slate-300">
-                      {job.jobfiles || '-'}
+                      {job.jobfiles || job.jobfilescount || '-'}
                     </TableCell>
                   </TableRow>
                 ))}
