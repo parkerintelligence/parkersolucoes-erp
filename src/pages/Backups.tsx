@@ -1,16 +1,12 @@
+
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { HardDrive, Plus, Download, Trash2, RefreshCw, Calendar, Database, CheckCircle, XCircle, Folder, Home, Clock } from 'lucide-react';
 import { useRealFtp } from '@/hooks/useRealFtp';
 import { toast } from '@/hooks/use-toast';
-import FtpOldFoldersDialog from '@/components/FtpOldFoldersDialog';
+import BackupsEmptyState from '@/components/BackupsEmptyState';
+import BackupsHeader from '@/components/BackupsHeader';
+import BackupsNavigation from '@/components/BackupsNavigation';
+import BackupsStatistics from '@/components/BackupsStatistics';
+import BackupsFileTable from '@/components/BackupsFileTable';
 
 const Backups = () => {
   const {
@@ -26,6 +22,7 @@ const Backups = () => {
     goToParentDirectory,
     directories
   } = useRealFtp();
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
   const [hostAvailability, setHostAvailability] = useState<'checking' | 'available' | 'unavailable'>('checking');
@@ -112,81 +109,6 @@ const Backups = () => {
     }
   };
 
-  const getStatusBadge = (fileName: string, isDirectory: boolean) => {
-    if (isDirectory) {
-      return <Badge className="bg-blue-900/20 text-blue-400 border-blue-600">Pasta</Badge>;
-    }
-    
-    const today = new Date().toISOString().split('T')[0];
-    if (fileName.includes(today)) {
-      return <Badge className="bg-green-900/20 text-green-400 border-green-600">Atual</Badge>;
-    } else if (fileName.includes('error') || fileName.includes('failed')) {
-      return <Badge className="bg-red-900/20 text-red-400 border-red-600">Erro</Badge>;
-    } else {
-      return <Badge className="bg-blue-900/20 text-blue-400 border-blue-600">Completo</Badge>;
-    }
-  };
-
-  const getStatusIcon = (fileName: string, isDirectory: boolean) => {
-    if (isDirectory) {
-      return <Folder className="h-4 w-4 text-blue-400" />;
-    }
-    
-    const today = new Date().toISOString().split('T')[0];
-    if (fileName.includes(today)) {
-      return <CheckCircle className="h-4 w-4 text-green-400" />;
-    } else if (fileName.includes('error') || fileName.includes('failed')) {
-      return <XCircle className="h-4 w-4 text-red-400" />;
-    } else {
-      return <CheckCircle className="h-4 w-4 text-blue-400" />;
-    }
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const getDaysFromLastModification = (lastModified: string | Date) => {
-    const lastModifiedDate = typeof lastModified === 'string' ? new Date(lastModified) : lastModified;
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - lastModifiedDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
-  const getTimeLabel = (lastModified: string | Date, isDirectory: boolean) => {
-    if (!isDirectory) return null;
-    
-    const days = getDaysFromLastModification(lastModified);
-    const isOld = days > 2; // Mais de 48 horas (2 dias)
-    
-    return (
-      <div className="flex items-center gap-1">
-        <Clock className="h-3 w-3" />
-        <span className={`text-xs px-2 py-1 rounded ${isOld ? 'bg-red-900/20 text-red-400' : 'bg-green-900/20 text-green-400'}`}>
-          {days} {days === 1 ? 'dia' : 'dias'}
-        </span>
-      </div>
-    );
-  };
-
-  const getAvailabilityBadge = () => {
-    switch (hostAvailability) {
-      case 'checking':
-        return <Badge className="bg-yellow-900/20 text-yellow-400 border-yellow-600">Verificando...</Badge>;
-      case 'available':
-        return <Badge className="bg-green-900/20 text-green-400 border-green-600">Disponível</Badge>;
-      case 'unavailable':
-        return <Badge className="bg-red-900/20 text-red-400 border-red-600">Indisponível</Badge>;
-      default:
-        return <Badge className="bg-gray-900/20 text-gray-400 border-gray-600">Desconhecido</Badge>;
-    }
-  };
-
   const totalBackups = backupFiles.length;
   const recentBackups = backupFiles.filter(file => {
     const today = new Date();
@@ -196,312 +118,50 @@ const Backups = () => {
 
   // Se não há integração FTP configurada
   if (!ftpIntegration) {
-    return (
-      <div className="min-h-screen bg-gray-900 text-white">
-        <div className="space-y-6 p-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-6">
-              <div className="text-center">
-                <HardDrive className="h-12 w-12 mx-auto mb-4 text-gray-600" />
-                <h3 className="text-lg font-semibold text-white mb-2">
-                  Nenhuma Integração FTP Configurada
-                </h3>
-                <p className="text-gray-400 mb-4">
-                  Configure uma integração FTP na seção de Administração para visualizar os backups.
-                </p>
-                <Button onClick={() => window.location.href = '/admin'} className="bg-blue-600 hover:bg-blue-700">
-                  Configurar FTP
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
+    return <BackupsEmptyState />;
   }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="space-y-6 p-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Backups - {ftpIntegration.name}</h1>
-            <div className="flex items-center gap-4 mt-2">
-              <p className="text-gray-400">Servidor: {ftpIntegration.base_url}</p>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400">Disponibilidade:</span>
-                {getAvailabilityBadge()}
-              </div>
-            </div>
-            <p className="text-gray-400">Diretório: {currentPath}</p>
-          </div>
-          <div className="flex gap-2">
-            <FtpOldFoldersDialog files={ftpFiles} />
-            
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Upload Backup
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-gray-800 border-gray-700">
-                <DialogHeader>
-                  <DialogTitle className="text-white">Upload de Backup</DialogTitle>
-                  <DialogDescription className="text-gray-400">
-                    Selecione um arquivo de backup para enviar ao servidor FTP.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="backup-file" className="text-gray-200">Arquivo de Backup</Label>
-                    <Input 
-                      id="backup-file" 
-                      type="file" 
-                      accept=".sql,.zip,.tar,.gz,.tar.gz" 
-                      onChange={handleFileUpload} 
-                      disabled={uploadFile.isPending} 
-                      className="bg-gray-700 border-gray-600 text-white" 
-                    />
-                  </div>
-                  {uploadingFile && (
-                    <div className="text-sm text-gray-400">
-                      Enviando: {uploadingFile.name}...
-                    </div>
-                  )}
-                </div>
-              </DialogContent>
-            </Dialog>
-            
-            {currentPath !== '/' && (
-              <Button variant="outline" onClick={goToParentDirectory} className="border-gray-600 text-gray-200 hover:bg-gray-700">
-                ← Voltar
-              </Button>
-            )}
-          </div>
-        </div>
+        <BackupsHeader
+          integrationName={ftpIntegration.name}
+          baseUrl={ftpIntegration.base_url}
+          currentPath={currentPath}
+          availability={hostAvailability}
+          files={ftpFiles}
+          uploadingFile={uploadingFile}
+          uploadFile={uploadFile}
+          isDialogOpen={isDialogOpen}
+          setIsDialogOpen={setIsDialogOpen}
+          goToParentDirectory={goToParentDirectory}
+          onFileUpload={handleFileUpload}
+        />
 
-        {/* Navegação de Diretórios com Combobox */}
-        {directories.length > 0 && (
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Folder className="h-5 w-5" />
-                Navegação de Diretórios
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => navigateToDirectory('/')} 
-                    disabled={currentPath === '/'} 
-                    className="border-gray-600 bg-gray-900 hover:bg-gray-800 text-gray-50"
-                  >
-                    <Home className="h-4 w-4 mr-1" />
-                    Raiz
-                  </Button>
-                </div>
-                
-                <div className="flex-1 max-w-md">
-                  <Select onValueChange={value => navigateToDirectory(value)}>
-                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                      <SelectValue placeholder="Selecionar diretório" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
-                      {directories.map(dir => (
-                        <SelectItem key={dir.path} value={dir.path} className="text-gray-200 hover:bg-gray-700">
-                          <div className="flex items-center gap-2">
-                            <Folder className="h-4 w-4 text-blue-400" />
-                            {dir.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="text-sm text-gray-400">
-                  Caminho atual: <span className="text-blue-400">{currentPath}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <BackupsNavigation
+          directories={directories}
+          currentPath={currentPath}
+          navigateToDirectory={navigateToDirectory}
+        />
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center gap-2 md:gap-3">
-                <Database className="h-6 w-6 md:h-8 md:w-8 text-blue-400 flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xl md:text-2xl font-bold text-white">{totalBackups}</p>
-                  <p className="text-xs md:text-sm text-gray-400">Total de Backups</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center gap-2 md:gap-3">
-                <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-green-400 flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xl md:text-2xl font-bold text-white">{recentBackups}</p>
-                  <p className="text-xs md:text-sm text-gray-400">Recentes (7 dias)</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center gap-2 md:gap-3">
-                <HardDrive className="h-6 w-6 md:h-8 md:w-8 text-purple-400 flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xl md:text-2xl font-bold text-white">
-                    {formatFileSize(backupFiles.reduce((total, file) => total + file.size, 0))}
-                  </p>
-                  <p className="text-xs md:text-sm text-gray-400">Tamanho Total</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center gap-2 md:gap-3">
-                <Calendar className="h-6 w-6 md:h-8 md:w-8 text-orange-400 flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xl md:text-2xl font-bold text-white">
-                    {ftpFiles.length}
-                  </p>
-                  <p className="text-xs md:text-sm text-gray-400">Total de Arquivos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <BackupsStatistics
+          totalBackups={totalBackups}
+          recentBackups={recentBackups}
+          totalSize={backupFiles.reduce((total, file) => total + file.size, 0)}
+          totalFiles={ftpFiles.length}
+        />
 
-        {/* Backups Table */}
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <HardDrive className="h-5 w-5" />
-                  Arquivos de Backup
-                </CardTitle>
-                <CardDescription className="text-gray-400">
-                  Arquivos e pastas disponíveis no servidor FTP
-                </CardDescription>
-              </div>
-              <Button 
-                variant="outline" 
-                onClick={() => refetchFiles()} 
-                disabled={isLoadingFiles} 
-                className="border-gray-600 text-gray-200 hover:bg-gray-700"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingFiles ? 'animate-spin' : ''}`} />
-                Atualizar
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {isLoadingFiles ? (
-              <div className="text-center py-8">
-                <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
-                <p className="text-gray-400">Carregando backups do FTP...</p>
-              </div>
-            ) : backupFilesAndFolders.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <Database className="h-12 w-12 mx-auto mb-4 text-gray-600" />
-                <p className="text-gray-400">Nenhum arquivo ou pasta encontrado</p>
-                <p className="text-gray-500 text-sm mt-2">
-                  Diretório: {currentPath}
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-gray-700 hover:bg-gray-800/50">
-                      <TableHead className="text-gray-300">Status</TableHead>
-                      <TableHead className="text-gray-300">Nome</TableHead>
-                      <TableHead className="text-gray-300">Tamanho</TableHead>
-                      <TableHead className="text-gray-300">Data de Modificação</TableHead>
-                      <TableHead className="text-gray-300">Tempo</TableHead>
-                      <TableHead className="text-gray-300">Permissões</TableHead>
-                      <TableHead className="text-right text-gray-300">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {backupFilesAndFolders.map(file => (
-                      <TableRow 
-                        key={file.name} 
-                        className={`border-gray-700 hover:bg-gray-800/30 ${file.isDirectory ? 'cursor-pointer' : ''}`}
-                        onClick={() => file.isDirectory && handleFolderClick(file)}
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {getStatusIcon(file.name, file.isDirectory)}
-                            {getStatusBadge(file.name, file.isDirectory)}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium text-gray-200">{file.name}</TableCell>
-                        <TableCell className="text-gray-300">
-                          {file.isDirectory ? '-' : formatFileSize(file.size)}
-                        </TableCell>
-                        <TableCell className="text-gray-300">
-                          {new Date(file.lastModified).toLocaleString('pt-BR')}
-                        </TableCell>
-                        <TableCell className="text-gray-300">
-                          {getTimeLabel(file.lastModified, file.isDirectory)}
-                        </TableCell>
-                        <TableCell className="text-gray-300">
-                          {file.permissions || '-'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-end gap-1">
-                            {!file.isDirectory && (
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDownload(file.name);
-                                }}
-                                disabled={downloadFile.isPending} 
-                                className="border-gray-600 text-gray-200 hover:bg-gray-700"
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(file.name);
-                              }}
-                              disabled={deleteFile.isPending} 
-                              className="border-red-600 text-red-400 hover:bg-red-900/30"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <BackupsFileTable
+          files={backupFilesAndFolders}
+          isLoadingFiles={isLoadingFiles}
+          currentPath={currentPath}
+          onFolderClick={handleFolderClick}
+          onDownload={handleDownload}
+          onDelete={handleDelete}
+          onRefresh={refetchFiles}
+          downloadFile={downloadFile}
+          deleteFile={deleteFile}
+        />
       </div>
     </div>
   );
