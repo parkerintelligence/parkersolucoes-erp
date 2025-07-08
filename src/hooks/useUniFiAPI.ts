@@ -438,6 +438,15 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     testConnectionMutation.mutate();
   };
 
+  // Wrapper functions to match expected signatures
+  const handleRestartDevice = (siteId: string, deviceId: string) => {
+    restartDeviceMutation.mutate({ siteId, deviceId });
+  };
+
+  const handleBlockClient = (siteId: string, clientId: string, block: boolean) => {
+    blockClientMutation.mutate({ siteId, clientId, block });
+  };
+
   return {
     // Data
     sites,
@@ -463,9 +472,9 @@ export const useUniFiAPI = (selectedSiteId?: string) => {
     // Actions
     testConnection: handleTestConnection,
     testConnectionLoading: testConnectionMutation.isPending,
-    restartDevice: restartDeviceMutation.mutate,
+    restartDevice: handleRestartDevice,
     restartDeviceLoading: restartDeviceMutation.isPending,
-    blockClient: blockClientMutation.mutate,
+    blockClient: handleBlockClient,
     blockClientLoading: blockClientMutation.isPending,
     refreshAllData,
     refetchSites,
