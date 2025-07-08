@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useIntegrations } from '@/hooks/useIntegrations';
@@ -33,6 +32,20 @@ export const useGuacamoleAPI = () => {
 
   const integration = integrations?.find(i => i.type === 'guacamole' && i.is_active);
   const isConfigured = Boolean(integration?.base_url && integration?.username && integration?.password);
+
+  console.log('=== useGuacamoleAPI Debug ===');
+  console.log('Integration found:', !!integration);
+  console.log('Is configured:', isConfigured);
+  if (integration) {
+    console.log('Integration details:', {
+      id: integration.id,
+      name: integration.name,
+      base_url: integration.base_url,
+      username: integration.username,
+      has_password: !!integration.password,
+      is_active: integration.is_active
+    });
+  }
 
   // Função para fazer chamadas à API do Guacamole via Edge Function
   const callGuacamoleAPI = async (endpoint: string, options: any = {}) => {
@@ -71,18 +84,13 @@ export const useGuacamoleAPI = () => {
         console.error('Erro retornado pela API Guacamole:', data.error);
         console.log('Detalhes do erro:', data.details);
         
-        // Criar mensagem de erro mais informativa
-        let errorMessage = data.error;
-        if (data.details) {
-          errorMessage += `\n\nDetalhes técnicos:\n`;
-          errorMessage += `Status: ${data.details.status || 'N/A'}\n`;
-          errorMessage += `Endpoint: ${data.details.endpoint || 'N/A'}\n`;
-          if (data.details.response) {
-            errorMessage += `Resposta: ${data.details.response.substring(0, 200)}`;
-          }
+        // Se for erro de token, invalidar queries para forçar nova autenticação
+        if (data.error.includes('Token') || data.details?.status === 401 || data.details?.status === 403) {
+          console.log('Invalidando cache devido a erro de autenticação');
+          queryClient.invalidateQueries({ queryKey: ['guacamole'] });
         }
         
-        throw new Error(errorMessage);
+        throw new Error(data.error);
       }
 
       return data?.result || {};
@@ -116,6 +124,7 @@ export const useGuacamoleAPI = () => {
             attributes: result[key]?.attributes || {},
             activeConnections: result[key]?.activeConnections || 0
           }));
+          console.log('Processed connections:', connections);
           return connections;
         }
         
@@ -126,16 +135,17 @@ export const useGuacamoleAPI = () => {
       retry: (failureCount, error) => {
         console.log(`Retry attempt ${failureCount} for connections:`, error);
         
-        // Não tentar novamente se for erro de configuração
+        // Não tentar novamente se for erro de configuração ou credenciais
         if (error.message.includes('Configuração incompleta') || 
             error.message.includes('Credenciais inválidas') ||
-            error.message.includes('URL base inválida')) {
+            error.message.includes('URL base inválida') ||
+            error.message.includes('Acesso negado')) {
           return false;
         }
         
         return failureCount < 2;
       },
-      retryDelay: 1000,
+      retryDelay: 2000,
     });
   };
 
@@ -160,6 +170,7 @@ export const useGuacamoleAPI = () => {
             attributes: result[username]?.attributes || {},
             lastActive: result[username]?.lastActive || null
           }));
+          console.log('Processed users:', users);
           return users;
         }
         
@@ -170,16 +181,16 @@ export const useGuacamoleAPI = () => {
       retry: (failureCount, error) => {
         console.log(`Retry attempt ${failureCount} for users:`, error);
         
-        // Não tentar novamente se for erro de configuração
         if (error.message.includes('Configuração incompleta') || 
             error.message.includes('Credenciais inválidas') ||
-            error.message.includes('URL base inválida')) {
+            error.message.includes('URL base inválida') ||
+            error.message.includes('Acesso negado')) {
           return false;
         }
         
         return failureCount < 2;
       },
-      retryDelay: 1000,
+      retryDelay: 2000,
     });
   };
 
@@ -206,6 +217,7 @@ export const useGuacamoleAPI = () => {
             protocol: result[sessionId]?.protocol || 'unknown',
             startTime: result[sessionId]?.startTime || new Date().toISOString()
           }));
+          console.log('Processed sessions:', sessions);
           return sessions;
         }
         
@@ -216,16 +228,16 @@ export const useGuacamoleAPI = () => {
       retry: (failureCount, error) => {
         console.log(`Retry attempt ${failureCount} for sessions:`, error);
         
-        // Não tentar novamente se for erro de configuração
         if (error.message.includes('Configuração incompleta') || 
             error.message.includes('Credenciais inválidas') ||
-            error.message.includes('URL base inválida')) {
+            error.message.includes('URL base inválida') ||
+            error.message.includes('Acesso negado')) {
           return false;
         }
         
         return failureCount < 2;
       },
-      retryDelay: 1000,
+      retryDelay: 2000,
     });
   };
 

@@ -7,6 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Cache de tokens em memória por integração
+const tokenCache = new Map<string, { token: string, expires: number }>()
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -102,7 +105,7 @@ serve(async (req) => {
       console.error('Invalid base URL:', baseUrl, urlError)
       return new Response(
         JSON.stringify({ 
-          error: `URL base inválida: ${baseUrl}. Use formato: https://guacamole.exemplo.com/guacamole`
+          error: `URL base inválida: ${baseUrl}. Use formato: https://guacamole.example.com/guacamole`
         }),
         { 
           status: 200, 
@@ -111,61 +114,93 @@ serve(async (req) => {
       )
     }
 
-    // Fazer login para obter token temporário
-    console.log('=== Fazendo login para obter token temporário ===')
-    const tokenUrl = `${baseUrl}/api/tokens`
-    console.log('Token URL:', tokenUrl)
-    
+    // Verificar se temos um token em cache ainda válido
+    const now = Date.now()
+    const cachedToken = tokenCache.get(integrationId)
     let authToken = ''
-    
-    try {
-      const loginResponse = await fetch(tokenUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          username: integration.username,
-          password: integration.password,
-        }),
-      })
 
-      console.log('Login response status:', loginResponse.status)
-      console.log('Login response headers:', Object.fromEntries(loginResponse.headers.entries()))
+    if (cachedToken && cachedToken.expires > now) {
+      console.log('=== Usando token em cache ===')
+      authToken = cachedToken.token
+    } else {
+      console.log('=== Fazendo login para obter novo token temporário ===')
+      const tokenUrl = `${baseUrl}/api/tokens`
+      console.log('Token URL:', tokenUrl)
+      
+      try {
+        const loginResponse = await fetch(tokenUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            username: integration.username,
+            password: integration.password,
+          }),
+        })
 
-      if (!loginResponse.ok) {
-        const errorText = await loginResponse.text()
-        console.error('Login failed:', loginResponse.status, loginResponse.statusText)
-        console.error('Login error response:', errorText)
-        
-        let errorMessage = 'Erro de autenticação no Guacamole'
-        
-        switch (loginResponse.status) {
-          case 401:
-            errorMessage = 'Credenciais inválidas. Verifique usuário e senha.'
-            break
-          case 403:
-            errorMessage = 'Acesso negado. Verifique se o usuário tem permissões administrativas.'
-            break
-          case 404:
-            errorMessage = 'URL do Guacamole não encontrada. Verifique se a URL está correta e inclui /guacamole se necessário.'
-            break
-          case 500:
-            errorMessage = 'Erro interno do servidor Guacamole. Verifique se o serviço está funcionando.'
-            break
-          default:
-            errorMessage = `Erro HTTP ${loginResponse.status}: ${loginResponse.statusText}`
+        console.log('Login response status:', loginResponse.status)
+        console.log('Login response headers:', Object.fromEntries(loginResponse.headers.entries()))
+
+        if (!loginResponse.ok) {
+          const errorText = await loginResponse.text()
+          console.error('Login failed:', loginResponse.status, loginResponse.statusText)
+          console.error('Login error response:', errorText)
+          
+          let errorMessage = 'Erro de autenticação no Guacamole'
+          
+          switch (loginResponse.status) {
+            case 401:
+              errorMessage = 'Credenciais inválidas. Verifique usuário e senha.'
+              break
+            case 403:
+              errorMessage = 'Acesso negado. Verifique se o usuário tem permissões administrativas.'
+              break
+            case 404:
+              errorMessage = 'URL do Guacamole não encontrada. Verifique se a URL está correta e inclui /guacamole se necessário.'
+              break
+            case 500:
+              errorMessage = 'Erro interno do servidor Guacamole. Verifique se o serviço está funcionando.'
+              break
+            default:
+              errorMessage = `Erro HTTP ${loginResponse.status}: ${loginResponse.statusText}`
+          }
+          
+          return new Response(
+            JSON.stringify({ 
+              error: errorMessage,
+              details: {
+                status: loginResponse.status,
+                statusText: loginResponse.statusText,
+                url: tokenUrl,
+                response: errorText.substring(0, 500)
+              }
+            }),
+            { 
+              status: 200, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          )
         }
+
+        authToken = await loginResponse.text()
+        console.log('Auth token obtained successfully, length:', authToken.length)
+
+        // Cache do token por 50 minutos (tokens do Guacamole geralmente expiram em 60 min)
+        tokenCache.set(integrationId, {
+          token: authToken,
+          expires: now + (50 * 60 * 1000) // 50 minutos
+        })
         
+      } catch (fetchError) {
+        console.error('Network error during login:', fetchError)
         return new Response(
           JSON.stringify({ 
-            error: errorMessage,
-            details: {
-              status: loginResponse.status,
-              statusText: loginResponse.statusText,
-              url: tokenUrl,
-              response: errorText.substring(0, 500)
-            }
+            error: `Erro de conectividade: Não foi possível acessar ${tokenUrl}. Verifique se:
+            • A URL está correta e acessível
+            • O servidor Guacamole está online
+            • Não há bloqueios de firewall
+            • A URL inclui /guacamole se necessário`
           }),
           { 
             status: 200, 
@@ -173,27 +208,9 @@ serve(async (req) => {
           }
         )
       }
-
-      authToken = await loginResponse.text()
-      console.log('Auth token obtained successfully, length:', authToken.length)
-    } catch (fetchError) {
-      console.error('Network error during login:', fetchError)
-      return new Response(
-        JSON.stringify({ 
-          error: `Erro de conectividade: Não foi possível acessar ${tokenUrl}. Verifique se:
-          • A URL está correta e acessível
-          • O servidor Guacamole está online
-          • Não há bloqueios de firewall
-          • A URL inclui /guacamole se necessário`
-        }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
     }
     
-    // Validar se o token foi realmente obtido
+    // Validar se o token foi obtido
     if (!authToken || authToken.trim() === '') {
       return new Response(
         JSON.stringify({ 
@@ -231,10 +248,13 @@ serve(async (req) => {
         }
     }
 
-    // Construir URL final com token como parâmetro
+    // Construir URL final com token como parâmetro conforme solicitado
     const apiUrl = `${baseUrl}${apiPath}?token=${encodeURIComponent(authToken)}`
 
-    console.log('Making API call to:', apiUrl.replace(authToken, '***TOKEN***'))
+    console.log('=== Making API call ===')
+    console.log('API Path:', apiPath)
+    console.log('Full URL (token masked):', `${baseUrl}${apiPath}?token=***`)
+    console.log('Token length:', authToken.length)
 
     const requestOptions: RequestInit = {
       method: method,
@@ -267,12 +287,19 @@ serve(async (req) => {
       )
     }
 
+    console.log('=== API Response ===')
     console.log('API response status:', apiResponse.status)
     console.log('API response headers:', Object.fromEntries(apiResponse.headers.entries()))
 
     if (!apiResponse.ok) {
       const errorText = await apiResponse.text()
       console.error('API error response:', errorText)
+      
+      // Se for erro 401 ou 403, limpar cache do token
+      if (apiResponse.status === 401 || apiResponse.status === 403) {
+        console.log('Token inválido, removendo do cache')
+        tokenCache.delete(integrationId)
+      }
       
       let errorMessage = 'Erro da API Guacamole'
       
@@ -330,6 +357,7 @@ serve(async (req) => {
       )
     }
 
+    console.log('=== Success ===')
     console.log('API response processed successfully')
     console.log('Result type:', typeof result)
     console.log('Result keys:', Object.keys(result || {}))
