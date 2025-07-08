@@ -74,9 +74,21 @@ serve(async (req) => {
       name: integration.name,
       base_url: integration.base_url,
       username: integration.username,
-      has_password: !!integration.password,
-      has_api_token: !!integration.api_token
+      has_password: !!integration.password
     })
+
+    // Validar credenciais obrigatórias
+    if (!integration.username || !integration.password) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Credenciais incompletas. Configure usuário e senha na integração.'
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
 
     // Preparar URL da API - garantir formato correto
     let baseUrl = integration.base_url.replace(/\/+$/, '') // Remove barras no final
@@ -99,86 +111,61 @@ serve(async (req) => {
       )
     }
 
+    // Fazer login para obter token temporário
+    console.log('=== Fazendo login para obter token temporário ===')
+    const tokenUrl = `${baseUrl}/api/tokens`
+    console.log('Token URL:', tokenUrl)
+    
     let authToken = ''
+    
+    try {
+      const loginResponse = await fetch(tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          username: integration.username,
+          password: integration.password,
+        }),
+      })
 
-    // Verificar método de autenticação
-    if (integration.api_token) {
-      // Usar token da API diretamente
-      console.log('=== Using API Token Authentication ===')
-      authToken = integration.api_token
-    } else if (integration.username && integration.password) {
-      // Fazer login para obter token
-      console.log('=== Authenticating with Credentials ===')
-      const tokenUrl = `${baseUrl}/api/tokens`
-      console.log('Token URL:', tokenUrl)
-      
-      try {
-        const loginResponse = await fetch(tokenUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            username: integration.username,
-            password: integration.password,
-          }),
-        })
+      console.log('Login response status:', loginResponse.status)
+      console.log('Login response headers:', Object.fromEntries(loginResponse.headers.entries()))
 
-        console.log('Login response status:', loginResponse.status)
-        console.log('Login response headers:', Object.fromEntries(loginResponse.headers.entries()))
-
-        if (!loginResponse.ok) {
-          const errorText = await loginResponse.text()
-          console.error('Login failed:', loginResponse.status, loginResponse.statusText)
-          console.error('Login error response:', errorText)
-          
-          let errorMessage = 'Erro de autenticação no Guacamole'
-          
-          switch (loginResponse.status) {
-            case 401:
-              errorMessage = 'Credenciais inválidas. Verifique usuário e senha.'
-              break
-            case 403:
-              errorMessage = 'Acesso negado. Verifique se o usuário tem permissões administrativas.'
-              break
-            case 404:
-              errorMessage = 'URL do Guacamole não encontrada. Verifique se a URL está correta e inclui /guacamole se necessário.'
-              break
-            case 500:
-              errorMessage = 'Erro interno do servidor Guacamole. Verifique se o serviço está funcionando.'
-              break
-            default:
-              errorMessage = `Erro HTTP ${loginResponse.status}: ${loginResponse.statusText}`
-          }
-          
-          return new Response(
-            JSON.stringify({ 
-              error: errorMessage,
-              details: {
-                status: loginResponse.status,
-                statusText: loginResponse.statusText,
-                url: tokenUrl,
-                response: errorText.substring(0, 500)
-              }
-            }),
-            { 
-              status: 200, 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
-          )
+      if (!loginResponse.ok) {
+        const errorText = await loginResponse.text()
+        console.error('Login failed:', loginResponse.status, loginResponse.statusText)
+        console.error('Login error response:', errorText)
+        
+        let errorMessage = 'Erro de autenticação no Guacamole'
+        
+        switch (loginResponse.status) {
+          case 401:
+            errorMessage = 'Credenciais inválidas. Verifique usuário e senha.'
+            break
+          case 403:
+            errorMessage = 'Acesso negado. Verifique se o usuário tem permissões administrativas.'
+            break
+          case 404:
+            errorMessage = 'URL do Guacamole não encontrada. Verifique se a URL está correta e inclui /guacamole se necessário.'
+            break
+          case 500:
+            errorMessage = 'Erro interno do servidor Guacamole. Verifique se o serviço está funcionando.'
+            break
+          default:
+            errorMessage = `Erro HTTP ${loginResponse.status}: ${loginResponse.statusText}`
         }
-
-        authToken = await loginResponse.text()
-        console.log('Auth token obtained successfully, length:', authToken.length)
-      } catch (fetchError) {
-        console.error('Network error during login:', fetchError)
+        
         return new Response(
           JSON.stringify({ 
-            error: `Erro de conectividade: Não foi possível acessar ${tokenUrl}. Verifique se:
-            • A URL está correta e acessível
-            • O servidor Guacamole está online
-            • Não há bloqueios de firewall
-            • A URL inclui /guacamole se necessário`
+            error: errorMessage,
+            details: {
+              status: loginResponse.status,
+              statusText: loginResponse.statusText,
+              url: tokenUrl,
+              response: errorText.substring(0, 500)
+            }
           }),
           { 
             status: 200, 
@@ -186,10 +173,18 @@ serve(async (req) => {
           }
         )
       }
-    } else {
+
+      authToken = await loginResponse.text()
+      console.log('Auth token obtained successfully, length:', authToken.length)
+    } catch (fetchError) {
+      console.error('Network error during login:', fetchError)
       return new Response(
         JSON.stringify({ 
-          error: 'Configuração incompleta do Guacamole. Configure credenciais (usuário e senha) ou um token da API.'
+          error: `Erro de conectividade: Não foi possível acessar ${tokenUrl}. Verifique se:
+          • A URL está correta e acessível
+          • O servidor Guacamole está online
+          • Não há bloqueios de firewall
+          • A URL inclui /guacamole se necessário`
         }),
         { 
           status: 200, 
@@ -236,30 +231,16 @@ serve(async (req) => {
         }
     }
 
-    // Construir URL final
-    let apiUrl = ''
-    let requestHeaders: Record<string, string> = {}
-
-    if (integration.api_token) {
-      // Usar autenticação por header Authorization
-      apiUrl = `${baseUrl}${apiPath}`
-      requestHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      }
-    } else {
-      // Usar token como parâmetro de query
-      apiUrl = `${baseUrl}${apiPath}?token=${encodeURIComponent(authToken)}`
-      requestHeaders = {
-        'Content-Type': 'application/json',
-      }
-    }
+    // Construir URL final com token como parâmetro
+    const apiUrl = `${baseUrl}${apiPath}?token=${encodeURIComponent(authToken)}`
 
     console.log('Making API call to:', apiUrl.replace(authToken, '***TOKEN***'))
 
     const requestOptions: RequestInit = {
       method: method,
-      headers: requestHeaders,
+      headers: {
+        'Content-Type': 'application/json',
+      },
     }
 
     if (data && (method === 'POST' || method === 'PUT')) {
@@ -300,7 +281,7 @@ serve(async (req) => {
           errorMessage = 'Token de autenticação expirado ou inválido'
           break
         case 403:
-          errorMessage = 'Acesso negado à API. Verifique se o usuário/token tem permissões para acessar dados de conexão.'
+          errorMessage = 'Acesso negado à API. Verifique se o usuário tem permissões para acessar dados de conexão.'
           break
         case 404:
           errorMessage = 'Endpoint da API não encontrado. Verifique se a versão do Guacamole é compatível.'

@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Monitor, Save, TestTube, AlertCircle, CheckCircle } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
@@ -24,23 +23,29 @@ export const GuacamoleAdminConfig = () => {
     base_url: guacamoleIntegration?.base_url || '',
     username: guacamoleIntegration?.username || '',
     password: guacamoleIntegration?.password || '',
-    api_token: guacamoleIntegration?.api_token || '',
     is_active: guacamoleIntegration?.is_active ?? true,
   });
 
-  const [authMethod, setAuthMethod] = useState<'credentials' | 'token'>('credentials');
-
   const handleSave = async () => {
+    if (!config.base_url || !config.username || !config.password) {
+      toast({
+        title: "Configuração incompleta",
+        description: "Preencha todos os campos obrigatórios: URL Base, Usuário e Senha.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const integrationData = {
         type: 'guacamole' as const,
         name: config.name,
         base_url: config.base_url,
-        username: authMethod === 'credentials' ? config.username : null,
-        password: authMethod === 'credentials' ? config.password : null,
-        api_token: authMethod === 'token' ? config.api_token : null,
+        username: config.username,
+        password: config.password,
         is_active: config.is_active,
         // Campos obrigatórios da interface Integration com valores padrão
+        api_token: null,
         webhook_url: null,
         phone_number: null,
         region: null,
@@ -58,43 +63,34 @@ export const GuacamoleAdminConfig = () => {
           updates: {
             name: config.name,
             base_url: config.base_url,
-            username: authMethod === 'credentials' ? config.username : null,
-            password: authMethod === 'credentials' ? config.password : null,
-            api_token: authMethod === 'token' ? config.api_token : null,
+            username: config.username,
+            password: config.password,
             is_active: config.is_active,
           }
         });
       } else {
         await createIntegration.mutateAsync(integrationData);
       }
+
+      toast({
+        title: "Configuração salva!",
+        description: "As configurações do Guacamole foram salvas com sucesso.",
+      });
     } catch (error) {
       console.error('Erro ao salvar configuração Guacamole:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar as configurações do Guacamole.",
+        variant: "destructive"
+      });
     }
   };
 
   const handleTest = async () => {
-    if (!config.base_url) {
+    if (!config.base_url || !config.username || !config.password) {
       toast({
         title: "Configuração incompleta",
-        description: "Preencha a URL base antes de testar.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (authMethod === 'credentials' && (!config.username || !config.password)) {
-      toast({
-        title: "Configuração incompleta",
-        description: "Preencha usuário e senha para autenticação por credenciais.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (authMethod === 'token' && !config.api_token) {
-      toast({
-        title: "Configuração incompleta",
-        description: "Preencha o token da API para autenticação por token.",
+        description: "Preencha todos os campos obrigatórios antes de testar.",
         variant: "destructive"
       });
       return;
@@ -112,10 +108,10 @@ export const GuacamoleAdminConfig = () => {
           type: 'guacamole' as const,
           name: config.name,
           base_url: config.base_url,
-          username: authMethod === 'credentials' ? config.username : null,
-          password: authMethod === 'credentials' ? config.password : null,
-          api_token: authMethod === 'token' ? config.api_token : null,
+          username: config.username,
+          password: config.password,
           is_active: true,
+          api_token: null,
           webhook_url: null,
           phone_number: null,
           region: null,
@@ -136,9 +132,8 @@ export const GuacamoleAdminConfig = () => {
           updates: {
             name: config.name,
             base_url: config.base_url,
-            username: authMethod === 'credentials' ? config.username : null,
-            password: authMethod === 'credentials' ? config.password : null,
-            api_token: authMethod === 'token' ? config.api_token : null,
+            username: config.username,
+            password: config.password,
             is_active: true,
           }
         });
@@ -151,7 +146,7 @@ export const GuacamoleAdminConfig = () => {
       console.log('=== Testando conexão Guacamole ===');
       console.log('Integration ID:', testIntegrationId);
       console.log('Base URL:', config.base_url);
-      console.log('Auth Method:', authMethod);
+      console.log('Username:', config.username);
 
       const { data, error } = await supabase.functions.invoke('guacamole-proxy', {
         body: {
@@ -174,7 +169,7 @@ export const GuacamoleAdminConfig = () => {
 
       toast({
         title: "Conexão bem-sucedida!",
-        description: `A conexão com o Apache Guacamole foi estabelecida com sucesso usando ${authMethod === 'credentials' ? 'credenciais' : 'token de API'}.`,
+        description: "A conexão com o Apache Guacamole foi estabelecida com sucesso.",
       });
 
     } catch (error) {
@@ -183,7 +178,7 @@ export const GuacamoleAdminConfig = () => {
       let errorMessage = 'Não foi possível conectar ao Guacamole.';
       
       if (error.message.includes('Failed to fetch')) {
-        errorMessage = 'Erro de conectividade: Verifique se a URL do Guacamole está correta e acessível. Certifique-se de que:\n\n• A URL inclui o protocolo (https:// ou http://)\n• O servidor Guacamole está online\n• Não há bloqueios de firewall\n• A URL está no formato correto (ex: https://seu-servidor.com/guacamole)';
+        errorMessage = 'Erro de conectividade: Verifique se a URL do Guacamole está correta e acessível.\n\n• A URL inclui o protocolo (https:// ou http://)\n• O servidor Guacamole está online\n• Não há bloqueios de firewall\n• A URL está no formato correto (ex: https://seu-servidor.com/guacamole)';
       } else if (error.message.includes('404')) {
         errorMessage = 'URL não encontrada: Verifique se a URL do Guacamole está correta. Exemplo: https://seu-servidor.com/guacamole';
       } else if (error.message.includes('401') || error.message.includes('Credenciais inválidas')) {
@@ -204,9 +199,7 @@ export const GuacamoleAdminConfig = () => {
     }
   };
 
-  const isTestDisabled = !config.base_url || 
-    (authMethod === 'credentials' && (!config.username || !config.password)) ||
-    (authMethod === 'token' && !config.api_token);
+  const isFormValid = config.base_url && config.username && config.password;
 
   return (
     <Card>
@@ -258,55 +251,34 @@ export const GuacamoleAdminConfig = () => {
         <Separator />
 
         <div className="space-y-4">
-          <Label className="text-base font-medium">Método de Autenticação</Label>
+          <Label className="text-base font-medium">Credenciais de Acesso</Label>
           
-          <Tabs value={authMethod} onValueChange={(value) => setAuthMethod(value as 'credentials' | 'token')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="credentials">Credenciais</TabsTrigger>
-              <TabsTrigger value="token">Token da API</TabsTrigger>
-            </TabsList>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="guacamole-username">Usuário *</Label>
+              <Input
+                id="guacamole-username"
+                value={config.username}
+                onChange={(e) => setConfig({ ...config, username: e.target.value })}
+                placeholder="admin"
+              />
+            </div>
 
-            <TabsContent value="credentials" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="guacamole-username">Usuário *</Label>
-                  <Input
-                    id="guacamole-username"
-                    value={config.username}
-                    onChange={(e) => setConfig({ ...config, username: e.target.value })}
-                    placeholder="admin"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="guacamole-password">Senha *</Label>
-                  <Input
-                    id="guacamole-password"
-                    type="password"
-                    value={config.password}
-                    onChange={(e) => setConfig({ ...config, password: e.target.value })}
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="token" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="guacamole-token">Token da API *</Label>
-                <Input
-                  id="guacamole-token"
-                  type="password"
-                  value={config.api_token}
-                  onChange={(e) => setConfig({ ...config, api_token: e.target.value })}
-                  placeholder="••••••••••••••••••••••••••••••••"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Token de sessão ou API token gerado pelo Guacamole
-                </p>
-              </div>
-            </TabsContent>
-          </Tabs>
+            <div className="space-y-2">
+              <Label htmlFor="guacamole-password">Senha *</Label>
+              <Input
+                id="guacamole-password"
+                type="password"
+                value={config.password}
+                onChange={(e) => setConfig({ ...config, password: e.target.value })}
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+          
+          <p className="text-xs text-muted-foreground">
+            Use um usuário com permissões administrativas no Guacamole
+          </p>
         </div>
 
         <Separator />
@@ -325,7 +297,7 @@ export const GuacamoleAdminConfig = () => {
             <Button
               variant="outline"
               onClick={handleTest}
-              disabled={testing || isTestDisabled}
+              disabled={testing || !isFormValid}
             >
               <TestTube className="mr-2 h-4 w-4" />
               {testing ? 'Testando...' : 'Testar Conexão'}
@@ -333,7 +305,7 @@ export const GuacamoleAdminConfig = () => {
 
             <Button 
               onClick={handleSave}
-              disabled={createIntegration.isPending || updateIntegration.isPending}
+              disabled={createIntegration.isPending || updateIntegration.isPending || !isFormValid}
             >
               <Save className="mr-2 h-4 w-4" />
               Salvar Configuração
@@ -354,14 +326,14 @@ export const GuacamoleAdminConfig = () => {
           <div className="flex items-start gap-2">
             <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
             <div className="text-sm">
-              <p className="font-medium text-blue-800 mb-1">Configuração do Guacamole</p>
+              <p className="font-medium text-blue-800 mb-1">Como Funciona a Autenticação</p>
               <ul className="text-blue-700 space-y-1">
                 <li>• A URL base deve apontar para sua instalação do Guacamole</li>
-                <li>• <strong>Credenciais:</strong> Use um usuário com permissões administrativas</li>
-                <li>• <strong>Token da API:</strong> Gere um token de acesso nas configurações do Guacamole</li>
-                <li>• Certifique-se de que a API REST esteja habilitada</li>
+                <li>• O sistema fará login automaticamente usando suas credenciais</li>
+                <li>• Um token temporário será gerado a cada acesso à tela do Guacamole</li>
+                <li>• Todas as requisições da API usarão este token automaticamente</li>
+                <li>• Certifique-se de que a API REST esteja habilitada no servidor</li>
                 <li>• Exemplo de URL: https://guacamole.exemplo.com/guacamole</li>
-                <li>• Verifique se o servidor está acessível e sem bloqueios de firewall</li>
               </ul>
             </div>
           </div>
