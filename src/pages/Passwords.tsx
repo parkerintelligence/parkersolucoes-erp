@@ -15,14 +15,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ServiceDialog } from '@/components/ServiceDialog';
+import { WhatsAppPasswordDialog } from '@/components/WhatsAppPasswordDialog';
 import { 
   Lock, Plus, Eye, EyeOff, Edit, Trash2, Building, Search, Settings, 
-  Code, Mail, Server, Database, Cloud, Shield, Monitor, Globe, Filter, FileDown
+  Code, Mail, Server, Database, Cloud, Shield, Monitor, Globe, Filter, FileDown,
+  MessageCircle
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Password = Tables<'passwords'>;
+type PasswordWithCompany = Password & { company?: string };
 
 const Passwords = () => {
   const { data: passwords = [], isLoading } = usePasswords();
@@ -36,7 +39,9 @@ const Passwords = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
+  const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = useState(false);
   const [editingPassword, setEditingPassword] = useState<Password | null>(null);
+  const [whatsAppPassword, setWhatsAppPassword] = useState<PasswordWithCompany | null>(null);
   const [editingService, setEditingService] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
@@ -136,6 +141,15 @@ const Passwords = () => {
     }
     
     return serviceTabs;
+  };
+
+  const handleWhatsAppShare = (password: Password) => {
+    const company = companies.find(c => c.id === password.company_id);
+    setWhatsAppPassword({
+      ...password,
+      company: company?.name
+    });
+    setIsWhatsAppDialogOpen(true);
   };
 
   const handleSaveService = (serviceData: any) => {
@@ -388,6 +402,15 @@ const Passwords = () => {
                 </TableCell>
                 <TableCell className="py-1">
                   <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleWhatsAppShare(item)}
+                      className="h-7 px-2 bg-green-600 border-green-500 text-white hover:bg-green-700"
+                    >
+                      <MessageCircle className="h-3 w-3 mr-1" />
+                      WhatsApp
+                    </Button>
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -659,6 +682,15 @@ const Passwords = () => {
             </Tabs>
           </CardContent>
         </Card>
+
+        {/* Dialog para WhatsApp */}
+        {whatsAppPassword && (
+          <WhatsAppPasswordDialog
+            open={isWhatsAppDialogOpen}
+            onOpenChange={setIsWhatsAppDialogOpen}
+            password={whatsAppPassword}
+          />
+        )}
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
