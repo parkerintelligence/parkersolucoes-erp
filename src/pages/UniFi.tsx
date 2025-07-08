@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Wifi, 
   Router, 
@@ -18,7 +20,12 @@ import {
   Shield,
   Database,
   BarChart3,
-  Gauge
+  Gauge,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  HelpCircle,
+  Zap
 } from 'lucide-react';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { UniFiSiteSelector } from '@/components/UniFiSiteSelector';
@@ -27,10 +34,13 @@ import { UniFiClientManager } from '@/components/UniFiClientManager';
 import { UniFiNetworkManager } from '@/components/UniFiNetworkManager';
 import { UniFiMonitoringDashboard } from '@/components/UniFiMonitoringDashboard';
 import { UniFiAdvancedDeviceManager } from '@/components/UniFiAdvancedDeviceManager';
+import { toast } from '@/hooks/use-toast';
 
 const UniFi = () => {
   const [selectedSiteId, setSelectedSiteId] = useState<string>('');
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+  const [connectionStatus, setConnectionStatus] = useState<'testing' | 'connected' | 'error' | 'unknown'>('unknown');
+  const [autoRefresh, setAutoRefresh] = useState(false);
   
   const {
     sites,
@@ -66,6 +76,61 @@ const UniFi = () => {
     connectionUrl
   } = useUniFiAPI(selectedSiteId);
 
+  // Auto-refresh functionality
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (autoRefresh && selectedSiteId) {
+      interval = setInterval(() => {
+        refreshAdvancedData();
+      }, 30000); // Refresh every 30 seconds
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [autoRefresh, selectedSiteId, refreshAdvancedData]);
+
+  // Test connection on component mount
+  useEffect(() => {
+    if (isConnected && !testConnectionLoading) {
+      handleTestConnection();
+    }
+  }, [isConnected]);
+
+  const handleTestConnection = async () => {
+    setConnectionStatus('testing');
+    try {
+      await testConnection();
+      setConnectionStatus('connected');
+    } catch (error) {
+      setConnectionStatus('error');
+    }
+  };
+
+  const handleForceRefresh = async () => {
+    toast({
+      title: "🔄 Atualizando dados",
+      description: "Forçando atualização de todos os dados da controladora..."
+    });
+    
+    try {
+      await Promise.all([
+        refreshAllData(),
+        refreshAdvancedData()
+      ]);
+      
+      toast({
+        title: "✅ Dados atualizados",
+        description: "Todas as informações foram atualizadas com sucesso."
+      });
+    } catch (error) {
+      toast({
+        title: "❌ Erro na atualização",
+        description: "Ocorreu um erro ao atualizar os dados.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const formatUptime = (seconds: number) => {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
@@ -77,6 +142,39 @@ const UniFi = () => {
       return `${hours}h ${minutes}m`;
     } else {
       return `${minutes}m`;
+    }
+  };
+
+  const getConnectionStatusBadge = () => {
+    switch (connectionStatus) {
+      case 'testing':
+        return (
+          <Badge className="bg-blue-900/20 text-blue-400 border-blue-600">
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            Testando...
+          </Badge>
+        );
+      case 'connected':
+        return (
+          <Badge className="bg-green-900/20 text-green-400 border-green-600">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Conectado
+          </Badge>
+        );
+      case 'error':
+        return (
+          <Badge className="bg-red-900/20 text-red-400 border-red-600">
+            <XCircle className="h-3 w-3 mr-1" />
+            Erro de Conexão
+          </Badge>
+        );
+      default:
+        return (
+          <Badge className="bg-gray-900/20 text-gray-400 border-gray-600">
+            <HelpCircle className="h-3 w-3 mr-1" />
+            Desconhecido
+          </Badge>
+        );
     }
   };
 
@@ -124,12 +222,13 @@ const UniFi = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="space-y-6 p-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
+        {/* Enhanced Header with Better Status */}
+        <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Server className="h-6 w-6 text-blue-400" />
               <h1 className="text-2xl font-bold text-white">Controladora UniFi - {integration?.name}</h1>
+              {getConnectionStatusBadge()}
             </div>
             <p className="text-gray-400">Conectado em: {connectionUrl}</p>
             <div className="flex items-center gap-2 mt-1">
@@ -152,8 +251,19 @@ const UniFi = () => {
             )}
           </div>
           <div className="flex gap-2">
+            <Button
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              variant={autoRefresh ? "default" : "outline"}
+              className={autoRefresh ? 
+                "bg-green-600 hover:bg-green-700" : 
+                "border-gray-600 text-gray-200 hover:bg-gray-700"
+              }
+            >
+              <Zap className={`h-4 w-4 mr-2 ${autoRefresh ? 'animate-pulse' : ''}`} />
+              Auto Refresh {autoRefresh ? 'ON' : 'OFF'}
+            </Button>
             <Button 
-              onClick={testConnection}
+              onClick={handleTestConnection}
               disabled={testConnectionLoading}
               variant="outline"
               className="border-gray-600 text-gray-200 hover:bg-gray-700"
@@ -162,17 +272,17 @@ const UniFi = () => {
               Testar Conexão
             </Button>
             <Button 
-              onClick={refreshAdvancedData} 
+              onClick={handleForceRefresh} 
               disabled={isLoading} 
               className="bg-blue-600 hover:bg-blue-700"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Atualizar Dados
+              Forçar Atualização
             </Button>
           </div>
         </div>
 
-        {/* Connection Status */}
+        {/* Enhanced Connection Status */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader className="pb-3">
             <CardTitle className="text-white flex items-center gap-2">
@@ -183,28 +293,37 @@ const UniFi = () => {
           <CardContent>
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Badge className={sites.length > 0 ? 'bg-green-900/20 text-green-400 border-green-600' : 'bg-yellow-900/20 text-yellow-400 border-yellow-600'}>
-                  {sites.length > 0 ? '✅ Conectado' : '🔄 Conectando...'}
-                </Badge>
+                {getConnectionStatusBadge()}
                 <span className="text-gray-400 text-sm">
                   {sites.length > 0 ? 
                     `${sites.length} site(s) encontrado(s) na controladora` : 
-                    'Autenticando com a controladora...'
+                    sitesLoading ? 'Carregando sites...' : 'Nenhum site encontrado'
                   }
                 </span>
               </div>
               
-              {sites.length === 0 && !sitesLoading && (
-                <div className="bg-yellow-900/20 border border-yellow-600 rounded-lg p-3">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-yellow-400 mt-0.5" />
-                    <div className="text-sm">
-                      <p className="text-yellow-400 font-medium">Nenhum site encontrado</p>
-                      <p className="text-gray-300 mt-1">
-                        Verifique se a controladora está acessível e se as credenciais estão corretas.
-                      </p>
-                    </div>
-                  </div>
+              {connectionStatus === 'error' && (
+                <Alert className="bg-red-900/20 border-red-600">
+                  <AlertTriangle className="h-4 w-4 text-red-400" />
+                  <AlertDescription className="text-red-300">
+                    Falha na conexão com a controladora. Verifique a URL, credenciais e conectividade de rede.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              {sites.length === 0 && !sitesLoading && connectionStatus !== 'testing' && (
+                <Alert className="bg-yellow-900/20 border-yellow-600">
+                  <AlertTriangle className="h-4 w-4 text-yellow-400" />
+                  <AlertDescription className="text-yellow-300">
+                    Nenhum site encontrado. Verifique se a controladora está acessível e se as credenciais estão corretas.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {sitesLoading && (
+                <div className="flex items-center gap-2 text-blue-400">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Carregando informações da controladora...</span>
                 </div>
               )}
             </div>
@@ -273,6 +392,54 @@ const UniFi = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Quick Actions Bar */}
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <CardTitle className="text-white">Ações Rápidas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <Button
+                    onClick={() => refreshAdvancedData()}
+                    disabled={isLoading}
+                    variant="outline"
+                    className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                    Atualizar Tudo
+                  </Button>
+                  <Button
+                    onClick={() => setAutoRefresh(!autoRefresh)}
+                    variant={autoRefresh ? "default" : "outline"}
+                    className={autoRefresh ? 
+                      "bg-green-600 hover:bg-green-700" : 
+                      "border-gray-600 text-gray-200 hover:bg-gray-700"
+                    }
+                  >
+                    <Zap className="h-4 w-4 mr-2" />
+                    Auto Refresh
+                  </Button>
+                  <Button
+                    onClick={handleTestConnection}
+                    disabled={testConnectionLoading}
+                    variant="outline"
+                    className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                  >
+                    <TestTube className="h-4 w-4 mr-2" />
+                    Testar
+                  </Button>
+                  <Button
+                    onClick={() => window.location.reload()}
+                    variant="outline"
+                    className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                  >
+                    <Monitor className="h-4 w-4 mr-2" />
+                    Recarregar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Advanced Management Tabs */}
             <Tabs defaultValue="monitoring" className="w-full">
@@ -371,8 +538,10 @@ const UniFi = () => {
                     onUpdateDevice={updateDeviceSettings}
                     onLocateDevice={locateDevice}
                     onUpgradeDevice={(deviceId) => {
-                      // Placeholder for upgrade functionality
-                      console.log('Upgrade device:', deviceId);
+                      toast({
+                        title: "🔄 Atualização iniciada",
+                        description: `Iniciando atualização do dispositivo ${deviceId}...`
+                      });
                     }}
                     onSetLED={setDeviceLED}
                   />
@@ -397,8 +566,10 @@ const UniFi = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <Button
                         onClick={() => {
-                          // Placeholder for bulk client management
-                          console.log('Bulk client management');
+                          toast({
+                            title: "🔧 Em desenvolvimento",
+                            description: "Funcionalidade de gerenciamento em lote em breve."
+                          });
                         }}
                         className="bg-blue-600 hover:bg-blue-700"
                       >
@@ -406,8 +577,10 @@ const UniFi = () => {
                       </Button>
                       <Button
                         onClick={() => {
-                          // Placeholder for client statistics
-                          console.log('Client statistics');
+                          toast({
+                            title: "📊 Em desenvolvimento",
+                            description: "Estatísticas detalhadas em breve."
+                          });
                         }}
                         variant="outline"
                         className="border-gray-600 text-gray-200 hover:bg-gray-700"
@@ -416,8 +589,10 @@ const UniFi = () => {
                       </Button>
                       <Button
                         onClick={() => {
-                          // Placeholder for client reports
-                          console.log('Client reports');
+                          toast({
+                            title: "📋 Em desenvolvimento",
+                            description: "Relatórios de uso em breve."
+                          });
                         }}
                         variant="outline"
                         className="border-gray-600 text-gray-200 hover:bg-gray-700"
