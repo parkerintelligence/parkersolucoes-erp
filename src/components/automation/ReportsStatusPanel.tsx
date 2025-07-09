@@ -42,13 +42,17 @@ export const ReportsStatusPanel = () => {
   const formatNextExecution = (dateString?: string) => {
     if (!dateString) return 'N/A';
     
-    const date = new Date(dateString);
-    const now = new Date();
+    // Parse the UTC date from database
+    const utcDate = new Date(dateString);
     
     // Verificar se a data é válida
-    if (isNaN(date.getTime())) return 'Data inválida';
+    if (isNaN(utcDate.getTime())) return 'Data inválida';
     
-    const diffMs = date.getTime() - now.getTime();
+    // Convert to Brasília time (UTC-3)
+    const brasiliaDate = new Date(utcDate.getTime() - (3 * 60 * 60 * 1000));
+    const now = new Date();
+    
+    const diffMs = brasiliaDate.getTime() - now.getTime();
     
     if (diffMs < 0) return 'Atrasado';
     
@@ -59,6 +63,10 @@ export const ReportsStatusPanel = () => {
     if (diffDays > 0) {
       return `Em ${diffDays} dia${diffDays > 1 ? 's' : ''}`;
     } else if (diffHours > 0) {
+      const remainingMinutes = diffMinutes % 60;
+      if (remainingMinutes > 0) {
+        return `Em ${diffHours}h ${remainingMinutes}min`;
+      }
       return `Em ${diffHours}h`;
     } else if (diffMinutes > 0) {
       return `Em ${diffMinutes}min`;
@@ -70,12 +78,16 @@ export const ReportsStatusPanel = () => {
   const getExecutionStatus = (nextExecution?: string) => {
     if (!nextExecution) return 'inactive';
     
-    const date = new Date(nextExecution);
+    // Parse the UTC date from database
+    const utcDate = new Date(nextExecution);
+    
+    if (isNaN(utcDate.getTime())) return 'error';
+    
+    // Convert to Brasília time (UTC-3)
+    const brasiliaDate = new Date(utcDate.getTime() - (3 * 60 * 60 * 1000));
     const now = new Date();
     
-    if (isNaN(date.getTime())) return 'error';
-    
-    const diffMs = date.getTime() - now.getTime();
+    const diffMs = brasiliaDate.getTime() - now.getTime();
     
     if (diffMs < 0) return 'overdue';
     if (diffMs < 60 * 60 * 1000) return 'upcoming'; // Próxima 1 hora
@@ -85,13 +97,16 @@ export const ReportsStatusPanel = () => {
   const formatDateTime = (dateString?: string) => {
     if (!dateString) return 'N/A';
     
-    const date = new Date(dateString);
+    // Parse the UTC date from database
+    const utcDate = new Date(dateString);
     
-    if (isNaN(date.getTime())) return 'Data inválida';
+    if (isNaN(utcDate.getTime())) return 'Data inválida';
     
-    // Formatação brasileira com fuso horário local
-    return date.toLocaleString('pt-BR', {
-      timeZone: 'America/Sao_Paulo',
+    // Convert to Brasília time manually (UTC-3)
+    const brasiliaDate = new Date(utcDate.getTime() - (3 * 60 * 60 * 1000));
+    
+    // Format in Brazilian format
+    return brasiliaDate.toLocaleString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -120,11 +135,27 @@ export const ReportsStatusPanel = () => {
   // Separar relatórios por status
   const activeReports = reports.filter(r => r.is_active);
   const upcomingReports = activeReports
-    .filter(r => r.next_execution && new Date(r.next_execution) > new Date())
-    .sort((a, b) => new Date(a.next_execution!).getTime() - new Date(b.next_execution!).getTime());
+    .filter(r => {
+      if (!r.next_execution) return false;
+      const utcDate = new Date(r.next_execution);
+      const brasiliaDate = new Date(utcDate.getTime() - (3 * 60 * 60 * 1000));
+      return brasiliaDate > new Date();
+    })
+    .sort((a, b) => {
+      const aUtc = new Date(a.next_execution!);
+      const bUtc = new Date(b.next_execution!);
+      const aBrasilia = new Date(aUtc.getTime() - (3 * 60 * 60 * 1000));
+      const bBrasilia = new Date(bUtc.getTime() - (3 * 60 * 60 * 1000));
+      return aBrasilia.getTime() - bBrasilia.getTime();
+    });
   
   const overdueReports = activeReports
-    .filter(r => r.next_execution && new Date(r.next_execution) < new Date());
+    .filter(r => {
+      if (!r.next_execution) return false;
+      const utcDate = new Date(r.next_execution);
+      const brasiliaDate = new Date(utcDate.getTime() - (3 * 60 * 60 * 1000));
+      return brasiliaDate < new Date();
+    });
 
   const recentExecutions = reports
     .filter(r => r.last_execution)

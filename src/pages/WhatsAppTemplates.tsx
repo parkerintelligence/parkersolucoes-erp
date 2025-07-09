@@ -173,7 +173,7 @@ const WhatsAppTemplates = () => {
             setEditingTemplate(null);
             setFormData({ name: '', template_type: 'backup_alert', subject: '', body: '', is_active: true });
           }}
-          className="bg-green-600 hover:bg-green-700 text-white"
+          className="bg-blue-800 hover:bg-blue-700 text-white"
         >
           <Plus className="mr-2 h-4 w-4" />
           Novo Modelo
