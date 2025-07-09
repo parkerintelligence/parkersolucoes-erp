@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useZabbixWebhooks, ZabbixWebhook } from '@/hooks/useZabbixWebhooks';
+import { ZabbixWebhookTester } from './ZabbixWebhookTester';
 
 const triggerTypeLabels = {
   'problem_created': 'Problema Criado',
@@ -207,6 +208,10 @@ export const ZabbixWebhookManager = () => {
         </CardContent>
       </Card>
 
+      {/* Webhook Tester */}
+      <ZabbixWebhookTester />
+
+      {/* Existing webhook management */}
       <Card className="bg-gray-800 border-gray-700">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">

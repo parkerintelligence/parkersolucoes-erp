@@ -1,0 +1,228 @@
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
+  try {
+    console.log('=== Zabbix Webhook Function Start ===')
+    console.log('Method:', req.method)
+    console.log('Headers:', Object.fromEntries(req.headers.entries()))
+
+    // Parse webhook data from Zabbix
+    const webhookData = await req.json()
+    console.log('Webhook data received:', JSON.stringify(webhookData, null, 2))
+
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    // Extract problem data from webhook
+    const {
+      problem_name = webhookData.subject || 'Problema desconhecido',
+      host_name = webhookData.host || 'Host desconhecido',
+      severity = webhookData.severity || '3',
+      event_id = webhookData.eventid || Date.now().toString(),
+      trigger_id = webhookData.triggerid,
+      status = webhookData.status || '1'
+    } = webhookData
+
+    console.log('Processed webhook data:', {
+      problem_name,
+      host_name,
+      severity,
+      event_id,
+      trigger_id,
+      status
+    })
+
+    // Find active Zabbix webhooks that match this trigger type
+    const triggerType = status === '0' ? 'problem_resolved' : 'problem_created'
+    
+    const { data: webhooks, error: webhooksError } = await supabase
+      .from('zabbix_webhooks')
+      .select('*')
+      .eq('trigger_type', triggerType)
+      .eq('is_active', true)
+
+    if (webhooksError) {
+      console.error('Error fetching webhooks:', webhooksError)
+      return new Response(
+        JSON.stringify({ error: 'Erro ao buscar webhooks', details: webhooksError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log(`Found ${webhooks?.length || 0} active webhooks for trigger type: ${triggerType}`)
+
+    if (!webhooks || webhooks.length === 0) {
+      console.log('No active webhooks found for this trigger type')
+      return new Response(
+        JSON.stringify({ message: 'No active webhooks configured', trigger_type: triggerType }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Process each webhook
+    const results = []
+    
+    for (const webhook of webhooks) {
+      console.log(`Processing webhook: ${webhook.name}`)
+      
+      try {
+        // Update webhook trigger count and last triggered
+        await supabase
+          .from('zabbix_webhooks')
+          .update({
+            trigger_count: (webhook.trigger_count || 0) + 1,
+            last_triggered: new Date().toISOString()
+          })
+          .eq('id', webhook.id)
+
+        const webhookResult = { webhook_id: webhook.id, webhook_name: webhook.name, actions: [] }
+
+        // Execute GLPI ticket creation
+        if (webhook.actions.create_glpi_ticket) {
+          console.log('Creating GLPI ticket...')
+          
+          try {
+            // Get GLPI integration
+            const { data: glpiIntegration } = await supabase
+              .from('integrations')
+              .select('*')
+              .eq('type', 'glpi')
+              .eq('is_active', true)
+              .single()
+
+            if (glpiIntegration) {
+              const glpiResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/glpi-proxy`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
+                },
+                body: JSON.stringify({
+                  integrationId: glpiIntegration.id,
+                  action: 'createTicket',
+                  data: {
+                    name: `Zabbix: ${problem_name}`,
+                    content: `Problema: ${problem_name}\nHost: ${host_name}\nSeveridade: ${severity}\nEvent ID: ${event_id}\nStatus: ${status === '0' ? 'Resolvido' : 'Ativo'}\n\nEste chamado foi criado automaticamente pelo webhook do Zabbix.`,
+                    urgency: parseInt(severity) >= 4 ? 4 : 3,
+                    impact: parseInt(severity) >= 4 ? 4 : 3,
+                    priority: parseInt(severity) >= 4 ? 4 : 3,
+                    status: 1,
+                    type: 1,
+                    entities_id: webhook.actions.glpi_entity_id || 0
+                  }
+                })
+              })
+
+              const glpiResult = await glpiResponse.json()
+              webhookResult.actions.push({ type: 'glpi_ticket', success: !glpiResult.error, result: glpiResult })
+              console.log('GLPI ticket result:', glpiResult)
+            } else {
+              webhookResult.actions.push({ type: 'glpi_ticket', success: false, error: 'GLPI integration not found' })
+            }
+          } catch (glpiError) {
+            console.error('GLPI ticket creation error:', glpiError)
+            webhookResult.actions.push({ type: 'glpi_ticket', success: false, error: glpiError.message })
+          }
+        }
+
+        // Execute WhatsApp message
+        if (webhook.actions.send_whatsapp && webhook.actions.whatsapp_number) {
+          console.log('Sending WhatsApp message...')
+          
+          try {
+            // Get Evolution API integration
+            const { data: evolutionIntegration } = await supabase
+              .from('integrations')
+              .select('*')
+              .eq('type', 'evolution_api')
+              .eq('is_active', true)
+              .single()
+
+            if (evolutionIntegration) {
+              // Prepare custom message with variable replacement
+              let message = webhook.actions.custom_message || 
+                `🚨 Alerta Zabbix\n\nProblema: ${problem_name}\nHost: ${host_name}\nSeveridade: ${severity}\nStatus: ${status === '0' ? 'Resolvido' : 'Ativo'}`
+
+              // Replace variables in message
+              message = message
+                .replace(/{problem_name}/g, problem_name)
+                .replace(/{host_name}/g, host_name)
+                .replace(/{severity}/g, severity)
+                .replace(/{timestamp}/g, new Date().toLocaleString('pt-BR'))
+
+              const whatsappResponse = await fetch(`${evolutionIntegration.base_url}/message/sendText/${evolutionIntegration.instance_name}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': evolutionIntegration.api_token
+                },
+                body: JSON.stringify({
+                  number: webhook.actions.whatsapp_number,
+                  text: message
+                })
+              })
+
+              const whatsappResult = await whatsappResponse.json()
+              webhookResult.actions.push({ type: 'whatsapp_message', success: whatsappResponse.ok, result: whatsappResult })
+              console.log('WhatsApp message result:', whatsappResult)
+            } else {
+              webhookResult.actions.push({ type: 'whatsapp_message', success: false, error: 'Evolution API integration not found' })
+            }
+          } catch (whatsappError) {
+            console.error('WhatsApp message error:', whatsappError)
+            webhookResult.actions.push({ type: 'whatsapp_message', success: false, error: whatsappError.message })
+          }
+        }
+
+        results.push(webhookResult)
+        console.log(`Webhook ${webhook.name} processed successfully`)
+
+      } catch (webhookError) {
+        console.error(`Error processing webhook ${webhook.name}:`, webhookError)
+        results.push({ 
+          webhook_id: webhook.id, 
+          webhook_name: webhook.name, 
+          error: webhookError.message 
+        })
+      }
+    }
+
+    console.log('All webhooks processed. Results:', results)
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Webhooks processed successfully',
+        processed_webhooks: results.length,
+        results 
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+
+  } catch (error) {
+    console.error('Function error:', error)
+    return new Response(
+      JSON.stringify({ 
+        error: 'Erro interno do servidor',
+        details: error.message || 'Erro desconhecido'
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
+  }
+})

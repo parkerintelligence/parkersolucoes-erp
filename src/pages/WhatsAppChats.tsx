@@ -42,6 +42,8 @@ interface WhatsAppChat {
   unreadCount: number;
   phoneNumber: string;
   profilePicUrl?: string;
+  isGroup?: boolean;
+  participantsCount?: number;
 }
 
 const WhatsAppChats = () => {
@@ -65,7 +67,6 @@ const WhatsAppChats = () => {
 
   const evolutionIntegration = integrations?.find(int => int.type === 'evolution_api');
 
-  // Check connection status
   const checkConnection = async () => {
     if (!evolutionIntegration) return;
 
@@ -85,7 +86,6 @@ const WhatsAppChats = () => {
     }
   };
 
-  // Connect to WhatsApp Web
   const connectToWhatsApp = async () => {
     if (!evolutionIntegration) {
       toast({
@@ -128,7 +128,6 @@ const WhatsAppChats = () => {
         setIsQrDialogOpen(true);
         setConnectionStatus('waiting_qr');
         
-        // Poll for connection status
         const pollConnection = setInterval(async () => {
           const status = await service.checkInstanceStatus();
           if (status.active) {
@@ -145,7 +144,6 @@ const WhatsAppChats = () => {
           }
         }, 3000);
         
-        // Stop polling after 2 minutes
         setTimeout(() => {
           clearInterval(pollConnection);
           if (!isConnected) {
@@ -180,7 +178,6 @@ const WhatsAppChats = () => {
     }
   };
 
-  // Disconnect from WhatsApp Web
   const disconnectFromWhatsApp = async () => {
     if (!evolutionIntegration) return;
 
@@ -219,16 +216,19 @@ const WhatsAppChats = () => {
       const formattedChats: WhatsAppChat[] = chatsData.map((chat: any) => ({
         id: chat.id || chat.remoteJid,
         name: chat.name || chat.pushName || chat.remoteJid,
-        lastMessage: chat.lastMessage?.body || 'Nova conversa',
-        timestamp: chat.lastMessage?.timestamp || Date.now(),
+        lastMessage: chat.lastMessage || (chat.isGroup ? 'Conversa em grupo' : 'Nova conversa'),
+        timestamp: chat.timestamp || Date.now(),
         unreadCount: chat.unreadCount || 0,
         phoneNumber: chat.remoteJid || chat.id,
-        profilePicUrl: chat.profilePicUrl
+        profilePicUrl: chat.profilePicUrl,
+        isGroup: chat.isGroup || false,
+        participantsCount: chat.participantsCount
       }));
       
       setChats(formattedChats);
       
-      // Sync with database conversations
+      console.log('💬 Conversas carregadas:', formattedChats.length);
+      
       for (const chat of formattedChats) {
         const existingConversation = conversations?.find(c => c.contact_phone === chat.phoneNumber);
         
@@ -265,7 +265,6 @@ const WhatsAppChats = () => {
     }
   };
 
-  // Load messages for selected chat
   const loadMessages = async (chat: WhatsAppChat) => {
     if (!evolutionIntegration) return;
 
@@ -294,7 +293,6 @@ const WhatsAppChats = () => {
     }
   };
 
-  // Send message
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedChat || !evolutionIntegration) return;
 
@@ -315,7 +313,6 @@ const WhatsAppChats = () => {
         setMessages(prev => [...prev, newMsg]);
         setNewMessage('');
         
-        // Update chat's last message
         setChats(prev => prev.map(chat => 
           chat.id === selectedChat.id 
             ? { ...chat, lastMessage: newMessage, timestamp: Date.now() }
@@ -343,13 +340,11 @@ const WhatsAppChats = () => {
     }
   };
 
-  // Select chat and load messages
   const selectChat = async (chat: WhatsAppChat) => {
     setSelectedChat(chat);
     await loadMessages(chat);
   };
 
-  // Check connection on mount
   useEffect(() => {
     if (evolutionIntegration) {
       checkConnection();
@@ -464,7 +459,14 @@ const WhatsAppChats = () => {
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h4 className="font-medium truncate">{chat.name}</h4>
+                    <div className="flex items-center gap-2">
+                      {chat.isGroup ? (
+                        <Users className="h-4 w-4 text-blue-500" />
+                      ) : (
+                        <MessageSquare className="h-4 w-4 text-green-500" />
+                      )}
+                      <h4 className="font-medium truncate">{chat.name}</h4>
+                    </div>
                     {chat.unreadCount > 0 && (
                       <Badge variant="destructive" className="text-xs">
                         {chat.unreadCount}
@@ -479,6 +481,14 @@ const WhatsAppChats = () => {
                     <span className="text-xs text-muted-foreground truncate">
                       {chat.phoneNumber}
                     </span>
+                    {chat.isGroup && chat.participantsCount && (
+                      <>
+                        <span className="text-xs text-muted-foreground">•</span>
+                        <span className="text-xs text-muted-foreground">
+                          {chat.participantsCount} participantes
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <span className="text-xs text-muted-foreground">
@@ -495,12 +505,20 @@ const WhatsAppChats = () => {
             <div className="p-6 text-center text-muted-foreground">
               <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p>Nenhuma conversa encontrada</p>
+              <Button 
+                onClick={loadChats} 
+                variant="outline" 
+                size="sm" 
+                className="mt-2"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Recarregar
+              </Button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Área Principal - Chat */}
       <div className="flex-1 flex flex-col min-h-0">
         {/* Header */}
         <div className="h-16 border-b bg-background flex items-center justify-between px-4 flex-shrink-0">

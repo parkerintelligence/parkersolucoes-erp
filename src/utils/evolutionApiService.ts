@@ -1,610 +1,255 @@
-import { Integration } from '@/hooks/useIntegrations';
-
-export interface EvolutionApiMessage {
-  number: string;
-  text: string;
-}
-
-export interface EvolutionApiResponse {
-  key?: {
-    id: string;
-    remoteJid: string;
-  };
-  message?: any;
-  error?: string;
-}
-
-export interface EvolutionApiError {
-  message: string;
-  details?: string;
-  endpoint?: string;
-  statusCode?: number;
-  logs?: string[];
+export interface Integration {
+  id: string;
+  created_at: string;
+  name: string;
+  type: string;
+  base_url: string;
+  api_token: string;
+  username?: string;
+  password?: string;
+  is_active: boolean;
+  instance_name?: string;
 }
 
 export class EvolutionApiService {
-  private integration: Integration;
-  private debugLogs: string[] = [];
-  
-  constructor(integration: Integration) {
-    this.integration = integration;
+  private baseUrl: string;
+  private apiToken: string;
+  private instanceName: string;
+
+  constructor(private integration: Integration) {
+    this.baseUrl = integration.base_url.replace(/\/$/, '');
+    this.apiToken = integration.api_token;
+    this.instanceName = integration.instance_name || 'default';
   }
 
-  private addDebugLog(message: string) {
-    this.debugLogs.push(`[${new Date().toISOString()}] ${message}`);
-    console.log(`🔍 Evolution API: ${message}`);
-  }
-
-  private normalizeUrl(baseUrl: string): string {
-    let cleanUrl = baseUrl.replace(/\/+$/, '');
-    
-    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
-      cleanUrl = `https://${cleanUrl}`;
-    }
-    
-    return cleanUrl;
-  }
-
-  private cleanPhoneNumber(phoneNumber: string): string {
-    const cleaned = phoneNumber.replace(/\D/g, '');
-    
-    if (cleaned.length === 11 && !cleaned.startsWith('55')) {
-      return `55${cleaned}`;
-    }
-    
-    if (cleaned.length === 13 && cleaned.startsWith('55')) {
-      return cleaned;
-    }
-    
-    return cleaned;
-  }
-
-  private async validateConfiguration(): Promise<{ valid: boolean; errors: string[] }> {
-    const errors: string[] = [];
-
-    if (!this.integration.api_token) {
-      errors.push('Token da API não configurado');
-    }
-
-    if (!this.integration.base_url) {
-      errors.push('URL base não configurada');
-    }
-
-    const integrationAny = this.integration as any;
-    if (!integrationAny.instance_name) {
-      errors.push('Nome da instância não configurado');
-    }
-
-    return { valid: errors.length === 0, errors };
-  }
-
-  async checkInstanceExists(): Promise<boolean> {
-    const configValidation = await this.validateConfiguration();
-    if (!configValidation.valid) {
-      return false;
-    }
-
-    const integrationAny = this.integration as any;
-    const instanceName = integrationAny.instance_name || 'main_instance';
-    const baseUrl = this.normalizeUrl(this.integration.base_url);
-
+  async checkInstanceStatus(): Promise<{ active: boolean, qrCode?: string }> {
     try {
-      this.addDebugLog(`Verificando se instância '${instanceName}' existe...`);
-      
-      const response = await fetch(`${baseUrl}/instance/fetchInstances`, {
+      console.log('🔍 Evolution API: Verificando status da instância...');
+      const response = await fetch(`${this.baseUrl}/instance/connectionState/${this.instanceName}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': this.integration.api_token || '',
-        },
-      });
-
-      if (response.ok) {
-        const instances = await response.json();
-        const instanceExists = Array.isArray(instances) && 
-          instances.some((instance: any) => instance.instanceName === instanceName);
-        
-        this.addDebugLog(`Instância existe: ${instanceExists}`);
-        return instanceExists;
-      }
-    } catch (error) {
-      this.addDebugLog(`Erro ao verificar instância: ${error}`);
-    }
-
-    return false;
-  }
-
-  async createInstance(): Promise<{ success: boolean; qrCode?: string; error?: string }> {
-    const configValidation = await this.validateConfiguration();
-    if (!configValidation.valid) {
-      return {
-        success: false,
-        error: configValidation.errors.join(', ')
-      };
-    }
-
-    const integrationAny = this.integration as any;
-    const instanceName = integrationAny.instance_name || 'main_instance';
-    const baseUrl = this.normalizeUrl(this.integration.base_url);
-
-    try {
-      this.addDebugLog(`Criando nova instância '${instanceName}'...`);
-
-      const payload = {
-        instanceName: instanceName,
-        token: this.integration.api_token,
-        qrcode: true,
-        number: this.integration.phone_number || '',
-        typebot: false,
-        chatwoot_account_id: null,
-        chatwoot_token: null,
-        chatwoot_url: null,
-        chatwoot_sign_msg: false,
-        chatwoot_reopen_conversation: false,
-        chatwoot_conversation_pending: false
-      };
-
-      const response = await fetch(`${baseUrl}/instance/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': this.integration.api_token || '',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        this.addDebugLog(`Instância criada com sucesso`);
-        
-        return {
-          success: true,
-          qrCode: data.qrcode?.base64 || data.base64
-        };
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        this.addDebugLog(`Erro ao criar instância: ${response.status} - ${JSON.stringify(errorData)}`);
-        
-        return {
-          success: false,
-          error: errorData.message || `Erro HTTP ${response.status}`
-        };
-      }
-    } catch (error) {
-      this.addDebugLog(`Erro de rede ao criar instância: ${error}`);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido'
-      };
-    }
-  }
-
-  async getQRCode(): Promise<{ success: boolean; qrCode?: string; error?: string }> {
-    const configValidation = await this.validateConfiguration();
-    if (!configValidation.valid) {
-      return {
-        success: false,
-        error: configValidation.errors.join(', ')
-      };
-    }
-
-    const integrationAny = this.integration as any;
-    const instanceName = integrationAny.instance_name || 'main_instance';
-    const baseUrl = this.normalizeUrl(this.integration.base_url);
-
-    try {
-      this.addDebugLog(`Obtendo QR Code para instância '${instanceName}'...`);
-
-      const response = await fetch(`${baseUrl}/instance/qrcode/${instanceName}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': this.integration.api_token || '',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        this.addDebugLog(`QR Code obtido com sucesso`);
-        
-        return {
-          success: true,
-          qrCode: data.qrcode?.base64 || data.base64
-        };
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        this.addDebugLog(`Erro ao obter QR Code: ${response.status} - ${JSON.stringify(errorData)}`);
-        
-        return {
-          success: false,
-          error: errorData.message || `Erro HTTP ${response.status}`
-        };
-      }
-    } catch (error) {
-      this.addDebugLog(`Erro de rede ao obter QR Code: ${error}`);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido'
-      };
-    }
-  }
-
-  async checkInstanceStatus(): Promise<{ active: boolean; error?: string }> {
-    const configValidation = await this.validateConfiguration();
-    if (!configValidation.valid) {
-      return {
-        active: false,
-        error: `Configuração inválida: ${configValidation.errors.join(', ')}`
-      };
-    }
-
-    const integrationAny = this.integration as any;
-    const instanceName = integrationAny.instance_name || 'main_instance';
-    const baseUrl = this.normalizeUrl(this.integration.base_url);
-
-    try {
-      this.addDebugLog(`Verificando status da instância '${instanceName}'...`);
-
-      const response = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': this.integration.api_token || '',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const isActive = data.instance?.state === 'open';
-        this.addDebugLog(`Status da instância: ${data.instance?.state} (Ativo: ${isActive})`);
-        
-        return { active: isActive };
-      } else {
-        this.addDebugLog(`Erro ao verificar status: ${response.status}`);
-        return { active: false, error: `Erro HTTP ${response.status}` };
-      }
-    } catch (error) {
-      this.addDebugLog(`Erro de rede ao verificar status: ${error}`);
-      return { active: false, error: 'Erro de conexão' };
-    }
-  }
-
-  async getInstanceInfo(): Promise<{ 
-    connected: boolean; 
-    qrCode?: string; 
-    instanceName: string;
-    error?: string;
-  }> {
-    const configValidation = await this.validateConfiguration();
-    if (!configValidation.valid) {
-      return {
-        connected: false,
-        instanceName: '',
-        error: `Configuração inválida: ${configValidation.errors.join(', ')}`
-      };
-    }
-
-    const integrationAny = this.integration as any;
-    const instanceName = integrationAny.instance_name || 'main_instance';
-
-    try {
-      // Primeiro, verificar se a instância existe
-      const instanceExists = await this.checkInstanceExists();
-      
-      if (!instanceExists) {
-        this.addDebugLog('Instância não existe, criando nova...');
-        const createResult = await this.createInstance();
-        
-        if (createResult.success) {
-          return {
-            connected: false,
-            qrCode: createResult.qrCode,
-            instanceName: instanceName
-          };
-        } else {
-          return {
-            connected: false,
-            instanceName: instanceName,
-            error: createResult.error
-          };
+          'apikey': this.apiToken
         }
+      });
+
+      if (!response.ok) {
+        console.error('❌ Erro ao verificar status:', response.status, response.statusText);
+        return { active: false };
       }
 
-      // Verificar status da conexão
-      const statusResult = await this.checkInstanceStatus();
-      
-      if (statusResult.active) {
-        return {
-          connected: true,
-          instanceName: instanceName
-        };
+      const data = await response.json();
+      console.log('✅ Status da instância:', data.status);
+      return { active: data.status === 'CONNECTED' };
+    } catch (error) {
+      console.error('❌ Erro ao verificar status:', error);
+      return { active: false };
+    }
+  }
+
+  async getInstanceInfo(): Promise<{ connected: boolean, qrCode?: string, error?: string }> {
+    try {
+      console.log('🔍 Evolution API: Buscando informações da instância...');
+      const response = await fetch(`${this.baseUrl}/instance/info/${this.instanceName}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': this.apiToken
+        }
+      });
+
+      if (!response.ok) {
+        console.error('❌ Erro ao buscar informações da instância:', response.status, response.statusText);
+        return { connected: false, error: `Erro HTTP: ${response.status} ${response.statusText}` };
+      }
+
+      const data = await response.json();
+      console.log('✅ Informações da instância:', data);
+
+      if (data.status === 'CONNECTED') {
+        return { connected: true };
+      } else if (data.status === 'QRCODE') {
+        return { connected: false, qrCode: data.qrcode };
       } else {
-        // Se não está conectado, obter QR Code
-        const qrResult = await this.getQRCode();
-        
-        return {
-          connected: false,
-          qrCode: qrResult.success ? qrResult.qrCode : undefined,
-          instanceName: instanceName,
-          error: qrResult.success ? undefined : qrResult.error
-        };
+        return { connected: false, error: data.status };
       }
     } catch (error) {
-      this.addDebugLog(`Erro ao obter informações da instância: ${error}`);
-      return {
-        connected: false,
-        instanceName: instanceName,
-        error: error instanceof Error ? error.message : 'Erro desconhecido'
-      };
+      console.error('❌ Erro ao buscar informações da instância:', error);
+      return { connected: false, error: error.message };
     }
   }
 
-  async getConversations(): Promise<any[]> {
-    const configValidation = await this.validateConfiguration();
-    if (!configValidation.valid) {
-      return [];
-    }
-
-    const integrationAny = this.integration as any;
-    const instanceName = integrationAny.instance_name || 'main_instance';
-    const baseUrl = this.normalizeUrl(this.integration.base_url);
-
+  async disconnectInstance(): Promise<void> {
     try {
-      const response = await fetch(`${baseUrl}/${instanceName}/chat/findChats`, {
+      console.log('🔌 Evolution API: Desconectando instância...');
+      const response = await fetch(`${this.baseUrl}/instance/logout/${this.instanceName}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': this.integration.api_token || '',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data || [];
-      }
-    } catch (error) {
-      this.addDebugLog(`Error getting conversations: ${error}`);
-    }
-
-    return [];
-  }
-
-  async getMessages(chatId: string): Promise<any[]> {
-    const configValidation = await this.validateConfiguration();
-    if (!configValidation.valid) {
-      return [];
-    }
-
-    const integrationAny = this.integration as any;
-    const instanceName = integrationAny.instance_name || 'main_instance';
-    const baseUrl = this.normalizeUrl(this.integration.base_url);
-
-    try {
-      const response = await fetch(`${baseUrl}/${instanceName}/chat/findMessages/${chatId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': this.integration.api_token || '',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data || [];
-      }
-    } catch (error) {
-      this.addDebugLog(`Error getting messages: ${error}`);
-    }
-
-    return [];
-  }
-
-  async disconnectInstance(): Promise<{ success: boolean; error?: string }> {
-    const configValidation = await this.validateConfiguration();
-    if (!configValidation.valid) {
-      return {
-        success: false,
-        error: configValidation.errors.join(', ')
-      };
-    }
-
-    const integrationAny = this.integration as any;
-    const instanceName = integrationAny.instance_name || 'main_instance';
-    const baseUrl = this.normalizeUrl(this.integration.base_url);
-
-    try {
-      const response = await fetch(`${baseUrl}/instance/logout/${instanceName}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': this.integration.api_token || '',
-        },
-      });
-
-      if (response.ok) {
-        this.addDebugLog('Instance disconnected successfully');
-        return { success: true };
-      }
-    } catch (error) {
-      this.addDebugLog(`Error disconnecting instance: ${error}`);
-    }
-
-    return {
-      success: false,
-      error: 'Failed to disconnect instance'
-    };
-  }
-
-  async sendMessage(phoneNumber: string, message: string): Promise<{ 
-    success: boolean; 
-    error?: EvolutionApiError 
-  }> {
-    this.debugLogs = [];
-    
-    const configValidation = await this.validateConfiguration();
-    if (!configValidation.valid) {
-      return {
-        success: false,
-        error: {
-          message: 'Invalid Evolution API configuration',
-          details: configValidation.errors.join(', '),
-          logs: this.debugLogs
+          'apikey': this.apiToken
         }
-      };
-    }
+      });
 
-    const cleanPhoneNumber = this.cleanPhoneNumber(phoneNumber);
-    
-    if (cleanPhoneNumber.length < 10 || cleanPhoneNumber.length > 15) {
-      return {
-        success: false,
-        error: {
-          message: 'Invalid phone number',
-          details: 'Use format: 5511999999999 or 11999999999',
-          logs: this.debugLogs
-        }
-      };
-    }
-
-    const integrationAny = this.integration as any;
-    const instanceName = integrationAny.instance_name || 'main_instance';
-    const baseUrl = this.normalizeUrl(this.integration.base_url);
-    
-    this.addDebugLog(`Config - Base URL: ${baseUrl}, Instance: ${instanceName}, Phone: ${cleanPhoneNumber}`);
-
-    const endpoints = [
-      `/${instanceName}/message/sendText`,
-      `/message/sendText/${instanceName}`,
-      `/${instanceName}/sendMessage`,
-      `/sendMessage/${instanceName}`
-    ];
-
-    const payloadFormats = [
-      {
-        number: cleanPhoneNumber,
-        text: message
-      },
-      {
-        number: `${cleanPhoneNumber}@s.whatsapp.net`,
-        text: message
+      if (!response.ok) {
+        console.error('❌ Erro ao desconectar:', response.status, response.statusText);
+        throw new Error(`Erro ao desconectar: ${response.status} ${response.statusText}`);
       }
-    ];
 
-    const authMethods = [
-      { 'apikey': this.integration.api_token },
-      { 'Authorization': `Bearer ${this.integration.api_token}` }
-    ];
+      console.log('✅ Instância desconectada com sucesso.');
+    } catch (error) {
+      console.error('❌ Erro ao desconectar:', error);
+      throw new Error(`Erro ao desconectar: ${error.message}`);
+    }
+  }
 
-    let lastError: EvolutionApiError | null = null;
-
-    for (const endpoint of endpoints) {
-      const fullUrl = `${baseUrl}${endpoint}`;
+  async getConversations() {
+    try {
+      console.log('🔍 Evolution API: Buscando conversas e grupos...');
       
-      for (const payload of payloadFormats) {
-        for (const authHeaders of authMethods) {
-          try {
-            const { response, responseData } = await this.sendWithAuthMethod(fullUrl, payload, authHeaders);
-            
-            if (response.ok && responseData && !responseData.error) {
-              this.addDebugLog(`✅ SUCCESS! Message sent via ${endpoint}`);
-              return { success: true };
-            }
-            
-            lastError = {
-              message: `Send failed`,
-              details: responseData?.message || responseData?.error || `Status ${response.status}`,
-              endpoint: fullUrl,
-              statusCode: response.status,
-              logs: this.debugLogs
-            };
-            
-            this.addDebugLog(`❌ Failed: ${endpoint} - Status ${response.status}`);
-            
-          } catch (error) {
-            lastError = {
-              message: 'Connection error',
-              details: error instanceof Error ? error.message : 'Unknown error',
-              endpoint: fullUrl,
-              logs: this.debugLogs
-            };
-            
-            this.addDebugLog(`❌ Network error: ${error}`);
+      const headers = {
+        'Content-Type': 'application/json',
+        'apikey': this.integration.api_token
+      };
+
+      // Buscar chats individuais
+      const chatsResponse = await fetch(
+        `${this.baseUrl}/chat/findChats/${this.instanceName}`, 
+        {
+          method: 'GET',
+          headers
+        }
+      );
+
+      // Buscar grupos
+      const groupsResponse = await fetch(
+        `${this.baseUrl}/group/fetchAllGroups/${this.instanceName}`, 
+        {
+          method: 'GET',
+          headers
+        }
+      );
+
+      const chatsData = chatsResponse.ok ? await chatsResponse.json() : [];
+      const groupsData = groupsResponse.ok ? await groupsResponse.json() : [];
+
+      console.log('📱 Chats encontrados:', chatsData.length);
+      console.log('👥 Grupos encontrados:', groupsData.length);
+
+      // Combinar chats e grupos
+      const allConversations = [];
+
+      // Processar chats individuais
+      if (Array.isArray(chatsData)) {
+        chatsData.forEach(chat => {
+          if (chat.id && !chat.id.includes('@g.us')) { // Não é grupo
+            allConversations.push({
+              id: chat.id,
+              name: chat.name || chat.pushName || chat.id.split('@')[0],
+              lastMessage: chat.lastMessage || 'Nova conversa',
+              timestamp: chat.lastMessageTime || Date.now(),
+              unreadCount: chat.unreadCount || 0,
+              remoteJid: chat.id,
+              isGroup: false,
+              profilePicUrl: chat.profilePicUrl
+            });
           }
-          
-          await new Promise(resolve => setTimeout(resolve, 50));
-        }
+        });
       }
-    }
 
-    return { 
-      success: false, 
-      error: lastError || {
-        message: 'Unable to send message',
-        details: 'All configurations tested failed. Check if instance is active.',
-        logs: this.debugLogs
+      // Processar grupos
+      if (Array.isArray(groupsData)) {
+        groupsData.forEach(group => {
+          allConversations.push({
+            id: group.id,
+            name: group.subject || 'Grupo sem nome',
+            lastMessage: 'Conversa em grupo',
+            timestamp: group.createdAt || Date.now(),
+            unreadCount: 0,
+            remoteJid: group.id,
+            isGroup: true,
+            participantsCount: group.participants?.length || 0,
+            profilePicUrl: group.profilePicUrl
+          });
+        });
       }
-    };
+
+      // Ordenar por timestamp (mais recente primeiro)
+      allConversations.sort((a, b) => b.timestamp - a.timestamp);
+
+      console.log('💬 Total de conversas processadas:', allConversations.length);
+      return allConversations;
+
+    } catch (error) {
+      console.error('❌ Erro ao buscar conversas:', error);
+      throw new Error(`Erro ao buscar conversas: ${error.message}`);
+    }
   }
 
-  private async sendWithAuthMethod(
-    url: string, 
-    payload: any, 
-    authHeaders: Record<string, string>
-  ): Promise<{ response: Response; responseData: any }> {
-    this.addDebugLog(`Tentando enviar para: ${url}`);
-    this.addDebugLog(`Payload: ${JSON.stringify(payload, null, 2)}`);
-    this.addDebugLog(`Headers: ${JSON.stringify(authHeaders, null, 2)}`);
-
+  async getMessages(chatId: string, limit: number = 50) {
     try {
-      const response = await fetch(url, {
+      console.log(`📥 Evolution API: Buscando mensagens para ${chatId}...`);
+      
+      const response = await fetch(
+        `${this.baseUrl}/chat/findMessages/${this.instanceName}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': this.integration.api_token
+          },
+          body: JSON.stringify({
+            where: {
+              key: {
+                remoteJid: chatId
+              }
+            },
+            limit
+          })
+        }
+      );
+
+      if (!response.ok) {
+        console.error('❌ Erro HTTP ao buscar mensagens:', response.status, response.statusText);
+        return [];
+      }
+
+      const data = await response.json();
+      console.log('📥 Mensagens encontradas:', data.length);
+      
+      return Array.isArray(data) ? data : [];
+    } catch (error) {
+      console.error('❌ Erro ao buscar mensagens:', error);
+      return [];
+    }
+  }
+
+  async sendMessage(number: string, text: string): Promise<{ success: boolean, error?: any }> {
+    try {
+      console.log(`✉️ Evolution API: Enviando mensagem para ${number}...`);
+      const response = await fetch(`${this.baseUrl}/message/sendText/${this.instanceName}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...authHeaders,
+          'apikey': this.apiToken
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          number: number,
+          text: text
+        })
       });
 
-      this.addDebugLog(`Status HTTP: ${response.status}`);
+      const result = await response.json();
 
-      let responseData;
-      try {
-        responseData = await response.json();
-        this.addDebugLog(`Resposta: ${JSON.stringify(responseData, null, 2)}`);
-      } catch (e) {
-        const textResponse = await response.text();
-        this.addDebugLog(`Resposta em texto: ${textResponse}`);
-        responseData = { error: textResponse };
+      if (response.ok) {
+        console.log('✅ Mensagem enviada com sucesso:', result);
+        return { success: true };
+      } else {
+        console.error('❌ Erro ao enviar mensagem:', result);
+        return { success: false, error: result };
       }
-
-      return { response, responseData };
     } catch (error) {
-      this.addDebugLog(`Erro de rede: ${error}`);
-      throw error;
+      console.error('❌ Erro ao enviar mensagem:', error);
+      return { success: false, error: error.message };
     }
-  }
-
-  async testConnection(): Promise<{ success: boolean; error?: string }> {
-    this.addDebugLog('🧪 Testing connection...');
-    
-    const instanceStatus = await this.checkInstanceStatus();
-    
-    if (!instanceStatus.active) {
-      return {
-        success: false,
-        error: instanceStatus.error || 'Instance is not active'
-      };
-    }
-
-    this.addDebugLog('✅ Connection test successful');
-    return { success: true };
-  }
-
-  getDebugLogs(): string[] {
-    return [...this.debugLogs];
-  }
-
-  clearDebugLogs(): void {
-    this.debugLogs = [];
   }
 }
