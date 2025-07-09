@@ -1,15 +1,4 @@
-export interface Integration {
-  id: string;
-  created_at: string;
-  name: string;
-  type: string;
-  base_url: string;
-  api_token: string; // Obrigatório
-  username?: string;
-  password?: string;
-  is_active: boolean;
-  instance_name?: string; // Obrigatório para Evolution API
-}
+import { Integration } from '@/hooks/useIntegrations';
 
 export interface EvolutionApiError {
   message: string;
@@ -25,9 +14,17 @@ export class EvolutionApiService {
   private instanceName: string;
 
   constructor(private integration: Integration) {
+    // Validate required fields for Evolution API
+    if (!integration.api_token) {
+      throw new Error('API token is required for Evolution API integration');
+    }
+    if (!integration.instance_name) {
+      throw new Error('Instance name is required for Evolution API integration');
+    }
+
     this.baseUrl = integration.base_url.replace(/\/$/, '');
     this.apiToken = integration.api_token;
-    this.instanceName = integration.instance_name || 'default';
+    this.instanceName = integration.instance_name;
   }
 
   async createInstance(): Promise<{ success: boolean; error?: string }> {
