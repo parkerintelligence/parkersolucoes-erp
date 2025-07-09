@@ -1,8 +1,9 @@
+
 import { useAuth } from '@/contexts/AuthContext';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Crown, Shield, ChevronRight, Home, PanelLeft } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { LogOut, User, Crown, Shield, ChevronRight, Home, PanelLeft, DollarSign, Settings } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
@@ -17,12 +18,21 @@ export const TopHeader = () => {
   const { user, userProfile, logout, isMaster } = useAuth();
   const { data: settings } = useSystemSettings();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Sistema de Gestão de TI';
   const logoUrl = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value;
 
   const handleLogout = async () => {
     await logout();
+  };
+
+  const handleFinancialAccess = () => {
+    navigate('/financial');
+  };
+
+  const handleAdminAccess = () => {
+    navigate('/admin');
   };
 
   const getBreadcrumbTitle = () => {
@@ -85,6 +95,18 @@ export const TopHeader = () => {
 
         {/* Área do Usuário */}
         <div className="flex items-center gap-2">
+          {/* Botão Financeiro (apenas para master) */}
+          {isMaster && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleFinancialAccess}
+              className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+              title="Acesso Financeiro"
+            >
+              <DollarSign className="h-4 w-4" />
+            </Button>
+          )}
 
           {/* Dropdown do Usuário */}
           <DropdownMenu>
@@ -122,6 +144,20 @@ export const TopHeader = () => {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              
+              {/* Painel de Administração (apenas para master) */}
+              {isMaster && (
+                <>
+                  <DropdownMenuItem
+                    onClick={handleAdminAccess}
+                    className="cursor-pointer px-4 py-2 hover:bg-accent"
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Painel de Administração</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               
               <DropdownMenuItem
                 onClick={handleLogout} 
