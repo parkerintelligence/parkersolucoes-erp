@@ -8,11 +8,15 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertCircle, Check, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useIntegrations } from '@/hooks/useIntegrations';
+import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
 const GuacamoleAdminConfig = () => {
-  const { integrations, createIntegration, updateIntegration, deleteIntegration } = useIntegrations();
+  const { data: integrations } = useIntegrations();
+  const createIntegration = useCreateIntegration();
+  const updateIntegration = useUpdateIntegration();
+  const deleteIntegration = useDeleteIntegration();
+  
   const [config, setConfig] = useState({
     base_url: '',
     username: '',
@@ -64,7 +68,7 @@ const GuacamoleAdminConfig = () => {
       if (guacamoleIntegration) {
         await updateIntegration.mutateAsync({
           id: guacamoleIntegration.id,
-          ...integrationData
+          updates: integrationData
         });
       } else {
         await createIntegration.mutateAsync(integrationData);

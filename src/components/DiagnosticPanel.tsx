@@ -26,7 +26,7 @@ export const DiagnosticPanel = () => {
   const { data: integrations = [] } = useIntegrations();
   const { data: passwords = [] } = usePasswords();
   const { data: companies = [] } = useCompanies();
-  const { exportToPDF } = useLinksExport();
+  const exportToPDF = useLinksExport();
   
   const testEvolutionConnection = useTestEvolutionConnection();
   const syncWhatsApp = useSyncWhatsAppConversations();
@@ -65,7 +65,7 @@ export const DiagnosticPanel = () => {
   const handlePDFTest = async () => {
     console.log('🧪 Iniciando teste de exportação PDF...');
     try {
-      await exportToPDF();
+      await exportToPDF.mutateAsync();
       setLastTest(prev => ({
         ...prev,
         pdf: { success: true, message: 'PDF exportado com sucesso', timestamp: new Date() }
@@ -229,12 +229,18 @@ export const DiagnosticPanel = () => {
 
             <Button
               onClick={handlePDFTest}
-              disabled={linksCount === 0}
+              disabled={linksCount === 0 || exportToPDF.isPending}
               size="sm"
               className="w-full"
             >
-              <Download className="h-3 w-3 mr-2" />
-              Testar Export
+              {exportToPDF.isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <>
+                  <Download className="h-3 w-3 mr-2" />
+                  Testar Export
+                </>
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -256,7 +262,7 @@ export const DiagnosticPanel = () => {
               {guacamoleIntegration && (
                 <>
                   <p>URL: {guacamoleIntegration.base_url}</p>
-                  <p>Data Source: {guacamoleIntegration.directory || 'mysql'}</p>
+                  <p>Data Source: {guacamoleIntegration.api_token || 'postgresql'}</p>
                 </>
               )}
             </div>

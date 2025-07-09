@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,7 +10,7 @@ import { GrafanaAdminConfig } from "@/components/GrafanaAdminConfig";
 import ZabbixAdminConfig from "@/components/ZabbixAdminConfig";
 import { FtpAdminConfig } from "@/components/FtpAdminConfig";
 import { GLPIConfig } from "@/components/GLPIConfig";
-import { GuacamoleAdminConfig } from "@/components/GuacamoleAdminConfig";
+import GuacamoleAdminConfig from "@/components/GuacamoleAdminConfig";
 import { BaculaAdminConfig } from "@/components/BaculaAdminConfig";
 import { AdminCompaniesPanel } from "@/components/AdminCompaniesPanel";
 import SystemSettingsPanel from "@/components/SystemSettingsPanel";

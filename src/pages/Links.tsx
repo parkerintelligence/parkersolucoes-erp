@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { usePasswords } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
@@ -36,7 +37,7 @@ import { toast } from '@/hooks/use-toast';
 const Links = () => {
   const { data: passwords = [], isLoading } = usePasswords();
   const { data: companies = [] } = useCompanies();
-  const { exportToPDF } = useLinksExport();
+  const exportToPDF = useLinksExport();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
   const [selectedService, setSelectedService] = useState('');
@@ -136,7 +137,7 @@ const Links = () => {
       description: "Verificando dados e gerando PDF... Acompanhe os logs no console.",
     });
     
-    await exportToPDF();
+    await exportToPDF.mutateAsync();
   };
 
   if (isLoading) {
@@ -159,6 +160,7 @@ const Links = () => {
           <Button
             onClick={handleExportWithDebug}
             className="bg-blue-900 hover:bg-blue-800 text-white h-8 px-3"
+            disabled={exportToPDF.isPending}
           >
             <Download className="h-4 w-4 mr-1" />
             Exportar
