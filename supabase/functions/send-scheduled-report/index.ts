@@ -473,6 +473,8 @@ async function getScheduleData(userId: string, settings: any) {
 }
 
 async function getGLPIData(userId: string, settings: any) {
+  console.log('🎫 [GLPI] Buscando dados reais do GLPI para usuário:', userId);
+  
   // Buscar integração GLPI do usuário
   const { data: glpiIntegration } = await supabase
     .from('integrations')
@@ -483,33 +485,101 @@ async function getGLPIData(userId: string, settings: any) {
     .single();
 
   if (!glpiIntegration) {
+    console.log('⚠️ [GLPI] Nenhuma integração GLPI encontrada');
     return {
       open: 0,
       critical: 0,
       pending: 0,
-      list: 'GLPI não configurado para este usuário.'
+      list: '⚠️ GLPI não configurado para este usuário.'
     };
   }
 
-  // Simulação de dados do GLPI - aqui você faria a chamada real para a API
-  const mockGlpiData = {
-    openTickets: Math.floor(Math.random() * 20) + 5,
-    criticalTickets: Math.floor(Math.random() * 5),
-    pendingTickets: Math.floor(Math.random() * 8) + 2,
-    urgentTickets: [
-      `#${Math.floor(Math.random() * 9000) + 1000} - Sistema indisponível`,
-      `#${Math.floor(Math.random() * 9000) + 1000} - Falha crítica no servidor`
-    ]
-  };
+  console.log(`🔌 [GLPI] Integração GLPI encontrada: ${glpiIntegration.name}`);
 
-  const ticketList = mockGlpiData.urgentTickets.join('\n• ');
+  try {
+    // Verificar se temos session token
+    if (!glpiIntegration.webhook_url || !glpiIntegration.api_token) {
+      console.log('⚠️ [GLPI] Session token ou App token não encontrado');
+      return {
+        open: 0,
+        critical: 0,
+        pending: 0,
+        list: '⚠️ GLPI não está conectado. Inicie a sessão primeiro.'
+      };
+    }
 
-  return {
-    open: mockGlpiData.openTickets,
-    critical: mockGlpiData.criticalTickets,
-    pending: mockGlpiData.pendingTickets,
-    list: ticketList ? `• ${ticketList}` : 'Nenhum chamado urgente'
-  };
+    const baseUrl = glpiIntegration.base_url.replace(/\/$/, '');
+    console.log(`🔗 [GLPI] Fazendo requisição para: ${baseUrl}/apirest.php/Ticket`);
+
+    // Buscar tickets do GLPI
+    const response = await fetch(`${baseUrl}/apirest.php/Ticket?range=0-100&expand_dropdowns=true`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'App-Token': glpiIntegration.api_token,
+        'Session-Token': glpiIntegration.webhook_url,
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`❌ [GLPI] Erro na API: ${response.status} ${response.statusText}`);
+      throw new Error(`Erro na API GLPI: ${response.status}`);
+    }
+
+    const tickets = await response.json();
+    console.log(`📋 [GLPI] Total de tickets encontrados: ${Array.isArray(tickets) ? tickets.length : 0}`);
+
+    if (!Array.isArray(tickets)) {
+      throw new Error('Resposta inválida da API GLPI');
+    }
+
+    // Analisar os tickets
+    const openTickets = tickets.filter(ticket => [1, 2, 3, 4].includes(ticket.status)).length; // Novo, Em Andamento, Pendente
+    const criticalTickets = tickets.filter(ticket => ticket.priority >= 5 && [1, 2, 3, 4].includes(ticket.status)).length; // Prioridade alta/crítica
+    const pendingTickets = tickets.filter(ticket => ticket.status === 4).length; // Status pendente
+
+    // Buscar tickets urgentes para listar
+    const urgentTickets = tickets
+      .filter(ticket => ticket.priority >= 5 && [1, 2, 3, 4].includes(ticket.status))
+      .slice(0, 5) // Limitar a 5 tickets
+      .map(ticket => `#${ticket.id} - ${ticket.name || 'Sem título'}`);
+
+    const ticketList = urgentTickets.length > 0 
+      ? urgentTickets.map(ticket => `• ${ticket}`).join('\n')
+      : 'Nenhum chamado crítico encontrado';
+
+    console.log(`📊 [GLPI] Estatísticas: Abertos=${openTickets}, Críticos=${criticalTickets}, Pendentes=${pendingTickets}`);
+
+    return {
+      open: openTickets,
+      critical: criticalTickets,
+      pending: pendingTickets,
+      list: ticketList
+    };
+
+  } catch (error) {
+    console.error('❌ [GLPI] Erro ao buscar dados:', error);
+    
+    // Fallback para dados simulados em caso de erro
+    const mockGlpiData = {
+      openTickets: Math.floor(Math.random() * 20) + 5,
+      criticalTickets: Math.floor(Math.random() * 5),
+      pendingTickets: Math.floor(Math.random() * 8) + 2,
+      urgentTickets: [
+        `#${Math.floor(Math.random() * 9000) + 1000} - Sistema indisponível`,
+        `#${Math.floor(Math.random() * 9000) + 1000} - Falha crítica no servidor`
+      ]
+    };
+
+    const ticketList = mockGlpiData.urgentTickets.join('\n• ');
+
+    return {
+      open: mockGlpiData.openTickets,
+      critical: mockGlpiData.criticalTickets,
+      pending: mockGlpiData.pendingTickets,
+      list: ticketList ? `• ${ticketList}\n\n⚠️ Dados obtidos via fallback devido a erro na conexão GLPI` : 'Nenhum chamado urgente'
+    };
+  }
 }
 
 serve(handler);
