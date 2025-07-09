@@ -249,6 +249,6 @@ export const useWasabi = () => {
     downloadObject,
     deleteFile,
     deleteObject,
-    createBucket: createBucket.mutate,
+    createBucket, // Return the full mutation object instead of just .mutate
   };
 };
