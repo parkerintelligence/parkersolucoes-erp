@@ -36,15 +36,6 @@ const reportTypes = {
   }
 };
 
-const cronPresets = [
-  { label: '6:00 - Todo dia', value: '0 6 * * *' },
-  { label: '9:00 - Todo dia', value: '0 9 * * *' },
-  { label: '12:00 - Todo dia', value: '0 12 * * *' },
-  { label: '18:00 - Todo dia', value: '0 18 * * *' },
-  { label: '8:00 - Segunda a Sexta', value: '0 8 * * 1-5' },
-  { label: '9:00 - Segunda a Sexta', value: '0 9 * * 1-5' },
-];
-
 export const ScheduledReportsTable = ({ 
   reports, 
   onEdit, 
@@ -72,8 +63,33 @@ export const ScheduledReportsTable = ({
   };
 
   const formatCronExpression = (cron: string) => {
-    const preset = cronPresets.find(p => p.value === cron);
-    return preset ? preset.label : cron;
+    // Parse cron expression para formato legível
+    const parts = cron.split(' ');
+    if (parts.length >= 5) {
+      const minute = parts[0];
+      const hour = parts[1];
+      const dayOfWeek = parts[4];
+      
+      const time = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+      
+      if (dayOfWeek === '*') {
+        return `${time} - Todo dia`;
+      } else if (dayOfWeek === '1-5') {
+        return `${time} - Seg-Sex`;
+      } else if (dayOfWeek.includes(',')) {
+        const days = dayOfWeek.split(',').map(d => {
+          const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+          return dayNames[parseInt(d)] || d;
+        });
+        return `${time} - ${days.join(', ')}`;
+      } else {
+        const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        const dayName = dayNames[parseInt(dayOfWeek)] || dayOfWeek;
+        return `${time} - ${dayName}`;
+      }
+    }
+    
+    return cron; // Fallback para mostrar a expressão original
   };
 
   const handleDeleteWithConfirm = (id: string, name: string) => {
@@ -114,7 +130,12 @@ export const ScheduledReportsTable = ({
                 <TableCell className="font-medium">{report.name}</TableCell>
                 <TableCell>{getTypeBadge(report.report_type)}</TableCell>
                 <TableCell className="font-mono text-sm">{report.phone_number}</TableCell>
-                <TableCell className="text-sm">{formatCronExpression(report.cron_expression)}</TableCell>
+                <TableCell className="text-sm">
+                  <div className="flex flex-col">
+                    <span className="font-medium">{formatCronExpression(report.cron_expression)}</span>
+                    <span className="text-xs text-gray-500 font-mono">{report.cron_expression}</span>
+                  </div>
+                </TableCell>
                 <TableCell className="text-sm">{formatNextExecution(report.next_execution || '')}</TableCell>
                 <TableCell className="text-center">
                   <Badge variant="secondary">{report.execution_count || 0}</Badge>
