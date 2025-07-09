@@ -95,19 +95,6 @@ export const TopHeader = () => {
 
         {/* Área do Usuário */}
         <div className="flex items-center gap-2">
-          {/* Botão Financeiro (apenas para master) */}
-          {isMaster && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleFinancialAccess}
-              className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
-              title="Acesso Financeiro"
-            >
-              <DollarSign className="h-4 w-4" />
-            </Button>
-          )}
-
           {/* Dropdown do Usuário */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -145,6 +132,20 @@ export const TopHeader = () => {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               
+              {/* Acesso Financeiro (apenas para master) */}
+              {isMaster && (
+                <>
+                  <DropdownMenuItem
+                    onClick={handleFinancialAccess}
+                    className="cursor-pointer px-4 py-2 hover:bg-accent"
+                  >
+                    <DollarSign className="mr-2 h-4 w-4" />
+                    <span>Acesso Financeiro</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+
               {/* Painel de Administração (apenas para master) */}
               {isMaster && (
                 <>

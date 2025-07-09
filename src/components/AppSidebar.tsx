@@ -41,7 +41,7 @@ const menuItems = [
   { title: 'Anotações', url: '/annotations', icon: Notebook, role: 'user' },
   { title: 'Links', url: '/links', icon: Link, role: 'user' },
   { title: 'Modelos WhatsApp', url: '/whatsapp-templates', icon: MessageCircle, role: 'user' },
-  { title: 'Cloud Server', url: '/wasabi', icon: Cloud, role: 'user' },
+  { title: 'Wasabi', url: '/wasabi', icon: Cloud, role: 'user' },
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
   { title: 'Automação', url: '/automation', icon: Settings, role: 'user' },
   { title: 'Zabbix', url: '/zabbix', icon: Activity, role: 'user' },

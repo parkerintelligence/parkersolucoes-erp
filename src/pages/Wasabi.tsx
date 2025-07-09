@@ -49,29 +49,32 @@ const Wasabi = () => {
 
   if (!isConfigured) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="bg-blue-100 p-2 rounded-lg">
-            <Cloud className="h-6 w-6 text-blue-600" />
+      <div className="min-h-screen bg-gray-900 text-white p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="bg-blue-900 p-2 rounded-lg">
+            <Cloud className="h-6 w-6 text-blue-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Cloud Server</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl font-bold text-white">Wasabi Cloud Storage</h1>
+            <p className="text-gray-400">
               Gerencie seus arquivos na nuvem com Wasabi Cloud Storage
             </p>
           </div>
         </div>
 
-        <Card className="border-yellow-200 bg-yellow-50">
+        <Card className="border-yellow-600 bg-yellow-900/20">
           <CardContent className="p-6 text-center">
-            <Cloud className="h-12 w-12 mx-auto mb-4 text-yellow-600" />
-            <h3 className="text-lg font-semibold text-yellow-800 mb-2">Cloud Server não configurado</h3>
-            <p className="text-yellow-700 mb-4">
-              Para usar o Cloud Server, configure a integração Wasabi no painel de administração.
+            <Cloud className="h-12 w-12 mx-auto mb-4 text-yellow-400" />
+            <h3 className="text-lg font-semibold text-yellow-200 mb-2">Wasabi não configurado</h3>
+            <p className="text-yellow-300 mb-4">
+              Para usar o Wasabi, configure a integração no painel de administração.
             </p>
-            <Button variant="outline" onClick={() => window.location.href = '/admin'}>
+            <Button 
+              onClick={() => window.location.href = '/admin'} 
+              className="bg-blue-800 hover:bg-blue-700 text-white border border-yellow-600"
+            >
               <Settings className="mr-2 h-4 w-4" />
-              Configurar Cloud Server
+              Configurar Wasabi
             </Button>
           </CardContent>
         </Card>
@@ -98,332 +101,339 @@ const Wasabi = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="bg-blue-100 p-2 rounded-lg">
-            <Cloud className="h-6 w-6 text-blue-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Cloud Server</h1>
-            <p className="text-muted-foreground">
-              Gerencie seus arquivos na nuvem com Wasabi Cloud Storage
-            </p>
-          </div>
-        </div>
-        <Button 
-          onClick={listBuckets} 
-          disabled={isLoading}
-          variant="outline"
-        >
-          <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
-      </div>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Buckets</CardTitle>
-            <Database className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalBuckets || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Containers de armazenamento
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Objetos</CardTitle>
-            <HardDrive className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalObjects || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Arquivos armazenados
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tamanho Total</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatFileSize(stats?.totalSize || 0)}</div>
-            <p className="text-xs text-muted-foreground">
-              Espaço utilizado
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Status</CardTitle>
-            <Cloud className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm font-medium">Conectado</span>
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-900 p-2 rounded-lg">
+              <Cloud className="h-6 w-6 text-blue-400" />
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Wasabi Cloud Storage</h1>
+              <p className="text-gray-400">
+                Gerencie seus arquivos na nuvem com Wasabi Cloud Storage
+              </p>
+            </div>
+          </div>
+          <Button 
+            onClick={listBuckets} 
+            disabled={isLoading}
+            className="bg-blue-800 hover:bg-blue-700 text-white"
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
 
-      {/* Quick Actions */}
-      <div className="flex gap-4">
-        <Button 
-          onClick={() => setCreateBucketOpen(true)}
-          className="bg-blue-900 hover:bg-blue-800 text-white"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Criar Bucket
-        </Button>
-        <Button 
-          onClick={() => handleUpload(selectedBucket)}
-          disabled={!selectedBucket}
-          className="bg-blue-900 hover:bg-blue-800 text-white"
-        >
-          <Upload className="mr-2 h-4 w-4" />
-          Upload Arquivo
-        </Button>
-        <Button 
-          onClick={listBuckets}
-          variant="outline"
-          className="bg-blue-900 hover:bg-blue-800 text-white border-blue-900"
-        >
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Listar Buckets
-        </Button>
-      </div>
-
-      {error && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-4">
-            <p className="text-red-800">{error}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      <Tabs defaultValue="buckets" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="buckets">Buckets</TabsTrigger>
-          <TabsTrigger value="files">Arquivos</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="buckets" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                Buckets Disponíveis
-              </CardTitle>
-              <CardDescription>
-                Liste e gerencie seus buckets de armazenamento
-              </CardDescription>
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-white">Total de Buckets</CardTitle>
+              <Database className="h-4 w-4 text-blue-400" />
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                <div className="text-center py-8">
-                  <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-                  <p>Carregando buckets...</p>
-                </div>
-              ) : buckets.length === 0 ? (
-                <div className="text-center py-8">
-                  <Database className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-lg font-medium">Nenhum bucket encontrado</p>
-                  <p className="text-sm text-muted-foreground mb-4">Crie seu primeiro bucket para começar.</p>
-                  <Button onClick={() => setCreateBucketOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Criar Primeiro Bucket
-                  </Button>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Região</TableHead>
-                      <TableHead>Data de Criação</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {buckets.map((bucket) => (
-                      <TableRow key={bucket.name}>
-                        <TableCell className="font-medium">{bucket.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">us-east-1</Badge>
-                        </TableCell>
-                        <TableCell>{formatDate(bucket.creationDate)}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              onClick={() => {
-                                setSelectedBucket(bucket.name);
-                                listObjects(bucket.name);
-                              }}
-                            >
-                              <FolderOpen className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleUpload(bucket.name)}
-                            >
-                              <Upload className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+              <div className="text-2xl font-bold text-white">{stats?.totalBuckets || 0}</div>
+              <p className="text-xs text-gray-400">
+                Containers de armazenamento
+              </p>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="files" className="mt-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <HardDrive className="h-5 w-5" />
-                    Arquivos
-                    {selectedBucket && (
-                      <Badge variant="outline" className="ml-2">
-                        {selectedBucket}
-                      </Badge>
-                    )}
-                  </CardTitle>
-                  <CardDescription>
-                    {currentPath ? `Caminho: ${currentPath}` : 'Selecione um bucket para ver os arquivos'}
-                  </CardDescription>
-                </div>
-                {currentPath && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={navigateBack}
-                  >
-                    Voltar
-                  </Button>
-                )}
-              </div>
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-white">Total de Objetos</CardTitle>
+              <HardDrive className="h-4 w-4 text-blue-400" />
             </CardHeader>
             <CardContent>
-              {!selectedBucket ? (
-                <div className="text-center py-8">
-                  <Folder className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-lg font-medium">Selecione um bucket</p>
-                  <p className="text-sm text-muted-foreground">Escolha um bucket na aba anterior para ver os arquivos.</p>
-                </div>
-              ) : isLoading ? (
-                <div className="text-center py-8">
-                  <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-                  <p>Carregando arquivos...</p>
-                </div>
-              ) : objects.length === 0 ? (
-                <div className="text-center py-8">
-                  <HardDrive className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-lg font-medium">Bucket vazio</p>
-                  <p className="text-sm text-muted-foreground mb-4">Faça upload do seu primeiro arquivo.</p>
-                  <Button onClick={() => handleUpload(selectedBucket, selectedFolder)}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Arquivo
-                  </Button>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Tamanho</TableHead>
-                      <TableHead>Última Modificação</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {objects.map((object) => (
-                      <TableRow key={object.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            {object.name?.endsWith('/') ? (
-                              <Folder className="h-4 w-4 text-blue-500" />
-                            ) : (
-                              <HardDrive className="h-4 w-4" />
-                            )}
-                            {object.name}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {object.sizeBytes ? formatFileSize(object.sizeBytes) : '-'}
-                        </TableCell>
-                        <TableCell>
-                          {object.lastModified ? formatDate(object.lastModified) : '-'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            {object.name?.endsWith('/') ? (
-                              <Button
-                                size="sm"
-                                onClick={() => navigateToFolder(object.name!)}
+              <div className="text-2xl font-bold text-white">{stats?.totalObjects || 0}</div>
+              <p className="text-xs text-gray-400">
+                Arquivos armazenados
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-white">Tamanho Total</CardTitle>
+              <Activity className="h-4 w-4 text-blue-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">{formatFileSize(stats?.totalSize || 0)}</div>
+              <p className="text-xs text-gray-400">
+                Espaço utilizado
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-white">Status</CardTitle>
+              <Cloud className="h-4 w-4 text-blue-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-sm font-medium text-white">Conectado</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="flex gap-4">
+          <Button 
+            onClick={() => setCreateBucketOpen(true)}
+            className="bg-blue-800 hover:bg-blue-700 text-white"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Criar Bucket
+          </Button>
+          <Button 
+            onClick={() => handleUpload(selectedBucket)}
+            disabled={!selectedBucket}
+            className="bg-blue-800 hover:bg-blue-700 text-white"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Upload Arquivo
+          </Button>
+          <Button 
+            onClick={listBuckets}
+            className="bg-blue-800 hover:bg-blue-700 text-white border-blue-700"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Listar Buckets
+          </Button>
+        </div>
+
+        {error && (
+          <Card className="border-red-600 bg-red-900/20">
+            <CardContent className="p-4">
+              <p className="text-red-200">{error}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        <Tabs defaultValue="buckets" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 bg-gray-800 border-gray-700">
+            <TabsTrigger value="buckets" className="data-[state=active]:bg-blue-800 data-[state=active]:text-white text-gray-300">Buckets</TabsTrigger>
+            <TabsTrigger value="files" className="data-[state=active]:bg-blue-800 data-[state=active]:text-white text-gray-300">Arquivos</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="buckets" className="mt-6">
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Database className="h-5 w-5" />
+                  Buckets Disponíveis
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Liste e gerencie seus buckets de armazenamento
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
+                    <p className="text-gray-300">Carregando buckets...</p>
+                  </div>
+                ) : buckets.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Database className="h-12 w-12 mx-auto mb-4 text-gray-500" />
+                    <p className="text-lg font-medium text-white">Nenhum bucket encontrado</p>
+                    <p className="text-sm text-gray-400 mb-4">Crie seu primeiro bucket para começar.</p>
+                    <Button onClick={() => setCreateBucketOpen(true)} className="bg-blue-800 hover:bg-blue-700 text-white">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Criar Primeiro Bucket
+                    </Button>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-gray-700">
+                        <TableHead className="text-gray-300">Nome</TableHead>
+                        <TableHead className="text-gray-300">Região</TableHead>
+                        <TableHead className="text-gray-300">Data de Criação</TableHead>
+                        <TableHead className="text-gray-300">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {buckets.map((bucket) => (
+                        <TableRow key={bucket.name} className="border-gray-700">
+                          <TableCell className="font-medium text-white">{bucket.name}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="bg-gray-700 text-gray-300">us-east-1</Badge>
+                          </TableCell>
+                          <TableCell className="text-gray-300">{formatDate(bucket.creationDate)}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                onClick={() => {
+                                  setSelectedBucket(bucket.name);
+                                  listObjects(bucket.name);
+                                }}
+                                className="bg-blue-800 hover:bg-blue-700 text-white"
                               >
                                 <FolderOpen className="h-4 w-4" />
                               </Button>
-                            ) : (
-                              <>
-                                <Button
-                                  size="sm"
-                                  onClick={() => downloadObject(selectedBucket, object.name!)}
-                                >
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => deleteObject(selectedBucket, object.name!)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleUpload(bucket.name)}
+                                className="bg-blue-800 hover:bg-blue-700 text-white"
+                              >
+                                <Upload className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="files" className="mt-6">
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-white">
+                      <HardDrive className="h-5 w-5" />
+                      Arquivos
+                      {selectedBucket && (
+                        <Badge variant="outline" className="ml-2 border-gray-600 text-gray-300">
+                          {selectedBucket}
+                        </Badge>
+                      )}
+                    </CardTitle>
+                    <CardDescription className="text-gray-400">
+                      {currentPath ? `Caminho: ${currentPath}` : 'Selecione um bucket para ver os arquivos'}
+                    </CardDescription>
+                  </div>
+                  {currentPath && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={navigateBack}
+                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                    >
+                      Voltar
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {!selectedBucket ? (
+                  <div className="text-center py-8">
+                    <Folder className="h-12 w-12 mx-auto mb-4 text-gray-500" />
+                    <p className="text-lg font-medium text-white">Selecione um bucket</p>
+                    <p className="text-sm text-gray-400">Escolha um bucket na aba anterior para ver os arquivos.</p>
+                  </div>
+                ) : isLoading ? (
+                  <div className="text-center py-8">
+                    <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
+                    <p className="text-gray-300">Carregando arquivos...</p>
+                  </div>
+                ) : objects.length === 0 ? (
+                  <div className="text-center py-8">
+                    <HardDrive className="h-12 w-12 mx-auto mb-4 text-gray-500" />
+                    <p className="text-lg font-medium text-white">Bucket vazio</p>
+                    <p className="text-sm text-gray-400 mb-4">Faça upload do seu primeiro arquivo.</p>
+                    <Button onClick={() => handleUpload(selectedBucket, selectedFolder)} className="bg-blue-800 hover:bg-blue-700 text-white">
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Arquivo
+                    </Button>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-gray-700">
+                        <TableHead className="text-gray-300">Nome</TableHead>
+                        <TableHead className="text-gray-300">Tamanho</TableHead>
+                        <TableHead className="text-gray-300">Última Modificação</TableHead>
+                        <TableHead className="text-gray-300">Ações</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                    </TableHeader>
+                    <TableBody>
+                      {objects.map((object) => (
+                        <TableRow key={object.id} className="border-gray-700">
+                          <TableCell className="font-medium text-white">
+                            <div className="flex items-center gap-2">
+                              {object.name?.endsWith('/') ? (
+                                <Folder className="h-4 w-4 text-blue-400" />
+                              ) : (
+                                <HardDrive className="h-4 w-4 text-gray-400" />
+                              )}
+                              {object.name}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-gray-300">
+                            {object.sizeBytes ? formatFileSize(object.sizeBytes) : '-'}
+                          </TableCell>
+                          <TableCell className="text-gray-300">
+                            {object.lastModified ? formatDate(object.lastModified) : '-'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              {object.name?.endsWith('/') ? (
+                                <Button
+                                  size="sm"
+                                  onClick={() => navigateToFolder(object.name!)}
+                                  className="bg-blue-800 hover:bg-blue-700 text-white"
+                                >
+                                  <FolderOpen className="h-4 w-4" />
+                                </Button>
+                              ) : (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => downloadObject(selectedBucket, object.name!)}
+                                    className="bg-blue-800 hover:bg-blue-700 text-white"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => deleteObject(selectedBucket, object.name!)}
+                                    className="bg-red-800 hover:bg-red-700 text-white"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
-      <WasabiCreateBucketDialog
-        open={createBucketOpen}
-        onOpenChange={setCreateBucketOpen}
-        onCreateBucket={(bucketName) => createBucket.mutate(bucketName)}
-        isCreating={createBucket.isPending}
-      />
+        <WasabiCreateBucketDialog
+          open={createBucketOpen}
+          onOpenChange={setCreateBucketOpen}
+          onCreateBucket={(bucketName) => createBucket.mutate(bucketName)}
+          isCreating={createBucket.isPending}
+        />
 
-      <WasabiUploadDialog
-        open={uploadDialogOpen}
-        onOpenChange={setUploadDialogOpen}
-        selectedBucket={selectedBucket}
-        bucketName={selectedBucket}
-        folder={selectedFolder}
-        onUpload={uploadFile}
-        isUploading={false}
-      />
+        <WasabiUploadDialog
+          open={uploadDialogOpen}
+          onOpenChange={setUploadDialogOpen}
+          selectedBucket={selectedBucket}
+          bucketName={selectedBucket}
+          folder={selectedFolder}
+          onUpload={uploadFile}
+          isUploading={false}
+        />
+      </div>
     </div>
   );
 };

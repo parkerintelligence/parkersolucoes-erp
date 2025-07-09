@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Calendar, Clock, AlertTriangle, User, Settings } from 'lucide-react';
 import { useCreateGLPIScheduledTicket, useUpdateGLPIScheduledTicket, GLPIScheduledTicket } from '@/hooks/useGLPIScheduledTickets';
+import { TimeSelector } from './TimeSelector';
 import { toast } from '@/hooks/use-toast';
 
 interface GLPIScheduledTicketFormProps {
@@ -23,17 +25,6 @@ const PRIORITY_OPTIONS = [
   { value: 4, label: 'Alta' },
   { value: 5, label: 'Muito Alta' },
   { value: 6, label: 'Crítica' },
-];
-
-const CRON_PRESETS = [
-  { label: '6:00 - Todo dia', value: '0 6 * * *' },
-  { label: '9:00 - Todo dia', value: '0 9 * * *' },
-  { label: '12:00 - Todo dia', value: '0 12 * * *' },
-  { label: '18:00 - Todo dia', value: '0 18 * * *' },
-  { label: '8:00 - Segunda a Sexta', value: '0 8 * * 1-5' },
-  { label: '9:00 - Segunda a Sexta', value: '0 9 * * 1-5' },
-  { label: '6:00 - Toda Segunda', value: '0 6 * * 1' },
-  { label: '9:00 - Todo Domingo', value: '0 9 * * 0' },
 ];
 
 export const GLPIScheduledTicketForm = ({ editingTicket, onSave, onCancel }: GLPIScheduledTicketFormProps) => {
@@ -87,229 +78,235 @@ export const GLPIScheduledTicketForm = ({ editingTicket, onSave, onCancel }: GLP
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Informações Básicas
-          </CardTitle>
-          <CardDescription>
-            Configure as informações básicas do agendamento
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome do Agendamento *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Ex: Verificação Semanal de Servidores"
+    <div className="space-y-6 text-white">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <Card className="bg-gray-700 border-gray-600">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Calendar className="h-5 w-5" />
+              Informações Básicas
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              Configure as informações básicas do agendamento
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-white">Nome do Agendamento *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Ex: Verificação Semanal de Servidores"
+                  className="bg-gray-600 border-gray-500 text-white placeholder-gray-400"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <TimeSelector
+                  value={formData.cron_expression}
+                  onChange={(value) => setFormData({ ...formData, cron_expression: value })}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch 
+                id="is_active"
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
               />
+              <Label htmlFor="is_active" className="text-white">Agendamento ativo</Label>
             </div>
-            
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-700 border-gray-600">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <AlertTriangle className="h-5 w-5" />
+              Conteúdo do Chamado
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              Configure o título e descrição do chamado que será criado no GLPI
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="cron_expression">Horário de Execução *</Label>
-              <Select value={formData.cron_expression} onValueChange={(value) => setFormData({ ...formData, cron_expression: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CRON_PRESETS.map((preset) => (
-                    <SelectItem key={preset.value} value={preset.value}>
-                      {preset.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch 
-              id="is_active"
-              checked={formData.is_active}
-              onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-            />
-            <Label htmlFor="is_active">Agendamento ativo</Label>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            Conteúdo do Chamado
-          </CardTitle>
-          <CardDescription>
-            Configure o título e descrição do chamado que será criado no GLPI
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Título do Chamado *</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Ex: Verificação de Status dos Servidores"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="content">Descrição do Chamado *</Label>
-            <Textarea
-              id="content"
-              value={formData.content}
-              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              placeholder="Descreva detalhadamente o que deve ser verificado ou executado..."
-              rows={4}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Parâmetros do Chamado
-          </CardTitle>
-          <CardDescription>
-            Configure prioridade, urgência e outros parâmetros do chamado no GLPI
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="priority">Prioridade</Label>
-              <Select value={formData.priority.toString()} onValueChange={(value) => setFormData({ ...formData, priority: parseInt(value) })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORITY_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value.toString()}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="urgency">Urgência</Label>
-              <Select value={formData.urgency.toString()} onValueChange={(value) => setFormData({ ...formData, urgency: parseInt(value) })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORITY_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value.toString()}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="impact">Impacto</Label>
-              <Select value={formData.impact.toString()} onValueChange={(value) => setFormData({ ...formData, impact: parseInt(value) })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORITY_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value.toString()}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="type">Tipo do Chamado</Label>
+              <Label htmlFor="title" className="text-white">Título do Chamado *</Label>
               <Input
-                id="type"
-                type="number"
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: parseInt(e.target.value) || 1 })}
-                placeholder="1"
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Ex: Verificação de Status dos Servidores"
+                className="bg-gray-600 border-gray-500 text-white placeholder-gray-400"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="entity_id">ID da Entidade</Label>
-              <Input
-                id="entity_id"
-                type="number"
-                value={formData.entity_id}
-                onChange={(e) => setFormData({ ...formData, entity_id: parseInt(e.target.value) || 0 })}
-                placeholder="0"
+              <Label htmlFor="content" className="text-white">Descrição do Chamado *</Label>
+              <Textarea
+                id="content"
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                placeholder="Descreva detalhadamente o que deve ser verificado ou executado..."
+                rows={4}
+                className="bg-gray-600 border-gray-500 text-white placeholder-gray-400"
               />
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="category_id">ID da Categoria (opcional)</Label>
-              <Input
-                id="category_id"
-                type="number"
-                value={formData.category_id || ''}
-                onChange={(e) => setFormData({ ...formData, category_id: e.target.value ? parseInt(e.target.value) : undefined })}
-                placeholder="Ex: 5"
-              />
+        <Card className="bg-gray-700 border-gray-600">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Settings className="h-5 w-5" />
+              Parâmetros do Chamado
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              Configure prioridade, urgência e outros parâmetros do chamado no GLPI
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="priority" className="text-white">Prioridade</Label>
+                <Select value={formData.priority.toString()} onValueChange={(value) => setFormData({ ...formData, priority: parseInt(value) })}>
+                  <SelectTrigger className="bg-gray-600 border-gray-500 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-600 border-gray-500">
+                    {PRIORITY_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value.toString()} className="text-white hover:bg-gray-500">
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="urgency" className="text-white">Urgência</Label>
+                <Select value={formData.urgency.toString()} onValueChange={(value) => setFormData({ ...formData, urgency: parseInt(value) })}>
+                  <SelectTrigger className="bg-gray-600 border-gray-500 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-600 border-gray-500">
+                    {PRIORITY_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value.toString()} className="text-white hover:bg-gray-500">
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="impact" className="text-white">Impacto</Label>
+                <Select value={formData.impact.toString()} onValueChange={(value) => setFormData({ ...formData, impact: parseInt(value) })}>
+                  <SelectTrigger className="bg-gray-600 border-gray-500 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-600 border-gray-500">
+                    {PRIORITY_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value.toString()} className="text-white hover:bg-gray-500">
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="assign_user_id">ID Usuário Responsável (opcional)</Label>
-              <Input
-                id="assign_user_id"
-                type="number"
-                value={formData.assign_user_id || ''}
-                onChange={(e) => setFormData({ ...formData, assign_user_id: e.target.value ? parseInt(e.target.value) : undefined })}
-                placeholder="Ex: 2"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="type" className="text-white">Tipo do Chamado</Label>
+                <Input
+                  id="type"
+                  type="number"
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: parseInt(e.target.value) || 1 })}
+                  placeholder="1"
+                  className="bg-gray-600 border-gray-500 text-white placeholder-gray-400"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="entity_id" className="text-white">ID da Entidade</Label>
+                <Input
+                  id="entity_id"
+                  type="number"
+                  value={formData.entity_id}
+                  onChange={(e) => setFormData({ ...formData, entity_id: parseInt(e.target.value) || 0 })}
+                  placeholder="0"
+                  className="bg-gray-600 border-gray-500 text-white placeholder-gray-400"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="assign_group_id">ID Grupo Responsável (opcional)</Label>
-              <Input
-                id="assign_group_id"
-                type="number"
-                value={formData.assign_group_id || ''}
-                onChange={(e) => setFormData({ ...formData, assign_group_id: e.target.value ? parseInt(e.target.value) : undefined })}
-                placeholder="Ex: 3"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="category_id" className="text-white">ID da Categoria (opcional)</Label>
+                <Input
+                  id="category_id"
+                  type="number"
+                  value={formData.category_id || ''}
+                  onChange={(e) => setFormData({ ...formData, category_id: e.target.value ? parseInt(e.target.value) : undefined })}
+                  placeholder="Ex: 5"
+                  className="bg-gray-600 border-gray-500 text-white placeholder-gray-400"
+                />
+              </div>
 
-      <div className="flex gap-3">
-        <Button 
-          type="submit" 
-          disabled={createTicket.isPending || updateTicket.isPending}
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          {editingTicket ? 'Atualizar' : 'Criar'} Agendamento
-        </Button>
-        
-        {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancelar
+              <div className="space-y-2">
+                <Label htmlFor="assign_user_id" className="text-white">ID Usuário Responsável (opcional)</Label>
+                <Input
+                  id="assign_user_id"
+                  type="number"
+                  value={formData.assign_user_id || ''}
+                  onChange={(e) => setFormData({ ...formData, assign_user_id: e.target.value ? parseInt(e.target.value) : undefined })}
+                  placeholder="Ex: 2"
+                  className="bg-gray-600 border-gray-500 text-white placeholder-gray-400"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="assign_group_id" className="text-white">ID Grupo Responsável (opcional)</Label>
+                <Input
+                  id="assign_group_id"
+                  type="number"
+                  value={formData.assign_group_id || ''}
+                  onChange={(e) => setFormData({ ...formData, assign_group_id: e.target.value ? parseInt(e.target.value) : undefined })}
+                  placeholder="Ex: 3"
+                  className="bg-gray-600 border-gray-500 text-white placeholder-gray-400"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex gap-3">
+          <Button 
+            type="submit" 
+            disabled={createTicket.isPending || updateTicket.isPending}
+            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white"
+          >
+            <Plus className="h-4 w-4" />
+            {editingTicket ? 'Atualizar' : 'Criar'} Agendamento
           </Button>
-        )}
-      </div>
-    </form>
+          
+          {onCancel && (
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onCancel}
+              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+            >
+              Cancelar
+            </Button>
+          )}
+        </div>
+      </form>
+    </div>
   );
 };

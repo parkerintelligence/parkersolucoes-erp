@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -97,202 +98,209 @@ const GLPIScheduledTicketsView = () => {
 
   if (!glpiIntegration) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ExternalLink className="h-5 w-5" />
-            Agenda de Chamados GLPI
-          </CardTitle>
-          <CardDescription>
-            Configure agendamentos automáticos para criação de chamados no GLPI
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-            <p className="text-lg font-medium text-gray-900 mb-2">GLPI não configurado</p>
-            <p className="text-gray-600 mb-4">
-              Para usar esta funcionalidade, configure primeiro a integração com o GLPI na área de administração.
-            </p>
-            <Button variant="outline">
-              <Settings className="mr-2 h-4 w-4" />
-              Configurar GLPI
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="min-h-screen bg-gray-900 text-white p-6">
+        <Card className="border-yellow-600 bg-yellow-900/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <ExternalLink className="h-5 w-5" />
+              Agenda de Chamados GLPI
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              Configure agendamentos automáticos para criação de chamados no GLPI
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+              <p className="text-lg font-medium text-yellow-200 mb-2">GLPI não configurado</p>
+              <p className="text-yellow-300 mb-4">
+                Para usar esta funcionalidade, configure primeiro a integração com o GLPI na área de administração.
+              </p>
+              <Button variant="outline" className="bg-orange-800 hover:bg-orange-700 text-white border-orange-600">
+                <Settings className="mr-2 h-4 w-4" />
+                Configurar GLPI
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="text-muted-foreground">Carregando agendamentos...</div>
+      <div className="min-h-screen bg-gray-900 text-white">
+        <div className="flex justify-center items-center h-96">
+          <div className="text-gray-400">Carregando agendamentos...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-lg font-semibold">Agenda de Chamados GLPI</h3>
-          <p className="text-sm text-muted-foreground">
-            Configure agendamentos automáticos para criação de chamados no GLPI
-          </p>
-        </div>
-        
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={handleCreateNew}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Agendamento
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingTicket ? 'Editar Agendamento' : 'Novo Agendamento de Chamado'}
-              </DialogTitle>
-              <DialogDescription>
-                Configure um agendamento automático para criação de chamados no GLPI
-              </DialogDescription>
-            </DialogHeader>
-            <GLPIScheduledTicketForm
-              editingTicket={editingTicket}
-              onSave={handleSave}
-              onCancel={() => setIsDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="text-2xl font-bold text-blue-900">{scheduledTickets.length}</p>
-                <p className="text-sm text-blue-600">Total de Agendamentos</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-              <div>
-                <p className="text-2xl font-bold text-blue-900">
-                  {scheduledTickets.filter(t => t.is_active).length}
-                </p>
-                <p className="text-sm text-blue-600">Ativos</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-purple-500" />
-              <div>
-                <p className="text-2xl font-bold text-blue-900">
-                  {scheduledTickets.reduce((sum, t) => sum + t.execution_count, 0)}
-                </p>
-                <p className="text-sm text-blue-600">Total de Execuções</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tickets Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Agendamentos Configurados</CardTitle>
-          <CardDescription>
-            Lista de todos os agendamentos automáticos de chamados no GLPI
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {scheduledTickets.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-lg font-medium mb-2">Nenhum agendamento configurado</p>
-              <p className="mb-4">Crie seu primeiro agendamento automático de chamados.</p>
-              <Button onClick={handleCreateNew}>
+    <div className="min-h-screen bg-gray-900 text-white p-6">
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-semibold text-white">Agenda de Chamados GLPI</h3>
+            <p className="text-sm text-gray-400">
+              Configure agendamentos automáticos para criação de chamados no GLPI
+            </p>
+          </div>
+          
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={handleCreateNew} className="bg-orange-600 hover:bg-orange-700 text-white">
                 <Plus className="mr-2 h-4 w-4" />
-                Criar Primeiro Agendamento
+                Novo Agendamento
               </Button>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Título do Chamado</TableHead>
-                  <TableHead>Prioridade</TableHead>
-                  <TableHead>Horário</TableHead>
-                  <TableHead>Próxima Execução</TableHead>
-                  <TableHead>Execuções</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {scheduledTickets.map((ticket) => (
-                  <TableRow key={ticket.id}>
-                    <TableCell className="font-medium">{ticket.name}</TableCell>
-                    <TableCell>{ticket.title}</TableCell>
-                    <TableCell>
-                      <Badge className={PRIORITY_MAP[ticket.priority]?.color || 'bg-gray-100 text-gray-800'}>
-                        {PRIORITY_MAP[ticket.priority]?.label || `Prioridade ${ticket.priority}`}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{formatCronExpression(ticket.cron_expression)}</TableCell>
-                    <TableCell>{formatNextExecution(ticket.next_execution || '')}</TableCell>
-                    <TableCell>{ticket.execution_count}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          checked={ticket.is_active}
-                          onCheckedChange={() => handleToggleActive(ticket)}
-                        />
-                        <span className="text-sm">
-                          {ticket.is_active ? 'Ativo' : 'Inativo'}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditTicket(ticket)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteTicket(ticket.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700">
+              <DialogHeader>
+                <DialogTitle className="text-white">
+                  {editingTicket ? 'Editar Agendamento' : 'Novo Agendamento de Chamado'}
+                </DialogTitle>
+                <DialogDescription className="text-gray-400">
+                  Configure um agendamento automático para criação de chamados no GLPI
+                </DialogDescription>
+              </DialogHeader>
+              <GLPIScheduledTicketForm
+                editingTicket={editingTicket}
+                onSave={handleSave}
+                onCancel={() => setIsDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="bg-gray-800 border-gray-700">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-orange-500" />
+                <div>
+                  <p className="text-2xl font-bold text-white">{scheduledTickets.length}</p>
+                  <p className="text-sm text-gray-400">Total de Agendamentos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gray-800 border-gray-700">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <div>
+                  <p className="text-2xl font-bold text-white">
+                    {scheduledTickets.filter(t => t.is_active).length}
+                  </p>
+                  <p className="text-sm text-gray-400">Ativos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gray-800 border-gray-700">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-purple-500" />
+                <div>
+                  <p className="text-2xl font-bold text-white">
+                    {scheduledTickets.reduce((sum, t) => sum + t.execution_count, 0)}
+                  </p>
+                  <p className="text-sm text-gray-400">Total de Execuções</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tickets Table */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white">Agendamentos Configurados</CardTitle>
+            <CardDescription className="text-gray-400">
+              Lista de todos os agendamentos automáticos de chamados no GLPI
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {scheduledTickets.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-500" />
+                <p className="text-lg font-medium mb-2 text-white">Nenhum agendamento configurado</p>
+                <p className="mb-4">Crie seu primeiro agendamento automático de chamados.</p>
+                <Button onClick={handleCreateNew} className="bg-orange-600 hover:bg-orange-700 text-white">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Criar Primeiro Agendamento
+                </Button>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-gray-700">
+                    <TableHead className="text-gray-300">Nome</TableHead>
+                    <TableHead className="text-gray-300">Título do Chamado</TableHead>
+                    <TableHead className="text-gray-300">Prioridade</TableHead>
+                    <TableHead className="text-gray-300">Horário</TableHead>
+                    <TableHead className="text-gray-300">Próxima Execução</TableHead>
+                    <TableHead className="text-gray-300">Execuções</TableHead>
+                    <TableHead className="text-gray-300">Status</TableHead>
+                    <TableHead className="text-gray-300">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {scheduledTickets.map((ticket) => (
+                    <TableRow key={ticket.id} className="border-gray-700">
+                      <TableCell className="font-medium text-white">{ticket.name}</TableCell>
+                      <TableCell className="text-white">{ticket.title}</TableCell>
+                      <TableCell>
+                        <Badge className={PRIORITY_MAP[ticket.priority]?.color || 'bg-gray-100 text-gray-800'}>
+                          {PRIORITY_MAP[ticket.priority]?.label || `Prioridade ${ticket.priority}`}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-white">{formatCronExpression(ticket.cron_expression)}</TableCell>
+                      <TableCell className="text-white">{formatNextExecution(ticket.next_execution || '')}</TableCell>
+                      <TableCell className="text-white">{ticket.execution_count}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            checked={ticket.is_active}
+                            onCheckedChange={() => handleToggleActive(ticket)}
+                          />
+                          <span className="text-sm text-white">
+                            {ticket.is_active ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditTicket(ticket)}
+                            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-red-400 hover:text-red-300 border-gray-600 hover:bg-gray-700"
+                            onClick={() => handleDeleteTicket(ticket.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
