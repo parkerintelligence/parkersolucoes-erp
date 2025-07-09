@@ -38,7 +38,26 @@ const Zabbix = () => {
   const triggers = triggersQuery.data || [];
   
   const isLoading = hostsQuery.isLoading || problemsQuery.isLoading || groupsQuery.isLoading || triggersQuery.isLoading;
-  const error = hostsQuery.error || problemsQuery.error || groupsQuery.error || triggersQuery.isLoading;
+  
+  // Fix error handling - check if any of the errors are actual Error objects
+  const getErrorMessage = (error: unknown): string | null => {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (error && typeof error === 'object' && 'message' in error) {
+      return String(error.message);
+    }
+    if (error) {
+      return String(error);
+    }
+    return null;
+  };
+
+  const errorMessage = getErrorMessage(hostsQuery.error) || 
+                      getErrorMessage(problemsQuery.error) || 
+                      getErrorMessage(groupsQuery.error) || 
+                      getErrorMessage(triggersQuery.error);
+
   const isConfigured = !!zabbixAPI.integration;
 
   const handleRefresh = async () => {
@@ -165,7 +184,7 @@ const Zabbix = () => {
       </div>
 
       {/* Error Display */}
-      {error && (
+      {errorMessage && (
         <Card className="border-red-200 bg-red-50">
           <CardHeader>
             <CardTitle className="text-red-800 flex items-center gap-2">
@@ -174,7 +193,7 @@ const Zabbix = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-red-700">{error.message}</p>
+            <p className="text-red-700">{errorMessage}</p>
             <p className="text-sm text-red-600 mt-2">
               Verifique se o Zabbix está acessível em: {zabbixAPI.integration?.base_url}
             </p>
