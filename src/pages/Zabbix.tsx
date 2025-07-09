@@ -1,10 +1,11 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { 
   Activity, 
   Server, 
@@ -14,10 +15,14 @@ import {
   RefreshCcw, 
   Monitor,
   Users,
-  ExternalLink
+  ExternalLink,
+  Webhook,
+  Search,
+  Filter
 } from 'lucide-react';
 import { useZabbixAPI } from '@/hooks/useZabbixAPI';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
+import { ZabbixWebhookManager } from '@/components/ZabbixWebhookManager';
 import { toast } from '@/hooks/use-toast';
 
 const Zabbix = () => {
@@ -30,6 +35,11 @@ const Zabbix = () => {
 
   const { createTicket } = useGLPIExpanded();
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Filtros
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [severityFilter, setSeverityFilter] = useState('all');
 
   // Carregar dados do Zabbix
   const { data: hosts = [], isLoading: hostsLoading, refetch: refetchHosts, error: hostsError } = useHosts();
@@ -166,17 +176,6 @@ const Zabbix = () => {
     return acc;
   }, {} as Record<string, typeof hosts>);
 
-  // Agrupar hosts por status
-  const hostsByStatus = hosts.reduce((acc, host) => {
-    const availability = getHostAvailability(host);
-    const statusKey = availability.status;
-    if (!acc[statusKey]) {
-      acc[statusKey] = [];
-    }
-    acc[statusKey].push(host);
-    return acc;
-  }, {} as Record<string, typeof hosts>);
-
   // Agrupar problemas por host
   const groupedProblems = problems.reduce((acc, problem) => {
     const hostName = problem.hosts?.[0]?.name || 'Host Desconhecido';
@@ -262,14 +261,6 @@ const Zabbix = () => {
               </p>
             </div>
           </div>
-          <Button 
-            onClick={handleRefreshAll} 
-            disabled={refreshing}
-            className="bg-blue-800 hover:bg-blue-700 text-white"
-          >
-            <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
         </div>
 
         {/* Debug Section - Show errors if any */}
@@ -297,6 +288,76 @@ const Zabbix = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Card de Sessão com Filtros */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Activity className="h-5 w-5" />
+                  Sessão e Controles
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Status da conexão e filtros de dados
+                </CardDescription>
+              </div>
+              <Button 
+                onClick={handleRefreshAll} 
+                disabled={refreshing}
+                className="bg-blue-800 hover:bg-blue-700 text-white"
+              >
+                <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                />
+              </div>
+              
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                  <SelectValue placeholder="Filtrar por status" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  <SelectItem value="all" className="text-white">Todos os status</SelectItem>
+                  <SelectItem value="active" className="text-white">Ativo</SelectItem>
+                  <SelectItem value="inactive" className="text-white">Inativo</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={severityFilter} onValueChange={setSeverityFilter}>
+                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                  <SelectValue placeholder="Filtrar por severidade" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  <SelectItem value="all" className="text-white">Todas as severidades</SelectItem>
+                  <SelectItem value="5" className="text-white">Desastre</SelectItem>
+                  <SelectItem value="4" className="text-white">Alta</SelectItem>
+                  <SelectItem value="3" className="text-white">Média</SelectItem>
+                  <SelectItem value="2" className="text-white">Aviso</SelectItem>
+                  <SelectItem value="1" className="text-white">Informação</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-400">
+                  {problems.length} problema{problems.length !== 1 ? 's' : ''} | {hosts.length} host{hosts.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Cards de estatísticas */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -350,9 +411,13 @@ const Zabbix = () => {
         </div>
 
         <Tabs defaultValue="problems" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-800 border-gray-700">
+          <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
             <TabsTrigger value="problems" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Problemas</TabsTrigger>
             <TabsTrigger value="hosts" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Hosts</TabsTrigger>
+            <TabsTrigger value="webhooks" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+              <Webhook className="mr-2 h-4 w-4" />
+              Webhooks
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="problems" className="mt-6">
@@ -457,7 +522,6 @@ const Zabbix = () => {
                   </div>
                 ) : (
                   <Tabs defaultValue={Object.keys(groupedHosts)[0] || 'all'} className="w-full">
-                    {/* Abas por grupo de hosts */}
                     <TabsList className="grid w-full bg-gray-700 border-gray-600 mb-6" style={{gridTemplateColumns: `repeat(${Object.keys(groupedHosts).length}, minmax(0, 1fr))`}}>
                       {Object.keys(groupedHosts).map((groupName) => (
                         <TabsTrigger 
@@ -473,11 +537,9 @@ const Zabbix = () => {
                       ))}
                     </TabsList>
                     
-                    {/* Conteúdo das abas por grupo */}
                     {Object.entries(groupedHosts).map(([groupName, groupHosts]) => (
                       <TabsContent key={groupName} value={groupName}>
                         <Tabs defaultValue="available" className="w-full">
-                          {/* Abas por status dentro de cada grupo */}
                           <TabsList className="grid w-full grid-cols-4 bg-gray-700 border-gray-600 mb-4">
                             <TabsTrigger value="available" className="data-[state=active]:bg-gray-600 data-[state=active]:text-white">
                               Disponível
@@ -505,7 +567,6 @@ const Zabbix = () => {
                             </TabsTrigger>
                           </TabsList>
 
-                          {/* Conteúdo das abas por status */}
                           {['available', 'unavailable', 'unknown', 'disabled'].map(status => (
                             <TabsContent key={status} value={status}>
                               {renderHostsTable(groupHosts.filter(host => getHostAvailability(host).status === status))}
@@ -518,6 +579,10 @@ const Zabbix = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="webhooks" className="mt-6">
+            <ZabbixWebhookManager />
           </TabsContent>
         </Tabs>
       </div>
