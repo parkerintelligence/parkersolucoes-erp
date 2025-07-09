@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
 
@@ -22,6 +23,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const { report_id }: ScheduledReportRequest = await req.json();
+    console.log(`🚀 Iniciando envio do relatório: ${report_id}`);
     
     // Buscar configuração do relatório
     const { data: report, error: reportError } = await supabase
@@ -32,8 +34,11 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (reportError || !report) {
+      console.error('❌ Relatório não encontrado:', reportError);
       throw new Error('Relatório não encontrado ou inativo');
     }
+
+    console.log(`📋 Relatório encontrado: ${report.name} (${report.report_type})`);
 
     // Buscar Evolution API integration do usuário
     const { data: integration, error: integrationError } = await supabase
@@ -45,8 +50,11 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (integrationError || !integration) {
+      console.error('❌ Evolution API não configurada:', integrationError);
       throw new Error('Evolution API não configurada para este usuário');
     }
+
+    console.log(`🔌 Integration encontrada: ${integration.name}`);
 
     // Buscar template da mensagem
     const { data: template, error: templateError } = await supabase
@@ -58,53 +66,101 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (templateError || !template) {
+      console.error('❌ Template não encontrado:', templateError);
       throw new Error(`Template não encontrado para o tipo: ${report.report_type}`);
     }
 
+    console.log(`📝 Template encontrado: ${template.name}`);
+
     // Gerar conteúdo baseado no template
     const message = await generateMessageFromTemplate(template, report.report_type, report.user_id, report.settings);
+    console.log(`💬 Mensagem gerada (${message.length} caracteres)`);
 
     // Enviar mensagem via WhatsApp
     const instanceName = integration.instance_name || 'main_instance';
-    const whatsappResponse = await fetch(`${integration.base_url}/message/sendText/${instanceName}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': integration.api_token || '',
-      },
-      body: JSON.stringify({
-        number: report.phone_number.replace(/\D/g, ''),
-        text: message,
-      }),
-    });
+    const cleanPhoneNumber = report.phone_number.replace(/\D/g, '');
+    
+    // Testar múltiplos endpoints da Evolution API
+    const endpoints = [
+      `/message/sendText/${instanceName}`,
+      `/sendMessage/${instanceName}`,
+      `/${instanceName}/message/sendText`,
+      `/${instanceName}/sendMessage`
+    ];
 
-    if (!whatsappResponse.ok) {
-      throw new Error('Falha ao enviar mensagem WhatsApp');
+    let whatsappSuccess = false;
+    let lastError = '';
+
+    for (const endpoint of endpoints) {
+      try {
+        const url = `${integration.base_url}${endpoint}`;
+        console.log(`🔄 Tentando endpoint: ${url}`);
+        
+        const whatsappResponse = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': integration.api_token || '',
+          },
+          body: JSON.stringify({
+            number: cleanPhoneNumber,
+            text: message,
+          }),
+        });
+
+        console.log(`📡 Resposta do WhatsApp: ${whatsappResponse.status}`);
+
+        if (whatsappResponse.ok) {
+          const responseData = await whatsappResponse.json();
+          console.log('✅ Mensagem enviada com sucesso via', endpoint);
+          whatsappSuccess = true;
+          break;
+        } else {
+          const errorText = await whatsappResponse.text();
+          lastError = `${whatsappResponse.status}: ${errorText}`;
+          console.log(`❌ Falha em ${endpoint}: ${lastError}`);
+        }
+      } catch (error) {
+        lastError = error.message;
+        console.log(`❌ Erro de rede em ${endpoint}: ${lastError}`);
+      }
+    }
+
+    if (!whatsappSuccess) {
+      throw new Error(`Falha ao enviar mensagem WhatsApp: ${lastError}`);
     }
 
     // Atualizar registro de execução
+    const nextExecution = calculateNextExecution(report.cron_expression);
     await supabase
       .from('scheduled_reports')
       .update({
         last_execution: new Date().toISOString(),
-        execution_count: report.execution_count + 1,
-        next_execution: calculateNextExecution(report.cron_expression)
+        execution_count: (report.execution_count || 0) + 1,
+        next_execution: nextExecution
       })
       .eq('id', report_id);
+
+    console.log(`✅ Relatório enviado com sucesso para ${cleanPhoneNumber}`);
 
     return new Response(JSON.stringify({ 
       success: true, 
       message: 'Relatório enviado com sucesso',
-      report_type: report.report_type 
+      report_type: report.report_type,
+      phone_number: cleanPhoneNumber,
+      next_execution: nextExecution
     }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
 
   } catch (error: any) {
-    console.error("Error in send-scheduled-report function:", error);
+    console.error("❌ Erro na função send-scheduled-report:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -116,30 +172,35 @@ const handler = async (req: Request): Promise<Response> => {
 // Função para gerar mensagem baseada em template
 async function generateMessageFromTemplate(template: any, reportType: string, userId: string, settings: any): Promise<string> {
   const currentDate = new Date().toLocaleDateString('pt-BR');
+  const currentTime = new Date().toLocaleTimeString('pt-BR');
   let messageContent = template.body;
 
-  // Substituir variáveis do template baseadas no tipo de relatório
+  // Substituir variáveis básicas
+  messageContent = messageContent
+    .replace(/\{\{date\}\}/g, currentDate)
+    .replace(/\{\{time\}\}/g, currentTime);
+
+  // Substituir variáveis específicas baseadas no tipo de relatório
   switch (reportType) {
     case 'backup_alert':
       const backupData = await getBackupData(userId, settings);
       messageContent = messageContent
-        .replace(/\{\{date\}\}/g, currentDate)
         .replace(/\{\{hours_threshold\}\}/g, backupData.hoursThreshold.toString())
-        .replace(/\{\{backup_list\}\}/g, backupData.list);
+        .replace(/\{\{backup_list\}\}/g, backupData.list)
+        .replace(/\{\{total_outdated\}\}/g, backupData.outdatedCount.toString());
       break;
 
     case 'schedule_critical':
       const scheduleData = await getScheduleData(userId, settings);
       messageContent = messageContent
-        .replace(/\{\{date\}\}/g, currentDate)
         .replace(/\{\{schedule_items\}\}/g, scheduleData.items)
-        .replace(/\{\{total_items\}\}/g, scheduleData.total.toString());
+        .replace(/\{\{total_items\}\}/g, scheduleData.total.toString())
+        .replace(/\{\{critical_count\}\}/g, scheduleData.critical.toString());
       break;
 
     case 'glpi_summary':
       const glpiData = await getGLPIData(userId, settings);
       messageContent = messageContent
-        .replace(/\{\{date\}\}/g, currentDate)
         .replace(/\{\{open_tickets\}\}/g, glpiData.open.toString())
         .replace(/\{\{critical_tickets\}\}/g, glpiData.critical.toString())
         .replace(/\{\{pending_tickets\}\}/g, glpiData.pending.toString())
@@ -163,45 +224,53 @@ async function getBackupData(userId: string, settings: any) {
   const alertHours = alertSetting ? parseInt(alertSetting.setting_value) : 48;
   
   // Simular dados de backup (aqui você integraria com sua API FTP real)
-  const outdatedBackups = [
-    { name: 'backup_servidor1', lastModified: new Date(Date.now() - (72 * 60 * 60 * 1000)) },
-    { name: 'backup_bd_principal', lastModified: new Date(Date.now() - (96 * 60 * 60 * 1000)) }
+  const mockOutdatedBackups = [
+    { name: 'backup_servidor1.tar.gz', lastModified: new Date(Date.now() - (72 * 60 * 60 * 1000)) },
+    { name: 'backup_bd_principal.sql', lastModified: new Date(Date.now() - (96 * 60 * 60 * 1000)) }
   ];
 
   let backupList = '';
-  if (outdatedBackups.length === 0) {
+  if (mockOutdatedBackups.length === 0) {
     backupList = '✅ Todos os backups estão atualizados!';
   } else {
-    outdatedBackups.forEach((backup, index) => {
+    mockOutdatedBackups.forEach((backup) => {
       const hoursAgo = Math.floor((Date.now() - backup.lastModified.getTime()) / (1000 * 60 * 60));
-      backupList += `• ${backup.name} - há ${hoursAgo} horas\n`;
+      backupList += `• ${backup.name} - há ${hoursAgo}h\n`;
     });
   }
 
   return {
     hoursThreshold: alertHours,
-    list: backupList.trim()
+    list: backupList.trim(),
+    outdatedCount: mockOutdatedBackups.length
   };
 }
 
 async function getScheduleData(userId: string, settings: any) {
   // Buscar itens da agenda críticos (vencimento em 30 dias ou menos)
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
   const { data: criticalItems } = await supabase
     .from('schedule_items')
     .select('title, company, due_date, type')
     .eq('user_id', userId)
     .eq('status', 'pending')
     .gte('due_date', new Date().toISOString().split('T')[0])
-    .lte('due_date', new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0])
+    .lte('due_date', thirtyDaysFromNow.toISOString().split('T')[0])
     .order('due_date', { ascending: true });
 
   let itemsList = '';
+  let criticalCount = 0;
+
   if (!criticalItems || criticalItems.length === 0) {
     itemsList = '✅ Nenhum vencimento crítico nos próximos 30 dias!';
   } else {
-    criticalItems.forEach((item, index) => {
+    criticalItems.forEach((item) => {
       const daysUntil = Math.ceil((new Date(item.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       const urgencyIcon = daysUntil <= 7 ? '🔴' : daysUntil <= 15 ? '🟡' : '🟢';
+      
+      if (daysUntil <= 7) criticalCount++;
       
       itemsList += `${urgencyIcon} ${item.title} - ${item.company} (${daysUntil} dias)\n`;
     });
@@ -209,7 +278,8 @@ async function getScheduleData(userId: string, settings: any) {
 
   return {
     items: itemsList.trim(),
-    total: criticalItems?.length || 0
+    total: criticalItems?.length || 0,
+    critical: criticalCount
   };
 }
 
@@ -232,39 +302,51 @@ async function getGLPIData(userId: string, settings: any) {
     };
   }
 
-  // Simular dados do GLPI (aqui você faria a chamada real para a API do GLPI)
-  const glpiSummary = {
-    openTickets: 15,
-    criticalTickets: 2,
-    pendingTickets: 4,
-    urgentTickets: ['#1234 - Sistema fora do ar', '#1235 - Falha de segurança']
+  // Simulação de dados do GLPI - aqui você faria a chamada real para a API
+  const mockGlpiData = {
+    openTickets: Math.floor(Math.random() * 20) + 5,
+    criticalTickets: Math.floor(Math.random() * 5),
+    pendingTickets: Math.floor(Math.random() * 8) + 2,
+    urgentTickets: [
+      `#${Math.floor(Math.random() * 9000) + 1000} - Sistema indisponível`,
+      `#${Math.floor(Math.random() * 9000) + 1000} - Falha crítica no servidor`
+    ]
   };
 
-  const ticketList = glpiSummary.urgentTickets.join('\n• ');
+  const ticketList = mockGlpiData.urgentTickets.join('\n• ');
 
   return {
-    open: glpiSummary.openTickets,
-    critical: glpiSummary.criticalTickets,
-    pending: glpiSummary.pendingTickets,
+    open: mockGlpiData.openTickets,
+    critical: mockGlpiData.criticalTickets,
+    pending: mockGlpiData.pendingTickets,
     list: ticketList ? `• ${ticketList}` : 'Nenhum chamado urgente'
   };
 }
 
-
 function calculateNextExecution(cronExpression: string): string {
-  // Implementação simplificada para agendamentos diários
+  // Implementação para agendamentos diários
   const now = new Date();
-  const [minute, hour] = cronExpression.split(' ').map(Number);
+  const parts = cronExpression.split(' ');
   
-  const nextExec = new Date();
-  nextExec.setHours(hour, minute, 0, 0);
-  
-  // Se o horário já passou hoje, agendar para amanhã
-  if (nextExec <= now) {
-    nextExec.setDate(nextExec.getDate() + 1);
+  if (parts.length >= 2) {
+    const minute = parseInt(parts[0]) || 0;
+    const hour = parseInt(parts[1]) || 9;
+    
+    const nextExec = new Date();
+    nextExec.setHours(hour, minute, 0, 0);
+    
+    // Se o horário já passou hoje, agendar para amanhã
+    if (nextExec <= now) {
+      nextExec.setDate(nextExec.getDate() + 1);
+    }
+    
+    return nextExec.toISOString();
   }
   
-  return nextExec.toISOString();
+  // Fallback: próxima hora
+  const fallback = new Date();
+  fallback.setHours(fallback.getHours() + 1, 0, 0, 0);
+  return fallback.toISOString();
 }
 
 serve(handler);
