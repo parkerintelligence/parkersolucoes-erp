@@ -24,6 +24,7 @@ import { useZabbixAPI } from '@/hooks/useZabbixAPI';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { ZabbixWebhookManager } from '@/components/ZabbixWebhookManager';
 import { toast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 const Zabbix = () => {
   const { 
@@ -34,6 +35,7 @@ const Zabbix = () => {
   } = useZabbixAPI();
 
   const { createTicket } = useGLPIExpanded();
+  const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   
   // Filtros
@@ -41,9 +43,15 @@ const Zabbix = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
 
-  // Carregar dados do Zabbix
-  const { data: hosts = [], isLoading: hostsLoading, refetch: refetchHosts, error: hostsError } = useHosts();
-  const { data: problems = [], isLoading: problemsLoading, refetch: refetchProblems, error: problemsError } = useProblems();
+  // Carregar dados do Zabbix com staleTime reduzido para atualizações mais frequentes
+  const { data: hosts = [], isLoading: hostsLoading, refetch: refetchHosts, error: hostsError } = useHosts({}, {
+    staleTime: 0, // Sempre buscar dados frescos ao refetch
+    refetchInterval: 30000
+  });
+  const { data: problems = [], isLoading: problemsLoading, refetch: refetchProblems, error: problemsError } = useProblems({}, {
+    staleTime: 0, // Sempre buscar dados frescos ao refetch
+    refetchInterval: 10000
+  });
 
   // Debug information
   console.log('=== Zabbix Page Debug ===');
@@ -54,20 +62,40 @@ const Zabbix = () => {
   console.log('errors:', { hostsError, problemsError });
 
   const handleRefreshAll = async () => {
+    console.log('🔄 Iniciando refresh manual dos dados do Zabbix...');
     setRefreshing(true);
+    
     try {
-      await Promise.all([
-        refetchHosts(),
-        refetchProblems()
-      ]);
+      // Invalidar todas as queries relacionadas ao Zabbix para forçar busca de dados frescos
+      await queryClient.invalidateQueries({ queryKey: ['zabbix-hosts'] });
+      await queryClient.invalidateQueries({ queryKey: ['zabbix-problems'] });
+      
+      console.log('🗑️ Cache invalidado, iniciando refetch...');
+      
+      // Forçar refetch com timeout
+      const refreshPromises = [
+        Promise.race([
+          refetchHosts(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout ao buscar hosts')), 15000))
+        ]),
+        Promise.race([
+          refetchProblems(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout ao buscar problemas')), 15000))
+        ])
+      ];
+
+      await Promise.all(refreshPromises);
+      
+      console.log('✅ Refresh concluído com sucesso');
       toast({
-        title: "Dados atualizados",
+        title: "✅ Dados atualizados",
         description: "Informações do Zabbix foram atualizadas com sucesso.",
       });
     } catch (error) {
+      console.error('❌ Erro durante o refresh:', error);
       toast({
-        title: "Erro ao atualizar",
-        description: "Não foi possível atualizar os dados do Zabbix.",
+        title: "❌ Erro ao atualizar",
+        description: `Não foi possível atualizar os dados do Zabbix: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -304,11 +332,11 @@ const Zabbix = () => {
               </div>
               <Button 
                 onClick={handleRefreshAll} 
-                disabled={refreshing}
-                className="bg-blue-800 hover:bg-blue-700 text-white"
+                disabled={refreshing || hostsLoading || problemsLoading}
+                className="bg-blue-800 hover:bg-blue-700 text-white disabled:opacity-50"
               >
                 <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                Atualizar
+                {refreshing ? 'Atualizando...' : 'Atualizar'}
               </Button>
             </div>
           </CardHeader>

@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useZabbixProxy } from '@/hooks/useZabbixProxy';
 import { useIntegrations } from '@/hooks/useIntegrations';
@@ -81,7 +80,7 @@ export const useZabbixAPI = () => {
   );
 
   // Hook para buscar hosts com dados de disponibilidade corretos
-  const useHosts = (params = {}) => {
+  const useHosts = (params = {}, queryOptions = {}) => {
     return useQuery({
       queryKey: ['zabbix-hosts', params],
       queryFn: async () => {
@@ -112,7 +111,9 @@ export const useZabbixAPI = () => {
         return result as ZabbixHost[];
       },
       enabled: !!zabbixIntegration,
+      staleTime: 0, // Sempre considerar os dados como stale para refresh forçado
       refetchInterval: 30000, // Atualizar a cada 30 segundos
+      ...queryOptions
     });
   };
 
@@ -142,7 +143,7 @@ export const useZabbixAPI = () => {
   };
 
   // Hook para buscar problemas ativos - organizados por host
-  const useProblems = (params = {}) => {
+  const useProblems = (params = {}, queryOptions = {}) => {
     return useQuery({
       queryKey: ['zabbix-problems', params],
       queryFn: async () => {
@@ -215,7 +216,9 @@ export const useZabbixAPI = () => {
         })) as ZabbixProblem[];
       },
       enabled: !!zabbixIntegration,
+      staleTime: 0, // Sempre considerar os dados como stale para refresh forçado
       refetchInterval: 10000, // Atualizar a cada 10 segundos
+      ...queryOptions
     });
   };
 

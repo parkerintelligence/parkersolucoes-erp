@@ -197,103 +197,270 @@ export class EvolutionApiService {
         'apikey': this.apiToken
       };
 
-      // Tentar buscar chats usando diferentes endpoints
-      let chatsData = [];
-      let groupsData = [];
-
-      // Endpoint 1: Buscar chats
-      try {
-        const chatsResponse = await fetch(`${this.baseUrl}/chat/findChats/${this.instanceName}`, {
+      // Lista de endpoints para tentar em ordem de prioridade
+      const endpoints = [
+        // Endpoint principal recomendado
+        {
+          url: `${this.baseUrl}/chat/findChats/${this.instanceName}`,
           method: 'GET',
-          headers
-        });
+          name: 'findChats'
+        },
+        // Endpoint alternativo 1
+        {
+          url: `${this.baseUrl}/chat/whatsappNumbers/${this.instanceName}`,
+          method: 'GET', 
+          name: 'whatsappNumbers'
+        },
+        // Endpoint alternativo 2 (POST com filtros)
+        {
+          url: `${this.baseUrl}/chat/find/${this.instanceName}`,
+          method: 'POST',
+          body: { where: {} },
+          name: 'chatFind'
+        },
+        // Endpoint alternativo 3
+        {
+          url: `${this.baseUrl}/chat/fetchChats/${this.instanceName}`,
+          method: 'GET',
+          name: 'fetchChats'
+        }
+      ];
 
-        if (chatsResponse.ok) {
-          chatsData = await chatsResponse.json();
-          console.log('📱 Chats encontrados:', chatsData.length);
-        } else {
-          console.warn('⚠️ Endpoint findChats falhou, tentando alternativo...');
+      let chatsData = [];
+      let successfulEndpoint = null;
+
+      // Tentar cada endpoint até conseguir dados
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`📡 Tentando endpoint: ${endpoint.name} - ${endpoint.url}`);
           
-          // Endpoint alternativo
-          const altResponse = await fetch(`${this.baseUrl}/chat/whatsappNumbers/${this.instanceName}`, {
-            method: 'GET',
+          const requestOptions: RequestInit = {
+            method: endpoint.method,
             headers
-          });
-          
-          if (altResponse.ok) {
-            chatsData = await altResponse.json();
-            console.log('📱 Chats (endpoint alternativo):', chatsData.length);
+          };
+
+          if (endpoint.body) {
+            requestOptions.body = JSON.stringify(endpoint.body);
+          }
+
+          const response = await fetch(endpoint.url, requestOptions);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`✅ Sucesso no endpoint ${endpoint.name}:`, data);
+            
+            if (Array.isArray(data) && data.length > 0) {
+              chatsData = data;
+              successfulEndpoint = endpoint.name;
+              break;
+            } else if (data.chats && Array.isArray(data.chats)) {
+              chatsData = data.chats;
+              successfulEndpoint = endpoint.name;
+              break;
+            } else if (data.data && Array.isArray(data.data)) {
+              chatsData = data.data;
+              successfulEndpoint = endpoint.name;
+              break;
+            } else {
+              console.log(`⚠️ Endpoint ${endpoint.name} retornou dados, mas não em formato esperado:`, data);
+            }
+          } else {
+            console.warn(`⚠️ Endpoint ${endpoint.name} falhou:`, response.status, response.statusText);
+          }
+        } catch (error) {
+          console.warn(`⚠️ Erro no endpoint ${endpoint.name}:`, error);
+        }
+      }
+
+      console.log(`📊 Endpoint bem-sucedido: ${successfulEndpoint}, Total de chats: ${chatsData.length}`);
+
+      // Buscar grupos usando endpoint específico
+      let groupsData = [];
+      try {
+        const groupEndpoints = [
+          `${this.baseUrl}/group/fetchAllGroups/${this.instanceName}`,
+          `${this.baseUrl}/group/findGroups/${this.instanceName}`,
+          `${this.baseUrl}/chat/findGroups/${this.instanceName}`
+        ];
+
+        for (const groupUrl of groupEndpoints) {
+          try {
+            console.log(`👥 Tentando buscar grupos: ${groupUrl}`);
+            const groupsResponse = await fetch(groupUrl, {
+              method: 'GET',
+              headers
+            });
+
+            if (groupsResponse.ok) {
+              const groupData = await groupsResponse.json();
+              if (Array.isArray(groupData) && groupData.length > 0) {
+                groupsData = groupData;
+                console.log(`✅ Grupos encontrados: ${groupsData.length}`);
+                break;
+              } else if (groupData.groups && Array.isArray(groupData.groups)) {
+                groupsData = groupData.groups;
+                console.log(`✅ Grupos encontrados: ${groupsData.length}`);
+                break;
+              }
+            }
+          } catch (error) {
+            console.warn(`⚠️ Erro ao buscar grupos em ${groupUrl}:`, error);
           }
         }
       } catch (error) {
-        console.warn('⚠️ Erro ao buscar chats:', error);
-      }
-
-      // Endpoint 2: Buscar grupos
-      try {
-        const groupsResponse = await fetch(`${this.baseUrl}/group/fetchAllGroups/${this.instanceName}`, {
-          method: 'GET',
-          headers
-        });
-
-        if (groupsResponse.ok) {
-          groupsData = await groupsResponse.json();
-          console.log('👥 Grupos encontrados:', groupsData.length);
-        }
-      } catch (error) {
-        console.warn('⚠️ Erro ao buscar grupos:', error);
+        console.warn('⚠️ Erro geral ao buscar grupos:', error);
       }
 
       // Combinar e processar dados
       const allConversations = [];
 
-      // Processar chats individuais
+      // Processar chats individuais com melhor tratamento de dados
       if (Array.isArray(chatsData)) {
         chatsData.forEach(chat => {
-          if (chat.id && !chat.id.includes('@g.us')) {
-            allConversations.push({
-              id: chat.id,
-              name: chat.name || chat.pushName || chat.notifyName || chat.id.split('@')[0],
-              lastMessage: chat.lastMessage?.conversation || chat.lastMessage || 'Nova conversa',
-              timestamp: chat.lastMessageTime || chat.t || Date.now(),
-              unreadCount: chat.unreadCount || 0,
-              remoteJid: chat.id,
-              isGroup: false,
-              profilePicUrl: chat.profilePicUrl
-            });
+          try {
+            // Filtrar apenas chats individuais (não grupos)
+            const chatId = chat.id || chat.remoteJid || chat.key?.remoteJid;
+            if (chatId && !chatId.includes('@g.us')) {
+              const conversation = {
+                id: chatId,
+                name: chat.name || chat.pushName || chat.notifyName || chat.verifiedName || chatId.split('@')[0] || 'Contato sem nome',
+                lastMessage: this.extractLastMessage(chat),
+                timestamp: this.extractTimestamp(chat),
+                unreadCount: chat.unreadCount || chat.unread || 0,
+                remoteJid: chatId,
+                isGroup: false,
+                profilePicUrl: chat.profilePicUrl || chat.picture
+              };
+              
+              allConversations.push(conversation);
+              console.log(`💬 Chat processado: ${conversation.name} (${conversation.id})`);
+            }
+          } catch (error) {
+            console.warn('⚠️ Erro ao processar chat individual:', error, chat);
           }
         });
       }
 
-      // Processar grupos
+      // Processar grupos com melhor tratamento de dados
       if (Array.isArray(groupsData)) {
         groupsData.forEach(group => {
-          allConversations.push({
-            id: group.id,
-            name: group.subject || group.name || 'Grupo sem nome',
-            lastMessage: 'Conversa em grupo',
-            timestamp: group.createdAt || group.creation || Date.now(),
-            unreadCount: 0,
-            remoteJid: group.id,
-            isGroup: true,
-            participantsCount: group.participants?.length || group.size || 0,
-            profilePicUrl: group.profilePicUrl
-          });
+          try {
+            const groupId = group.id || group.remoteJid || group.key?.remoteJid;
+            if (groupId) {
+              const conversation = {
+                id: groupId,
+                name: group.subject || group.name || group.pushName || 'Grupo sem nome',
+                lastMessage: this.extractLastMessage(group) || 'Conversa em grupo',
+                timestamp: this.extractTimestamp(group),
+                unreadCount: group.unreadCount || group.unread || 0,
+                remoteJid: groupId,
+                isGroup: true,
+                participantsCount: group.participants?.length || group.size || group.participantCount || 0,
+                profilePicUrl: group.profilePicUrl || group.picture
+              };
+              
+              allConversations.push(conversation);
+              console.log(`👥 Grupo processado: ${conversation.name} (${conversation.participantsCount} participantes)`);
+            }
+          } catch (error) {
+            console.warn('⚠️ Erro ao processar grupo:', error, group);
+          }
         });
       }
 
       // Ordenar por timestamp (mais recente primeiro)
-      allConversations.sort((a, b) => b.timestamp - a.timestamp);
+      allConversations.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-      console.log('💬 Total de conversas processadas:', allConversations.length);
-      console.log('📋 Conversas:', allConversations.slice(0, 3)); // Log das primeiras 3 para debug
+      console.log('💬 Resumo das conversas processadas:');
+      console.log(`- Total: ${allConversations.length}`);
+      console.log(`- Chats individuais: ${allConversations.filter(c => !c.isGroup).length}`);
+      console.log(`- Grupos: ${allConversations.filter(c => c.isGroup).length}`);
+      console.log('📋 Primeiras 3 conversas:', allConversations.slice(0, 3));
 
       return allConversations;
 
     } catch (error) {
-      console.error('❌ Erro ao buscar conversas:', error);
+      console.error('❌ Erro geral ao buscar conversas:', error);
       throw new Error(`Erro ao buscar conversas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
+  }
+
+  // Métodos auxiliares para extrair dados de diferentes formatos da API
+  private extractLastMessage(chat: any): string {
+    const messageFields = [
+      'lastMessage?.conversation',
+      'lastMessage?.text', 
+      'lastMessage?.body',
+      'lastMessage',
+      'lastMsg?.conversation',
+      'lastMsg?.text',
+      'lastMsg?.body', 
+      'lastMsg',
+      'messages?.[0]?.conversation',
+      'messages?.[0]?.text',
+      'messages?.[0]?.body'
+    ];
+
+    for (const field of messageFields) {
+      try {
+        const value = this.getNestedValue(chat, field);
+        if (value && typeof value === 'string' && value.trim()) {
+          return value.trim();
+        }
+      } catch (error) {
+        // Continuar tentando outros campos
+      }
+    }
+
+    return 'Nova conversa';
+  }
+
+  private extractTimestamp(chat: any): number {
+    const timestampFields = [
+      'lastMessageTime',
+      'lastMessage?.messageTimestamp', 
+      'lastMessage?.timestamp',
+      'lastMessage?.t',
+      'lastMsg?.messageTimestamp',
+      'lastMsg?.timestamp',
+      'lastMsg?.t',
+      't',
+      'timestamp',
+      'createdAt',
+      'creation'
+    ];
+
+    for (const field of timestampFields) {
+      try {
+        const value = this.getNestedValue(chat, field);
+        if (value) {
+          const timestamp = typeof value === 'string' ? parseInt(value) : value;
+          if (!isNaN(timestamp) && timestamp > 0) {
+            // Se for timestamp em segundos, converter para milissegundos
+            return timestamp < 10000000000 ? timestamp * 1000 : timestamp;
+          }
+        }
+      } catch (error) {
+        // Continuar tentando outros campos
+      }
+    }
+
+    return Date.now();
+  }
+
+  private getNestedValue(obj: any, path: string): any {
+    return path.split('.').reduce((current, key) => {
+      if (key.includes('?.[')) {
+        // Tratar arrays opcionais como messages?.[0]
+        const arrayMatch = key.match(/^(.+)\?\.\[(\d+)\]$/);
+        if (arrayMatch && current) {
+          const [, arrayKey, index] = arrayMatch;
+          const array = current[arrayKey];
+          return Array.isArray(array) ? array[parseInt(index)] : undefined;
+        }
+      }
+      return current && current[key] !== undefined ? current[key] : undefined;
+    }, obj);
   }
 
   async getMessages(chatId: string, limit: number = 50) {
