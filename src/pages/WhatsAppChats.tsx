@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useIntegrations } from '@/hooks/useIntegrations';
+import { useWhatsAppConversations, useCreateWhatsAppConversation, useUpdateWhatsAppConversation } from '@/hooks/useWhatsAppConversations';
 import { EvolutionApiService } from '@/utils/evolutionApiService';
 import { 
   MessageSquare, 
@@ -15,7 +16,9 @@ import {
   Send, 
   Phone,
   Settings,
-  RefreshCw
+  RefreshCw,
+  Users,
+  MessageCircle
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -26,31 +29,39 @@ interface WhatsAppMessage {
   body: string;
   timestamp: number;
   isFromMe: boolean;
+  messageType?: string;
 }
 
-interface WhatsAppConversation {
+interface WhatsAppChat {
   id: string;
   name: string;
   lastMessage: string;
   timestamp: number;
   unreadCount: number;
   phoneNumber: string;
+  profilePicUrl?: string;
 }
 
 const WhatsAppChats = () => {
   const { data: integrations } = useIntegrations();
+  const { data: conversations } = useWhatsAppConversations();
+  const createConversation = useCreateWhatsAppConversation();
+  const updateConversation = useUpdateWhatsAppConversation();
+  
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<string>('disconnected');
   const [qrCode, setQrCode] = useState<string>('');
-  const [conversations, setConversations] = useState<WhatsAppConversation[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<WhatsAppConversation | null>(null);
+  const [chats, setChats] = useState<WhatsAppChat[]>([]);
+  const [selectedChat, setSelectedChat] = useState<WhatsAppChat | null>(null);
   const [messages, setMessages] = useState<WhatsAppMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const evolutionIntegration = integrations?.find(int => int.type === 'evolution_api');
 
+  // Check connection status
   const checkConnection = async () => {
     if (!evolutionIntegration) return;
 
@@ -59,6 +70,10 @@ const WhatsAppChats = () => {
       const status = await service.checkInstanceStatus();
       setIsConnected(status.active);
       setConnectionStatus(status.active ? 'connected' : 'disconnected');
+      
+      if (status.active) {
+        await loadChats();
+      }
     } catch (error) {
       console.error('Erro ao verificar conexão:', error);
       setIsConnected(false);
@@ -66,6 +81,7 @@ const WhatsAppChats = () => {
     }
   };
 
+  // Connect to WhatsApp Web
   const connectToWhatsApp = async () => {
     if (!evolutionIntegration) {
       toast({
@@ -78,22 +94,53 @@ const WhatsAppChats = () => {
 
     setIsConnecting(true);
     try {
-      // Simular conexão e geração de QR Code
-      setQrCode('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
-      setIsQrDialogOpen(true);
+      const service = new EvolutionApiService(evolutionIntegration);
+      const instanceInfo = await service.getInstanceInfo();
       
-      // Simular processo de conexão
-      setTimeout(() => {
+      if (instanceInfo.connected) {
         setIsConnected(true);
         setConnectionStatus('connected');
-        setIsQrDialogOpen(false);
         setIsConnecting(false);
-        loadConversations();
+        await loadChats();
         toast({
           title: "Conectado!",
-          description: "WhatsApp Web conectado com sucesso",
+          description: "WhatsApp Web já está conectado",
         });
-      }, 3000);
+      } else if (instanceInfo.qrCode) {
+        setQrCode(instanceInfo.qrCode);
+        setIsQrDialogOpen(true);
+        
+        // Poll for connection status
+        const pollConnection = setInterval(async () => {
+          const status = await service.checkInstanceStatus();
+          if (status.active) {
+            clearInterval(pollConnection);
+            setIsConnected(true);
+            setConnectionStatus('connected');
+            setIsQrDialogOpen(false);
+            setIsConnecting(false);
+            await loadChats();
+            toast({
+              title: "Conectado!",
+              description: "WhatsApp Web conectado com sucesso",
+            });
+          }
+        }, 3000);
+        
+        // Stop polling after 2 minutes
+        setTimeout(() => {
+          clearInterval(pollConnection);
+          if (!isConnected) {
+            setIsConnecting(false);
+            setIsQrDialogOpen(false);
+            toast({
+              title: "Tempo esgotado",
+              description: "Conexão não foi estabelecida. Tente novamente.",
+              variant: "destructive"
+            });
+          }
+        }, 120000);
+      }
     } catch (error) {
       console.error('Erro ao conectar:', error);
       setIsConnecting(false);
@@ -105,82 +152,148 @@ const WhatsAppChats = () => {
     }
   };
 
+  // Disconnect from WhatsApp Web
   const disconnectFromWhatsApp = async () => {
-    setIsConnected(false);
-    setConnectionStatus('disconnected');
-    setConversations([]);
-    setSelectedConversation(null);
-    setMessages([]);
-    toast({
-      title: "Desconectado",
-      description: "WhatsApp Web foi desconectado",
-    });
-  };
-
-  const loadConversations = async () => {
-    // Simular carregamento de conversas
-    const mockConversations: WhatsAppConversation[] = [
-      {
-        id: '1',
-        name: 'João Silva',
-        lastMessage: 'Olá, preciso de ajuda com o sistema',
-        timestamp: Date.now() - 300000,
-        unreadCount: 2,
-        phoneNumber: '5511999999999'
-      },
-      {
-        id: '2',
-        name: 'Maria Santos',
-        lastMessage: 'Obrigada pelo atendimento!',
-        timestamp: Date.now() - 600000,
-        unreadCount: 0,
-        phoneNumber: '5511888888888'
-      }
-    ];
-    setConversations(mockConversations);
-  };
-
-  const loadMessages = async (conversation: WhatsAppConversation) => {
-    // Simular carregamento de mensagens
-    const mockMessages: WhatsAppMessage[] = [
-      {
-        id: '1',
-        from: conversation.phoneNumber,
-        to: 'me',
-        body: 'Olá, preciso de ajuda com o sistema',
-        timestamp: Date.now() - 300000,
-        isFromMe: false
-      },
-      {
-        id: '2',
-        from: 'me',
-        to: conversation.phoneNumber,
-        body: 'Olá! Como posso ajudá-lo?',
-        timestamp: Date.now() - 250000,
-        isFromMe: true
-      }
-    ];
-    setMessages(mockMessages);
-  };
-
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation || !evolutionIntegration) return;
+    if (!evolutionIntegration) return;
 
     try {
       const service = new EvolutionApiService(evolutionIntegration);
-      const result = await service.sendMessage(selectedConversation.phoneNumber, newMessage);
+      await service.disconnectInstance();
+      
+      setIsConnected(false);
+      setConnectionStatus('disconnected');
+      setChats([]);
+      setSelectedChat(null);
+      setMessages([]);
+      
+      toast({
+        title: "Desconectado",
+        description: "WhatsApp Web foi desconectado",
+      });
+    } catch (error) {
+      console.error('Erro ao desconectar:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao desconectar do WhatsApp Web",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Load chats from Evolution API
+  const loadChats = async () => {
+    if (!evolutionIntegration) return;
+
+    setIsLoading(true);
+    try {
+      const service = new EvolutionApiService(evolutionIntegration);
+      const chatsData = await service.getConversations();
+      
+      const formattedChats: WhatsAppChat[] = chatsData.map((chat: any) => ({
+        id: chat.id || chat.remoteJid,
+        name: chat.name || chat.pushName || chat.remoteJid,
+        lastMessage: chat.lastMessage?.body || 'Nova conversa',
+        timestamp: chat.lastMessage?.timestamp || Date.now(),
+        unreadCount: chat.unreadCount || 0,
+        phoneNumber: chat.remoteJid || chat.id,
+        profilePicUrl: chat.profilePicUrl
+      }));
+      
+      setChats(formattedChats);
+      
+      // Sync with database conversations
+      for (const chat of formattedChats) {
+        const existingConversation = conversations?.find(c => c.contact_phone === chat.phoneNumber);
+        
+        if (!existingConversation) {
+          await createConversation.mutateAsync({
+            contact_name: chat.name,
+            contact_phone: chat.phoneNumber,
+            last_message: chat.lastMessage,
+            last_message_time: new Date(chat.timestamp).toISOString(),
+            unread_count: chat.unreadCount,
+            status: 'active',
+            integration_id: evolutionIntegration.id
+          });
+        } else {
+          await updateConversation.mutateAsync({
+            id: existingConversation.id,
+            updates: {
+              last_message: chat.lastMessage,
+              last_message_time: new Date(chat.timestamp).toISOString(),
+              unread_count: chat.unreadCount
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar conversas:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar conversas do WhatsApp",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load messages for selected chat
+  const loadMessages = async (chat: WhatsAppChat) => {
+    if (!evolutionIntegration) return;
+
+    try {
+      const service = new EvolutionApiService(evolutionIntegration);
+      const messagesData = await service.getMessages(chat.id);
+      
+      const formattedMessages: WhatsAppMessage[] = messagesData.map((msg: any) => ({
+        id: msg.key?.id || msg.id,
+        from: msg.key?.fromMe ? 'me' : msg.key?.remoteJid,
+        to: msg.key?.fromMe ? msg.key?.remoteJid : 'me',
+        body: msg.message?.conversation || msg.message?.extendedTextMessage?.text || 'Mensagem não suportada',
+        timestamp: msg.messageTimestamp * 1000 || Date.now(),
+        isFromMe: msg.key?.fromMe || false,
+        messageType: msg.message?.messageType || 'text'
+      }));
+      
+      setMessages(formattedMessages.sort((a, b) => a.timestamp - b.timestamp));
+    } catch (error) {
+      console.error('Erro ao carregar mensagens:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar mensagens",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Send message
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !selectedChat || !evolutionIntegration) return;
+
+    try {
+      const service = new EvolutionApiService(evolutionIntegration);
+      const result = await service.sendMessage(selectedChat.phoneNumber, newMessage);
       
       if (result.success) {
         const newMsg: WhatsAppMessage = {
           id: Date.now().toString(),
           from: 'me',
-          to: selectedConversation.phoneNumber,
+          to: selectedChat.phoneNumber,
           body: newMessage,
           timestamp: Date.now(),
           isFromMe: true
         };
+        
         setMessages(prev => [...prev, newMsg]);
         setNewMessage('');
+        
+        // Update chat's last message
+        setChats(prev => prev.map(chat => 
+          chat.id === selectedChat.id 
+            ? { ...chat, lastMessage: newMessage, timestamp: Date.now() }
+            : chat
+        ));
         
         toast({
           title: "Mensagem enviada",
@@ -203,11 +316,13 @@ const WhatsAppChats = () => {
     }
   };
 
-  const selectConversation = (conversation: WhatsAppConversation) => {
-    setSelectedConversation(conversation);
-    loadMessages(conversation);
+  // Select chat and load messages
+  const selectChat = async (chat: WhatsAppChat) => {
+    setSelectedChat(chat);
+    await loadMessages(chat);
   };
 
+  // Check connection on mount
   useEffect(() => {
     if (evolutionIntegration) {
       checkConnection();
@@ -240,7 +355,7 @@ const WhatsAppChats = () => {
   return (
     <div className="container mx-auto py-6 h-screen">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-        {/* Painel de Status e Conexão */}
+        {/* Connection Panel */}
         <div className="lg:col-span-1 space-y-4">
           <Card>
             <CardHeader>
@@ -303,48 +418,72 @@ const WhatsAppChats = () => {
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Verificar Status
                 </Button>
+                
+                {isConnected && (
+                  <Button 
+                    onClick={loadChats} 
+                    variant="outline"
+                    className="w-full"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Carregando...
+                      </>
+                    ) : (
+                      <>
+                        <Users className="mr-2 h-4 w-4" />
+                        Atualizar Conversas
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Lista de Conversas */}
+          {/* Chats List */}
           {isConnected && (
             <Card className="flex-1">
               <CardHeader>
-                <CardTitle>Conversas ({conversations.length})</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageCircle className="h-5 w-5" />
+                  Conversas ({chats.length})
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="max-h-96 overflow-y-auto">
-                  {conversations.map((conversation) => (
+                  {chats.map((chat) => (
                     <div
-                      key={conversation.id}
-                      onClick={() => selectConversation(conversation)}
+                      key={chat.id}
+                      onClick={() => selectChat(chat)}
                       className={`p-3 border-b cursor-pointer hover:bg-gray-50 ${
-                        selectedConversation?.id === conversation.id ? 'bg-blue-50' : ''
+                        selectedChat?.id === chat.id ? 'bg-blue-50' : ''
                       }`}
                     >
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <h4 className="font-medium">{conversation.name}</h4>
-                            {conversation.unreadCount > 0 && (
+                            <h4 className="font-medium truncate">{chat.name}</h4>
+                            {chat.unreadCount > 0 && (
                               <Badge variant="destructive" className="text-xs">
-                                {conversation.unreadCount}
+                                {chat.unreadCount}
                               </Badge>
                             )}
                           </div>
                           <p className="text-sm text-gray-600 truncate">
-                            {conversation.lastMessage}
+                            {chat.lastMessage}
                           </p>
                           <div className="flex items-center gap-1 mt-1">
                             <Phone className="h-3 w-3 text-gray-400" />
-                            <span className="text-xs text-gray-400">
-                              {conversation.phoneNumber}
+                            <span className="text-xs text-gray-400 truncate">
+                              {chat.phoneNumber}
                             </span>
                           </div>
                         </div>
                         <span className="text-xs text-gray-400">
-                          {new Date(conversation.timestamp).toLocaleTimeString('pt-BR', {
+                          {new Date(chat.timestamp).toLocaleTimeString('pt-BR', {
                             hour: '2-digit',
                             minute: '2-digit'
                           })}
@@ -352,28 +491,36 @@ const WhatsAppChats = () => {
                       </div>
                     </div>
                   ))}
+                  
+                  {chats.length === 0 && !isLoading && (
+                    <div className="p-6 text-center text-gray-500">
+                      <MessageCircle className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                      <p>Nenhuma conversa encontrada</p>
+                      <p className="text-sm">Clique em "Atualizar Conversas" para sincronizar</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           )}
         </div>
 
-        {/* Área de Chat */}
+        {/* Chat Area */}
         <div className="lg:col-span-2">
-          {selectedConversation ? (
+          {selectedChat ? (
             <Card className="h-full flex flex-col">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
                   <MessageSquare className="h-5 w-5" />
-                  {selectedConversation.name}
-                  <span className="text-sm text-gray-500">
-                    ({selectedConversation.phoneNumber})
+                  {selectedChat.name}
+                  <span className="text-sm text-gray-500 truncate">
+                    ({selectedChat.phoneNumber})
                   </span>
                 </CardTitle>
               </CardHeader>
               
               <CardContent className="flex-1 flex flex-col p-0">
-                {/* Área de Mensagens */}
+                {/* Messages Area */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-96">
                   {messages.map((message) => (
                     <div
@@ -387,8 +534,8 @@ const WhatsAppChats = () => {
                             : 'bg-gray-200 text-gray-800'
                         }`}
                       >
-                        <p className="text-sm">{message.body}</p>
-                        <span className="text-xs opacity-75">
+                        <p className="text-sm whitespace-pre-wrap">{message.body}</p>
+                        <span className="text-xs opacity-75 block mt-1">
                           {new Date(message.timestamp).toLocaleTimeString('pt-BR', {
                             hour: '2-digit',
                             minute: '2-digit'
@@ -397,9 +544,17 @@ const WhatsAppChats = () => {
                       </div>
                     </div>
                   ))}
+                  
+                  {messages.length === 0 && (
+                    <div className="text-center text-gray-500 py-8">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                      <p>Nenhuma mensagem ainda</p>
+                      <p className="text-sm">Inicie uma conversa enviando uma mensagem</p>
+                    </div>
+                  )}
                 </div>
 
-                {/* Campo de Envio */}
+                {/* Message Input */}
                 <div className="p-4 border-t">
                   <div className="flex gap-2">
                     <Input
@@ -424,9 +579,14 @@ const WhatsAppChats = () => {
             <Card className="h-full flex items-center justify-center">
               <CardContent className="text-center">
                 <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-lg font-medium mb-2">Selecione uma conversa</h3>
+                <h3 className="text-lg font-medium mb-2">
+                  {isConnected ? 'Selecione uma conversa' : 'Conecte-se ao WhatsApp Web'}
+                </h3>
                 <p className="text-gray-600">
-                  Escolha uma conversa da lista para começar a conversar
+                  {isConnected 
+                    ? 'Escolha uma conversa da lista para começar a conversar'
+                    : 'Conecte sua conta do WhatsApp Web para ver suas conversas'
+                  }
                 </p>
               </CardContent>
             </Card>
@@ -434,7 +594,7 @@ const WhatsAppChats = () => {
         </div>
       </div>
 
-      {/* Dialog QR Code */}
+      {/* QR Code Dialog */}
       <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -447,7 +607,7 @@ const WhatsAppChats = () => {
               Use seu WhatsApp para escanear o código QR e conectar
             </p>
             {qrCode && (
-              <div className="bg-white p-4 rounded-lg inline-block">
+              <div className="bg-white p-4 rounded-lg inline-block border">
                 <img src={qrCode} alt="QR Code" className="w-48 h-48" />
               </div>
             )}
