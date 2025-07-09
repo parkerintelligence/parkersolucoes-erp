@@ -8,23 +8,29 @@ import { FolderPlus } from 'lucide-react';
 
 interface WasabiCreateBucketDialogProps {
   onCreateBucket: (bucketName: string) => void;
-  isCreating: boolean;
+  isCreating?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export const WasabiCreateBucketDialog = ({ onCreateBucket, isCreating }: WasabiCreateBucketDialogProps) => {
+export const WasabiCreateBucketDialog = ({ onCreateBucket, isCreating = false, open, onOpenChange }: WasabiCreateBucketDialogProps) => {
   const [bucketName, setBucketName] = useState('');
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use controlled or uncontrolled state based on props
+  const isOpen = open !== undefined ? open : internalOpen;
+  const setIsOpen = onOpenChange || setInternalOpen;
 
   const handleCreate = () => {
     if (bucketName.trim()) {
       onCreateBucket(bucketName.trim().toLowerCase());
       setBucketName('');
-      setOpen(false);
+      setIsOpen(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button
           variant="outline"
@@ -54,7 +60,7 @@ export const WasabiCreateBucketDialog = ({ onCreateBucket, isCreating }: WasabiC
             />
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
             <Button 

@@ -8,29 +8,48 @@ import { Upload } from 'lucide-react';
 
 interface WasabiUploadDialogProps {
   selectedBucket: string;
-  onUpload: (files: FileList) => void;
-  isUploading: boolean;
+  onUpload: (files: FileList, bucketName: string) => void;
+  isUploading?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  bucketName?: string;
+  folder?: string;
 }
 
-export const WasabiUploadDialog = ({ selectedBucket, onUpload, isUploading }: WasabiUploadDialogProps) => {
+export const WasabiUploadDialog = ({ 
+  selectedBucket, 
+  onUpload, 
+  isUploading = false, 
+  open, 
+  onOpenChange,
+  bucketName,
+  folder = '' 
+}: WasabiUploadDialogProps) => {
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use controlled or uncontrolled state based on props
+  const isOpen = open !== undefined ? open : internalOpen;
+  const setIsOpen = onOpenChange || setInternalOpen;
+
+  // Use bucketName prop if provided, otherwise fall back to selectedBucket
+  const targetBucket = bucketName || selectedBucket;
 
   const handleUpload = () => {
-    if (selectedFiles && selectedFiles.length > 0) {
-      onUpload(selectedFiles);
+    if (selectedFiles && selectedFiles.length > 0 && targetBucket) {
+      onUpload(selectedFiles, targetBucket);
       setSelectedFiles(null);
-      setOpen(false);
+      setIsOpen(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button
           variant="outline"
           size="sm"
-          disabled={!selectedBucket}
+          disabled={!targetBucket}
           className="flex items-center gap-2"
         >
           <Upload className="h-4 w-4" />
@@ -41,7 +60,7 @@ export const WasabiUploadDialog = ({ selectedBucket, onUpload, isUploading }: Wa
         <DialogHeader>
           <DialogTitle>Upload de Arquivos</DialogTitle>
           <DialogDescription>
-            Enviar arquivos para o bucket: <strong>{selectedBucket}</strong>
+            Enviar arquivos para o bucket: <strong>{targetBucket}</strong>
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -56,7 +75,7 @@ export const WasabiUploadDialog = ({ selectedBucket, onUpload, isUploading }: Wa
             />
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
             <Button 

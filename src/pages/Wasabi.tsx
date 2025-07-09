@@ -411,15 +411,18 @@ const Wasabi = () => {
       <WasabiCreateBucketDialog
         open={createBucketOpen}
         onOpenChange={setCreateBucketOpen}
-        onCreateBucket={createBucket}
+        onCreateBucket={(bucketName) => createBucket.mutate(bucketName)}
+        isCreating={createBucket.isPending}
       />
 
       <WasabiUploadDialog
         open={uploadDialogOpen}
         onOpenChange={setUploadDialogOpen}
+        selectedBucket={selectedBucket}
         bucketName={selectedBucket}
         folder={selectedFolder}
         onUpload={uploadFile}
+        isUploading={false}
       />
     </div>
   );
