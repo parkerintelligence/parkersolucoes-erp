@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,12 +11,6 @@ import { Cloud, Upload, RefreshCcw, Plus, Download, Trash2, Search, AlertTriangl
 import { WasabiCreateBucketDialog } from '@/components/WasabiCreateBucketDialog';
 import { WasabiUploadDialog } from '@/components/WasabiUploadDialog';
 import { useWasabi } from '@/hooks/useWasabi';
-
-interface WasabiObject {
-  Key: string;
-  Size: number;
-  LastModified: string;
-}
 
 const Wasabi = () => {
   const {
@@ -51,21 +44,21 @@ const Wasabi = () => {
     setSelectedBucket(bucketName);
   };
 
-  const handleDownload = async (obj: WasabiObject) => {
+  const handleDownload = async (obj: any) => {
     if (!selectedBucket) return;
     
     try {
-      await downloadFile.mutateAsync({ fileName: obj.Key, bucketName: selectedBucket });
+      await downloadFile.mutateAsync({ fileName: obj.key || obj.Key, bucketName: selectedBucket });
     } catch (error) {
       console.error('Erro no download:', error);
     }
   };
 
-  const handleDelete = async (obj: WasabiObject) => {
-    if (!selectedBucket || !confirm(`Tem certeza que deseja excluir ${obj.Key}?`)) return;
+  const handleDelete = async (obj: any) => {
+    if (!selectedBucket || !confirm(`Tem certeza que deseja excluir ${obj.key || obj.Key}?`)) return;
     
     try {
-      await deleteFile.mutateAsync({ fileName: obj.Key, bucketName: selectedBucket });
+      await deleteFile.mutateAsync({ fileName: obj.key || obj.Key, bucketName: selectedBucket });
     } catch (error) {
       console.error('Erro ao excluir:', error);
     }
@@ -91,8 +84,8 @@ const Wasabi = () => {
     }
   };
 
-  const filteredObjects = objects.filter((obj: WasabiObject) => 
-    obj.Key.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredObjects = objects.filter((obj: any) => 
+    (obj.key || obj.Key || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const formatFileSize = (bytes: number) => {
@@ -348,13 +341,13 @@ const Wasabi = () => {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {filteredObjects.map((obj: WasabiObject) => (
-                      <div key={obj.Key} className="flex items-center justify-between p-3 border rounded-lg">
+                    {filteredObjects.map((obj: any) => (
+                      <div key={obj.key || obj.Key} className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex-1">
-                          <h4 className="font-medium">{obj.Key}</h4>
+                          <h4 className="font-medium">{obj.key || obj.Key}</h4>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span>{formatFileSize(obj.Size)}</span>
-                            <span>Modificado em {new Date(obj.LastModified).toLocaleDateString('pt-BR')}</span>
+                            <span>{formatFileSize(obj.size || obj.Size || 0)}</span>
+                            <span>Modificado em {new Date(obj.lastModified || obj.LastModified).toLocaleDateString('pt-BR')}</span>
                           </div>
                         </div>
                         <div className="flex gap-2">

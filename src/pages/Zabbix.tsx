@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,7 +38,7 @@ const Zabbix = () => {
   const triggers = triggersQuery.data || [];
   
   const isLoading = hostsQuery.isLoading || problemsQuery.isLoading || groupsQuery.isLoading || triggersQuery.isLoading;
-  const error = hostsQuery.error || problemsQuery.error || groupsQuery.error || triggersQuery.error;
+  const error = hostsQuery.error || problemsQuery.error || groupsQuery.error || triggersQuery.isLoading;
   const isConfigured = !!zabbixAPI.integration;
 
   const handleRefresh = async () => {
@@ -290,8 +289,8 @@ const Zabbix = () => {
                           {new Date(parseInt(problem.clock) * 1000).toLocaleString('pt-BR')}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={problem.r_eventid === '0' ? 'destructive' : 'secondary'}>
-                            {problem.r_eventid === '0' ? 'Ativo' : 'Resolvido'}
+                          <Badge variant={problem.acknowledged === '0' ? 'destructive' : 'secondary'}>
+                            {problem.acknowledged === '0' ? 'Ativo' : 'Reconhecido'}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -334,7 +333,7 @@ const Zabbix = () => {
                       <TableHead>IP</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Grupos</TableHead>
-                      <TableHead>Último Check</TableHead>
+                      <TableHead>Última Atualização</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -355,10 +354,7 @@ const Zabbix = () => {
                             {host.groups?.map(group => group.name).join(', ') || 'N/A'}
                           </TableCell>
                           <TableCell>
-                            {host.lastaccess ? 
-                              new Date(parseInt(host.lastaccess) * 1000).toLocaleString('pt-BR') : 
-                              'Nunca'
-                            }
+                            Monitorado continuamente
                           </TableCell>
                         </TableRow>
                       );
