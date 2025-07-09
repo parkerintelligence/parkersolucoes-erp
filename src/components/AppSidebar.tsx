@@ -20,37 +20,37 @@ import {
   Calendar,
   MessageSquare,
   MessageCircle,
-  Settings,
-  CreditCard,
-  Shield,
+  Bot,
   Activity,
   Globe,
-  Cloud,
-  Database,
-  Monitor,
   Wifi,
-  Lock,
-  Server,
+  Shield,
+  Monitor,
   HardDrive,
-  Bot,
-  ClipboardList,
+  Database,
+  Cloud,
   StickyNote,
+  Lock,
   Boxes,
   DollarSign,
+  ClipboardList,
   ExternalLink
 } from 'lucide-react';
 
 const mainItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
-  { title: 'Empresas', url: '/companies', icon: Building2 },
-  { title: 'Serviços', url: '/services', icon: Users },
-  { title: 'Orçamentos', url: '/budgets', icon: DollarSign },
-  { title: 'Contratos', url: '/contracts', icon: FileText },
   { title: 'Agenda', url: '/schedule', icon: Calendar },
   { title: 'Anotações', url: '/annotations', icon: StickyNote },
   { title: 'Senhas', url: '/passwords', icon: Lock },
   { title: 'Documentos', url: '/documents', icon: Boxes },
   { title: 'Links', url: '/links', icon: ExternalLink },
+];
+
+const financialItems = [
+  { title: 'Empresas', url: '/companies', icon: Building2 },
+  { title: 'Serviços', url: '/services', icon: Users },
+  { title: 'Orçamentos', url: '/budgets', icon: DollarSign },
+  { title: 'Contratos', url: '/contracts', icon: FileText },
 ];
 
 const integrationItems = [
@@ -68,10 +68,6 @@ const integrationItems = [
   { title: 'Cloud Server', url: '/wasabi', icon: Cloud },
 ];
 
-const adminItems = [
-  { title: 'Configurações', url: '/admin', icon: Settings },
-];
-
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
@@ -87,17 +83,17 @@ export function AppSidebar() {
 
   const getNavClass = (path: string) => {
     return isActive(path) 
-      ? "bg-blue-100 text-blue-900 font-medium" 
-      : "text-gray-700 hover:bg-gray-100";
+      ? "bg-blue-600 text-white font-medium" 
+      : "text-gray-200 hover:bg-blue-700 hover:text-white";
   };
 
   return (
     <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
-      <SidebarContent>
-        {/* Gestão Group */}
+      <SidebarContent className="bg-slate-900 text-white">
+        {/* Menu Principal */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Gestão
+          <SidebarGroupLabel className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+            Principal
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -119,14 +115,14 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Integrações Group */}
+        {/* Menu Financeiro */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Integrações
+          <SidebarGroupLabel className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+            Financeiro
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {integrationItems.map((item) => (
+              {financialItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink 
@@ -143,14 +139,11 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Administração Group */}
+        {/* Integrações - sem título de grupo */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Sistema
-          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {adminItems.map((item) => (
+              {integrationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink 

@@ -1,8 +1,9 @@
+
 import { useAuth } from '@/contexts/AuthContext';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Crown, Shield, ChevronRight, Home, PanelLeft } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { LogOut, User, Crown, Shield, ChevronRight, Home, PanelLeft, Settings } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
@@ -17,12 +18,17 @@ export const TopHeader = () => {
   const { user, userProfile, logout, isMaster } = useAuth();
   const { data: settings } = useSystemSettings();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Sistema de Gestão de TI';
   const logoUrl = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value;
 
   const handleLogout = async () => {
     await logout();
+  };
+
+  const handleSettingsClick = () => {
+    navigate('/admin');
   };
 
   const getBreadcrumbTitle = () => {
@@ -50,11 +56,11 @@ export const TopHeader = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-primary text-primary-foreground shadow-lg">
+    <header className="sticky top-0 z-40 border-b border-border bg-slate-900 text-white shadow-lg">
       <div className="flex items-center justify-between w-full px-3 md:px-6 py-4">
         {/* Menu Toggle e Título */}
         <div className="flex items-center gap-3 min-w-0">
-          <SidebarTrigger className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/10" />
+          <SidebarTrigger className="h-8 w-8 text-white hover:bg-slate-700" />
           {logoUrl ? (
             <img 
               src={logoUrl} 
@@ -62,36 +68,45 @@ export const TopHeader = () => {
               className="h-10 w-auto object-contain flex-shrink-0"
             />
           ) : (
-            <div className="bg-secondary p-2 rounded-xl flex-shrink-0 shadow-sm">
-              <Shield className="h-5 w-5 md:h-6 md:w-6 text-secondary-foreground" />
+            <div className="bg-blue-600 p-2 rounded-xl flex-shrink-0 shadow-sm">
+              <Shield className="h-5 w-5 md:h-6 md:w-6 text-white" />
             </div>
           )}
           <div className="min-w-0 hidden sm:block">
-            <h1 className="text-lg md:text-xl font-bold text-primary-foreground truncate">
+            <h1 className="text-lg md:text-xl font-bold text-white truncate">
               {companyName}
             </h1>
-            <p className="text-sm text-primary-foreground/80">Plataforma Integrada</p>
+            <p className="text-sm text-gray-300">Plataforma Integrada</p>
           </div>
         </div>
 
         {/* Breadcrumb Central */}
-        <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-primary-foreground/10 rounded-lg backdrop-blur-sm">
-          <Home className="h-4 w-4 text-primary-foreground/70" />
-          <ChevronRight className="h-3 w-3 text-primary-foreground/50" />
-          <span className="text-sm font-medium text-primary-foreground/90">
+        <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-800 rounded-lg backdrop-blur-sm">
+          <Home className="h-4 w-4 text-gray-300" />
+          <ChevronRight className="h-3 w-3 text-gray-400" />
+          <span className="text-sm font-medium text-gray-200">
             {getBreadcrumbTitle()}
           </span>
         </div>
 
         {/* Área do Usuário */}
         <div className="flex items-center gap-2">
+          {/* Ícone de Configurações */}
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={handleSettingsClick}
+            className="text-yellow-400 hover:text-yellow-300 hover:bg-slate-700 rounded-lg"
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
 
           {/* Dropdown do Usuário */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10 px-3 py-2 rounded-lg">
+              <Button variant="ghost" className="flex items-center gap-2 text-white hover:text-white hover:bg-slate-700 px-3 py-2 rounded-lg">
                 {isMaster ? (
-                  <Shield className="h-4 w-4 text-secondary" />
+                  <Shield className="h-4 w-4 text-yellow-400" />
                 ) : (
                   <User className="h-4 w-4" />
                 )}
@@ -109,7 +124,7 @@ export const TopHeader = () => {
                   <p className="text-xs text-muted-foreground flex items-center gap-2">
                     {isMaster ? (
                       <>
-                        <Shield className="h-3 w-3 text-secondary" />
+                        <Shield className="h-3 w-3 text-yellow-400" />
                         Administrador Master
                       </>
                     ) : (
