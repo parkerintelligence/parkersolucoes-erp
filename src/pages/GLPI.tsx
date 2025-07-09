@@ -3,12 +3,14 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   ExternalLink, 
   RefreshCcw, 
   AlertTriangle, 
   CheckCircle, 
-  Settings
+  Settings,
+  BarChart3
 } from 'lucide-react';
 import { GLPIDashboard } from '@/components/GLPIDashboard';
 import { GLPITicketsGrid } from '@/components/GLPITicketsGrid';
@@ -22,6 +24,7 @@ const GLPI = () => {
   const { glpiIntegration } = useGLPI();
   const [filters, setFilters] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
 
   const isConfigured = !!glpiIntegration;
 
@@ -83,17 +86,37 @@ const GLPI = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-400" />
-            <span className="text-sm text-green-400">Conectado</span>
+          <div className="flex items-center gap-4">
+            <Dialog open={isDashboardOpen} onOpenChange={setIsDashboardOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                >
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Dashboard
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700">
+                <DialogHeader>
+                  <DialogTitle className="text-white flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Dashboard GLPI
+                  </DialogTitle>
+                </DialogHeader>
+                <GLPIDashboard />
+              </DialogContent>
+            </Dialog>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-400" />
+              <span className="text-sm text-green-400">Conectado</span>
+            </div>
           </div>
         </div>
 
-        <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-gray-800 border-gray-700">
-            <TabsTrigger value="dashboard" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">
-              Dashboard
-            </TabsTrigger>
+        <Tabs defaultValue="tickets" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
             <TabsTrigger value="tickets" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">
               Chamados
             </TabsTrigger>
@@ -105,10 +128,6 @@ const GLPI = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="mt-6">
-            <GLPIDashboard />
-          </TabsContent>
-
           <TabsContent value="tickets" className="mt-6">
             <div className="space-y-4">
               <GLPIFiltersPanel
@@ -117,7 +136,7 @@ const GLPI = () => {
                 isLoading={refreshing}
                 totalTickets={0}
               />
-              <GLPITicketsGrid />
+              <GLPITicketsGrid filters={filters} />
             </div>
           </TabsContent>
 
