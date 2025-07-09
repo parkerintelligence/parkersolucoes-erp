@@ -1,6 +1,6 @@
 
 import React from 'react';
-import ScheduledReportsPanel from '@/components/ScheduledReportsPanel';
+import { ScheduledReportsPanel } from '@/components/ScheduledReportsPanel';
 
 const Automation = () => {
   return (

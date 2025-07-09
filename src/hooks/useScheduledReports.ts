@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -6,7 +7,7 @@ export interface ScheduledReport {
   id: string;
   user_id: string;
   name: string;
-  report_type: 'backup_alert' | 'schedule_critical' | 'glpi_summary';
+  report_type: string; // Changed from union type to string to match database
   phone_number: string;
   cron_expression: string;
   is_active: boolean;
@@ -128,6 +129,34 @@ export const useDeleteScheduledReport = () => {
     onError: (error) => {
       toast({
         title: "Erro ao remover agendamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useToggleScheduledReportActive = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { data, error } = await supabase
+        .from('scheduled_reports')
+        .update({ is_active: !is_active })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['scheduled-reports'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao alterar status",
         description: error.message,
         variant: "destructive",
       });
