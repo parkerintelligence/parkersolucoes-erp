@@ -141,10 +141,10 @@ export const ScheduledReportsTable = ({
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">{templateInfo.name}</span>
                         {!templateInfo.exists && (
-                          <AlertTriangle className="h-3 w-3 text-red-500" title="Template não encontrado" />
+                          <AlertTriangle className="h-3 w-3 text-red-500" />
                         )}
                         {templateInfo.exists && !templateInfo.isActive && (
-                          <AlertTriangle className="h-3 w-3 text-orange-500" title="Template inativo" />
+                          <AlertTriangle className="h-3 w-3 text-orange-500" />
                         )}
                       </div>
                       <span className="text-xs text-gray-500">{templateInfo.type}</span>
