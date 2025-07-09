@@ -29,13 +29,13 @@ export const useGrafanaAuth = () => {
       isActive: grafanaIntegration.is_active
     });
 
-    // Verificar se temos credenciais válidas
+    // Verificar se temos credenciais válidas - priorizar API Token
     const hasApiToken = grafanaIntegration.api_token && grafanaIntegration.api_token.trim() !== '';
     const hasUserPass = grafanaIntegration.username && grafanaIntegration.password && 
                        grafanaIntegration.username.trim() !== '' && grafanaIntegration.password.trim() !== '';
 
     if (!hasApiToken && !hasUserPass) {
-      setAuthError('Credenciais do Grafana não configuradas. Configure API Token ou usuário/senha no painel de administração.');
+      setAuthError('Configure API Token (recomendado) ou usuário/senha do Grafana no painel de administração.');
       toast({
         title: "Credenciais não encontradas",
         description: "Configure as credenciais do Grafana no painel de administração.",
@@ -55,10 +55,11 @@ export const useGrafanaAuth = () => {
         baseUrl: grafanaIntegration.base_url,
         hasApiToken: hasApiToken,
         hasUserPass: hasUserPass,
-        username: grafanaIntegration.username || 'N/A'
+        username: grafanaIntegration.username || 'N/A',
+        authMethod: hasApiToken ? 'token' : 'basic'
       });
 
-      // Preparar dados de autenticação
+      // Preparar dados de autenticação - sempre priorizar API Token
       const authData: any = {
         url: grafanaUrl
       };
@@ -67,11 +68,13 @@ export const useGrafanaAuth = () => {
         authData.api_token = grafanaIntegration.api_token;
         authData.auth_type = 'token';
         console.log('Usando autenticação por API Token');
-      } else {
+      } else if (hasUserPass) {
         authData.username = grafanaIntegration.username;
         authData.password = grafanaIntegration.password;
         authData.auth_type = 'basic';
         console.log('Usando autenticação Basic Auth com usuário:', grafanaIntegration.username);
+      } else {
+        throw new Error('Nenhum método de autenticação válido encontrado');
       }
       
       const response = await fetch(proxyUrl, {
@@ -97,18 +100,20 @@ export const useGrafanaAuth = () => {
         const errorData = await response.json().catch(() => ({}));
         console.error('Erro na autenticação:', response.status, errorData);
         
-        let errorMessage = 'Falha na conexão';
+        let errorMessage = 'Falha na conexão com o Grafana';
         if (response.status === 401) {
           errorMessage = hasApiToken ? 
-            'API Token inválido. Verifique o token no painel de administração.' :
+            'API Token inválido ou expirado. Verifique no painel de administração.' :
             'Credenciais inválidas. Verifique usuário e senha no painel de administração.';
         } else if (response.status === 403) {
           errorMessage = 'Acesso negado. Verifique as permissões do usuário no Grafana.';
+        } else if (response.status === 404) {
+          errorMessage = 'Endpoint não encontrado. Verifique a URL do Grafana.';
         } else if (response.status >= 500) {
           errorMessage = 'Erro no servidor Grafana. Verifique se o serviço está disponível.';
         }
         
-        setAuthError(`Erro na autenticação: ${errorData.message || errorMessage}`);
+        setAuthError(`${errorData.message || errorMessage}`);
         toast({
           title: "Erro de autenticação",
           description: errorMessage,
@@ -118,7 +123,8 @@ export const useGrafanaAuth = () => {
       }
     } catch (error) {
       console.error('Erro ao conectar com Grafana:', error);
-      setAuthError('Erro de conexão com o Grafana. Verifique a URL e conectividade.');
+      const errorMessage = error instanceof Error ? error.message : 'Erro de conexão com o Grafana';
+      setAuthError(`Erro de conexão: ${errorMessage}. Verifique a URL e conectividade.`);
       toast({
         title: "Erro de conexão",
         description: "Não foi possível conectar ao Grafana. Verifique a configuração no painel de administração.",

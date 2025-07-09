@@ -17,6 +17,14 @@ serve(async (req) => {
       grafanaUrl = body.url;
       authType = body.auth_type || 'basic';
 
+      console.log('Received auth data:', {
+        url: grafanaUrl,
+        auth_type: authType,
+        hasApiToken: !!(body.api_token),
+        hasUsername: !!(body.username),
+        hasPassword: !!(body.password)
+      });
+
       if (authType === 'token' && body.api_token) {
         // Usar Bearer token para API Token
         authHeader = `Bearer ${body.api_token}`;
@@ -27,8 +35,18 @@ serve(async (req) => {
         authHeader = `Basic ${credentials}`;
         console.log('Using Basic authentication for user:', body.username);
       } else {
+        console.error('Invalid authentication data received:', {
+          auth_type: authType,
+          hasApiToken: !!(body.api_token),
+          hasUsername: !!(body.username),
+          hasPassword: !!(body.password)
+        });
         return new Response(
-          JSON.stringify({ error: 'Invalid authentication data. Provide either api_token or username/password.' }),
+          JSON.stringify({ 
+            error: 'Invalid authentication data', 
+            message: 'Forneça API Token ou usuário/senha válidos.',
+            details: 'Configure as credenciais no painel de administração'
+          }),
           { 
             status: 400, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -43,7 +61,10 @@ serve(async (req) => {
       
       if (!grafanaUrl || !authParam) {
         return new Response(
-          JSON.stringify({ error: 'Missing url or auth parameter' }),
+          JSON.stringify({ 
+            error: 'Missing parameters', 
+            message: 'URL e parâmetros de autenticação são obrigatórios' 
+          }),
           { 
             status: 400, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -56,9 +77,13 @@ serve(async (req) => {
         const [username, password] = decoded.split(':');
         const credentials = btoa(`${username}:${password}`);
         authHeader = `Basic ${credentials}`;
+        authType = 'basic';
       } catch (e) {
         return new Response(
-          JSON.stringify({ error: 'Invalid auth format' }),
+          JSON.stringify({ 
+            error: 'Invalid auth format', 
+            message: 'Formato de autenticação inválido' 
+          }),
           { 
             status: 400, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -69,7 +94,10 @@ serve(async (req) => {
 
     if (!grafanaUrl || !authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters: url and authentication' }),
+        JSON.stringify({ 
+          error: 'Missing required parameters', 
+          message: 'URL e credenciais são obrigatórias' 
+        }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -79,15 +107,16 @@ serve(async (req) => {
 
     console.log('Proxying request to:', grafanaUrl);
     console.log('Auth type:', authType);
+    console.log('Auth header present:', !!authHeader);
 
     const requestHeaders: Record<string, string> = {
       'Authorization': authHeader,
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'User-Agent': 'Grafana-Proxy/1.0'
     };
 
-    // Adicionar User-Agent para evitar bloqueios
-    requestHeaders['User-Agent'] = 'Grafana-Proxy/1.0';
+    console.log('Request headers:', Object.keys(requestHeaders));
 
     const grafanaResponse = await fetch(grafanaUrl, {
       method: 'GET',
@@ -104,24 +133,29 @@ serve(async (req) => {
     }
 
     console.log('Grafana response status:', grafanaResponse.status);
-    console.log('Grafana response data:', responseData);
+    console.log('Grafana response headers:', Object.fromEntries(grafanaResponse.headers.entries()));
 
     // Se a resposta não for OK, incluir mais detalhes do erro
     if (!grafanaResponse.ok) {
       console.error('Grafana API error:', {
         status: grafanaResponse.status,
         statusText: grafanaResponse.statusText,
-        data: responseData
+        data: responseData,
+        headers: Object.fromEntries(grafanaResponse.headers.entries())
       });
 
       // Customizar mensagem de erro baseada no status
       let errorMessage = responseData.message || grafanaResponse.statusText;
       if (grafanaResponse.status === 401) {
-        errorMessage = 'Credenciais inválidas ou expiradas';
+        errorMessage = authType === 'token' ? 
+          'Token de API inválido ou expirado. Verifique o token no painel de administração.' :
+          'Credenciais inválidas. Verifique usuário e senha no painel de administração.';
       } else if (grafanaResponse.status === 403) {
-        errorMessage = 'Acesso negado - verifique permissões do usuário';
+        errorMessage = 'Acesso negado. Verifique as permissões do usuário/token no Grafana.';
       } else if (grafanaResponse.status === 404) {
-        errorMessage = 'Endpoint não encontrado - verifique a URL do Grafana';
+        errorMessage = 'Endpoint não encontrado. Verifique a URL do Grafana.';
+      } else if (grafanaResponse.status >= 500) {
+        errorMessage = 'Erro no servidor Grafana. Verifique se o serviço está disponível.';
       }
 
       responseData.message = errorMessage;
@@ -144,7 +178,7 @@ serve(async (req) => {
       JSON.stringify({ 
         error: 'Proxy request failed', 
         details: error.message,
-        message: 'Erro interno do proxy - verifique os logs'
+        message: 'Erro interno do proxy. Verifique os logs e configuração.'
       }),
       { 
         status: 500, 
