@@ -1,3 +1,4 @@
+
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -41,7 +42,7 @@ const menuItems = [
   { title: 'Links', url: '/links', icon: Link, role: 'user' },
   { title: 'Conversas WhatsApp', url: '/whatsapp-chats', icon: MessageCircle, role: 'user' },
   { title: 'Modelos WhatsApp', url: '/whatsapp-templates', icon: MessageCircle, role: 'user' },
-  { title: 'Wasabi', url: '/wasabi', icon: Cloud, role: 'user' },
+  { title: 'Cloud Server', url: '/wasabi', icon: Cloud, role: 'user' },
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
   { title: 'Automação', url: '/automation', icon: Settings, role: 'user' },
   { title: 'Zabbix', url: '/zabbix', icon: Activity, role: 'user' },
@@ -51,9 +52,7 @@ const menuItems = [
 ];
 
 const financialItems = [
-  { title: 'Serviços', url: '/services', icon: Settings, role: 'master' },
-  { title: 'Orçamentos', url: '/budgets', icon: Calculator, role: 'master' },
-  { title: 'Contratos', url: '/contracts', icon: FileText, role: 'master' },
+  { title: 'Financeiro', url: '/financial', icon: Calculator, role: 'master' },
 ];
 
 const adminItems = [

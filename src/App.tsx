@@ -24,6 +24,8 @@ import Monitoring from '@/pages/Monitoring';
 import Services from '@/pages/Services';
 import Budgets from '@/pages/Budgets';
 import Contracts from '@/pages/Contracts';
+import Financial from '@/pages/Financial';
+import Companies from '@/pages/Companies';
 import { Layout } from '@/components/Layout';
 
 // Create a single QueryClient instance
@@ -179,6 +181,22 @@ function App() {
                 element={
                   <Layout>
                     <Contracts />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/financial"
+                element={
+                  <Layout>
+                    <Financial />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/companies"
+                element={
+                  <Layout>
+                    <Companies />
                   </Layout>
                 }
               />

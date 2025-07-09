@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -78,15 +77,15 @@ const Wasabi = () => {
     return (
       <div className="min-h-screen bg-gray-900 text-white">
         <div className="space-y-6 p-6">
-          <h1 className="text-3xl font-bold text-white mb-6">Wasabi Cloud</h1>
+          <h1 className="text-3xl font-bold text-white mb-6">Cloud Server</h1>
           <Card className="bg-gray-800 border-gray-700 max-w-2xl mx-auto">
             <CardContent className="p-8 text-center">
               <HardDrive className="h-20 w-20 text-gray-500 mx-auto mb-6" />
-              <h2 className="text-2xl font-bold text-white mb-4">Integração Wasabi não configurada</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">Integração Cloud Server não configurada</h2>
               <p className="text-gray-400 mb-6 text-lg">
-                Para usar o armazenamento Wasabi, você precisa configurar uma integração primeiro.
+                Para usar o armazenamento Cloud Server, você precisa configurar uma integração primeiro.
               </p>
-              <Button size="lg" className="bg-blue-800 hover:bg-blue-700 text-white" onClick={() => window.location.href = '/admin'}>
+              <Button size="lg" className="bg-blue-900 hover:bg-blue-800 text-white" onClick={() => window.location.href = '/admin'}>
                 <Settings className="h-5 w-5 mr-2" />
                 Configurar Integração
               </Button>
@@ -101,23 +100,23 @@ const Wasabi = () => {
     return (
       <div className="min-h-screen bg-gray-900 text-white">
         <div className="space-y-6 p-6">
-          <h1 className="text-3xl font-bold text-white mb-6">Wasabi Cloud</h1>
+          <h1 className="text-3xl font-bold text-white mb-6">Cloud Server</h1>
           <Card className="bg-gray-800 border-gray-700 max-w-2xl mx-auto">
             <CardContent className="p-8 text-center">
               <AlertTriangle className="h-20 w-20 text-red-400 mx-auto mb-6" />
-              <h2 className="text-2xl font-bold text-white mb-4">Erro de Conexão com Wasabi</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">Erro de Conexão com Cloud Server</h2>
               <p className="text-gray-400 mb-4 text-lg">
-                Não foi possível conectar ao Wasabi. Verifique suas credenciais e configurações.
+                Não foi possível conectar ao Cloud Server. Verifique suas credenciais e configurações.
               </p>
               <p className="text-sm text-gray-500 mb-6 font-mono bg-gray-800 p-3 rounded">
                 {bucketsError.message}
               </p>
               <div className="flex gap-4 justify-center">
-                <Button size="lg" className="bg-blue-800 hover:bg-blue-700 text-white" onClick={() => window.location.href = '/admin'}>
+                <Button size="lg" className="bg-blue-900 hover:bg-blue-800 text-white" onClick={() => window.location.href = '/admin'}>
                   <Settings className="h-5 w-5 mr-2" />
                   Verificar Configurações
                 </Button>
-                <Button size="lg" className="bg-blue-800 hover:bg-blue-700 text-white border-gray-600" onClick={handleRefresh}>
+                <Button size="lg" className="bg-blue-900 hover:bg-blue-800 text-white border-gray-600" onClick={handleRefresh}>
                   <RefreshCw className="h-5 w-5 mr-2" />
                   Tentar Novamente
                 </Button>
@@ -132,7 +131,7 @@ const Wasabi = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="space-y-6 p-6">
-        <h1 className="text-3xl font-bold text-white mb-6">Wasabi Cloud</h1>
+        <h1 className="text-3xl font-bold text-white mb-6">Cloud Server</h1>
         
         <div className="flex justify-end gap-2">
           <WasabiCreateBucketDialog
@@ -144,13 +143,12 @@ const Wasabi = () => {
             onUpload={handleFileUpload}
             isUploading={uploadFiles.isPending}
           />
-          <Button className="bg-blue-800 hover:bg-blue-700 text-white" onClick={handleRefresh} disabled={isLoadingBuckets}>
+          <Button className="bg-blue-900 hover:bg-blue-800 text-white" onClick={handleRefresh} disabled={isLoadingBuckets}>
             <RefreshCw className={`h-5 w-5 mr-2 ${isLoadingBuckets ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
         </div>
 
-        {/* Control Panel */}
         <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-end">
@@ -199,7 +197,6 @@ const Wasabi = () => {
           </CardContent>
         </Card>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="bg-gray-800 border-gray-700">
             <CardContent className="p-4">
@@ -243,7 +240,6 @@ const Wasabi = () => {
           </Card>
         </div>
 
-        {/* Files Table */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
@@ -296,7 +292,7 @@ const Wasabi = () => {
                         <TableCell>
                           <div className="flex items-center justify-end gap-2">
                             <Button 
-                              className="bg-blue-800 hover:bg-blue-700 text-white"
+                              className="bg-blue-900 hover:bg-blue-800 text-white"
                               size="sm"
                               onClick={() => handleDownload(file.name)}
                               disabled={downloadFile.isPending}
