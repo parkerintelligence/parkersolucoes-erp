@@ -13,12 +13,9 @@ import {
   MessageCircle, 
   Plus, 
   Edit, 
-  Trash2, 
-  Copy,
+  Trash2,
   Search,
   Calendar,
-  Building,
-  Clock,
   HardDrive,
   ExternalLink
 } from 'lucide-react';
@@ -76,8 +73,7 @@ const WhatsAppTemplates = () => {
 
   const filteredTemplates = templates.filter(template =>
     template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    template.template_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    template.body.toLowerCase().includes(searchTerm.toLowerCase())
+    template.template_type.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -130,14 +126,6 @@ const WhatsAppTemplates = () => {
         console.error('Erro ao excluir template:', error);
       }
     }
-  };
-
-  const handleCopy = (content: string) => {
-    navigator.clipboard.writeText(content);
-    toast({
-      title: "Template copiado!",
-      description: "O conteúdo foi copiado para a área de transferência."
-    });
   };
 
   const getCategoryColor = (templateType: string) => {
@@ -233,45 +221,20 @@ const WhatsAppTemplates = () => {
                     )}
                   </div>
                 </div>
+                <CardDescription>
+                  {template.subject}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium">Assunto:</Label>
-                  <p className="text-sm text-muted-foreground">{template.subject}</p>
-                </div>
-                
-                <div className="bg-muted/50 p-3 rounded-lg">
-                  <Label className="text-sm font-medium">Conteúdo:</Label>
-                  <p className="text-sm whitespace-pre-wrap mt-1">{template.body}</p>
-                </div>
-                
-                {templateTypeInfo?.variables && (
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Variáveis disponíveis:</Label>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {templateTypeInfo.variables.map((variable: string) => (
-                        <Badge key={variable} variant="outline" className="text-xs">
-                          {variable}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleEdit(template)}
+                    className="flex-1"
                   >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleCopy(template.body)}
-                  >
-                    <Copy className="h-4 w-4" />
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar
                   </Button>
                   <Button
                     variant="outline"

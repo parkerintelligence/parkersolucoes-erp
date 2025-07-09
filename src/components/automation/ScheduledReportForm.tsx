@@ -41,7 +41,7 @@ const templateTypeIcons = {
 };
 
 export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSuccess }: ScheduledReportFormProps) => {
-  const { data: templates = [], isLoading: templatesLoading } = useWhatsAppTemplates();
+  const { data: templates = [], isLoading: templatesLoading, refetch: refetchTemplates } = useWhatsAppTemplates();
   const createReport = useCreateScheduledReport();
   const updateReport = useUpdateScheduledReport();
 
@@ -59,15 +59,25 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
 
   // Filtrar apenas templates ativos
   const activeTemplates = useMemo(() => {
+    console.log('Templates disponíveis:', templates);
     return templates.filter(template => template.is_active);
   }, [templates]);
 
   // Template selecionado
   const selectedTemplate = useMemo(() => {
-    return activeTemplates.find(template => template.id === formData.report_type);
+    const template = activeTemplates.find(template => template.id === formData.report_type);
+    console.log('Template selecionado:', template);
+    return template;
   }, [activeTemplates, formData.report_type]);
 
   React.useEffect(() => {
+    console.log('Dialog aberto:', open);
+    console.log('Templates carregados:', templates.length);
+    
+    if (open && !templatesLoading) {
+      refetchTemplates();
+    }
+
     if (editingReport) {
       console.log('Editando relatório:', editingReport);
       setFormData({
@@ -90,7 +100,7 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
       });
     }
     setFormErrors({});
-  }, [editingReport, open]);
+  }, [editingReport, open, templatesLoading, refetchTemplates, templates.length]);
 
   const validateForm = () => {
     const errors: {[key: string]: string} = {};
@@ -261,17 +271,12 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                         const Icon = templateTypeIcons[template.template_type as keyof typeof templateTypeIcons] || MessageCircle;
                         return (
                           <SelectItem key={template.id} value={template.id}>
-                            <div className="flex items-center justify-between w-full">
-                              <div className="flex items-center gap-2">
-                                <Icon className="h-4 w-4" />
-                                <div className="flex flex-col">
-                                  <span className="font-medium">{template.name}</span>
-                                  <span className="text-xs text-gray-500">{template.subject}</span>
-                                </div>
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-4 w-4" />
+                              <div className="flex flex-col">
+                                <span className="font-medium">{template.name}</span>
+                                <span className="text-xs text-gray-500">{template.subject}</span>
                               </div>
-                              <Badge variant="outline" className="ml-2">
-                                {template.template_type}
-                              </Badge>
                             </div>
                           </SelectItem>
                         );
