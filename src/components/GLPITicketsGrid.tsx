@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,7 +36,7 @@ export const GLPITicketsGrid = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [entityFilter, setEntityFilter] = useState('all');
-  const [groupByEntity, setGroupByEntity] = useState(true); // Default to true
+  const [groupByEntity, setGroupByEntity] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTicket, setSelectedTicket] = useState<GLPITicket | null>(null);
   
@@ -171,7 +170,7 @@ export const GLPITicketsGrid = () => {
       case 1:
         return <Badge className="bg-green-600 text-white">Muito Baixa</Badge>;
       default:
-        return <Badge>{getPriorityText(priority)}</Badge>;
+        return <Badge className="bg-slate-600 text-white">{getPriorityText(priority)}</Badge>;
     }
   };
 
@@ -190,7 +189,7 @@ export const GLPITicketsGrid = () => {
       case 6:
         return <Badge className="bg-gray-100 text-gray-800 border-gray-200">Fechado</Badge>;
       default:
-        return <Badge>{getStatusText(status)}</Badge>;
+        return <Badge className="bg-slate-600 text-white">{getStatusText(status)}</Badge>;
     }
   };
 
@@ -218,18 +217,18 @@ export const GLPITicketsGrid = () => {
     <div key={groupName} className="mb-8">
       {groupByEntity && (
         <div className="mb-4 flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-blue-600" />
-          <h3 className="text-lg font-semibold text-blue-900">{groupName}</h3>
-          <Badge variant="outline">{tickets.length} chamados</Badge>
+          <Building2 className="h-5 w-5 text-blue-400" />
+          <h3 className="text-lg font-semibold text-white">{groupName}</h3>
+          <Badge variant="outline" className="bg-slate-700 text-slate-200 border-slate-600">{tickets.length} chamados</Badge>
         </div>
       )}
       
-      <div className="bg-white/90 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg border border-blue-200">
+      <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-lg">
         <Table>
           <TableHeader>
-            <TableRow className="bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800">
+            <TableRow className="bg-slate-700 text-white hover:bg-slate-600 border-slate-600">
               <TableHead 
-                className="w-[80px] text-white font-semibold cursor-pointer hover:bg-blue-800/50 transition-colors"
+                className="w-[80px] text-white font-semibold cursor-pointer hover:bg-slate-600 transition-colors"
                 onClick={() => updateSort('id')}
               >
                 <div className="flex items-center gap-1">
@@ -237,7 +236,7 @@ export const GLPITicketsGrid = () => {
                 </div>
               </TableHead>
               <TableHead 
-                className="text-white font-semibold cursor-pointer hover:bg-blue-800/50 transition-colors"
+                className="text-white font-semibold cursor-pointer hover:bg-slate-600 transition-colors"
                 onClick={() => updateSort('name')}
               >
                 <div className="flex items-center gap-1">
@@ -246,7 +245,7 @@ export const GLPITicketsGrid = () => {
               </TableHead>
               <TableHead className="w-[140px] text-white font-semibold">Entidade</TableHead>
               <TableHead 
-                className="w-[120px] text-white font-semibold cursor-pointer hover:bg-blue-800/50 transition-colors"
+                className="w-[120px] text-white font-semibold cursor-pointer hover:bg-slate-600 transition-colors"
                 onClick={() => updateSort('status')}
               >
                 <div className="flex items-center gap-1">
@@ -254,7 +253,7 @@ export const GLPITicketsGrid = () => {
                 </div>
               </TableHead>
               <TableHead 
-                className="w-[120px] text-white font-semibold cursor-pointer hover:bg-blue-800/50 transition-colors"
+                className="w-[120px] text-white font-semibold cursor-pointer hover:bg-slate-600 transition-colors"
                 onClick={() => updateSort('priority')}
               >
                 <div className="flex items-center gap-1">
@@ -264,7 +263,7 @@ export const GLPITicketsGrid = () => {
               <TableHead className="w-[100px] text-white font-semibold">Urgência</TableHead>
               <TableHead className="w-[100px] text-white font-semibold">Impacto</TableHead>
               <TableHead 
-                className="w-[130px] text-white font-semibold cursor-pointer hover:bg-blue-800/50 transition-colors"
+                className="w-[130px] text-white font-semibold cursor-pointer hover:bg-slate-600 transition-colors"
                 onClick={() => updateSort('date')}
               >
                 <div className="flex items-center gap-1">
@@ -272,7 +271,7 @@ export const GLPITicketsGrid = () => {
                 </div>
               </TableHead>
               <TableHead 
-                className="w-[130px] text-white font-semibold cursor-pointer hover:bg-blue-800/50 transition-colors"
+                className="w-[130px] text-white font-semibold cursor-pointer hover:bg-slate-600 transition-colors"
                 onClick={() => updateSort('date_mod')}
               >
                 <div className="flex items-center gap-1">
@@ -284,16 +283,16 @@ export const GLPITicketsGrid = () => {
           </TableHeader>
           <TableBody>
             {tickets.map((ticket) => (
-              <TableRow key={ticket.id} className="hover:bg-blue-50/70 transition-colors border-b border-blue-100">
-                <TableCell className="font-medium">#{ticket.id}</TableCell>
-                <TableCell className="max-w-xs">
+              <TableRow key={ticket.id} className="hover:bg-slate-700 transition-colors border-b border-slate-600 text-white">
+                <TableCell className="font-medium text-white">#{ticket.id}</TableCell>
+                <TableCell className="max-w-xs text-white">
                   <div className="truncate font-medium">{ticket.name}</div>
-                  <div className="text-xs text-gray-500 truncate">
+                  <div className="text-xs text-slate-400 truncate">
                     {ticket.content.substring(0, 50)}...
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className="gap-1">
+                  <Badge variant="outline" className="gap-1 bg-slate-700 text-slate-200 border-slate-600">
                     <Building2 className="h-3 w-3" />
                     {getEntityName(ticket.entities_id)}
                   </Badge>
@@ -301,15 +300,15 @@ export const GLPITicketsGrid = () => {
                 <TableCell>{getStatusBadge(ticket.status)}</TableCell>
                 <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">{getUrgencyText(ticket.urgency)}</Badge>
+                  <Badge variant="outline" className="bg-slate-700 text-slate-200 border-slate-600">{getUrgencyText(ticket.urgency)}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{getUrgencyText(ticket.impact)}</Badge>
+                  <Badge variant="outline" className="bg-slate-700 text-slate-200 border-slate-600">{getUrgencyText(ticket.impact)}</Badge>
                 </TableCell>
-                <TableCell className="text-sm text-gray-600">
+                <TableCell className="text-sm text-slate-300">
                   {format(new Date(ticket.date), 'dd/MM/yy HH:mm', { locale: ptBR })}
                 </TableCell>
-                <TableCell className="text-sm text-gray-600">
+                <TableCell className="text-sm text-slate-300">
                   {format(new Date(ticket.date_mod), 'dd/MM/yy HH:mm', { locale: ptBR })}
                 </TableCell>
                 <TableCell>
@@ -319,14 +318,15 @@ export const GLPITicketsGrid = () => {
                         variant="ghost" 
                         size="sm"
                         onClick={() => setSelectedTicket(ticket)}
+                        className="text-slate-200 hover:bg-slate-600"
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-slate-800 border-slate-700 text-white">
                       <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                          <AlertTriangle className="h-5 w-5 text-blue-600" />
+                        <DialogTitle className="flex items-center gap-2 text-white">
+                          <AlertTriangle className="h-5 w-5 text-blue-400" />
                           Chamado #{selectedTicket?.id} - {selectedTicket?.name}
                         </DialogTitle>
                       </DialogHeader>
@@ -334,53 +334,53 @@ export const GLPITicketsGrid = () => {
                         <div className="space-y-6">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div>
-                              <label className="text-sm font-medium text-gray-700">Status</label>
+                              <label className="text-sm font-medium text-slate-300">Status</label>
                               <div className="mt-1">{getStatusBadge(selectedTicket.status)}</div>
                             </div>
                             <div>
-                              <label className="text-sm font-medium text-gray-700">Prioridade</label>
+                              <label className="text-sm font-medium text-slate-300">Prioridade</label>
                               <div className="mt-1">{getPriorityBadge(selectedTicket.priority)}</div>
                             </div>
                             <div>
-                              <label className="text-sm font-medium text-gray-700">Urgência</label>
+                              <label className="text-sm font-medium text-slate-300">Urgência</label>
                               <div className="mt-1">
-                                <Badge variant="outline">{getUrgencyText(selectedTicket.urgency)}</Badge>
+                                <Badge variant="outline" className="bg-slate-700 text-slate-200 border-slate-600">{getUrgencyText(selectedTicket.urgency)}</Badge>
                               </div>
                             </div>
                             <div>
-                              <label className="text-sm font-medium text-gray-700">Impacto</label>
+                              <label className="text-sm font-medium text-slate-300">Impacto</label>
                               <div className="mt-1">
-                                <Badge variant="outline">{getUrgencyText(selectedTicket.impact)}</Badge>
+                                <Badge variant="outline" className="bg-slate-700 text-slate-200 border-slate-600">{getUrgencyText(selectedTicket.impact)}</Badge>
                               </div>
                             </div>
                           </div>
 
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="text-sm font-medium text-gray-700">Entidade</label>
+                              <label className="text-sm font-medium text-slate-300">Entidade</label>
                               <div className="mt-1">
-                                <Badge variant="outline" className="gap-1">
+                                <Badge variant="outline" className="gap-1 bg-slate-700 text-slate-200 border-slate-600">
                                   <Building2 className="h-3 w-3" />
                                   {getEntityName(selectedTicket.entities_id)}
                                 </Badge>
                               </div>
                             </div>
                             <div>
-                              <label className="text-sm font-medium text-gray-700">ID da Entidade</label>
-                              <p className="mt-1 text-sm text-gray-600">#{selectedTicket.entities_id}</p>
+                              <label className="text-sm font-medium text-slate-300">ID da Entidade</label>
+                              <p className="mt-1 text-sm text-slate-400">#{selectedTicket.entities_id}</p>
                             </div>
                           </div>
 
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="text-sm font-medium text-gray-700">Criado em</label>
-                              <p className="mt-1 text-sm text-gray-600">
+                              <label className="text-sm font-medium text-slate-300">Criado em</label>
+                              <p className="mt-1 text-sm text-slate-400">
                                 {format(new Date(selectedTicket.date), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })}
                               </p>
                             </div>
                             <div>
-                              <label className="text-sm font-medium text-gray-700">Última Modificação</label>
-                              <p className="mt-1 text-sm text-gray-600">
+                              <label className="text-sm font-medium text-slate-300">Última Modificação</label>
+                              <p className="mt-1 text-sm text-slate-400">
                                 {format(new Date(selectedTicket.date_mod), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })}
                               </p>
                             </div>
@@ -388,32 +388,32 @@ export const GLPITicketsGrid = () => {
 
                           {selectedTicket.solvedate && (
                             <div>
-                              <label className="text-sm font-medium text-gray-700">Resolvido em</label>
-                              <p className="mt-1 text-sm text-gray-600">
+                              <label className="text-sm font-medium text-slate-300">Resolvido em</label>
+                              <p className="mt-1 text-sm text-slate-400">
                                 {format(new Date(selectedTicket.solvedate), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })}
                               </p>
                             </div>
                           )}
 
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Descrição Completa</label>
-                            <div className="mt-2 p-4 bg-gray-50 rounded-lg">
-                              <p className="text-sm whitespace-pre-wrap">{selectedTicket.content}</p>
+                            <label className="text-sm font-medium text-slate-300">Descrição Completa</label>
+                            <div className="mt-2 p-4 bg-slate-700 rounded-lg">
+                              <p className="text-sm whitespace-pre-wrap text-slate-400">{selectedTicket.content}</p>
                             </div>
                           </div>
 
                           <div className="grid grid-cols-3 gap-4 text-sm">
                             <div>
-                              <label className="font-medium text-gray-700">Solicitante</label>
-                              <p className="text-gray-600">ID: {selectedTicket.users_id_requester}</p>
+                              <label className="font-medium text-slate-300">Solicitante</label>
+                              <p className="text-slate-400">ID: {selectedTicket.users_id_requester}</p>
                             </div>
                             <div>
-                              <label className="font-medium text-gray-700">Atribuído</label>
-                              <p className="text-gray-600">ID: {selectedTicket.users_id_assign || 'Não atribuído'}</p>
+                              <label className="font-medium text-slate-300">Atribuído</label>
+                              <p className="text-slate-400">ID: {selectedTicket.users_id_assign || 'Não atribuído'}</p>
                             </div>
                             <div>
-                              <label className="font-medium text-gray-700">Entidade</label>
-                              <p className="text-gray-600">ID: {selectedTicket.entities_id}</p>
+                              <label className="font-medium text-slate-300">Entidade</label>
+                              <p className="text-slate-400">ID: {selectedTicket.entities_id}</p>
                             </div>
                           </div>
                         </div>
@@ -430,50 +430,50 @@ export const GLPITicketsGrid = () => {
   );
 
   return (
-    <div className="space-y-6 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen p-6 rounded-xl">
-      <Card className="bg-white/90 backdrop-blur-sm border-blue-200 shadow-xl">
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
+    <div className="space-y-6 bg-slate-900 min-h-screen p-6 rounded-xl">
+      <Card className="bg-slate-800 border-slate-700 shadow-xl">
+        <CardHeader className="bg-slate-700 text-white rounded-t-lg border-b border-slate-600">
           <CardTitle className="flex items-center gap-2 text-white">
             <AlertTriangle className="h-6 w-6" />
             Central de Chamados GLPI
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 bg-slate-800">
           {/* Filtros */}
           <div className="flex flex-wrap gap-4 items-center">
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-              <Search className="h-4 w-4 text-gray-500" />
+              <Search className="h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Buscar por ID, título ou conteúdo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1"
+                className="flex-1 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
               />
             </div>
 
             {/* Date filter */}
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Período:</span>
+              <span className="text-sm font-medium text-white">Período:</span>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-[140px] justify-start text-left font-normal",
-                      !dateFrom && "text-muted-foreground"
+                      "w-[140px] justify-start text-left font-normal bg-slate-700 border-slate-600 text-white hover:bg-slate-600",
+                      !dateFrom && "text-slate-400"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dateFrom ? format(dateFrom, "dd/MM/yy") : "Data inicial"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-700" align="start">
                   <Calendar
                     mode="single"
                     selected={dateFrom}
                     onSelect={(date) => date && setDateFrom(date)}
                     initialFocus
-                    className={cn("p-3 pointer-events-auto")}
+                    className={cn("p-3 bg-slate-800 text-white")}
                   />
                 </PopoverContent>
               </Popover>
@@ -483,64 +483,64 @@ export const GLPITicketsGrid = () => {
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-[140px] justify-start text-left font-normal",
-                      !dateTo && "text-muted-foreground"
+                      "w-[140px] justify-start text-left font-normal bg-slate-700 border-slate-600 text-white hover:bg-slate-600",
+                      !dateTo && "text-slate-400"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dateTo ? format(dateTo, "dd/MM/yy") : "Data final"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-700" align="start">
                   <Calendar
                     mode="single"
                     selected={dateTo}
                     onSelect={(date) => date && setDateTo(date)}
                     initialFocus
-                    className={cn("p-3 pointer-events-auto")}
+                    className={cn("p-3 bg-slate-800 text-white")}
                   />
                 </PopoverContent>
               </Popover>
             </div>
             
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[140px]">
+            <Select value={statusFilter} onValueChange={setStatusFilter} className="bg-slate-700 border-slate-600 text-white">
+              <SelectTrigger className="w-[140px] bg-slate-700 border-slate-600 text-white">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos Status</SelectItem>
-                <SelectItem value="1">Novo</SelectItem>
-                <SelectItem value="2">Em Andamento</SelectItem>
-                <SelectItem value="3">Planejado</SelectItem>
-                <SelectItem value="4">Pendente</SelectItem>
-                <SelectItem value="5">Resolvido</SelectItem>
-                <SelectItem value="6">Fechado</SelectItem>
+              <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                <SelectItem value="all" className="text-white">Todos Status</SelectItem>
+                <SelectItem value="1" className="text-white">Novo</SelectItem>
+                <SelectItem value="2" className="text-white">Em Andamento</SelectItem>
+                <SelectItem value="3" className="text-white">Planejado</SelectItem>
+                <SelectItem value="4" className="text-white">Pendente</SelectItem>
+                <SelectItem value="5" className="text-white">Resolvido</SelectItem>
+                <SelectItem value="6" className="text-white">Fechado</SelectItem>
               </SelectContent>
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-[140px]">
+            <Select value={priorityFilter} onValueChange={setPriorityFilter} className="bg-slate-700 border-slate-600 text-white">
+              <SelectTrigger className="w-[140px] bg-slate-700 border-slate-600 text-white">
                 <SelectValue placeholder="Prioridade" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="6">Crítica</SelectItem>
-                <SelectItem value="5">Muito Alta</SelectItem>
-                <SelectItem value="4">Alta</SelectItem>
-                <SelectItem value="3">Média</SelectItem>
-                <SelectItem value="2">Baixa</SelectItem>
-                <SelectItem value="1">Muito Baixa</SelectItem>
+              <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                <SelectItem value="all" className="text-white">Todas</SelectItem>
+                <SelectItem value="6" className="text-white">Crítica</SelectItem>
+                <SelectItem value="5" className="text-white">Muito Alta</SelectItem>
+                <SelectItem value="4" className="text-white">Alta</SelectItem>
+                <SelectItem value="3" className="text-white">Média</SelectItem>
+                <SelectItem value="2" className="text-white">Baixa</SelectItem>
+                <SelectItem value="1" className="text-white">Muito Baixa</SelectItem>
               </SelectContent>
             </Select>
 
-            <Select value={entityFilter} onValueChange={setEntityFilter}>
-              <SelectTrigger className="w-[140px]">
+            <Select value={entityFilter} onValueChange={setEntityFilter} className="bg-slate-700 border-slate-600 text-white">
+              <SelectTrigger className="w-[140px] bg-slate-700 border-slate-600 text-white">
                 <SelectValue placeholder="Entidade" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas Entidades</SelectItem>
+              <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                <SelectItem value="all" className="text-white">Todas Entidades</SelectItem>
                 {entities.data?.map((entity) => (
-                  <SelectItem key={entity.id} value={entity.id.toString()}>
+                  <SelectItem key={entity.id} value={entity.id.toString()} className="text-white">
                     {entity.name}
                   </SelectItem>
                 ))}
@@ -550,23 +550,23 @@ export const GLPITicketsGrid = () => {
             <Button
               variant={groupByEntity ? "default" : "outline"}
               onClick={() => setGroupByEntity(!groupByEntity)}
-              className="gap-2"
+              className={`gap-2 ${groupByEntity ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600'}`}
             >
               <Building2 className="h-4 w-4" />
               {groupByEntity ? "Desagrupar" : "Agrupar por Entidade"}
             </Button>
 
-            <Button variant="outline" onClick={() => tickets.refetch()}>
+            <Button variant="outline" onClick={() => tickets.refetch()} className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600">
               <RefreshCw className="h-4 w-4 mr-2" />
               Atualizar
             </Button>
           </div>
 
           {/* Resultados */}
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-slate-400">
             Mostrando {filteredTickets.length} chamados
             {groupByEntity && ` em ${Object.keys(groupedTickets).length} entidade(s)`}
-            <span className="ml-2 text-blue-600">
+            <span className="ml-2 text-blue-400">
               ({format(dateFrom, 'dd/MM/yyyy', { locale: ptBR })} até {format(dateTo, 'dd/MM/yyyy', { locale: ptBR })})
             </span>
           </div>
@@ -581,7 +581,7 @@ export const GLPITicketsGrid = () => {
           {/* Paginação - apenas quando não agrupado */}
           {!groupByEntity && totalPages > 1 && (
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-slate-400">
                 Página {currentPage} de {totalPages}
               </div>
               <div className="flex items-center gap-2">
@@ -590,6 +590,7 @@ export const GLPITicketsGrid = () => {
                   size="sm"
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
+                  className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Anterior
@@ -599,6 +600,7 @@ export const GLPITicketsGrid = () => {
                   size="sm"
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
+                  className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
                 >
                   Próxima
                   <ChevronRight className="h-4 w-4" />

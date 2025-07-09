@@ -99,19 +99,19 @@ const GLPI = () => {
           
           <div className="flex flex-wrap gap-2">
             {!hasValidSession && (
-              <Button variant="outline" onClick={() => initSession.mutate()} className="border-slate-600 text-slate-200 hover:bg-slate-700">
+              <Button variant="outline" onClick={() => initSession.mutate()} className="border-slate-600 text-slate-200 hover:bg-slate-700 bg-slate-800">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Iniciar Sessão
               </Button>
             )}
             <Dialog open={isCreatingTicket} onOpenChange={setIsCreatingTicket}>
               <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                   <Plus className="mr-2 h-4 w-4" />
                   Novo Chamado
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-slate-800 border-slate-700">
+              <DialogContent className="bg-slate-800 border-slate-700 text-white">
                 <DialogHeader>
                   <DialogTitle className="text-white">Criar Novo Chamado</DialogTitle>
                   <DialogDescription className="text-slate-400">
@@ -126,7 +126,7 @@ const GLPI = () => {
                       value={newTicket.name}
                       onChange={(e) => setNewTicket({ ...newTicket, name: e.target.value })}
                       placeholder="Descreva brevemente o problema"
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
                     />
                   </div>
                   <div>
@@ -137,14 +137,14 @@ const GLPI = () => {
                       onChange={(e) => setNewTicket({ ...newTicket, content: e.target.value })}
                       placeholder="Descreva detalhadamente o problema"
                       rows={4}
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
                     />
                   </div>
                   <div className="flex gap-2 pt-4">
                     <Button 
                       onClick={handleCreateTicket} 
                       disabled={createTicket.isPending || !newTicket.name || !newTicket.content}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
                       {createTicket.isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -153,7 +153,7 @@ const GLPI = () => {
                       )}
                       Criar Chamado
                     </Button>
-                    <Button variant="outline" onClick={() => setIsCreatingTicket(false)} className="border-slate-600 text-slate-200 hover:bg-slate-700">
+                    <Button variant="outline" onClick={() => setIsCreatingTicket(false)} className="border-slate-600 text-slate-200 hover:bg-slate-700 bg-slate-800">
                       Cancelar
                     </Button>
                   </div>
@@ -168,7 +168,7 @@ const GLPI = () => {
                   Resumo Executivo
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700">
+              <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700 text-white">
                 <DialogHeader>
                   <DialogTitle className="text-white">📊 Resumo Executivo GLPI</DialogTitle>
                   <DialogDescription className="text-slate-400">
@@ -189,7 +189,7 @@ const GLPI = () => {
           <Button 
             variant={activeTab === 'tickets' ? 'default' : 'outline'}
             onClick={() => setActiveTab('tickets')}
-            className={`h-12 ${activeTab === 'tickets' ? 'bg-blue-600 hover:bg-blue-700' : 'border-slate-600 text-slate-200 hover:bg-slate-700'}`}
+            className={`h-12 ${activeTab === 'tickets' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'border-slate-600 text-slate-200 hover:bg-slate-700 bg-slate-800'}`}
           >
             <Headphones className="mr-2 h-4 w-4" />
             Central de Chamados
@@ -197,7 +197,7 @@ const GLPI = () => {
           <Button 
             variant={activeTab === 'inventory' ? 'default' : 'outline'}
             onClick={() => setActiveTab('inventory')}
-            className={`h-12 ${activeTab === 'inventory' ? 'bg-blue-600 hover:bg-blue-700' : 'border-slate-600 text-slate-200 hover:bg-slate-700'}`}
+            className={`h-12 ${activeTab === 'inventory' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'border-slate-600 text-slate-200 hover:bg-slate-700 bg-slate-800'}`}
           >
             <Settings className="mr-2 h-4 w-4" />
             Inventário de Ativos

@@ -47,7 +47,7 @@ export const GLPIConnectionStatus = () => {
               {getStatusIcon()}
               <span className="font-medium text-white">Status da Conexão GLPI</span>
             </div>
-            <Badge variant={getStatusColor()}>
+            <Badge variant={getStatusColor()} className="bg-blue-600 text-white border-blue-500">
               {getStatusText()}
             </Badge>
           </div>
@@ -61,7 +61,7 @@ export const GLPIConnectionStatus = () => {
               size="sm"
               onClick={() => initSession.mutate()}
               disabled={initSession.isPending}
-              className="border-slate-600 text-slate-200 hover:bg-slate-700"
+              className="border-slate-600 text-slate-200 hover:bg-slate-700 bg-slate-800"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${initSession.isPending ? 'animate-spin' : ''}`} />
               {hasValidSession ? 'Renovar Sessão' : 'Iniciar Sessão'}

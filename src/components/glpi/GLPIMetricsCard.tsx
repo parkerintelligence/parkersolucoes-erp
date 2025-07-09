@@ -17,22 +17,22 @@ interface GLPIMetricsCardProps {
 }
 
 const variantStyles = {
-  default: 'border-primary bg-primary text-primary-foreground', 
-  success: 'border-primary bg-primary text-primary-foreground', 
-  warning: 'border-primary bg-primary text-primary-foreground', 
-  danger: 'border-primary bg-primary text-primary-foreground', 
-  info: 'border-primary bg-primary text-primary-foreground', 
-  gray: 'border-primary bg-primary text-primary-foreground', 
+  default: 'border-slate-600 bg-slate-800 text-white', 
+  success: 'border-green-600 bg-green-900/20 text-green-100', 
+  warning: 'border-yellow-600 bg-yellow-900/20 text-yellow-100', 
+  danger: 'border-red-600 bg-red-900/20 text-red-100', 
+  info: 'border-blue-600 bg-blue-900/20 text-blue-100', 
+  gray: 'border-slate-600 bg-slate-800 text-slate-200', 
 };
 
 const getTrendIcon = (trend?: 'up' | 'down' | 'stable') => {
   switch (trend) {
     case 'up':
-      return <TrendingUp className="h-3 w-3 text-green-500" />;
+      return <TrendingUp className="h-3 w-3 text-green-400" />;
     case 'down':
-      return <TrendingDown className="h-3 w-3 text-red-500" />;
+      return <TrendingDown className="h-3 w-3 text-red-400" />;
     case 'stable':
-      return <Minus className="h-3 w-3 text-gray-500" />;
+      return <Minus className="h-3 w-3 text-slate-400" />;
     default:
       return null;
   }
@@ -53,26 +53,26 @@ export const GLPIMetricsCard = ({
     <Card className={`${variantStyles[variant]} hover:shadow-lg transition-all duration-300 ${className}`}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-primary-foreground">{title}</CardTitle>
-          <div className="text-primary-foreground/80">{icon}</div>
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <div className="text-slate-300">{icon}</div>
         </div>
       </CardHeader>
       <CardContent className="pt-0">
         <div className="space-y-2">
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-primary-foreground">{value}</span>
+            <span className="text-2xl font-bold">{value}</span>
             {trend && trendValue && (
-              <Badge variant="outline" className="gap-1 text-xs border-primary-foreground/20 text-primary-foreground">
+              <Badge variant="outline" className="gap-1 text-xs border-slate-600 bg-slate-700">
                 {getTrendIcon(trend)}
                 {trendValue}
               </Badge>
             )}
           </div>
-          {subtitle && <p className="text-xs text-primary-foreground/70">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
           {progress !== undefined && (
             <div className="space-y-1">
-              <Progress value={progress} className="h-2" />
-              <p className="text-xs text-primary-foreground/70">{progress}% do objetivo</p>
+              <Progress value={progress} className="h-2 bg-slate-700" />
+              <p className="text-xs text-slate-400">{progress}% do objetivo</p>
             </div>
           )}
         </div>
