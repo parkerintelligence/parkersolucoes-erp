@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { usePasswords } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
@@ -222,25 +223,37 @@ const Links = () => {
                       <div className="text-blue-400">
                         {getServiceIcon(service)}
                       </div>
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleCardVisibility(link.id)}
+                        className="h-5 w-5 p-0 border-slate-600 hover:bg-slate-700"
+                      >
+                        {isVisible ? <EyeOff className="h-3 w-3 text-slate-400" /> : <Eye className="h-3 w-3 text-slate-400" />}
+                      </Button>
+                    </div>
+
+                    {/* Badge do serviço */}
+                    <div className="mb-2">
                       <Badge className="bg-slate-700 text-slate-300 text-xs px-1 py-0 h-4">
                         {service}
                       </Badge>
                     </div>
 
-                    {/* Título e empresa */}
+                    {/* Título, empresa e link */}
                     <div className="space-y-1 mb-3">
                       <h3 className="font-medium text-white text-sm truncate">{link.name}</h3>
                       <p className="text-slate-400 text-xs truncate">{company?.name || 'Sem empresa'}</p>
+                      {link.url && (
+                        <p className="text-blue-400 text-xs truncate" title={link.url}>
+                          {link.url}
+                        </p>
+                      )}
                     </div>
 
                     {/* Credenciais (se visível) */}
                     {isVisible && (
                       <div className="space-y-1 mb-3 text-xs">
-                        {link.url && (
-                          <p className="text-slate-400 truncate">
-                            <span className="text-slate-500">Site:</span> {link.url}
-                          </p>
-                        )}
                         {link.username && (
                           <p className="text-slate-400 truncate">
                             <span className="text-slate-500">User:</span> {link.username}
@@ -254,22 +267,14 @@ const Links = () => {
                       </div>
                     )}
                     
-                    {/* Botões */}
-                    <div className="flex gap-1">
+                    {/* Botão central para abrir link */}
+                    <div className="flex justify-center">
                       <Button 
                         className="flex-1 h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white"
-                        onClick={() => toggleCardVisibility(link.id)}
-                      >
-                        {isVisible ? <EyeOff className="mr-1 h-3 w-3" /> : <Eye className="mr-1 h-3 w-3" />}
-                        {isVisible ? 'Ocultar' : 'Ver'}
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        size="sm"
                         onClick={() => handleOpenLink(link.url)}
-                        className="h-7 w-7 p-0 border-slate-600 hover:bg-slate-700"
                       >
-                        <ExternalLink className="h-3 w-3 text-slate-400" />
+                        <ExternalLink className="mr-1 h-3 w-3" />
+                        Abrir
                       </Button>
                     </div>
                   </CardContent>
@@ -302,11 +307,13 @@ const Links = () => {
                               </Badge>
                             </div>
                             <p className="text-slate-400 text-xs truncate">{company?.name || 'Sem empresa'}</p>
+                            {link.url && (
+                              <p className="text-blue-400 text-xs truncate" title={link.url}>
+                                {link.url}
+                              </p>
+                            )}
                             {isVisible && (
                               <div className="mt-1 text-xs space-y-0.5">
-                                {link.url && (
-                                  <p className="text-slate-400"><span className="text-slate-500">Site:</span> <code className="bg-slate-700 px-1 rounded">{link.url}</code></p>
-                                )}
                                 {link.username && (
                                   <p className="text-slate-400"><span className="text-slate-500">User:</span> <code className="bg-slate-700 px-1 rounded">{link.username}</code></p>
                                 )}
@@ -320,20 +327,19 @@ const Links = () => {
                         
                         <div className="flex items-center gap-2">
                           <Button 
-                            variant="outline"
-                            size="sm"
                             onClick={() => handleOpenLink(link.url)}
-                            className="h-7 text-xs border-slate-600 hover:bg-slate-700 text-slate-300"
+                            className="h-7 text-xs bg-blue-600 hover:bg-blue-700"
                           >
                             <ExternalLink className="h-3 w-3 mr-1" />
                             Abrir
                           </Button>
                           <Button 
+                            variant="outline"
+                            size="sm"
                             onClick={() => toggleCardVisibility(link.id)}
-                            className="h-7 text-xs bg-blue-600 hover:bg-blue-700"
+                            className="h-7 text-xs border-slate-600 hover:bg-slate-700 text-slate-300"
                           >
-                            {isVisible ? <EyeOff className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
-                            {isVisible ? 'Ocultar' : 'Ver'}
+                            {isVisible ? <EyeOff className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3" />}
                           </Button>
                         </div>
                       </div>
