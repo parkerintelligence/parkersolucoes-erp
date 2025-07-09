@@ -7,7 +7,7 @@ export interface ScheduledReport {
   id: string;
   user_id: string;
   name: string;
-  report_type: string; // Changed from union type to string to match database
+  report_type: string; // Agora será o ID do template
   phone_number: string;
   cron_expression: string;
   is_active: boolean;

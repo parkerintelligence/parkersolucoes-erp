@@ -1,10 +1,14 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   MessageCircle, 
   Plus, 
@@ -14,67 +18,72 @@ import {
   Search,
   Calendar,
   Building,
-  Clock
+  Clock,
+  HardDrive,
+  ExternalLink
 } from 'lucide-react';
+import { 
+  useWhatsAppTemplates, 
+  useCreateWhatsAppTemplate, 
+  useUpdateWhatsAppTemplate, 
+  useDeleteWhatsAppTemplate 
+} from '@/hooks/useWhatsAppTemplates';
 import { toast } from '@/hooks/use-toast';
 
-interface WhatsAppTemplate {
-  id: string;
-  name: string;
-  content: string;
-  category: string;
-  variables: string[];
-}
-
 const WhatsAppTemplates = () => {
-  const [templates, setTemplates] = useState<WhatsAppTemplate[]>([
-    {
-      id: '1',
-      name: 'Lembrete de Vencimento',
-      content: 'Olá! Lembro que o {sistema} da empresa {empresa} tem vencimento em {dias} dias ({data}). Precisa de ajuda para renovação?',
-      category: 'Lembrete',
-      variables: ['sistema', 'empresa', 'dias', 'data']
-    },
-    {
-      id: '2', 
-      name: 'Vencimento Urgente',
-      content: '🚨 URGENTE: O {sistema} da {empresa} vence hoje ({data})! Entre em contato imediatamente para renovação.',
-      category: 'Urgente',
-      variables: ['sistema', 'empresa', 'data']
-    },
-    {
-      id: '3',
-      name: 'Backup Agendado',
-      content: 'O backup do sistema {sistema} da {empresa} está agendado para hoje às {hora}. Certifique-se de que o sistema esteja acessível.',
-      category: 'Backup',
-      variables: ['sistema', 'empresa', 'hora']
-    }
-  ]);
+  const { data: templates = [], isLoading } = useWhatsAppTemplates();
+  const createTemplate = useCreateWhatsAppTemplate();
+  const updateTemplate = useUpdateWhatsAppTemplate();
+  const deleteTemplate = useDeleteWhatsAppTemplate();
 
   const [showForm, setShowForm] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<WhatsAppTemplate | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     name: '',
-    content: '',
-    category: ''
+    template_type: 'backup_alert' as const,
+    subject: '',
+    body: '',
+    is_active: true
   });
+
+  const templateTypes = {
+    backup_alert: { 
+      name: 'Alerta de Backups', 
+      icon: HardDrive, 
+      color: 'bg-red-100 text-red-800',
+      variables: ['{{date}}', '{{hours_threshold}}', '{{backup_list}}']
+    },
+    schedule_critical: { 
+      name: 'Vencimentos Críticos', 
+      icon: Calendar, 
+      color: 'bg-orange-100 text-orange-800',
+      variables: ['{{date}}', '{{schedule_items}}', '{{total_items}}']
+    },
+    glpi_summary: { 
+      name: 'Resumo GLPI', 
+      icon: ExternalLink, 
+      color: 'bg-blue-100 text-blue-800',
+      variables: ['{{date}}', '{{open_tickets}}', '{{critical_tickets}}', '{{pending_tickets}}', '{{ticket_list}}']
+    },
+    custom: {
+      name: 'Personalizado',
+      icon: MessageCircle,
+      color: 'bg-purple-100 text-purple-800',
+      variables: ['{{custom_var}}']
+    }
+  };
 
   const filteredTemplates = templates.filter(template =>
     template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    template.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    template.content.toLowerCase().includes(searchTerm.toLowerCase())
+    template.template_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    template.body.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const extractVariables = (content: string): string[] => {
-    const matches = content.match(/\{([^}]+)\}/g);
-    return matches ? matches.map(match => match.slice(1, -1)) : [];
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.content || !formData.category) {
+    if (!formData.name || !formData.subject || !formData.body) {
       toast({
         title: "Erro no formulário",
         description: "Preencha todos os campos obrigatórios.",
@@ -83,70 +92,84 @@ const WhatsAppTemplates = () => {
       return;
     }
 
-    const variables = extractVariables(formData.content);
-    const newTemplate: WhatsAppTemplate = {
-      id: editingTemplate?.id || Date.now().toString(),
-      name: formData.name,
-      content: formData.content,
-      category: formData.category,
-      variables
-    };
+    try {
+      if (editingTemplate) {
+        await updateTemplate.mutateAsync({
+          id: editingTemplate.id,
+          updates: formData
+        });
+      } else {
+        await createTemplate.mutateAsync(formData);
+      }
 
-    if (editingTemplate) {
-      setTemplates(templates.map(t => t.id === editingTemplate.id ? newTemplate : t));
-      toast({
-        title: "Modelo atualizado!",
-        description: "O modelo foi atualizado com sucesso."
-      });
-    } else {
-      setTemplates([...templates, newTemplate]);
-      toast({
-        title: "Modelo criado!",
-        description: "O modelo foi criado com sucesso."
-      });
+      setFormData({ name: '', template_type: 'backup_alert', subject: '', body: '', is_active: true });
+      setEditingTemplate(null);
+      setShowForm(false);
+    } catch (error) {
+      console.error('Erro ao salvar template:', error);
     }
-
-    setFormData({ name: '', content: '', category: '' });
-    setEditingTemplate(null);
-    setShowForm(false);
   };
 
-  const handleEdit = (template: WhatsAppTemplate) => {
+  const handleEdit = (template: any) => {
     setFormData({
       name: template.name,
-      content: template.content,
-      category: template.category
+      template_type: template.template_type,
+      subject: template.subject,
+      body: template.body,
+      is_active: template.is_active
     });
     setEditingTemplate(template);
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
-    setTemplates(templates.filter(t => t.id !== id));
-    toast({
-      title: "Modelo excluído!",
-      description: "O modelo foi excluído com sucesso."
-    });
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este template?')) {
+      try {
+        await deleteTemplate.mutateAsync(id);
+      } catch (error) {
+        console.error('Erro ao excluir template:', error);
+      }
+    }
   };
 
   const handleCopy = (content: string) => {
     navigator.clipboard.writeText(content);
     toast({
-      title: "Modelo copiado!",
+      title: "Template copiado!",
       description: "O conteúdo foi copiado para a área de transferência."
     });
   };
 
-  const getCategoryColor = (category: string) => {
-    const colors = {
-      'Lembrete': 'bg-blue-100 text-blue-800 border-blue-200',
-      'Urgente': 'bg-red-100 text-red-800 border-red-200',
-      'Backup': 'bg-green-100 text-green-800 border-green-200',
-      'Manutenção': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'Geral': 'bg-gray-100 text-gray-800 border-gray-200'
-    };
-    return colors[category] || 'bg-gray-100 text-gray-800 border-gray-200';
+  const getCategoryColor = (templateType: string) => {
+    return templateTypes[templateType as keyof typeof templateTypes]?.color || 'bg-gray-100 text-gray-800 border-gray-200';
   };
+
+  const insertVariable = (variable: string) => {
+    const textarea = document.getElementById('template-body') as HTMLTextAreaElement;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = formData.body;
+      const before = text.substring(0, start);
+      const after = text.substring(end);
+      const newText = before + variable + after;
+      
+      setFormData({ ...formData, body: newText });
+      
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + variable.length, start + variable.length);
+      }, 0);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="text-slate-600">Carregando templates...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -154,13 +177,13 @@ const WhatsAppTemplates = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Modelos WhatsApp</h1>
-          <p className="text-muted-foreground">Gerencie modelos de mensagens para envio via Evolution API</p>
+          <p className="text-muted-foreground">Gerencie modelos de mensagens para relatórios automáticos</p>
         </div>
         <Button 
           onClick={() => {
             setShowForm(true);
             setEditingTemplate(null);
-            setFormData({ name: '', content: '', category: '' });
+            setFormData({ name: '', template_type: 'backup_alert', subject: '', body: '', is_active: true });
           }}
           className="bg-green-600 hover:bg-green-700"
         >
@@ -186,64 +209,83 @@ const WhatsAppTemplates = () => {
 
       {/* Templates List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredTemplates.map((template) => (
-          <Card key={template.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <MessageCircle className="h-5 w-5 text-green-600" />
-                  {template.name}
-                </CardTitle>
-                <Badge className={getCategoryColor(template.category)}>
-                  {template.category}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-muted/50 p-3 rounded-lg">
-                <p className="text-sm whitespace-pre-wrap">{template.content}</p>
-              </div>
-              
-              {template.variables.length > 0 && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Variáveis disponíveis:</Label>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {template.variables.map((variable) => (
-                      <Badge key={variable} variant="outline" className="text-xs">
-                        {`{${variable}}`}
-                      </Badge>
-                    ))}
+        {filteredTemplates.map((template) => {
+          const templateTypeInfo = templateTypes[template.template_type as keyof typeof templateTypes];
+          const Icon = templateTypeInfo?.icon || MessageCircle;
+          
+          return (
+            <Card key={template.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5 text-green-600" />
+                    {template.name}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge className={getCategoryColor(template.template_type)}>
+                      <Icon className="h-3 w-3 mr-1" />
+                      {templateTypeInfo?.name || template.template_type}
+                    </Badge>
+                    {template.is_active ? (
+                      <Badge className="bg-green-100 text-green-800">Ativo</Badge>
+                    ) : (
+                      <Badge className="bg-gray-100 text-gray-800">Inativo</Badge>
+                    )}
                   </div>
                 </div>
-              )}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium">Assunto:</Label>
+                  <p className="text-sm text-muted-foreground">{template.subject}</p>
+                </div>
+                
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <Label className="text-sm font-medium">Conteúdo:</Label>
+                  <p className="text-sm whitespace-pre-wrap mt-1">{template.body}</p>
+                </div>
+                
+                {templateTypeInfo?.variables && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Variáveis disponíveis:</Label>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {templateTypeInfo.variables.map((variable: string) => (
+                        <Badge key={variable} variant="outline" className="text-xs">
+                          {variable}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEdit(template)}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleCopy(template.content)}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDelete(template.id)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEdit(template)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopy(template.body)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDelete(template.id)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {filteredTemplates.length === 0 && (
@@ -261,66 +303,110 @@ const WhatsAppTemplates = () => {
       )}
 
       {/* Form Dialog */}
-      {showForm && (
-        <Card className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-          <div className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg">
-            <CardHeader className="p-0">
-              <CardTitle>{editingTemplate ? 'Editar Modelo' : 'Novo Modelo'}</CardTitle>
-              <CardDescription>
-                {editingTemplate ? 'Edite o modelo de mensagem.' : 'Crie um novo modelo de mensagem para WhatsApp.'}
-              </CardDescription>
-            </CardHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Ex: Lembrete de Vencimento"
-                />
-              </div>
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingTemplate ? 'Editar Modelo' : 'Novo Modelo'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingTemplate ? 'Edite o modelo de mensagem.' : 'Crie um novo modelo de mensagem para WhatsApp.'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Ex: Alerta de Backups Personalizado"
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="category">Categoria *</Label>
-                <Input
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  placeholder="Ex: Lembrete, Urgente, Backup"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="template_type">Tipo de Template *</Label>
+              <Select value={formData.template_type} onValueChange={(value: any) => setFormData({ ...formData, template_type: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(templateTypes).map(([key, type]) => (
+                    <SelectItem key={key} value={key}>
+                      <div className="flex items-center gap-2">
+                        <type.icon className="h-4 w-4" />
+                        {type.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="content">Conteúdo da Mensagem *</Label>
-                <Textarea
-                  id="content"
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  placeholder="Use {variavel} para inserir dados dinâmicos"
-                  rows={4}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Use {`{empresa}, {sistema}, {data}, {dias}, {hora}`} como variáveis dinâmicas.
-                </p>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="subject">Assunto *</Label>
+              <Input
+                id="subject"
+                value={formData.subject}
+                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                placeholder="Ex: 🚨 Backups Desatualizados - {{date}}"
+              />
+            </div>
 
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowForm(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                  {editingTemplate ? 'Atualizar' : 'Criar'}
-                </Button>
+            <div className="space-y-2">
+              <Label htmlFor="template-body">Corpo da Mensagem *</Label>
+              <Textarea
+                id="template-body"
+                value={formData.body}
+                onChange={(e) => setFormData({ ...formData, body: e.target.value })}
+                placeholder="Digite o corpo da mensagem aqui..."
+                rows={8}
+              />
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Label className="text-sm text-gray-600">Variáveis disponíveis:</Label>
+                {templateTypes[formData.template_type].variables.map((variable) => (
+                  <Button
+                    key={variable}
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    onClick={() => insertVariable(variable)}
+                    className="text-xs"
+                  >
+                    {variable}
+                  </Button>
+                ))}
               </div>
-            </form>
-          </div>
-        </Card>
-      )}
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="is_active"
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+              />
+              <Label htmlFor="is_active">Template ativo</Label>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowForm(false)}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-green-600 hover:bg-green-700"
+                disabled={createTemplate.isPending || updateTemplate.isPending}
+              >
+                {editingTemplate ? 'Atualizar' : 'Criar'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
