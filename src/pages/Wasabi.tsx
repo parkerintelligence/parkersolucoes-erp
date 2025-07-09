@@ -22,6 +22,7 @@ import {
 import { useWasabi } from '@/hooks/useWasabi';
 import { WasabiCreateBucketDialog } from '@/components/WasabiCreateBucketDialog';
 import { WasabiUploadDialog } from '@/components/WasabiUploadDialog';
+import { WasabiBucketSelector } from '@/components/WasabiBucketSelector';
 
 const Wasabi = () => {
   const [createBucketOpen, setCreateBucketOpen] = useState(false);
@@ -83,9 +84,15 @@ const Wasabi = () => {
   }
 
   const handleUpload = (bucketName: string, folder?: string) => {
-    setSelectedBucket(bucketName);
     setSelectedFolder(folder || '');
     setUploadDialogOpen(true);
+  };
+
+  const handleBucketChange = (bucketName: string) => {
+    setSelectedBucket(bucketName);
+    if (bucketName) {
+      listObjects(bucketName);
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -197,13 +204,6 @@ const Wasabi = () => {
             <Upload className="mr-2 h-4 w-4" />
             Upload Arquivo
           </Button>
-          <Button 
-            onClick={listBuckets}
-            className="bg-blue-800 hover:bg-blue-700 text-white border-blue-700"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Listar Buckets
-          </Button>
         </div>
 
         {error && (
@@ -269,10 +269,7 @@ const Wasabi = () => {
                             <div className="flex gap-2">
                               <Button 
                                 size="sm" 
-                                onClick={() => {
-                                  setSelectedBucket(bucket.name);
-                                  listObjects(bucket.name);
-                                }}
+                                onClick={() => handleBucketChange(bucket.name)}
                                 className="bg-blue-800 hover:bg-blue-700 text-white"
                               >
                                 <FolderOpen className="h-4 w-4" />
@@ -324,13 +321,22 @@ const Wasabi = () => {
                     </Button>
                   )}
                 </div>
+                
+                {/* Bucket Selector */}
+                <WasabiBucketSelector
+                  buckets={buckets}
+                  selectedBucket={selectedBucket}
+                  onBucketChange={handleBucketChange}
+                  isLoading={isLoading}
+                  className="mt-4"
+                />
               </CardHeader>
               <CardContent>
                 {!selectedBucket ? (
                   <div className="text-center py-8">
                     <Folder className="h-12 w-12 mx-auto mb-4 text-gray-500" />
                     <p className="text-lg font-medium text-white">Selecione um bucket</p>
-                    <p className="text-sm text-gray-400">Escolha um bucket na aba anterior para ver os arquivos.</p>
+                    <p className="text-sm text-gray-400">Use o seletor acima para escolher um bucket e ver os arquivos.</p>
                   </div>
                 ) : isLoading ? (
                   <div className="text-center py-8">

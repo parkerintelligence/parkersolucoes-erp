@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Calendar, Clock, AlertTriangle, User, Settings } from 'lucide-react';
 import { useCreateGLPIScheduledTicket, useUpdateGLPIScheduledTicket, GLPIScheduledTicket } from '@/hooks/useGLPIScheduledTickets';
-import { TimeSelector } from './TimeSelector';
+import { ScheduleFrequencySelector } from './ScheduleFrequencySelector';
 import { toast } from '@/hooks/use-toast';
 
 interface GLPIScheduledTicketFormProps {
@@ -91,25 +90,21 @@ export const GLPIScheduledTicketForm = ({ editingTicket, onSave, onCancel }: GLP
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-white">Nome do Agendamento *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Ex: Verificação Semanal de Servidores"
-                  className="bg-gray-600 border-gray-500 text-white placeholder-gray-400"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <TimeSelector
-                  value={formData.cron_expression}
-                  onChange={(value) => setFormData({ ...formData, cron_expression: value })}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-white">Nome do Agendamento *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Ex: Verificação Semanal de Servidores"
+                className="bg-gray-600 border-gray-500 text-white placeholder-gray-400"
+              />
             </div>
+
+            <ScheduleFrequencySelector
+              value={formData.cron_expression}
+              onChange={(value) => setFormData({ ...formData, cron_expression: value })}
+            />
 
             <div className="flex items-center space-x-2">
               <Switch 
