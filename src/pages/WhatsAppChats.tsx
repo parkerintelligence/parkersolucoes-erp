@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,9 +13,10 @@ import {
   Clock, 
   Send,
   AlertCircle,
-  Loader2
+  Loader2,
+  Wifi
 } from 'lucide-react';
-import { useWhatsAppConversations, useSyncWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
+import { useWhatsAppConversations, useTestEvolutionConnection, useSyncWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -31,6 +31,7 @@ const WhatsAppChats = () => {
     refetch
   } = useWhatsAppConversations();
 
+  const { mutate: testConnection, isPending: isTestingConnection } = useTestEvolutionConnection();
   const { mutate: syncConversations } = useSyncWhatsAppConversations();
 
   // Auto-refresh every 30 seconds
@@ -75,10 +76,20 @@ const WhatsAppChats = () => {
             <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-600" />
             <h3 className="text-lg font-semibold text-red-800 mb-2">Erro ao carregar conversas</h3>
             <p className="text-red-700 mb-4">{error.message}</p>
-            <Button onClick={() => refetch()} variant="outline">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Tentar Novamente
-            </Button>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={() => refetch()} variant="outline">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Tentar Novamente
+              </Button>
+              <Button onClick={() => testConnection()} disabled={isTestingConnection}>
+                {isTestingConnection ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Wifi className="mr-2 h-4 w-4" />
+                )}
+                Testar Conexão
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -97,6 +108,18 @@ const WhatsAppChats = () => {
         </div>
         <div className="flex gap-2">
           <Button 
+            onClick={() => testConnection()} 
+            disabled={isTestingConnection}
+            variant="outline"
+          >
+            {isTestingConnection ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Wifi className="mr-2 h-4 w-4" />
+            )}
+            Testar Conexão
+          </Button>
+          <Button 
             onClick={handleSync} 
             disabled={isLoading}
             variant="outline"
@@ -107,10 +130,6 @@ const WhatsAppChats = () => {
               <RefreshCw className="mr-2 h-4 w-4" />
             )}
             Sincronizar
-          </Button>
-          <Button onClick={() => refetch()} disabled={isLoading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Atualizar
           </Button>
         </div>
       </div>

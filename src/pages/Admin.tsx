@@ -1,7 +1,8 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { BomControleAdminConfig } from "@/components/BomControleAdminConfig";
 import { ChatwootAdminConfig } from "@/components/ChatwootAdminConfig";
 import { EvolutionAPIAdminConfig } from "@/components/EvolutionAPIAdminConfig";
@@ -15,7 +16,6 @@ import { BaculaAdminConfig } from "@/components/BaculaAdminConfig";
 import { AdminCompaniesPanel } from "@/components/AdminCompaniesPanel";
 import SystemSettingsPanel from "@/components/SystemSettingsPanel";
 import { BrandingSettingsPanel } from "@/components/BrandingSettingsPanel";
-import { DiagnosticPanel } from "@/components/DiagnosticPanel";
 import { 
   Settings, 
   Building, 
@@ -28,102 +28,101 @@ import {
   Database,
   Server,
   Archive,
-  Activity,
-  Stethoscope
+  Activity
 } from "lucide-react";
 
 const Admin = () => {
-  const [activeTab, setActiveTab] = useState("diagnostic");
+  const [activePanel, setActivePanel] = useState("");
 
-  const integrationTabs = [
-    {
-      id: "diagnostic",
-      label: "Diagnóstico",
-      icon: <Stethoscope className="h-4 w-4" />,
-      component: <DiagnosticPanel />
-    },
+  const integrationButtons = [
     {
       id: "chatwoot",
       label: "Chatwoot",
-      icon: <MessageCircle className="h-4 w-4" />,
+      icon: <MessageCircle className="h-5 w-5" />,
       component: <ChatwootAdminConfig />
     },
     {
       id: "evolution",
       label: "Evolution API",
-      icon: <MessageCircle className="h-4 w-4" />,
+      icon: <MessageCircle className="h-5 w-5" />,
       component: <EvolutionAPIAdminConfig />
     },
     {
       id: "wasabi",
       label: "Wasabi",
-      icon: <Cloud className="h-4 w-4" />,
+      icon: <Cloud className="h-5 w-5" />,
       component: <WasabiAdminConfig />
     },
     {
       id: "grafana",
       label: "Grafana",
-      icon: <BarChart3 className="h-4 w-4" />,
+      icon: <BarChart3 className="h-5 w-5" />,
       component: <GrafanaAdminConfig />
     },
     {
       id: "zabbix",
       label: "Zabbix",
-      icon: <Shield className="h-4 w-4" />,
+      icon: <Shield className="h-5 w-5" />,
       component: <ZabbixAdminConfig />
     },
     {
       id: "ftp",
       label: "FTP",
-      icon: <HardDrive className="h-4 w-4" />,
+      icon: <HardDrive className="h-5 w-5" />,
       component: <FtpAdminConfig />
     },
     {
       id: "glpi",
       label: "GLPI",
-      icon: <Database className="h-4 w-4" />,
+      icon: <Database className="h-5 w-5" />,
       component: <GLPIConfig />
     },
     {
       id: "guacamole",
       label: "Guacamole",
-      icon: <Server className="h-4 w-4" />,
+      icon: <Server className="h-5 w-5" />,
       component: <GuacamoleAdminConfig />
     },
     {
       id: "bacula",
       label: "Bacula",
-      icon: <Archive className="h-4 w-4" />,
+      icon: <Archive className="h-5 w-5" />,
       component: <BaculaAdminConfig />
     },
     {
       id: "bomcontrole",
       label: "BomControle",
-      icon: <Activity className="h-4 w-4" />,
+      icon: <Activity className="h-5 w-5" />,
       component: <BomControleAdminConfig />
     }
   ];
 
-  const systemTabs = [
+  const systemButtons = [
     {
       id: "companies",
       label: "Empresas",
-      icon: <Building className="h-4 w-4" />,
+      icon: <Building className="h-5 w-5" />,
       component: <AdminCompaniesPanel />
     },
     {
       id: "settings",
       label: "Configurações",
-      icon: <Settings className="h-4 w-4" />,
+      icon: <Settings className="h-5 w-5" />,
       component: <SystemSettingsPanel />
     },
     {
       id: "branding",
       label: "Visual",
-      icon: <Palette className="h-4 w-4" />,
+      icon: <Palette className="h-5 w-5" />,
       component: <BrandingSettingsPanel />
     }
   ];
+
+  const getActiveComponent = () => {
+    const allButtons = [...integrationButtons, ...systemButtons];
+    const activeButton = allButtons.find(button => button.id === activePanel);
+    return activeButton ? activeButton.component : null;
+  };
 
   return (
     <div className="min-h-screen bg-slate-900 p-4">
@@ -138,56 +137,68 @@ const Admin = () => {
           </Badge>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <div className="bg-slate-800 rounded-lg p-4">
-            <TabsList className="grid grid-cols-3 lg:grid-cols-6 xl:grid-cols-8 gap-2 bg-slate-700 p-1">
-              {[...integrationTabs.slice(0, 8)].map((tab) => (
-                <TabsTrigger
-                  key={tab.id}
-                  value={tab.id}
-                  className="flex items-center gap-2 text-xs data-[state=active]:bg-slate-600 data-[state=active]:text-white"
-                >
-                  {tab.icon}
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            
-            {integrationTabs.length > 8 && (
-              <TabsList className="grid grid-cols-3 lg:grid-cols-6 gap-2 bg-slate-700 p-1 mt-2">
-                {integrationTabs.slice(8).map((tab) => (
-                  <TabsTrigger
-                    key={tab.id}
-                    value={tab.id}
-                    className="flex items-center gap-2 text-xs data-[state=active]:bg-slate-600 data-[state=active]:text-white"
-                  >
-                    {tab.icon}
-                    <span className="hidden sm:inline">{tab.label}</span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            )}
+        {!activePanel ? (
+          <div className="space-y-8">
+            {/* Integrações */}
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">Integrações</CardTitle>
+                <CardDescription className="text-slate-400">
+                  Configure as integrações com serviços externos
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {integrationButtons.map((button) => (
+                    <Button
+                      key={button.id}
+                      onClick={() => setActivePanel(button.id)}
+                      className="h-24 flex flex-col items-center justify-center gap-2 bg-blue-800 hover:bg-blue-700 text-white border-0 transition-colors"
+                    >
+                      {button.icon}
+                      <span className="text-sm font-medium">{button.label}</span>
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-            <TabsList className="grid grid-cols-3 gap-2 bg-slate-700 p-1 mt-2">
-              {systemTabs.map((tab) => (
-                <TabsTrigger
-                  key={tab.id}
-                  value={tab.id}
-                  className="flex items-center gap-2 text-xs data-[state=active]:bg-slate-600 data-[state=active]:text-white"
-                >
-                  {tab.icon}
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            {/* Sistema */}
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">Sistema</CardTitle>
+                <CardDescription className="text-slate-400">
+                  Configure parâmetros e configurações do sistema
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {systemButtons.map((button) => (
+                    <Button
+                      key={button.id}
+                      onClick={() => setActivePanel(button.id)}
+                      className="h-24 flex flex-col items-center justify-center gap-2 bg-blue-800 hover:bg-blue-700 text-white border-0 transition-colors"
+                    >
+                      {button.icon}
+                      <span className="text-sm font-medium">{button.label}</span>
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
-
-          {[...integrationTabs, ...systemTabs].map((tab) => (
-            <TabsContent key={tab.id} value={tab.id} className="space-y-6">
-              {tab.component}
-            </TabsContent>
-          ))}
-        </Tabs>
+        ) : (
+          <div className="space-y-4">
+            <Button
+              onClick={() => setActivePanel("")}
+              variant="outline"
+              className="text-slate-300 border-slate-600 hover:bg-slate-800"
+            >
+              ← Voltar ao Painel Principal
+            </Button>
+            {getActiveComponent()}
+          </div>
+        )}
       </div>
     </div>
   );
