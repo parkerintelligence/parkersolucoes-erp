@@ -97,9 +97,22 @@ const WhatsAppChats = () => {
     }
 
     setIsConnecting(true);
+    setConnectionStatus('connecting');
+
     try {
       const service = new EvolutionApiService(evolutionIntegration);
       const instanceInfo = await service.getInstanceInfo();
+      
+      if (instanceInfo.error) {
+        toast({
+          title: "Erro na conexão",
+          description: instanceInfo.error,
+          variant: "destructive"
+        });
+        setIsConnecting(false);
+        setConnectionStatus('disconnected');
+        return;
+      }
       
       if (instanceInfo.connected) {
         setIsConnected(true);
@@ -113,6 +126,7 @@ const WhatsAppChats = () => {
       } else if (instanceInfo.qrCode) {
         setQrCode(instanceInfo.qrCode);
         setIsQrDialogOpen(true);
+        setConnectionStatus('waiting_qr');
         
         // Poll for connection status
         const pollConnection = setInterval(async () => {
@@ -137,6 +151,7 @@ const WhatsAppChats = () => {
           if (!isConnected) {
             setIsConnecting(false);
             setIsQrDialogOpen(false);
+            setConnectionStatus('disconnected');
             toast({
               title: "Tempo esgotado",
               description: "Conexão não foi estabelecida. Tente novamente.",
@@ -144,10 +159,19 @@ const WhatsAppChats = () => {
             });
           }
         }, 120000);
+      } else {
+        setIsConnecting(false);
+        setConnectionStatus('disconnected');
+        toast({
+          title: "Erro",
+          description: "Não foi possível obter QR Code",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('Erro ao conectar:', error);
       setIsConnecting(false);
+      setConnectionStatus('disconnected');
       toast({
         title: "Erro na conexão",
         description: "Não foi possível conectar ao WhatsApp Web",
@@ -184,7 +208,6 @@ const WhatsAppChats = () => {
     }
   };
 
-  // Load chats from Evolution API
   const loadChats = async () => {
     if (!evolutionIntegration) return;
 
@@ -369,9 +392,17 @@ const WhatsAppChats = () => {
           <CardContent className="space-y-4">
             <div className="text-center">
               <div className="flex items-center justify-center gap-2 mb-4">
-                <WifiOff className="h-5 w-5 text-red-500" />
-                <span className="text-sm">Desconectado</span>
-                <Badge variant="destructive">
+                {connectionStatus === 'connecting' || connectionStatus === 'waiting_qr' ? (
+                  <RefreshCw className="h-5 w-5 text-blue-500 animate-spin" />
+                ) : (
+                  <WifiOff className="h-5 w-5 text-red-500" />
+                )}
+                <span className="text-sm capitalize">
+                  {connectionStatus === 'connecting' && 'Conectando...'}
+                  {connectionStatus === 'waiting_qr' && 'Aguardando QR Code...'}
+                  {connectionStatus === 'disconnected' && 'Desconectado'}
+                </span>
+                <Badge variant={connectionStatus === 'disconnected' ? 'destructive' : 'default'}>
                   {connectionStatus}
                 </Badge>
               </div>
@@ -470,9 +501,9 @@ const WhatsAppChats = () => {
       </div>
 
       {/* Área Principal - Chat */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
         {/* Header */}
-        <div className="h-16 border-b bg-background flex items-center justify-between px-4">
+        <div className="h-16 border-b bg-background flex items-center justify-between px-4 flex-shrink-0">
           <div className="flex items-center gap-3">
             {!isSidebarOpen && (
               <Button
@@ -560,7 +591,7 @@ const WhatsAppChats = () => {
         </div>
 
         {/* Área de Mensagens */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           {selectedChat ? (
             <>
               {/* Messages Area */}
@@ -600,7 +631,7 @@ const WhatsAppChats = () => {
               </div>
 
               {/* Message Input */}
-              <div className="p-4 border-t bg-background">
+              <div className="p-4 border-t bg-background flex-shrink-0">
                 <div className="flex gap-2">
                   <Input
                     value={newMessage}
@@ -633,7 +664,7 @@ const WhatsAppChats = () => {
 
       {/* QR Code Dialog */}
       <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Conectar WhatsApp Web</DialogTitle>
           </DialogHeader>
@@ -644,7 +675,7 @@ const WhatsAppChats = () => {
               Use seu WhatsApp para escanear o código QR e conectar
             </p>
             {qrCode && (
-              <div className="bg-white p-4 rounded-lg inline-block border">
+              <div className="bg-white p-4 rounded-lg inline-block border mb-4">
                 <img src={qrCode} alt="QR Code" className="w-48 h-48" />
               </div>
             )}
