@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { 
   FileText, 
   Search, 
@@ -16,10 +17,13 @@ import {
   MessageCircle,
   AlertTriangle,
   Download,
-  Calendar
+  Calendar,
+  Trash2
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useClearReportsLogs } from '@/hooks/useClearReportsLogs';
+import { useToast } from "@/hooks/use-toast";
 
 interface ReportLog {
   id: string;
@@ -38,6 +42,8 @@ export const ReportsLogsPanel = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('7days');
+  const clearLogs = useClearReportsLogs();
+  const { toast } = useToast();
 
   const { data: logs = [], isLoading, refetch } = useQuery({
     queryKey: ['scheduled-reports-logs', statusFilter, dateFilter],
@@ -123,6 +129,22 @@ export const ReportsLogsPanel = () => {
     if (!timeMs) return 'N/A';
     if (timeMs < 1000) return `${timeMs}ms`;
     return `${(timeMs / 1000).toFixed(1)}s`;
+  };
+
+  const handleClearLogs = async () => {
+    try {
+      await clearLogs.mutateAsync();
+      toast({
+        title: "Logs limpos com sucesso",
+        description: "Todos os logs de execução foram removidos.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao limpar logs",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -277,14 +299,51 @@ export const ReportsLogsPanel = () => {
           <span>
             Exibindo {filteredLogs.length} de {logs.length} registros
           </span>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Exportar Logs
-          </Button>
+          <div className="flex gap-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-gray-600 text-red-400 hover:bg-red-600 hover:text-white hover:border-red-600"
+                  disabled={logs.length === 0}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Limpar Logs
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-gray-800 border-gray-700">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-white">Confirmar Limpeza</AlertDialogTitle>
+                  <AlertDialogDescription className="text-gray-400">
+                    Esta ação irá remover todos os logs de execução permanentemente. 
+                    Esta operação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="bg-gray-700 text-white border-gray-600 hover:bg-gray-600">
+                    Cancelar
+                  </AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleClearLogs}
+                    disabled={clearLogs.isPending}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    {clearLogs.isPending ? 'Limpando...' : 'Limpar Logs'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Exportar Logs
+            </Button>
+          </div>
         </div>
       )}
     </div>

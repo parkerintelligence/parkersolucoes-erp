@@ -229,7 +229,7 @@ export const ScheduledReportsTable = ({
                       size="sm"
                       onClick={() => onToggleActive(report)}
                       title={report.is_active ? 'Desativar' : 'Ativar'}
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                      className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
                     >
                       {report.is_active ? (
                         <Pause className="h-4 w-4" />
@@ -247,7 +247,7 @@ export const ScheduledReportsTable = ({
                         !templateInfo.isActive ? 'Template inativo' :
                         'Testar envio'
                       }
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white disabled:opacity-50"
+                      className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 disabled:opacity-50 disabled:bg-gray-600"
                     >
                       <TestTube className="h-4 w-4" />
                     </Button>
@@ -256,7 +256,7 @@ export const ScheduledReportsTable = ({
                       size="sm"
                       onClick={() => onEdit(report)}
                       title="Editar"
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                      className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -264,7 +264,7 @@ export const ScheduledReportsTable = ({
                       variant="outline"
                       size="sm"
                       onClick={() => onDelete(report.id)}
-                      className="border-gray-600 text-red-400 hover:bg-red-600 hover:text-white"
+                      className="bg-red-600 hover:bg-red-700 text-white border-red-600"
                       title="Excluir"
                     >
                       <Trash2 className="h-4 w-4" />
