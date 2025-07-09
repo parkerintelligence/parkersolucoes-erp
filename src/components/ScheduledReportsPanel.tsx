@@ -71,44 +71,44 @@ export const ScheduledReportsPanel = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Automação de Relatórios</h1>
-          <p className="text-gray-600">
+          <h1 className="text-3xl font-bold text-white mb-2">Automação de Relatórios</h1>
+          <p className="text-gray-300">
             Gerencie relatórios automáticos enviados via WhatsApp
           </p>
         </div>
 
         <Tabs defaultValue="reports" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="reports" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-4 bg-gray-800 border-gray-700">
+            <TabsTrigger value="reports" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
               <Calendar className="h-4 w-4" />
               Agendamentos
             </TabsTrigger>
-            <TabsTrigger value="status" className="flex items-center gap-2">
+            <TabsTrigger value="status" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
               <BarChart3 className="h-4 w-4" />
               Status & Próximos
             </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center gap-2">
+            <TabsTrigger value="logs" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
               <FileText className="h-4 w-4" />
               Logs de Execução
             </TabsTrigger>
-            <TabsTrigger value="stats" className="flex items-center gap-2">
+            <TabsTrigger value="stats" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
               <BarChart3 className="h-4 w-4" />
               Estatísticas
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="reports" className="space-y-6">
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-white">
                     <Calendar className="h-5 w-5" />
                     Relatórios Agendados
                   </CardTitle>
-                  <Button onClick={() => setFormOpen(true)}>
+                  <Button onClick={() => setFormOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
                     <Plus className="h-4 w-4 mr-2" />
                     Novo Agendamento
                   </Button>
@@ -136,12 +136,12 @@ export const ScheduledReportsPanel = () => {
           </TabsContent>
 
           <TabsContent value="stats">
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Estatísticas Detalhadas</CardTitle>
+                <CardTitle className="text-white">Estatísticas Detalhadas</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-500">Estatísticas detalhadas em desenvolvimento...</p>
+                <p className="text-gray-400">Estatísticas detalhadas em desenvolvimento...</p>
               </CardContent>
             </Card>
           </TabsContent>

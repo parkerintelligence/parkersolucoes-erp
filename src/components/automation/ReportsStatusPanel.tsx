@@ -107,7 +107,7 @@ export const ReportsStatusPanel = () => {
     return (
       <div className="flex justify-center items-center h-64">
         <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-600">Carregando status...</span>
+        <span className="ml-2 text-gray-400">Carregando status...</span>
       </div>
     );
   }
@@ -116,48 +116,48 @@ export const ReportsStatusPanel = () => {
     <div className="space-y-6">
       {/* Cards de Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Ativo</p>
-                <p className="text-2xl font-bold">{activeReports.length}</p>
+                <p className="text-sm text-gray-400">Total Ativo</p>
+                <p className="text-2xl font-bold text-white">{activeReports.length}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Próximas</p>
-                <p className="text-2xl font-bold">{upcomingReports.length}</p>
+                <p className="text-sm text-gray-400">Próximas</p>
+                <p className="text-2xl font-bold text-white">{upcomingReports.length}</p>
               </div>
               <Clock className="h-8 w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Atrasados</p>
-                <p className="text-2xl font-bold text-red-600">{overdueReports.length}</p>
+                <p className="text-sm text-gray-400">Atrasados</p>
+                <p className="text-2xl font-bold text-red-400">{overdueReports.length}</p>
               </div>
               <AlertTriangle className="h-8 w-8 text-red-500" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Execuções</p>
-                <p className="text-2xl font-bold">
+                <p className="text-sm text-gray-400">Total Execuções</p>
+                <p className="text-2xl font-bold text-white">
                   {reports.reduce((acc, r) => acc + r.execution_count, 0)}
                 </p>
               </div>
@@ -169,16 +169,16 @@ export const ReportsStatusPanel = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Próximas Execuções Agendadas */}
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-white">
               <Clock className="h-5 w-5 text-blue-500" />
               Próximas Execuções Agendadas
             </CardTitle>
           </CardHeader>
           <CardContent>
             {upcomingReports.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">
+              <p className="text-gray-400 text-center py-4">
                 Nenhuma execução agendada encontrada
               </p>
             ) : (
@@ -189,23 +189,23 @@ export const ReportsStatusPanel = () => {
                   const canExecute = templateInfo.exists && templateInfo.isActive;
                   
                   return (
-                    <div key={report.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={report.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border border-gray-600">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm">{report.name}</span>
+                          <span className="font-medium text-sm text-white">{report.name}</span>
                           <Badge 
                             variant={status === 'upcoming' ? 'default' : 'secondary'}
-                            className="text-xs"
+                            className="text-xs bg-blue-600 text-white"
                           >
                             {formatNextExecution(report.next_execution)}
                           </Badge>
                           {!canExecute && (
-                            <Badge variant="destructive" className="text-xs">
+                            <Badge className="text-xs bg-red-600 text-white">
                               Template inativo
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-gray-600">
+                        <p className="text-xs text-gray-400">
                           Template: {templateInfo.name}
                         </p>
                         <p className="text-xs text-gray-500">
@@ -219,7 +219,7 @@ export const ReportsStatusPanel = () => {
                         size="sm"
                         onClick={() => handleExecuteReport(report.id, report.name)}
                         disabled={testReport.isPending || !canExecute}
-                        className="ml-2"
+                        className="ml-2 border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white"
                         title={canExecute ? "Executar agora" : "Template inativo ou não encontrado"}
                       >
                         <Play className="h-3 w-3" />
@@ -233,16 +233,16 @@ export const ReportsStatusPanel = () => {
         </Card>
 
         {/* Execuções Atrasadas */}
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-white">
               <AlertTriangle className="h-5 w-5 text-red-500" />
               Execuções Atrasadas
             </CardTitle>
           </CardHeader>
           <CardContent>
             {overdueReports.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">
+              <p className="text-gray-400 text-center py-4">
                 ✅ Nenhuma execução atrasada
               </p>
             ) : (
@@ -252,23 +252,23 @@ export const ReportsStatusPanel = () => {
                   const canExecute = templateInfo.exists && templateInfo.isActive;
                   
                   return (
-                    <div key={report.id} className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div key={report.id} className="flex items-center justify-between p-3 bg-red-900/20 border border-red-800 rounded-lg">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm">{report.name}</span>
-                          <Badge variant="destructive" className="text-xs">
+                          <span className="font-medium text-sm text-white">{report.name}</span>
+                          <Badge className="text-xs bg-red-600 text-white">
                             Atrasado
                           </Badge>
                           {!canExecute && (
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge className="text-xs bg-gray-600 text-gray-200">
                               Template inativo
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-gray-600">
+                        <p className="text-xs text-gray-400">
                           Template: {templateInfo.name}
                         </p>
-                        <p className="text-xs text-red-600">
+                        <p className="text-xs text-red-400">
                           Deveria ter executado: {' '}
                           {report.next_execution && 
                             new Date(report.next_execution).toLocaleString('pt-BR')
@@ -280,7 +280,7 @@ export const ReportsStatusPanel = () => {
                         size="sm"
                         onClick={() => handleExecuteReport(report.id, report.name)}
                         disabled={testReport.isPending || !canExecute}
-                        className="ml-2 border-red-300 text-red-600 hover:bg-red-50"
+                        className="ml-2 border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
                         title={canExecute ? "Executar agora" : "Template inativo ou não encontrado"}
                       >
                         <Play className="h-3 w-3" />
@@ -295,16 +295,16 @@ export const ReportsStatusPanel = () => {
       </div>
 
       {/* Últimas Execuções */}
-      <Card>
+      <Card className="bg-gray-800 border-gray-700">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-white">
             <Calendar className="h-5 w-5 text-purple-500" />
             Últimas Execuções
           </CardTitle>
         </CardHeader>
         <CardContent>
           {recentExecutions.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">
+            <p className="text-gray-400 text-center py-4">
               Nenhuma execução registrada ainda
             </p>
           ) : (
@@ -313,15 +313,15 @@ export const ReportsStatusPanel = () => {
                 const templateInfo = getTemplateInfo(report.report_type);
                 
                 return (
-                  <div key={report.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={report.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border border-gray-600">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm">{report.name}</span>
-                        <Badge variant="secondary" className="text-xs">
+                        <span className="font-medium text-sm text-white">{report.name}</span>
+                        <Badge className="text-xs bg-gray-600 text-gray-200">
                           {report.execution_count} execuções
                         </Badge>
                       </div>
-                      <p className="text-xs text-gray-600">
+                      <p className="text-xs text-gray-400">
                         Template: {templateInfo.name}
                       </p>
                       <p className="text-xs text-gray-500">

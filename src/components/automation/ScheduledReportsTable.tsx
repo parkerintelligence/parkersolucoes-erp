@@ -96,9 +96,9 @@ export const ScheduledReportsTable = ({
   if (reports.length === 0) {
     return (
       <div className="text-center py-12">
-        <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum agendamento encontrado</h3>
-        <p className="text-gray-500">
+        <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-500" />
+        <h3 className="text-lg font-medium text-white mb-2">Nenhum agendamento encontrado</h3>
+        <p className="text-gray-400">
           Crie seu primeiro agendamento de relatório automático.
         </p>
       </div>
@@ -106,17 +106,17 @@ export const ScheduledReportsTable = ({
   }
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="border border-gray-700 rounded-lg overflow-hidden bg-gray-800">
       <Table>
         <TableHeader>
-          <TableRow className="bg-gray-50">
-            <TableHead className="font-semibold">Nome</TableHead>
-            <TableHead className="font-semibold">Template</TableHead>
-            <TableHead className="font-semibold">Telefone</TableHead>
-            <TableHead className="font-semibold">Horário</TableHead>
-            <TableHead className="font-semibold">Próxima Execução</TableHead>
-            <TableHead className="font-semibold">Status</TableHead>
-            <TableHead className="font-semibold">Ações</TableHead>
+          <TableRow className="bg-gray-700 border-gray-600 hover:bg-gray-700">
+            <TableHead className="font-semibold text-gray-200">Nome</TableHead>
+            <TableHead className="font-semibold text-gray-200">Template</TableHead>
+            <TableHead className="font-semibold text-gray-200">Telefone</TableHead>
+            <TableHead className="font-semibold text-gray-200">Horário</TableHead>
+            <TableHead className="font-semibold text-gray-200">Próxima Execução</TableHead>
+            <TableHead className="font-semibold text-gray-200">Status</TableHead>
+            <TableHead className="font-semibold text-gray-200">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -125,44 +125,44 @@ export const ScheduledReportsTable = ({
             const Icon = templateTypeIcons[templateInfo.type as keyof typeof templateTypeIcons] || MessageCircle;
             
             return (
-              <TableRow key={report.id} className="hover:bg-gray-50">
+              <TableRow key={report.id} className="hover:bg-gray-700 border-gray-600">
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="font-medium">{report.name}</span>
-                    <span className="text-xs text-gray-500">
+                    <span className="font-medium text-white">{report.name}</span>
+                    <span className="text-xs text-gray-400">
                       {report.execution_count} execuções
                     </span>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4 text-gray-600" />
+                    <Icon className="h-4 w-4 text-gray-400" />
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{templateInfo.name}</span>
+                        <span className="text-sm font-medium text-white">{templateInfo.name}</span>
                         {!templateInfo.exists && (
-                          <AlertTriangle className="h-3 w-3 text-red-500" />
+                          <AlertTriangle className="h-3 w-3 text-red-400" />
                         )}
                         {templateInfo.exists && !templateInfo.isActive && (
-                          <AlertTriangle className="h-3 w-3 text-orange-500" />
+                          <AlertTriangle className="h-3 w-3 text-orange-400" />
                         )}
                       </div>
-                      <span className="text-xs text-gray-500">{templateInfo.type}</span>
+                      <span className="text-xs text-gray-400">{templateInfo.type}</span>
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="font-mono text-sm">
+                <TableCell className="font-mono text-sm text-gray-300">
                   {report.phone_number}
                 </TableCell>
-                <TableCell className="text-sm">
+                <TableCell className="text-sm text-gray-300">
                   {formatCronExpression(report.cron_expression)}
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm">
+                  <span className="text-sm text-gray-300">
                     {formatNextExecution(report.next_execution)}
                   </span>
                   {report.next_execution && (
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-400">
                       {new Date(report.next_execution).toLocaleString('pt-BR')}
                     </div>
                   )}
@@ -170,21 +170,21 @@ export const ScheduledReportsTable = ({
                 <TableCell>
                   <div className="flex flex-col gap-1">
                     {report.is_active ? (
-                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                      <Badge className="bg-green-600 text-white border-green-500">
                         Ativo
                       </Badge>
                     ) : (
-                      <Badge className="bg-gray-100 text-gray-800 border-gray-200">
+                      <Badge className="bg-gray-600 text-gray-200 border-gray-500">
                         Inativo
                       </Badge>
                     )}
                     {!templateInfo.exists && (
-                      <Badge variant="destructive" className="text-xs">
+                      <Badge variant="destructive" className="text-xs bg-red-600 text-white">
                         Template perdido
                       </Badge>
                     )}
                     {templateInfo.exists && !templateInfo.isActive && (
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge className="text-xs bg-orange-600 text-white">
                         Template inativo
                       </Badge>
                     )}
@@ -197,6 +197,7 @@ export const ScheduledReportsTable = ({
                       size="sm"
                       onClick={() => onToggleActive(report)}
                       title={report.is_active ? 'Desativar' : 'Ativar'}
+                      className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
                     >
                       {report.is_active ? (
                         <Pause className="h-4 w-4" />
@@ -214,6 +215,7 @@ export const ScheduledReportsTable = ({
                         !templateInfo.isActive ? 'Template inativo' :
                         'Testar envio'
                       }
+                      className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white disabled:opacity-50"
                     >
                       <TestTube className="h-4 w-4" />
                     </Button>
@@ -222,6 +224,7 @@ export const ScheduledReportsTable = ({
                       size="sm"
                       onClick={() => onEdit(report)}
                       title="Editar"
+                      className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -229,7 +232,7 @@ export const ScheduledReportsTable = ({
                       variant="outline"
                       size="sm"
                       onClick={() => onDelete(report.id)}
-                      className="text-red-600 hover:text-red-700"
+                      className="border-gray-600 text-red-400 hover:bg-red-600 hover:text-white"
                       title="Excluir"
                     >
                       <Trash2 className="h-4 w-4" />
