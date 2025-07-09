@@ -92,7 +92,7 @@ const Admin = () => {
   const getFieldsForType = (type: string) => {
     switch (type) {
       case 'grafana':
-        return ['name', 'base_url', 'username', 'password'];
+        return ['name', 'base_url', 'api_token', 'username', 'password'];
       case 'glpi':
         return ['name', 'base_url', 'api_token'];
       case 'bacula':
@@ -277,21 +277,30 @@ const Admin = () => {
 
                     {getFieldsForType(formData.type).includes('api_token') && (
                       <div className="grid gap-2">
-                        <Label htmlFor="api_token" className="text-gray-200">Token da API</Label>
+                        <Label htmlFor="api_token" className="text-gray-200">
+                          {formData.type === 'grafana' ? 'API Token (Recomendado)' : 'Token da API'}
+                        </Label>
                         <Input 
                           id="api_token" 
                           type="password"
                           value={formData.api_token}
                           onChange={(e) => setFormData({...formData, api_token: e.target.value})}
-                          placeholder="Token de acesso"
+                          placeholder={formData.type === 'grafana' ? 'Token de API do Grafana' : 'Token de acesso'}
                           className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                         />
+                        {formData.type === 'grafana' && (
+                          <p className="text-xs text-gray-400">
+                            Configure no Grafana: Configuration → API Keys
+                          </p>
+                        )}
                       </div>
                     )}
 
                     {getFieldsForType(formData.type).includes('username') && (
                       <div className="grid gap-2">
-                        <Label htmlFor="username" className="text-gray-200">Usuário</Label>
+                        <Label htmlFor="username" className="text-gray-200">
+                          {formData.type === 'grafana' ? 'Usuário (Alternativo)' : 'Usuário'}
+                        </Label>
                         <Input 
                           id="username" 
                           value={formData.username}
@@ -304,7 +313,9 @@ const Admin = () => {
 
                     {getFieldsForType(formData.type).includes('password') && (
                       <div className="grid gap-2">
-                        <Label htmlFor="password" className="text-gray-200">Senha</Label>
+                        <Label htmlFor="password" className="text-gray-200">
+                          {formData.type === 'grafana' ? 'Senha (Alternativo)' : 'Senha'}
+                        </Label>
                         <Input 
                           id="password" 
                           type="password"
