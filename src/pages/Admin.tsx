@@ -8,9 +8,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Plus, Edit, Trash2, Database, Cloud, Shield, Server, Zap, Globe, Wifi } from 'lucide-react';
+import { Settings, Plus, Edit, Trash2, Database, Cloud, Shield, Server, Zap, Globe, Wifi, Monitor } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
 import SystemSettingsPanel from '@/components/SystemSettingsPanel';
+import { GuacamoleAdminConfig } from '@/components/GuacamoleAdminConfig';
 
 const Admin = () => {
   const { data: integrations = [], isLoading } = useIntegrations();
@@ -86,6 +87,12 @@ const Admin = () => {
       label: 'UniFi Controller', 
       icon: <Wifi className="h-5 w-5 text-cyan-400" />,
       description: 'Controladora UniFi para gerenciamento de rede'
+    },
+    { 
+      value: 'guacamole', 
+      label: 'Apache Guacamole', 
+      icon: <Monitor className="h-5 w-5 text-orange-600" />,
+      description: 'Gateway de acesso remoto para desktop'
     }
   ];
 
@@ -106,6 +113,8 @@ const Admin = () => {
         return ['name', 'base_url', 'api_token', 'phone_number', 'webhook_url'];
       case 'unifi':
         return ['name', 'base_url', 'username', 'password', 'port'];
+      case 'guacamole':
+        return ['name', 'base_url', 'username', 'password'];
       default:
         return ['name', 'base_url'];
     }
@@ -203,6 +212,9 @@ const Admin = () => {
             <TabsTrigger value="integrations" className="data-[state=active]:bg-gray-700">
               Integrações
             </TabsTrigger>
+            <TabsTrigger value="guacamole" className="data-[state=active]:bg-gray-700">
+              Guacamole
+            </TabsTrigger>
             <TabsTrigger value="settings" className="data-[state=active]:bg-gray-700">
               Configurações
             </TabsTrigger>
@@ -269,7 +281,7 @@ const Admin = () => {
                           id="base_url" 
                           value={formData.base_url}
                           onChange={(e) => setFormData({...formData, base_url: e.target.value})}
-                          placeholder="https://exemplo.com"
+                          placeholder={formData.type === 'guacamole' ? 'https://guacamole.exemplo.com/guacamole' : 'https://exemplo.com'}
                           className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                         />
                       </div>
@@ -305,7 +317,7 @@ const Admin = () => {
                           id="username" 
                           value={formData.username}
                           onChange={(e) => setFormData({...formData, username: e.target.value})}
-                          placeholder="Nome de usuário"
+                          placeholder={formData.type === 'guacamole' ? 'guacadmin' : 'Nome de usuário'}
                           className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                         />
                       </div>
@@ -410,6 +422,10 @@ const Admin = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="guacamole">
+            <GuacamoleAdminConfig />
           </TabsContent>
 
           <TabsContent value="settings">
