@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,11 +47,9 @@ export const ReportsStatusPanel = () => {
     // Verificar se a data é válida
     if (isNaN(utcDate.getTime())) return 'Data inválida';
     
-    // Convert to Brasília time (UTC-3)
-    const brasiliaDate = new Date(utcDate.getTime() - (3 * 60 * 60 * 1000));
+    // Compare UTC date directly with current local time
     const now = new Date();
-    
-    const diffMs = brasiliaDate.getTime() - now.getTime();
+    const diffMs = utcDate.getTime() - now.getTime();
     
     if (diffMs < 0) return 'Atrasado';
     
@@ -83,11 +80,9 @@ export const ReportsStatusPanel = () => {
     
     if (isNaN(utcDate.getTime())) return 'error';
     
-    // Convert to Brasília time (UTC-3)
-    const brasiliaDate = new Date(utcDate.getTime() - (3 * 60 * 60 * 1000));
+    // Compare UTC date directly with current local time
     const now = new Date();
-    
-    const diffMs = brasiliaDate.getTime() - now.getTime();
+    const diffMs = utcDate.getTime() - now.getTime();
     
     if (diffMs < 0) return 'overdue';
     if (diffMs < 60 * 60 * 1000) return 'upcoming'; // Próxima 1 hora
@@ -102,11 +97,9 @@ export const ReportsStatusPanel = () => {
     
     if (isNaN(utcDate.getTime())) return 'Data inválida';
     
-    // Convert to Brasília time manually (UTC-3)
-    const brasiliaDate = new Date(utcDate.getTime() - (3 * 60 * 60 * 1000));
-    
-    // Format in Brazilian format
-    return brasiliaDate.toLocaleString('pt-BR', {
+    // Format using Brazil timezone without manual conversion
+    return utcDate.toLocaleString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -138,23 +131,21 @@ export const ReportsStatusPanel = () => {
     .filter(r => {
       if (!r.next_execution) return false;
       const utcDate = new Date(r.next_execution);
-      const brasiliaDate = new Date(utcDate.getTime() - (3 * 60 * 60 * 1000));
-      return brasiliaDate > new Date();
+      const now = new Date();
+      return utcDate > now;
     })
     .sort((a, b) => {
       const aUtc = new Date(a.next_execution!);
       const bUtc = new Date(b.next_execution!);
-      const aBrasilia = new Date(aUtc.getTime() - (3 * 60 * 60 * 1000));
-      const bBrasilia = new Date(bUtc.getTime() - (3 * 60 * 60 * 1000));
-      return aBrasilia.getTime() - bBrasilia.getTime();
+      return aUtc.getTime() - bUtc.getTime();
     });
   
   const overdueReports = activeReports
     .filter(r => {
       if (!r.next_execution) return false;
       const utcDate = new Date(r.next_execution);
-      const brasiliaDate = new Date(utcDate.getTime() - (3 * 60 * 60 * 1000));
-      return brasiliaDate < new Date();
+      const now = new Date();
+      return utcDate < now;
     });
 
   const recentExecutions = reports
