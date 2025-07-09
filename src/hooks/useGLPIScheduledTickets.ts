@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -138,26 +137,6 @@ export const useDeleteGLPIScheduledTicket = () => {
     onError: (error) => {
       toast({
         title: "Erro ao remover agendamento",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-};
-
-export const useTestScheduledReport = () => {
-  return useMutation({
-    mutationFn: async (ticketId: string) => {
-      console.log('Testing scheduled report for ticket:', ticketId);
-      toast({
-        title: "Teste executado!",
-        description: "Teste do agendamento foi executado com sucesso.",
-      });
-      return { success: true };
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro no teste",
         description: error.message,
         variant: "destructive",
       });

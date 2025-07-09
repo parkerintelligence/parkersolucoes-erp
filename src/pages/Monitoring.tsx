@@ -8,7 +8,7 @@ const Monitoring = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [key, setKey] = useState(0);
 
-  const grafanaUrl = "http://monitoramento.parkersolucoes.com.br:3000/public-dashboards/17e92527bc2d4ca293e4c295e9404da9?orgId=1";
+  const grafanaUrl = "http://monitoramento.parkersolucoes.com.br:3000/d/fdutyfre02ewwa/bacula-parker?orgId=1&from=1752064321970&to=1752085921970";
 
   const handleRefresh = () => {
     setKey(prev => prev + 1);
@@ -27,7 +27,7 @@ const Monitoring = () => {
               <Activity className="h-6 w-6 text-blue-400" />
               Monitoramento - Grafana
             </h1>
-            <p className="text-gray-400">Dashboard público do sistema Bacula</p>
+            <p className="text-gray-400">Painel de controle e métricas do sistema Bacula</p>
           </div>
           <div className="flex gap-2">
             <Button
@@ -51,7 +51,7 @@ const Monitoring = () => {
 
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">Dashboard Público Bacula Parker</CardTitle>
+            <CardTitle className="text-white">Dashboard Bacula Parker</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className={`bg-gray-800 rounded-lg border border-gray-600 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}>
@@ -62,7 +62,7 @@ const Monitoring = () => {
                 height={isFullscreen ? "100%" : "800px"}
                 frameBorder="0"
                 className="rounded w-full"
-                title="Grafana Dashboard Público - Bacula Parker"
+                title="Grafana Dashboard - Bacula Parker"
                 style={{ 
                   minHeight: isFullscreen ? '100vh' : '800px',
                   backgroundColor: '#1f2937'

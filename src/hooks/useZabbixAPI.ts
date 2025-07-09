@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useZabbixProxy } from '@/hooks/useZabbixProxy';
 import { useIntegrations } from '@/hooks/useIntegrations';
@@ -54,13 +53,6 @@ export interface ZabbixTrigger {
     hostid: string;
     name: string;
   }>;
-}
-
-// Interface para host groups do Zabbix
-export interface ZabbixHostGroup {
-  groupid: string;
-  name: string;
-  internal: string;
 }
 
 // Interface para problemas do Zabbix - hosts agora é obrigatório
@@ -122,55 +114,6 @@ export const useZabbixAPI = () => {
       staleTime: 0, // Sempre considerar os dados como stale para refresh forçado
       refetchInterval: 30000, // Atualizar a cada 30 segundos
       ...queryOptions
-    });
-  };
-
-  // Hook para buscar grupos de hosts
-  const useHostGroups = (params = {}) => {
-    return useQuery({
-      queryKey: ['zabbix-hostgroups', params],
-      queryFn: async () => {
-        if (!zabbixIntegration) {
-          throw new Error('Integração do Zabbix não configurada');
-        }
-
-        const result = await makeZabbixProxyRequest(
-          'hostgroup.get',
-          {
-            output: ['groupid', 'name', 'internal'],
-            ...params
-          },
-          zabbixIntegration.id
-        );
-
-        return result as ZabbixHostGroup[];
-      },
-      enabled: !!zabbixIntegration,
-    });
-  };
-
-  // Hook para buscar triggers
-  const useTriggers = (params = {}) => {
-    return useQuery({
-      queryKey: ['zabbix-triggers', params],
-      queryFn: async () => {
-        if (!zabbixIntegration) {
-          throw new Error('Integração do Zabbix não configurada');
-        }
-
-        const result = await makeZabbixProxyRequest(
-          'trigger.get',
-          {
-            output: ['triggerid', 'description', 'status', 'priority', 'state', 'value', 'lastchange'],
-            selectHosts: ['hostid', 'name'],
-            ...params
-          },
-          zabbixIntegration.id
-        );
-
-        return result as ZabbixTrigger[];
-      },
-      enabled: !!zabbixIntegration,
     });
   };
 
@@ -384,8 +327,6 @@ export const useZabbixAPI = () => {
   return {
     // Queries
     useHosts,
-    useHostGroups,
-    useTriggers,
     useItems,
     useProblems,
     useHistory,
