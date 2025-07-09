@@ -11,11 +11,11 @@ interface LayoutProps {
 export const Layout = ({ children }: LayoutProps) => {
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full bg-slate-900">
         <AppSidebar />
         <SidebarInset className="flex-1">
           <TopHeader />
-          <main className="flex-1 p-6">
+          <main className="flex-1 p-6 bg-slate-900">
             {children}
           </main>
         </SidebarInset>
