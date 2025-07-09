@@ -48,25 +48,25 @@ const WhatsAppTemplates = () => {
     backup_alert: { 
       name: 'Alerta de Backups', 
       icon: HardDrive, 
-      color: 'bg-red-100 text-red-800',
+      color: 'bg-red-600 text-white',
       variables: ['{{date}}', '{{hours_threshold}}', '{{backup_list}}']
     },
     schedule_critical: { 
       name: 'Vencimentos Críticos', 
       icon: Calendar, 
-      color: 'bg-orange-100 text-orange-800',
+      color: 'bg-orange-600 text-white',
       variables: ['{{date}}', '{{schedule_items}}', '{{total_items}}']
     },
     glpi_summary: { 
       name: 'Resumo GLPI', 
       icon: ExternalLink, 
-      color: 'bg-blue-100 text-blue-800',
+      color: 'bg-blue-600 text-white',
       variables: ['{{date}}', '{{open_tickets}}', '{{critical_tickets}}', '{{pending_tickets}}', '{{ticket_list}}']
     },
     custom: {
       name: 'Personalizado',
       icon: MessageCircle,
-      color: 'bg-purple-100 text-purple-800',
+      color: 'bg-purple-600 text-white',
       variables: ['{{custom_var}}']
     }
   };
@@ -129,7 +129,7 @@ const WhatsAppTemplates = () => {
   };
 
   const getCategoryColor = (templateType: string) => {
-    return templateTypes[templateType as keyof typeof templateTypes]?.color || 'bg-gray-100 text-gray-800 border-gray-200';
+    return templateTypes[templateType as keyof typeof templateTypes]?.color || 'bg-gray-600 text-white';
   };
 
   const insertVariable = (variable: string) => {
@@ -153,19 +153,19 @@ const WhatsAppTemplates = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="text-slate-600">Carregando templates...</div>
+      <div className="min-h-screen bg-gray-900 flex justify-center items-center">
+        <div className="text-gray-400">Carregando templates...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-900 text-white p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Modelos WhatsApp</h1>
-          <p className="text-muted-foreground">Gerencie modelos de mensagens para relatórios automáticos</p>
+          <h1 className="text-2xl font-bold text-white">Modelos WhatsApp</h1>
+          <p className="text-gray-400">Gerencie modelos de mensagens para relatórios automáticos</p>
         </div>
         <Button 
           onClick={() => {
@@ -173,7 +173,7 @@ const WhatsAppTemplates = () => {
             setEditingTemplate(null);
             setFormData({ name: '', template_type: 'backup_alert', subject: '', body: '', is_active: true });
           }}
-          className="bg-green-600 hover:bg-green-700"
+          className="bg-green-600 hover:bg-green-700 text-white"
         >
           <Plus className="mr-2 h-4 w-4" />
           Novo Modelo
@@ -181,15 +181,15 @@ const WhatsAppTemplates = () => {
       </div>
 
       {/* Search */}
-      <Card>
+      <Card className="bg-gray-800 border-gray-700">
         <CardContent className="p-4">
           <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Buscar modelos..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
+              className="pl-8 bg-gray-900 border-gray-700 text-white placeholder:text-gray-400"
             />
           </div>
         </CardContent>
@@ -202,12 +202,12 @@ const WhatsAppTemplates = () => {
           const Icon = templateTypeInfo?.icon || MessageCircle;
           
           return (
-            <Card key={template.id} className="hover:shadow-lg transition-shadow">
+            <Card key={template.id} className="bg-gray-800 border-gray-700 hover:bg-gray-800/50 transition-colors">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <MessageCircle className="h-5 w-5 text-green-600" />
-                    {template.name}
+                    <span className="text-white">{template.name}</span>
                   </CardTitle>
                   <div className="flex items-center gap-2">
                     <Badge className={getCategoryColor(template.template_type)}>
@@ -215,13 +215,13 @@ const WhatsAppTemplates = () => {
                       {templateTypeInfo?.name || template.template_type}
                     </Badge>
                     {template.is_active ? (
-                      <Badge className="bg-green-100 text-green-800">Ativo</Badge>
+                      <Badge className="bg-green-600 text-white">Ativo</Badge>
                     ) : (
-                      <Badge className="bg-gray-100 text-gray-800">Inativo</Badge>
+                      <Badge className="bg-gray-600 text-white">Inativo</Badge>
                     )}
                   </div>
                 </div>
-                <CardDescription>
+                <CardDescription className="text-gray-300">
                   {template.subject}
                 </CardDescription>
               </CardHeader>
@@ -231,7 +231,7 @@ const WhatsAppTemplates = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => handleEdit(template)}
-                    className="flex-1"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     Editar
@@ -240,7 +240,7 @@ const WhatsAppTemplates = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => handleDelete(template.id)}
-                    className="text-red-600 hover:text-red-700"
+                    className="bg-red-600 hover:bg-red-700 text-white border-red-600"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -252,12 +252,12 @@ const WhatsAppTemplates = () => {
       </div>
 
       {filteredTemplates.length === 0 && (
-        <Card className="border-dashed">
+        <Card className="bg-gray-800/50 border-gray-700 border-dashed">
           <CardContent className="p-12">
-            <div className="text-center text-muted-foreground">
-              <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <h3 className="text-xl font-semibold mb-2">Nenhum modelo encontrado</h3>
-              <p className="text-muted-foreground max-w-md mx-auto">
+            <div className="text-center text-gray-400">
+              <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-500" />
+              <h3 className="text-xl font-semibold mb-2 text-white">Nenhum modelo encontrado</h3>
+              <p className="text-gray-400 max-w-md mx-auto">
                 {searchTerm ? 'Nenhum modelo corresponde aos filtros aplicados.' : 'Crie seu primeiro modelo de mensagem para WhatsApp.'}
               </p>
             </div>
@@ -267,35 +267,36 @@ const WhatsAppTemplates = () => {
 
       {/* Form Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] bg-gray-800 border-gray-700">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-white">
               {editingTemplate ? 'Editar Modelo' : 'Novo Modelo'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-gray-400">
               {editingTemplate ? 'Edite o modelo de mensagem.' : 'Crie um novo modelo de mensagem para WhatsApp.'}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nome *</Label>
+              <Label htmlFor="name" className="text-gray-300">Nome *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Ex: Alerta de Backups Personalizado"
+                className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-400"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="template_type">Tipo de Template *</Label>
+              <Label htmlFor="template_type" className="text-gray-300">Tipo de Template *</Label>
               <Select value={formData.template_type} onValueChange={(value: any) => setFormData({ ...formData, template_type: value })}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-gray-900 border-gray-700">
                   {Object.entries(templateTypes).map(([key, type]) => (
-                    <SelectItem key={key} value={key}>
+                    <SelectItem key={key} value={key} className="text-white hover:bg-gray-800">
                       <div className="flex items-center gap-2">
                         <type.icon className="h-4 w-4" />
                         {type.name}
@@ -307,26 +308,28 @@ const WhatsAppTemplates = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="subject">Assunto *</Label>
+              <Label htmlFor="subject" className="text-gray-300">Assunto *</Label>
               <Input
                 id="subject"
                 value={formData.subject}
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                 placeholder="Ex: 🚨 Backups Desatualizados - {{date}}"
+                className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-400"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="template-body">Corpo da Mensagem *</Label>
+              <Label htmlFor="template-body" className="text-gray-300">Corpo da Mensagem *</Label>
               <Textarea
                 id="template-body"
                 value={formData.body}
                 onChange={(e) => setFormData({ ...formData, body: e.target.value })}
                 placeholder="Digite o corpo da mensagem aqui..."
                 rows={8}
+                className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-400"
               />
               <div className="flex flex-wrap gap-2 mt-2">
-                <Label className="text-sm text-gray-600">Variáveis disponíveis:</Label>
+                <Label className="text-sm text-gray-400">Variáveis disponíveis:</Label>
                 {templateTypes[formData.template_type].variables.map((variable) => (
                   <Button
                     key={variable}
@@ -334,7 +337,7 @@ const WhatsAppTemplates = () => {
                     size="sm"
                     type="button"
                     onClick={() => insertVariable(variable)}
-                    className="text-xs"
+                    className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border-gray-600"
                   >
                     {variable}
                   </Button>
@@ -348,7 +351,7 @@ const WhatsAppTemplates = () => {
                 checked={formData.is_active}
                 onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
               />
-              <Label htmlFor="is_active">Template ativo</Label>
+              <Label htmlFor="is_active" className="text-gray-300">Template ativo</Label>
             </div>
 
             <div className="flex justify-end gap-2">
@@ -356,12 +359,13 @@ const WhatsAppTemplates = () => {
                 type="button"
                 variant="outline"
                 onClick={() => setShowForm(false)}
+                className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600"
               >
                 Cancelar
               </Button>
               <Button 
                 type="submit" 
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 text-white"
                 disabled={createTemplate.isPending || updateTemplate.isPending}
               >
                 {editingTemplate ? 'Atualizar' : 'Criar'}
