@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { usePasswords } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
@@ -106,6 +105,18 @@ const Links = () => {
       ...prev,
       [linkId]: !prev[linkId]
     }));
+  };
+
+  const handleOpenLink = (url: string) => {
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      toast({
+        title: "URL não encontrada",
+        description: "Este link não possui uma URL válida.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -255,10 +266,10 @@ const Links = () => {
                       <Button 
                         variant="outline"
                         size="sm"
-                        onClick={() => handleCopyCredentials(link)}
+                        onClick={() => handleOpenLink(link.url)}
                         className="h-7 w-7 p-0 border-slate-600 hover:bg-slate-700"
                       >
-                        <Copy className="h-3 w-3 text-slate-400" />
+                        <ExternalLink className="h-3 w-3 text-slate-400" />
                       </Button>
                     </div>
                   </CardContent>
@@ -311,11 +322,11 @@ const Links = () => {
                           <Button 
                             variant="outline"
                             size="sm"
-                            onClick={() => handleCopyCredentials(link)}
+                            onClick={() => handleOpenLink(link.url)}
                             className="h-7 text-xs border-slate-600 hover:bg-slate-700 text-slate-300"
                           >
-                            <Copy className="h-3 w-3 mr-1" />
-                            Copiar
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            Abrir
                           </Button>
                           <Button 
                             onClick={() => toggleCardVisibility(link.id)}
