@@ -31,25 +31,42 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
   const [frequency, setFrequency] = useState<FrequencyType>('daily');
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]); // Segunda a Sexta por padrão
 
-  // Parse existing cron expression on mount
+  console.log('⏰ AdvancedCronBuilder - Render:', {
+    value,
+    hour,
+    minute,
+    frequency,
+    selectedDays
+  });
+
+  // Parse existing cron expression on mount or when value changes
   useEffect(() => {
+    console.log('⏰ Parsing cron expression:', value);
     if (value && value !== '') {
       parseCronExpression(value);
     }
-  }, []);
+  }, [value]);
 
   // Generate cron expression when values change
   useEffect(() => {
     const cronExpression = generateCronExpression();
+    console.log('⏰ Generated cron expression:', cronExpression);
     onChange(cronExpression);
-  }, [hour, minute, frequency, selectedDays]);
+  }, [hour, minute, frequency, selectedDays, onChange]);
 
   const parseCronExpression = (cron: string) => {
+    console.log('🔍 Parsing cron:', cron);
     const parts = cron.split(' ');
     if (parts.length >= 5) {
-      const cronMinute = parseInt(parts[0]);
-      const cronHour = parseInt(parts[1]);
+      const cronMinute = parseInt(parts[0]) || 0;
+      const cronHour = parseInt(parts[1]) || 9;
       const dayPart = parts[4];
+
+      console.log('🔍 Parsed parts:', {
+        minute: cronMinute,
+        hour: cronHour,
+        dayPart
+      });
 
       setMinute(cronMinute);
       setHour(cronHour);
@@ -61,8 +78,12 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
         setSelectedDays([1, 2, 3, 4, 5]);
       } else if (dayPart.includes(',')) {
         setFrequency('custom');
-        const days = dayPart.split(',').map(d => parseInt(d));
+        const days = dayPart.split(',').map(d => parseInt(d)).filter(d => !isNaN(d));
         setSelectedDays(days);
+      } else if (!isNaN(parseInt(dayPart))) {
+        // Single day
+        setFrequency('custom');
+        setSelectedDays([parseInt(dayPart)]);
       }
     }
   };
@@ -79,12 +100,14 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
         break;
       case 'custom':
         if (selectedDays.length > 0) {
-          dayPattern = selectedDays.sort().join(',');
+          dayPattern = selectedDays.sort((a, b) => a - b).join(',');
         }
         break;
     }
 
-    return `${minute} ${hour} * * ${dayPattern}`;
+    const cronExpression = `${minute} ${hour} * * ${dayPattern}`;
+    console.log('🔄 Generated cron:', cronExpression);
+    return cronExpression;
   };
 
   const getFrequencyDescription = (): string => {
@@ -96,7 +119,7 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
       case 'custom':
         if (selectedDays.length === 0) return 'Nenhum dia selecionado';
         if (selectedDays.length === 7) return 'Todos os dias';
-        const dayNames = selectedDays.map(day => WEEKDAYS[day].label);
+        const dayNames = selectedDays.map(day => WEEKDAYS[day]?.label || '?');
         return dayNames.join(', ');
       default:
         return '';
@@ -119,8 +142,10 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
         nextRun.setDate(nextRun.getDate() + 1);
       }
     } else if (frequency === 'custom' && selectedDays.length > 0) {
-      while (!selectedDays.includes(nextRun.getDay())) {
+      let attempts = 0;
+      while (!selectedDays.includes(nextRun.getDay()) && attempts < 7) {
         nextRun.setDate(nextRun.getDate() + 1);
+        attempts++;
       }
     }
 
@@ -144,6 +169,20 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
     });
   };
 
+  const handleHourChange = (newHour: string) => {
+    const hourValue = parseInt(newHour) || 0;
+    const validHour = Math.max(0, Math.min(23, hourValue));
+    console.log('⏰ Hour changed:', validHour);
+    setHour(validHour);
+  };
+
+  const handleMinuteChange = (newMinute: string) => {
+    const minuteValue = parseInt(newMinute) || 0;
+    const validMinute = Math.max(0, Math.min(59, minuteValue));
+    console.log('⏰ Minute changed:', validMinute);
+    setMinute(validMinute);
+  };
+
   return (
     <div className="space-y-6">
       {/* Horário */}
@@ -164,7 +203,7 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
                 min="0"
                 max="23"
                 value={hour}
-                onChange={(e) => setHour(parseInt(e.target.value) || 0)}
+                onChange={(e) => handleHourChange(e.target.value)}
                 className="w-20 text-center"
               />
             </div>
@@ -177,7 +216,7 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
                 min="0"
                 max="59"
                 value={minute}
-                onChange={(e) => setMinute(parseInt(e.target.value) || 0)}
+                onChange={(e) => handleMinuteChange(e.target.value)}
                 className="w-20 text-center"
               />
             </div>
@@ -201,7 +240,10 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Tipo de Repetição</Label>
-            <Select value={frequency} onValueChange={(value: FrequencyType) => setFrequency(value)}>
+            <Select value={frequency} onValueChange={(value: FrequencyType) => {
+              console.log('⏰ Frequency changed:', value);
+              setFrequency(value);
+            }}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

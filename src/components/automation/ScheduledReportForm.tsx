@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,34 +45,40 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
   const createReport = useCreateScheduledReport();
   const updateReport = useUpdateScheduledReport();
 
+  console.log('📝 ScheduledReportForm - Render:', {
+    open,
+    editingReport: editingReport ? {
+      id: editingReport.id,
+      name: editingReport.name,
+      cron_expression: editingReport.cron_expression,
+      report_type: editingReport.report_type
+    } : null,
+    templatesCount: templates.length
+  });
+
   const [formData, setFormData] = useState({
-    name: editingReport?.name || '',
-    report_type: editingReport?.report_type || '',
-    phone_number: editingReport?.phone_number || '',
-    cron_expression: editingReport?.cron_expression || '0 9 * * *',
-    is_active: editingReport?.is_active ?? true,
-    settings: editingReport?.settings || {}
+    name: '',
+    report_type: '',
+    phone_number: '',
+    cron_expression: '0 9 * * *',
+    is_active: true,
+    settings: {}
   });
 
   const [showTemplatePreview, setShowTemplatePreview] = useState(false);
   const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
 
-  // Filtrar apenas templates ativos
-  const activeTemplates = useMemo(() => {
-    return templates.filter(template => template.is_active);
-  }, [templates]);
-
-  // Template selecionado
-  const selectedTemplate = useMemo(() => {
-    return activeTemplates.find(template => template.id === formData.report_type);
-  }, [activeTemplates, formData.report_type]);
-
-  React.useEffect(() => {
-    if (open && !templatesLoading) {
-      refetchTemplates();
-    }
-
+  // Reset form when dialog opens/closes or editing report changes
+  const resetForm = useCallback(() => {
+    console.log('🔄 Resetando formulário');
     if (editingReport) {
+      console.log('📝 Preenchendo com dados do relatório:', {
+        name: editingReport.name,
+        report_type: editingReport.report_type,
+        phone_number: editingReport.phone_number,
+        cron_expression: editingReport.cron_expression,
+        is_active: editingReport.is_active
+      });
       setFormData({
         name: editingReport.name,
         report_type: editingReport.report_type,
@@ -82,7 +88,7 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
         settings: editingReport.settings || {}
       });
     } else {
-      // Reset form when creating new
+      console.log('🆕 Criando novo relatório - limpando formulário');
       setFormData({
         name: '',
         report_type: '',
@@ -93,7 +99,32 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
       });
     }
     setFormErrors({});
-  }, [editingReport, open, templatesLoading, refetchTemplates]);
+    setShowTemplatePreview(false);
+  }, [editingReport]);
+
+  // Effect to reset form when dialog opens or editingReport changes
+  React.useEffect(() => {
+    if (open) {
+      console.log('🔄 Dialog aberto - resetando formulário');
+      resetForm();
+      // Force refetch templates when dialog opens
+      refetchTemplates();
+    }
+  }, [open, editingReport, resetForm, refetchTemplates]);
+
+  // Filtrar apenas templates ativos
+  const activeTemplates = useMemo(() => {
+    const filtered = templates.filter(template => template.is_active);
+    console.log('📋 Templates ativos:', filtered.length, 'de', templates.length);
+    return filtered;
+  }, [templates]);
+
+  // Template selecionado
+  const selectedTemplate = useMemo(() => {
+    const template = activeTemplates.find(template => template.id === formData.report_type);
+    console.log('🎯 Template selecionado:', template ? template.name : 'nenhum');
+    return template;
+  }, [activeTemplates, formData.report_type]);
 
   const validateForm = () => {
     const errors: {[key: string]: string} = {};
@@ -126,6 +157,8 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
   };
 
   const handleSave = async () => {
+    console.log('💾 Salvando relatório:', formData);
+    
     if (!validateForm()) {
       toast({
         title: "Erro no formulário",
@@ -150,8 +183,11 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
       phone_number: formData.phone_number.replace(/\D/g, ''), // Limpar formatação
     };
 
+    console.log('💾 Dados a serem salvos:', dataToSave);
+
     try {
       if (editingReport) {
+        console.log('✏️ Atualizando relatório existente:', editingReport.id);
         await updateReport.mutateAsync({
           id: editingReport.id,
           updates: dataToSave
@@ -161,6 +197,7 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
           description: `O relatório "${formData.name}" foi atualizado com sucesso.`,
         });
       } else {
+        console.log('🆕 Criando novo relatório');
         await createReport.mutateAsync(dataToSave);
         toast({
           title: "Agendamento criado!",
@@ -171,7 +208,7 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {
-      console.error('Erro ao salvar agendamento:', error);
+      console.error('❌ Erro ao salvar agendamento:', error);
       toast({
         title: "Erro ao salvar",
         description: error.message || "Ocorreu um erro inesperado.",
@@ -179,6 +216,18 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
       });
     }
   };
+
+  const handleCronChange = useCallback((cronExpression: string) => {
+    console.log('⏰ Cron expression alterada:', cronExpression);
+    setFormData(prev => ({
+      ...prev,
+      cron_expression: cronExpression
+    }));
+    setFormErrors(prev => ({
+      ...prev,
+      cron_expression: ''
+    }));
+  }, []);
 
   const isLoading = createReport.isPending || updateReport.isPending;
 
@@ -239,6 +288,7 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                   <Select 
                     value={formData.report_type} 
                     onValueChange={(value) => {
+                      console.log('🎯 Template selecionado:', value);
                       setFormData({...formData, report_type: value});
                       setFormErrors({...formErrors, report_type: ''});
                     }}
@@ -354,10 +404,7 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
               <CardContent>
                 <AdvancedCronBuilder
                   value={formData.cron_expression}
-                  onChange={(cronExpression) => {
-                    setFormData({...formData, cron_expression: cronExpression});
-                    setFormErrors({...formErrors, cron_expression: ''});
-                  }}
+                  onChange={handleCronChange}
                 />
                 {formErrors.cron_expression && (
                   <p className="text-sm text-red-600 flex items-center gap-1 mt-2">
