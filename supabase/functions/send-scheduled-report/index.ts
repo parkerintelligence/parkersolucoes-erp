@@ -68,24 +68,47 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`🔌 Integration encontrada: ${integration.name}`);
 
-    // Buscar template da mensagem
-    const { data: template, error: templateError } = await supabase
-      .from('whatsapp_message_templates')
-      .select('*')
-      .eq('template_type', report.report_type)
-      .eq('user_id', report.user_id)
-      .eq('is_active', true)
-      .single();
+    // Buscar template da mensagem por ID (novo) ou por tipo (fallback para relatórios antigos)
+    let template = null;
+    let templateError = null;
+
+    // Primeiro, tentar buscar por ID (novo sistema)
+    if (report.report_type && report.report_type.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      console.log(`🔍 Buscando template por ID: ${report.report_type}`);
+      const { data: templateById, error: templateByIdError } = await supabase
+        .from('whatsapp_message_templates')
+        .select('*')
+        .eq('id', report.report_type)
+        .eq('user_id', report.user_id)
+        .eq('is_active', true)
+        .single();
+
+      template = templateById;
+      templateError = templateByIdError;
+    } else {
+      // Fallback: buscar por tipo (sistema antigo)
+      console.log(`🔍 Buscando template por tipo (fallback): ${report.report_type}`);
+      const { data: templateByType, error: templateByTypeError } = await supabase
+        .from('whatsapp_message_templates')
+        .select('*')
+        .eq('template_type', report.report_type)
+        .eq('user_id', report.user_id)
+        .eq('is_active', true)
+        .single();
+
+      template = templateByType;
+      templateError = templateByTypeError;
+    }
 
     if (templateError || !template) {
       console.error('❌ Template não encontrado:', templateError);
-      throw new Error(`Template não encontrado para o tipo: ${report.report_type}`);
+      throw new Error(`Template não encontrado para: ${report.report_type}`);
     }
 
-    console.log(`📝 Template encontrado: ${template.name}`);
+    console.log(`📝 Template encontrado: ${template.name} (tipo: ${template.template_type})`);
 
     // Gerar conteúdo baseado no template
-    const message = await generateMessageFromTemplate(template, report.report_type, report.user_id, report.settings);
+    const message = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings);
     console.log(`💬 Mensagem gerada (${message.length} caracteres)`);
 
     // Atualizar log com conteúdo da mensagem
@@ -183,7 +206,8 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(JSON.stringify({ 
       success: true, 
       message: 'Relatório enviado com sucesso',
-      report_type: report.report_type,
+      template_name: template.name,
+      template_type: template.template_type,
       phone_number: cleanPhoneNumber,
       next_execution: nextExecution,
       execution_time_ms: executionTime

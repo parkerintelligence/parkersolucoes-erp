@@ -23,6 +23,7 @@ export const useScheduledReports = () => {
   return useQuery({
     queryKey: ['scheduled-reports'],
     queryFn: async () => {
+      console.log('Buscando relatórios agendados...');
       const { data, error } = await supabase
         .from('scheduled_reports')
         .select('*')
@@ -33,6 +34,7 @@ export const useScheduledReports = () => {
         throw error;
       }
       
+      console.log('Relatórios encontrados:', data?.length || 0);
       return data as ScheduledReport[];
     },
   });
@@ -43,9 +45,13 @@ export const useCreateScheduledReport = () => {
   
   return useMutation({
     mutationFn: async (report: Omit<ScheduledReport, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'execution_count' | 'last_execution' | 'next_execution'>) => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('Usuário não autenticado');
+      console.log('Criando novo relatório agendado:', report);
       
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const { data, error } = await supabase
         .from('scheduled_reports')
         .insert({
@@ -55,20 +61,23 @@ export const useCreateScheduledReport = () => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao criar relatório:', error);
+        throw error;
+      }
+      
+      console.log('Relatório criado com sucesso:', data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['scheduled-reports'] });
-      toast({
-        title: "Agendamento criado!",
-        description: "Relatório agendado com sucesso.",
-      });
+      console.log('Relatório criado e cache invalidado');
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Erro na criação do relatório:', error);
       toast({
         title: "Erro ao criar agendamento",
-        description: error.message,
+        description: error.message || "Ocorreu um erro inesperado.",
         variant: "destructive",
       });
     },
@@ -80,6 +89,8 @@ export const useUpdateScheduledReport = () => {
   
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<ScheduledReport> }) => {
+      console.log('Atualizando relatório:', id, updates);
+      
       const { data, error } = await supabase
         .from('scheduled_reports')
         .update(updates)
@@ -87,20 +98,23 @@ export const useUpdateScheduledReport = () => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao atualizar relatório:', error);
+        throw error;
+      }
+      
+      console.log('Relatório atualizado com sucesso:', data);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scheduled-reports'] });
-      toast({
-        title: "Agendamento atualizado!",
-        description: "Relatório atualizado com sucesso.",
-      });
+      console.log('Relatório atualizado e cache invalidado');
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Erro na atualização do relatório:', error);
       toast({
         title: "Erro ao atualizar agendamento",
-        description: error.message,
+        description: error.message || "Ocorreu um erro inesperado.",
         variant: "destructive",
       });
     },
@@ -112,12 +126,19 @@ export const useDeleteScheduledReport = () => {
   
   return useMutation({
     mutationFn: async (id: string) => {
+      console.log('Excluindo relatório:', id);
+      
       const { error } = await supabase
         .from('scheduled_reports')
         .delete()
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao excluir relatório:', error);
+        throw error;
+      }
+      
+      console.log('Relatório excluído com sucesso');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scheduled-reports'] });
@@ -126,10 +147,11 @@ export const useDeleteScheduledReport = () => {
         description: "Relatório removido com sucesso.",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Erro ao excluir relatório:', error);
       toast({
         title: "Erro ao remover agendamento",
-        description: error.message,
+        description: error.message || "Ocorreu um erro inesperado.",
         variant: "destructive",
       });
     },
@@ -141,6 +163,8 @@ export const useToggleScheduledReportActive = () => {
   
   return useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      console.log('Alterando status do relatório:', id, 'para:', !is_active);
+      
       const { data, error } = await supabase
         .from('scheduled_reports')
         .update({ is_active: !is_active })
@@ -148,16 +172,22 @@ export const useToggleScheduledReportActive = () => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao alterar status:', error);
+        throw error;
+      }
+      
+      console.log('Status alterado com sucesso:', data);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scheduled-reports'] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Erro ao alterar status:', error);
       toast({
         title: "Erro ao alterar status",
-        description: error.message,
+        description: error.message || "Ocorreu um erro inesperado.",
         variant: "destructive",
       });
     },
@@ -167,23 +197,34 @@ export const useToggleScheduledReportActive = () => {
 export const useTestScheduledReport = () => {
   return useMutation({
     mutationFn: async (reportId: string) => {
+      console.log('Executando teste do relatório:', reportId);
+      
       const { data, error } = await supabase.functions.invoke('send-scheduled-report', {
         body: { report_id: reportId }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro no teste do relatório:', error);
+        throw error;
+      }
+      
+      console.log('Teste executado com sucesso:', data);
       return data;
     },
-    onSuccess: () => {
-      toast({
-        title: "Teste enviado!",
-        description: "Relatório de teste enviado com sucesso.",
-      });
+    onSuccess: (data) => {
+      console.log('Resultado do teste:', data);
+      if (data?.success) {
+        toast({
+          title: "Teste enviado!",
+          description: `Relatório enviado com sucesso. Próxima execução: ${data.next_execution ? new Date(data.next_execution).toLocaleString('pt-BR') : 'N/A'}`,
+        });
+      }
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Erro no teste:', error);
       toast({
         title: "Erro no teste",
-        description: error.message,
+        description: error.message || "Falha ao executar o teste do relatório.",
         variant: "destructive",
       });
     },

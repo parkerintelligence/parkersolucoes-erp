@@ -22,7 +22,8 @@ import {
   Calendar, 
   ExternalLink,
   Eye,
-  Plus
+  Plus,
+  AlertCircle
 } from 'lucide-react';
 
 interface ScheduledReportFormProps {
@@ -40,7 +41,7 @@ const templateTypeIcons = {
 };
 
 export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSuccess }: ScheduledReportFormProps) => {
-  const { data: templates = [] } = useWhatsAppTemplates();
+  const { data: templates = [], isLoading: templatesLoading } = useWhatsAppTemplates();
   const createReport = useCreateScheduledReport();
   const updateReport = useUpdateScheduledReport();
 
@@ -54,6 +55,7 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
   });
 
   const [showTemplatePreview, setShowTemplatePreview] = useState(false);
+  const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
 
   // Filtrar apenas templates ativos
   const activeTemplates = useMemo(() => {
@@ -67,6 +69,7 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
 
   React.useEffect(() => {
     if (editingReport) {
+      console.log('Editando relatório:', editingReport);
       setFormData({
         name: editingReport.name,
         report_type: editingReport.report_type,
@@ -86,30 +89,53 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
         settings: {}
       });
     }
+    setFormErrors({});
   }, [editingReport, open]);
 
-  const handleSave = async () => {
-    if (!formData.name.trim() || !formData.phone_number.trim() || !formData.cron_expression.trim()) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Preencha nome, telefone e horário.",
-        variant: "destructive"
-      });
-      return;
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+
+    if (!formData.name.trim()) {
+      errors.name = 'Nome é obrigatório';
+    }
+
+    if (!formData.phone_number.trim()) {
+      errors.phone_number = 'Número do WhatsApp é obrigatório';
+    } else if (!/^\d{10,15}$/.test(formData.phone_number.replace(/\D/g, ''))) {
+      errors.phone_number = 'Formato de telefone inválido';
+    }
+
+    if (!formData.cron_expression.trim()) {
+      errors.cron_expression = 'Horário é obrigatório';
     }
 
     if (!formData.report_type) {
+      errors.report_type = 'Template é obrigatório';
+    }
+
+    // Verificar se o template existe e está ativo
+    if (formData.report_type && !selectedTemplate) {
+      errors.report_type = 'Template selecionado não encontrado ou inativo';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSave = async () => {
+    console.log('Tentando salvar com dados:', formData);
+
+    if (!validateForm()) {
       toast({
-        title: "Template obrigatório",
-        description: "Selecione um template de mensagem.",
+        title: "Erro no formulário",
+        description: "Corrija os campos destacados em vermelho.",
         variant: "destructive"
       });
       return;
     }
 
     // Verificar se o template existe e está ativo
-    const template = activeTemplates.find(t => t.id === formData.report_type);
-    if (!template) {
+    if (!selectedTemplate) {
       toast({
         title: "Template inválido",
         description: "O template selecionado não existe ou não está ativo.",
@@ -118,20 +144,43 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
       return;
     }
 
+    const dataToSave = {
+      ...formData,
+      phone_number: formData.phone_number.replace(/\D/g, ''), // Limpar formatação
+    };
+
+    console.log('Dados a serem salvos:', dataToSave);
+
     try {
       if (editingReport) {
+        console.log('Atualizando relatório:', editingReport.id);
         await updateReport.mutateAsync({
           id: editingReport.id,
-          updates: formData
+          updates: dataToSave
+        });
+        toast({
+          title: "Agendamento atualizado!",
+          description: `O relatório "${formData.name}" foi atualizado com sucesso.`,
         });
       } else {
-        await createReport.mutateAsync(formData);
+        console.log('Criando novo relatório');
+        const result = await createReport.mutateAsync(dataToSave);
+        console.log('Resultado da criação:', result);
+        toast({
+          title: "Agendamento criado!",
+          description: `O relatório "${formData.name}" foi criado com sucesso.`,
+        });
       }
       
       onSuccess();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar agendamento:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: error.message || "Ocorreu um erro inesperado.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -160,14 +209,20 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                   placeholder="ex: Relatório Diário de Backups"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full"
+                  className={`w-full ${formErrors.name ? 'border-red-500' : ''}`}
                 />
+                {formErrors.name && (
+                  <p className="text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {formErrors.name}
+                  </p>
+                )}
               </div>
               
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="report_type" className="text-sm font-medium">Template de Mensagem *</Label>
-                  {activeTemplates.length === 0 && (
+                  {!templatesLoading && activeTemplates.length === 0 && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -178,12 +233,24 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                     </Button>
                   )}
                 </div>
-                <Select value={formData.report_type} onValueChange={(value) => setFormData({...formData, report_type: value})}>
-                  <SelectTrigger className="w-full">
+                <Select 
+                  value={formData.report_type} 
+                  onValueChange={(value) => {
+                    console.log('Template selecionado:', value);
+                    setFormData({...formData, report_type: value});
+                    setFormErrors({...formErrors, report_type: ''});
+                  }}
+                >
+                  <SelectTrigger className={`w-full ${formErrors.report_type ? 'border-red-500' : ''}`}>
                     <SelectValue placeholder="Selecione um template" />
                   </SelectTrigger>
                   <SelectContent>
-                    {activeTemplates.length === 0 ? (
+                    {templatesLoading ? (
+                      <div className="p-4 text-center text-gray-500">
+                        <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Carregando templates...</p>
+                      </div>
+                    ) : activeTemplates.length === 0 ? (
                       <div className="p-4 text-center text-gray-500">
                         <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">Nenhum template ativo encontrado.</p>
@@ -212,6 +279,12 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                     )}
                   </SelectContent>
                 </Select>
+                {formErrors.report_type && (
+                  <p className="text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {formErrors.report_type}
+                  </p>
+                )}
                 
                 {selectedTemplate && (
                   <div className="mt-2">
@@ -227,7 +300,7 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                   </div>
                 )}
                 
-                {activeTemplates.length === 0 && (
+                {!templatesLoading && activeTemplates.length === 0 && (
                   <p className="text-xs text-amber-600 mt-1">
                     ⚠️ Configure templates ativos na página "Templates WhatsApp" para criar agendamentos.
                   </p>
@@ -240,10 +313,20 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                   id="phone_number" 
                   placeholder="5511999999999"
                   value={formData.phone_number}
-                  onChange={(e) => setFormData({...formData, phone_number: e.target.value.replace(/\D/g, '')})}
-                  className="w-full"
+                  onChange={(e) => {
+                    const cleaned = e.target.value.replace(/\D/g, '');
+                    setFormData({...formData, phone_number: cleaned});
+                    setFormErrors({...formErrors, phone_number: ''});
+                  }}
+                  className={`w-full ${formErrors.phone_number ? 'border-red-500' : ''}`}
                   maxLength={13}
                 />
+                {formErrors.phone_number && (
+                  <p className="text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {formErrors.phone_number}
+                  </p>
+                )}
                 <p className="text-xs text-gray-500">Digite apenas números (ex: 5511999999999)</p>
               </div>
 
@@ -268,8 +351,18 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                 <Label className="text-sm font-medium mb-4 block">Configuração de Horário *</Label>
                 <AdvancedCronBuilder
                   value={formData.cron_expression}
-                  onChange={(cronExpression) => setFormData({...formData, cron_expression: cronExpression})}
+                  onChange={(cronExpression) => {
+                    console.log('Cron expression alterada:', cronExpression);
+                    setFormData({...formData, cron_expression: cronExpression});
+                    setFormErrors({...formErrors, cron_expression: ''});
+                  }}
                 />
+                {formErrors.cron_expression && (
+                  <p className="text-sm text-red-600 flex items-center gap-1 mt-2">
+                    <AlertCircle className="h-3 w-3" />
+                    {formErrors.cron_expression}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -284,7 +377,7 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
             </Button>
             <Button 
               onClick={handleSave} 
-              disabled={isLoading || activeTemplates.length === 0}
+              disabled={isLoading || (activeTemplates.length === 0 && !templatesLoading)}
               className="min-w-24"
             >
               {isLoading ? 'Salvando...' : editingReport ? 'Atualizar' : 'Criar'}
