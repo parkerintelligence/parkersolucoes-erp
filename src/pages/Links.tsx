@@ -38,9 +38,9 @@ const Links = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
   const [selectedService, setSelectedService] = useState('');
-  const [showPasswords, setShowPasswords] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('name');
+  const [visibleCards, setVisibleCards] = useState<Record<string, boolean>>({});
 
   // Filtrar apenas senhas que têm gera_link = true
   const links = passwords.filter(password => password.gera_link);
@@ -99,6 +99,13 @@ const Links = () => {
       title: "Credenciais copiadas!",
       description: "As informações de acesso foram copiadas para a área de transferência.",
     });
+  };
+
+  const toggleCardVisibility = (linkId: string) => {
+    setVisibleCards(prev => ({
+      ...prev,
+      [linkId]: !prev[linkId]
+    }));
   };
 
   if (isLoading) {
@@ -184,16 +191,6 @@ const Links = () => {
               <SelectItem value="service" className="text-xs text-white">Serviço</SelectItem>
             </SelectContent>
           </Select>
-
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="show-passwords"
-              checked={showPasswords}
-              onCheckedChange={setShowPasswords}
-              className="scale-75"
-            />
-            <Label htmlFor="show-passwords" className="text-xs text-slate-300">Credenciais</Label>
-          </div>
         </div>
       </div>
 
@@ -204,6 +201,7 @@ const Links = () => {
             {sortedLinks.map((link) => {
               const company = companies.find(c => c.id === link.company_id);
               const service = link.service || 'Sistema';
+              const isVisible = visibleCards[link.id];
               
               return (
                 <Card key={link.id} className="bg-slate-800 border-slate-700 hover:bg-slate-750 transition-colors group">
@@ -224,9 +222,14 @@ const Links = () => {
                       <p className="text-slate-400 text-xs truncate">{company?.name || 'Sem empresa'}</p>
                     </div>
 
-                    {/* Credenciais (se habilitado) */}
-                    {showPasswords && (
+                    {/* Credenciais (se visível) */}
+                    {isVisible && (
                       <div className="space-y-1 mb-3 text-xs">
+                        {link.url && (
+                          <p className="text-slate-400 truncate">
+                            <span className="text-slate-500">Site:</span> {link.url}
+                          </p>
+                        )}
                         {link.username && (
                           <p className="text-slate-400 truncate">
                             <span className="text-slate-500">User:</span> {link.username}
@@ -234,7 +237,7 @@ const Links = () => {
                         )}
                         {link.password && (
                           <p className="text-slate-400 truncate">
-                            <span className="text-slate-500">Pass:</span> ••••••••
+                            <span className="text-slate-500">Pass:</span> {link.password}
                           </p>
                         )}
                       </div>
@@ -244,11 +247,10 @@ const Links = () => {
                     <div className="flex gap-1">
                       <Button 
                         className="flex-1 h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white"
-                        onClick={() => window.open(link.url || '#', '_blank')}
-                        disabled={!link.url}
+                        onClick={() => toggleCardVisibility(link.id)}
                       >
-                        <ExternalLink className="mr-1 h-3 w-3" />
-                        Abrir
+                        {isVisible ? <EyeOff className="mr-1 h-3 w-3" /> : <Eye className="mr-1 h-3 w-3" />}
+                        {isVisible ? 'Ocultar' : 'Ver'}
                       </Button>
                       <Button 
                         variant="outline"
@@ -271,6 +273,7 @@ const Links = () => {
                 {sortedLinks.map((link) => {
                   const company = companies.find(c => c.id === link.company_id);
                   const service = link.service || 'Sistema';
+                  const isVisible = visibleCards[link.id];
                   
                   return (
                     <div key={link.id} className="p-3 hover:bg-slate-750 transition-colors">
@@ -288,13 +291,16 @@ const Links = () => {
                               </Badge>
                             </div>
                             <p className="text-slate-400 text-xs truncate">{company?.name || 'Sem empresa'}</p>
-                            {showPasswords && (
+                            {isVisible && (
                               <div className="mt-1 text-xs space-y-0.5">
+                                {link.url && (
+                                  <p className="text-slate-400"><span className="text-slate-500">Site:</span> <code className="bg-slate-700 px-1 rounded">{link.url}</code></p>
+                                )}
                                 {link.username && (
                                   <p className="text-slate-400"><span className="text-slate-500">User:</span> <code className="bg-slate-700 px-1 rounded">{link.username}</code></p>
                                 )}
                                 {link.password && (
-                                  <p className="text-slate-400"><span className="text-slate-500">Pass:</span> <code className="bg-slate-700 px-1 rounded">••••••••</code></p>
+                                  <p className="text-slate-400"><span className="text-slate-500">Pass:</span> <code className="bg-slate-700 px-1 rounded">{link.password}</code></p>
                                 )}
                               </div>
                             )}
@@ -312,12 +318,11 @@ const Links = () => {
                             Copiar
                           </Button>
                           <Button 
-                            onClick={() => window.open(link.url || '#', '_blank')}
-                            disabled={!link.url}
+                            onClick={() => toggleCardVisibility(link.id)}
                             className="h-7 text-xs bg-blue-600 hover:bg-blue-700"
                           >
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            Abrir
+                            {isVisible ? <EyeOff className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
+                            {isVisible ? 'Ocultar' : 'Ver'}
                           </Button>
                         </div>
                       </div>
