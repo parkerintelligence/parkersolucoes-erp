@@ -256,26 +256,26 @@ const Wasabi = () => {
                   </TableHeader>
                   <TableBody>
                     {buckets.map((bucket) => (
-                      <TableRow key={bucket.Name}>
-                        <TableCell className="font-medium">{bucket.Name}</TableCell>
+                      <TableRow key={bucket.name}>
+                        <TableCell className="font-medium">{bucket.name}</TableCell>
                         <TableCell>
                           <Badge variant="secondary">us-east-1</Badge>
                         </TableCell>
-                        <TableCell>{formatDate(bucket.CreationDate)}</TableCell>
+                        <TableCell>{formatDate(bucket.creationDate)}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button 
                               size="sm" 
                               onClick={() => {
-                                setSelectedBucket(bucket.Name);
-                                listObjects(bucket.Name);
+                                setSelectedBucket(bucket.name);
+                                listObjects(bucket.name);
                               }}
                             >
                               <FolderOpen className="h-4 w-4" />
                             </Button>
                             <Button 
                               size="sm" 
-                              onClick={() => handleUpload(bucket.Name)}
+                              onClick={() => handleUpload(bucket.name)}
                             >
                               <Upload className="h-4 w-4" />
                             </Button>
@@ -353,29 +353,29 @@ const Wasabi = () => {
                   </TableHeader>
                   <TableBody>
                     {objects.map((object) => (
-                      <TableRow key={object.Key}>
+                      <TableRow key={object.id}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
-                            {object.Key?.endsWith('/') ? (
+                            {object.name?.endsWith('/') ? (
                               <Folder className="h-4 w-4 text-blue-500" />
                             ) : (
                               <HardDrive className="h-4 w-4" />
                             )}
-                            {object.Key}
+                            {object.name}
                           </div>
                         </TableCell>
                         <TableCell>
-                          {object.Size ? formatFileSize(object.Size) : '-'}
+                          {object.sizeBytes ? formatFileSize(object.sizeBytes) : '-'}
                         </TableCell>
                         <TableCell>
-                          {object.LastModified ? formatDate(object.LastModified) : '-'}
+                          {object.lastModified ? formatDate(object.lastModified) : '-'}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            {object.Key?.endsWith('/') ? (
+                            {object.name?.endsWith('/') ? (
                               <Button
                                 size="sm"
-                                onClick={() => navigateToFolder(object.Key!)}
+                                onClick={() => navigateToFolder(object.name!)}
                               >
                                 <FolderOpen className="h-4 w-4" />
                               </Button>
@@ -383,14 +383,14 @@ const Wasabi = () => {
                               <>
                                 <Button
                                   size="sm"
-                                  onClick={() => downloadObject(selectedBucket, object.Key!)}
+                                  onClick={() => downloadObject(selectedBucket, object.name!)}
                                 >
                                   <Download className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="destructive"
-                                  onClick={() => deleteObject(selectedBucket, object.Key!)}
+                                  onClick={() => deleteObject(selectedBucket, object.name!)}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>

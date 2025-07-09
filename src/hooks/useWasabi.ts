@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
@@ -9,8 +10,14 @@ export const useWasabi = () => {
   const { data: integrations } = useIntegrations();
   const wasabiIntegrations = integrations?.filter(int => int.type === 'wasabi' && int.is_active) || [];
   const activeWasabiIntegration = wasabiIntegrations[0];
+  
+  const [selectedBucket, setSelectedBucket] = useState<string>('');
+  const [currentPath, setCurrentPath] = useState<string>('');
 
   console.log('Integrações Wasabi ativas encontradas:', wasabiIntegrations.length);
+
+  // Verificar se está configurado
+  const isConfigured = !!activeWasabiIntegration;
 
   // Buscar buckets disponíveis
   const { data: buckets = [], isLoading: isLoadingBuckets, error: bucketsError } = useQuery({
@@ -31,21 +38,57 @@ export const useWasabi = () => {
   });
 
   // Buscar arquivos de um bucket específico
-  const getFilesQuery = (bucketName: string | null) => useQuery({
-    queryKey: ['wasabi-files', activeWasabiIntegration?.id, bucketName],
+  const { data: objects = [], isLoading: isLoadingFiles } = useQuery({
+    queryKey: ['wasabi-files', activeWasabiIntegration?.id, selectedBucket],
     queryFn: async (): Promise<WasabiFile[]> => {
-      if (!activeWasabiIntegration || !bucketName) {
+      if (!activeWasabiIntegration || !selectedBucket) {
         return [];
       }
 
-      console.log('Listando arquivos do bucket:', bucketName);
+      console.log('Listando arquivos do bucket:', selectedBucket);
       const wasabiService = new WasabiService(activeWasabiIntegration);
-      return await wasabiService.listFiles(bucketName);
+      return await wasabiService.listFiles(selectedBucket);
     },
-    enabled: !!activeWasabiIntegration && !!bucketName,
+    enabled: !!activeWasabiIntegration && !!selectedBucket,
     retry: 2,
     retryDelay: 1000,
   });
+
+  // Estados derivados
+  const isLoading = isLoadingBuckets || isLoadingFiles;
+  const error = bucketsError?.message;
+
+  // Estatísticas básicas
+  const stats = {
+    totalBuckets: buckets.length,
+    totalObjects: objects.length,
+    totalSize: objects.reduce((sum, obj) => sum + (obj.sizeBytes || 0), 0)
+  };
+
+  // Funções de navegação
+  const listBuckets = () => {
+    queryClient.invalidateQueries({ queryKey: ['wasabi-buckets', activeWasabiIntegration?.id] });
+  };
+
+  const listObjects = (bucketName: string) => {
+    setSelectedBucket(bucketName);
+    setCurrentPath('');
+    queryClient.invalidateQueries({ queryKey: ['wasabi-files', activeWasabiIntegration?.id, bucketName] });
+  };
+
+  const navigateToFolder = (folderPath: string) => {
+    setCurrentPath(folderPath);
+  };
+
+  const navigateBack = () => {
+    const pathParts = currentPath.split('/').filter(Boolean);
+    if (pathParts.length > 0) {
+      pathParts.pop();
+      setCurrentPath(pathParts.join('/'));
+    } else {
+      setCurrentPath('');
+    }
+  };
 
   // Criar novo bucket
   const createBucket = useMutation({
@@ -112,6 +155,11 @@ export const useWasabi = () => {
     },
   });
 
+  // Upload de arquivo único
+  const uploadFile = (files: FileList, bucketName: string) => {
+    uploadFiles.mutate({ files, bucketName });
+  };
+
   // Download de arquivo
   const downloadFile = useMutation({
     mutationFn: async ({ fileName, bucketName }: { fileName: string; bucketName: string }) => {
@@ -139,6 +187,11 @@ export const useWasabi = () => {
       });
     },
   });
+
+  // Download de objeto
+  const downloadObject = (bucketName: string, fileName: string) => {
+    downloadFile.mutate({ fileName, bucketName });
+  };
 
   // Deletar arquivo
   const deleteFile = useMutation({
@@ -169,16 +222,33 @@ export const useWasabi = () => {
     },
   });
 
+  // Deletar objeto
+  const deleteObject = (bucketName: string, fileName: string) => {
+    deleteFile.mutate({ fileName, bucketName });
+  };
+
   return {
     buckets,
+    objects,
+    currentPath,
+    isLoading,
     isLoadingBuckets,
+    error,
     bucketsError,
+    isConfigured,
+    stats,
     wasabiIntegration: activeWasabiIntegration,
     wasabiIntegrations,
-    getFilesQuery,
+    listBuckets,
+    listObjects,
+    navigateToFolder,
+    navigateBack,
     uploadFiles,
+    uploadFile,
     downloadFile,
+    downloadObject,
     deleteFile,
-    createBucket,
+    deleteObject,
+    createBucket: createBucket.mutate,
   };
 };
