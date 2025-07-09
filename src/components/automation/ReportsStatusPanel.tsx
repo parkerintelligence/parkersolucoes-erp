@@ -44,20 +44,26 @@ export const ReportsStatusPanel = () => {
     
     const date = new Date(dateString);
     const now = new Date();
+    
+    // Verificar se a data é válida
+    if (isNaN(date.getTime())) return 'Data inválida';
+    
     const diffMs = date.getTime() - now.getTime();
     
     if (diffMs < 0) return 'Atrasado';
     
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMinutes / 60);
     const diffDays = Math.floor(diffHours / 24);
     
     if (diffDays > 0) {
       return `Em ${diffDays} dia${diffDays > 1 ? 's' : ''}`;
     } else if (diffHours > 0) {
       return `Em ${diffHours}h`;
-    } else {
-      const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    } else if (diffMinutes > 0) {
       return `Em ${diffMinutes}min`;
+    } else {
+      return 'Agora';
     }
   };
 
@@ -66,11 +72,33 @@ export const ReportsStatusPanel = () => {
     
     const date = new Date(nextExecution);
     const now = new Date();
+    
+    if (isNaN(date.getTime())) return 'error';
+    
     const diffMs = date.getTime() - now.getTime();
     
     if (diffMs < 0) return 'overdue';
-    if (diffMs < 60 * 60 * 1000) return 'upcoming';
+    if (diffMs < 60 * 60 * 1000) return 'upcoming'; // Próxima 1 hora
     return 'scheduled';
+  };
+
+  const formatDateTime = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    
+    const date = new Date(dateString);
+    
+    if (isNaN(date.getTime())) return 'Data inválida';
+    
+    // Formatação brasileira com fuso horário local
+    return date.toLocaleString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
   };
 
   const handleExecuteReport = async (reportId: string, reportName: string) => {
@@ -209,9 +237,7 @@ export const ReportsStatusPanel = () => {
                           Template: {templateInfo.name}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {report.next_execution && 
-                            new Date(report.next_execution).toLocaleString('pt-BR')
-                          }
+                          Próxima execução: {formatDateTime(report.next_execution)}
                         </p>
                       </div>
                       <Button
@@ -269,10 +295,7 @@ export const ReportsStatusPanel = () => {
                           Template: {templateInfo.name}
                         </p>
                         <p className="text-xs text-red-400">
-                          Deveria ter executado: {' '}
-                          {report.next_execution && 
-                            new Date(report.next_execution).toLocaleString('pt-BR')
-                          }
+                          Deveria ter executado: {formatDateTime(report.next_execution)}
                         </p>
                       </div>
                       <Button
@@ -325,10 +348,7 @@ export const ReportsStatusPanel = () => {
                         Template: {templateInfo.name}
                       </p>
                       <p className="text-xs text-gray-500">
-                        Última execução: {' '}
-                        {report.last_execution && 
-                          new Date(report.last_execution).toLocaleString('pt-BR')
-                        }
+                        Última execução: {formatDateTime(report.last_execution)}
                       </p>
                     </div>
                   </div>
