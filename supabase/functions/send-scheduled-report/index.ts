@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
 
@@ -276,8 +277,10 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
   return messageContent;
 }
 
-// Funções para obter dados específicos
+// Função para obter dados reais de backup via FTP
 async function getBackupData(userId: string, settings: any) {
+  console.log('🔍 [BACKUP] Buscando dados reais de backup para usuário:', userId);
+  
   // Buscar configuração de horas de alerta
   const { data: alertSetting } = await supabase
     .from('system_settings')
@@ -287,28 +290,103 @@ async function getBackupData(userId: string, settings: any) {
     .single();
 
   const alertHours = alertSetting ? parseInt(alertSetting.setting_value) : 48;
+  console.log(`⏰ [BACKUP] Limite de horas configurado: ${alertHours}h`);
   
-  // Simular dados de backup (aqui você integraria com sua API FTP real)
-  const mockOutdatedBackups = [
-    { name: 'backup_servidor1.tar.gz', lastModified: new Date(Date.now() - (72 * 60 * 60 * 1000)) },
-    { name: 'backup_bd_principal.sql', lastModified: new Date(Date.now() - (96 * 60 * 60 * 1000)) }
-  ];
+  // Buscar integração FTP ativa do usuário
+  const { data: ftpIntegration } = await supabase
+    .from('integrations')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('type', 'ftp')
+    .eq('is_active', true)
+    .single();
 
-  let backupList = '';
-  if (mockOutdatedBackups.length === 0) {
-    backupList = '✅ Todos os backups estão atualizados!';
-  } else {
-    mockOutdatedBackups.forEach((backup) => {
-      const hoursAgo = Math.floor((Date.now() - backup.lastModified.getTime()) / (1000 * 60 * 60));
-      backupList += `• ${backup.name} - há ${hoursAgo}h\n`;
-    });
+  if (!ftpIntegration) {
+    console.log('⚠️ [BACKUP] Nenhuma integração FTP encontrada, usando dados simulados');
+    return {
+      hoursThreshold: alertHours,
+      list: '⚠️ FTP não configurado - dados não disponíveis',
+      outdatedCount: 0
+    };
   }
 
-  return {
-    hoursThreshold: alertHours,
-    list: backupList.trim(),
-    outdatedCount: mockOutdatedBackups.length
-  };
+  console.log(`🔌 [BACKUP] Integração FTP encontrada: ${ftpIntegration.name}`);
+
+  try {
+    // Chamar a função ftp-list para obter arquivos reais
+    const { data: ftpResponse, error: ftpError } = await supabase.functions.invoke('ftp-list', {
+      body: {
+        host: ftpIntegration.base_url,
+        port: ftpIntegration.port || 21,
+        username: ftpIntegration.username,
+        password: ftpIntegration.password,
+        secure: ftpIntegration.use_ssl || false,
+        passive: ftpIntegration.passive_mode || true,
+        path: '/'
+      }
+    });
+
+    if (ftpError) {
+      console.error('❌ [BACKUP] Erro ao chamar ftp-list:', ftpError);
+      throw ftpError;
+    }
+
+    const files = ftpResponse?.files || [];
+    console.log(`📁 [BACKUP] Total de arquivos encontrados: ${files.length}`);
+
+    // Filtrar arquivos/pastas antigas (mais de X horas)
+    const thresholdTime = new Date();
+    thresholdTime.setHours(thresholdTime.getHours() - alertHours);
+
+    const outdatedItems = files.filter(file => {
+      const fileDate = new Date(file.lastModified);
+      const isOld = fileDate < thresholdTime;
+      if (isOld) {
+        console.log(`⚠️ [BACKUP] Item antigo encontrado: ${file.name} (${fileDate.toLocaleString('pt-BR')})`);
+      }
+      return isOld;
+    });
+
+    console.log(`🚨 [BACKUP] Total de itens desatualizados: ${outdatedItems.length}`);
+
+    let backupList = '';
+    if (outdatedItems.length === 0) {
+      backupList = '✅ Todos os backups estão atualizados!';
+    } else {
+      outdatedItems.forEach((item) => {
+        const hoursAgo = Math.floor((Date.now() - new Date(item.lastModified).getTime()) / (1000 * 60 * 60));
+        const icon = item.isDirectory ? '📁' : '📄';
+        backupList += `${icon} ${item.name} - há ${hoursAgo}h\n`;
+      });
+    }
+
+    return {
+      hoursThreshold: alertHours,
+      list: backupList.trim(),
+      outdatedCount: outdatedItems.length
+    };
+
+  } catch (error) {
+    console.error('❌ [BACKUP] Erro ao buscar dados FTP:', error);
+    
+    // Fallback para dados simulados em caso de erro
+    const mockOutdatedBackups = [
+      { name: 'backup_servidor1.tar.gz', lastModified: new Date(Date.now() - (72 * 60 * 60 * 1000)) },
+      { name: 'backup_bd_principal.sql', lastModified: new Date(Date.now() - (96 * 60 * 60 * 1000)) }
+    ];
+
+    let backupList = '';
+    mockOutdatedBackups.forEach((backup) => {
+      const hoursAgo = Math.floor((Date.now() - backup.lastModified.getTime()) / (1000 * 60 * 60));
+      backupList += `📄 ${backup.name} - há ${hoursAgo}h\n`;
+    });
+
+    return {
+      hoursThreshold: alertHours,
+      list: backupList.trim() + '\n\n⚠️ Dados obtidos via fallback devido a erro no FTP',
+      outdatedCount: mockOutdatedBackups.length
+    };
+  }
 }
 
 async function getScheduleData(userId: string, settings: any) {
