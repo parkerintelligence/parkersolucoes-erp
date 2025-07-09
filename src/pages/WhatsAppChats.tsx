@@ -16,7 +16,7 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react';
-import { useWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
+import { useWhatsAppConversations, useSyncWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -25,12 +25,13 @@ const WhatsAppChats = () => {
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   
   const { 
-    conversations, 
+    data: conversations = [], 
     isLoading, 
     error, 
-    refetch,
-    syncConversations
+    refetch
   } = useWhatsAppConversations();
+
+  const { mutate: syncConversations } = useSyncWhatsAppConversations();
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
@@ -42,7 +43,7 @@ const WhatsAppChats = () => {
   }, [refetch]);
 
   const handleSync = async () => {
-    await syncConversations();
+    syncConversations();
   };
 
   const filteredConversations = conversations.filter(conv =>
@@ -73,7 +74,7 @@ const WhatsAppChats = () => {
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-600" />
             <h3 className="text-lg font-semibold text-red-800 mb-2">Erro ao carregar conversas</h3>
-            <p className="text-red-700 mb-4">{error}</p>
+            <p className="text-red-700 mb-4">{error.message}</p>
             <Button onClick={() => refetch()} variant="outline">
               <RefreshCw className="mr-2 h-4 w-4" />
               Tentar Novamente
