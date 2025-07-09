@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -296,7 +297,7 @@ const Guacamole = () => {
             <Monitor className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{connections.length}</div>
+            <div className="text-2xl font-bold">{connections?.length || 0}</div>
             <p className="text-xs text-muted-foreground">
               Conexões configuradas
             </p>
@@ -309,7 +310,7 @@ const Guacamole = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{users.length}</div>
+            <div className="text-2xl font-bold">{users?.length || 0}</div>
             <p className="text-xs text-muted-foreground">
               Usuários cadastrados
             </p>
@@ -322,7 +323,7 @@ const Guacamole = () => {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{sessions.length}</div>
+            <div className="text-2xl font-bold text-green-600">{sessions?.length || 0}</div>
             <p className="text-xs text-muted-foreground">
               Conexões em uso
             </p>
@@ -398,7 +399,7 @@ const Guacamole = () => {
                   <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4" />
                   <p>Carregando conexões...</p>
                 </div>
-              ) : connections.length === 0 ? (
+              ) : !connections || connections.length === 0 ? (
                 <div className="text-center py-8">
                   <Monitor className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-lg font-medium">Nenhuma conexão encontrada</p>
@@ -470,7 +471,6 @@ const Guacamole = () => {
           </Card>
         </TabsContent>
 
-        
         <TabsContent value="sessions" className="mt-6">
           <Card>
             <CardHeader>
@@ -488,7 +488,7 @@ const Guacamole = () => {
                   <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4" />
                   <p>Carregando sessões...</p>
                 </div>
-              ) : sessions.length === 0 ? (
+              ) : !sessions || sessions.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Activity className="h-12 w-12 mx-auto mb-4" />
                   <p className="text-lg font-medium">Nenhuma sessão ativa</p>
@@ -564,7 +564,7 @@ const Guacamole = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((user) => (
+                    {users && users.map((user) => (
                       <TableRow key={user.username}>
                         <TableCell className="font-medium">{user.username}</TableCell>
                         <TableCell>

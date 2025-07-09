@@ -12,20 +12,18 @@ import Passwords from '@/pages/Passwords';
 import Annotations from '@/pages/Annotations';
 import Links from '@/pages/Links';
 import WhatsApp from '@/pages/WhatsApp';
-import WhatsAppChats from '@/pages/WhatsAppChats';
 import WhatsAppTemplates from '@/pages/WhatsAppTemplates';
 import Wasabi from '@/pages/Wasabi';
 import Schedule from '@/pages/Schedule';
 import Automation from '@/pages/Automation';
 import Zabbix from '@/pages/Zabbix';
 import Guacamole from '@/pages/Guacamole';
-import Bacula from '@/pages/Bacula';
-import Monitoring from '@/pages/Monitoring';
 import Services from '@/pages/Services';
 import Budgets from '@/pages/Budgets';
 import Contracts from '@/pages/Contracts';
 import Financial from '@/pages/Financial';
 import Companies from '@/pages/Companies';
+import Bacula from '@/pages/Bacula';
 import { Layout } from '@/components/Layout';
 
 // Create a single QueryClient instance
@@ -101,14 +99,6 @@ function App() {
                 element={
                   <Layout>
                     <WhatsApp />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/whatsapp-chats"
-                element={
-                  <Layout>
-                    <WhatsAppChats />
                   </Layout>
                 }
               />
@@ -201,7 +191,6 @@ function App() {
                 }
               />
               <Route path="/bacula" element={<Layout><Bacula /></Layout>} />
-              <Route path="/monitoring" element={<Layout><Monitoring /></Layout>} />
             </Routes>
           </div>
         </BrowserRouter>

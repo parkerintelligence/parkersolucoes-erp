@@ -40,7 +40,6 @@ const menuItems = [
   { title: 'Senhas', url: '/passwords', icon: Lock, role: 'user' },
   { title: 'Anotações', url: '/annotations', icon: Notebook, role: 'user' },
   { title: 'Links', url: '/links', icon: Link, role: 'user' },
-  { title: 'Conversas WhatsApp', url: '/whatsapp-chats', icon: MessageCircle, role: 'user' },
   { title: 'Modelos WhatsApp', url: '/whatsapp-templates', icon: MessageCircle, role: 'user' },
   { title: 'Cloud Server', url: '/wasabi', icon: Cloud, role: 'user' },
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
@@ -48,15 +47,10 @@ const menuItems = [
   { title: 'Zabbix', url: '/zabbix', icon: Activity, role: 'user' },
   { title: 'Guacamole', url: '/guacamole', icon: Monitor, role: 'user' },
   { title: 'Bacula', url: '/bacula', icon: Database, role: 'user' },
-  { title: 'Grafana', url: '/monitoring', icon: Activity, role: 'user' },
 ];
 
 const financialItems = [
   { title: 'Financeiro', url: '/financial', icon: Calculator, role: 'master' },
-];
-
-const adminItems = [
-  { title: 'Painel de Administração', url: '/admin', icon: Shield, role: 'master' },
 ];
 
 export function AppSidebar() {
@@ -73,10 +67,6 @@ export function AppSidebar() {
   );
   
   const filteredFinancialItems = financialItems.filter(item => 
-    item.role === 'user' || (item.role === 'master' && isMaster)
-  );
-  
-  const filteredAdminItems = adminItems.filter(item => 
     item.role === 'user' || (item.role === 'master' && isMaster)
   );
 
@@ -133,31 +123,6 @@ export function AppSidebar() {
                       >
                         <item.icon className="h-4 w-4 flex-shrink-0" />
                         {!isCollapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {filteredAdminItems.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-white font-medium">
-              {!isCollapsed && "Administração"}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
-                {filteredAdminItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                        <NavLink 
-                          to={item.url} 
-                          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all text-white hover:text-white"
-                        >
-                          <item.icon className="h-4 w-4 flex-shrink-0" />
-                          {!isCollapsed && <span>{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

@@ -1,312 +1,283 @@
-import { useState } from 'react';
 
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { HardDrive, Download, Trash2, RefreshCw, Search, File, Folder, Settings, AlertTriangle, Database } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { 
+  Cloud, 
+  Plus, 
+  Upload, 
+  Folder,
+  FolderOpen,
+  Download,
+  Trash2,
+  RefreshCw,
+  Settings,
+  Database,
+  HardDrive,
+  Activity
+} from 'lucide-react';
 import { useWasabi } from '@/hooks/useWasabi';
-import { WasabiUploadDialog } from '@/components/WasabiUploadDialog';
 import { WasabiCreateBucketDialog } from '@/components/WasabiCreateBucketDialog';
+import { WasabiUploadDialog } from '@/components/WasabiUploadDialog';
 
 const Wasabi = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [createBucketOpen, setCreateBucketOpen] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedBucket, setSelectedBucket] = useState<string>('');
-  
+  const [selectedFolder, setSelectedFolder] = useState<string>('');
+
   const { 
-    buckets,
-    isLoadingBuckets,
-    bucketsError,
-    wasabiIntegration,
-    wasabiIntegrations,
-    getFilesQuery,
-    uploadFiles,
-    downloadFile,
-    deleteFile,
+    buckets, 
+    objects, 
+    currentPath,
+    isLoading, 
+    error,
+    isConfigured,
+    stats,
+    listBuckets,
+    listObjects,
     createBucket,
+    uploadFile,
+    deleteObject,
+    downloadObject,
+    navigateToFolder,
+    navigateBack
   } = useWasabi();
 
-  const { data: files = [], isLoading: isLoadingFiles, error: filesError } = getFilesQuery(selectedBucket);
-
-  const filteredFiles = files.filter(file => 
-    file.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleRefresh = () => {
-    window.location.reload();
-  };
-
-  const handleFileUpload = (files: FileList) => {
-    if (!selectedBucket) return;
-    uploadFiles.mutate({ files, bucketName: selectedBucket });
-  };
-
-  const handleCreateBucket = (bucketName: string) => {
-    createBucket.mutate(bucketName);
-  };
-
-  const handleDownload = (fileName: string) => {
-    if (!selectedBucket) return;
-    downloadFile.mutate({ fileName, bucketName: selectedBucket });
-  };
-
-  const handleDelete = (fileName: string) => {
-    if (!selectedBucket) return;
-    if (confirm(`Tem certeza que deseja remover o arquivo "${fileName}"?`)) {
-      deleteFile.mutate({ fileName, bucketName: selectedBucket });
-    }
-  };
-
-  const getTypeBadge = (type: string) => {
-    const colors = {
-      'image': 'bg-purple-900/20 text-purple-300 border-purple-600',
-      'video': 'bg-red-900/20 text-red-300 border-red-600',
-      'audio': 'bg-pink-900/20 text-pink-300 border-pink-600',
-      'document': 'bg-orange-900/20 text-orange-300 border-orange-600',
-      'archive': 'bg-yellow-900/20 text-yellow-300 border-yellow-600',
-      'code': 'bg-green-900/20 text-green-300 border-green-600',
-      'database': 'bg-blue-900/20 text-blue-300 border-blue-600',
-      'file': 'bg-gray-900/20 text-gray-300 border-gray-600',
-    };
-    return <Badge className={colors[type] || colors.file}>{type}</Badge>;
-  };
-
-  if (!wasabiIntegration) {
+  if (!isConfigured) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white">
-        <div className="space-y-6 p-6">
-          <h1 className="text-3xl font-bold text-white mb-6">Cloud Server</h1>
-          <Card className="bg-gray-800 border-gray-700 max-w-2xl mx-auto">
-            <CardContent className="p-8 text-center">
-              <HardDrive className="h-20 w-20 text-gray-500 mx-auto mb-6" />
-              <h2 className="text-2xl font-bold text-white mb-4">Integração Cloud Server não configurada</h2>
-              <p className="text-gray-400 mb-6 text-lg">
-                Para usar o armazenamento Cloud Server, você precisa configurar uma integração primeiro.
-              </p>
-              <Button size="lg" className="bg-blue-900 hover:bg-blue-800 text-white" onClick={() => window.location.href = '/admin'}>
-                <Settings className="h-5 w-5 mr-2" />
-                Configurar Integração
-              </Button>
-            </CardContent>
-          </Card>
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="bg-blue-100 p-2 rounded-lg">
+            <Cloud className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Cloud Server</h1>
+            <p className="text-muted-foreground">
+              Gerencie seus arquivos na nuvem com Wasabi Cloud Storage
+            </p>
+          </div>
         </div>
+
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardContent className="p-6 text-center">
+            <Cloud className="h-12 w-12 mx-auto mb-4 text-yellow-600" />
+            <h3 className="text-lg font-semibold text-yellow-800 mb-2">Cloud Server não configurado</h3>
+            <p className="text-yellow-700 mb-4">
+              Para usar o Cloud Server, configure a integração Wasabi no painel de administração.
+            </p>
+            <Button variant="outline" onClick={() => window.location.href = '/admin'}>
+              <Settings className="mr-2 h-4 w-4" />
+              Configurar Cloud Server
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  if (bucketsError) {
-    return (
-      <div className="min-h-screen bg-gray-900 text-white">
-        <div className="space-y-6 p-6">
-          <h1 className="text-3xl font-bold text-white mb-6">Cloud Server</h1>
-          <Card className="bg-gray-800 border-gray-700 max-w-2xl mx-auto">
-            <CardContent className="p-8 text-center">
-              <AlertTriangle className="h-20 w-20 text-red-400 mx-auto mb-6" />
-              <h2 className="text-2xl font-bold text-white mb-4">Erro de Conexão com Cloud Server</h2>
-              <p className="text-gray-400 mb-4 text-lg">
-                Não foi possível conectar ao Cloud Server. Verifique suas credenciais e configurações.
-              </p>
-              <p className="text-sm text-gray-500 mb-6 font-mono bg-gray-800 p-3 rounded">
-                {bucketsError.message}
-              </p>
-              <div className="flex gap-4 justify-center">
-                <Button size="lg" className="bg-blue-900 hover:bg-blue-800 text-white" onClick={() => window.location.href = '/admin'}>
-                  <Settings className="h-5 w-5 mr-2" />
-                  Verificar Configurações
-                </Button>
-                <Button size="lg" className="bg-blue-900 hover:bg-blue-800 text-white border-gray-600" onClick={handleRefresh}>
-                  <RefreshCw className="h-5 w-5 mr-2" />
-                  Tentar Novamente
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-  
+  const handleUpload = (bucketName: string, folder?: string) => {
+    setSelectedBucket(bucketName);
+    setSelectedFolder(folder || '');
+    setUploadDialogOpen(true);
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString('pt-BR');
+  };
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="space-y-6 p-6">
-        <h1 className="text-3xl font-bold text-white mb-6">Cloud Server</h1>
-        
-        <div className="flex justify-end gap-2">
-          <WasabiCreateBucketDialog
-            onCreateBucket={handleCreateBucket}
-            isCreating={createBucket.isPending}
-          />
-          <WasabiUploadDialog
-            selectedBucket={selectedBucket}
-            onUpload={handleFileUpload}
-            isUploading={uploadFiles.isPending}
-          />
-          <Button className="bg-blue-900 hover:bg-blue-800 text-white" onClick={handleRefresh} disabled={isLoadingBuckets}>
-            <RefreshCw className={`h-5 w-5 mr-2 ${isLoadingBuckets ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="bg-blue-100 p-2 rounded-lg">
+            <Cloud className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Cloud Server</h1>
+            <p className="text-muted-foreground">
+              Gerencie seus arquivos na nuvem com Wasabi Cloud Storage
+            </p>
+          </div>
         </div>
+        <Button 
+          onClick={listBuckets} 
+          disabled={isLoading}
+          variant="outline"
+        >
+          <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          Atualizar
+        </Button>
+      </div>
 
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-end">
-              {/* Bucket Selection */}
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-gray-300">Selecionar Bucket</label>
-                {isLoadingBuckets ? (
-                  <div className="flex items-center gap-2 p-3 border border-gray-600 rounded-lg bg-gray-700">
-                    <RefreshCw className="h-4 w-4 animate-spin text-blue-400" />
-                    <span className="text-sm text-gray-300">Carregando buckets...</span>
-                  </div>
-                ) : (
-                  <Select value={selectedBucket} onValueChange={setSelectedBucket}>
-                    <SelectTrigger className="w-full bg-gray-700 border-gray-600 text-white">
-                      <SelectValue placeholder="Escolha um bucket" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
-                      {buckets.map((bucket) => (
-                        <SelectItem key={bucket.name} value={bucket.name} className="text-gray-200 hover:bg-gray-700">
-                          <div className="flex items-center gap-2">
-                            <Folder className="h-4 w-4 text-blue-400" />
-                            {bucket.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-
-              {/* Search */}
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-gray-300">Buscar Arquivos</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                  <Input
-                    placeholder="Buscar arquivos..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-gray-700 border-gray-600 text-white"
-                    disabled={!selectedBucket}
-                  />
-                </div>
-              </div>
-            </div>
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Buckets</CardTitle>
+            <Database className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.totalBuckets || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Containers de armazenamento
+            </p>
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Database className="h-8 w-8 text-blue-400" />
-                <div>
-                  <p className="text-2xl font-bold text-white">{buckets.length}</p>
-                  <p className="text-sm text-gray-400">Total de Buckets</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <File className="h-8 w-8 text-green-400" />
-                <div>
-                  <p className="text-2xl font-bold text-white">{files.length}</p>
-                  <p className="text-sm text-gray-400">Arquivos no Bucket</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <HardDrive className="h-8 w-8 text-purple-400" />
-                <div>
-                  <p className="text-2xl font-bold text-white">
-                    {files.reduce((total, file) => total + (file.sizeBytes || 0), 0) > 0 ? 
-                      Math.round(files.reduce((total, file) => total + (file.sizeBytes || 0), 0) / 1024 / 1024) + ' MB' : 
-                      '0 MB'
-                    }
-                  </p>
-                  <p className="text-sm text-gray-400">Espaço Usado</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <File className="h-5 w-5" />
-              Arquivos {selectedBucket && `- ${selectedBucket}`}
-            </CardTitle>
-            <CardDescription className="text-gray-400">
-              {selectedBucket ? 
-                `${filteredFiles.length} arquivo(s) encontrado(s)` : 
-                'Selecione um bucket para visualizar os arquivos'
-              }
-            </CardDescription>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Objetos</CardTitle>
+            <HardDrive className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {!selectedBucket ? (
-              <div className="text-center py-12 text-gray-400">
-                <Folder className="h-16 w-16 mx-auto mb-4 text-gray-600" />
-                <p className="text-lg font-medium text-gray-300">Selecione um bucket</p>
-                <p className="text-sm">Escolha um bucket acima para visualizar seus arquivos</p>
-              </div>
-            ) : isLoadingFiles ? (
-              <div className="text-center py-12">
-                <RefreshCw className="h-12 w-12 animate-spin mx-auto mb-4 text-blue-400" />
-                <p className="text-gray-400">Carregando arquivos do bucket {selectedBucket}...</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
+            <div className="text-2xl font-bold">{stats?.totalObjects || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Arquivos armazenados
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Tamanho Total</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatFileSize(stats?.totalSize || 0)}</div>
+            <p className="text-xs text-muted-foreground">
+              Espaço utilizado
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Status</CardTitle>
+            <Cloud className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-sm font-medium">Conectado</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="flex gap-4">
+        <Button 
+          onClick={() => setCreateBucketOpen(true)}
+          className="bg-blue-900 hover:bg-blue-800 text-white"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Criar Bucket
+        </Button>
+        <Button 
+          onClick={() => handleUpload(selectedBucket)}
+          disabled={!selectedBucket}
+          className="bg-blue-900 hover:bg-blue-800 text-white"
+        >
+          <Upload className="mr-2 h-4 w-4" />
+          Upload Arquivo
+        </Button>
+        <Button 
+          onClick={listBuckets}
+          variant="outline"
+          className="bg-blue-900 hover:bg-blue-800 text-white border-blue-900"
+        >
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Listar Buckets
+        </Button>
+      </div>
+
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <p className="text-red-800">{error}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <Tabs defaultValue="buckets" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="buckets">Buckets</TabsTrigger>
+          <TabsTrigger value="files">Arquivos</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="buckets" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Buckets Disponíveis
+              </CardTitle>
+              <CardDescription>
+                Liste e gerencie seus buckets de armazenamento
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+                  <p>Carregando buckets...</p>
+                </div>
+              ) : buckets.length === 0 ? (
+                <div className="text-center py-8">
+                  <Database className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-lg font-medium">Nenhum bucket encontrado</p>
+                  <p className="text-sm text-muted-foreground mb-4">Crie seu primeiro bucket para começar.</p>
+                  <Button onClick={() => setCreateBucketOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Criar Primeiro Bucket
+                  </Button>
+                </div>
+              ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-gray-700 hover:bg-gray-800/50">
-                      <TableHead className="text-gray-300">Nome do Arquivo</TableHead>
-                      <TableHead className="text-gray-300">Tamanho</TableHead>
-                      <TableHead className="text-gray-300">Tipo</TableHead>
-                      <TableHead className="hidden lg:table-cell text-gray-300">Última Modificação</TableHead>
-                      <TableHead className="text-right text-gray-300">Ações</TableHead>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Região</TableHead>
+                      <TableHead>Data de Criação</TableHead>
+                      <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredFiles.map((file) => (
-                      <TableRow key={file.id} className="border-gray-700 hover:bg-gray-800/30">
-                        <TableCell className="font-medium max-w-xs text-gray-200">
-                          <div className="flex items-center gap-2">
-                            <File className="h-4 w-4 text-gray-400" />
-                            <span className="truncate">{file.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-gray-300">{file.size}</TableCell>
-                        <TableCell>{getTypeBadge(file.type)}</TableCell>
-                        <TableCell className="hidden lg:table-cell text-gray-300">{file.lastModified}</TableCell>
+                    {buckets.map((bucket) => (
+                      <TableRow key={bucket.Name}>
+                        <TableCell className="font-medium">{bucket.Name}</TableCell>
                         <TableCell>
-                          <div className="flex items-center justify-end gap-2">
+                          <Badge variant="secondary">us-east-1</Badge>
+                        </TableCell>
+                        <TableCell>{formatDate(bucket.CreationDate)}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
                             <Button 
-                              className="bg-blue-900 hover:bg-blue-800 text-white"
-                              size="sm"
-                              onClick={() => handleDownload(file.name)}
-                              disabled={downloadFile.isPending}
+                              size="sm" 
+                              onClick={() => {
+                                setSelectedBucket(bucket.Name);
+                                listObjects(bucket.Name);
+                              }}
                             >
-                              <Download className="h-4 w-4" />
+                              <FolderOpen className="h-4 w-4" />
                             </Button>
                             <Button 
-                              variant="outline" 
                               size="sm" 
-                              className="text-red-400 hover:text-red-300 hover:border-red-600 border-red-600"
-                              onClick={() => handleDelete(file.name)}
-                              disabled={deleteFile.isPending}
+                              onClick={() => handleUpload(bucket.Name)}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Upload className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -314,20 +285,142 @@ const Wasabi = () => {
                     ))}
                   </TableBody>
                 </Table>
-                {filteredFiles.length === 0 && (
-                  <div className="text-center py-12 text-gray-400">
-                    <File className="h-16 w-16 mx-auto mb-4 text-gray-600" />
-                    <p className="text-lg font-medium text-gray-300">Nenhum arquivo encontrado</p>
-                    <p className="text-sm">
-                      {searchTerm ? 'Tente ajustar sua busca' : `Faça upload de arquivos para o bucket ${selectedBucket}`}
-                    </p>
-                  </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="files" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <HardDrive className="h-5 w-5" />
+                    Arquivos
+                    {selectedBucket && (
+                      <Badge variant="outline" className="ml-2">
+                        {selectedBucket}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    {currentPath ? `Caminho: ${currentPath}` : 'Selecione um bucket para ver os arquivos'}
+                  </CardDescription>
+                </div>
+                {currentPath && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={navigateBack}
+                  >
+                    Voltar
+                  </Button>
                 )}
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </CardHeader>
+            <CardContent>
+              {!selectedBucket ? (
+                <div className="text-center py-8">
+                  <Folder className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-lg font-medium">Selecione um bucket</p>
+                  <p className="text-sm text-muted-foreground">Escolha um bucket na aba anterior para ver os arquivos.</p>
+                </div>
+              ) : isLoading ? (
+                <div className="text-center py-8">
+                  <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+                  <p>Carregando arquivos...</p>
+                </div>
+              ) : objects.length === 0 ? (
+                <div className="text-center py-8">
+                  <HardDrive className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-lg font-medium">Bucket vazio</p>
+                  <p className="text-sm text-muted-foreground mb-4">Faça upload do seu primeiro arquivo.</p>
+                  <Button onClick={() => handleUpload(selectedBucket, selectedFolder)}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Arquivo
+                  </Button>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Tamanho</TableHead>
+                      <TableHead>Última Modificação</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {objects.map((object) => (
+                      <TableRow key={object.Key}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {object.Key?.endsWith('/') ? (
+                              <Folder className="h-4 w-4 text-blue-500" />
+                            ) : (
+                              <HardDrive className="h-4 w-4" />
+                            )}
+                            {object.Key}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {object.Size ? formatFileSize(object.Size) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {object.LastModified ? formatDate(object.LastModified) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            {object.Key?.endsWith('/') ? (
+                              <Button
+                                size="sm"
+                                onClick={() => navigateToFolder(object.Key!)}
+                              >
+                                <FolderOpen className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={() => downloadObject(selectedBucket, object.Key!)}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => deleteObject(selectedBucket, object.Key!)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <WasabiCreateBucketDialog
+        open={createBucketOpen}
+        onOpenChange={setCreateBucketOpen}
+        onCreateBucket={createBucket}
+      />
+
+      <WasabiUploadDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        bucketName={selectedBucket}
+        folder={selectedFolder}
+        onUpload={uploadFile}
+      />
     </div>
   );
 };
