@@ -13,15 +13,17 @@ import {
 import { GLPIDashboard } from '@/components/GLPIDashboard';
 import { GLPITicketsGrid } from '@/components/GLPITicketsGrid';
 import { GLPIInventory } from '@/components/GLPIInventory';
-import { GLPIScheduledTicketsView } from '@/components/GLPIScheduledTicketsView';
+import GLPIScheduledTicketsView from '@/components/GLPIScheduledTicketsView';
 import { GLPIFiltersPanel } from '@/components/GLPIFiltersPanel';
 import { useGLPI } from '@/hooks/useGLPI';
 import { toast } from '@/hooks/use-toast';
 
 const GLPI = () => {
-  const { isConfigured, integration } = useGLPI();
+  const { glpiIntegration } = useGLPI();
   const [filters, setFilters] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+
+  const isConfigured = !!glpiIntegration;
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -115,7 +117,7 @@ const GLPI = () => {
                 isLoading={refreshing}
                 totalTickets={0}
               />
-              <GLPITicketsGrid filters={filters} />
+              <GLPITicketsGrid />
             </div>
           </TabsContent>
 
