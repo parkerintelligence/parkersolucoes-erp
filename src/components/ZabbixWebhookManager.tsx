@@ -591,7 +591,7 @@ export const ZabbixWebhookManager = () => {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => testWebhook(webhook)}
+                          onClick={() => testWebhook()}
                           disabled={testingWebhook === webhook.id}
                           className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20"
                           title="Testar webhook com integrações reais"
@@ -601,7 +601,7 @@ export const ZabbixWebhookManager = () => {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => executeWebhook(webhook)}
+                          onClick={() => executeWebhook()}
                           disabled={!webhook.is_active || executingWebhook === webhook.id}
                           className="text-green-400 hover:text-green-300 hover:bg-green-900/20"
                           title="Executar webhook em produção"
