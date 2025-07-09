@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
 
@@ -390,34 +389,81 @@ async function getBackupData(userId: string, settings: any) {
 }
 
 async function getScheduleData(userId: string, settings: any) {
-  // Buscar itens da agenda críticos (vencimento em 30 dias ou menos)
-  const thirtyDaysFromNow = new Date();
-  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+  console.log('📅 [SCHEDULE] Buscando dados reais da agenda para usuário:', userId);
+  
+  // Buscar configuração de dias críticos (padrão 7 dias)
+  const { data: criticalDaysSetting } = await supabase
+    .from('system_settings')
+    .select('setting_value')
+    .eq('user_id', userId)
+    .eq('setting_key', 'schedule_critical_days')
+    .single();
 
-  const { data: criticalItems } = await supabase
+  const criticalDays = criticalDaysSetting ? parseInt(criticalDaysSetting.setting_value) : 7;
+  console.log(`⏰ [SCHEDULE] Limite de dias críticos configurado: ${criticalDays} dias`);
+
+  // Calcular data limite (hoje + criticalDays)
+  const today = new Date();
+  const criticalDate = new Date();
+  criticalDate.setDate(today.getDate() + criticalDays);
+  
+  const todayStr = today.toISOString().split('T')[0];
+  const criticalDateStr = criticalDate.toISOString().split('T')[0];
+
+  console.log(`📅 [SCHEDULE] Buscando itens entre ${todayStr} e ${criticalDateStr}`);
+
+  // Buscar itens da agenda críticos (vencimento em até X dias)
+  const { data: criticalItems, error } = await supabase
     .from('schedule_items')
-    .select('title, company, due_date, type')
+    .select('title, company, due_date, type, status')
     .eq('user_id', userId)
     .eq('status', 'pending')
-    .gte('due_date', new Date().toISOString().split('T')[0])
-    .lte('due_date', thirtyDaysFromNow.toISOString().split('T')[0])
+    .gte('due_date', todayStr)
+    .lte('due_date', criticalDateStr)
     .order('due_date', { ascending: true });
 
-  let itemsList = '';
-  let criticalCount = 0;
+  if (error) {
+    console.error('❌ [SCHEDULE] Erro ao buscar itens da agenda:', error);
+    return {
+      items: '⚠️ Erro ao buscar dados da agenda',
+      total: 0,
+      critical: 0
+    };
+  }
 
+  console.log(`📋 [SCHEDULE] Total de itens encontrados: ${criticalItems?.length || 0}`);
+
+  let itemsList = '';
+  let criticalCount = 0; // Itens que vencem em até 3 dias
+  
   if (!criticalItems || criticalItems.length === 0) {
-    itemsList = '✅ Nenhum vencimento crítico nos próximos 30 dias!';
+    itemsList = '✅ Nenhum vencimento crítico nos próximos dias!';
   } else {
     criticalItems.forEach((item) => {
-      const daysUntil = Math.ceil((new Date(item.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-      const urgencyIcon = daysUntil <= 7 ? '🔴' : daysUntil <= 15 ? '🟡' : '🟢';
+      const dueDate = new Date(item.due_date + 'T00:00:00');
+      const daysUntil = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       
-      if (daysUntil <= 7) criticalCount++;
+      // Definir ícone baseado na urgência
+      let urgencyIcon = '🟢';
+      if (daysUntil <= 1) {
+        urgencyIcon = '🔴';
+        criticalCount++;
+      } else if (daysUntil <= 3) {
+        urgencyIcon = '🟡';
+        criticalCount++;
+      }
       
-      itemsList += `${urgencyIcon} ${item.title} - ${item.company} (${daysUntil} dias)\n`;
+      const daysText = daysUntil === 0 ? 'hoje' : 
+                      daysUntil === 1 ? 'amanhã' : 
+                      `${daysUntil} dias`;
+      
+      itemsList += `${urgencyIcon} ${item.title} - ${item.company} (${daysText})\n`;
+      
+      console.log(`📌 [SCHEDULE] Item: ${item.title} - ${item.company} (vence em ${daysUntil} dias)`);
     });
   }
+
+  console.log(`🚨 [SCHEDULE] Total de itens críticos (≤3 dias): ${criticalCount}`);
 
   return {
     items: itemsList.trim(),
