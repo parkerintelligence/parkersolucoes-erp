@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
 
@@ -26,6 +27,8 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { report_id }: ScheduledReportRequest = await req.json();
     console.log(`🚀 Iniciando envio do relatório: ${report_id}`);
+    console.log(`🕐 Horário UTC: ${new Date().toISOString()}`);
+    console.log(`🕐 Horário Brasília: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`);
     
     // Buscar configuração do relatório
     const { data: report, error: reportError } = await supabase
@@ -37,7 +40,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (reportError || !report) {
       console.error('❌ Relatório não encontrado:', reportError);
-      throw new Error('Relatório não encontrado ou inativo');
+      throw new Error(`Relatório não encontrado ou inativo: ${reportError?.message || 'Report not found'}`);
     }
 
     console.log(`📋 Relatório encontrado: ${report.name} (${report.report_type})`);
@@ -62,7 +65,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (integrationError || !integration) {
       console.error('❌ Evolution API não configurada:', integrationError);
-      throw new Error('Evolution API não configurada para este usuário');
+      throw new Error(`Evolution API não configurada para este usuário: ${integrationError?.message || 'Integration not found'}`);
     }
 
     console.log(`🔌 Integration encontrada: ${integration.name}`);
@@ -79,7 +82,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (templateError || !template) {
       console.error('❌ Template não encontrado:', templateError);
-      throw new Error(`Template não encontrado ou inativo: ${report.report_type}`);
+      throw new Error(`Template não encontrado ou inativo: ${report.report_type} - ${templateError?.message || 'Template not found'}`);
     }
 
     console.log(`📝 Template encontrado: ${template.name} (tipo: ${template.template_type})`);
@@ -94,6 +97,8 @@ const handler = async (req: Request): Promise<Response> => {
     // Enviar mensagem via WhatsApp
     const instanceName = integration.instance_name || 'main_instance';
     const cleanPhoneNumber = report.phone_number.replace(/\D/g, '');
+    
+    console.log(`📱 Enviando para: ${cleanPhoneNumber} via instância: ${instanceName}`);
     
     // Testar múltiplos endpoints da Evolution API
     const endpoints = [
@@ -136,7 +141,7 @@ const handler = async (req: Request): Promise<Response> => {
           lastError = `${whatsappApiResponse.status}: ${errorText}`;
           console.log(`❌ Falha em ${endpoint}: ${lastError}`);
         }
-      } catch (error) {
+      } catch (error: any) {
         lastError = error.message;
         console.log(`❌ Erro de rede em ${endpoint}: ${lastError}`);
       }
@@ -167,18 +172,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (nextExecError) {
       console.error('❌ Erro ao calcular próxima execução:', nextExecError);
-      throw nextExecError;
+      // Não falhar por causa disso, continuar
     }
-
-    // Atualizar registro de execução
-    await supabase
-      .from('scheduled_reports')
-      .update({
-        last_execution: new Date().toISOString(),
-        execution_count: (report.execution_count || 0) + 1,
-        next_execution: nextExecution
-      })
-      .eq('id', report_id);
 
     // Log de sucesso
     await supabase.from('scheduled_reports_logs').insert({
@@ -190,6 +185,7 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     console.log(`✅ Relatório enviado com sucesso para ${cleanPhoneNumber}`);
+    console.log(`⏰ Próxima execução calculada: ${nextExecution}`);
 
     return new Response(JSON.stringify({ 
       success: true, 
@@ -207,20 +203,26 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     const executionTime = Date.now() - startTime;
     
+    console.error("❌ Erro na função send-scheduled-report:", error);
+    
     // Log de erro se temos informações do relatório
     if (reportLog) {
-      await supabase.from('scheduled_reports_logs').insert({
-        ...reportLog,
-        status: 'error',
-        message_sent: false,
-        error_details: error.message,
-        execution_time_ms: executionTime
-      });
+      try {
+        await supabase.from('scheduled_reports_logs').insert({
+          ...reportLog,
+          status: 'error',
+          message_sent: false,
+          error_details: error.message,
+          execution_time_ms: executionTime
+        });
+      } catch (logError) {
+        console.error("❌ Erro ao salvar log:", logError);
+      }
     }
 
-    console.error("❌ Erro na função send-scheduled-report:", error);
     return new Response(
       JSON.stringify({ 
+        success: false,
         error: error.message,
         timestamp: new Date().toISOString(),
         execution_time_ms: executionTime

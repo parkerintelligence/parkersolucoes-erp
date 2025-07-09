@@ -19,6 +19,8 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     console.log('🔍 Verificando relatórios agendados...');
+    console.log('🕐 Horário atual (UTC):', new Date().toISOString());
+    console.log('🕐 Horário atual (Brasília):', new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
     
     // Buscar todos os relatórios agendados que devem ser executados agora
     const now = new Date();
@@ -30,10 +32,21 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (error) {
       console.error('❌ Erro ao buscar relatórios:', error);
-      throw error;
+      throw new Error(`Erro ao buscar relatórios: ${error.message}`);
     }
 
     console.log(`📋 Encontrados ${dueReports?.length || 0} relatórios para executar`);
+    
+    // Log detalhado dos relatórios encontrados
+    if (dueReports && dueReports.length > 0) {
+      dueReports.forEach(report => {
+        console.log(`📄 Relatório: ${report.name}`);
+        console.log(`  - ID: ${report.id}`);
+        console.log(`  - Próxima execução: ${report.next_execution}`);
+        console.log(`  - Expressão cron: ${report.cron_expression}`);
+        console.log(`  - Telefone: ${report.phone_number}`);
+      });
+    }
 
     const results = [];
     
@@ -42,18 +55,23 @@ const handler = async (req: Request): Promise<Response> => {
       
       try {
         // Executar cada relatório
-        const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-scheduled-report`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ report_id: report.id })
+        const { data: result, error: functionError } = await supabase.functions.invoke('send-scheduled-report', {
+          body: { report_id: report.id }
         });
 
-        const result = await response.json();
+        if (functionError) {
+          console.error(`❌ Erro na função send-scheduled-report:`, functionError);
+          results.push({
+            report_id: report.id,
+            report_name: report.name,
+            success: false,
+            error: functionError.message || 'Erro na função de envio',
+            phone_number: report.phone_number
+          });
+          continue;
+        }
         
-        if (response.ok) {
+        if (result?.success) {
           console.log(`✅ Relatório ${report.name} executado com sucesso`);
           
           // Usar a função PostgreSQL para calcular a próxima execução
@@ -65,18 +83,22 @@ const handler = async (req: Request): Promise<Response> => {
 
           if (nextExecError) {
             console.error('❌ Erro ao calcular próxima execução:', nextExecError);
-            throw nextExecError;
+            // Continuar mesmo com erro de cálculo
           }
 
           // Atualizar o registro com a próxima execução calculada pelo PostgreSQL
-          await supabase
+          const { error: updateError } = await supabase
             .from('scheduled_reports')
             .update({
               last_execution: now.toISOString(),
-              next_execution: nextExecData,
+              next_execution: nextExecData || null,
               execution_count: (report.execution_count || 0) + 1
             })
             .eq('id', report.id);
+
+          if (updateError) {
+            console.error('❌ Erro ao atualizar relatório:', updateError);
+          }
 
           results.push({
             report_id: report.id,
@@ -92,18 +114,18 @@ const handler = async (req: Request): Promise<Response> => {
             report_id: report.id,
             report_name: report.name,
             success: false,
-            error: result.error || 'Erro desconhecido',
+            error: result?.error || 'Erro desconhecido na execução',
             phone_number: report.phone_number
           });
         }
 
-      } catch (reportError) {
+      } catch (reportError: any) {
         console.error(`❌ Erro ao processar relatório ${report.name}:`, reportError);
         results.push({
           report_id: report.id,
           report_name: report.name,
           success: false,
-          error: reportError.message,
+          error: reportError.message || 'Erro desconhecido',
           phone_number: report.phone_number
         });
       }
@@ -119,7 +141,9 @@ const handler = async (req: Request): Promise<Response> => {
       successful: successCount,
       failed: failureCount,
       results: results,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      current_time_utc: now.toISOString(),
+      current_time_brasilia: now.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
     }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -130,7 +154,9 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        current_time_utc: new Date().toISOString(),
+        current_time_brasilia: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
       }),
       {
         status: 500,
