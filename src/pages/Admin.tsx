@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ const Admin = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingIntegration, setEditingIntegration] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    type: 'grafana' as const,
+    type: 'grafana' as string,
     name: '',
     base_url: '',
     api_token: '',
