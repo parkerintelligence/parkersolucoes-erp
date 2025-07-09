@@ -30,14 +30,14 @@ export const ZabbixWebhookTester = () => {
     status: '1'
   });
 
-  const webhookUrl = `${window.location.origin}/functions/v1/zabbix-webhook`;
+  const webhookUrl = `https://mpvxppgoyadedukkfoccs.supabase.co/functions/v1/zabbix-webhook`;
 
   const handleTestWebhook = async () => {
     setIsTestingWebhook(true);
     setTestResult(null);
 
     try {
-      const response = await fetch('/functions/v1/zabbix-webhook', {
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

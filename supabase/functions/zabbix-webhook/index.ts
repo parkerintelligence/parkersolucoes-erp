@@ -17,9 +17,45 @@ serve(async (req) => {
     console.log('Method:', req.method)
     console.log('Headers:', Object.fromEntries(req.headers.entries()))
 
-    // Parse webhook data from Zabbix
-    const webhookData = await req.json()
-    console.log('Webhook data received:', JSON.stringify(webhookData, null, 2))
+    // Verificar se há body na requisição
+    const contentType = req.headers.get('content-type') || ''
+    console.log('Content-Type:', contentType)
+
+    let webhookData = {}
+    
+    // Validar e fazer parse do JSON apenas se houver conteúdo
+    try {
+      const bodyText = await req.text()
+      console.log('Raw body text:', bodyText)
+      
+      if (bodyText && bodyText.trim() !== '') {
+        webhookData = JSON.parse(bodyText)
+        console.log('Webhook data parsed successfully:', JSON.stringify(webhookData, null, 2))
+      } else {
+        console.log('Empty body received, using default test data')
+        // Dados de teste padrão para requisições vazias
+        webhookData = {
+          problem_name: 'Teste de webhook vazio',
+          host_name: 'servidor-teste',
+          severity: '3',
+          eventid: Date.now().toString(),
+          status: '1'
+        }
+      }
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid JSON format in request body',
+          details: parseError.message,
+          receivedData: await req.text()
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!

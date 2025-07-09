@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { usePasswords } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
+import { useLinksExport } from '@/hooks/useLinksExport';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,13 +29,15 @@ import {
   List,
   Copy,
   Eye,
-  EyeOff
+  EyeOff,
+  Download
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const Links = () => {
   const { data: passwords = [], isLoading } = usePasswords();
   const { data: companies = [] } = useCompanies();
+  const { exportToPDF } = useLinksExport();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
   const [selectedService, setSelectedService] = useState('');
@@ -136,23 +139,32 @@ const Links = () => {
           <h1 className="text-xl font-bold text-white">Links de Acesso</h1>
           <p className="text-slate-400 text-sm">Gerencie seus links de sistemas</p>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <Button
-            variant={viewMode === 'grid' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('grid')}
-            className="h-8 w-8 p-0"
+            onClick={exportToPDF}
+            className="bg-green-600 hover:bg-green-700 text-white h-8 px-3"
           >
-            <Grid className="h-3 w-3" />
+            <Download className="h-4 w-4 mr-1" />
+            Exportar
           </Button>
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('list')}
-            className="h-8 w-8 p-0"
-          >
-            <List className="h-3 w-3" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="h-8 w-8 p-0"
+            >
+              <Grid className="h-3 w-3" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="h-8 w-8 p-0"
+            >
+              <List className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
       </div>
 
