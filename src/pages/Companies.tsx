@@ -7,20 +7,17 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { PageWrapper } from '@/components/PageWrapper';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { useCompanies } from '@/hooks/useCompanies';
+import { useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany } from '@/hooks/useCompanies';
 
 const Companies = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const { getResponsiveClasses, getGridCols } = useResponsiveLayout();
+  const { getResponsiveClasses } = useResponsiveLayout();
   const classes = getResponsiveClasses();
   
-  const { 
-    companies, 
-    isLoading, 
-    createCompany, 
-    updateCompany, 
-    deleteCompany 
-  } = useCompanies();
+  const { data: companies = [], isLoading } = useCompanies();
+  const createCompany = useCreateCompany();
+  const updateCompany = useUpdateCompany();
+  const deleteCompany = useDeleteCompany();
 
   const filteredCompanies = companies?.filter(company =>
     company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
