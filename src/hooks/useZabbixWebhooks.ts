@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -7,8 +8,17 @@ import { EvolutionApiService } from '@/utils/evolutionApiService';
 export interface ZabbixWebhook {
   id: string;
   name: string;
-  url: string;
+  trigger_type: string;
+  actions: {
+    create_glpi_ticket: boolean;
+    send_whatsapp: boolean;
+    whatsapp_number: string;
+    glpi_entity_id: number;
+    custom_message: string;
+  };
   is_active: boolean;
+  trigger_count: number;
+  last_triggered?: string;
   created_at: string;
   updated_at: string;
   user_id: string;
@@ -29,7 +39,9 @@ export interface ZabbixAlert {
 }
 
 export const useZabbixWebhooks = () => {
-  return useQuery({
+  const { data: integrations } = useIntegrations();
+  
+  const webhooksQuery = useQuery({
     queryKey: ['zabbix-webhooks'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -45,13 +57,9 @@ export const useZabbixWebhooks = () => {
       return data as ZabbixWebhook[];
     },
   });
-};
 
-export const useCreateZabbixWebhook = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (webhook: Omit<ZabbixWebhook, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+  const createWebhook = useMutation({
+    mutationFn: async (webhook: Omit<ZabbixWebhook, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'trigger_count' | 'last_triggered'>) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
@@ -59,7 +67,8 @@ export const useCreateZabbixWebhook = () => {
         .from('zabbix_webhooks')
         .insert([{
           ...webhook,
-          user_id: user.id
+          user_id: user.id,
+          trigger_count: 0
         }])
         .select()
         .single();
@@ -87,17 +96,13 @@ export const useCreateZabbixWebhook = () => {
       });
     },
   });
-};
 
-export const useUpdateZabbixWebhook = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<ZabbixWebhook> }) => {
+  const updateWebhook = useMutation({
+    mutationFn: async (webhook: ZabbixWebhook) => {
       const { data, error } = await supabase
         .from('zabbix_webhooks')
-        .update(updates)
-        .eq('id', id)
+        .update(webhook)
+        .eq('id', webhook.id)
         .select()
         .single();
 
@@ -124,12 +129,8 @@ export const useUpdateZabbixWebhook = () => {
       });
     },
   });
-};
 
-export const useDeleteZabbixWebhook = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  const deleteWebhook = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('zabbix_webhooks')
@@ -157,59 +158,26 @@ export const useDeleteZabbixWebhook = () => {
       });
     },
   });
-};
 
-export const useZabbixAlerts = () => {
-  return useQuery({
-    queryKey: ['zabbix-alerts'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('zabbix_alerts')
-        .select('*')
-        .order('timestamp', { ascending: false })
-        .limit(100);
-
-      if (error) {
-        console.error('Error fetching alerts:', error);
-        throw error;
-      }
-
-      return data as ZabbixAlert[];
-    },
-  });
-};
-
-export const useCreateZabbixAlert = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async (alert: Omit<ZabbixAlert, 'id' | 'created_at' | 'user_id'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+  const evolutionIntegration = integrations?.find(int => int.type === 'evolution_api' && int.is_active);
+  const glpiIntegration = integrations?.find(int => int.type === 'glpi' && int.is_active);
 
-      const { data, error } = await supabase
-        .from('zabbix_alerts')
-        .insert([{
-          ...alert,
-          user_id: user.id
-        }])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating alert:', error);
-        throw error;
-      }
-
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['zabbix-alerts'] });
-    },
-    onError: (error) => {
-      console.error('Error creating alert:', error);
-    },
-  });
+  return {
+    webhooks: webhooksQuery.data || [],
+    isLoading: webhooksQuery.isLoading,
+    createWebhook,
+    updateWebhook,
+    deleteWebhook,
+    testWebhook: () => {}, // Placeholder
+    executeWebhook: () => {}, // Placeholder
+    toggleWebhook: updateWebhook,
+    testingWebhook: null,
+    executingWebhook: null,
+    evolutionIntegration,
+    glpiIntegration
+  };
 };
 
 export const useSendWhatsAppMessage = () => {
@@ -230,10 +198,17 @@ export const useSendWhatsAppMessage = () => {
 
       // Criar objeto compatível com o tipo esperado pelo serviço
       const serviceIntegration = {
-        ...evolutionApiIntegration,
+        id: evolutionApiIntegration.id,
+        created_at: evolutionApiIntegration.created_at,
+        name: evolutionApiIntegration.name,
+        type: evolutionApiIntegration.type,
+        base_url: evolutionApiIntegration.base_url,
         api_token: evolutionApiIntegration.api_token,
+        username: evolutionApiIntegration.username,
+        password: evolutionApiIntegration.password,
+        is_active: evolutionApiIntegration.is_active,
         instance_name: evolutionApiIntegration.instance_name
-      } as const;
+      };
 
       const evolutionService = new EvolutionApiService(serviceIntegration);
       const result = await evolutionService.sendMessage(phoneNumber, message);

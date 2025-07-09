@@ -112,10 +112,13 @@ export const ZabbixWebhookManager = () => {
   };
 
   const handleToggleWebhook = async (id: string, isActive: boolean) => {
-    try {
-      await toggleWebhook.mutateAsync({ id, isActive });
-    } catch (error) {
-      console.error('Toggle webhook error:', error);
+    const webhook = webhooks.find(w => w.id === id);
+    if (webhook) {
+      try {
+        await toggleWebhook.mutateAsync({ ...webhook, is_active: isActive });
+      } catch (error) {
+        console.error('Toggle webhook error:', error);
+      }
     }
   };
 

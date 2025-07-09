@@ -128,10 +128,17 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
     try {
       // Criar objeto compatível com o tipo esperado pelo serviço
       const serviceIntegration = {
-        ...evolutionApiIntegration,
+        id: evolutionApiIntegration.id,
+        created_at: evolutionApiIntegration.created_at,
+        name: evolutionApiIntegration.name,
+        type: evolutionApiIntegration.type,
+        base_url: evolutionApiIntegration.base_url,
         api_token: evolutionApiIntegration.api_token,
+        username: evolutionApiIntegration.username,
+        password: evolutionApiIntegration.password,
+        is_active: evolutionApiIntegration.is_active,
         instance_name: evolutionApiIntegration.instance_name
-      } as const;
+      };
 
       const evolutionService = new EvolutionApiService(serviceIntegration);
       const formattedPhone = formatPhoneForDisplay(phoneNumber);

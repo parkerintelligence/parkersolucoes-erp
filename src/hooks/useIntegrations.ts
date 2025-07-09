@@ -20,6 +20,7 @@ export interface Integration {
   keep_logged?: boolean;
   phone_number?: string;
   webhook_url?: string;
+  instance_name?: string; // Adicionado para Evolution API
   is_active: boolean;
   created_at: string;
   updated_at: string;
