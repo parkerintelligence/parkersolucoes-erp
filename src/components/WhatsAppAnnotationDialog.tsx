@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -119,21 +118,8 @@ export const WhatsAppAnnotationDialog = ({ open, onOpenChange, annotation }: Wha
     setIsLoading(true);
     
     try {
-      // Criar objeto compatível com o tipo esperado pelo serviço
-      const serviceIntegration = {
-        id: evolutionApiIntegration.id,
-        created_at: evolutionApiIntegration.created_at,
-        name: evolutionApiIntegration.name,
-        type: evolutionApiIntegration.type,
-        base_url: evolutionApiIntegration.base_url,
-        api_token: evolutionApiIntegration.api_token,
-        username: evolutionApiIntegration.username,
-        password: evolutionApiIntegration.password,
-        is_active: evolutionApiIntegration.is_active,
-        instance_name: evolutionApiIntegration.instance_name
-      };
-
-      const evolutionService = new EvolutionApiService(serviceIntegration);
+      // Usar a integração completa diretamente
+      const evolutionService = new EvolutionApiService(evolutionApiIntegration);
       const formattedPhone = formatPhoneForDisplay(phoneNumber);
       
       console.log('🚀 Iniciando envio da anotação para:', formattedPhone);

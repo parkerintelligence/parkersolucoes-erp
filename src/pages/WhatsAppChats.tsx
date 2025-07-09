@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useIntegrations } from '@/hooks/useIntegrations';
+import { useIntegrations, Integration } from '@/hooks/useIntegrations';
 import { useWhatsAppConversations, useCreateWhatsAppConversation, useUpdateWhatsAppConversation } from '@/hooks/useWhatsAppConversations';
-import { EvolutionApiService, Integration as EvolutionIntegration } from '@/utils/evolutionApiService';
+import { EvolutionApiService } from '@/utils/evolutionApiService';
 import { 
   MessageSquare, 
   QrCode, 
@@ -68,24 +68,14 @@ const WhatsAppChats = () => {
   const evolutionIntegration = integrations?.find(int => int.type === 'evolution_api');
 
   // Converter integração para o tipo esperado pelo EvolutionApiService
-  const convertIntegration = (integration: any): EvolutionIntegration | null => {
+  const convertIntegration = (integration: Integration): Integration | null => {
     if (!integration || !integration.api_token) {
       console.error('❌ Integração inválida ou api_token faltando:', integration);
       return null;
     }
 
-    return {
-      id: integration.id,
-      created_at: integration.created_at,
-      name: integration.name,
-      type: integration.type,
-      base_url: integration.base_url,
-      api_token: integration.api_token,
-      username: integration.username,
-      password: integration.password,
-      is_active: integration.is_active,
-      instance_name: integration.instance_name
-    };
+    // Retornar a integração completa, pois agora EvolutionApiService aceita o tipo completo
+    return integration;
   };
 
   const checkConnection = async () => {
