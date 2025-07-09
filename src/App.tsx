@@ -12,6 +12,7 @@ import Passwords from '@/pages/Passwords';
 import Annotations from '@/pages/Annotations';
 import Links from '@/pages/Links';
 import WhatsApp from '@/pages/WhatsApp';
+import WhatsAppChats from '@/pages/WhatsAppChats';
 import WhatsAppTemplates from '@/pages/WhatsAppTemplates';
 import Wasabi from '@/pages/Wasabi';
 import Schedule from '@/pages/Schedule';
@@ -94,10 +95,18 @@ function App() {
                 }
               />
               <Route
-                path="/whatsapp-chats"
+                path="/whatsapp"
                 element={
                   <Layout>
                     <WhatsApp />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/whatsapp-chats"
+                element={
+                  <Layout>
+                    <WhatsAppChats />
                   </Layout>
                 }
               />
