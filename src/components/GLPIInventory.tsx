@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,7 @@ import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { useState, useMemo } from 'react';
 
 export const GLPIInventory = () => {
-  const { computers, monitors, phones, printers, networks, entities } = useGLPIExpanded();
+  const { computers, monitors, printers, networkEquipment, entities } = useGLPIExpanded();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [entityFilter, setEntityFilter] = useState('all');
@@ -42,18 +41,15 @@ export const GLPIInventory = () => {
     if (monitors.data) {
       monitors.data.forEach(item => items.push({ ...item, type: 'monitor', icon: Monitor }));
     }
-    if (phones.data) {
-      phones.data.forEach(item => items.push({ ...item, type: 'phone', icon: Smartphone }));
-    }
     if (printers.data) {
       printers.data.forEach(item => items.push({ ...item, type: 'printer', icon: Printer }));
     }
-    if (networks.data) {
-      networks.data.forEach(item => items.push({ ...item, type: 'network', icon: Server }));
+    if (networkEquipment.data) {
+      networkEquipment.data.forEach(item => items.push({ ...item, type: 'network', icon: Server }));
     }
 
     return items;
-  }, [computers.data, monitors.data, phones.data, printers.data, networks.data]);
+  }, [computers.data, monitors.data, printers.data, networkEquipment.data]);
 
   const filteredItems = useMemo(() => {
     return allInventoryItems.filter((item) => {
@@ -162,9 +158,8 @@ export const GLPIInventory = () => {
             <Button variant="outline" onClick={() => {
               computers.refetch();
               monitors.refetch();
-              phones.refetch();
               printers.refetch();
-              networks.refetch();
+              networkEquipment.refetch();
             }} className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600">
               <RefreshCw className="h-4 w-4 mr-2" />
               Atualizar
