@@ -106,10 +106,27 @@ export const WhatsAppAnnotationDialog = ({ open, onOpenChange, annotation }: Wha
       return;
     }
 
+    // Validar se api_token e instance_name existem
+    if (!evolutionApiIntegration.api_token || !evolutionApiIntegration.instance_name) {
+      toast({
+        title: "❌ Configuração incompleta",
+        description: "API Token e Nome da Instância são obrigatórios na configuração da Evolution API.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
-      const evolutionService = new EvolutionApiService(evolutionApiIntegration);
+      // Criar objeto compatível com o tipo esperado pelo serviço
+      const serviceIntegration = {
+        ...evolutionApiIntegration,
+        api_token: evolutionApiIntegration.api_token,
+        instance_name: evolutionApiIntegration.instance_name
+      } as const;
+
+      const evolutionService = new EvolutionApiService(serviceIntegration);
       const formattedPhone = formatPhoneForDisplay(phoneNumber);
       
       console.log('🚀 Iniciando envio da anotação para:', formattedPhone);
@@ -125,7 +142,6 @@ export const WhatsAppAnnotationDialog = ({ open, onOpenChange, annotation }: Wha
         onOpenChange(false);
         setPhoneNumber('');
       } else {
-        // Mostrar diálogo de erro detalhado
         setErrorDialog({
           open: true,
           error: result.error

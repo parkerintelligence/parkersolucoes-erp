@@ -1,15 +1,14 @@
-
 export interface Integration {
   id: string;
   created_at: string;
   name: string;
   type: string;
   base_url: string;
-  api_token: string;
+  api_token: string; // Obrigatório
   username?: string;
   password?: string;
   is_active: boolean;
-  instance_name?: string;
+  instance_name?: string; // Obrigatório para Evolution API
 }
 
 export interface EvolutionApiError {
@@ -94,7 +93,7 @@ export class EvolutionApiService {
     }
   }
 
-  async checkInstanceStatus(): Promise<{ active: boolean; qrCode?: string }> {
+  async checkInstanceStatus(): Promise<{ active: boolean; qrCode?: string; error?: string }> {
     try {
       console.log('🔍 Evolution API: Verificando status da instância...');
       const response = await fetch(`${this.baseUrl}/instance/connectionState/${this.instanceName}`, {
@@ -107,7 +106,7 @@ export class EvolutionApiService {
 
       if (!response.ok) {
         console.error('❌ Erro ao verificar status:', response.status, response.statusText);
-        return { active: false };
+        return { active: false, error: `Erro HTTP: ${response.status} ${response.statusText}` };
       }
 
       const data = await response.json();
@@ -115,7 +114,7 @@ export class EvolutionApiService {
       return { active: data.state === 'open' || data.status === 'CONNECTED' };
     } catch (error) {
       console.error('❌ Erro ao verificar status:', error);
-      return { active: false };
+      return { active: false, error: error instanceof Error ? error.message : 'Erro desconhecido' };
     }
   }
 
