@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,14 +25,15 @@ export const GuacamoleAdminConfig = () => {
     base_url: guacamoleIntegration?.base_url || '',
     username: guacamoleIntegration?.username || '',
     password: guacamoleIntegration?.password || '',
+    directory: guacamoleIntegration?.directory || 'mysql',
     is_active: guacamoleIntegration?.is_active ?? true,
   });
 
   const handleSave = async () => {
-    if (!config.base_url || !config.username || !config.password) {
+    if (!config.base_url || !config.username || !config.password || !config.directory) {
       toast({
         title: "Configuração incompleta",
-        description: "Preencha todos os campos obrigatórios: URL Base, Usuário e Senha.",
+        description: "Preencha todos os campos obrigatórios: URL Base, Usuário, Senha e Data Source.",
         variant: "destructive"
       });
       return;
@@ -44,6 +46,7 @@ export const GuacamoleAdminConfig = () => {
         base_url: config.base_url,
         username: config.username,
         password: config.password,
+        directory: config.directory,
         is_active: config.is_active,
         api_token: null,
         webhook_url: null,
@@ -51,7 +54,6 @@ export const GuacamoleAdminConfig = () => {
         region: null,
         bucket_name: null,
         port: null,
-        directory: null,
         passive_mode: null,
         use_ssl: null,
         keep_logged: null,
@@ -65,6 +67,7 @@ export const GuacamoleAdminConfig = () => {
             base_url: config.base_url,
             username: config.username,
             password: config.password,
+            directory: config.directory,
             is_active: config.is_active,
           }
         });
@@ -87,7 +90,7 @@ export const GuacamoleAdminConfig = () => {
   };
 
   const handleTest = async () => {
-    if (!config.base_url || !config.username || !config.password) {
+    if (!config.base_url || !config.username || !config.password || !config.directory) {
       toast({
         title: "Configuração incompleta",
         description: "Preencha todos os campos obrigatórios antes de testar.",
@@ -110,6 +113,7 @@ export const GuacamoleAdminConfig = () => {
           base_url: config.base_url,
           username: config.username,
           password: config.password,
+          directory: config.directory,
           is_active: true,
           api_token: null,
           webhook_url: null,
@@ -117,7 +121,6 @@ export const GuacamoleAdminConfig = () => {
           region: null,
           bucket_name: null,
           port: null,
-          directory: null,
           passive_mode: null,
           use_ssl: null,
           keep_logged: null,
@@ -134,6 +137,7 @@ export const GuacamoleAdminConfig = () => {
             base_url: config.base_url,
             username: config.username,
             password: config.password,
+            directory: config.directory,
             is_active: true,
           }
         });
@@ -147,6 +151,7 @@ export const GuacamoleAdminConfig = () => {
       console.log('Integration ID:', testIntegrationId);
       console.log('Base URL:', config.base_url);
       console.log('Username:', config.username);
+      console.log('Data Source:', config.directory);
 
       const { data, error } = await supabase.functions.invoke('guacamole-proxy', {
         body: {
@@ -199,7 +204,7 @@ export const GuacamoleAdminConfig = () => {
     }
   };
 
-  const isFormValid = config.base_url && config.username && config.password;
+  const isFormValid = config.base_url && config.username && config.password && config.directory;
 
   return (
     <Card>
@@ -245,6 +250,19 @@ export const GuacamoleAdminConfig = () => {
           />
           <p className="text-xs text-muted-foreground">
             Exemplo: https://seu-servidor.com/guacamole (inclua /guacamole se necessário)
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="guacamole-datasource">Data Source *</Label>
+          <Input
+            id="guacamole-datasource"
+            value={config.directory}
+            onChange={(e) => setConfig({ ...config, directory: e.target.value })}
+            placeholder="mysql"
+          />
+          <p className="text-xs text-muted-foreground">
+            Fonte de dados do Guacamole (ex: mysql, postgresql, ldap). Padrão: mysql
           </p>
         </div>
 
@@ -323,6 +341,7 @@ export const GuacamoleAdminConfig = () => {
             <li>• Use um usuário com privilégios administrativos</li>
             <li>• Certifique-se de que o Guacamole está acessível</li>
             <li>• A URL deve incluir o contexto (/guacamole)</li>
+            <li>• Configure o Data Source correto (mysql, postgresql, etc.)</li>
             <li>• Teste a conexão antes de ativar</li>
           </ul>
         </div>

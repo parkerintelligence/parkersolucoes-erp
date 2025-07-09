@@ -73,10 +73,14 @@ serve(async (req) => {
       )
     }
 
+    // Obter dataSource da integração (campo directory)
+    const dataSource = integration.directory || 'mysql'
+
     console.log('Integration found:', {
       name: integration.name,
       base_url: integration.base_url,
       username: integration.username,
+      dataSource: dataSource,
       has_password: !!integration.password
     })
 
@@ -224,28 +228,28 @@ serve(async (req) => {
       )
     }
 
-    // Construir URL da API baseada no endpoint solicitado
+    // Construir URL da API baseada no endpoint solicitado usando dataSource dinamicamente
     let apiPath = ''
     
     switch (endpoint) {
       case 'connections':
-        apiPath = '/api/session/data/mysql/connections'
+        apiPath = `/api/session/data/${dataSource}/connections`
         break
       case 'users':
-        apiPath = '/api/session/data/mysql/users'
+        apiPath = `/api/session/data/${dataSource}/users`
         break
       case 'sessions':
-        apiPath = '/api/session/data/mysql/activeConnections'
+        apiPath = `/api/session/data/${dataSource}/activeConnections`
         break
       default:
         if (endpoint.startsWith('connections/')) {
           const connectionId = endpoint.split('/')[1]
-          apiPath = `/api/session/data/mysql/connections/${encodeURIComponent(connectionId)}`
+          apiPath = `/api/session/data/${dataSource}/connections/${encodeURIComponent(connectionId)}`
         } else if (endpoint.startsWith('sessions/')) {
           const sessionId = endpoint.split('/')[1]
-          apiPath = `/api/session/data/mysql/activeConnections/${encodeURIComponent(sessionId)}`
+          apiPath = `/api/session/data/${dataSource}/activeConnections/${encodeURIComponent(sessionId)}`
         } else {
-          apiPath = `/api/session/data/mysql/${endpoint}`
+          apiPath = `/api/session/data/${dataSource}/${endpoint}`
         }
     }
 
@@ -254,6 +258,7 @@ serve(async (req) => {
 
     console.log('=== Making API call ===')
     console.log('API Path:', apiPath)
+    console.log('Data Source:', dataSource)
     console.log('Full URL (token masked):', `${baseUrl}${apiPath}?token=***MASKED***`)
     console.log('Token length:', authToken.length)
     console.log('Token valid:', !!authToken && authToken.length > 0)
@@ -280,7 +285,8 @@ serve(async (req) => {
           • O servidor Guacamole está online
           • A URL está correta
           • Não há bloqueios de firewall
-          • A API REST está habilitada no Guacamole`
+          • A API REST está habilitada no Guacamole
+          • O Data Source '${dataSource}' está configurado corretamente`
         }),
         { 
           status: 200, 
@@ -313,7 +319,7 @@ serve(async (req) => {
           errorMessage = `Acesso negado à API do Guacamole. IMPORTANTE: O usuário "${integration.username}" precisa ter permissões ADMINISTRATIVAS no Guacamole para acessar os dados de conexões, usuários e sessões ativas. Verifique no painel administrativo do Guacamole se este usuário tem as permissões corretas.`
           break
         case 404:
-          errorMessage = 'Endpoint da API não encontrado. Verifique se a versão do Guacamole é compatível e se a API REST está habilitada.'
+          errorMessage = `Endpoint da API não encontrado. Verifique se a versão do Guacamole é compatível, se a API REST está habilitada e se o Data Source '${dataSource}' está configurado corretamente.`
           break
         default:
           errorMessage = `Erro da API Guacamole: ${apiResponse.status} - ${apiResponse.statusText}`
@@ -326,6 +332,7 @@ serve(async (req) => {
             status: apiResponse.status,
             statusText: apiResponse.statusText,
             endpoint: apiPath,
+            dataSource: dataSource,
             response: errorText.substring(0, 500),
             username: integration.username,
             needsAdminPermissions: apiResponse.status === 403
@@ -366,6 +373,7 @@ serve(async (req) => {
     console.log('Result type:', typeof result)
     console.log('Result keys:', Object.keys(result || {}))
     console.log('Token cache status:', tokenCache.has(integrationId) ? 'cached' : 'not cached')
+    console.log('Data Source used:', dataSource)
 
     return new Response(
       JSON.stringify({ result }),

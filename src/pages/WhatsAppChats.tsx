@@ -4,344 +4,79 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useIntegrations } from '@/hooks/useIntegrations';
-import { useWhatsAppConversations, useSyncWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
-import { EvolutionApiService } from '@/utils/evolutionApiService';
+import { Separator } from '@/components/ui/separator';
 import { 
-  MessageSquare, 
-  QrCode, 
-  Wifi, 
-  WifiOff, 
-  Send, 
-  Phone,
-  Settings,
-  RefreshCw,
-  Users,
-  MessageCircle,
-  Menu,
-  X,
-  Sync
+  MessageCircle, 
+  Phone, 
+  Search, 
+  RefreshCw, 
+  Users, 
+  Clock, 
+  Send,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-
-interface WhatsAppMessage {
-  id: string;
-  from: string;
-  to: string;
-  body: string;
-  timestamp: number;
-  isFromMe: boolean;
-  messageType?: string;
-}
+import { useWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const WhatsAppChats = () => {
-  const { data: integrations } = useIntegrations();
-  const { data: conversations, isLoading: loadingConversations, refetch: refetchConversations } = useWhatsAppConversations();
-  const syncConversations = useSyncWhatsAppConversations();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedConversation, setSelectedConversation] = useState<any>(null);
   
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<string>('disconnected');
-  const [qrCode, setQrCode] = useState<string>('');
-  const [selectedChat, setSelectedChat] = useState<any>(null);
-  const [messages, setMessages] = useState<WhatsAppMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
-  const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { 
+    conversations, 
+    isLoading, 
+    error, 
+    refetch,
+    syncConversations
+  } = useWhatsAppConversations();
 
-  const evolutionIntegration = integrations?.find(int => int.type === 'evolution_api');
-
-  console.log('🎯 WhatsAppChats: Dados atuais:', {
-    conversations: conversations?.length || 0,
-    loadingConversations,
-    evolutionIntegration: !!evolutionIntegration,
-    isConnected,
-    connectionStatus
-  });
-
-  // Converter conversas para formato da UI
-  const chats = (conversations || []).map(conv => ({
-    id: conv.id,
-    name: conv.contact_name,
-    lastMessage: conv.last_message || 'Nova conversa',
-    timestamp: conv.last_message_time ? new Date(conv.last_message_time).getTime() : Date.now(),
-    unreadCount: conv.unread_count || 0,
-    phoneNumber: conv.contact_phone,
-    isGroup: conv.contact_phone?.includes('@g.us') || false,
-  }));
-
-  const checkConnection = async () => {
-    if (!evolutionIntegration) {
-      console.log('🔍 Nenhuma integração Evolution API encontrada');
-      return;
-    }
-
-    try {
-      console.log('🔍 Verificando conexão...');
-      const service = new EvolutionApiService(evolutionIntegration);
-      const status = await service.checkInstanceStatus();
-      
-      console.log('📊 Status da conexão:', status);
-      
-      setIsConnected(status.active);
-      setConnectionStatus(status.active ? 'connected' : 'disconnected');
-      
-      if (status.active) {
-        console.log('✅ Conectado! Sincronizando conversas...');
-        await refetchConversations();
-      }
-    } catch (error) {
-      console.error('❌ Erro ao verificar conexão:', error);
-      setIsConnected(false);
-      setConnectionStatus('disconnected');
-    }
-  };
-
-  const connectToWhatsApp = async () => {
-    if (!evolutionIntegration) {
-      toast({
-        title: "Erro",
-        description: "Integração Evolution API não configurada",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!evolutionIntegration.api_token) {
-      toast({
-        title: "Erro",
-        description: "Token da API Evolution não configurado",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsConnecting(true);
-    setConnectionStatus('connecting');
-
-    try {
-      console.log('🔄 Conectando ao WhatsApp...');
-      const service = new EvolutionApiService(evolutionIntegration);
-      const instanceInfo = await service.getInstanceInfo();
-      
-      if (instanceInfo.error) {
-        toast({
-          title: "Erro na conexão",
-          description: instanceInfo.error,
-          variant: "destructive"
-        });
-        setIsConnecting(false);
-        setConnectionStatus('disconnected');
-        return;
-      }
-      
-      if (instanceInfo.connected) {
-        setIsConnected(true);
-        setConnectionStatus('connected');
-        setIsConnecting(false);
-        await refetchConversations();
-        toast({
-          title: "Conectado!",
-          description: "WhatsApp Web conectado com sucesso",
-        });
-      } else if (instanceInfo.qrCode) {
-        setQrCode(instanceInfo.qrCode);
-        setIsQrDialogOpen(true);
-        setConnectionStatus('waiting_qr');
-        
-        // Polling para verificar conexão
-        const pollConnection = setInterval(async () => {
-          try {
-            const status = await service.checkInstanceStatus();
-            if (status.active) {
-              clearInterval(pollConnection);
-              setIsConnected(true);
-              setConnectionStatus('connected');
-              setIsQrDialogOpen(false);
-              setIsConnecting(false);
-              await refetchConversations();
-              toast({
-                title: "Conectado!",
-                description: "WhatsApp Web conectado com sucesso",
-              });
-            }
-          } catch (error) {
-            console.error('Erro no polling:', error);
-          }
-        }, 3000);
-        
-        // Timeout após 2 minutos
-        setTimeout(() => {
-          clearInterval(pollConnection);
-          if (!isConnected) {
-            setIsConnecting(false);
-            setIsQrDialogOpen(false);
-            setConnectionStatus('disconnected');
-            toast({
-              title: "Tempo esgotado",
-              description: "Conexão não estabelecida. Tente novamente.",
-              variant: "destructive"
-            });
-          }
-        }, 120000);
-      }
-    } catch (error) {
-      console.error('❌ Erro ao conectar:', error);
-      setIsConnecting(false);
-      setConnectionStatus('disconnected');
-      toast({
-        title: "Erro na conexão",
-        description: "Não foi possível conectar ao WhatsApp Web",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const disconnectFromWhatsApp = async () => {
-    if (!evolutionIntegration) return;
-
-    try {
-      const service = new EvolutionApiService(evolutionIntegration);
-      await service.disconnectInstance();
-      
-      setIsConnected(false);
-      setConnectionStatus('disconnected');
-      setSelectedChat(null);
-      setMessages([]);
-      
-      toast({
-        title: "Desconectado",
-        description: "WhatsApp Web desconectado",
-      });
-    } catch (error) {
-      console.error('❌ Erro ao desconectar:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao desconectar do WhatsApp Web",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const loadMessages = async (chat: any) => {
-    if (!evolutionIntegration) return;
-
-    try {
-      console.log('📥 Carregando mensagens para:', chat.name);
-      const service = new EvolutionApiService(evolutionIntegration);
-      const messagesData = await service.getMessages(chat.phoneNumber);
-      
-      const formattedMessages: WhatsAppMessage[] = messagesData.map((msg: any) => ({
-        id: msg.key?.id || msg.id,
-        from: msg.key?.fromMe ? 'me' : msg.key?.remoteJid,
-        to: msg.key?.fromMe ? msg.key?.remoteJid : 'me',
-        body: msg.message?.conversation || msg.message?.extendedTextMessage?.text || 'Mensagem não suportada',
-        timestamp: msg.messageTimestamp * 1000 || Date.now(),
-        isFromMe: msg.key?.fromMe || false,
-        messageType: msg.message?.messageType || 'text'
-      }));
-      
-      setMessages(formattedMessages.sort((a, b) => a.timestamp - b.timestamp));
-    } catch (error) {
-      console.error('❌ Erro ao carregar mensagens:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao carregar mensagens",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedChat || !evolutionIntegration) return;
-
-    try {
-      const service = new EvolutionApiService(evolutionIntegration);
-      const result = await service.sendMessage(selectedChat.phoneNumber, newMessage);
-      
-      if (result.success) {
-        const newMsg: WhatsAppMessage = {
-          id: Date.now().toString(),
-          from: 'me',
-          to: selectedChat.phoneNumber,
-          body: newMessage,
-          timestamp: Date.now(),
-          isFromMe: true
-        };
-        
-        setMessages(prev => [...prev, newMsg]);
-        setNewMessage('');
-        
-        toast({
-          title: "Mensagem enviada",
-          description: "Mensagem enviada com sucesso",
-        });
-      } else {
-        toast({
-          title: "Erro ao enviar",
-          description: result.error?.message || "Erro ao enviar mensagem",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('❌ Erro ao enviar mensagem:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao enviar mensagem",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const selectChat = async (chat: any) => {
-    console.log('💬 Selecionando chat:', chat.name);
-    setSelectedChat(chat);
-    await loadMessages(chat);
-  };
-
-  const handleSyncConversations = async () => {
-    console.log('🔄 Sincronizando conversas manualmente...');
-    await syncConversations.mutateAsync();
-  };
-
-  // Verificar conexão inicial
+  // Auto-refresh every 30 seconds
   useEffect(() => {
-    if (evolutionIntegration) {
-      console.log('🔄 Verificando conexão inicial...');
-      checkConnection();
+    const interval = setInterval(() => {
+      refetch();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [refetch]);
+
+  const handleSync = async () => {
+    await syncConversations();
+  };
+
+  const filteredConversations = conversations.filter(conv =>
+    conv.contact_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    conv.contact_phone.includes(searchTerm)
+  );
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'inactive': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-blue-100 text-blue-800';
     }
-  }, [evolutionIntegration]);
+  };
 
-  // Auto-refresh quando conectado
-  useEffect(() => {
-    if (isConnected && evolutionIntegration) {
-      console.log('🔄 Configurando auto-refresh...');
-      const interval = setInterval(() => {
-        refetchConversations();
-      }, 30000);
-
-      return () => clearInterval(interval);
-    }
-  }, [isConnected, evolutionIntegration, refetchConversations]);
-
-  if (!evolutionIntegration) {
+  if (error) {
     return (
-      <div className="container mx-auto py-10">
-        <Card className="w-full max-w-4xl mx-auto border-yellow-600 bg-yellow-900/20">
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <MessageCircle className="h-6 w-6 text-green-600" />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Conversas WhatsApp</h1>
+            <p className="text-muted-foreground">Gerencie suas conversas do WhatsApp</p>
+          </div>
+        </div>
+
+        <Card className="border-red-200 bg-red-50">
           <CardContent className="p-6 text-center">
-            <MessageSquare className="h-12 w-12 mx-auto mb-4 text-yellow-400" />
-            <h3 className="text-lg font-semibold text-yellow-200 mb-2">Evolution API não configurada</h3>
-            <p className="text-yellow-300 mb-4">
-              Para usar o WhatsApp Web, configure a integração Evolution API no painel de administração.
-            </p>
-            <Button 
-              onClick={() => window.location.href = '/admin'} 
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <Settings className="mr-2 h-4 w-4" />
-              Configurar Evolution API
+            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-600" />
+            <h3 className="text-lg font-semibold text-red-800 mb-2">Erro ao carregar conversas</h3>
+            <p className="text-red-700 mb-4">{error}</p>
+            <Button onClick={() => refetch()} variant="outline">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Tentar Novamente
             </Button>
           </CardContent>
         </Card>
@@ -349,355 +84,241 @@ const WhatsAppChats = () => {
     );
   }
 
-  if (!isConnected) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <Card className="w-full max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-center">
-              <MessageSquare className="h-6 w-6" />
-              WhatsApp Web
-            </CardTitle>
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <MessageCircle className="h-6 w-6 text-green-600" />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Conversas WhatsApp</h1>
+            <p className="text-muted-foreground">Gerencie suas conversas do WhatsApp</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleSync} 
+            disabled={isLoading}
+            variant="outline"
+          >
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Sincronizar
+          </Button>
+          <Button onClick={() => refetch()} disabled={isLoading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
+      </div>
+
+      {/* Estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Conversas</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                {connectionStatus === 'connecting' || connectionStatus === 'waiting_qr' ? (
-                  <RefreshCw className="h-5 w-5 text-blue-500 animate-spin" />
-                ) : (
-                  <WifiOff className="h-5 w-5 text-red-500" />
-                )}
-                <span className="text-sm capitalize">
-                  {connectionStatus === 'connecting' && 'Conectando...'}
-                  {connectionStatus === 'waiting_qr' && 'Aguardando QR Code...'}
-                  {connectionStatus === 'disconnected' && 'Desconectado'}
-                </span>
-                <Badge variant={connectionStatus === 'disconnected' ? 'destructive' : 'default'}>
-                  {connectionStatus}
-                </Badge>
-              </div>
-              
-              <Button 
-                onClick={connectToWhatsApp} 
-                disabled={isConnecting}
-                className="w-full bg-green-600 hover:bg-green-700"
-                size="lg"
-              >
-                {isConnecting ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Conectando...
-                  </>
-                ) : (
-                  <>
-                    <QrCode className="mr-2 h-4 w-4" />
-                    Conectar WhatsApp Web
-                  </>
-                )}
-              </Button>
+          <CardContent>
+            <div className="text-2xl font-bold">{conversations.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Conversas registradas
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Conversas Ativas</CardTitle>
+            <MessageCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {conversations.filter(c => c.status === 'active').length}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Em andamento
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Não Lidas</CardTitle>
+            <Badge className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {conversations.reduce((total, c) => total + (c.unread_count || 0), 0)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Mensagens não lidas
+            </p>
           </CardContent>
         </Card>
       </div>
-    );
-  }
 
-  return (
-    <div className="h-screen flex">
-      {/* Sidebar - Conversas */}
-      <div className={`${isSidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 border-r bg-background overflow-hidden flex flex-col`}>
-        <div className="p-4 border-b">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold flex items-center gap-2">
-              <MessageCircle className="h-5 w-5" />
-              Conversas ({chats.length})
-            </h2>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSyncConversations}
-                disabled={loadingConversations || syncConversations.isPending}
-                title="Sincronizar conversas"
-              >
-                <Sync className={`h-4 w-4 ${(loadingConversations || syncConversations.isPending) ? 'animate-spin' : ''}`} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => refetchConversations()}
-                disabled={loadingConversations}
-                title="Atualizar conversas"
-              >
-                <RefreshCw className={`h-4 w-4 ${loadingConversations ? 'animate-spin' : ''}`} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+      {/* Busca */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Buscar Conversas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou telefone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8"
+            />
           </div>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto">
-          {chats.map((chat) => (
-            <div
-              key={chat.id}
-              onClick={() => selectChat(chat)}
-              className={`p-3 border-b cursor-pointer hover:bg-accent/50 ${
-                selectedChat?.id === chat.id ? 'bg-accent' : ''
-              }`}
-            >
-              <div className="flex justify-between items-start">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      {chat.isGroup ? (
-                        <Users className="h-4 w-4 text-blue-500" />
-                      ) : (
-                        <MessageSquare className="h-4 w-4 text-green-500" />
-                      )}
-                      <h4 className="font-medium truncate">{chat.name}</h4>
-                    </div>
-                    {chat.unreadCount > 0 && (
-                      <Badge variant="destructive" className="text-xs">
-                        {chat.unreadCount}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {chat.lastMessage}
-                  </p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <Phone className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground truncate">
-                      {chat.phoneNumber}
-                    </span>
-                  </div>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {new Date(chat.timestamp).toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </span>
+        </CardContent>
+      </Card>
+
+      {/* Lista de Conversas */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Conversas ({filteredConversations.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isLoading ? (
+              <div className="text-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                <p>Carregando conversas...</p>
               </div>
-            </div>
-          ))}
-          
-          {chats.length === 0 && !loadingConversations && (
-            <div className="p-6 text-center text-muted-foreground">
-              <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>Nenhuma conversa encontrada</p>
-              <Button 
-                onClick={handleSyncConversations} 
-                variant="outline" 
-                size="sm" 
-                className="mt-2"
-                disabled={syncConversations.isPending}
-              >
-                <Sync className="mr-2 h-4 w-4" />
-                Sincronizar Conversas
-              </Button>
-            </div>
-          )}
-
-          {loadingConversations && (
-            <div className="p-6 text-center">
-              <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin" />
-              <p className="text-sm text-muted-foreground">Carregando conversas...</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Main chat area */}
-      <div className="flex-1 flex flex-col min-h-0">
-        {/* Header */}
-        <div className="h-16 border-b bg-background flex items-center justify-between px-4 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            {!isSidebarOpen && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsSidebarOpen(true)}
-              >
-                <Menu className="h-4 w-4" />
-              </Button>
-            )}
-            
-            {selectedChat ? (
-              <div className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                <div>
-                  <h3 className="font-medium">{selectedChat.name}</h3>
-                  <p className="text-xs text-muted-foreground">{selectedChat.phoneNumber}</p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                <span>WhatsApp Web</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
-              <Wifi className="h-4 w-4 text-green-500" />
-              <Badge variant="default">Conectado</Badge>
-            </div>
-            
-            <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
-              <Button variant="ghost" size="sm" onClick={() => setIsConfigDialogOpen(true)}>
-                <Settings className="h-4 w-4" />
-              </Button>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Configurações WhatsApp Web</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Wifi className="h-5 w-5 text-green-500" />
-                      <span className="text-sm">Status: Conectado</span>
-                    </div>
-                    <Badge variant="default">Ativo</Badge>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Button 
-                      onClick={handleSyncConversations} 
-                      variant="outline"
-                      className="w-full"
-                      disabled={syncConversations.isPending}
-                    >
-                      {syncConversations.isPending ? (
-                        <>
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                          Sincronizando...
-                        </>
-                      ) : (
-                        <>
-                          <Sync className="mr-2 h-4 w-4" />
-                          Sincronizar Conversas
-                        </>
-                      )}
-                    </Button>
-                    
-                    <Button 
-                      onClick={disconnectFromWhatsApp} 
-                      variant="destructive"
-                      className="w-full"
-                    >
-                      Desconectar
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-
-        {/* Área de Mensagens */}
-        <div className="flex-1 flex flex-col min-h-0">
-          {selectedChat ? (
-            <>
-              {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.isFromMe ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
-                        message.isFromMe
-                          ? 'bg-green-500 text-white'
-                          : 'bg-muted text-foreground'
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap">{message.body}</p>
-                      <span className="text-xs opacity-75 block mt-1">
-                        {new Date(message.timestamp).toLocaleTimeString('pt-BR', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-                
-                {messages.length === 0 && (
-                  <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                    <div className="text-center">
-                      <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>Nenhuma mensagem ainda</p>
-                      <p className="text-sm">Inicie uma conversa enviando uma mensagem</p>
-                    </div>
-                  </div>
+            ) : filteredConversations.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchTerm ? (
+                  <>
+                    <MessageCircle className="h-12 w-12 mx-auto mb-4" />
+                    <p>Nenhuma conversa encontrada para "{searchTerm}"</p>
+                  </>
+                ) : (
+                  <>
+                    <MessageCircle className="h-12 w-12 mx-auto mb-4" />
+                    <p>Nenhuma conversa encontrada</p>
+                    <p className="text-sm">
+                      Sincronize com a API para carregar as conversas
+                    </p>
+                  </>
                 )}
               </div>
-
-              {/* Message Input */}
-              <div className="p-4 border-t bg-background flex-shrink-0">
-                <div className="flex gap-2">
-                  <Input
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Digite sua mensagem..."
-                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                    className="flex-1"
-                  />
-                  <Button 
-                    onClick={sendMessage}
-                    disabled={!newMessage.trim()}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
+            ) : (
+              filteredConversations.map((conversation) => (
+                <div
+                  key={conversation.id}
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                    selectedConversation?.id === conversation.id
+                      ? 'bg-blue-50 border-blue-200'
+                      : 'hover:bg-gray-50'
+                  }`}
+                  onClick={() => setSelectedConversation(conversation)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-medium">{conversation.contact_name}</h3>
+                        <Badge className={getStatusColor(conversation.status)}>
+                          {conversation.status}
+                        </Badge>
+                        {conversation.unread_count > 0 && (
+                          <Badge variant="secondary">
+                            {conversation.unread_count}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {conversation.contact_phone}
+                      </p>
+                      {conversation.last_message && (
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                          {conversation.last_message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {conversation.last_message_time
+                        ? formatDistanceToNow(new Date(conversation.last_message_time), {
+                            addSuffix: true,
+                            locale: ptBR,
+                          })
+                        : 'Sem mensagens'}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center text-muted-foreground">
-                <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-medium mb-2">Selecione uma conversa</h3>
-                <p>Escolha uma conversa da lista para começar a conversar</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
 
-      {/* QR Code Dialog */}
-      <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Conectar WhatsApp Web</DialogTitle>
-          </DialogHeader>
-          <div className="text-center p-6">
-            <QrCode className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-medium mb-2">Escaneie o QR Code</h3>
-            <p className="text-muted-foreground mb-4">
-              Use seu WhatsApp para escanear o código QR e conectar
-            </p>
-            {qrCode && (
-              <div className="bg-white p-4 rounded-lg inline-block border mb-4">
-                <img src={qrCode} alt="QR Code" className="w-48 h-48" />
+        {/* Detalhes da Conversa */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Detalhes da Conversa</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {selectedConversation ? (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium text-lg">{selectedConversation.contact_name}</h3>
+                  <p className="text-muted-foreground">{selectedConversation.contact_phone}</p>
+                </div>
+                
+                <Separator />
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium">Status</p>
+                    <Badge className={getStatusColor(selectedConversation.status)}>
+                      {selectedConversation.status}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Mensagens não lidas</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedConversation.unread_count || 0}
+                    </p>
+                  </div>
+                </div>
+                
+                <div>
+                  <p className="text-sm font-medium">Última mensagem</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedConversation.last_message || 'Nenhuma mensagem'}
+                  </p>
+                </div>
+                
+                <div>
+                  <p className="text-sm font-medium">Última atividade</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedConversation.last_message_time
+                      ? new Date(selectedConversation.last_message_time).toLocaleString('pt-BR')
+                      : 'Sem registro'}
+                  </p>
+                </div>
+                
+                <Separator />
+                
+                <Button className="w-full">
+                  <Send className="mr-2 h-4 w-4" />
+                  Enviar Mensagem
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <MessageCircle className="h-12 w-12 mx-auto mb-4" />
+                <p>Selecione uma conversa para ver os detalhes</p>
               </div>
             )}
-            <div className="mt-4">
-              <RefreshCw className="h-4 w-4 animate-spin mx-auto" />
-              <p className="text-sm text-muted-foreground mt-2">Aguardando conexão...</p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

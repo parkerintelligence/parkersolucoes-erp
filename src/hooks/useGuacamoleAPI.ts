@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useIntegrations } from '@/hooks/useIntegrations';
@@ -31,7 +32,12 @@ export const useGuacamoleAPI = () => {
   const queryClient = useQueryClient();
 
   const integration = integrations?.find(i => i.type === 'guacamole' && i.is_active);
-  const isConfigured = Boolean(integration?.base_url && integration?.username && integration?.password);
+  const isConfigured = Boolean(
+    integration?.base_url && 
+    integration?.username && 
+    integration?.password &&
+    integration?.directory
+  );
 
   console.log('=== useGuacamoleAPI Debug ===');
   console.log('Integration found:', !!integration);
@@ -43,6 +49,7 @@ export const useGuacamoleAPI = () => {
       base_url: integration.base_url,
       username: integration.username,
       has_password: !!integration.password,
+      dataSource: integration.directory,
       is_active: integration.is_active
     });
   }
@@ -59,6 +66,7 @@ export const useGuacamoleAPI = () => {
     console.log('Base URL:', integration.base_url);
     console.log('Username:', integration.username);
     console.log('Has Password:', !!integration.password);
+    console.log('Data Source:', integration.directory);
     console.log('Is Active:', integration.is_active);
     console.log('Options:', options);
 
