@@ -159,6 +159,143 @@ export class EvolutionApiService {
     }
   }
 
+  async getInstanceInfo(): Promise<{ 
+    connected: boolean; 
+    qrCode?: string; 
+    instanceName: string;
+  }> {
+    const configValidation = await this.validateConfiguration();
+    if (!configValidation.valid) {
+      throw new Error(`Invalid configuration: ${configValidation.errors.join(', ')}`);
+    }
+
+    const integrationAny = this.integration as any;
+    const instanceName = integrationAny.instance_name || 'main_instance';
+    const baseUrl = this.normalizeUrl(this.integration.base_url);
+
+    try {
+      const response = await fetch(`${baseUrl}/${instanceName}/instance/connect`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': this.integration.api_token || '',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          connected: data.instance?.state === 'open',
+          qrCode: data.qrcode?.base64,
+          instanceName: instanceName
+        };
+      }
+    } catch (error) {
+      this.addDebugLog(`Error getting instance info: ${error}`);
+    }
+
+    return {
+      connected: false,
+      instanceName: instanceName
+    };
+  }
+
+  async getConversations(): Promise<any[]> {
+    const configValidation = await this.validateConfiguration();
+    if (!configValidation.valid) {
+      return [];
+    }
+
+    const integrationAny = this.integration as any;
+    const instanceName = integrationAny.instance_name || 'main_instance';
+    const baseUrl = this.normalizeUrl(this.integration.base_url);
+
+    try {
+      const response = await fetch(`${baseUrl}/${instanceName}/chat/findChats`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': this.integration.api_token || '',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data || [];
+      }
+    } catch (error) {
+      this.addDebugLog(`Error getting conversations: ${error}`);
+    }
+
+    return [];
+  }
+
+  async getMessages(chatId: string): Promise<any[]> {
+    const configValidation = await this.validateConfiguration();
+    if (!configValidation.valid) {
+      return [];
+    }
+
+    const integrationAny = this.integration as any;
+    const instanceName = integrationAny.instance_name || 'main_instance';
+    const baseUrl = this.normalizeUrl(this.integration.base_url);
+
+    try {
+      const response = await fetch(`${baseUrl}/${instanceName}/chat/findMessages/${chatId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': this.integration.api_token || '',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data || [];
+      }
+    } catch (error) {
+      this.addDebugLog(`Error getting messages: ${error}`);
+    }
+
+    return [];
+  }
+
+  async disconnectInstance(): Promise<{ success: boolean; error?: string }> {
+    const configValidation = await this.validateConfiguration();
+    if (!configValidation.valid) {
+      return {
+        success: false,
+        error: configValidation.errors.join(', ')
+      };
+    }
+
+    const integrationAny = this.integration as any;
+    const instanceName = integrationAny.instance_name || 'main_instance';
+    const baseUrl = this.normalizeUrl(this.integration.base_url);
+
+    try {
+      const response = await fetch(`${baseUrl}/${instanceName}/instance/logout`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': this.integration.api_token || '',
+        },
+      });
+
+      if (response.ok) {
+        this.addDebugLog('Instance disconnected successfully');
+        return { success: true };
+      }
+    } catch (error) {
+      this.addDebugLog(`Error disconnecting instance: ${error}`);
+    }
+
+    return {
+      success: false,
+      error: 'Failed to disconnect instance'
+    };
+  }
+
   async sendMessage(phoneNumber: string, message: string): Promise<{ 
     success: boolean; 
     error?: EvolutionApiError 
