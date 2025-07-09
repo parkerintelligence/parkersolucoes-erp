@@ -19,7 +19,8 @@ import {
   MessageSquare,
   AlertTriangle,
   CheckCircle,
-  Play
+  Play,
+  TestTube
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
@@ -105,6 +106,21 @@ export const ZabbixWebhookManager = () => {
     });
   };
 
+  const handleUpdateWebhook = () => {
+    if (!editingWebhook) return;
+
+    setWebhooks(prev => prev.map(w => 
+      w.id === editingWebhook.id ? editingWebhook : w
+    ));
+    
+    setEditingWebhook(null);
+    
+    toast({
+      title: "✅ Webhook atualizado!",
+      description: "As alterações foram salvas com sucesso."
+    });
+  };
+
   const handleDeleteWebhook = (id: string) => {
     setWebhooks(prev => prev.filter(w => w.id !== id));
     toast({
@@ -122,15 +138,62 @@ export const ZabbixWebhookManager = () => {
   const handleTestWebhook = async (id: string) => {
     setTestingWebhook(id);
     
+    const webhook = webhooks.find(w => w.id === id);
+    if (!webhook) return;
+    
     try {
-      // Simular teste do webhook
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('🧪 Testando webhook:', webhook.name);
+      
+      // Simular dados de teste do Zabbix
+      const testData = {
+        problem_name: 'Teste - Problema de conectividade',
+        host_name: 'servidor-teste.empresa.com',
+        severity: '4',
+        timestamp: new Date().toISOString(),
+        event_id: 'test_123'
+      };
+
+      // Simular execução das ações
+      if (webhook.actions.create_glpi_ticket) {
+        console.log('📝 Simulando criação de chamado GLPI...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log('✅ Chamado GLPI criado (simulação)');
+      }
+
+      if (webhook.actions.send_whatsapp) {
+        console.log('📱 Simulando envio de WhatsApp...');
+        let message = webhook.actions.custom_message || 
+          '🚨 Alerta Zabbix: {problem_name} no host {host_name}';
+        
+        // Substituir variáveis
+        message = message
+          .replace('{problem_name}', testData.problem_name)
+          .replace('{host_name}', testData.host_name)
+          .replace('{severity}', testData.severity)
+          .replace('{timestamp}', new Date(testData.timestamp).toLocaleString('pt-BR'));
+
+        console.log('📲 Mensagem WhatsApp:', message);
+        console.log('📞 Número:', webhook.actions.whatsapp_number);
+        
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        console.log('✅ WhatsApp enviado (simulação)');
+      }
+
+      // Atualizar contador de execuções
+      setWebhooks(prev => prev.map(w => 
+        w.id === id ? { 
+          ...w, 
+          trigger_count: w.trigger_count + 1,
+          last_triggered: new Date()
+        } : w
+      ));
       
       toast({
         title: "✅ Teste realizado!",
-        description: "O webhook foi testado com sucesso."
+        description: `O webhook "${webhook.name}" foi testado com sucesso. Verifique o console para detalhes.`
       });
     } catch (error) {
+      console.error('❌ Erro no teste:', error);
       toast({
         title: "❌ Erro no teste",
         description: "Falha ao testar o webhook.",
@@ -139,6 +202,51 @@ export const ZabbixWebhookManager = () => {
     } finally {
       setTestingWebhook(null);
     }
+  };
+
+  const handleExecuteWebhook = async (id: string) => {
+    const webhook = webhooks.find(w => w.id === id);
+    if (!webhook) return;
+
+    if (!webhook.is_active) {
+      toast({
+        title: "⚠️ Webhook inativo",
+        description: "Este webhook está desativado e não pode ser executado.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      console.log('🚀 Executando webhook:', webhook.name);
+      
+      // Simular execução real (aqui você integraria com APIs reais)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Atualizar estatísticas
+      setWebhooks(prev => prev.map(w => 
+        w.id === id ? { 
+          ...w, 
+          trigger_count: w.trigger_count + 1,
+          last_triggered: new Date()
+        } : w
+      ));
+
+      toast({
+        title: "✅ Webhook executado!",
+        description: `O webhook "${webhook.name}" foi executado com sucesso.`
+      });
+    } catch (error) {
+      toast({
+        title: "❌ Erro na execução",
+        description: "Falha ao executar o webhook.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const resetEditForm = () => {
+    setEditingWebhook(null);
   };
 
   return (
@@ -301,6 +409,145 @@ export const ZabbixWebhookManager = () => {
             </Dialog>
           </div>
 
+          {/* Dialog de Edição */}
+          <Dialog open={!!editingWebhook} onOpenChange={(open) => !open && resetEditForm()}>
+            <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-white">Editar Webhook</DialogTitle>
+                <DialogDescription className="text-gray-400">
+                  Modifique as configurações do webhook
+                </DialogDescription>
+              </DialogHeader>
+              {editingWebhook && (
+                <div className="space-y-4">
+                  <div className="grid gap-2">
+                    <Label className="text-gray-200">Nome do Webhook</Label>
+                    <Input
+                      value={editingWebhook.name}
+                      onChange={(e) => setEditingWebhook(prev => prev ? ({ ...prev, name: e.target.value }) : null)}
+                      className="bg-gray-700 border-gray-600 text-white"
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label className="text-gray-200">Tipo de Trigger</Label>
+                    <Select 
+                      value={editingWebhook.trigger_type} 
+                      onValueChange={(value: any) => setEditingWebhook(prev => prev ? ({ ...prev, trigger_type: value }) : null)}
+                    >
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-700">
+                        {Object.entries(triggerTypeLabels).map(([value, label]) => (
+                          <SelectItem key={value} value={value} className="text-white">
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-4">
+                    <Label className="text-gray-200 text-lg">Ações</Label>
+                    
+                    <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <ExternalLink className="h-5 w-5 text-blue-400" />
+                        <div>
+                          <div className="font-medium text-white">Criar Chamado GLPI</div>
+                          <div className="text-sm text-gray-400">Gera automaticamente um chamado no GLPI</div>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={editingWebhook.actions.create_glpi_ticket}
+                        onCheckedChange={(checked) => 
+                          setEditingWebhook(prev => prev ? ({
+                            ...prev,
+                            actions: { ...prev.actions, create_glpi_ticket: checked }
+                          }) : null)
+                        }
+                      />
+                    </div>
+
+                    {editingWebhook.actions.create_glpi_ticket && (
+                      <div className="ml-8 space-y-2">
+                        <Label className="text-gray-200">ID da Entidade GLPI</Label>
+                        <Input
+                          type="number"
+                          value={editingWebhook.actions.glpi_entity_id}
+                          onChange={(e) => setEditingWebhook(prev => prev ? ({
+                            ...prev,
+                            actions: { ...prev.actions, glpi_entity_id: parseInt(e.target.value) || 0 }
+                          }) : null)}
+                          className="bg-gray-700 border-gray-600 text-white"
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <MessageSquare className="h-5 w-5 text-green-400" />
+                        <div>
+                          <div className="font-medium text-white">Enviar WhatsApp</div>
+                          <div className="text-sm text-gray-400">Envia notificação via WhatsApp</div>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={editingWebhook.actions.send_whatsapp}
+                        onCheckedChange={(checked) => 
+                          setEditingWebhook(prev => prev ? ({
+                            ...prev,
+                            actions: { ...prev.actions, send_whatsapp: checked }
+                          }) : null)
+                        }
+                      />
+                    </div>
+
+                    {editingWebhook.actions.send_whatsapp && (
+                      <div className="ml-8 space-y-2">
+                        <Label className="text-gray-200">Número do WhatsApp</Label>
+                        <Input
+                          value={editingWebhook.actions.whatsapp_number}
+                          onChange={(e) => setEditingWebhook(prev => prev ? ({
+                            ...prev,
+                            actions: { ...prev.actions, whatsapp_number: e.target.value }
+                          }) : null)}
+                          placeholder="5511999999999"
+                          className="bg-gray-700 border-gray-600 text-white"
+                        />
+                        <Label className="text-gray-200">Mensagem Personalizada</Label>
+                        <Textarea
+                          value={editingWebhook.actions.custom_message}
+                          onChange={(e) => setEditingWebhook(prev => prev ? ({
+                            ...prev,
+                            actions: { ...prev.actions, custom_message: e.target.value }
+                          }) : null)}
+                          placeholder="🚨 Alerta Zabbix: {problem_name} no host {host_name}"
+                          className="bg-gray-700 border-gray-600 text-white"
+                          rows={3}
+                        />
+                        <p className="text-xs text-gray-400">
+                          Variáveis disponíveis: {'{problem_name}, {host_name}, {severity}, {timestamp}'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <Button onClick={handleUpdateWebhook} className="bg-blue-600 hover:bg-blue-700 text-white">
+                      <Edit className="mr-2 h-4 w-4" />
+                      Salvar Alterações
+                    </Button>
+                    <Button variant="outline" onClick={resetEditForm} className="border-gray-600 text-gray-200 hover:bg-gray-700">
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
           {webhooks.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <Webhook className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -355,7 +602,16 @@ export const ZabbixWebhookManager = () => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-300">{webhook.trigger_count}</TableCell>
+                    <TableCell className="text-gray-300">
+                      <div className="flex flex-col">
+                        <span>{webhook.trigger_count}</span>
+                        {webhook.last_triggered && (
+                          <span className="text-xs text-gray-500">
+                            {webhook.last_triggered.toLocaleString('pt-BR')}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button
@@ -363,7 +619,18 @@ export const ZabbixWebhookManager = () => {
                           variant="ghost"
                           onClick={() => handleTestWebhook(webhook.id)}
                           disabled={testingWebhook === webhook.id}
-                          className="text-gray-400 hover:text-white hover:bg-gray-700"
+                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20"
+                          title="Testar webhook"
+                        >
+                          <TestTube className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleExecuteWebhook(webhook.id)}
+                          disabled={!webhook.is_active}
+                          className="text-green-400 hover:text-green-300 hover:bg-green-900/20"
+                          title="Executar webhook"
                         >
                           <Play className="h-4 w-4" />
                         </Button>
@@ -372,6 +639,7 @@ export const ZabbixWebhookManager = () => {
                           variant="ghost"
                           onClick={() => setEditingWebhook(webhook)}
                           className="text-gray-400 hover:text-white hover:bg-gray-700"
+                          title="Editar webhook"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -380,6 +648,7 @@ export const ZabbixWebhookManager = () => {
                           variant="ghost"
                           onClick={() => handleDeleteWebhook(webhook.id)}
                           className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                          title="Excluir webhook"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
