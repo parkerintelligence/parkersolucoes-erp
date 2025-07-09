@@ -1,351 +1,247 @@
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Monitor, Save, TestTube, AlertCircle, CheckCircle } from 'lucide-react';
-import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertCircle, Check, X } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
-export const GuacamoleAdminConfig = () => {
-  const { data: integrations } = useIntegrations();
-  const createIntegration = useCreateIntegration();
-  const updateIntegration = useUpdateIntegration();
-  const [testing, setTesting] = useState(false);
+const GuacamoleAdminConfig = () => {
+  const { integrations, createIntegration, updateIntegration, deleteIntegration } = useIntegrations();
+  const [config, setConfig] = useState({
+    base_url: '',
+    username: '',
+    password: '',
+    data_source: 'postgresql', // Changed from 'mysql' to 'postgresql'
+    is_active: true,
+    name: 'Guacamole'
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const guacamoleIntegration = integrations?.find(i => i.type === 'guacamole');
 
-  const [config, setConfig] = useState({
-    name: guacamoleIntegration?.name || 'Apache Guacamole',
-    base_url: guacamoleIntegration?.base_url || '',
-    username: guacamoleIntegration?.username || '',
-    password: guacamoleIntegration?.password || '',
-    directory: guacamoleIntegration?.directory || 'mysql',
-    is_active: guacamoleIntegration?.is_active ?? true,
-  });
+  useEffect(() => {
+    if (guacamoleIntegration) {
+      setConfig({
+        base_url: guacamoleIntegration.base_url || '',
+        username: guacamoleIntegration.username || '',
+        password: guacamoleIntegration.password || '',
+        data_source: guacamoleIntegration.api_token || 'postgresql', // Use api_token field to store data_source
+        is_active: guacamoleIntegration.is_active ?? true,
+        name: guacamoleIntegration.name || 'Guacamole'
+      });
+    }
+  }, [guacamoleIntegration]);
 
   const handleSave = async () => {
-    if (!config.base_url || !config.username || !config.password || !config.directory) {
+    if (!config.base_url || !config.username || !config.password) {
       toast({
-        title: "Configuração incompleta",
-        description: "Preencha todos os campos obrigatórios: URL Base, Usuário, Senha e Data Source.",
+        title: "Erro de validação",
+        description: "Por favor, preencha todos os campos obrigatórios.",
         variant: "destructive"
       });
       return;
     }
 
+    setIsLoading(true);
     try {
       const integrationData = {
-        type: 'guacamole' as const,
         name: config.name,
+        type: 'guacamole' as const,
         base_url: config.base_url,
         username: config.username,
         password: config.password,
-        directory: config.directory,
-        is_active: config.is_active,
-        api_token: null,
-        webhook_url: null,
-        phone_number: null,
-        region: null,
-        bucket_name: null,
-        port: null,
-        passive_mode: null,
-        use_ssl: null,
-        keep_logged: null,
+        api_token: config.data_source, // Store data_source in api_token field
+        is_active: config.is_active
       };
 
       if (guacamoleIntegration) {
         await updateIntegration.mutateAsync({
           id: guacamoleIntegration.id,
-          updates: {
-            name: config.name,
-            base_url: config.base_url,
-            username: config.username,
-            password: config.password,
-            directory: config.directory,
-            is_active: config.is_active,
-          }
+          ...integrationData
         });
       } else {
         await createIntegration.mutateAsync(integrationData);
       }
 
+      setIsEditing(false);
       toast({
         title: "Configuração salva!",
-        description: "As configurações do Guacamole foram salvas com sucesso.",
+        description: "A configuração do Guacamole foi salva com sucesso."
       });
     } catch (error) {
-      console.error('Erro ao salvar configuração Guacamole:', error);
       toast({
         title: "Erro ao salvar",
-        description: "Não foi possível salvar as configurações do Guacamole.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleTest = async () => {
-    if (!config.base_url || !config.username || !config.password || !config.directory) {
-      toast({
-        title: "Configuração incompleta",
-        description: "Preencha todos os campos obrigatórios antes de testar.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setTesting(true);
-    
-    try {
-      // First save/update the integration to ensure it exists
-      let testIntegrationId = guacamoleIntegration?.id;
-      
-      if (!testIntegrationId) {
-        // Create temporary integration for testing
-        const tempIntegrationData = {
-          type: 'guacamole' as const,
-          name: config.name,
-          base_url: config.base_url,
-          username: config.username,
-          password: config.password,
-          directory: config.directory,
-          is_active: true,
-          api_token: null,
-          webhook_url: null,
-          phone_number: null,
-          region: null,
-          bucket_name: null,
-          port: null,
-          passive_mode: null,
-          use_ssl: null,
-          keep_logged: null,
-        };
-        
-        const createdIntegration = await createIntegration.mutateAsync(tempIntegrationData);
-        testIntegrationId = createdIntegration.id;
-      } else {
-        // Update existing integration
-        await updateIntegration.mutateAsync({
-          id: testIntegrationId,
-          updates: {
-            name: config.name,
-            base_url: config.base_url,
-            username: config.username,
-            password: config.password,
-            directory: config.directory,
-            is_active: true,
-          }
-        });
-      }
-
-      // Wait a moment to ensure integration was saved
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Test using the Edge Function
-      console.log('=== Testando conexão Guacamole ===');
-      console.log('Integration ID:', testIntegrationId);
-      console.log('Base URL:', config.base_url);
-      console.log('Username:', config.username);
-      console.log('Data Source:', config.directory);
-
-      const { data, error } = await supabase.functions.invoke('guacamole-proxy', {
-        body: {
-          integrationId: testIntegrationId,
-          endpoint: 'connections',
-          method: 'GET'
-        }
-      });
-
-      console.log('Teste - Data:', data);
-      console.log('Teste - Error:', error);
-
-      if (error) {
-        throw new Error(`Erro na comunicação: ${error.message || 'Erro desconhecido'}`);
-      }
-
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
-      toast({
-        title: "Conexão bem-sucedida!",
-        description: "A conexão com o Apache Guacamole foi estabelecida com sucesso.",
-      });
-
-    } catch (error) {
-      console.error('Erro ao testar conexão Guacamole:', error);
-      
-      let errorMessage = 'Não foi possível conectar ao Guacamole.';
-      
-      if (error.message.includes('Failed to fetch')) {
-        errorMessage = 'Erro de conectividade: Verifique se a URL do Guacamole está correta e acessível.\n\n• A URL inclui o protocolo (https:// ou http://)\n• O servidor Guacamole está online\n• Não há bloqueios de firewall\n• A URL está no formato correto (ex: https://seu-servidor.com/guacamole)';
-      } else if (error.message.includes('404')) {
-        errorMessage = 'URL não encontrada: Verifique se a URL do Guacamole está correta. Exemplo: https://seu-servidor.com/guacamole';
-      } else if (error.message.includes('401') || error.message.includes('Credenciais inválidas')) {
-        errorMessage = 'Credenciais inválidas: Verifique se o usuário e senha estão corretos e se o usuário tem permissões administrativas.';
-      } else if (error.message.includes('403')) {
-        errorMessage = 'Acesso negado: O usuário não tem permissões suficientes. Certifique-se de usar um usuário com privilégios administrativos no Guacamole.';
-      } else {
-        errorMessage = error.message;
-      }
-      
-      toast({
-        title: "Erro na conexão",
-        description: errorMessage,
+        description: "Ocorreu um erro ao salvar a configuração do Guacamole.",
         variant: "destructive"
       });
     } finally {
-      setTesting(false);
+      setIsLoading(false);
     }
   };
 
-  const isFormValid = config.base_url && config.username && config.password && config.directory;
+  const handleDelete = async () => {
+    if (!guacamoleIntegration) return;
+
+    if (window.confirm('Tem certeza que deseja excluir esta configuração?')) {
+      setIsLoading(true);
+      try {
+        await deleteIntegration.mutateAsync(guacamoleIntegration.id);
+        setConfig({
+          base_url: '',
+          username: '',
+          password: '',
+          data_source: 'postgresql',
+          is_active: true,
+          name: 'Guacamole'
+        });
+        toast({
+          title: "Configuração excluída!",
+          description: "A configuração do Guacamole foi excluída com sucesso."
+        });
+      } catch (error) {
+        toast({
+          title: "Erro ao excluir",
+          description: "Ocorreu um erro ao excluir a configuração do Guacamole.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="bg-orange-100 p-2 rounded-lg">
-            <Monitor className="h-6 w-6 text-orange-600" />
+        <CardTitle className="flex items-center gap-2">
+          <div className="h-8 w-8 bg-blue-500 rounded flex items-center justify-center">
+            <span className="text-white font-bold text-sm">G</span>
           </div>
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              Apache Guacamole
-              {guacamoleIntegration && (
-                <Badge variant={guacamoleIntegration.is_active ? 'default' : 'secondary'}>
-                  {guacamoleIntegration.is_active ? 'Ativo' : 'Inativo'}
-                </Badge>
-              )}
-            </CardTitle>
-            <CardDescription>
-              Configure a integração com Apache Guacamole para acesso remoto
-            </CardDescription>
-          </div>
-        </div>
+          Configuração do Guacamole
+        </CardTitle>
+        <CardDescription>
+          Configure a integração com o Apache Guacamole para acesso remoto
+        </CardDescription>
       </CardHeader>
+      <CardContent className="space-y-4">
+        {guacamoleIntegration && !isEditing ? (
+          <div className="space-y-4">
+            <Alert>
+              <Check className="h-4 w-4" />
+              <AlertDescription>
+                Guacamole configurado e {guacamoleIntegration.is_active ? 'ativo' : 'inativo'}
+              </AlertDescription>
+            </Alert>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium text-gray-500">URL Base</Label>
+                <p className="text-sm">{guacamoleIntegration.base_url}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Usuário</Label>
+                <p className="text-sm">{guacamoleIntegration.username}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Data Source</Label>
+                <p className="text-sm">{guacamoleIntegration.api_token || 'postgresql'}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Status</Label>
+                <p className="text-sm">{guacamoleIntegration.is_active ? 'Ativo' : 'Inativo'}</p>
+              </div>
+            </div>
 
-      <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="guacamole-name">Nome da Integração</Label>
-          <Input
-            id="guacamole-name"
-            value={config.name}
-            onChange={(e) => setConfig({ ...config, name: e.target.value })}
-            placeholder="Apache Guacamole"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="guacamole-url">URL Base *</Label>
-          <Input
-            id="guacamole-url"
-            value={config.base_url}
-            onChange={(e) => setConfig({ ...config, base_url: e.target.value })}
-            placeholder="https://guacamole.exemplo.com/guacamole"
-          />
-          <p className="text-xs text-muted-foreground">
-            Exemplo: https://seu-servidor.com/guacamole (inclua /guacamole se necessário)
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="guacamole-datasource">Data Source *</Label>
-          <Input
-            id="guacamole-datasource"
-            value={config.directory}
-            onChange={(e) => setConfig({ ...config, directory: e.target.value })}
-            placeholder="mysql"
-          />
-          <p className="text-xs text-muted-foreground">
-            Fonte de dados do Guacamole (ex: mysql, postgresql, ldap). Padrão: mysql
-          </p>
-        </div>
-
-        <Separator />
-
-        <div className="space-y-4">
-          <Label className="text-base font-medium">Credenciais de Acesso</Label>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex gap-2">
+              <Button onClick={() => setIsEditing(true)} variant="outline">
+                Editar
+              </Button>
+              <Button onClick={handleDelete} variant="destructive">
+                <X className="w-4 h-4 mr-2" />
+                Excluir
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="guacamole-username">Usuário *</Label>
+              <Label htmlFor="base_url">URL Base do Guacamole *</Label>
               <Input
-                id="guacamole-username"
+                id="base_url"
+                type="url"
+                placeholder="https://guacamole.exemplo.com"
+                value={config.base_url}
+                onChange={(e) => setConfig({ ...config, base_url: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="username">Usuário *</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="admin"
                 value={config.username}
                 onChange={(e) => setConfig({ ...config, username: e.target.value })}
-                placeholder="guacadmin"
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="guacamole-password">Senha *</Label>
+              <Label htmlFor="password">Senha *</Label>
               <Input
-                id="guacamole-password"
+                id="password"
                 type="password"
+                placeholder="••••••••"
                 value={config.password}
                 onChange={(e) => setConfig({ ...config, password: e.target.value })}
-                placeholder="••••••••"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="data_source">Data Source</Label>
+              <Select value={config.data_source} onValueChange={(value) => setConfig({ ...config, data_source: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o data source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="postgresql">PostgreSQL</SelectItem>
+                  <SelectItem value="mysql">MySQL</SelectItem>
+                  <SelectItem value="sqlserver">SQL Server</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="is_active">Ativo</Label>
+              <Switch
+                id="is_active"
+                checked={config.is_active}
+                onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button onClick={handleSave} disabled={isLoading}>
+                {isLoading ? 'Salvando...' : 'Salvar'}
+              </Button>
+              {isEditing && (
+                <Button onClick={() => setIsEditing(false)} variant="outline">
+                  Cancelar
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
-
-        <Separator />
-
-        <div className="flex items-center justify-between p-4 rounded-lg border">
-          <div>
-            <Label htmlFor="guacamole-active">Integração Ativa</Label>
-            <p className="text-sm text-muted-foreground">
-              Ative para habilitar o acesso remoto
-            </p>
-          </div>
-          <Switch
-            id="guacamole-active"
-            checked={config.is_active}
-            onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })}
-          />
-        </div>
-
-        <div className="flex gap-3">
-          <Button
-            onClick={handleTest}
-            disabled={testing || !isFormValid}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            {testing ? (
-              <TestTube className="h-4 w-4 animate-spin" />
-            ) : (
-              <TestTube className="h-4 w-4" />
-            )}
-            {testing ? 'Testando...' : 'Testar Conexão'}
-          </Button>
-
-          <Button
-            onClick={handleSave}
-            disabled={createIntegration.isPending || updateIntegration.isPending || !isFormValid}
-            className="flex-1"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            {guacamoleIntegration ? 'Atualizar' : 'Salvar'}
-          </Button>
-        </div>
-
-        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-          <h4 className="font-medium text-orange-900 mb-2">Configuração:</h4>
-          <ul className="text-sm text-orange-800 space-y-1">
-            <li>• Use um usuário com privilégios administrativos</li>
-            <li>• Certifique-se de que o Guacamole está acessível</li>
-            <li>• A URL deve incluir o contexto (/guacamole)</li>
-            <li>• Configure o Data Source correto (mysql, postgresql, etc.)</li>
-            <li>• Teste a conexão antes de ativar</li>
-          </ul>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
 };
+
+export default GuacamoleAdminConfig;

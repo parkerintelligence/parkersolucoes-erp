@@ -26,15 +26,40 @@ interface GLPITicketData {
   entity_id: number;
 }
 
+const logCronExecution = async (jobName: string, status: string, details: any) => {
+  try {
+    await supabase
+      .from('cron_job_logs')
+      .insert({
+        job_name: jobName,
+        status,
+        details
+      });
+  } catch (error) {
+    console.error('❌ [CRON-LOG] Erro ao salvar log:', error);
+  }
+};
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+  
   try {
     const currentTime = new Date();
-    console.log('🔍 [GLPI-CRON] Verificando chamados agendados...');
+    const requestBody = await req.json().catch(() => ({}));
+    
+    console.log('🔍 [GLPI-CRON] Iniciando processamento de chamados agendados...');
     console.log('🕐 [GLPI-CRON] Horário atual (UTC):', currentTime.toISOString());
+    console.log('🐛 [GLPI-CRON] Debug mode:', !!requestBody.debug);
+    
+    // Log da execução do cron
+    await logCronExecution('process-glpi-tickets-fixed', 'started', {
+      timestamp: currentTime.toISOString(),
+      debug: !!requestBody.debug
+    });
     
     // Buscar chamados que devem ser executados agora
     const { data: dueTickets, error } = await supabase
@@ -45,6 +70,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (error) {
       console.error('❌ [GLPI-CRON] Erro ao buscar chamados:', error);
+      await logCronExecution('process-glpi-tickets-fixed', 'error', {
+        error: error.message,
+        timestamp: currentTime.toISOString()
+      });
       throw new Error(`Erro ao buscar chamados: ${error.message}`);
     }
 
@@ -76,6 +105,8 @@ const handler = async (req: Request): Promise<Response> => {
           continue;
         }
 
+        console.log(`🔐 [GLPI-CRON] Integração GLPI encontrada para usuário ${ticket.user_id}`);
+
         // Preparar dados do chamado
         const ticketData: GLPITicketData = {
           name: ticket.title,
@@ -91,6 +122,8 @@ const handler = async (req: Request): Promise<Response> => {
           ...(ticket.assign_group_id && { assign_group_id: ticket.assign_group_id }),
         };
 
+        console.log(`📤 [GLPI-CRON] Enviando chamado para GLPI:`, ticketData);
+
         // Criar chamado no GLPI
         const glpiResponse = await fetch(`${glpiIntegration.base_url}/apirest.php/Ticket`, {
           method: 'POST',
@@ -103,11 +136,13 @@ const handler = async (req: Request): Promise<Response> => {
         });
 
         if (!glpiResponse.ok) {
+          const errorText = await glpiResponse.text();
+          console.error(`❌ [GLPI-CRON] Erro na API do GLPI: ${glpiResponse.status} - ${errorText}`);
           throw new Error(`GLPI API Error: ${glpiResponse.status} ${glpiResponse.statusText}`);
         }
 
         const glpiResult = await glpiResponse.json();
-        console.log(`✅ [GLPI-CRON] Chamado criado no GLPI: ${JSON.stringify(glpiResult)}`);
+        console.log(`✅ [GLPI-CRON] Chamado criado no GLPI:`, glpiResult);
 
         // Calcular próxima execução
         const { data: nextExecData, error: nextExecError } = await supabase
@@ -119,6 +154,8 @@ const handler = async (req: Request): Promise<Response> => {
         if (nextExecError) {
           console.error('❌ [GLPI-CRON] Erro ao calcular próxima execução:', nextExecError);
         }
+
+        console.log(`⏰ [GLPI-CRON] Próxima execução calculada: ${nextExecData}`);
 
         // Atualizar registro do agendamento
         const { error: updateError } = await supabase
@@ -155,17 +192,29 @@ const handler = async (req: Request): Promise<Response> => {
 
     const successCount = results.filter(r => r.success).length;
     const failureCount = results.filter(r => !r.success).length;
+    const executionTime = Date.now() - startTime;
 
-    console.log(`📊 [GLPI-CRON] Processamento concluído:`);
+    console.log(`📊 [GLPI-CRON] Processamento concluído em ${executionTime}ms:`);
     console.log(`  - Total de chamados processados: ${results.length}`);
     console.log(`  - Sucessos: ${successCount}`);
     console.log(`  - Falhas: ${failureCount}`);
+
+    // Log do resultado final
+    await logCronExecution('process-glpi-tickets-fixed', 'completed', {
+      total_processed: results.length,
+      successful: successCount,
+      failed: failureCount,
+      execution_time_ms: executionTime,
+      results,
+      timestamp: currentTime.toISOString()
+    });
 
     return new Response(JSON.stringify({ 
       success: true,
       executed_tickets: results.length,
       successful: successCount,
       failed: failureCount,
+      execution_time_ms: executionTime,
       results: results,
       timestamp: currentTime.toISOString(),
       message: `Processados ${results.length} chamados. ${successCount} sucessos, ${failureCount} falhas.`
@@ -175,11 +224,20 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
   } catch (error: any) {
+    const executionTime = Date.now() - startTime;
     console.error("❌ [GLPI-CRON] Erro crítico na função process-glpi-scheduled-tickets:", error);
+    
+    // Log do erro crítico
+    await logCronExecution('process-glpi-tickets-fixed', 'critical_error', {
+      error: error.message,
+      execution_time_ms: executionTime,
+      timestamp: new Date().toISOString()
+    });
     
     return new Response(JSON.stringify({ 
       success: false,
       error: error.message,
+      execution_time_ms: executionTime,
       timestamp: new Date().toISOString(),
       message: `Erro crítico: ${error.message}`
     }), {
