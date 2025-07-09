@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { usePasswords } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
@@ -38,8 +39,7 @@ const Links = () => {
   const [selectedCompany, setSelectedCompany] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [showPasswords, setShowPasswords] = useState(false);
-  const [groupByService, setGroupByService] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('name');
 
   // Filtrar apenas senhas que têm gera_link = true
@@ -89,35 +89,7 @@ const Links = () => {
       'Config': Settings,
     };
     const IconComponent = iconMap[service] || Globe;
-    return <IconComponent className="h-5 w-5" />;
-  };
-
-  const getServiceColor = (service: string) => {
-    const colorMap = {
-      'Sistema': 'from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700',
-      'Email': 'from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600',
-      'Hosting': 'from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700',
-      'Database': 'from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700',
-      'Cloud': 'from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700',
-      'Security': 'from-red-500 to-red-600 hover:from-red-600 hover:to-red-700',
-      'Monitoring': 'from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700',
-      'Config': 'from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700',
-    };
-    return colorMap[service] || 'from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700';
-  };
-
-  const getBadgeColor = (service: string) => {
-    const badgeColors = {
-      'Sistema': 'bg-blue-100 text-blue-800 border-blue-200',
-      'Email': 'bg-amber-100 text-amber-800 border-amber-200',
-      'Hosting': 'bg-purple-100 text-purple-800 border-purple-200',
-      'Database': 'bg-emerald-100 text-emerald-800 border-emerald-200',
-      'Cloud': 'bg-sky-100 text-sky-800 border-sky-200',
-      'Security': 'bg-red-100 text-red-800 border-red-200',
-      'Monitoring': 'bg-indigo-100 text-indigo-800 border-indigo-200',
-      'Config': 'bg-gray-100 text-gray-800 border-gray-200',
-    };
-    return badgeColors[service] || 'bg-slate-100 text-slate-800 border-slate-200';
+    return <IconComponent className="h-4 w-4" />;
   };
 
   const handleCopyCredentials = (link: any) => {
@@ -138,173 +110,154 @@ const Links = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-4 p-4 bg-slate-900 min-h-screen">
+      {/* Header compacto */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Links de Acesso</h1>
-          <p className="text-muted-foreground">Gerencie todos os seus links de sistemas e serviços</p>
+          <h1 className="text-xl font-bold text-white">Links de Acesso</h1>
+          <p className="text-slate-400 text-sm">Gerencie seus links de sistemas</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Button
             variant={viewMode === 'grid' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setViewMode('grid')}
+            className="h-8 w-8 p-0"
           >
-            <Grid className="h-4 w-4" />
+            <Grid className="h-3 w-3" />
           </Button>
           <Button
             variant={viewMode === 'list' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setViewMode('list')}
+            className="h-8 w-8 p-0"
           >
-            <List className="h-4 w-4" />
+            <List className="h-3 w-3" />
           </Button>
         </div>
       </div>
 
-      {/* Filtros Avançados */}
-      <Card className="bg-muted/20">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            <CardTitle>Filtros Avançados</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar links..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            
-            <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todas as empresas" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as empresas</SelectItem>
-                {companies.map((company) => (
-                  <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedService} onValueChange={setSelectedService}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos os serviços" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os serviços</SelectItem>
-                {uniqueServices.map((service) => (
-                  <SelectItem key={service} value={service}>{service}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger>
-                <SelectValue placeholder="Ordenar por" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name">Nome</SelectItem>
-                <SelectItem value="company">Empresa</SelectItem>
-                <SelectItem value="service">Serviço</SelectItem>
-                <SelectItem value="recent">Mais recentes</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="show-passwords"
-                checked={showPasswords}
-                onCheckedChange={setShowPasswords}
-              />
-              <Label htmlFor="show-passwords" className="text-sm">Mostrar credenciais</Label>
-            </div>
+      {/* Filtros em linha única */}
+      <div className="bg-slate-800 rounded-lg p-3 border border-slate-700">
+        <div className="flex items-center gap-3 text-xs">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2 top-1.5 h-3 w-3 text-slate-400" />
+            <Input
+              placeholder="Buscar..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-7 h-7 text-xs bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+            />
           </div>
           
+          <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+            <SelectTrigger className="h-7 w-32 text-xs bg-slate-700 border-slate-600 text-white">
+              <SelectValue placeholder="Empresa" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-700 border-slate-600">
+              <SelectItem value="all" className="text-xs text-white">Todas</SelectItem>
+              {companies.map((company) => (
+                <SelectItem key={company.id} value={company.id} className="text-xs text-white">{company.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedService} onValueChange={setSelectedService}>
+            <SelectTrigger className="h-7 w-28 text-xs bg-slate-700 border-slate-600 text-white">
+              <SelectValue placeholder="Serviço" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-700 border-slate-600">
+              <SelectItem value="all" className="text-xs text-white">Todos</SelectItem>
+              {uniqueServices.map((service) => (
+                <SelectItem key={service} value={service} className="text-xs text-white">{service}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="h-7 w-28 text-xs bg-slate-700 border-slate-600 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-700 border-slate-600">
+              <SelectItem value="name" className="text-xs text-white">Nome</SelectItem>
+              <SelectItem value="company" className="text-xs text-white">Empresa</SelectItem>
+              <SelectItem value="service" className="text-xs text-white">Serviço</SelectItem>
+            </SelectContent>
+          </Select>
+
           <div className="flex items-center space-x-2">
             <Switch
-              id="group-by-service"
-              checked={groupByService}
-              onCheckedChange={setGroupByService}
+              id="show-passwords"
+              checked={showPasswords}
+              onCheckedChange={setShowPasswords}
+              className="scale-75"
             />
-            <Label htmlFor="group-by-service" className="text-sm">Agrupar por serviço</Label>
+            <Label htmlFor="show-passwords" className="text-xs text-slate-300">Credenciais</Label>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-
-      {/* Lista/Grid de Links */}
+      {/* Grid/Lista de Links */}
       {sortedLinks.length > 0 ? (
         viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
             {sortedLinks.map((link) => {
               const company = companies.find(c => c.id === link.company_id);
               const service = link.service || 'Sistema';
               
               return (
-                <Card key={link.id} className="group hover:shadow-lg transition-all duration-300 hover:scale-105 bg-card/50 backdrop-blur-sm overflow-hidden">
-                  <CardContent className="p-0">
-                    {/* Header colorido */}
-                    <div className={`bg-gradient-to-r ${getServiceColor(service)} p-4 text-white relative`}>
-                      <div className="flex items-center justify-between mb-2">
+                <Card key={link.id} className="bg-slate-800 border-slate-700 hover:bg-slate-750 transition-colors group">
+                  <CardContent className="p-3">
+                    {/* Header do card */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-blue-400">
                         {getServiceIcon(service)}
-                        <Badge className="bg-white/20 text-white text-xs font-medium border-white/30">
-                          {service}
-                        </Badge>
                       </div>
-                      <h3 className="font-semibold text-lg truncate">{link.name}</h3>
-                      <p className="text-white/80 text-sm truncate">{company?.name || 'Sem empresa'}</p>
+                      <Badge className="bg-slate-700 text-slate-300 text-xs px-1 py-0 h-4">
+                        {service}
+                      </Badge>
                     </div>
 
-                    {/* Conteúdo */}
-                    <div className="p-4 space-y-3">
-                      {showPasswords && (
-                        <div className="space-y-2">
-                          {link.username && (
-                            <div className="text-xs">
-                              <span className="text-muted-foreground">Usuário:</span>
-                              <p className="font-mono text-sm truncate">{link.username}</p>
-                            </div>
-                          )}
-                          {link.password && (
-                            <div className="text-xs">
-                              <span className="text-muted-foreground">Senha:</span>
-                              <p className="font-mono text-sm truncate">{link.password}</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      {link.notes && (
-                        <p className="text-muted-foreground text-sm line-clamp-2">{link.notes}</p>
-                      )}
-                      
-                      <div className="flex gap-2">
-                        <Button 
-                          className={`flex-1 bg-gradient-to-r ${getServiceColor(service)} text-white border-0 shadow-md hover:shadow-lg transition-all duration-300`}
-                          onClick={() => window.open(link.url || '#', '_blank')}
-                          disabled={!link.url}
-                        >
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          Acessar
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCopyCredentials(link)}
-                          className="px-3"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
+                    {/* Título e empresa */}
+                    <div className="space-y-1 mb-3">
+                      <h3 className="font-medium text-white text-sm truncate">{link.name}</h3>
+                      <p className="text-slate-400 text-xs truncate">{company?.name || 'Sem empresa'}</p>
+                    </div>
+
+                    {/* Credenciais (se habilitado) */}
+                    {showPasswords && (
+                      <div className="space-y-1 mb-3 text-xs">
+                        {link.username && (
+                          <p className="text-slate-400 truncate">
+                            <span className="text-slate-500">User:</span> {link.username}
+                          </p>
+                        )}
+                        {link.password && (
+                          <p className="text-slate-400 truncate">
+                            <span className="text-slate-500">Pass:</span> ••••••••
+                          </p>
+                        )}
                       </div>
+                    )}
+                    
+                    {/* Botões */}
+                    <div className="flex gap-1">
+                      <Button 
+                        className="flex-1 h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={() => window.open(link.url || '#', '_blank')}
+                        disabled={!link.url}
+                      >
+                        <ExternalLink className="mr-1 h-3 w-3" />
+                        Abrir
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopyCredentials(link)}
+                        className="h-7 w-7 p-0 border-slate-600 hover:bg-slate-700"
+                      >
+                        <Copy className="h-3 w-3 text-slate-400" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -312,36 +265,36 @@ const Links = () => {
             })}
           </div>
         ) : (
-          <Card>
+          <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-0">
-              <div className="divide-y">
+              <div className="divide-y divide-slate-700">
                 {sortedLinks.map((link) => {
                   const company = companies.find(c => c.id === link.company_id);
                   const service = link.service || 'Sistema';
                   
                   return (
-                    <div key={link.id} className="p-4 hover:bg-muted/30 transition-colors">
+                    <div key={link.id} className="p-3 hover:bg-slate-750 transition-colors">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className={`p-2 rounded-lg bg-gradient-to-r ${getServiceColor(service)} text-white`}>
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="p-1.5 rounded bg-slate-700 text-blue-400">
                             {getServiceIcon(service)}
                           </div>
                           
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <h3 className="font-semibold truncate">{link.name}</h3>
-                              <Badge className={`${getBadgeColor(service)} text-xs`}>
+                              <h3 className="font-medium truncate text-white text-sm">{link.name}</h3>
+                              <Badge className="bg-slate-700 text-slate-300 text-xs">
                                 {service}
                               </Badge>
                             </div>
-                            <p className="text-muted-foreground text-sm truncate">{company?.name || 'Sem empresa'}</p>
+                            <p className="text-slate-400 text-xs truncate">{company?.name || 'Sem empresa'}</p>
                             {showPasswords && (
-                              <div className="mt-2 text-xs space-y-1">
+                              <div className="mt-1 text-xs space-y-0.5">
                                 {link.username && (
-                                  <p><span className="text-muted-foreground">Usuário:</span> <code className="bg-muted px-1 rounded">{link.username}</code></p>
+                                  <p className="text-slate-400"><span className="text-slate-500">User:</span> <code className="bg-slate-700 px-1 rounded">{link.username}</code></p>
                                 )}
                                 {link.password && (
-                                  <p><span className="text-muted-foreground">Senha:</span> <code className="bg-muted px-1 rounded">{link.password}</code></p>
+                                  <p className="text-slate-400"><span className="text-slate-500">Pass:</span> <code className="bg-slate-700 px-1 rounded">••••••••</code></p>
                                 )}
                               </div>
                             )}
@@ -353,17 +306,18 @@ const Links = () => {
                             variant="outline"
                             size="sm"
                             onClick={() => handleCopyCredentials(link)}
+                            className="h-7 text-xs border-slate-600 hover:bg-slate-700 text-slate-300"
                           >
-                            <Copy className="h-4 w-4 mr-1" />
+                            <Copy className="h-3 w-3 mr-1" />
                             Copiar
                           </Button>
                           <Button 
                             onClick={() => window.open(link.url || '#', '_blank')}
                             disabled={!link.url}
-                            className="bg-primary"
+                            className="h-7 text-xs bg-blue-600 hover:bg-blue-700"
                           >
-                            <ExternalLink className="h-4 w-4 mr-1" />
-                            Acessar
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            Abrir
                           </Button>
                         </div>
                       </div>
@@ -375,14 +329,14 @@ const Links = () => {
           </Card>
         )
       ) : (
-        <Card className="border-dashed">
-          <CardContent className="p-12">
-            <div className="text-center text-muted-foreground">
-              <div className="bg-muted/20 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Link className="h-12 w-12 opacity-50" />
+        <Card className="border-dashed border-slate-600 bg-slate-800">
+          <CardContent className="p-8">
+            <div className="text-center text-slate-400">
+              <div className="bg-slate-700 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Link className="h-8 w-8 opacity-50" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Nenhum link encontrado</h3>
-              <p className="text-muted-foreground max-w-md mx-auto">
+              <h3 className="text-lg font-medium mb-2 text-white">Nenhum link encontrado</h3>
+              <p className="text-slate-400 text-sm max-w-md mx-auto">
                 Configure senhas com "Gerar Link" ativado para visualizar os sistemas de acesso aqui.
               </p>
             </div>
