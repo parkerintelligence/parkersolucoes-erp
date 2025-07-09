@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useIntegrations, Integration } from '@/hooks/useIntegrations';
+import { useIntegrations } from '@/hooks/useIntegrations';
 import { useWhatsAppConversations, useCreateWhatsAppConversation, useUpdateWhatsAppConversation } from '@/hooks/useWhatsAppConversations';
 import { EvolutionApiService } from '@/utils/evolutionApiService';
 import { 
@@ -34,66 +34,51 @@ interface WhatsAppMessage {
   messageType?: string;
 }
 
-interface WhatsAppChat {
-  id: string;
-  name: string;
-  lastMessage: string;
-  timestamp: number;
-  unreadCount: number;
-  phoneNumber: string;
-  profilePicUrl?: string;
-  isGroup?: boolean;
-  participantsCount?: number;
-}
-
 const WhatsAppChats = () => {
   const { data: integrations } = useIntegrations();
-  const { data: conversations } = useWhatsAppConversations();
+  const { data: conversations, isLoading: loadingConversations, refetch: refetchConversations } = useWhatsAppConversations();
   const createConversation = useCreateWhatsAppConversation();
   const updateConversation = useUpdateWhatsAppConversation();
   
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<string>('disconnected');
   const [qrCode, setQrCode] = useState<string>('');
-  const [chats, setChats] = useState<WhatsAppChat[]>([]);
-  const [selectedChat, setSelectedChat] = useState<WhatsAppChat | null>(null);
+  const [selectedChat, setSelectedChat] = useState<any>(null);
   const [messages, setMessages] = useState<WhatsAppMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const evolutionIntegration = integrations?.find(int => int.type === 'evolution_api');
 
-  // Converter integração para o tipo esperado pelo EvolutionApiService
-  const convertIntegration = (integration: Integration): Integration | null => {
-    if (!integration || !integration.api_token) {
-      console.error('❌ Integração inválida ou api_token faltando:', integration);
-      return null;
-    }
-
-    // Retornar a integração completa, pois agora EvolutionApiService aceita o tipo completo
-    return integration;
-  };
+  // Converter conversas do banco para formato da tela
+  const chats = (conversations || []).map(conv => ({
+    id: conv.id,
+    name: conv.contact_name,
+    lastMessage: conv.last_message || 'Nova conversa',
+    timestamp: conv.last_message_time ? new Date(conv.last_message_time).getTime() : Date.now(),
+    unreadCount: conv.unread_count || 0,
+    phoneNumber: conv.contact_phone,
+    profilePicUrl: undefined,
+    isGroup: false,
+    participantsCount: undefined
+  }));
 
   const checkConnection = async () => {
     if (!evolutionIntegration) return;
 
-    const convertedIntegration = convertIntegration(evolutionIntegration);
-    if (!convertedIntegration) return;
-
     try {
       console.log('🔍 Verificando conexão da Evolution API...');
-      const service = new EvolutionApiService(convertedIntegration);
+      const service = new EvolutionApiService(evolutionIntegration);
       const status = await service.checkInstanceStatus();
       setIsConnected(status.active);
       setConnectionStatus(status.active ? 'connected' : 'disconnected');
       
       if (status.active) {
-        console.log('✅ Conectado! Carregando conversas...');
-        await loadChats();
+        console.log('✅ Conectado! Atualizando conversas...');
+        await refetchConversations();
       } else {
         console.log('❌ Não conectado');
       }
@@ -114,8 +99,7 @@ const WhatsAppChats = () => {
       return;
     }
 
-    const convertedIntegration = convertIntegration(evolutionIntegration);
-    if (!convertedIntegration) {
+    if (!evolutionIntegration.api_token) {
       toast({
         title: "Erro",
         description: "Configuração da Evolution API inválida - API Token é obrigatório",
@@ -129,7 +113,7 @@ const WhatsAppChats = () => {
 
     try {
       console.log('🔄 Iniciando conexão com WhatsApp...');
-      const service = new EvolutionApiService(convertedIntegration);
+      const service = new EvolutionApiService(evolutionIntegration);
       const instanceInfo = await service.getInstanceInfo();
       
       if (instanceInfo.error) {
@@ -147,7 +131,7 @@ const WhatsAppChats = () => {
         setIsConnected(true);
         setConnectionStatus('connected');
         setIsConnecting(false);
-        await loadChats();
+        await refetchConversations();
         toast({
           title: "Conectado!",
           description: "WhatsApp Web já está conectado",
@@ -165,7 +149,7 @@ const WhatsAppChats = () => {
             setConnectionStatus('connected');
             setIsQrDialogOpen(false);
             setIsConnecting(false);
-            await loadChats();
+            await refetchConversations();
             toast({
               title: "Conectado!",
               description: "WhatsApp Web conectado com sucesso",
@@ -210,16 +194,12 @@ const WhatsAppChats = () => {
   const disconnectFromWhatsApp = async () => {
     if (!evolutionIntegration) return;
 
-    const convertedIntegration = convertIntegration(evolutionIntegration);
-    if (!convertedIntegration) return;
-
     try {
-      const service = new EvolutionApiService(convertedIntegration);
+      const service = new EvolutionApiService(evolutionIntegration);
       await service.disconnectInstance();
       
       setIsConnected(false);
       setConnectionStatus('disconnected');
-      setChats([]);
       setSelectedChat(null);
       setMessages([]);
       
@@ -237,90 +217,13 @@ const WhatsAppChats = () => {
     }
   };
 
-  const loadChats = async () => {
+  const loadMessages = async (chat: any) => {
     if (!evolutionIntegration) return;
-
-    const convertedIntegration = convertIntegration(evolutionIntegration);
-    if (!convertedIntegration) return;
-
-    setIsLoading(true);
-    try {
-      console.log('📱 Carregando conversas da Evolution API...');
-      const service = new EvolutionApiService(convertedIntegration);
-      const chatsData = await service.getConversations();
-      
-      console.log('📊 Dados brutos das conversas:', chatsData);
-      
-      const formattedChats: WhatsAppChat[] = chatsData.map((chat: any) => ({
-        id: chat.id || chat.remoteJid,
-        name: chat.name || chat.pushName || chat.remoteJid,
-        lastMessage: chat.lastMessage || (chat.isGroup ? 'Conversa em grupo' : 'Nova conversa'),
-        timestamp: chat.timestamp || Date.now(),
-        unreadCount: chat.unreadCount || 0,
-        phoneNumber: chat.remoteJid || chat.id,
-        profilePicUrl: chat.profilePicUrl,
-        isGroup: chat.isGroup || false,
-        participantsCount: chat.participantsCount
-      }));
-      
-      console.log('✅ Conversas formatadas:', formattedChats);
-      setChats(formattedChats);
-      
-      // Sincronizar com o banco de dados
-      for (const chat of formattedChats) {
-        const existingConversation = conversations?.find(c => c.contact_phone === chat.phoneNumber);
-        
-        if (!existingConversation) {
-          try {
-            await createConversation.mutateAsync({
-              contact_name: chat.name,
-              contact_phone: chat.phoneNumber,
-              last_message: chat.lastMessage,
-              last_message_time: new Date(chat.timestamp).toISOString(),
-              unread_count: chat.unreadCount,
-              status: 'active',
-              integration_id: evolutionIntegration.id
-            });
-          } catch (error) {
-            console.warn('⚠️ Erro ao criar conversa no BD:', error);
-          }
-        } else {
-          try {
-            await updateConversation.mutateAsync({
-              id: existingConversation.id,
-              updates: {
-                last_message: chat.lastMessage,
-                last_message_time: new Date(chat.timestamp).toISOString(),
-                unread_count: chat.unreadCount
-              }
-            });
-          } catch (error) {
-            console.warn('⚠️ Erro ao atualizar conversa no BD:', error);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('❌ Erro ao carregar conversas:', error);
-      toast({
-        title: "Erro",
-        description: `Erro ao carregar conversas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadMessages = async (chat: WhatsAppChat) => {
-    if (!evolutionIntegration) return;
-
-    const convertedIntegration = convertIntegration(evolutionIntegration);
-    if (!convertedIntegration) return;
 
     try {
       console.log('📥 Carregando mensagens para:', chat.name);
-      const service = new EvolutionApiService(convertedIntegration);
-      const messagesData = await service.getMessages(chat.id);
+      const service = new EvolutionApiService(evolutionIntegration);
+      const messagesData = await service.getMessages(chat.phoneNumber);
       
       const formattedMessages: WhatsAppMessage[] = messagesData.map((msg: any) => ({
         id: msg.key?.id || msg.id,
@@ -346,11 +249,8 @@ const WhatsAppChats = () => {
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedChat || !evolutionIntegration) return;
 
-    const convertedIntegration = convertIntegration(evolutionIntegration);
-    if (!convertedIntegration) return;
-
     try {
-      const service = new EvolutionApiService(convertedIntegration);
+      const service = new EvolutionApiService(evolutionIntegration);
       const result = await service.sendMessage(selectedChat.phoneNumber, newMessage);
       
       if (result.success) {
@@ -365,12 +265,6 @@ const WhatsAppChats = () => {
         
         setMessages(prev => [...prev, newMsg]);
         setNewMessage('');
-        
-        setChats(prev => prev.map(chat => 
-          chat.id === selectedChat.id 
-            ? { ...chat, lastMessage: newMessage, timestamp: Date.now() }
-            : chat
-        ));
         
         toast({
           title: "Mensagem enviada",
@@ -393,7 +287,7 @@ const WhatsAppChats = () => {
     }
   };
 
-  const selectChat = async (chat: WhatsAppChat) => {
+  const selectChat = async (chat: any) => {
     setSelectedChat(chat);
     await loadMessages(chat);
   };
@@ -497,10 +391,10 @@ const WhatsAppChats = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={loadChats}
-                disabled={isLoading}
+                onClick={() => refetchConversations()}
+                disabled={loadingConversations}
               >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${loadingConversations ? 'animate-spin' : ''}`} />
               </Button>
               <Button
                 variant="ghost"
@@ -547,14 +441,6 @@ const WhatsAppChats = () => {
                     <span className="text-xs text-muted-foreground truncate">
                       {chat.phoneNumber}
                     </span>
-                    {chat.isGroup && chat.participantsCount && (
-                      <>
-                        <span className="text-xs text-muted-foreground">•</span>
-                        <span className="text-xs text-muted-foreground">
-                          {chat.participantsCount} participantes
-                        </span>
-                      </>
-                    )}
                   </div>
                 </div>
                 <span className="text-xs text-muted-foreground">
@@ -567,12 +453,12 @@ const WhatsAppChats = () => {
             </div>
           ))}
           
-          {chats.length === 0 && !isLoading && (
+          {chats.length === 0 && !loadingConversations && (
             <div className="p-6 text-center text-muted-foreground">
               <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p>Nenhuma conversa encontrada</p>
               <Button 
-                onClick={loadChats} 
+                onClick={() => refetchConversations()} 
                 variant="outline" 
                 size="sm" 
                 className="mt-2"
@@ -583,7 +469,7 @@ const WhatsAppChats = () => {
             </div>
           )}
 
-          {isLoading && (
+          {loadingConversations && (
             <div className="p-6 text-center">
               <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin" />
               <p className="text-sm text-muted-foreground">Carregando conversas...</p>
@@ -650,12 +536,12 @@ const WhatsAppChats = () => {
                   
                   <div className="space-y-2">
                     <Button 
-                      onClick={loadChats} 
+                      onClick={() => refetchConversations()} 
                       variant="outline"
                       className="w-full"
-                      disabled={isLoading}
+                      disabled={loadingConversations}
                     >
-                      {isLoading ? (
+                      {loadingConversations ? (
                         <>
                           <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                           Carregando...

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { usePasswords } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
@@ -142,7 +141,7 @@ const Links = () => {
         <div className="flex items-center gap-2">
           <Button
             onClick={exportToPDF}
-            className="bg-green-600 hover:bg-green-700 text-white h-8 px-3"
+            className="bg-blue-900 hover:bg-blue-800 text-white h-8 px-3"
           >
             <Download className="h-4 w-4 mr-1" />
             Exportar
