@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,8 @@ import {
   CheckCircle,
   Play,
   TestTube,
-  RefreshCcw
+  RefreshCcw,
+  Settings
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useZabbixWebhooks, ZabbixWebhook } from '@/hooks/useZabbixWebhooks';
@@ -43,7 +43,9 @@ export const ZabbixWebhookManager = () => {
     executeWebhook, 
     toggleWebhook,
     testingWebhook,
-    executingWebhook
+    executingWebhook,
+    evolutionIntegration,
+    glpiIntegration
   } = useZabbixWebhooks();
 
   const [isCreating, setIsCreating] = useState(false);
@@ -131,6 +133,80 @@ export const ZabbixWebhookManager = () => {
 
   return (
     <div className="space-y-6">
+      {/* Integration Status Panel */}
+      <Card className="bg-gray-800 border-gray-700">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Settings className="h-5 w-5" />
+            Status das Integrações
+          </CardTitle>
+          <CardDescription className="text-gray-400">
+            Verifique se as integrações necessárias estão configuradas
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+              <div className="flex items-center gap-3">
+                <MessageSquare className="h-5 w-5 text-green-400" />
+                <div>
+                  <div className="font-medium text-white">Evolution API (WhatsApp)</div>
+                  <div className="text-sm text-gray-400">Para envio de notificações</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {evolutionIntegration ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 text-green-400" />
+                    <span className="text-sm text-green-400">Configurado</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-4 w-4 text-red-400" />
+                    <span className="text-sm text-red-400">Não configurado</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+              <div className="flex items-center gap-3">
+                <ExternalLink className="h-5 w-5 text-blue-400" />
+                <div>
+                  <div className="font-medium text-white">GLPI</div>
+                  <div className="text-sm text-gray-400">Para criação de chamados</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {glpiIntegration ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 text-green-400" />
+                    <span className="text-sm text-green-400">Configurado</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-4 w-4 text-red-400" />
+                    <span className="text-sm text-red-400">Não configurado</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {(!evolutionIntegration || !glpiIntegration) && (
+            <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-600 rounded-lg">
+              <div className="flex items-center gap-2 text-yellow-400">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="font-medium">Configuração necessária</span>
+              </div>
+              <p className="text-sm text-yellow-300 mt-1">
+                Configure as integrações no painel de administração para usar todas as funcionalidades dos webhooks.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card className="bg-gray-800 border-gray-700">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
@@ -510,7 +586,7 @@ export const ZabbixWebhookManager = () => {
                           onClick={() => testWebhook(webhook)}
                           disabled={testingWebhook === webhook.id}
                           className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20"
-                          title="Testar webhook"
+                          title="Testar webhook com integrações reais"
                         >
                           <TestTube className={`h-4 w-4 ${testingWebhook === webhook.id ? 'animate-pulse' : ''}`} />
                         </Button>
@@ -520,7 +596,7 @@ export const ZabbixWebhookManager = () => {
                           onClick={() => executeWebhook(webhook)}
                           disabled={!webhook.is_active || executingWebhook === webhook.id}
                           className="text-green-400 hover:text-green-300 hover:bg-green-900/20"
-                          title="Executar webhook"
+                          title="Executar webhook em produção"
                         >
                           <Play className={`h-4 w-4 ${executingWebhook === webhook.id ? 'animate-pulse' : ''}`} />
                         </Button>

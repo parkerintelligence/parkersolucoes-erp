@@ -1,4 +1,3 @@
-
 import { Integration } from '@/hooks/useIntegrations';
 
 export interface EvolutionApiMessage {
@@ -33,7 +32,7 @@ export class EvolutionApiService {
 
   private addDebugLog(message: string) {
     this.debugLogs.push(`[${new Date().toISOString()}] ${message}`);
-    console.log(`🔍 ${message}`);
+    console.log(`🔍 Evolution API: ${message}`);
   }
 
   private normalizeUrl(baseUrl: string): string {
@@ -92,11 +91,11 @@ export class EvolutionApiService {
     const instanceName = integrationAny.instance_name || 'main_instance';
     const baseUrl = this.normalizeUrl(this.integration.base_url);
 
+    // Optimized endpoints for webhook usage
     const endpoints = [
-      `/instance/fetchInstances`,
-      `/instance/connect/${instanceName}`,
       `/${instanceName}/instance/connectionState`,
-      `/fetchInstances`
+      `/instance/connectionState/${instanceName}`,
+      `/instance/fetchInstances`
     ];
 
     for (const endpoint of endpoints) {
@@ -111,15 +110,15 @@ export class EvolutionApiService {
 
         if (response.ok) {
           const data = await response.json();
-          this.addDebugLog(`✅ Instância verificada via ${endpoint}`);
+          this.addDebugLog(`✅ Instance verified via ${endpoint}`);
           return { active: true };
         }
       } catch (error) {
-        this.addDebugLog(`❌ Erro ao verificar instância via ${endpoint}: ${error}`);
+        this.addDebugLog(`❌ Error checking instance via ${endpoint}: ${error}`);
       }
     }
 
-    return { active: false, error: 'Não foi possível verificar o status da instância' };
+    return { active: false, error: 'Unable to verify instance status' };
   }
 
   private async sendWithAuthMethod(
@@ -171,7 +170,7 @@ export class EvolutionApiService {
       return {
         success: false,
         error: {
-          message: 'Configuração inválida da Evolution API',
+          message: 'Invalid Evolution API configuration',
           details: configValidation.errors.join(', '),
           logs: this.debugLogs
         }
@@ -184,8 +183,8 @@ export class EvolutionApiService {
       return {
         success: false,
         error: {
-          message: 'Número de telefone inválido',
-          details: 'Use o formato: 5511999999999 ou 11999999999',
+          message: 'Invalid phone number',
+          details: 'Use format: 5511999999999 or 11999999999',
           logs: this.debugLogs
         }
       };
@@ -195,58 +194,37 @@ export class EvolutionApiService {
     const instanceName = integrationAny.instance_name || 'main_instance';
     const baseUrl = this.normalizeUrl(this.integration.base_url);
     
-    this.addDebugLog(`Configuração: Base URL: ${baseUrl}, Instância: ${instanceName}, Telefone: ${cleanPhoneNumber}`);
+    this.addDebugLog(`Config - Base URL: ${baseUrl}, Instance: ${instanceName}, Phone: ${cleanPhoneNumber}`);
 
-    // Endpoints corretos da Evolution API (baseado nos padrões mais comuns)
+    // Optimized endpoints for webhook messaging (most reliable first)
     const endpoints = [
-      // Endpoints mais comuns da Evolution API v2
-      `/message/sendText/${instanceName}`,
-      `/sendMessage/${instanceName}`,
       `/${instanceName}/message/sendText`,
+      `/message/sendText/${instanceName}`,
       `/${instanceName}/sendMessage`,
-      
-      // Endpoints da Evolution API v1
-      `/api/sendText/${instanceName}`,
-      `/api/sendMessage/${instanceName}`,
-      
-      // Endpoints sem instância específica
-      `/message/sendText`,
-      `/sendMessage`,
-      `/api/sendText`,
-      `/api/sendMessage`
+      `/sendMessage/${instanceName}`
     ];
 
-    // Formatos de payload simplificados (focando nos que funcionam)
+    // Optimized payload formats (most compatible first)
     const payloadFormats = [
-      // Formato mais simples e comum
       {
         number: cleanPhoneNumber,
         text: message
       },
-      // Formato com @s.whatsapp.net
       {
         number: `${cleanPhoneNumber}@s.whatsapp.net`,
         text: message
-      },
-      // Formato Evolution API v2
-      {
-        number: cleanPhoneNumber,
-        textMessage: {
-          text: message
-        }
       }
     ];
 
-    // Métodos de autenticação mais comuns
+    // Authentication methods (most common first)
     const authMethods = [
       { 'apikey': this.integration.api_token },
-      { 'Authorization': `Bearer ${this.integration.api_token}` },
-      { 'x-api-key': this.integration.api_token }
+      { 'Authorization': `Bearer ${this.integration.api_token}` }
     ];
 
     let lastError: EvolutionApiError | null = null;
 
-    // Testar combinações mais prováveis primeiro
+    // Try most reliable combinations first for webhook usage
     for (const endpoint of endpoints) {
       const fullUrl = `${baseUrl}${endpoint}`;
       
@@ -255,35 +233,35 @@ export class EvolutionApiService {
           try {
             const { response, responseData } = await this.sendWithAuthMethod(fullUrl, payload, authHeaders);
             
-            // Verificar sucesso
+            // Check for success
             if (response.ok && responseData && !responseData.error) {
-              this.addDebugLog(`✅ SUCESSO! Mensagem enviada via ${endpoint}`);
+              this.addDebugLog(`✅ SUCCESS! Message sent via ${endpoint}`);
               return { success: true };
             }
             
             lastError = {
-              message: `Falha no envio`,
+              message: `Send failed`,
               details: responseData?.message || responseData?.error || `Status ${response.status}`,
               endpoint: fullUrl,
               statusCode: response.status,
               logs: this.debugLogs
             };
             
-            this.addDebugLog(`❌ Falhou: ${endpoint} - Status ${response.status}`);
+            this.addDebugLog(`❌ Failed: ${endpoint} - Status ${response.status}`);
             
           } catch (error) {
             lastError = {
-              message: 'Erro de conexão',
-              details: error instanceof Error ? error.message : 'Erro desconhecido',
+              message: 'Connection error',
+              details: error instanceof Error ? error.message : 'Unknown error',
               endpoint: fullUrl,
               logs: this.debugLogs
             };
             
-            this.addDebugLog(`❌ Erro de rede: ${error}`);
+            this.addDebugLog(`❌ Network error: ${error}`);
           }
           
-          // Pequeno delay para evitar rate limiting
-          await new Promise(resolve => setTimeout(resolve, 100));
+          // Small delay to avoid rate limiting in webhook context
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
       }
     }
@@ -291,33 +269,37 @@ export class EvolutionApiService {
     return { 
       success: false, 
       error: lastError || {
-        message: 'Não foi possível enviar a mensagem',
-        details: 'Todas as configurações testadas falharam. Verifique se a instância está ativa.',
+        message: 'Unable to send message',
+        details: 'All configurations tested failed. Check if instance is active.',
         logs: this.debugLogs
       }
     };
   }
 
+  // Optimized for webhook usage - faster connection test
   async testConnection(): Promise<{ success: boolean; error?: string }> {
+    this.addDebugLog('🧪 Testing connection for webhook usage...');
+    
     const instanceStatus = await this.checkInstanceStatus();
     
     if (!instanceStatus.active) {
       return {
         success: false,
-        error: instanceStatus.error || 'Instância não está ativa'
+        error: instanceStatus.error || 'Instance is not active'
       };
     }
 
-    // Tentar enviar uma mensagem de teste para um número fictício
-    const testResult = await this.sendMessage('5511999999999', 'Teste de conexão');
-    
-    if (testResult.success) {
-      return { success: true };
-    } else {
-      return {
-        success: false,
-        error: testResult.error?.message || 'Falha no teste de conexão'
-      };
-    }
+    this.addDebugLog('✅ Connection test successful');
+    return { success: true };
+  }
+
+  // Get debug logs for webhook troubleshooting
+  getDebugLogs(): string[] {
+    return [...this.debugLogs];
+  }
+
+  // Clear debug logs
+  clearDebugLogs(): void {
+    this.debugLogs = [];
   }
 }
