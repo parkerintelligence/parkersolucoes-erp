@@ -12,53 +12,6 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// Função para calcular próxima execução baseada em expressão cron
-function calculateNextExecution(cronExpression: string, fromTime: Date = new Date()): Date {
-  const parts = cronExpression.split(' ');
-  if (parts.length < 5) {
-    // Fallback: próxima hora
-    const next = new Date(fromTime);
-    next.setHours(next.getHours() + 1, 0, 0, 0);
-    return next;
-  }
-
-  const minute = parseInt(parts[0]);
-  const hour = parseInt(parts[1]);
-  const dayOfWeek = parts[4];
-
-  const nextExecution = new Date(fromTime);
-  nextExecution.setHours(hour, minute, 0, 0);
-
-  // Se o horário já passou hoje, avançar para o próximo dia válido
-  if (nextExecution <= fromTime) {
-    nextExecution.setDate(nextExecution.getDate() + 1);
-  }
-
-  // Processar regras de dia da semana
-  if (dayOfWeek !== '*') {
-    if (dayOfWeek === '1-5') {
-      // Segunda a Sexta (1-5)
-      while (nextExecution.getDay() === 0 || nextExecution.getDay() === 6) {
-        nextExecution.setDate(nextExecution.getDate() + 1);
-      }
-    } else if (dayOfWeek.includes(',')) {
-      // Dias específicos separados por vírgula
-      const allowedDays = dayOfWeek.split(',').map(d => parseInt(d.trim()));
-      while (!allowedDays.includes(nextExecution.getDay())) {
-        nextExecution.setDate(nextExecution.getDate() + 1);
-      }
-    } else {
-      // Dia específico único
-      const targetDay = parseInt(dayOfWeek);
-      while (nextExecution.getDay() !== targetDay) {
-        nextExecution.setDate(nextExecution.getDate() + 1);
-      }
-    }
-  }
-
-  return nextExecution;
-}
-
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -103,14 +56,24 @@ const handler = async (req: Request): Promise<Response> => {
         if (response.ok) {
           console.log(`✅ Relatório ${report.name} executado com sucesso`);
           
-          // Calcular próxima execução e atualizar o registro
-          const nextExecution = calculateNextExecution(report.cron_expression);
-          
+          // Usar a função PostgreSQL para calcular a próxima execução
+          const { data: nextExecData, error: nextExecError } = await supabase
+            .rpc('calculate_next_execution', {
+              cron_expr: report.cron_expression,
+              from_time: now.toISOString()
+            });
+
+          if (nextExecError) {
+            console.error('❌ Erro ao calcular próxima execução:', nextExecError);
+            throw nextExecError;
+          }
+
+          // Atualizar o registro com a próxima execução calculada pelo PostgreSQL
           await supabase
             .from('scheduled_reports')
             .update({
               last_execution: now.toISOString(),
-              next_execution: nextExecution.toISOString(),
+              next_execution: nextExecData,
               execution_count: (report.execution_count || 0) + 1
             })
             .eq('id', report.id);
@@ -121,7 +84,7 @@ const handler = async (req: Request): Promise<Response> => {
             success: true,
             result: result,
             phone_number: report.phone_number,
-            next_execution: nextExecution.toISOString()
+            next_execution: nextExecData
           });
         } else {
           console.error(`❌ Falha no relatório ${report.name}:`, result);

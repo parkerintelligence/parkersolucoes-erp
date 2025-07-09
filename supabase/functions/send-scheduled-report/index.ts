@@ -158,8 +158,19 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Falha ao enviar mensagem WhatsApp: ${lastError}`);
     }
 
+    // Usar a função PostgreSQL para calcular a próxima execução
+    const { data: nextExecution, error: nextExecError } = await supabase
+      .rpc('calculate_next_execution', {
+        cron_expr: report.cron_expression,
+        from_time: new Date().toISOString()
+      });
+
+    if (nextExecError) {
+      console.error('❌ Erro ao calcular próxima execução:', nextExecError);
+      throw nextExecError;
+    }
+
     // Atualizar registro de execução
-    const nextExecution = calculateNextExecution(report.cron_expression);
     await supabase
       .from('scheduled_reports')
       .update({
@@ -374,32 +385,6 @@ async function getGLPIData(userId: string, settings: any) {
     pending: mockGlpiData.pendingTickets,
     list: ticketList ? `• ${ticketList}` : 'Nenhum chamado urgente'
   };
-}
-
-function calculateNextExecution(cronExpression: string): string {
-  // Implementação para agendamentos diários
-  const now = new Date();
-  const parts = cronExpression.split(' ');
-  
-  if (parts.length >= 2) {
-    const minute = parseInt(parts[0]) || 0;
-    const hour = parseInt(parts[1]) || 9;
-    
-    const nextExec = new Date();
-    nextExec.setHours(hour, minute, 0, 0);
-    
-    // Se o horário já passou hoje, agendar para amanhã
-    if (nextExec <= now) {
-      nextExec.setDate(nextExec.getDate() + 1);
-    }
-    
-    return nextExec.toISOString();
-  }
-  
-  // Fallback: próxima hora
-  const fallback = new Date();
-  fallback.setHours(fallback.getHours() + 1, 0, 0, 0);
-  return fallback.toISOString();
 }
 
 serve(handler);
