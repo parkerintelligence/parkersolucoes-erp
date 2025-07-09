@@ -47,7 +47,6 @@ export const ScheduledReportsTable = ({
       };
     }
     
-    // Fallback para casos onde o template não foi encontrado
     return {
       name: 'Template não encontrado',
       type: 'unknown',
@@ -78,19 +77,52 @@ export const ScheduledReportsTable = ({
     }
   };
 
+  // Função corrigida para mostrar horário correto
   const formatCronExpression = (cron: string) => {
-    const cronMap: { [key: string]: string } = {
-      '0 9 * * *': 'Diário às 9:00',
-      '0 8 * * *': 'Diário às 8:00',
-      '0 12 * * *': 'Diário às 12:00',
-      '0 18 * * *': 'Diário às 18:00',
-      '0 9 * * 1-5': 'Seg-Sex às 9:00',
-      '0 8 * * 1-5': 'Seg-Sex às 8:00',
-      '0 9 * * 1': 'Segundas às 9:00',
-      '0 9 * * 0': 'Domingos às 9:00'
-    };
+    console.log('🕐 Formatando expressão cron:', cron);
     
-    return cronMap[cron] || cron;
+    const parts = cron.split(' ');
+    if (parts.length < 5) return cron;
+    
+    const minute = parseInt(parts[0]) || 0;
+    const hour = parseInt(parts[1]) || 0;
+    const dayPart = parts[4];
+    
+    const timeString = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    
+    console.log('🕐 Horário extraído:', { minute, hour, timeString, dayPart });
+    
+    // Mapear descrições de frequência
+    if (dayPart === '*') {
+      return `Diário às ${timeString}`;
+    } else if (dayPart === '1-5') {
+      return `Seg-Sex às ${timeString}`;
+    } else if (dayPart === '0') {
+      return `Domingos às ${timeString}`;
+    } else if (dayPart === '1') {
+      return `Segundas às ${timeString}`;
+    } else if (dayPart === '2') {
+      return `Terças às ${timeString}`;
+    } else if (dayPart === '3') {
+      return `Quartas às ${timeString}`;
+    } else if (dayPart === '4') {
+      return `Quintas às ${timeString}`;
+    } else if (dayPart === '5') {
+      return `Sextas às ${timeString}`;
+    } else if (dayPart === '6') {
+      return `Sábados às ${timeString}`;
+    } else if (dayPart.includes(',')) {
+      const days = dayPart.split(',').map(d => {
+        const dayMap: { [key: string]: string } = {
+          '0': 'Dom', '1': 'Seg', '2': 'Ter', 
+          '3': 'Qua', '4': 'Qui', '5': 'Sex', '6': 'Sáb'
+        };
+        return dayMap[d.trim()] || d;
+      });
+      return `${days.join(', ')} às ${timeString}`;
+    }
+    
+    return `${timeString} (${dayPart})`;
   };
 
   if (reports.length === 0) {

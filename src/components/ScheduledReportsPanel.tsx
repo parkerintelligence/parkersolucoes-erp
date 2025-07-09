@@ -8,6 +8,7 @@ import { ScheduledReportsTable } from './automation/ScheduledReportsTable';
 import { ScheduledReportForm } from './automation/ScheduledReportForm';
 import { ReportsLogsPanel } from './automation/ReportsLogsPanel';
 import { ReportsStatusPanel } from './automation/ReportsStatusPanel';
+import { AutomationStats } from './automation/AutomationStats';
 import { useToast } from "@/hooks/use-toast"
 import { useScheduledReports, useDeleteScheduledReport, useToggleScheduledReportActive, useTestScheduledReport } from '@/hooks/useScheduledReports';
 import type { ScheduledReport } from '@/hooks/useScheduledReports';
@@ -138,10 +139,13 @@ export const ScheduledReportsPanel = () => {
           <TabsContent value="stats">
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle className="text-white">Estatísticas Detalhadas</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <BarChart3 className="h-5 w-5 text-blue-400" />
+                  Estatísticas Detalhadas
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-400">Estatísticas detalhadas em desenvolvimento...</p>
+                <AutomationStats />
               </CardContent>
             </Card>
           </TabsContent>
