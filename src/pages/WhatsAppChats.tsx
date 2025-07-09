@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useIntegrations } from '@/hooks/useIntegrations';
-import { useWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
+import { useWhatsAppConversations, useSyncWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
 import { EvolutionApiService } from '@/utils/evolutionApiService';
 import { 
   MessageSquare, 
@@ -20,7 +20,8 @@ import {
   Users,
   MessageCircle,
   Menu,
-  X
+  X,
+  Sync
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -37,6 +38,7 @@ interface WhatsAppMessage {
 const WhatsAppChats = () => {
   const { data: integrations } = useIntegrations();
   const { data: conversations, isLoading: loadingConversations, refetch: refetchConversations } = useWhatsAppConversations();
+  const syncConversations = useSyncWhatsAppConversations();
   
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<string>('disconnected');
@@ -51,7 +53,7 @@ const WhatsAppChats = () => {
 
   const evolutionIntegration = integrations?.find(int => int.type === 'evolution_api');
 
-  console.log('🎯 WhatsAppChats: Renderizando com dados:', {
+  console.log('🎯 WhatsAppChats: Dados atuais:', {
     conversations: conversations?.length || 0,
     loadingConversations,
     evolutionIntegration: !!evolutionIntegration,
@@ -59,7 +61,7 @@ const WhatsAppChats = () => {
     connectionStatus
   });
 
-  // Converter conversas do banco para formato da tela
+  // Converter conversas para formato da UI
   const chats = (conversations || []).map(conv => ({
     id: conv.id,
     name: conv.contact_name,
@@ -67,35 +69,31 @@ const WhatsAppChats = () => {
     timestamp: conv.last_message_time ? new Date(conv.last_message_time).getTime() : Date.now(),
     unreadCount: conv.unread_count || 0,
     phoneNumber: conv.contact_phone,
-    profilePicUrl: undefined,
     isGroup: conv.contact_phone?.includes('@g.us') || false,
-    participantsCount: undefined
   }));
 
   const checkConnection = async () => {
     if (!evolutionIntegration) {
-      console.log('🔍 WhatsAppChats: Nenhuma integração Evolution API encontrada');
+      console.log('🔍 Nenhuma integração Evolution API encontrada');
       return;
     }
 
     try {
-      console.log('🔍 WhatsAppChats: Verificando conexão da Evolution API...');
+      console.log('🔍 Verificando conexão...');
       const service = new EvolutionApiService(evolutionIntegration);
       const status = await service.checkInstanceStatus();
       
-      console.log('📊 WhatsAppChats: Status da conexão:', status);
+      console.log('📊 Status da conexão:', status);
       
       setIsConnected(status.active);
       setConnectionStatus(status.active ? 'connected' : 'disconnected');
       
       if (status.active) {
-        console.log('✅ WhatsAppChats: Conectado! Atualizando conversas...');
+        console.log('✅ Conectado! Sincronizando conversas...');
         await refetchConversations();
-      } else {
-        console.log('❌ WhatsAppChats: Não conectado');
       }
     } catch (error) {
-      console.error('❌ WhatsAppChats: Erro ao verificar conexão:', error);
+      console.error('❌ Erro ao verificar conexão:', error);
       setIsConnected(false);
       setConnectionStatus('disconnected');
     }
@@ -114,7 +112,7 @@ const WhatsAppChats = () => {
     if (!evolutionIntegration.api_token) {
       toast({
         title: "Erro",
-        description: "Configuração da Evolution API inválida - API Token é obrigatório",
+        description: "Token da API Evolution não configurado",
         variant: "destructive"
       });
       return;
@@ -124,7 +122,7 @@ const WhatsAppChats = () => {
     setConnectionStatus('connecting');
 
     try {
-      console.log('🔄 WhatsAppChats: Iniciando conexão com WhatsApp...');
+      console.log('🔄 Conectando ao WhatsApp...');
       const service = new EvolutionApiService(evolutionIntegration);
       const instanceInfo = await service.getInstanceInfo();
       
@@ -146,29 +144,35 @@ const WhatsAppChats = () => {
         await refetchConversations();
         toast({
           title: "Conectado!",
-          description: "WhatsApp Web já está conectado",
+          description: "WhatsApp Web conectado com sucesso",
         });
       } else if (instanceInfo.qrCode) {
         setQrCode(instanceInfo.qrCode);
         setIsQrDialogOpen(true);
         setConnectionStatus('waiting_qr');
         
+        // Polling para verificar conexão
         const pollConnection = setInterval(async () => {
-          const status = await service.checkInstanceStatus();
-          if (status.active) {
-            clearInterval(pollConnection);
-            setIsConnected(true);
-            setConnectionStatus('connected');
-            setIsQrDialogOpen(false);
-            setIsConnecting(false);
-            await refetchConversations();
-            toast({
-              title: "Conectado!",
-              description: "WhatsApp Web conectado com sucesso",
-            });
+          try {
+            const status = await service.checkInstanceStatus();
+            if (status.active) {
+              clearInterval(pollConnection);
+              setIsConnected(true);
+              setConnectionStatus('connected');
+              setIsQrDialogOpen(false);
+              setIsConnecting(false);
+              await refetchConversations();
+              toast({
+                title: "Conectado!",
+                description: "WhatsApp Web conectado com sucesso",
+              });
+            }
+          } catch (error) {
+            console.error('Erro no polling:', error);
           }
         }, 3000);
         
+        // Timeout após 2 minutos
         setTimeout(() => {
           clearInterval(pollConnection);
           if (!isConnected) {
@@ -177,22 +181,14 @@ const WhatsAppChats = () => {
             setConnectionStatus('disconnected');
             toast({
               title: "Tempo esgotado",
-              description: "Conexão não foi estabelecida. Tente novamente.",
+              description: "Conexão não estabelecida. Tente novamente.",
               variant: "destructive"
             });
           }
         }, 120000);
-      } else {
-        setIsConnecting(false);
-        setConnectionStatus('disconnected');
-        toast({
-          title: "Erro",
-          description: "Não foi possível obter QR Code",
-          variant: "destructive"
-        });
       }
     } catch (error) {
-      console.error('❌ WhatsAppChats: Erro ao conectar:', error);
+      console.error('❌ Erro ao conectar:', error);
       setIsConnecting(false);
       setConnectionStatus('disconnected');
       toast({
@@ -217,10 +213,10 @@ const WhatsAppChats = () => {
       
       toast({
         title: "Desconectado",
-        description: "WhatsApp Web foi desconectado",
+        description: "WhatsApp Web desconectado",
       });
     } catch (error) {
-      console.error('❌ WhatsAppChats: Erro ao desconectar:', error);
+      console.error('❌ Erro ao desconectar:', error);
       toast({
         title: "Erro",
         description: "Erro ao desconectar do WhatsApp Web",
@@ -233,7 +229,7 @@ const WhatsAppChats = () => {
     if (!evolutionIntegration) return;
 
     try {
-      console.log('📥 WhatsAppChats: Carregando mensagens para:', chat.name);
+      console.log('📥 Carregando mensagens para:', chat.name);
       const service = new EvolutionApiService(evolutionIntegration);
       const messagesData = await service.getMessages(chat.phoneNumber);
       
@@ -249,7 +245,7 @@ const WhatsAppChats = () => {
       
       setMessages(formattedMessages.sort((a, b) => a.timestamp - b.timestamp));
     } catch (error) {
-      console.error('❌ WhatsAppChats: Erro ao carregar mensagens:', error);
+      console.error('❌ Erro ao carregar mensagens:', error);
       toast({
         title: "Erro",
         description: "Erro ao carregar mensagens",
@@ -280,17 +276,17 @@ const WhatsAppChats = () => {
         
         toast({
           title: "Mensagem enviada",
-          description: "Sua mensagem foi enviada com sucesso",
+          description: "Mensagem enviada com sucesso",
         });
       } else {
         toast({
           title: "Erro ao enviar",
-          description: result.error?.message || "Não foi possível enviar a mensagem",
+          description: result.error?.message || "Erro ao enviar mensagem",
           variant: "destructive"
         });
       }
     } catch (error) {
-      console.error('❌ WhatsAppChats: Erro ao enviar mensagem:', error);
+      console.error('❌ Erro ao enviar mensagem:', error);
       toast({
         title: "Erro",
         description: "Erro ao enviar mensagem",
@@ -300,27 +296,31 @@ const WhatsAppChats = () => {
   };
 
   const selectChat = async (chat: any) => {
-    console.log('💬 WhatsAppChats: Selecionando chat:', chat.name);
+    console.log('💬 Selecionando chat:', chat.name);
     setSelectedChat(chat);
     await loadMessages(chat);
   };
 
+  const handleSyncConversations = async () => {
+    console.log('🔄 Sincronizando conversas manualmente...');
+    await syncConversations.mutateAsync();
+  };
+
+  // Verificar conexão inicial
   useEffect(() => {
     if (evolutionIntegration) {
-      console.log('🔄 WhatsAppChats: Integração Evolution API encontrada, verificando conexão...');
+      console.log('🔄 Verificando conexão inicial...');
       checkConnection();
-    } else {
-      console.log('❌ WhatsAppChats: Integração Evolution API não encontrada');
     }
   }, [evolutionIntegration]);
 
   // Auto-refresh quando conectado
   useEffect(() => {
     if (isConnected && evolutionIntegration) {
-      console.log('🔄 WhatsAppChats: Configurando auto-refresh das conversas...');
+      console.log('🔄 Configurando auto-refresh...');
       const interval = setInterval(() => {
         refetchConversations();
-      }, 30000); // A cada 30 segundos
+      }, 30000);
 
       return () => clearInterval(interval);
     }
@@ -332,7 +332,7 @@ const WhatsAppChats = () => {
         <Card className="w-full max-w-4xl mx-auto border-yellow-600 bg-yellow-900/20">
           <CardContent className="p-6 text-center">
             <MessageSquare className="h-12 w-12 mx-auto mb-4 text-yellow-400" />
-            <h3 className="text-lg font-semibold text-yellow-200 mb-2">Evolution API não configurado</h3>
+            <h3 className="text-lg font-semibold text-yellow-200 mb-2">Evolution API não configurada</h3>
             <p className="text-yellow-300 mb-4">
               Para usar o WhatsApp Web, configure a integração Evolution API no painel de administração.
             </p>
@@ -416,8 +416,18 @@ const WhatsAppChats = () => {
               <Button
                 variant="ghost"
                 size="sm"
+                onClick={handleSyncConversations}
+                disabled={loadingConversations || syncConversations.isPending}
+                title="Sincronizar conversas"
+              >
+                <Sync className={`h-4 w-4 ${(loadingConversations || syncConversations.isPending) ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => refetchConversations()}
                 disabled={loadingConversations}
+                title="Atualizar conversas"
               >
                 <RefreshCw className={`h-4 w-4 ${loadingConversations ? 'animate-spin' : ''}`} />
               </Button>
@@ -483,13 +493,14 @@ const WhatsAppChats = () => {
               <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p>Nenhuma conversa encontrada</p>
               <Button 
-                onClick={() => refetchConversations()} 
+                onClick={handleSyncConversations} 
                 variant="outline" 
                 size="sm" 
                 className="mt-2"
+                disabled={syncConversations.isPending}
               >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Carregar Conversas
+                <Sync className="mr-2 h-4 w-4" />
+                Sincronizar Conversas
               </Button>
             </div>
           )}
@@ -559,20 +570,20 @@ const WhatsAppChats = () => {
                   
                   <div className="space-y-2">
                     <Button 
-                      onClick={() => refetchConversations()} 
+                      onClick={handleSyncConversations} 
                       variant="outline"
                       className="w-full"
-                      disabled={loadingConversations}
+                      disabled={syncConversations.isPending}
                     >
-                      {loadingConversations ? (
+                      {syncConversations.isPending ? (
                         <>
                           <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                          Carregando...
+                          Sincronizando...
                         </>
                       ) : (
                         <>
-                          <Users className="mr-2 h-4 w-4" />
-                          Atualizar Conversas
+                          <Sync className="mr-2 h-4 w-4" />
+                          Sincronizar Conversas
                         </>
                       )}
                     </Button>
