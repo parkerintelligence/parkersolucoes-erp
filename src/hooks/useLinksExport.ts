@@ -11,17 +11,36 @@ export const useLinksExport = () => {
   const exportToPDF = async () => {
     try {
       console.log('🔄 Iniciando exportação de links para PDF...');
+      console.log('📊 Debug - Estado inicial:', { 
+        totalPasswords: passwords.length, 
+        companies: companies.length,
+        passwordsWithLinks: passwords.filter(p => p.gera_link).length
+      });
+      
+      // Validação prévia dos dados
+      if (!passwords || passwords.length === 0) {
+        console.warn('⚠️ Nenhuma senha encontrada no sistema');
+        toast({
+          title: "⚠️ Dados não encontrados",
+          description: "Não há senhas cadastradas no sistema para exportar.",
+          variant: "destructive"
+        });
+        return;
+      }
       
       // Filtrar apenas links (gera_link = true)
       const links = passwords.filter(password => password.gera_link);
       
-      console.log('📊 Dados encontrados:', { 
+      console.log('📊 Análise detalhada dos dados:', { 
         totalPasswords: passwords.length, 
         totalLinks: links.length, 
-        companies: companies.length 
+        companies: companies.length,
+        linksWithUrl: links.filter(l => l.url).length,
+        linksWithCredentials: links.filter(l => l.username && l.password).length
       });
       
       if (links.length === 0) {
+        console.warn('⚠️ Nenhum link encontrado (gera_link = true)');
         toast({
           title: "⚠️ Nenhum link encontrado",
           description: "Não há links de acesso para exportar. Configure senhas com 'Gera Link' ativado.",
@@ -30,9 +49,25 @@ export const useLinksExport = () => {
         return;
       }
 
+      // Validar se há dados mínimos para exportar
+      const linksWithData = links.filter(link => link.name && (link.url || link.username || link.password));
+      if (linksWithData.length === 0) {
+        console.warn('⚠️ Links encontrados mas sem dados suficientes');
+        toast({
+          title: "⚠️ Dados insuficientes",
+          description: "Os links encontrados não possuem informações suficientes para exportar.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('✅ Validação passou, iniciando importação do jsPDF...');
+
       // Importação dinâmica do jsPDF
       const { default: jsPDF } = await import('jspdf');
       await import('jspdf-autotable');
+
+      console.log('✅ jsPDF carregado, criando documento...');
 
       const doc = new jsPDF({
         orientation: 'landscape',
@@ -72,9 +107,10 @@ export const useLinksExport = () => {
       // Links sem empresa
       const unassignedLinks = links.filter(link => !link.company_id);
 
-      console.log('📈 Agrupamento:', {
+      console.log('📈 Agrupamento detalhado:', {
         companiesWithLinks: companiesWithLinks.length,
-        unassignedLinks: unassignedLinks.length
+        unassignedLinks: unassignedLinks.length,
+        totalLinksToExport: companiesWithLinks.reduce((acc, c) => acc + c.links.length, 0) + unassignedLinks.length
       });
 
       // Processar empresas com links
@@ -94,15 +130,20 @@ export const useLinksExport = () => {
         doc.text(company.name, 20, currentY);
         currentY += 8;
 
-        // Dados dos links da empresa
-        const linksData = company.links.map(link => [
-          link.name || 'Sem nome',
-          link.service || 'Não especificado',
-          link.url || 'Não informado',
-          link.username || 'Não informado',
-          link.password || 'Não informado',
-          (link.notes || '').substring(0, 50) + (link.notes && link.notes.length > 50 ? '...' : '')
-        ]);
+        // Dados dos links da empresa com validação
+        const linksData = company.links.map(link => {
+          const linkData = [
+            link.name || 'Sem nome',
+            link.service || 'Não especificado',
+            link.url || 'Não informado',
+            link.username || 'Não informado',
+            link.password || 'Não informado',
+            (link.notes || '').substring(0, 50) + (link.notes && link.notes.length > 50 ? '...' : '')
+          ];
+          
+          console.log(`  📄 Link processado: ${link.name} - URL: ${link.url ? 'OK' : 'VAZIO'}`);
+          return linkData;
+        });
 
         try {
           (doc as any).autoTable({
@@ -137,6 +178,7 @@ export const useLinksExport = () => {
           });
 
           currentY = (doc as any).lastAutoTable.finalY + 10;
+          console.log(`✅ Tabela da empresa ${company.name} criada com sucesso`);
         } catch (error) {
           console.error('❌ Erro ao criar tabela da empresa:', company.name, error);
           currentY += 30;
@@ -145,7 +187,7 @@ export const useLinksExport = () => {
 
       // Processar links sem empresa
       if (unassignedLinks.length > 0) {
-        console.log('📋 Processando links sem empresa');
+        console.log(`📋 Processando ${unassignedLinks.length} links sem empresa`);
         
         if (currentY > 160) {
           doc.addPage();
@@ -158,14 +200,17 @@ export const useLinksExport = () => {
         doc.text('Links sem Empresa Definida', 20, currentY);
         currentY += 8;
 
-        const unassignedData = unassignedLinks.map(link => [
-          link.name || 'Sem nome',
-          link.service || 'Não especificado',
-          link.url || 'Não informado',
-          link.username || 'Não informado',
-          link.password || 'Não informado',
-          (link.notes || '').substring(0, 50) + (link.notes && link.notes.length > 50 ? '...' : '')
-        ]);
+        const unassignedData = unassignedLinks.map(link => {
+          console.log(`  📄 Link sem empresa: ${link.name} - URL: ${link.url ? 'OK' : 'VAZIO'}`);
+          return [
+            link.name || 'Sem nome',
+            link.service || 'Não especificado',
+            link.url || 'Não informado',
+            link.username || 'Não informado',
+            link.password || 'Não informado',
+            (link.notes || '').substring(0, 50) + (link.notes && link.notes.length > 50 ? '...' : '')
+          ];
+        });
 
         try {
           (doc as any).autoTable({
@@ -197,6 +242,8 @@ export const useLinksExport = () => {
             },
             margin: { left: 20, right: 20 }
           });
+          
+          console.log('✅ Tabela de links sem empresa criada com sucesso');
         } catch (error) {
           console.error('❌ Erro ao criar tabela de links sem empresa:', error);
         }
@@ -224,17 +271,24 @@ export const useLinksExport = () => {
       doc.save(fileName);
 
       console.log('✅ PDF de links exportado com sucesso:', fileName);
+      console.log('📊 Estatísticas finais:', {
+        totalPages: pageCount,
+        linksExportados: links.length,
+        empresasComLinks: companiesWithLinks.length,
+        linksSemEmpresa: unassignedLinks.length
+      });
       
       toast({
         title: "✅ Exportação concluída!",
-        description: `${links.length} links de acesso exportados com sucesso.`,
+        description: `${links.length} links de acesso exportados com sucesso em ${pageCount} página(s).`,
       });
 
     } catch (error) {
-      console.error('❌ Erro ao exportar PDF:', error);
+      console.error('❌ Erro crítico na exportação:', error);
+      console.error('❌ Stack trace:', error.stack);
       toast({
         title: "❌ Erro na exportação",
-        description: `Erro ao gerar PDF: ${error?.message || 'Erro desconhecido'}`,
+        description: `Erro detalhado: ${error?.message || 'Erro desconhecido'}. Verifique os logs do console.`,
         variant: "destructive"
       });
     }

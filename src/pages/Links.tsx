@@ -122,6 +122,23 @@ const Links = () => {
     }
   };
 
+  const handleExportWithDebug = async () => {
+    console.log('🚀 Iniciando exportação com debug completo...');
+    console.log('📊 Estado atual:', {
+      passwords: passwords.length,
+      companies: companies.length,
+      links: links.length,
+      isLoading
+    });
+    
+    toast({
+      title: "🔄 Iniciando exportação",
+      description: "Verificando dados e gerando PDF... Acompanhe os logs no console.",
+    });
+    
+    await exportToPDF();
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -140,7 +157,7 @@ const Links = () => {
         </div>
         <div className="flex items-center gap-2">
           <Button
-            onClick={exportToPDF}
+            onClick={handleExportWithDebug}
             className="bg-blue-900 hover:bg-blue-800 text-white h-8 px-3"
           >
             <Download className="h-4 w-4 mr-1" />
