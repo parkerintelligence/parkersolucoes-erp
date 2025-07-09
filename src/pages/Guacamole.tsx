@@ -16,15 +16,28 @@ import {
   Settings,
   ExternalLink,
   Grid,
-  List
+  List,
+  FileText
 } from 'lucide-react';
 import { useGuacamoleAPI, GuacamoleConnection } from '@/hooks/useGuacamoleAPI';
+import { useGuacamoleLogs } from '@/hooks/useGuacamoleLogs';
 import { GuacamoleConnectionCard } from '@/components/guacamole/GuacamoleConnectionCard';
 import { GuacamoleTokenStatus } from '@/components/guacamole/GuacamoleTokenStatus';
 import { GuacamoleConnectionDialog } from '@/components/guacamole/GuacamoleConnectionDialog';
+import { GuacamoleLogs } from '@/components/guacamole/GuacamoleLogs';
+import { GuacamoleConnectionTest } from '@/components/guacamole/GuacamoleConnectionTest';
 import { toast } from '@/hooks/use-toast';
 
 const Guacamole = () => {
+  const { 
+    logs, 
+    clearLogs, 
+    logRequest, 
+    logResponse, 
+    logError, 
+    logInfo 
+  } = useGuacamoleLogs();
+
   const { 
     useConnections, 
     useUsers, 
@@ -35,7 +48,18 @@ const Guacamole = () => {
     useDisconnectSession,
     isConfigured,
     integration 
-  } = useGuacamoleAPI();
+  } = useGuacamoleAPI((type, message, options) => {
+    // Integrar logs do hook com o sistema de logs
+    if (type === 'request') {
+      logRequest(options?.method || 'GET', options?.url || '', options?.dataSource);
+    } else if (type === 'response') {
+      logResponse(options?.status || 200, message, options?.url, options?.details);
+    } else if (type === 'error') {
+      logError(message, options?.url, options?.details);
+    } else {
+      logInfo(message, options);
+    }
+  });
 
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -57,18 +81,22 @@ const Guacamole = () => {
 
   const handleRefreshAll = async () => {
     setRefreshing(true);
+    logInfo('Iniciando atualização manual de todos os dados');
+    
     try {
       await Promise.all([
         refetchConnections(),
         refetchUsers(),
         refetchSessions()
       ]);
+      
+      logInfo('Atualização manual concluída com sucesso');
       toast({
         title: "Dados atualizados",
         description: "Informações do Guacamole foram atualizadas com sucesso.",
       });
     } catch (error) {
-      console.error('Erro ao atualizar dados:', error);
+      logError('Erro durante atualização manual', '', { error: error.message });
       toast({
         title: "Erro ao atualizar",
         description: "Não foi possível atualizar os dados do Guacamole.",
@@ -91,6 +119,12 @@ const Guacamole = () => {
 
     // Construir URL de conexão direta
     const guacamoleUrl = `${integration.base_url}/#/client/${encodeURIComponent(connection.identifier)}`;
+    
+    logInfo('Abrindo conexão do Guacamole', {
+      connectionId: connection.identifier,
+      connectionName: connection.name,
+      url: guacamoleUrl
+    });
     
     // Abrir em nova aba
     window.open(guacamoleUrl, '_blank', 'noopener,noreferrer');
@@ -310,10 +344,15 @@ const Guacamole = () => {
       </div>
 
       <Tabs defaultValue="connections" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="connections">Conexões</TabsTrigger>
           <TabsTrigger value="sessions">Sessões Ativas</TabsTrigger>
           <TabsTrigger value="users">Usuários</TabsTrigger>
+          <TabsTrigger value="logs">
+            <FileText className="h-4 w-4 mr-2" />
+            Logs
+          </TabsTrigger>
+          <TabsTrigger value="tests">Testes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="connections" className="mt-6">
@@ -541,6 +580,30 @@ const Guacamole = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="logs" className="mt-6">
+          <GuacamoleLogs 
+            logs={logs}
+            onClearLogs={clearLogs}
+            onRefresh={handleRefreshAll}
+          />
+        </TabsContent>
+
+        <TabsContent value="tests" className="mt-6">
+          <GuacamoleConnectionTest 
+            onLog={(type, message, options) => {
+              if (type === 'request') {
+                logRequest(options?.method || 'GET', options?.url || '', options?.dataSource);
+              } else if (type === 'response') {
+                logResponse(options?.status || 200, message, options?.url, options?.details);
+              } else if (type === 'error') {
+                logError(message, options?.url, options?.details);
+              } else {
+                logInfo(message, options);
+              }
+            }}
+          />
         </TabsContent>
       </Tabs>
 

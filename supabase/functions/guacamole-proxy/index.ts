@@ -74,7 +74,7 @@ serve(async (req) => {
     }
 
     // Obter dataSource da integração (campo directory)
-    const dataSource = integration.directory || 'mysql'
+    const dataSource = integration.directory || 'postgresql'
 
     console.log('Integration found:', {
       name: integration.name,
@@ -97,19 +97,23 @@ serve(async (req) => {
       )
     }
 
-    // Preparar URL da API - garantir formato correto
+    // Preparar URL da API - normalizar para incluir /guacamole se necessário
     let baseUrl = integration.base_url.replace(/\/+$/, '') // Remove barras no final
+    
+    // Adicionar /guacamole se não estiver presente
+    if (!baseUrl.endsWith('/guacamole')) {
+      baseUrl += '/guacamole';
+    }
     
     // Garantir que a URL seja válida e acessível
     try {
       const urlTest = new URL(baseUrl)
-      baseUrl = urlTest.toString().replace(/\/+$/, '')
-      console.log('Base URL validada:', baseUrl)
+      console.log('Base URL normalizada e validada:', baseUrl)
     } catch (urlError) {
       console.error('Invalid base URL:', baseUrl, urlError)
       return new Response(
         JSON.stringify({ 
-          error: `URL base inválida: ${baseUrl}. Use formato: https://guacamole.example.com/guacamole`
+          error: `URL base inválida: ${baseUrl}. Use formato: http://servidor:porta/guacamole`
         }),
         { 
           status: 200, 
@@ -177,7 +181,8 @@ serve(async (req) => {
                 status: loginResponse.status,
                 statusText: loginResponse.statusText,
                 url: tokenUrl,
-                response: errorText.substring(0, 500)
+                response: errorText.substring(0, 500),
+                baseUrlNormalized: baseUrl
               }
             }),
             { 
@@ -259,6 +264,7 @@ serve(async (req) => {
     console.log('=== Making API call ===')
     console.log('API Path:', apiPath)
     console.log('Data Source:', dataSource)
+    console.log('Base URL:', baseUrl)
     console.log('Full URL (token masked):', `${baseUrl}${apiPath}?token=***MASKED***`)
     console.log('Token length:', authToken.length)
     console.log('Token valid:', !!authToken && authToken.length > 0)
@@ -283,7 +289,7 @@ serve(async (req) => {
         JSON.stringify({ 
           error: `Erro de conectividade com a API: Não foi possível acessar ${baseUrl}${apiPath}. Verifique se:
           • O servidor Guacamole está online
-          • A URL está correta
+          • A URL está correta: ${baseUrl}
           • Não há bloqueios de firewall
           • A API REST está habilitada no Guacamole
           • O Data Source '${dataSource}' está configurado corretamente`
@@ -333,6 +339,7 @@ serve(async (req) => {
             statusText: apiResponse.statusText,
             endpoint: apiPath,
             dataSource: dataSource,
+            baseUrl: baseUrl,
             response: errorText.substring(0, 500),
             username: integration.username,
             needsAdminPermissions: apiResponse.status === 403
@@ -374,6 +381,7 @@ serve(async (req) => {
     console.log('Result keys:', Object.keys(result || {}))
     console.log('Token cache status:', tokenCache.has(integrationId) ? 'cached' : 'not cached')
     console.log('Data Source used:', dataSource)
+    console.log('Base URL used:', baseUrl)
 
     return new Response(
       JSON.stringify({ result }),

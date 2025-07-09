@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, Check, X } from 'lucide-react';
+import { AlertCircle, Check, X, HelpCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
@@ -21,7 +23,7 @@ const GuacamoleAdminConfig = () => {
     base_url: '',
     username: '',
     password: '',
-    data_source: 'postgresql', // Changed from 'mysql' to 'postgresql'
+    data_source: 'postgresql',
     is_active: true,
     name: 'Guacamole'
   });
@@ -36,18 +38,50 @@ const GuacamoleAdminConfig = () => {
         base_url: guacamoleIntegration.base_url || '',
         username: guacamoleIntegration.username || '',
         password: guacamoleIntegration.password || '',
-        data_source: guacamoleIntegration.api_token || 'postgresql', // Use api_token field to store data_source
+        data_source: guacamoleIntegration.directory || 'postgresql', // Usar directory para data_source
         is_active: guacamoleIntegration.is_active ?? true,
         name: guacamoleIntegration.name || 'Guacamole'
       });
     }
   }, [guacamoleIntegration]);
 
+  const normalizeBaseUrl = (url: string): string => {
+    let normalizedUrl = url.trim();
+    
+    // Remove trailing slashes
+    normalizedUrl = normalizedUrl.replace(/\/+$/, '');
+    
+    // Sugerir /guacamole se não estiver presente
+    if (!normalizedUrl.includes('/guacamole') && !normalizedUrl.endsWith(':8080')) {
+      return `${normalizedUrl}/guacamole`;
+    }
+    
+    return normalizedUrl;
+  };
+
+  const validateUrl = (url: string): boolean => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleSave = async () => {
     if (!config.base_url || !config.username || !config.password) {
       toast({
         title: "Erro de validação",
         description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!validateUrl(config.base_url)) {
+      toast({
+        title: "URL inválida",
+        description: "Por favor, insira uma URL válida (ex: http://servidor:8080/guacamole).",
         variant: "destructive"
       });
       return;
@@ -61,7 +95,7 @@ const GuacamoleAdminConfig = () => {
         base_url: config.base_url,
         username: config.username,
         password: config.password,
-        api_token: config.data_source, // Store data_source in api_token field
+        directory: config.data_source, // Usar directory para armazenar data_source
         is_active: config.is_active
       };
 
@@ -121,6 +155,19 @@ const GuacamoleAdminConfig = () => {
     }
   };
 
+  const handleBaseUrlChange = (url: string) => {
+    setConfig({ ...config, base_url: url });
+  };
+
+  const handleBaseUrlBlur = () => {
+    if (config.base_url) {
+      const normalized = normalizeBaseUrl(config.base_url);
+      if (normalized !== config.base_url) {
+        setConfig({ ...config, base_url: normalized });
+      }
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -155,7 +202,11 @@ const GuacamoleAdminConfig = () => {
               </div>
               <div>
                 <Label className="text-sm font-medium text-gray-500">Data Source</Label>
-                <p className="text-sm">{guacamoleIntegration.api_token || 'postgresql'}</p>
+                <p className="text-sm">
+                  <Badge variant="outline">
+                    {guacamoleIntegration.directory || 'postgresql'}
+                  </Badge>
+                </p>
               </div>
               <div>
                 <Label className="text-sm font-medium text-gray-500">Status</Label>
@@ -176,14 +227,32 @@ const GuacamoleAdminConfig = () => {
         ) : (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="base_url">URL Base do Guacamole *</Label>
+              <Label htmlFor="base_url" className="flex items-center gap-2">
+                URL Base do Guacamole *
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Formato: http://servidor:porta/guacamole</p>
+                      <p>Exemplo: http://192.168.1.100:8080/guacamole</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Label>
               <Input
                 id="base_url"
                 type="url"
-                placeholder="https://guacamole.exemplo.com"
+                placeholder="http://servidor:8080/guacamole"
                 value={config.base_url}
-                onChange={(e) => setConfig({ ...config, base_url: e.target.value })}
+                onChange={(e) => handleBaseUrlChange(e.target.value)}
+                onBlur={handleBaseUrlBlur}
+                className={!validateUrl(config.base_url) && config.base_url ? 'border-red-300' : ''}
               />
+              {config.base_url && !validateUrl(config.base_url) && (
+                <p className="text-sm text-red-600">URL inválida</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -209,7 +278,20 @@ const GuacamoleAdminConfig = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="data_source">Data Source</Label>
+              <Label htmlFor="data_source" className="flex items-center gap-2">
+                Data Source
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Tipo de banco de dados configurado no Guacamole</p>
+                      <p>Geralmente PostgreSQL ou MySQL</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Label>
               <Select value={config.data_source} onValueChange={(value) => setConfig({ ...config, data_source: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o data source" />
@@ -230,6 +312,14 @@ const GuacamoleAdminConfig = () => {
                 onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })}
               />
             </div>
+
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Importante:</strong> O usuário deve ter permissões administrativas no Guacamole para acessar a API.
+                Verifique se o usuário pode administrar conexões e usuários no painel web.
+              </AlertDescription>
+            </Alert>
 
             <div className="flex gap-2">
               <Button onClick={handleSave} disabled={isLoading}>

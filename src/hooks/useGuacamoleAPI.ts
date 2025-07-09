@@ -26,43 +26,62 @@ export interface GuacamoleSession {
   startTime: string;
 }
 
-export const useGuacamoleAPI = () => {
+export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?: any) => void) => {
   const { data: integrations } = useIntegrations();
   const queryClient = useQueryClient();
 
   const integration = integrations?.find(i => i.type === 'guacamole' && i.is_active);
+  
+  // Normalizar URL base para incluir /guacamole se necessário
+  const normalizeBaseUrl = (url: string): string => {
+    let normalizedUrl = url.trim().replace(/\/+$/, ''); // Remove trailing slashes
+    if (!normalizedUrl.endsWith('/guacamole')) {
+      normalizedUrl += '/guacamole';
+    }
+    return normalizedUrl;
+  };
+
   const isConfigured = Boolean(
     integration?.base_url && 
     integration?.username && 
-    integration?.password &&
-    integration?.directory
+    integration?.password
   );
 
-  console.log('=== useGuacamoleAPI Debug ===');
-  console.log('Integration found:', !!integration);
-  console.log('Is configured:', isConfigured);
-  if (integration) {
-    console.log('Integration details:', {
-      id: integration.id,
-      name: integration.name,
-      base_url: integration.base_url,
-      username: integration.username,
-      has_password: !!integration.password,
-      dataSource: integration.directory,
-      is_active: integration.is_active
+  // Log de debug melhorado
+  if (onLog) {
+    onLog('info', 'Hook useGuacamoleAPI inicializado', {
+      integrationFound: !!integration,
+      isConfigured,
+      integrationDetails: integration ? {
+        id: integration.id,
+        name: integration.name,
+        base_url: integration.base_url,
+        normalizedUrl: integration.base_url ? normalizeBaseUrl(integration.base_url) : null,
+        username: integration.username,
+        dataSource: integration.directory || 'postgresql',
+        is_active: integration.is_active
+      } : null
     });
   }
 
   const callGuacamoleAPI = async (endpoint: string, options: any = {}) => {
     if (!integration) {
-      throw new Error('Integração do Guacamole não configurada');
+      const error = 'Integração do Guacamole não configurada';
+      onLog?.('error', error);
+      throw new Error(error);
     }
 
-    console.log('=== Calling Guacamole API ===');
-    console.log('Integration ID:', integration.id);
-    console.log('Endpoint:', endpoint);
-    console.log('Data Source:', integration.directory);
-    console.log('Options:', options);
+    const normalizedBaseUrl = normalizeBaseUrl(integration.base_url);
+    const dataSource = integration.directory || 'postgresql';
+    
+    onLog?.('request', `Chamando API do Guacamole: ${endpoint}`, {
+      integrationId: integration.id,
+      baseUrl: normalizedBaseUrl,
+      originalUrl: integration.base_url,
+      dataSource,
+      endpoint,
+      options
+    });
 
     try {
       const { data, error } = await supabase.functions.invoke('guacamole-proxy', {
@@ -73,45 +92,51 @@ export const useGuacamoleAPI = () => {
         }
       });
 
-      console.log('=== Guacamole API Response ===');
-      console.log('Data:', data);
-      console.log('Error:', error);
+      onLog?.('info', 'Resposta da função Edge recebida', {
+        hasData: !!data,
+        hasError: !!error,
+        dataType: typeof data
+      });
 
       if (error) {
-        console.error('Erro na chamada da função Edge:', error);
+        onLog?.('error', `Erro na função Edge: ${error.message || 'Erro desconhecido'}`, {
+          error,
+          endpoint
+        });
         throw new Error(`Erro na comunicação: ${error.message || 'Erro desconhecido'}`);
       }
 
       if (data?.error) {
-        console.error('Erro retornado pela API Guacamole:', data.error);
-        console.log('Detalhes do erro:', data.details);
+        onLog?.('error', `Erro da API Guacamole: ${data.error}`, {
+          error: data.error,
+          details: data.details,
+          endpoint,
+          dataSource
+        });
         
-        if (data.details?.needsAdminPermissions) {
-          const errorMsg = `ERRO DE PERMISSÕES: O usuário "${integration.username}" não tem permissões administrativas no Guacamole. Para acessar conexões, usuários e sessões ativas via API, o usuário precisa ter privilégios de administrador no sistema Guacamole.
-
-SOLUÇÃO:
-1. Acesse o painel administrativo do Guacamole
-2. Vá em "Settings" → "Users"  
-3. Edite o usuário "${integration.username}"
-4. Marque a opção "Administer system" ou similar
-5. Salve as alterações e teste novamente
-
-OU crie um novo usuário administrativo e atualize as credenciais na integração.`;
-          
-          throw new Error(errorMsg);
-        }
-        
-        if (data.error.includes('Token') || data.details?.status === 401 || data.details?.status === 403) {
-          console.log('Invalidando cache devido a erro de autenticação');
+        // Invalidar cache em caso de erro de autenticação
+        if (data.details?.status === 401 || data.details?.status === 403 || data.error.includes('Token')) {
+          onLog?.('info', 'Invalidando cache devido a erro de autenticação');
           queryClient.invalidateQueries({ queryKey: ['guacamole'] });
         }
         
         throw new Error(data.error);
       }
 
+      onLog?.('response', 'Resposta da API Guacamole bem-sucedida', {
+        resultType: typeof data?.result,
+        resultKeys: data?.result ? Object.keys(data.result) : [],
+        endpoint,
+        dataSource
+      });
+
       return data?.result || {};
     } catch (error) {
-      console.error('Erro geral na chamada da API:', error);
+      onLog?.('error', `Erro geral na chamada da API: ${error.message}`, {
+        error: error.message,
+        endpoint,
+        dataSource
+      });
       throw error;
     }
   };
@@ -120,11 +145,17 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
     return useQuery({
       queryKey: ['guacamole', 'connections', integration?.id],
       queryFn: async () => {
-        console.log('=== Fetching Connections ===');
+        onLog?.('info', 'Iniciando busca de conexões');
         const result = await callGuacamoleAPI('connections');
-        console.log('Connections raw result:', result);
+        
+        onLog?.('info', 'Resultado bruto das conexões recebido', {
+          resultType: typeof result,
+          isArray: Array.isArray(result),
+          resultKeys: result ? Object.keys(result) : []
+        });
         
         if (Array.isArray(result)) {
+          onLog?.('response', `${result.length} conexões encontradas (formato array)`);
           return result;
         }
         
@@ -137,17 +168,26 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
             attributes: result[key]?.attributes || {},
             activeConnections: result[key]?.activeConnections || 0
           }));
-          console.log('Processed connections:', connections);
+          
+          onLog?.('response', `${connections.length} conexões processadas (formato objeto)`, {
+            connections: connections.map(c => ({ id: c.identifier, name: c.name, protocol: c.protocol }))
+          });
+          
           return connections;
         }
         
+        onLog?.('info', 'Nenhuma conexão encontrada ou formato inesperado');
         return [];
       },
       enabled: isConfigured,
       staleTime: 30000,
       retry: (failureCount, error) => {
-        console.log(`Retry attempt ${failureCount} for connections:`, error);
+        onLog?.('info', `Tentativa ${failureCount + 1} de buscar conexões falhou`, {
+          error: error.message,
+          shouldRetry: failureCount < 2
+        });
         
+        // Não tentar novamente em caso de erros de configuração ou permissão
         if (error.message.includes('Configuração incompleta') || 
             error.message.includes('Credenciais inválidas') ||
             error.message.includes('URL base inválida') ||
@@ -166,11 +206,11 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
     return useQuery({
       queryKey: ['guacamole', 'users', integration?.id],
       queryFn: async () => {
-        console.log('=== Fetching Users ===');
+        onLog?.('info', 'Iniciando busca de usuários');
         const result = await callGuacamoleAPI('users');
-        console.log('Users raw result:', result);
         
         if (Array.isArray(result)) {
+          onLog?.('response', `${result.length} usuários encontrados (formato array)`);
           return result;
         }
         
@@ -180,16 +220,20 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
             attributes: result[username]?.attributes || {},
             lastActive: result[username]?.lastActive || null
           }));
-          console.log('Processed users:', users);
+          
+          onLog?.('response', `${users.length} usuários processados (formato objeto)`);
           return users;
         }
         
+        onLog?.('info', 'Nenhum usuário encontrado');
         return [];
       },
       enabled: isConfigured,
       staleTime: 60000,
       retry: (failureCount, error) => {
-        console.log(`Retry attempt ${failureCount} for users:`, error);
+        onLog?.('info', `Tentativa ${failureCount + 1} de buscar usuários falhou`, {
+          error: error.message
+        });
         
         if (error.message.includes('Configuração incompleta') || 
             error.message.includes('Credenciais inválidas') ||
@@ -209,11 +253,11 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
     return useQuery({
       queryKey: ['guacamole', 'sessions', integration?.id],
       queryFn: async () => {
-        console.log('=== Fetching Active Sessions ===');
+        onLog?.('info', 'Iniciando busca de sessões ativas');
         const result = await callGuacamoleAPI('sessions');
-        console.log('Sessions raw result:', result);
         
         if (Array.isArray(result)) {
+          onLog?.('response', `${result.length} sessões encontradas (formato array)`);
           return result;
         }
         
@@ -225,16 +269,20 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
             protocol: result[sessionId]?.protocol || 'unknown',
             startTime: result[sessionId]?.startTime || new Date().toISOString()
           }));
-          console.log('Processed sessions:', sessions);
+          
+          onLog?.('response', `${sessions.length} sessões processadas (formato objeto)`);
           return sessions;
         }
         
+        onLog?.('info', 'Nenhuma sessão ativa encontrada');
         return [];
       },
       enabled: isConfigured,
       staleTime: 10000,
       retry: (failureCount, error) => {
-        console.log(`Retry attempt ${failureCount} for sessions:`, error);
+        onLog?.('info', `Tentativa ${failureCount + 1} de buscar sessões falhou`, {
+          error: error.message
+        });
         
         if (error.message.includes('Configuração incompleta') || 
             error.message.includes('Credenciais inválidas') ||
@@ -256,20 +304,23 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
     useActiveSessions,
     useCreateConnection: () => {
       return useMutation({
-        mutationFn: (connectionData: Partial<GuacamoleConnection>) => 
-          callGuacamoleAPI('connections', { 
+        mutationFn: (connectionData: Partial<GuacamoleConnection>) => {
+          onLog?.('info', 'Criando nova conexão', { connectionData });
+          return callGuacamoleAPI('connections', { 
             method: 'POST', 
             data: connectionData 
-          }),
+          });
+        },
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['guacamole', 'connections'] });
+          onLog?.('response', 'Conexão criada com sucesso');
           toast({
             title: "Conexão criada!",
             description: "A conexão foi criada com sucesso.",
           });
         },
         onError: (error: Error) => {
-          console.error('Error creating connection:', error);
+          onLog?.('error', `Erro ao criar conexão: ${error.message}`);
           toast({
             title: "Erro ao criar conexão",
             description: error.message,
@@ -280,20 +331,23 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
     },
     useUpdateConnection: () => {
       return useMutation({
-        mutationFn: ({ identifier, updates }: { identifier: string; updates: Partial<GuacamoleConnection> }) => 
-          callGuacamoleAPI(`connections/${identifier}`, { 
+        mutationFn: ({ identifier, updates }: { identifier: string; updates: Partial<GuacamoleConnection> }) => {
+          onLog?.('info', 'Atualizando conexão', { identifier, updates });
+          return callGuacamoleAPI(`connections/${identifier}`, { 
             method: 'PUT', 
             data: updates 
-          }),
+          });
+        },
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['guacamole', 'connections'] });
+          onLog?.('response', 'Conexão atualizada com sucesso');
           toast({
             title: "Conexão atualizada!",
             description: "A conexão foi atualizada com sucesso.",
           });
         },
         onError: (error: Error) => {
-          console.error('Error updating connection:', error);
+          onLog?.('error', `Erro ao atualizar conexão: ${error.message}`);
           toast({
             title: "Erro ao atualizar conexão",
             description: error.message,
@@ -304,17 +358,20 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
     },
     useDeleteConnection: () => {
       return useMutation({
-        mutationFn: (identifier: string) => 
-          callGuacamoleAPI(`connections/${identifier}`, { method: 'DELETE' }),
+        mutationFn: (identifier: string) => {
+          onLog?.('info', 'Removendo conexão', { identifier });
+          return callGuacamoleAPI(`connections/${identifier}`, { method: 'DELETE' });
+        },
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['guacamole', 'connections'] });
+          onLog?.('response', 'Conexão removida com sucesso');
           toast({
             title: "Conexão removida!",
             description: "A conexão foi removida com sucesso.",
           });
         },
         onError: (error: Error) => {
-          console.error('Error deleting connection:', error);
+          onLog?.('error', `Erro ao remover conexão: ${error.message}`);
           toast({
             title: "Erro ao remover conexão",
             description: error.message,
@@ -325,17 +382,20 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
     },
     useDisconnectSession: () => {
       return useMutation({
-        mutationFn: (sessionId: string) => 
-          callGuacamoleAPI(`sessions/${sessionId}`, { method: 'DELETE' }),
+        mutationFn: (sessionId: string) => {
+          onLog?.('info', 'Desconectando sessão', { sessionId });
+          return callGuacamoleAPI(`sessions/${sessionId}`, { method: 'DELETE' });
+        },
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['guacamole', 'sessions'] });
+          onLog?.('response', 'Sessão desconectada com sucesso');
           toast({
             title: "Sessão desconectada!",
             description: "A sessão foi desconectada com sucesso.",
           });
         },
         onError: (error: Error) => {
-          console.error('Error disconnecting session:', error);
+          onLog?.('error', `Erro ao desconectar sessão: ${error.message}`);
           toast({
             title: "Erro ao desconectar sessão",
             description: error.message,
