@@ -23,7 +23,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('🕐 [CRON] Horário atual (UTC):', currentTime.toISOString());
     console.log('🕐 [CRON] Horário atual (Brasília):', currentTime.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
     
-    // Buscar relatórios que devem ser executados
+    // Buscar relatórios que devem ser executados agora ou que já passaram do horário
     const { data: dueReports, error } = await supabase
       .from('scheduled_reports')
       .select('*')
@@ -38,12 +38,12 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`📋 [CRON] Encontrados ${dueReports?.length || 0} relatórios para executar`);
     
     if (dueReports && dueReports.length > 0) {
-      dueReports.forEach(report => {
-        console.log(`📄 [CRON] Relatório: ${report.name}`);
-        console.log(`  - ID: ${report.id}`);
-        console.log(`  - Próxima execução: ${report.next_execution}`);
+      for (const report of dueReports) {
+        console.log(`📄 [CRON] Relatório: ${report.name} (ID: ${report.id})`);
+        console.log(`  - Próxima execução agendada: ${report.next_execution}`);
         console.log(`  - Telefone: ${report.phone_number}`);
-      });
+        console.log(`  - Tipo: ${report.report_type}`);
+      }
     }
 
     const results = [];
@@ -52,6 +52,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`🚀 [CRON] Processando relatório: ${report.name} (${report.id})`);
       
       try {
+        // Invocar a função de envio de relatório
         const { data: result, error: functionError } = await supabase.functions.invoke('send-scheduled-report', {
           body: { report_id: report.id }
         });
@@ -62,15 +63,17 @@ const handler = async (req: Request): Promise<Response> => {
             report_id: report.id,
             report_name: report.name,
             success: false,
-            error: functionError.message || 'Erro na função de envio'
+            error: functionError.message || JSON.stringify(functionError)
           });
           continue;
         }
         
+        console.log(`📤 [CRON] Resposta da função:`, result);
+        
         if (result?.success) {
           console.log(`✅ [CRON] Relatório ${report.name} executado com sucesso`);
           
-          // Calcular próxima execução
+          // Calcular próxima execução usando a função do banco
           const { data: nextExecData, error: nextExecError } = await supabase
             .rpc('calculate_next_execution', {
               cron_expr: report.cron_expression,
@@ -83,7 +86,7 @@ const handler = async (req: Request): Promise<Response> => {
             console.log(`⏰ [CRON] Próxima execução calculada: ${nextExecData}`);
           }
 
-          // Atualizar o registro
+          // Atualizar o registro do relatório
           const { error: updateError } = await supabase
             .from('scheduled_reports')
             .update({
@@ -95,13 +98,16 @@ const handler = async (req: Request): Promise<Response> => {
 
           if (updateError) {
             console.error('❌ [CRON] Erro ao atualizar relatório:', updateError);
+          } else {
+            console.log(`📝 [CRON] Relatório ${report.name} atualizado com próxima execução: ${nextExecData}`);
           }
 
           results.push({
             report_id: report.id,
             report_name: report.name,
             success: true,
-            next_execution: nextExecData
+            next_execution: nextExecData,
+            execution_time: result.execution_time_ms
           });
         } else {
           console.error(`❌ [CRON] Falha no relatório ${report.name}:`, result);
@@ -109,7 +115,7 @@ const handler = async (req: Request): Promise<Response> => {
             report_id: report.id,
             report_name: report.name,
             success: false,
-            error: result?.error || 'Erro desconhecido'
+            error: result?.error || 'Erro desconhecido na execução'
           });
         }
 
@@ -127,25 +133,33 @@ const handler = async (req: Request): Promise<Response> => {
     const successCount = results.filter(r => r.success).length;
     const failureCount = results.filter(r => !r.success).length;
 
-    console.log(`📊 [CRON] Processamento concluído: ${successCount} sucessos, ${failureCount} falhas`);
+    console.log(`📊 [CRON] Processamento concluído:`);
+    console.log(`  - Total de relatórios processados: ${results.length}`);
+    console.log(`  - Sucessos: ${successCount}`);
+    console.log(`  - Falhas: ${failureCount}`);
 
     return new Response(JSON.stringify({ 
+      success: true,
       executed_reports: results.length,
       successful: successCount,
       failed: failureCount,
       results: results,
-      timestamp: currentTime.toISOString()
+      timestamp: currentTime.toISOString(),
+      message: `Processados ${results.length} relatórios. ${successCount} sucessos, ${failureCount} falhas.`
     }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
 
   } catch (error: any) {
-    console.error("❌ [CRON] Erro na função process-scheduled-reports:", error);
+    console.error("❌ [CRON] Erro crítico na função process-scheduled-reports:", error);
+    console.error("❌ [CRON] Stack trace:", error.stack);
     
     return new Response(JSON.stringify({ 
+      success: false,
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      message: `Erro crítico: ${error.message}`
     }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },

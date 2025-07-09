@@ -91,7 +91,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`🔌 [SEND] Integration encontrada: ${integration.name}`);
 
-    // Buscar template da mensagem por ID (novo sistema unificado)
+    // Buscar template da mensagem por ID
     console.log(`🔍 [SEND] Buscando template por ID: ${report.report_type}`);
     const { data: template, error: templateError } = await supabase
       .from('whatsapp_message_templates')
@@ -122,68 +122,53 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`📱 [SEND] Enviando para: ${cleanPhoneNumber} via instância: ${instanceName}`);
     console.log(`🔗 [SEND] Base URL: ${integration.base_url}`);
     
-    // Testar múltiplos endpoints da Evolution API
-    const endpoints = [
-      `/message/sendText/${instanceName}`,
-      `/sendMessage/${instanceName}`,
-      `/${instanceName}/message/sendText`,
-      `/${instanceName}/sendMessage`
-    ];
+    // Preparar dados para envio
+    const whatsappPayload = {
+      number: cleanPhoneNumber,
+      text: message,
+    };
 
-    let whatsappSuccess = false;
-    let lastError = '';
-    let whatsappResponse = null;
+    console.log(`📤 [SEND] Payload WhatsApp:`, JSON.stringify(whatsappPayload, null, 2));
 
-    for (const endpoint of endpoints) {
-      try {
-        const url = `${integration.base_url}${endpoint}`;
-        console.log(`🔄 [SEND] Tentando endpoint: ${url}`);
-        
-        const whatsappApiResponse = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': integration.api_token || '',
-          },
-          body: JSON.stringify({
-            number: cleanPhoneNumber,
-            text: message,
-          }),
-        });
+    // Tentar enviar via Evolution API
+    const url = `${integration.base_url}/message/sendText/${instanceName}`;
+    console.log(`🔄 [SEND] Enviando para: ${url}`);
+    
+    const whatsappApiResponse = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': integration.api_token || '',
+      },
+      body: JSON.stringify(whatsappPayload),
+    });
 
-        console.log(`📡 [SEND] Resposta do WhatsApp: ${whatsappApiResponse.status}`);
+    console.log(`📡 [SEND] Status da resposta: ${whatsappApiResponse.status}`);
+    
+    let whatsappResponse;
+    const responseText = await whatsappApiResponse.text();
+    console.log(`📋 [SEND] Resposta bruta:`, responseText);
 
-        if (whatsappApiResponse.ok) {
-          whatsappResponse = await whatsappApiResponse.json();
-          console.log('✅ [SEND] Mensagem enviada com sucesso via', endpoint);
-          console.log('📋 [SEND] Resposta WhatsApp:', JSON.stringify(whatsappResponse, null, 2));
-          whatsappSuccess = true;
-          break;
-        } else {
-          const errorText = await whatsappApiResponse.text();
-          lastError = `${whatsappApiResponse.status}: ${errorText}`;
-          console.log(`❌ [SEND] Falha em ${endpoint}: ${lastError}`);
-        }
-      } catch (error: any) {
-        lastError = error.message;
-        console.log(`❌ [SEND] Erro de rede em ${endpoint}: ${lastError}`);
-      }
+    try {
+      whatsappResponse = JSON.parse(responseText);
+    } catch {
+      whatsappResponse = { raw: responseText };
     }
 
     const executionTime = Date.now() - startTime;
 
-    if (!whatsappSuccess) {
+    if (!whatsappApiResponse.ok) {
       // Log de erro
       await supabase.from('scheduled_reports_logs').insert({
         ...reportLog,
         status: 'error',
         message_sent: false,
-        error_details: `Falha ao enviar mensagem WhatsApp: ${lastError}`,
+        error_details: `Falha HTTP ${whatsappApiResponse.status}: ${responseText}`,
         execution_time_ms: executionTime,
-        whatsapp_response: { error: lastError }
+        whatsapp_response: whatsappResponse
       });
       
-      throw new Error(`Falha ao enviar mensagem WhatsApp: ${lastError}`);
+      throw new Error(`Falha ao enviar mensagem WhatsApp (${whatsappApiResponse.status}): ${responseText}`);
     }
 
     // Log de sucesso
@@ -203,10 +188,11 @@ const handler = async (req: Request): Promise<Response> => {
       template_name: template.name,
       template_type: template.template_type,
       phone_number: cleanPhoneNumber,
-      execution_time_ms: executionTime
+      execution_time_ms: executionTime,
+      whatsapp_response: whatsappResponse
     };
 
-    console.log('📤 [SEND] Retornando resposta de sucesso:', JSON.stringify(successResponse, null, 2));
+    console.log('📤 [SEND] Retornando resposta de sucesso');
 
     return new Response(JSON.stringify(successResponse), {
       status: 200,
