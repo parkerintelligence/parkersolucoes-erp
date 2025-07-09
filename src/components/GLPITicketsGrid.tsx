@@ -503,7 +503,7 @@ export const GLPITicketsGrid = () => {
               </Popover>
             </div>
             
-            <Select value={statusFilter} onValueChange={setStatusFilter} className="bg-slate-700 border-slate-600 text-white">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[140px] bg-slate-700 border-slate-600 text-white">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -518,7 +518,7 @@ export const GLPITicketsGrid = () => {
               </SelectContent>
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter} className="bg-slate-700 border-slate-600 text-white">
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
               <SelectTrigger className="w-[140px] bg-slate-700 border-slate-600 text-white">
                 <SelectValue placeholder="Prioridade" />
               </SelectTrigger>
@@ -533,7 +533,7 @@ export const GLPITicketsGrid = () => {
               </SelectContent>
             </Select>
 
-            <Select value={entityFilter} onValueChange={setEntityFilter} className="bg-slate-700 border-slate-600 text-white">
+            <Select value={entityFilter} onValueChange={setEntityFilter}>
               <SelectTrigger className="w-[140px] bg-slate-700 border-slate-600 text-white">
                 <SelectValue placeholder="Entidade" />
               </SelectTrigger>
