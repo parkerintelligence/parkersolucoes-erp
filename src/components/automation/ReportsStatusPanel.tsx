@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,15 +42,16 @@ export const ReportsStatusPanel = () => {
   const formatNextExecution = (dateString?: string) => {
     if (!dateString) return 'N/A';
     
-    // Parse the UTC date from database
     const utcDate = new Date(dateString);
     
     // Verificar se a data é válida
     if (isNaN(utcDate.getTime())) return 'Data inválida';
     
-    // Compare UTC date directly with current local time
-    const now = new Date();
-    const diffMs = utcDate.getTime() - now.getTime();
+    // Converter para horário de Brasília para comparação
+    const brasiliaTime = new Date(utcDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const nowBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    
+    const diffMs = brasiliaTime.getTime() - nowBrasilia.getTime();
     
     if (diffMs < 0) return 'Atrasado';
     
@@ -75,14 +77,15 @@ export const ReportsStatusPanel = () => {
   const getExecutionStatus = (nextExecution?: string) => {
     if (!nextExecution) return 'inactive';
     
-    // Parse the UTC date from database
     const utcDate = new Date(nextExecution);
     
     if (isNaN(utcDate.getTime())) return 'error';
     
-    // Compare UTC date directly with current local time
-    const now = new Date();
-    const diffMs = utcDate.getTime() - now.getTime();
+    // Converter para horário de Brasília para comparação
+    const brasiliaTime = new Date(utcDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const nowBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    
+    const diffMs = brasiliaTime.getTime() - nowBrasilia.getTime();
     
     if (diffMs < 0) return 'overdue';
     if (diffMs < 60 * 60 * 1000) return 'upcoming'; // Próxima 1 hora
@@ -92,12 +95,11 @@ export const ReportsStatusPanel = () => {
   const formatDateTime = (dateString?: string) => {
     if (!dateString) return 'N/A';
     
-    // Parse the UTC date from database
     const utcDate = new Date(dateString);
     
     if (isNaN(utcDate.getTime())) return 'Data inválida';
     
-    // Format using Brazil timezone without manual conversion
+    // Format using Brazil timezone
     return utcDate.toLocaleString('pt-BR', {
       timeZone: 'America/Sao_Paulo',
       day: '2-digit',
@@ -127,12 +129,14 @@ export const ReportsStatusPanel = () => {
 
   // Separar relatórios por status
   const activeReports = reports.filter(r => r.is_active);
+  
   const upcomingReports = activeReports
     .filter(r => {
       if (!r.next_execution) return false;
       const utcDate = new Date(r.next_execution);
-      const now = new Date();
-      return utcDate > now;
+      const brasiliaTime = new Date(utcDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      const nowBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      return brasiliaTime > nowBrasilia;
     })
     .sort((a, b) => {
       const aUtc = new Date(a.next_execution!);
@@ -144,8 +148,9 @@ export const ReportsStatusPanel = () => {
     .filter(r => {
       if (!r.next_execution) return false;
       const utcDate = new Date(r.next_execution);
-      const now = new Date();
-      return utcDate < now;
+      const brasiliaTime = new Date(utcDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      const nowBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      return brasiliaTime < nowBrasilia;
     });
 
   const recentExecutions = reports
