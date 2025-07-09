@@ -18,12 +18,9 @@ import Passwords from './pages/Passwords';
 import Documents from './pages/Documents';
 import Links from './pages/Links';
 import WhatsApp from './pages/WhatsApp';
-import WhatsAppChats from './pages/WhatsAppChats';
 import WhatsAppTemplates from './pages/WhatsAppTemplates';
 import Automation from './pages/Automation';
-import Monitoring from './pages/Monitoring';
 import Zabbix from './pages/Zabbix';
-import UniFi from './pages/UniFi';
 import GLPI from './pages/GLPI';
 import Guacamole from './pages/Guacamole';
 import Bacula from './pages/Bacula';
@@ -61,12 +58,9 @@ function App() {
               <Route path="documents" element={<Documents />} />
               <Route path="links" element={<Links />} />
               <Route path="whatsapp" element={<WhatsApp />} />
-              <Route path="whatsapp-chats" element={<WhatsAppChats />} />
               <Route path="whatsapp-templates" element={<WhatsAppTemplates />} />
               <Route path="automation" element={<Automation />} />
-              <Route path="monitoring" element={<Monitoring />} />
               <Route path="zabbix" element={<Zabbix />} />
-              <Route path="unifi" element={<UniFi />} />
               <Route path="glpi" element={<GLPI />} />
               <Route path="guacamole" element={<Guacamole />} />
               <Route path="bacula" element={<Bacula />} />
