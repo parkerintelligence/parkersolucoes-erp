@@ -21,6 +21,9 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+  let reportLog = null;
+
   try {
     const { report_id }: ScheduledReportRequest = await req.json();
     console.log(`🚀 Iniciando envio do relatório: ${report_id}`);
@@ -39,6 +42,15 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log(`📋 Relatório encontrado: ${report.name} (${report.report_type})`);
+
+    // Criar log inicial
+    reportLog = {
+      report_id: report_id,
+      phone_number: report.phone_number,
+      status: 'pending',
+      user_id: report.user_id,
+      execution_date: new Date().toISOString()
+    };
 
     // Buscar Evolution API integration do usuário
     const { data: integration, error: integrationError } = await supabase
@@ -76,6 +88,9 @@ const handler = async (req: Request): Promise<Response> => {
     const message = await generateMessageFromTemplate(template, report.report_type, report.user_id, report.settings);
     console.log(`💬 Mensagem gerada (${message.length} caracteres)`);
 
+    // Atualizar log com conteúdo da mensagem
+    reportLog.message_content = message.substring(0, 1000); // Limitar tamanho
+
     // Enviar mensagem via WhatsApp
     const instanceName = integration.instance_name || 'main_instance';
     const cleanPhoneNumber = report.phone_number.replace(/\D/g, '');
@@ -90,13 +105,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     let whatsappSuccess = false;
     let lastError = '';
+    let whatsappResponse = null;
 
     for (const endpoint of endpoints) {
       try {
         const url = `${integration.base_url}${endpoint}`;
         console.log(`🔄 Tentando endpoint: ${url}`);
         
-        const whatsappResponse = await fetch(url, {
+        const whatsappApiResponse = await fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -108,16 +124,16 @@ const handler = async (req: Request): Promise<Response> => {
           }),
         });
 
-        console.log(`📡 Resposta do WhatsApp: ${whatsappResponse.status}`);
+        console.log(`📡 Resposta do WhatsApp: ${whatsappApiResponse.status}`);
 
-        if (whatsappResponse.ok) {
-          const responseData = await whatsappResponse.json();
+        if (whatsappApiResponse.ok) {
+          whatsappResponse = await whatsappApiResponse.json();
           console.log('✅ Mensagem enviada com sucesso via', endpoint);
           whatsappSuccess = true;
           break;
         } else {
-          const errorText = await whatsappResponse.text();
-          lastError = `${whatsappResponse.status}: ${errorText}`;
+          const errorText = await whatsappApiResponse.text();
+          lastError = `${whatsappApiResponse.status}: ${errorText}`;
           console.log(`❌ Falha em ${endpoint}: ${lastError}`);
         }
       } catch (error) {
@@ -126,7 +142,19 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    const executionTime = Date.now() - startTime;
+
     if (!whatsappSuccess) {
+      // Log de erro
+      await supabase.from('scheduled_reports_logs').insert({
+        ...reportLog,
+        status: 'error',
+        message_sent: false,
+        error_details: `Falha ao enviar mensagem WhatsApp: ${lastError}`,
+        execution_time_ms: executionTime,
+        whatsapp_response: { error: lastError }
+      });
+      
       throw new Error(`Falha ao enviar mensagem WhatsApp: ${lastError}`);
     }
 
@@ -141,6 +169,15 @@ const handler = async (req: Request): Promise<Response> => {
       })
       .eq('id', report_id);
 
+    // Log de sucesso
+    await supabase.from('scheduled_reports_logs').insert({
+      ...reportLog,
+      status: 'success',
+      message_sent: true,
+      execution_time_ms: executionTime,
+      whatsapp_response: whatsappResponse
+    });
+
     console.log(`✅ Relatório enviado com sucesso para ${cleanPhoneNumber}`);
 
     return new Response(JSON.stringify({ 
@@ -148,18 +185,33 @@ const handler = async (req: Request): Promise<Response> => {
       message: 'Relatório enviado com sucesso',
       report_type: report.report_type,
       phone_number: cleanPhoneNumber,
-      next_execution: nextExecution
+      next_execution: nextExecution,
+      execution_time_ms: executionTime
     }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
 
   } catch (error: any) {
+    const executionTime = Date.now() - startTime;
+    
+    // Log de erro se temos informações do relatório
+    if (reportLog) {
+      await supabase.from('scheduled_reports_logs').insert({
+        ...reportLog,
+        status: 'error',
+        message_sent: false,
+        error_details: error.message,
+        execution_time_ms: executionTime
+      });
+    }
+
     console.error("❌ Erro na função send-scheduled-report:", error);
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        execution_time_ms: executionTime
       }),
       {
         status: 500,

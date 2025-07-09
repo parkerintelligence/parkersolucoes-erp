@@ -744,6 +744,59 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_reports_logs: {
+        Row: {
+          created_at: string
+          error_details: string | null
+          execution_date: string
+          execution_time_ms: number | null
+          id: string
+          message_content: string | null
+          message_sent: boolean
+          phone_number: string
+          report_id: string
+          status: string
+          user_id: string
+          whatsapp_response: Json | null
+        }
+        Insert: {
+          created_at?: string
+          error_details?: string | null
+          execution_date?: string
+          execution_time_ms?: number | null
+          id?: string
+          message_content?: string | null
+          message_sent?: boolean
+          phone_number: string
+          report_id: string
+          status: string
+          user_id: string
+          whatsapp_response?: Json | null
+        }
+        Update: {
+          created_at?: string
+          error_details?: string | null
+          execution_date?: string
+          execution_time_ms?: number | null
+          id?: string
+          message_content?: string | null
+          message_sent?: boolean
+          phone_number?: string
+          report_id?: string
+          status?: string
+          user_id?: string
+          whatsapp_response?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_reports_logs_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           category: string | null
