@@ -73,9 +73,10 @@ const adminItems = [
 ];
 
 export function AppSidebar() {
-  const { collapsed } = useSidebar();
+  const { state } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
+  const collapsed = state === 'collapsed';
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -91,7 +92,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible>
+    <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
       <SidebarContent>
         {/* Gestão Group */}
         <SidebarGroup>

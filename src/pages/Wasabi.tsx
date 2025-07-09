@@ -11,61 +11,51 @@ import { toast } from '@/hooks/use-toast';
 import { Cloud, Upload, RefreshCcw, Plus, Download, Trash2, Search, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { WasabiCreateBucketDialog } from '@/components/WasabiCreateBucketDialog';
 import { WasabiUploadDialog } from '@/components/WasabiUploadDialog';
-import { useWasabi, WasabiObject } from '@/hooks/useWasabi';
+import { useWasabi } from '@/hooks/useWasabi';
+
+interface WasabiObject {
+  Key: string;
+  Size: number;
+  LastModified: string;
+}
 
 const Wasabi = () => {
   const {
     buckets,
-    objects,
-    selectedBucket,
-    setSelectedBucket,
-    isLoading,
-    connectionStatus,
-    refreshBuckets,
-    refreshObjects,
-    downloadObject,
-    deleteObject,
-    refreshConnectionStatus
+    isLoadingBuckets,
+    bucketsError,
+    wasabiIntegration,
+    getFilesQuery,
+    uploadFiles,
+    downloadFile,
+    deleteFile,
+    createBucket,
   } = useWasabi();
 
+  const [selectedBucket, setSelectedBucket] = useState<string | null>(null);
   const [showCreateBucket, setShowCreateBucket] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const filesQuery = getFilesQuery(selectedBucket);
+  const objects = filesQuery.data || [];
+  const isLoadingObjects = filesQuery.isLoading;
 
   const handleRefresh = async () => {
-    await refreshConnectionStatus();
     if (selectedBucket) {
-      await refreshObjects(selectedBucket);
-    } else {
-      await refreshBuckets();
+      await filesQuery.refetch();
     }
   };
 
   const handleBucketSelect = (bucketName: string) => {
     setSelectedBucket(bucketName);
-    refreshObjects(bucketName);
   };
 
   const handleDownload = async (obj: WasabiObject) => {
     if (!selectedBucket) return;
     
     try {
-      const response = await downloadObject(selectedBucket, obj.Key);
-      
-      if (response.success && response.url) {
-        const link = document.createElement('a');
-        link.href = response.url;
-        link.download = obj.Key;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        toast({
-          title: "Download iniciado",
-          description: `Fazendo download de ${obj.Key}`,
-        });
-      }
+      await downloadFile.mutateAsync({ fileName: obj.Key, bucketName: selectedBucket });
     } catch (error) {
       console.error('Erro no download:', error);
     }
@@ -75,14 +65,33 @@ const Wasabi = () => {
     if (!selectedBucket || !confirm(`Tem certeza que deseja excluir ${obj.Key}?`)) return;
     
     try {
-      await deleteObject(selectedBucket, obj.Key);
-      await refreshObjects(selectedBucket);
+      await deleteFile.mutateAsync({ fileName: obj.Key, bucketName: selectedBucket });
     } catch (error) {
       console.error('Erro ao excluir:', error);
     }
   };
 
-  const filteredObjects = objects.filter(obj => 
+  const handleCreateBucket = async (bucketName: string) => {
+    try {
+      await createBucket.mutateAsync(bucketName);
+      setShowCreateBucket(false);
+    } catch (error) {
+      console.error('Erro ao criar bucket:', error);
+    }
+  };
+
+  const handleUpload = async (files: FileList) => {
+    if (!selectedBucket) return;
+    
+    try {
+      await uploadFiles.mutateAsync({ files, bucketName: selectedBucket });
+      setShowUpload(false);
+    } catch (error) {
+      console.error('Erro no upload:', error);
+    }
+  };
+
+  const filteredObjects = objects.filter((obj: WasabiObject) => 
     obj.Key.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -95,24 +104,18 @@ const Wasabi = () => {
   };
 
   const getConnectionStatusIcon = () => {
-    switch (connectionStatus?.status) {
-      case 'connected':
-        return <CheckCircle className="h-5 w-5 text-green-400" />;
-      case 'error':
-        return <AlertTriangle className="h-5 w-5 text-red-400" />;
-      default:
-        return <Clock className="h-5 w-5 text-yellow-400" />;
+    if (wasabiIntegration) {
+      return <CheckCircle className="h-5 w-5 text-green-400" />;
+    } else {
+      return <AlertTriangle className="h-5 w-5 text-red-400" />;
     }
   };
 
   const getConnectionStatusColor = () => {
-    switch (connectionStatus?.status) {
-      case 'connected':
-        return 'text-green-400';
-      case 'error':
-        return 'text-red-400';
-      default:
-        return 'text-yellow-400';
+    if (wasabiIntegration) {
+      return 'text-green-400';
+    } else {
+      return 'text-red-400';
     }
   };
 
@@ -134,29 +137,28 @@ const Wasabi = () => {
           <div className="flex items-center gap-2">
             {getConnectionStatusIcon()}
             <span className={`text-sm font-medium ${getConnectionStatusColor()}`}>
-              {connectionStatus?.status === 'connected' ? 'Conectado' : 
-               connectionStatus?.status === 'error' ? 'Erro de Conexão' : 'Verificando...'}
+              {wasabiIntegration ? 'Conectado' : 'Não Configurado'}
             </span>
           </div>
           <Button 
             onClick={handleRefresh} 
-            disabled={isLoading}
+            disabled={isLoadingBuckets || isLoadingObjects}
             variant="outline"
           >
-            <RefreshCcw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCcw className={`mr-2 h-4 w-4 ${isLoadingBuckets || isLoadingObjects ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
         </div>
       </div>
 
-      {connectionStatus?.status === 'error' && (
+      {!wasabiIntegration && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-600" />
               <div>
-                <h3 className="font-semibold text-red-800">Erro de Conexão</h3>
-                <p className="text-sm text-red-700">{connectionStatus.message}</p>
+                <h3 className="font-semibold text-red-800">Wasabi não configurado</h3>
+                <p className="text-sm text-red-700">Configure a integração do Wasabi no painel de administração.</p>
               </div>
             </div>
           </CardContent>
@@ -210,8 +212,7 @@ const Wasabi = () => {
           </CardHeader>
           <CardContent>
             <div className={`text-sm font-medium ${getConnectionStatusColor()}`}>
-              {connectionStatus?.status === 'connected' ? 'Online' : 
-               connectionStatus?.status === 'error' ? 'Offline' : 'Verificando'}
+              {wasabiIntegration ? 'Online' : 'Offline'}
             </div>
           </CardContent>
         </Card>
@@ -245,7 +246,7 @@ const Wasabi = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
+              {isLoadingBuckets ? (
                 <div className="text-center py-8">
                   <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4" />
                   <p>Carregando buckets...</p>
@@ -260,13 +261,13 @@ const Wasabi = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {buckets.map((bucket) => (
                     <Card 
-                      key={bucket.Name} 
+                      key={bucket.name} 
                       className={`cursor-pointer transition-colors ${
-                        selectedBucket === bucket.Name 
+                        selectedBucket === bucket.name 
                           ? 'ring-2 ring-blue-500 bg-blue-50' 
                           : 'hover:bg-gray-50'
                       }`}
-                      onClick={() => handleBucketSelect(bucket.Name)}
+                      onClick={() => handleBucketSelect(bucket.name)}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-center gap-3">
@@ -274,9 +275,9 @@ const Wasabi = () => {
                             <Cloud className="h-5 w-5 text-blue-600" />
                           </div>
                           <div className="flex-1">
-                            <h3 className="font-medium">{bucket.Name}</h3>
+                            <h3 className="font-medium">{bucket.name}</h3>
                             <p className="text-sm text-muted-foreground">
-                              Criado em {new Date(bucket.CreationDate).toLocaleDateString('pt-BR')}
+                              Criado em {new Date(bucket.creationDate).toLocaleDateString('pt-BR')}
                             </p>
                           </div>
                         </div>
@@ -308,11 +309,11 @@ const Wasabi = () => {
                     Upload
                   </Button>
                   <Button 
-                    onClick={() => refreshObjects(selectedBucket!)}
-                    disabled={isLoading}
+                    onClick={handleRefresh}
+                    disabled={isLoadingObjects}
                     variant="outline"
                   >
-                    <RefreshCcw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    <RefreshCcw className={`mr-2 h-4 w-4 ${isLoadingObjects ? 'animate-spin' : ''}`} />
                     Atualizar
                   </Button>
                 </div>
@@ -330,7 +331,7 @@ const Wasabi = () => {
                   />
                 </div>
 
-                {isLoading ? (
+                {isLoadingObjects ? (
                   <div className="text-center py-8">
                     <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4" />
                     <p>Carregando objetos...</p>
@@ -347,7 +348,7 @@ const Wasabi = () => {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {filteredObjects.map((obj) => (
+                    {filteredObjects.map((obj: WasabiObject) => (
                       <div key={obj.Key} className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex-1">
                           <h4 className="font-medium">{obj.Key}</h4>
@@ -383,24 +384,14 @@ const Wasabi = () => {
       </Tabs>
 
       <WasabiCreateBucketDialog 
-        open={showCreateBucket} 
-        onOpenChange={setShowCreateBucket}
-        onSuccess={() => {
-          setShowCreateBucket(false);
-          refreshBuckets();
-        }}
+        onCreateBucket={handleCreateBucket} 
+        isCreating={createBucket.isPending}
       />
 
       <WasabiUploadDialog
-        open={showUpload}
-        onOpenChange={setShowUpload}
-        bucketName={selectedBucket}
-        onSuccess={() => {
-          setShowUpload(false);
-          if (selectedBucket) {
-            refreshObjects(selectedBucket);
-          }
-        }}
+        selectedBucket={selectedBucket || ''}
+        onUpload={handleUpload}
+        isUploading={uploadFiles.isPending}
       />
     </div>
   );

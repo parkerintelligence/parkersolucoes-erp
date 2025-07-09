@@ -19,25 +19,28 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useZabbixAPI } from '@/hooks/useZabbixAPI';
-import { useZabbixWebhooks } from '@/hooks/useZabbixWebhooks';
 import { ZabbixWebhookManager } from '@/components/ZabbixWebhookManager';
 import { ZabbixWebhookTester } from '@/components/ZabbixWebhookTester';
 import { toast } from '@/hooks/use-toast';
 
 const Zabbix = () => {
-  const { 
-    hosts, 
-    problems, 
-    groups, 
-    triggers,
-    isLoading, 
-    error, 
-    isConfigured,
-    integration,
-    refetchAll
-  } = useZabbixAPI();
-
+  const zabbixAPI = useZabbixAPI();
   const [refreshing, setRefreshing] = useState(false);
+
+  // Use the individual hooks from the API
+  const hostsQuery = zabbixAPI.useHosts();
+  const problemsQuery = zabbixAPI.useProblems();
+  const groupsQuery = zabbixAPI.useHostGroups();
+  const triggersQuery = zabbixAPI.useTriggers();
+
+  const hosts = hostsQuery.data || [];
+  const problems = problemsQuery.data || [];
+  const groups = groupsQuery.data || [];
+  const triggers = triggersQuery.data || [];
+  
+  const isLoading = hostsQuery.isLoading || problemsQuery.isLoading || groupsQuery.isLoading || triggersQuery.isLoading;
+  const error = hostsQuery.error || problemsQuery.error || groupsQuery.error || triggersQuery.error;
+  const isConfigured = !!zabbixAPI.integration;
 
   const handleRefresh = async () => {
     if (!isConfigured) {
@@ -52,7 +55,12 @@ const Zabbix = () => {
     setRefreshing(true);
     try {
       console.log('🔄 Iniciando atualização manual do Zabbix...');
-      await refetchAll();
+      await Promise.all([
+        hostsQuery.refetch(),
+        problemsQuery.refetch(),
+        groupsQuery.refetch(),
+        triggersQuery.refetch()
+      ]);
       console.log('✅ Atualização do Zabbix concluída');
       
       toast({
@@ -167,9 +175,9 @@ const Zabbix = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-red-700">{error}</p>
+            <p className="text-red-700">{error.message}</p>
             <p className="text-sm text-red-600 mt-2">
-              Verifique se o Zabbix está acessível em: {integration?.base_url}
+              Verifique se o Zabbix está acessível em: {zabbixAPI.integration?.base_url}
             </p>
           </CardContent>
         </Card>
