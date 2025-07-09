@@ -20,9 +20,23 @@ export const ReportsStatusPanel = () => {
   const { data: templates = [] } = useWhatsAppTemplates();
   const testReport = useTestScheduledReport();
 
-  const getTemplateName = (reportType: string) => {
+  const getTemplateInfo = (reportType: string) => {
     const template = templates.find(t => t.id === reportType);
-    return template ? template.name : reportType;
+    if (template) {
+      return {
+        name: template.name,
+        type: template.template_type,
+        isActive: template.is_active,
+        exists: true
+      };
+    }
+    
+    return {
+      name: 'Template não encontrado',
+      type: 'unknown',
+      isActive: false,
+      exists: false
+    };
   };
 
   const formatNextExecution = (dateString?: string) => {
@@ -55,7 +69,7 @@ export const ReportsStatusPanel = () => {
     const diffMs = date.getTime() - now.getTime();
     
     if (diffMs < 0) return 'overdue';
-    if (diffMs < 60 * 60 * 1000) return 'upcoming'; // menos de 1 hora
+    if (diffMs < 60 * 60 * 1000) return 'upcoming';
     return 'scheduled';
   };
 
@@ -171,6 +185,9 @@ export const ReportsStatusPanel = () => {
               <div className="space-y-3">
                 {upcomingReports.slice(0, 8).map((report) => {
                   const status = getExecutionStatus(report.next_execution);
+                  const templateInfo = getTemplateInfo(report.report_type);
+                  const canExecute = templateInfo.exists && templateInfo.isActive;
+                  
                   return (
                     <div key={report.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex-1">
@@ -182,9 +199,14 @@ export const ReportsStatusPanel = () => {
                           >
                             {formatNextExecution(report.next_execution)}
                           </Badge>
+                          {!canExecute && (
+                            <Badge variant="destructive" className="text-xs">
+                              Template inativo
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs text-gray-600">
-                          Template: {getTemplateName(report.report_type)}
+                          Template: {templateInfo.name}
                         </p>
                         <p className="text-xs text-gray-500">
                           {report.next_execution && 
@@ -196,9 +218,9 @@ export const ReportsStatusPanel = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => handleExecuteReport(report.id, report.name)}
-                        disabled={testReport.isPending}
+                        disabled={testReport.isPending || !canExecute}
                         className="ml-2"
-                        title="Executar agora"
+                        title={canExecute ? "Executar agora" : "Template inativo ou não encontrado"}
                       >
                         <Play className="h-3 w-3" />
                       </Button>
@@ -225,37 +247,47 @@ export const ReportsStatusPanel = () => {
               </p>
             ) : (
               <div className="space-y-3">
-                {overdueReports.map((report) => (
-                  <div key={report.id} className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm">{report.name}</span>
-                        <Badge variant="destructive" className="text-xs">
-                          Atrasado
-                        </Badge>
+                {overdueReports.map((report) => {
+                  const templateInfo = getTemplateInfo(report.report_type);
+                  const canExecute = templateInfo.exists && templateInfo.isActive;
+                  
+                  return (
+                    <div key={report.id} className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-sm">{report.name}</span>
+                          <Badge variant="destructive" className="text-xs">
+                            Atrasado
+                          </Badge>
+                          {!canExecute && (
+                            <Badge variant="secondary" className="text-xs">
+                              Template inativo
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-600">
+                          Template: {templateInfo.name}
+                        </p>
+                        <p className="text-xs text-red-600">
+                          Deveria ter executado: {' '}
+                          {report.next_execution && 
+                            new Date(report.next_execution).toLocaleString('pt-BR')
+                          }
+                        </p>
                       </div>
-                      <p className="text-xs text-gray-600">
-                        Template: {getTemplateName(report.report_type)}
-                      </p>
-                      <p className="text-xs text-red-600">
-                        Deveria ter executado: {' '}
-                        {report.next_execution && 
-                          new Date(report.next_execution).toLocaleString('pt-BR')
-                        }
-                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleExecuteReport(report.id, report.name)}
+                        disabled={testReport.isPending || !canExecute}
+                        className="ml-2 border-red-300 text-red-600 hover:bg-red-50"
+                        title={canExecute ? "Executar agora" : "Template inativo ou não encontrado"}
+                      >
+                        <Play className="h-3 w-3" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleExecuteReport(report.id, report.name)}
-                      disabled={testReport.isPending}
-                      className="ml-2 border-red-300 text-red-600 hover:bg-red-50"
-                      title="Executar agora"
-                    >
-                      <Play className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -277,27 +309,31 @@ export const ReportsStatusPanel = () => {
             </p>
           ) : (
             <div className="space-y-3">
-              {recentExecutions.map((report) => (
-                <div key={report.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm">{report.name}</span>
-                      <Badge variant="secondary" className="text-xs">
-                        {report.execution_count} execuções
-                      </Badge>
+              {recentExecutions.map((report) => {
+                const templateInfo = getTemplateInfo(report.report_type);
+                
+                return (
+                  <div key={report.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-sm">{report.name}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {report.execution_count} execuções
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-gray-600">
+                        Template: {templateInfo.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Última execução: {' '}
+                        {report.last_execution && 
+                          new Date(report.last_execution).toLocaleString('pt-BR')
+                        }
+                      </p>
                     </div>
-                    <p className="text-xs text-gray-600">
-                      Template: {getTemplateName(report.report_type)}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Última execução: {' '}
-                      {report.last_execution && 
-                        new Date(report.last_execution).toLocaleString('pt-BR')
-                      }
-                    </p>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

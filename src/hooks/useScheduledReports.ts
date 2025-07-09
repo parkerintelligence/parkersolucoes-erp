@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -7,7 +6,7 @@ export interface ScheduledReport {
   id: string;
   user_id: string;
   name: string;
-  report_type: string; // Agora será o ID do template
+  report_type: string; // Agora é sempre um ID do template
   phone_number: string;
   cron_expression: string;
   is_active: boolean;
@@ -52,6 +51,22 @@ export const useCreateScheduledReport = () => {
         throw new Error('Usuário não autenticado');
       }
 
+      // Verificar se o template existe e está ativo
+      const { data: template, error: templateError } = await supabase
+        .from('whatsapp_message_templates')
+        .select('id, name, is_active')
+        .eq('id', report.report_type)
+        .eq('user_id', userData.user.id)
+        .single();
+
+      if (templateError || !template) {
+        throw new Error('Template não encontrado ou não pertence ao usuário');
+      }
+
+      if (!template.is_active) {
+        throw new Error('Template está inativo e não pode ser usado');
+      }
+
       const { data, error } = await supabase
         .from('scheduled_reports')
         .insert({
@@ -71,6 +86,10 @@ export const useCreateScheduledReport = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['scheduled-reports'] });
+      toast({
+        title: "Agendamento criado!",
+        description: "Relatório agendado com sucesso.",
+      });
       console.log('Relatório criado e cache invalidado');
     },
     onError: (error: any) => {
@@ -91,6 +110,29 @@ export const useUpdateScheduledReport = () => {
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<ScheduledReport> }) => {
       console.log('Atualizando relatório:', id, updates);
       
+      // Se está atualizando o template, verificar se existe e está ativo
+      if (updates.report_type) {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) {
+          throw new Error('Usuário não autenticado');
+        }
+
+        const { data: template, error: templateError } = await supabase
+          .from('whatsapp_message_templates')
+          .select('id, name, is_active')
+          .eq('id', updates.report_type)
+          .eq('user_id', userData.user.id)
+          .single();
+
+        if (templateError || !template) {
+          throw new Error('Template não encontrado ou não pertence ao usuário');
+        }
+
+        if (!template.is_active) {
+          throw new Error('Template está inativo e não pode ser usado');
+        }
+      }
+      
       const { data, error } = await supabase
         .from('scheduled_reports')
         .update(updates)
@@ -108,6 +150,10 @@ export const useUpdateScheduledReport = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scheduled-reports'] });
+      toast({
+        title: "Agendamento atualizado!",
+        description: "Relatório atualizado com sucesso.",
+      });
       console.log('Relatório atualizado e cache invalidado');
     },
     onError: (error: any) => {

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   Edit, Trash2, Play, Pause, TestTube, 
-  Calendar, MessageCircle, HardDrive, ExternalLink 
+  Calendar, MessageCircle, HardDrive, ExternalLink, AlertTriangle 
 } from 'lucide-react';
 import { ScheduledReport } from '@/hooks/useScheduledReports';
 import { useWhatsAppTemplates } from '@/hooks/useWhatsAppTemplates';
@@ -36,14 +36,24 @@ export const ScheduledReportsTable = ({
 }: ScheduledReportsTableProps) => {
   const { data: templates = [] } = useWhatsAppTemplates();
 
-  const getTemplateName = (reportType: string) => {
+  const getTemplateInfo = (reportType: string) => {
     const template = templates.find(t => t.id === reportType);
-    return template ? template.name : reportType;
-  };
-
-  const getTemplateType = (reportType: string) => {
-    const template = templates.find(t => t.id === reportType);
-    return template ? template.template_type : 'custom';
+    if (template) {
+      return {
+        name: template.name,
+        type: template.template_type,
+        isActive: template.is_active,
+        exists: true
+      };
+    }
+    
+    // Fallback para casos onde o template não foi encontrado
+    return {
+      name: 'Template não encontrado',
+      type: 'unknown',
+      isActive: false,
+      exists: false
+    };
   };
 
   const formatNextExecution = (dateString?: string) => {
@@ -69,7 +79,6 @@ export const ScheduledReportsTable = ({
   };
 
   const formatCronExpression = (cron: string) => {
-    // Conversão simples de expressões cron comuns
     const cronMap: { [key: string]: string } = {
       '0 9 * * *': 'Diário às 9:00',
       '0 8 * * *': 'Diário às 8:00',
@@ -112,8 +121,8 @@ export const ScheduledReportsTable = ({
         </TableHeader>
         <TableBody>
           {reports.map((report) => {
-            const templateType = getTemplateType(report.report_type);
-            const Icon = templateTypeIcons[templateType as keyof typeof templateTypeIcons] || MessageCircle;
+            const templateInfo = getTemplateInfo(report.report_type);
+            const Icon = templateTypeIcons[templateInfo.type as keyof typeof templateTypeIcons] || MessageCircle;
             
             return (
               <TableRow key={report.id} className="hover:bg-gray-50">
@@ -129,8 +138,16 @@ export const ScheduledReportsTable = ({
                   <div className="flex items-center gap-2">
                     <Icon className="h-4 w-4 text-gray-600" />
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium">{getTemplateName(report.report_type)}</span>
-                      <span className="text-xs text-gray-500">{templateType}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{templateInfo.name}</span>
+                        {!templateInfo.exists && (
+                          <AlertTriangle className="h-3 w-3 text-red-500" title="Template não encontrado" />
+                        )}
+                        {templateInfo.exists && !templateInfo.isActive && (
+                          <AlertTriangle className="h-3 w-3 text-orange-500" title="Template inativo" />
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-500">{templateInfo.type}</span>
                     </div>
                   </div>
                 </TableCell>
@@ -151,15 +168,27 @@ export const ScheduledReportsTable = ({
                   )}
                 </TableCell>
                 <TableCell>
-                  {report.is_active ? (
-                    <Badge className="bg-green-100 text-green-800 border-green-200">
-                      Ativo
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-gray-100 text-gray-800 border-gray-200">
-                      Inativo
-                    </Badge>
-                  )}
+                  <div className="flex flex-col gap-1">
+                    {report.is_active ? (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        Ativo
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-gray-100 text-gray-800 border-gray-200">
+                        Inativo
+                      </Badge>
+                    )}
+                    {!templateInfo.exists && (
+                      <Badge variant="destructive" className="text-xs">
+                        Template perdido
+                      </Badge>
+                    )}
+                    {templateInfo.exists && !templateInfo.isActive && (
+                      <Badge variant="secondary" className="text-xs">
+                        Template inativo
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
@@ -179,8 +208,12 @@ export const ScheduledReportsTable = ({
                       variant="outline"
                       size="sm"
                       onClick={() => onTest(report.id)}
-                      disabled={isTestingReport}
-                      title="Testar envio"
+                      disabled={isTestingReport || !templateInfo.exists || !templateInfo.isActive}
+                      title={
+                        !templateInfo.exists ? 'Template não encontrado' :
+                        !templateInfo.isActive ? 'Template inativo' :
+                        'Testar envio'
+                      }
                     >
                       <TestTube className="h-4 w-4" />
                     </Button>

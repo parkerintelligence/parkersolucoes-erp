@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
 
@@ -68,41 +67,19 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`🔌 Integration encontrada: ${integration.name}`);
 
-    // Buscar template da mensagem por ID (novo) ou por tipo (fallback para relatórios antigos)
-    let template = null;
-    let templateError = null;
-
-    // Primeiro, tentar buscar por ID (novo sistema)
-    if (report.report_type && report.report_type.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      console.log(`🔍 Buscando template por ID: ${report.report_type}`);
-      const { data: templateById, error: templateByIdError } = await supabase
-        .from('whatsapp_message_templates')
-        .select('*')
-        .eq('id', report.report_type)
-        .eq('user_id', report.user_id)
-        .eq('is_active', true)
-        .single();
-
-      template = templateById;
-      templateError = templateByIdError;
-    } else {
-      // Fallback: buscar por tipo (sistema antigo)
-      console.log(`🔍 Buscando template por tipo (fallback): ${report.report_type}`);
-      const { data: templateByType, error: templateByTypeError } = await supabase
-        .from('whatsapp_message_templates')
-        .select('*')
-        .eq('template_type', report.report_type)
-        .eq('user_id', report.user_id)
-        .eq('is_active', true)
-        .single();
-
-      template = templateByType;
-      templateError = templateByTypeError;
-    }
+    // Buscar template da mensagem por ID (novo sistema unificado)
+    console.log(`🔍 Buscando template por ID: ${report.report_type}`);
+    const { data: template, error: templateError } = await supabase
+      .from('whatsapp_message_templates')
+      .select('*')
+      .eq('id', report.report_type)
+      .eq('user_id', report.user_id)
+      .eq('is_active', true)
+      .single();
 
     if (templateError || !template) {
       console.error('❌ Template não encontrado:', templateError);
-      throw new Error(`Template não encontrado para: ${report.report_type}`);
+      throw new Error(`Template não encontrado ou inativo: ${report.report_type}`);
     }
 
     console.log(`📝 Template encontrado: ${template.name} (tipo: ${template.template_type})`);
