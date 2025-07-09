@@ -23,7 +23,9 @@ import {
   ExternalLink,
   Eye,
   Plus,
-  AlertCircle
+  AlertCircle,
+  Save,
+  Clock
 } from 'lucide-react';
 
 interface ScheduledReportFormProps {
@@ -107,7 +109,6 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
     if (open) {
       console.log('🔄 Dialog aberto - resetando formulário');
       resetForm();
-      // Force refetch templates when dialog opens
       refetchTemplates();
     }
   }, [open, editingReport, resetForm, refetchTemplates]);
@@ -141,6 +142,21 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
 
     if (!formData.cron_expression.trim()) {
       errors.cron_expression = 'Horário é obrigatório';
+    } else {
+      // Validar formato da expressão cron
+      const cronParts = formData.cron_expression.split(' ');
+      if (cronParts.length !== 5) {
+        errors.cron_expression = 'Formato de horário inválido';
+      } else {
+        const minute = parseInt(cronParts[0]);
+        const hour = parseInt(cronParts[1]);
+        if (isNaN(minute) || minute < 0 || minute > 59) {
+          errors.cron_expression = 'Minuto inválido (0-59)';
+        }
+        if (isNaN(hour) || hour < 0 || hour > 23) {
+          errors.cron_expression = 'Hora inválida (0-23)';
+        }
+      }
     }
 
     if (!formData.report_type) {
@@ -157,7 +173,10 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
   };
 
   const handleSave = async () => {
-    console.log('💾 Salvando relatório:', formData);
+    console.log('💾 Salvando relatório:', {
+      ...formData,
+      cron_expression_parsed: formData.cron_expression
+    });
     
     if (!validateForm()) {
       toast({
@@ -183,7 +202,15 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
       phone_number: formData.phone_number.replace(/\D/g, ''), // Limpar formatação
     };
 
-    console.log('💾 Dados a serem salvos:', dataToSave);
+    console.log('💾 Dados finais a serem salvos:', {
+      ...dataToSave,
+      cron_breakdown: {
+        expression: dataToSave.cron_expression,
+        parts: dataToSave.cron_expression.split(' '),
+        minute: dataToSave.cron_expression.split(' ')[0],
+        hour: dataToSave.cron_expression.split(' ')[1]
+      }
+    });
 
     try {
       if (editingReport) {
@@ -218,7 +245,7 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
   };
 
   const handleCronChange = useCallback((cronExpression: string) => {
-    console.log('⏰ Cron expression alterada:', cronExpression);
+    console.log('⏰ Cron expression alterada de:', formData.cron_expression, 'para:', cronExpression);
     setFormData(prev => ({
       ...prev,
       cron_expression: cronExpression
@@ -227,44 +254,55 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
       ...prev,
       cron_expression: ''
     }));
-  }, []);
+  }, [formData.cron_expression]);
 
   const isLoading = createReport.isPending || updateReport.isPending;
+
+  // Função para formatar a expressão cron para display
+  const formatCronForDisplay = (cron: string): string => {
+    const parts = cron.split(' ');
+    if (parts.length >= 2) {
+      const minute = parseInt(parts[0]) || 0;
+      const hour = parseInt(parts[1]) || 0;
+      return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    }
+    return cron;
+  };
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-700 text-white">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-white">
               {editingReport ? 'Editar Agendamento' : 'Novo Agendamento'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-gray-400">
               Configure um relatório automático para ser enviado via WhatsApp
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 py-4">
             {/* Informações Básicas */}
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle className="text-lg">Informações Básicas</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg text-white">Informações Básicas</CardTitle>
+                <CardDescription className="text-gray-400">
                   Configure as informações básicas do agendamento
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium">Nome do Agendamento *</Label>
+                  <Label htmlFor="name" className="text-sm font-medium text-gray-300">Nome do Agendamento *</Label>
                   <Input 
                     id="name" 
                     placeholder="ex: Relatório Diário de Backups"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className={`w-full ${formErrors.name ? 'border-red-500' : ''}`}
+                    className={`w-full bg-gray-700 border-gray-600 text-white placeholder-gray-400 ${formErrors.name ? 'border-red-500' : ''}`}
                   />
                   {formErrors.name && (
-                    <p className="text-sm text-red-600 flex items-center gap-1">
+                    <p className="text-sm text-red-400 flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {formErrors.name}
                     </p>
@@ -273,12 +311,13 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="report_type" className="text-sm font-medium">Template WhatsApp *</Label>
+                    <Label htmlFor="report_type" className="text-sm font-medium text-gray-300">Template WhatsApp *</Label>
                     {!templatesLoading && activeTemplates.length === 0 && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => window.open('/whatsapp-templates', '_blank')}
+                        className="border-gray-600 text-gray-300 hover:bg-gray-700"
                       >
                         <Plus className="h-3 w-3 mr-1" />
                         Criar Template
@@ -293,17 +332,17 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                       setFormErrors({...formErrors, report_type: ''});
                     }}
                   >
-                    <SelectTrigger className={`w-full ${formErrors.report_type ? 'border-red-500' : ''}`}>
+                    <SelectTrigger className={`w-full bg-gray-700 border-gray-600 text-white ${formErrors.report_type ? 'border-red-500' : ''}`}>
                       <SelectValue placeholder="Selecione um template" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-gray-700 border-gray-600">
                       {templatesLoading ? (
-                        <div className="p-4 text-center text-gray-500">
+                        <div className="p-4 text-center text-gray-400">
                           <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
                           <p className="text-sm">Carregando templates...</p>
                         </div>
                       ) : activeTemplates.length === 0 ? (
-                        <div className="p-4 text-center text-gray-500">
+                        <div className="p-4 text-center text-gray-400">
                           <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
                           <p className="text-sm">Nenhum template ativo encontrado.</p>
                           <p className="text-xs mt-1">Crie templates na página "Templates WhatsApp".</p>
@@ -312,12 +351,12 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                         activeTemplates.map((template) => {
                           const Icon = templateTypeIcons[template.template_type as keyof typeof templateTypeIcons] || MessageCircle;
                           return (
-                            <SelectItem key={template.id} value={template.id}>
+                            <SelectItem key={template.id} value={template.id} className="text-white hover:bg-gray-600">
                               <div className="flex items-center gap-2">
                                 <Icon className="h-4 w-4" />
                                 <div className="flex flex-col">
                                   <span className="font-medium">{template.name}</span>
-                                  <span className="text-xs text-gray-500">{template.subject}</span>
+                                  <span className="text-xs text-gray-400">{template.subject}</span>
                                 </div>
                               </div>
                             </SelectItem>
@@ -327,7 +366,7 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                     </SelectContent>
                   </Select>
                   {formErrors.report_type && (
-                    <p className="text-sm text-red-600 flex items-center gap-1">
+                    <p className="text-sm text-red-400 flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {formErrors.report_type}
                     </p>
@@ -339,7 +378,7 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                         variant="outline"
                         size="sm"
                         onClick={() => setShowTemplatePreview(true)}
-                        className="w-full"
+                        className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         Visualizar Template Selecionado
@@ -348,14 +387,14 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                   )}
                   
                   {!templatesLoading && activeTemplates.length === 0 && (
-                    <p className="text-xs text-amber-600 mt-1">
+                    <p className="text-xs text-amber-400 mt-1">
                       ⚠️ Configure templates ativos na página "Templates WhatsApp" para criar agendamentos.
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone_number" className="text-sm font-medium">Número WhatsApp *</Label>
+                  <Label htmlFor="phone_number" className="text-sm font-medium text-gray-300">Número WhatsApp *</Label>
                   <Input 
                     id="phone_number" 
                     placeholder="5511999999999"
@@ -365,11 +404,11 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                       setFormData({...formData, phone_number: cleaned});
                       setFormErrors({...formErrors, phone_number: ''});
                     }}
-                    className={`w-full ${formErrors.phone_number ? 'border-red-500' : ''}`}
+                    className={`w-full bg-gray-700 border-gray-600 text-white placeholder-gray-400 ${formErrors.phone_number ? 'border-red-500' : ''}`}
                     maxLength={13}
                   />
                   {formErrors.phone_number && (
-                    <p className="text-sm text-red-600 flex items-center gap-1">
+                    <p className="text-sm text-red-400 flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {formErrors.phone_number}
                     </p>
@@ -377,9 +416,9 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                   <p className="text-xs text-gray-500">Digite apenas números (ex: 5511999999999)</p>
                 </div>
 
-                <div className="flex items-center justify-between p-4 rounded-lg border bg-gray-50">
+                <div className="flex items-center justify-between p-4 rounded-lg border bg-gray-700 border-gray-600">
                   <div className="flex-1">
-                    <Label htmlFor="is_active" className="text-sm font-medium">Ativar agendamento</Label>
+                    <Label htmlFor="is_active" className="text-sm font-medium text-gray-300">Ativar agendamento</Label>
                     <p className="text-xs text-gray-500 mt-1">
                       Quando ativo, o relatório será enviado automaticamente
                     </p>
@@ -394,12 +433,24 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
             </Card>
 
             {/* Configuração de Horário */}
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle className="text-lg">Configuração de Horário</CardTitle>
-                <CardDescription>
-                  Defina quando o relatório deve ser enviado automaticamente
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg text-white">Configuração de Horário</CardTitle>
+                    <CardDescription className="text-gray-400">
+                      Defina quando o relatório deve ser enviado automaticamente
+                    </CardDescription>
+                  </div>
+                  {formData.cron_expression && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="h-4 w-4 text-blue-400" />
+                      <span className="text-gray-300">
+                        Atual: {formatCronForDisplay(formData.cron_expression)}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <AdvancedCronBuilder
@@ -407,7 +458,7 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                   onChange={handleCronChange}
                 />
                 {formErrors.cron_expression && (
-                  <p className="text-sm text-red-600 flex items-center gap-1 mt-2">
+                  <p className="text-sm text-red-400 flex items-center gap-1 mt-2">
                     <AlertCircle className="h-3 w-3" />
                     {formErrors.cron_expression}
                   </p>
@@ -416,20 +467,28 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
             </Card>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-700">
             <Button 
               variant="outline" 
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
+              className="border-gray-600 text-gray-300 hover:bg-gray-700"
             >
               Cancelar
             </Button>
             <Button 
               onClick={handleSave} 
               disabled={isLoading || (activeTemplates.length === 0 && !templatesLoading)}
-              className="min-w-24"
+              className="min-w-24 bg-blue-600 hover:bg-blue-700"
             >
-              {isLoading ? 'Salvando...' : editingReport ? 'Atualizar' : 'Criar'}
+              {isLoading ? (
+                'Salvando...'
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  {editingReport ? 'Atualizar' : 'Criar'}
+                </>
+              )}
             </Button>
           </div>
         </DialogContent>
@@ -438,26 +497,26 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
       {/* Template Preview Dialog */}
       {selectedTemplate && (
         <Dialog open={showTemplatePreview} onOpenChange={setShowTemplatePreview}>
-          <DialogContent className="sm:max-w-2xl">
+          <DialogContent className="sm:max-w-2xl bg-gray-900 border-gray-700">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
+              <DialogTitle className="flex items-center gap-2 text-white">
                 <MessageCircle className="h-5 w-5" />
                 Preview do Template WhatsApp
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-gray-400">
                 Visualização do template que será usado no agendamento
               </DialogDescription>
             </DialogHeader>
             
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{selectedTemplate.name}</CardTitle>
+                  <CardTitle className="text-lg text-white">{selectedTemplate.name}</CardTitle>
                   <div className="flex items-center gap-2">
-                    <Badge className="bg-green-100 text-green-800">
+                    <Badge className="bg-green-600 text-white border-green-500">
                       {selectedTemplate.is_active ? 'Ativo' : 'Inativo'}
                     </Badge>
-                    <Badge variant="outline">
+                    <Badge variant="outline" className="border-gray-600 text-gray-300">
                       {selectedTemplate.template_type}
                     </Badge>
                   </div>
@@ -465,25 +524,28 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label className="text-sm font-medium">Assunto:</Label>
-                  <p className="text-sm bg-muted p-2 rounded mt-1">{selectedTemplate.subject}</p>
+                  <Label className="text-sm font-medium text-gray-300">Assunto:</Label>
+                  <p className="text-sm bg-gray-700 p-2 rounded mt-1 text-white">{selectedTemplate.subject}</p>
                 </div>
                 
                 <div>
-                  <Label className="text-sm font-medium">Conteúdo:</Label>
-                  <div className="bg-muted p-3 rounded mt-1 whitespace-pre-wrap text-sm">
+                  <Label className="text-sm font-medium text-gray-300">Conteúdo:</Label>
+                  <div className="bg-gray-700 p-3 rounded mt-1 whitespace-pre-wrap text-sm text-white">
                     {selectedTemplate.body}
                   </div>
                 </div>
                 
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs text-gray-400">
                   <p>As variáveis serão substituídas automaticamente quando o relatório for enviado.</p>
                 </div>
               </CardContent>
             </Card>
             
             <div className="flex justify-end">
-              <Button onClick={() => setShowTemplatePreview(false)}>
+              <Button 
+                onClick={() => setShowTemplatePreview(false)}
+                className="bg-gray-700 text-white hover:bg-gray-600"
+              >
                 Fechar
               </Button>
             </div>
