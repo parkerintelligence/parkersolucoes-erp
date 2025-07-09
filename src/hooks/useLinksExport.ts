@@ -12,8 +12,29 @@ export const useLinksExport = () => {
 
   const exportToPDF = () => {
     try {
-      console.log('Iniciando exportação completa para PDF...');
+      console.log('🔄 Iniciando exportação completa para PDF...');
+      console.log('📊 Dados disponíveis:', { passwords: passwords.length, companies: companies.length });
       
+      if (passwords.length === 0) {
+        toast({
+          title: "⚠️ Nenhum dado encontrado",
+          description: "Não há senhas ou links para exportar.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Verificar se jsPDF está disponível
+      if (!jsPDF) {
+        console.error('❌ jsPDF não está disponível');
+        toast({
+          title: "❌ Erro de dependência",
+          description: "Biblioteca de PDF não encontrada. Tente recarregar a página.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const doc = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
@@ -45,7 +66,15 @@ export const useLinksExport = () => {
       const unassignedLinks = passwords.filter(p => !p.company_id && p.gera_link);
       const unassignedPasswords = passwords.filter(p => !p.company_id && !p.gera_link);
 
+      console.log('📈 Estatísticas:', {
+        companiesWithData: companiesWithPasswords.length,
+        unassignedLinks: unassignedLinks.length,
+        unassignedPasswords: unassignedPasswords.length
+      });
+
       companiesWithPasswords.forEach((company, index) => {
+        console.log(`📋 Processando empresa: ${company.name}`);
+        
         // Verificar se precisa de nova página
         if (currentY > 150) {
           doc.addPage();
@@ -76,35 +105,40 @@ export const useLinksExport = () => {
 
           const linksHeaders = ['Nome', 'Serviço', 'URL', 'Usuário', 'Senha', 'Notas'];
 
-          (doc as any).autoTable({
-            head: [linksHeaders],
-            body: linksData,
-            startY: currentY,
-            styles: {
-              fontSize: 8,
-              cellPadding: 2,
-              overflow: 'linebreak',
-            },
-            columnStyles: {
-              0: { cellWidth: 35 }, // Nome
-              1: { cellWidth: 25 }, // Serviço
-              2: { cellWidth: 45 }, // URL
-              3: { cellWidth: 30 }, // Usuário
-              4: { cellWidth: 30 }, // Senha
-              5: { cellWidth: 40 }  // Notas
-            },
-            headStyles: {
-              fillColor: [37, 99, 235], // blue-600
-              textColor: 255,
-              fontStyle: 'bold'
-            },
-            alternateRowStyles: {
-              fillColor: [245, 245, 245]
-            },
-            margin: { left: 20, right: 20 }
-          });
+          try {
+            (doc as any).autoTable({
+              head: [linksHeaders],
+              body: linksData,
+              startY: currentY,
+              styles: {
+                fontSize: 8,
+                cellPadding: 2,
+                overflow: 'linebreak',
+              },
+              columnStyles: {
+                0: { cellWidth: 35 }, // Nome
+                1: { cellWidth: 25 }, // Serviço
+                2: { cellWidth: 45 }, // URL
+                3: { cellWidth: 30 }, // Usuário
+                4: { cellWidth: 30 }, // Senha
+                5: { cellWidth: 40 }  // Notas
+              },
+              headStyles: {
+                fillColor: [37, 99, 235], // blue-600
+                textColor: 255,
+                fontStyle: 'bold'
+              },
+              alternateRowStyles: {
+                fillColor: [245, 245, 245]
+              },
+              margin: { left: 20, right: 20 }
+            });
 
-          currentY = (doc as any).lastAutoTable.finalY + 10;
+            currentY = (doc as any).lastAutoTable.finalY + 10;
+          } catch (error) {
+            console.error('❌ Erro ao criar tabela de links:', error);
+            currentY += 20; // Pular espaço se falhar
+          }
         }
 
         // Senhas Gerais (gera_link = false)
@@ -125,40 +159,47 @@ export const useLinksExport = () => {
 
           const passwordsHeaders = ['Nome', 'Serviço', 'Usuário', 'Senha', 'URL', 'Notas'];
 
-          (doc as any).autoTable({
-            head: [passwordsHeaders],
-            body: passwordsData,
-            startY: currentY,
-            styles: {
-              fontSize: 8,
-              cellPadding: 2,
-              overflow: 'linebreak',
-            },
-            columnStyles: {
-              0: { cellWidth: 35 }, // Nome
-              1: { cellWidth: 25 }, // Serviço
-              2: { cellWidth: 30 }, // Usuário
-              3: { cellWidth: 30 }, // Senha
-              4: { cellWidth: 45 }, // URL
-              5: { cellWidth: 40 }  // Notas
-            },
-            headStyles: {
-              fillColor: [16, 185, 129], // green-500
-              textColor: 255,
-              fontStyle: 'bold'
-            },
-            alternateRowStyles: {
-              fillColor: [245, 245, 245]
-            },
-            margin: { left: 20, right: 20 }
-          });
+          try {
+            (doc as any).autoTable({
+              head: [passwordsHeaders],
+              body: passwordsData,
+              startY: currentY,
+              styles: {
+                fontSize: 8,
+                cellPadding: 2,
+                overflow: 'linebreak',
+              },
+              columnStyles: {
+                0: { cellWidth: 35 }, // Nome
+                1: { cellWidth: 25 }, // Serviço
+                2: { cellWidth: 30 }, // Usuário
+                3: { cellWidth: 30 }, // Senha
+                4: { cellWidth: 45 }, // URL
+                5: { cellWidth: 40 }  // Notas
+              },
+              headStyles: {
+                fillColor: [16, 185, 129], // green-500
+                textColor: 255,
+                fontStyle: 'bold'
+              },
+              alternateRowStyles: {
+                fillColor: [245, 245, 245]
+              },
+              margin: { left: 20, right: 20 }
+            });
 
-          currentY = (doc as any).lastAutoTable.finalY + 15;
+            currentY = (doc as any).lastAutoTable.finalY + 15;
+          } catch (error) {
+            console.error('❌ Erro ao criar tabela de senhas:', error);
+            currentY += 20; // Pular espaço se falhar
+          }
         }
       });
 
       // Adicionar itens sem empresa se existirem
       if (unassignedLinks.length > 0 || unassignedPasswords.length > 0) {
+        console.log('📋 Processando itens sem empresa');
+        
         if (currentY > 150) {
           doc.addPage();
           currentY = 20;
@@ -184,16 +225,21 @@ export const useLinksExport = () => {
             link.notes || ''
           ]);
 
-          (doc as any).autoTable({
-            head: [['Nome', 'Serviço', 'URL', 'Usuário', 'Senha', 'Notas']],
-            body: linksData,
-            startY: currentY,
-            styles: { fontSize: 8, cellPadding: 2 },
-            headStyles: { fillColor: [37, 99, 235], textColor: 255 },
-            margin: { left: 20, right: 20 }
-          });
+          try {
+            (doc as any).autoTable({
+              head: [['Nome', 'Serviço', 'URL', 'Usuário', 'Senha', 'Notas']],
+              body: linksData,
+              startY: currentY,
+              styles: { fontSize: 8, cellPadding: 2 },
+              headStyles: { fillColor: [37, 99, 235], textColor: 255 },
+              margin: { left: 20, right: 20 }
+            });
 
-          currentY = (doc as any).lastAutoTable.finalY + 10;
+            currentY = (doc as any).lastAutoTable.finalY + 10;
+          } catch (error) {
+            console.error('❌ Erro ao criar tabela de links sem empresa:', error);
+            currentY += 20;
+          }
         }
 
         // Senhas sem empresa
@@ -211,14 +257,18 @@ export const useLinksExport = () => {
             pwd.notes || ''
           ]);
 
-          (doc as any).autoTable({
-            head: [['Nome', 'Serviço', 'Usuário', 'Senha', 'URL', 'Notas']],
-            body: passwordsData,
-            startY: currentY,
-            styles: { fontSize: 8, cellPadding: 2 },
-            headStyles: { fillColor: [16, 185, 129], textColor: 255 },
-            margin: { left: 20, right: 20 }
-          });
+          try {
+            (doc as any).autoTable({
+              head: [['Nome', 'Serviço', 'Usuário', 'Senha', 'URL', 'Notas']],
+              body: passwordsData,
+              startY: currentY,
+              styles: { fontSize: 8, cellPadding: 2 },
+              headStyles: { fillColor: [16, 185, 129], textColor: 255 },
+              margin: { left: 20, right: 20 }
+            });
+          } catch (error) {
+            console.error('❌ Erro ao criar tabela de senhas sem empresa:', error);
+          }
         }
       }
 
@@ -241,7 +291,7 @@ export const useLinksExport = () => {
       const fileName = `relatorio-completo-${now.toISOString().split('T')[0]}.pdf`;
       doc.save(fileName);
 
-      console.log('PDF exportado com sucesso:', fileName);
+      console.log('✅ PDF exportado com sucesso:', fileName);
       
       toast({
         title: "✅ Exportação concluída!",
@@ -249,10 +299,11 @@ export const useLinksExport = () => {
       });
 
     } catch (error) {
-      console.error('Erro ao exportar PDF:', error);
+      console.error('❌ Erro ao exportar PDF:', error);
+      console.error('Stack trace:', error.stack);
       toast({
         title: "❌ Erro na exportação",
-        description: "Ocorreu um erro ao gerar o PDF. Tente novamente.",
+        description: `Erro: ${error.message || 'Erro desconhecido'}. Verifique o console para mais detalhes.`,
         variant: "destructive"
       });
     }

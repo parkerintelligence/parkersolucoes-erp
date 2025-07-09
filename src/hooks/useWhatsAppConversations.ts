@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useIntegrations } from '@/hooks/useIntegrations';
@@ -27,16 +26,18 @@ export const useWhatsAppConversations = () => {
   );
 
   return useQuery({
-    queryKey: ['whatsapp_conversations'],
+    queryKey: ['whatsapp_conversations', evolutionIntegration?.id],
     queryFn: async () => {
+      console.log('🔍 useWhatsAppConversations: Iniciando busca de conversas...');
+      
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError || !user) {
-        console.error('User not authenticated:', authError);
+        console.error('❌ useWhatsAppConversations: Usuário não autenticado:', authError);
         throw new Error('User not authenticated');
       }
 
-      console.log('🔍 Buscando conversas do WhatsApp...');
+      console.log('👤 useWhatsAppConversations: Usuário autenticado:', user.id);
       
       // Primeiro, buscar conversas do banco de dados
       const { data: dbConversations, error: dbError } = await supabase
@@ -45,90 +46,97 @@ export const useWhatsAppConversations = () => {
         .order('last_message_time', { ascending: false, nullsFirst: false });
 
       if (dbError) {
-        console.error('❌ Erro ao buscar conversas do banco:', dbError);
+        console.error('❌ useWhatsAppConversations: Erro ao buscar conversas do banco:', dbError);
       }
 
-      console.log(`📊 Conversas no banco: ${dbConversations?.length || 0}`);
+      console.log(`📊 useWhatsAppConversations: Conversas no banco: ${dbConversations?.length || 0}`);
 
       // Se temos integração Evolution API ativa, buscar conversas da API também
       if (evolutionIntegration) {
         try {
-          console.log('🔌 Integração Evolution API ativa, buscando conversas da API...');
+          console.log('🔌 useWhatsAppConversations: Integração Evolution API ativa, verificando conexão...');
           const evolutionService = new EvolutionApiService(evolutionIntegration);
           
           // Verificar se a instância está conectada
           const instanceStatus = await evolutionService.checkInstanceStatus();
+          console.log('📡 useWhatsAppConversations: Status da instância:', instanceStatus);
           
           if (instanceStatus.active) {
-            console.log('✅ Instância Evolution API conectada, buscando conversas...');
-            const apiConversations = await evolutionService.getConversations();
+            console.log('✅ useWhatsAppConversations: Instância conectada, buscando conversas da API...');
             
-            console.log(`📊 Conversas da API: ${apiConversations.length}`);
-            
-            // Sincronizar conversas da API com o banco de dados
-            if (apiConversations.length > 0) {
-              const conversationsToSync = apiConversations.map(conv => ({
-                contact_name: conv.name,
-                contact_phone: conv.remoteJid,
-                last_message: conv.lastMessage || null,
-                last_message_time: new Date(conv.timestamp).toISOString(),
-                unread_count: conv.unreadCount || 0,
-                status: 'active',
-                integration_id: evolutionIntegration.id,
-                user_id: user.id
-              }));
+            try {
+              const apiConversations = await evolutionService.getConversations();
+              console.log(`📊 useWhatsAppConversations: Conversas da API: ${apiConversations.length}`);
+              
+              // Sincronizar conversas da API com o banco de dados
+              if (apiConversations.length > 0) {
+                console.log('🔄 useWhatsAppConversations: Sincronizando conversas...');
+                
+                const conversationsToSync = apiConversations.map(conv => ({
+                  contact_name: conv.name || conv.remoteJid || 'Contato Desconhecido',
+                  contact_phone: conv.remoteJid || '',
+                  last_message: conv.lastMessage || null,
+                  last_message_time: conv.timestamp ? new Date(conv.timestamp).toISOString() : new Date().toISOString(),
+                  unread_count: conv.unreadCount || 0,
+                  status: 'active',
+                  integration_id: evolutionIntegration.id,
+                  user_id: user.id
+                }));
 
-              // Usar upsert para inserir ou atualizar conversas
-              const { error: syncError } = await supabase
-                .from('whatsapp_conversations')
-                .upsert(conversationsToSync, {
-                  onConflict: 'contact_phone,integration_id',
-                  ignoreDuplicates: false
-                });
+                console.log('📝 useWhatsAppConversations: Dados para sincronizar:', conversationsToSync.length);
 
-              if (syncError) {
-                console.error('❌ Erro ao sincronizar conversas:', syncError);
+                // Usar upsert para inserir ou atualizar conversas
+                const { error: syncError } = await supabase
+                  .from('whatsapp_conversations')
+                  .upsert(conversationsToSync, {
+                    onConflict: 'contact_phone,integration_id',
+                    ignoreDuplicates: false
+                  });
+
+                if (syncError) {
+                  console.error('❌ useWhatsAppConversations: Erro ao sincronizar conversas:', syncError);
+                } else {
+                  console.log('✅ useWhatsAppConversations: Conversas sincronizadas com sucesso');
+                }
+
+                // Buscar novamente as conversas atualizadas do banco
+                const { data: updatedConversations, error: updateError } = await supabase
+                  .from('whatsapp_conversations')
+                  .select('*')
+                  .order('last_message_time', { ascending: false, nullsFirst: false });
+
+                if (!updateError && updatedConversations) {
+                  console.log(`✅ useWhatsAppConversations: Conversas atualizadas: ${updatedConversations.length}`);
+                  return updatedConversations as WhatsAppConversation[];
+                }
               } else {
-                console.log('✅ Conversas sincronizadas com sucesso');
+                console.log('ℹ️ useWhatsAppConversations: Nenhuma conversa encontrada na API');
               }
-
-              // Buscar novamente as conversas atualizadas do banco
-              const { data: updatedConversations, error: updateError } = await supabase
-                .from('whatsapp_conversations')
-                .select('*')
-                .order('last_message_time', { ascending: false, nullsFirst: false });
-
-              if (!updateError && updatedConversations) {
-                console.log(`✅ Conversas atualizadas: ${updatedConversations.length}`);
-                return updatedConversations as WhatsAppConversation[];
-              }
+            } catch (apiError) {
+              console.error('❌ useWhatsAppConversations: Erro ao buscar conversas da API:', apiError);
+              // Não mostrar toast aqui, apenas log - deixar que a UI trate
             }
           } else {
-            console.warn('⚠️ Instância Evolution API não está conectada:', instanceStatus.error);
-            toast({
-              title: "⚠️ WhatsApp desconectado",
-              description: "A instância do WhatsApp não está conectada. Verifique a configuração.",
-              variant: "destructive"
-            });
+            console.warn('⚠️ useWhatsAppConversations: Instância não conectada:', instanceStatus.error);
+            // Não mostrar toast aqui - a UI deve verificar o status de conexão
           }
         } catch (apiError) {
-          console.error('❌ Erro ao buscar conversas da Evolution API:', apiError);
-          toast({
-            title: "❌ Erro no WhatsApp",
-            description: `Erro ao conectar com WhatsApp: ${apiError.message}`,
-            variant: "destructive"
-          });
+          console.error('❌ useWhatsAppConversations: Erro geral da Evolution API:', apiError);
+          // Não mostrar toast aqui - a UI deve tratar erros de conexão
         }
       } else {
-        console.log('⚠️ Nenhuma integração Evolution API ativa encontrada');
+        console.log('⚠️ useWhatsAppConversations: Nenhuma integração Evolution API ativa encontrada');
       }
 
       // Retornar conversas do banco de dados (seja original ou atualizada)
+      console.log(`📊 useWhatsAppConversations: Retornando ${(dbConversations || []).length} conversas`);
       return (dbConversations || []) as WhatsAppConversation[];
     },
     enabled: true,
     refetchInterval: 30000, // Refetch a cada 30 segundos
     staleTime: 10000, // Considerar dados stale após 10 segundos
+    retry: 3, // Tentar 3 vezes em caso de erro
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000), // Backoff exponencial
   });
 };
 

@@ -1,12 +1,12 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useIntegrations } from '@/hooks/useIntegrations';
-import { useWhatsAppConversations, useCreateWhatsAppConversation, useUpdateWhatsAppConversation } from '@/hooks/useWhatsAppConversations';
+import { useWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
 import { EvolutionApiService } from '@/utils/evolutionApiService';
 import { 
   MessageSquare, 
@@ -37,8 +37,6 @@ interface WhatsAppMessage {
 const WhatsAppChats = () => {
   const { data: integrations } = useIntegrations();
   const { data: conversations, isLoading: loadingConversations, refetch: refetchConversations } = useWhatsAppConversations();
-  const createConversation = useCreateWhatsAppConversation();
-  const updateConversation = useUpdateWhatsAppConversation();
   
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<string>('disconnected');
@@ -53,6 +51,14 @@ const WhatsAppChats = () => {
 
   const evolutionIntegration = integrations?.find(int => int.type === 'evolution_api');
 
+  console.log('🎯 WhatsAppChats: Renderizando com dados:', {
+    conversations: conversations?.length || 0,
+    loadingConversations,
+    evolutionIntegration: !!evolutionIntegration,
+    isConnected,
+    connectionStatus
+  });
+
   // Converter conversas do banco para formato da tela
   const chats = (conversations || []).map(conv => ({
     id: conv.id,
@@ -62,28 +68,34 @@ const WhatsAppChats = () => {
     unreadCount: conv.unread_count || 0,
     phoneNumber: conv.contact_phone,
     profilePicUrl: undefined,
-    isGroup: false,
+    isGroup: conv.contact_phone?.includes('@g.us') || false,
     participantsCount: undefined
   }));
 
   const checkConnection = async () => {
-    if (!evolutionIntegration) return;
+    if (!evolutionIntegration) {
+      console.log('🔍 WhatsAppChats: Nenhuma integração Evolution API encontrada');
+      return;
+    }
 
     try {
-      console.log('🔍 Verificando conexão da Evolution API...');
+      console.log('🔍 WhatsAppChats: Verificando conexão da Evolution API...');
       const service = new EvolutionApiService(evolutionIntegration);
       const status = await service.checkInstanceStatus();
+      
+      console.log('📊 WhatsAppChats: Status da conexão:', status);
+      
       setIsConnected(status.active);
       setConnectionStatus(status.active ? 'connected' : 'disconnected');
       
       if (status.active) {
-        console.log('✅ Conectado! Atualizando conversas...');
+        console.log('✅ WhatsAppChats: Conectado! Atualizando conversas...');
         await refetchConversations();
       } else {
-        console.log('❌ Não conectado');
+        console.log('❌ WhatsAppChats: Não conectado');
       }
     } catch (error) {
-      console.error('❌ Erro ao verificar conexão:', error);
+      console.error('❌ WhatsAppChats: Erro ao verificar conexão:', error);
       setIsConnected(false);
       setConnectionStatus('disconnected');
     }
@@ -112,7 +124,7 @@ const WhatsAppChats = () => {
     setConnectionStatus('connecting');
 
     try {
-      console.log('🔄 Iniciando conexão com WhatsApp...');
+      console.log('🔄 WhatsAppChats: Iniciando conexão com WhatsApp...');
       const service = new EvolutionApiService(evolutionIntegration);
       const instanceInfo = await service.getInstanceInfo();
       
@@ -180,7 +192,7 @@ const WhatsAppChats = () => {
         });
       }
     } catch (error) {
-      console.error('❌ Erro ao conectar:', error);
+      console.error('❌ WhatsAppChats: Erro ao conectar:', error);
       setIsConnecting(false);
       setConnectionStatus('disconnected');
       toast({
@@ -208,7 +220,7 @@ const WhatsAppChats = () => {
         description: "WhatsApp Web foi desconectado",
       });
     } catch (error) {
-      console.error('❌ Erro ao desconectar:', error);
+      console.error('❌ WhatsAppChats: Erro ao desconectar:', error);
       toast({
         title: "Erro",
         description: "Erro ao desconectar do WhatsApp Web",
@@ -221,7 +233,7 @@ const WhatsAppChats = () => {
     if (!evolutionIntegration) return;
 
     try {
-      console.log('📥 Carregando mensagens para:', chat.name);
+      console.log('📥 WhatsAppChats: Carregando mensagens para:', chat.name);
       const service = new EvolutionApiService(evolutionIntegration);
       const messagesData = await service.getMessages(chat.phoneNumber);
       
@@ -237,7 +249,7 @@ const WhatsAppChats = () => {
       
       setMessages(formattedMessages.sort((a, b) => a.timestamp - b.timestamp));
     } catch (error) {
-      console.error('❌ Erro ao carregar mensagens:', error);
+      console.error('❌ WhatsAppChats: Erro ao carregar mensagens:', error);
       toast({
         title: "Erro",
         description: "Erro ao carregar mensagens",
@@ -278,7 +290,7 @@ const WhatsAppChats = () => {
         });
       }
     } catch (error) {
-      console.error('❌ Erro ao enviar mensagem:', error);
+      console.error('❌ WhatsAppChats: Erro ao enviar mensagem:', error);
       toast({
         title: "Erro",
         description: "Erro ao enviar mensagem",
@@ -288,18 +300,31 @@ const WhatsAppChats = () => {
   };
 
   const selectChat = async (chat: any) => {
+    console.log('💬 WhatsAppChats: Selecionando chat:', chat.name);
     setSelectedChat(chat);
     await loadMessages(chat);
   };
 
   useEffect(() => {
     if (evolutionIntegration) {
-      console.log('🔄 Integração Evolution API encontrada:', evolutionIntegration);
+      console.log('🔄 WhatsAppChats: Integração Evolution API encontrada, verificando conexão...');
       checkConnection();
     } else {
-      console.log('❌ Integração Evolution API não encontrada');
+      console.log('❌ WhatsAppChats: Integração Evolution API não encontrada');
     }
   }, [evolutionIntegration]);
+
+  // Auto-refresh quando conectado
+  useEffect(() => {
+    if (isConnected && evolutionIntegration) {
+      console.log('🔄 WhatsAppChats: Configurando auto-refresh das conversas...');
+      const interval = setInterval(() => {
+        refetchConversations();
+      }, 30000); // A cada 30 segundos
+
+      return () => clearInterval(interval);
+    }
+  }, [isConnected, evolutionIntegration, refetchConversations]);
 
   if (!evolutionIntegration) {
     return (
@@ -516,11 +541,9 @@ const WhatsAppChats = () => {
             </div>
             
             <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
+              <Button variant="ghost" size="sm" onClick={() => setIsConfigDialogOpen(true)}>
+                <Settings className="h-4 w-4" />
+              </Button>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Configurações WhatsApp Web</DialogTitle>
