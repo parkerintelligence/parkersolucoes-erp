@@ -8,13 +8,13 @@ import { ChatwootAdminConfig } from "@/components/ChatwootAdminConfig";
 import { EvolutionAPIAdminConfig } from "@/components/EvolutionAPIAdminConfig";
 import { WasabiAdminConfig } from "@/components/WasabiAdminConfig";
 import { GrafanaAdminConfig } from "@/components/GrafanaAdminConfig";
-import { ZabbixAdminConfig } from "@/components/ZabbixAdminConfig";
+import ZabbixAdminConfig from "@/components/ZabbixAdminConfig";
 import { FtpAdminConfig } from "@/components/FtpAdminConfig";
 import { GLPIConfig } from "@/components/GLPIConfig";
 import { GuacamoleAdminConfig } from "@/components/GuacamoleAdminConfig";
 import { BaculaAdminConfig } from "@/components/BaculaAdminConfig";
 import { AdminCompaniesPanel } from "@/components/AdminCompaniesPanel";
-import { SystemSettingsPanel } from "@/components/SystemSettingsPanel";
+import SystemSettingsPanel from "@/components/SystemSettingsPanel";
 import { BrandingSettingsPanel } from "@/components/BrandingSettingsPanel";
 import { DiagnosticPanel } from "@/components/DiagnosticPanel";
 import { 

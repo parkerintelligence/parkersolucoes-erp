@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useIntegrations } from '@/hooks/useIntegrations';
@@ -16,6 +17,19 @@ export interface WhatsAppConversation {
   created_at: string;
   updated_at: string;
   user_id: string;
+}
+
+interface InstanceStatus {
+  active: boolean;
+  error?: string;
+}
+
+interface ApiConversation {
+  remoteJid: string;
+  name?: string;
+  lastMessage?: string;
+  timestamp?: number;
+  unreadCount?: number;
 }
 
 export const useWhatsAppConversations = () => {
@@ -66,13 +80,14 @@ export const useWhatsAppConversations = () => {
           
           // Verificar status da instância com timeout
           console.log('📡 Verificando status da instância...');
-          const instanceStatus = await Promise.race([
+          const instanceStatusResult = await Promise.race([
             evolutionService.checkInstanceStatus(),
             new Promise((_, reject) => 
               setTimeout(() => reject(new Error('Timeout ao verificar status')), 10000)
             )
           ]);
           
+          const instanceStatus = instanceStatusResult as InstanceStatus;
           console.log('📡 Status da instância:', instanceStatus);
           
           if (instanceStatus.active) {
@@ -80,13 +95,14 @@ export const useWhatsAppConversations = () => {
             
             try {
               // Buscar conversas da Evolution API com timeout
-              const apiConversations = await Promise.race([
+              const apiConversationsResult = await Promise.race([
                 evolutionService.getConversations(),
                 new Promise((_, reject) => 
                   setTimeout(() => reject(new Error('Timeout ao buscar conversas')), 15000)
                 )
               ]);
               
+              const apiConversations = apiConversationsResult as ApiConversation[];
               console.log(`📊 Conversas da API: ${apiConversations.length}`);
               console.log('📊 Amostra de conversas:', apiConversations.slice(0, 3));
               
@@ -148,7 +164,7 @@ export const useWhatsAppConversations = () => {
             } catch (apiError) {
               console.error('❌ Erro ao buscar conversas da API:', apiError);
               console.error('❌ Tipo do erro:', typeof apiError);
-              console.error('❌ Stack trace:', apiError.stack);
+              console.error('❌ Stack trace:', (apiError as Error).stack);
               // Não mostrar toast aqui, continuar com dados do banco
             }
           } else {
@@ -158,8 +174,8 @@ export const useWhatsAppConversations = () => {
         } catch (integrationError) {
           console.error('❌ Erro na integração Evolution API:', integrationError);
           console.error('❌ Detalhes:', {
-            message: integrationError.message,
-            stack: integrationError.stack
+            message: (integrationError as Error).message,
+            stack: (integrationError as Error).stack
           });
           // Não mostrar toast aqui, continuar com dados do banco
         }
@@ -180,7 +196,7 @@ export const useWhatsAppConversations = () => {
     refetchInterval: 30000, // Refetch a cada 30 segundos
     staleTime: 15000, // Dados ficam stale após 15 segundos
     retry: (failureCount, error) => {
-      console.log(`🔄 Tentativa ${failureCount + 1} de buscar conversas`, error.message);
+      console.log(`🔄 Tentativa ${failureCount + 1} de buscar conversas`, (error as Error).message);
       return failureCount < 2; // Máximo 3 tentativas
     },
     retryDelay: attemptIndex => {
@@ -336,7 +352,8 @@ export const useTestEvolutionConnection = () => {
       
       // Teste de status da instância
       console.log('📡 Testando status da instância...');
-      const instanceStatus = await evolutionService.checkInstanceStatus();
+      const instanceStatusResult = await evolutionService.checkInstanceStatus();
+      const instanceStatus = instanceStatusResult as InstanceStatus;
       
       if (!instanceStatus.active) {
         throw new Error(`Instância inativa: ${instanceStatus.error || 'Status desconhecido'}`);
@@ -344,7 +361,8 @@ export const useTestEvolutionConnection = () => {
 
       // Teste de busca de conversas
       console.log('📱 Testando busca de conversas...');
-      const conversations = await evolutionService.getConversations();
+      const conversationsResult = await evolutionService.getConversations();
+      const conversations = conversationsResult as ApiConversation[];
       
       console.log('✅ Teste concluído com sucesso');
       return {
