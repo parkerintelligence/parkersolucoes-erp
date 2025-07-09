@@ -9,8 +9,7 @@ import {
   RefreshCcw, 
   AlertTriangle, 
   CheckCircle, 
-  Settings,
-  BarChart3
+  Settings
 } from 'lucide-react';
 import { GLPIDashboard } from '@/components/GLPIDashboard';
 import { GLPITicketsGrid } from '@/components/GLPITicketsGrid';
@@ -24,7 +23,6 @@ const GLPI = () => {
   const { glpiIntegration } = useGLPI();
   const [filters, setFilters] = useState({});
   const [refreshing, setRefreshing] = useState(false);
-  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
 
   const isConfigured = !!glpiIntegration;
 
@@ -87,27 +85,6 @@ const GLPI = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Dialog open={isDashboardOpen} onOpenChange={setIsDashboardOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
-                >
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Dashboard
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700">
-                <DialogHeader>
-                  <DialogTitle className="text-white flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Dashboard GLPI
-                  </DialogTitle>
-                </DialogHeader>
-                <GLPIDashboard />
-              </DialogContent>
-            </Dialog>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-400" />
               <span className="text-sm text-green-400">Conectado</span>

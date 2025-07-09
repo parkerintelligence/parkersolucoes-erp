@@ -14,7 +14,6 @@ interface LinkWithCompany {
   service: string | null;
   companies: {
     name: string;
-    address: string | null;
   } | null;
 }
 
@@ -24,7 +23,7 @@ export const useLinksExport = () => {
       console.log('🔄 Iniciando exportação de links para PDF...');
       
       const { data: links, error } = await supabase
-        .from('company_links')
+        .from('passwords')
         .select(`
           id,
           name,
@@ -33,10 +32,10 @@ export const useLinksExport = () => {
           password,
           service,
           companies (
-            name,
-            address
+            name
           )
         `)
+        .eq('gera_link', true)
         .order('name');
 
       if (error) {
@@ -47,7 +46,7 @@ export const useLinksExport = () => {
       console.log(`✅ ${links?.length || 0} links encontrados`);
 
       const doc = new jsPDF({
-        orientation: 'portrait', // Changed from 'landscape' to 'portrait'
+        orientation: 'portrait',
         unit: 'mm',
         format: 'a4'
       });
@@ -65,7 +64,6 @@ export const useLinksExport = () => {
       // Preparar dados para a tabela
       const tableData = (links as LinkWithCompany[]).map(link => [
         link.companies?.name || 'Empresa não informada',
-        link.companies?.address || 'Endereço não informado', // Added address field
         link.name || 'Nome não informado',
         link.url || 'URL não informada',
         link.username || 'Usuário não informado',
@@ -75,7 +73,7 @@ export const useLinksExport = () => {
 
       // Configurar tabela
       autoTable(doc, {
-        head: [['Empresa', 'Endereço', 'Nome', 'URL', 'Usuário', 'Senha', 'Serviço']], // Added address column
+        head: [['Empresa', 'Nome', 'URL', 'Usuário', 'Senha', 'Serviço']],
         body: tableData,
         startY: 40,
         styles: {
@@ -93,13 +91,12 @@ export const useLinksExport = () => {
           fillColor: [245, 245, 245]
         },
         columnStyles: {
-          0: { cellWidth: 25 }, // Empresa
-          1: { cellWidth: 30 }, // Endereço (new column)
-          2: { cellWidth: 25 }, // Nome
-          3: { cellWidth: 35 }, // URL
-          4: { cellWidth: 25 }, // Usuário
-          5: { cellWidth: 25 }, // Senha
-          6: { cellWidth: 25 }  // Serviço
+          0: { cellWidth: 35 }, // Empresa
+          1: { cellWidth: 30 }, // Nome
+          2: { cellWidth: 40 }, // URL
+          3: { cellWidth: 25 }, // Usuário
+          4: { cellWidth: 25 }, // Senha
+          5: { cellWidth: 25 }  // Serviço
         },
         margin: { top: 40, right: 10, bottom: 20, left: 10 },
         theme: 'striped'
