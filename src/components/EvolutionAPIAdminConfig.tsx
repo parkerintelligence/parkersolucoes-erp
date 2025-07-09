@@ -178,10 +178,10 @@ export const EvolutionAPIAdminConfig = () => {
               id="instance_name"
               value={formData.instance_name}
               onChange={(e) => setFormData({ ...formData, instance_name: e.target.value })}
-              placeholder="SuporteParker"
+              placeholder="minha-instancia"
             />
             <p className="text-sm text-gray-500 mt-1">
-              Nome da instância configurada na Evolution API (ex: SuporteParker)
+              Nome da instância configurada na Evolution API (ex: minha-instancia, suporte, vendas)
             </p>
           </div>
 
