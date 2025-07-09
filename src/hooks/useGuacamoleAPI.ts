@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useIntegrations } from '@/hooks/useIntegrations';
@@ -54,7 +53,6 @@ export const useGuacamoleAPI = () => {
     });
   }
 
-  // Função para fazer chamadas à API do Guacamole via Edge Function
   const callGuacamoleAPI = async (endpoint: string, options: any = {}) => {
     if (!integration) {
       throw new Error('Integração do Guacamole não configurada');
@@ -63,11 +61,7 @@ export const useGuacamoleAPI = () => {
     console.log('=== Calling Guacamole API ===');
     console.log('Integration ID:', integration.id);
     console.log('Endpoint:', endpoint);
-    console.log('Base URL:', integration.base_url);
-    console.log('Username:', integration.username);
-    console.log('Has Password:', !!integration.password);
     console.log('Data Source:', integration.directory);
-    console.log('Is Active:', integration.is_active);
     console.log('Options:', options);
 
     try {
@@ -92,7 +86,6 @@ export const useGuacamoleAPI = () => {
         console.error('Erro retornado pela API Guacamole:', data.error);
         console.log('Detalhes do erro:', data.details);
         
-        // Verificar se é erro de permissões administrativas
         if (data.details?.needsAdminPermissions) {
           const errorMsg = `ERRO DE PERMISSÕES: O usuário "${integration.username}" não tem permissões administrativas no Guacamole. Para acessar conexões, usuários e sessões ativas via API, o usuário precisa ter privilégios de administrador no sistema Guacamole.
 
@@ -108,7 +101,6 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
           throw new Error(errorMsg);
         }
         
-        // Se for erro de token, invalidar queries para forçar nova autenticação
         if (data.error.includes('Token') || data.details?.status === 401 || data.details?.status === 403) {
           console.log('Invalidando cache devido a erro de autenticação');
           queryClient.invalidateQueries({ queryKey: ['guacamole'] });
@@ -124,7 +116,6 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
     }
   };
 
-  // Hook para buscar conexões
   const useConnections = () => {
     return useQuery({
       queryKey: ['guacamole', 'connections', integration?.id],
@@ -133,12 +124,10 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
         const result = await callGuacamoleAPI('connections');
         console.log('Connections raw result:', result);
         
-        // Processar resultado para garantir formato correto
         if (Array.isArray(result)) {
           return result;
         }
         
-        // Se o resultado for um objeto, extrair as conexões
         if (typeof result === 'object' && result !== null) {
           const connections = Object.keys(result).map(key => ({
             identifier: key,
@@ -155,11 +144,10 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
         return [];
       },
       enabled: isConfigured,
-      staleTime: 30000, // 30 segundos
+      staleTime: 30000,
       retry: (failureCount, error) => {
         console.log(`Retry attempt ${failureCount} for connections:`, error);
         
-        // Não tentar novamente se for erro de configuração ou credenciais
         if (error.message.includes('Configuração incompleta') || 
             error.message.includes('Credenciais inválidas') ||
             error.message.includes('URL base inválida') ||
@@ -174,7 +162,6 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
     });
   };
 
-  // Hook para buscar usuários
   const useUsers = () => {
     return useQuery({
       queryKey: ['guacamole', 'users', integration?.id],
@@ -183,12 +170,10 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
         const result = await callGuacamoleAPI('users');
         console.log('Users raw result:', result);
         
-        // Processar resultado para garantir formato correto
         if (Array.isArray(result)) {
           return result;
         }
         
-        // Se o resultado for um objeto, extrair os usuários
         if (typeof result === 'object' && result !== null) {
           const users = Object.keys(result).map(username => ({
             username,
@@ -202,7 +187,7 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
         return [];
       },
       enabled: isConfigured,
-      staleTime: 60000, // 1 minuto
+      staleTime: 60000,
       retry: (failureCount, error) => {
         console.log(`Retry attempt ${failureCount} for users:`, error);
         
@@ -220,7 +205,6 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
     });
   };
 
-  // Hook para buscar sessões ativas
   const useActiveSessions = () => {
     return useQuery({
       queryKey: ['guacamole', 'sessions', integration?.id],
@@ -229,12 +213,10 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
         const result = await callGuacamoleAPI('sessions');
         console.log('Sessions raw result:', result);
         
-        // Processar resultado para garantir formato correto
         if (Array.isArray(result)) {
           return result;
         }
         
-        // Se o resultado for um objeto, extrair as sessões
         if (typeof result === 'object' && result !== null) {
           const sessions = Object.keys(result).map(sessionId => ({
             id: sessionId,
@@ -250,7 +232,7 @@ OU crie um novo usuário administrativo e atualize as credenciais na integraçã
         return [];
       },
       enabled: isConfigured,
-      staleTime: 10000, // 10 segundos
+      staleTime: 10000,
       retry: (failureCount, error) => {
         console.log(`Retry attempt ${failureCount} for sessions:`, error);
         

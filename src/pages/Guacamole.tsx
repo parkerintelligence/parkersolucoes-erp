@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,15 +10,18 @@ import {
   Activity, 
   Plus,
   RefreshCcw, 
-  Trash2,
-  Edit,
+  Power,
   AlertTriangle,
   CheckCircle,
   Settings,
-  Power,
-  ExternalLink
+  ExternalLink,
+  Grid,
+  List
 } from 'lucide-react';
-import { useGuacamoleAPI } from '@/hooks/useGuacamoleAPI';
+import { useGuacamoleAPI, GuacamoleConnection } from '@/hooks/useGuacamoleAPI';
+import { GuacamoleConnectionCard } from '@/components/guacamole/GuacamoleConnectionCard';
+import { GuacamoleTokenStatus } from '@/components/guacamole/GuacamoleTokenStatus';
+import { GuacamoleConnectionDialog } from '@/components/guacamole/GuacamoleConnectionDialog';
 import { toast } from '@/hooks/use-toast';
 
 const Guacamole = () => {
@@ -27,6 +29,8 @@ const Guacamole = () => {
     useConnections, 
     useUsers, 
     useActiveSessions,
+    useCreateConnection,
+    useUpdateConnection,
     useDeleteConnection,
     useDisconnectSession,
     isConfigured,
@@ -34,24 +38,22 @@ const Guacamole = () => {
   } = useGuacamoleAPI();
 
   const [refreshing, setRefreshing] = useState(false);
-
-  console.log('=== Guacamole Page Debug ===');
-  console.log('Is configured:', isConfigured);
-  console.log('Integration:', integration);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [connectionDialog, setConnectionDialog] = useState<{
+    open: boolean;
+    connection?: GuacamoleConnection | null;
+  }>({ open: false });
+  const [expandedConnections, setExpandedConnections] = useState<Set<string>>(new Set());
 
   // Carregar dados do Guacamole
   const { data: connections = [], isLoading: connectionsLoading, refetch: refetchConnections, error: connectionsError } = useConnections();
   const { data: users = [], isLoading: usersLoading, refetch: refetchUsers, error: usersError } = useUsers();
   const { data: sessions = [], isLoading: sessionsLoading, refetch: refetchSessions, error: sessionsError } = useActiveSessions();
 
+  const createConnectionMutation = useCreateConnection();
+  const updateConnectionMutation = useUpdateConnection();
   const deleteConnectionMutation = useDeleteConnection();
   const disconnectSessionMutation = useDisconnectSession();
-
-  console.log('=== Data Debug ===');
-  console.log('Connections:', connections);
-  console.log('Users:', users);
-  console.log('Sessions:', sessions);
-  console.log('Errors:', { connectionsError, usersError, sessionsError });
 
   const handleRefreshAll = async () => {
     setRefreshing(true);
@@ -77,6 +79,51 @@ const Guacamole = () => {
     }
   };
 
+  const handleConnectToGuacamole = (connection: GuacamoleConnection) => {
+    if (!integration?.base_url) {
+      toast({
+        title: "Erro de configuração",
+        description: "URL base do Guacamole não configurada.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Construir URL de conexão direta
+    const guacamoleUrl = `${integration.base_url}/#/client/${encodeURIComponent(connection.identifier)}`;
+    
+    // Abrir em nova aba
+    window.open(guacamoleUrl, '_blank', 'noopener,noreferrer');
+    
+    toast({
+      title: "Conectando...",
+      description: `Abrindo conexão "${connection.name}" em nova aba.`,
+    });
+  };
+
+  const handleCreateConnection = async (connectionData: Partial<GuacamoleConnection>) => {
+    try {
+      await createConnectionMutation.mutateAsync(connectionData);
+      setConnectionDialog({ open: false });
+    } catch (error) {
+      console.error('Erro ao criar conexão:', error);
+    }
+  };
+
+  const handleUpdateConnection = async (connectionData: Partial<GuacamoleConnection>) => {
+    if (!connectionData.identifier) return;
+    
+    try {
+      await updateConnectionMutation.mutateAsync({
+        identifier: connectionData.identifier,
+        updates: connectionData
+      });
+      setConnectionDialog({ open: false });
+    } catch (error) {
+      console.error('Erro ao atualizar conexão:', error);
+    }
+  };
+
   const handleDeleteConnection = async (identifier: string) => {
     if (!confirm('Tem certeza que deseja remover esta conexão?')) return;
     
@@ -95,6 +142,16 @@ const Guacamole = () => {
     } catch (error) {
       console.error('Erro ao desconectar sessão:', error);
     }
+  };
+
+  const toggleConnectionDetails = (connectionId: string) => {
+    const newExpanded = new Set(expandedConnections);
+    if (newExpanded.has(connectionId)) {
+      newExpanded.delete(connectionId);
+    } else {
+      newExpanded.add(connectionId);
+    }
+    setExpandedConnections(newExpanded);
   };
 
   const getProtocolColor = (protocol: string) => {
@@ -129,20 +186,10 @@ const Guacamole = () => {
             <p className="text-yellow-700 mb-4">
               Para usar o gerenciamento do Apache Guacamole, configure a integração no painel de administração.
             </p>
-            <div className="space-y-2">
-              <Button variant="outline" onClick={() => window.location.href = '/admin'}>
-                <Settings className="mr-2 h-4 w-4" />
-                Configurar Guacamole
-              </Button>
-              {integration && (
-                <div className="text-sm text-yellow-600 mt-2">
-                  <p>Integração encontrada mas incompleta:</p>
-                  <p>URL: {integration.base_url || 'Não definida'}</p>
-                  <p>Usuário: {integration.username || 'Não definido'}</p>
-                  <p>Senha: {integration.password ? 'Definida' : 'Não definida'}</p>
-                </div>
-              )}
-            </div>
+            <Button variant="outline" onClick={() => window.location.href = '/admin'}>
+              <Settings className="mr-2 h-4 w-4" />
+              Configurar Guacamole
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -173,7 +220,10 @@ const Guacamole = () => {
         </Button>
       </div>
 
-      {/* Debug Section - Show errors if any */}
+      {/* Token Status */}
+      <GuacamoleTokenStatus />
+
+      {/* Error Display */}
       {(connectionsError || usersError || sessionsError) && (
         <Card className="border-red-200 bg-red-50">
           <CardHeader>
@@ -200,19 +250,11 @@ const Guacamole = () => {
                 </div>
               )}
             </div>
-            <div className="mt-4 p-3 bg-blue-100 rounded border-l-4 border-blue-400">
-              <strong>Informações da Integração:</strong>
-              <ul className="mt-2 text-sm">
-                <li>URL: {integration?.base_url}</li>
-                <li>Usuário: {integration?.username}</li>
-                <li>Ativo: {integration?.is_active ? 'Sim' : 'Não'}</li>
-              </ul>
-            </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Cards de estatísticas */}
+      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -284,13 +326,31 @@ const Guacamole = () => {
                     Conexões Configuradas
                   </CardTitle>
                   <CardDescription>
-                    Lista de todas as conexões disponíveis no Guacamole
+                    Gerencie e acesse suas conexões do Guacamole
                   </CardDescription>
                 </div>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Nova Conexão
-                </Button>
+                <div className="flex gap-2">
+                  <div className="flex border rounded-md">
+                    <Button
+                      variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('grid')}
+                    >
+                      <Grid className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant={viewMode === 'list' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('list')}
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Button onClick={() => setConnectionDialog({ open: true })}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nova Conexão
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -303,7 +363,26 @@ const Guacamole = () => {
                 <div className="text-center py-8">
                   <Monitor className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-lg font-medium">Nenhuma conexão encontrada</p>
-                  <p className="text-sm text-muted-foreground">Configure suas primeiras conexões remotas.</p>
+                  <p className="text-sm text-muted-foreground mb-4">Configure suas primeiras conexões remotas.</p>
+                  <Button onClick={() => setConnectionDialog({ open: true })}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Criar Primeira Conexão
+                  </Button>
+                </div>
+              ) : viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {connections.map((connection) => (
+                    <GuacamoleConnectionCard
+                      key={connection.identifier}
+                      connection={connection}
+                      onConnect={handleConnectToGuacamole}
+                      onEdit={(conn) => setConnectionDialog({ open: true, connection: conn })}
+                      onDelete={handleDeleteConnection}
+                      onToggleDetails={toggleConnectionDetails}
+                      showDetails={expandedConnections.has(connection.identifier)}
+                      isDeleting={deleteConnectionMutation.isPending}
+                    />
+                  ))}
                 </div>
               ) : (
                 <Table>
@@ -335,19 +414,11 @@ const Guacamole = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            <Button size="sm" variant="outline">
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Edit className="h-4 w-4" />
-                            </Button>
                             <Button 
                               size="sm" 
-                              variant="outline"
-                              onClick={() => handleDeleteConnection(connection.identifier)}
-                              disabled={deleteConnectionMutation.isPending}
+                              onClick={() => handleConnectToGuacamole(connection)}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <ExternalLink className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -360,6 +431,7 @@ const Guacamole = () => {
           </Card>
         </TabsContent>
 
+        
         <TabsContent value="sessions" className="mt-6">
           <Card>
             <CardHeader>
@@ -429,21 +501,13 @@ const Guacamole = () => {
         <TabsContent value="users" className="mt-6">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Usuários do Sistema
-                  </CardTitle>
-                  <CardDescription>
-                    Lista de usuários cadastrados no Guacamole
-                  </CardDescription>
-                </div>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Novo Usuário
-                </Button>
-              </div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Usuários do Sistema
+              </CardTitle>
+              <CardDescription>
+                Lista de usuários cadastrados no Guacamole
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {usersLoading ? (
@@ -458,7 +522,6 @@ const Guacamole = () => {
                       <TableHead>Nome de Usuário</TableHead>
                       <TableHead>Última Atividade</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -471,16 +534,6 @@ const Guacamole = () => {
                         <TableCell>
                           <Badge variant="default">Ativo</Badge>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Settings className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -490,6 +543,15 @@ const Guacamole = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Connection Dialog */}
+      <GuacamoleConnectionDialog
+        open={connectionDialog.open}
+        onOpenChange={(open) => setConnectionDialog({ open })}
+        connection={connectionDialog.connection}
+        onSave={connectionDialog.connection ? handleUpdateConnection : handleCreateConnection}
+        isSaving={createConnectionMutation.isPending || updateConnectionMutation.isPending}
+      />
     </div>
   );
 };
