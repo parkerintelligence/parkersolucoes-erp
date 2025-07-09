@@ -47,11 +47,11 @@ export const ReportsStatusPanel = () => {
     // Verificar se a data é válida
     if (isNaN(utcDate.getTime())) return 'Data inválida';
     
-    // Converter para horário de Brasília para comparação
-    const brasiliaTime = new Date(utcDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-    const nowBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    // Obter o horário atual em UTC
+    const nowUtc = new Date();
     
-    const diffMs = brasiliaTime.getTime() - nowBrasilia.getTime();
+    // Calcular diferença em milissegundos
+    const diffMs = utcDate.getTime() - nowUtc.getTime();
     
     if (diffMs < 0) return 'Atrasado';
     
@@ -81,11 +81,11 @@ export const ReportsStatusPanel = () => {
     
     if (isNaN(utcDate.getTime())) return 'error';
     
-    // Converter para horário de Brasília para comparação
-    const brasiliaTime = new Date(utcDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-    const nowBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    // Obter o horário atual em UTC
+    const nowUtc = new Date();
     
-    const diffMs = brasiliaTime.getTime() - nowBrasilia.getTime();
+    // Calcular diferença em milissegundos
+    const diffMs = utcDate.getTime() - nowUtc.getTime();
     
     if (diffMs < 0) return 'overdue';
     if (diffMs < 60 * 60 * 1000) return 'upcoming'; // Próxima 1 hora
@@ -99,7 +99,7 @@ export const ReportsStatusPanel = () => {
     
     if (isNaN(utcDate.getTime())) return 'Data inválida';
     
-    // Format using Brazil timezone
+    // Formatar diretamente para horário de Brasília
     return utcDate.toLocaleString('pt-BR', {
       timeZone: 'America/Sao_Paulo',
       day: '2-digit',
@@ -134,9 +134,8 @@ export const ReportsStatusPanel = () => {
     .filter(r => {
       if (!r.next_execution) return false;
       const utcDate = new Date(r.next_execution);
-      const brasiliaTime = new Date(utcDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-      const nowBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-      return brasiliaTime > nowBrasilia;
+      const nowUtc = new Date();
+      return utcDate > nowUtc;
     })
     .sort((a, b) => {
       const aUtc = new Date(a.next_execution!);
@@ -148,9 +147,8 @@ export const ReportsStatusPanel = () => {
     .filter(r => {
       if (!r.next_execution) return false;
       const utcDate = new Date(r.next_execution);
-      const brasiliaTime = new Date(utcDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-      const nowBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-      return brasiliaTime < nowBrasilia;
+      const nowUtc = new Date();
+      return utcDate < nowUtc;
     });
 
   const recentExecutions = reports
