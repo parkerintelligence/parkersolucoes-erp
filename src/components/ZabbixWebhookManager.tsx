@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,39 +13,40 @@ import {
   Plus, 
   Trash2, 
   Edit, 
-  Settings, 
   ExternalLink,
   MessageSquare,
   AlertTriangle,
   CheckCircle,
   Play,
-  TestTube
+  TestTube,
+  RefreshCcw
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { toast } from '@/hooks/use-toast';
+import { useZabbixWebhooks, ZabbixWebhook } from '@/hooks/useZabbixWebhooks';
 
-interface ZabbixWebhook {
-  id: string;
-  name: string;
-  trigger_type: 'problem_created' | 'problem_resolved' | 'host_down' | 'host_up';
-  actions: {
-    create_glpi_ticket?: boolean;
-    send_whatsapp?: boolean;
-    whatsapp_number?: string;
-    glpi_entity_id?: number;
-    custom_message?: string;
-  };
-  is_active: boolean;
-  created_at: Date;
-  last_triggered?: Date;
-  trigger_count: number;
-}
+const triggerTypeLabels = {
+  'problem_created': 'Problema Criado',
+  'problem_resolved': 'Problema Resolvido', 
+  'host_down': 'Host Indisponível',
+  'host_up': 'Host Disponível'
+};
 
 export const ZabbixWebhookManager = () => {
-  const [webhooks, setWebhooks] = useState<ZabbixWebhook[]>([]);
+  const { 
+    webhooks, 
+    isLoading, 
+    createWebhook, 
+    updateWebhook, 
+    deleteWebhook, 
+    testWebhook, 
+    executeWebhook, 
+    toggleWebhook,
+    testingWebhook,
+    executingWebhook
+  } = useZabbixWebhooks();
+
   const [isCreating, setIsCreating] = useState(false);
   const [editingWebhook, setEditingWebhook] = useState<ZabbixWebhook | null>(null);
-  const [testingWebhook, setTestingWebhook] = useState<string | null>(null);
 
   const [newWebhook, setNewWebhook] = useState({
     name: '',
@@ -61,193 +61,72 @@ export const ZabbixWebhookManager = () => {
     is_active: true
   });
 
-  const triggerTypeLabels = {
-    'problem_created': 'Problema Criado',
-    'problem_resolved': 'Problema Resolvido', 
-    'host_down': 'Host Indisponível',
-    'host_up': 'Host Disponível'
-  };
-
-  const handleCreateWebhook = () => {
+  const handleCreateWebhook = async () => {
     if (!newWebhook.name.trim()) {
-      toast({
-        title: "Nome obrigatório",
-        description: "Por favor, informe um nome para o webhook.",
-        variant: "destructive"
-      });
       return;
     }
 
-    const webhook: ZabbixWebhook = {
-      id: Date.now().toString(),
-      ...newWebhook,
-      created_at: new Date(),
-      trigger_count: 0
-    };
-
-    setWebhooks(prev => [...prev, webhook]);
-    setNewWebhook({
-      name: '',
-      trigger_type: 'problem_created',
-      actions: {
-        create_glpi_ticket: false,
-        send_whatsapp: false,
-        whatsapp_number: '',
-        glpi_entity_id: 0,
-        custom_message: ''
-      },
-      is_active: true
-    });
-    setIsCreating(false);
-
-    toast({
-      title: "✅ Webhook criado!",
-      description: "O webhook foi configurado com sucesso."
-    });
+    try {
+      await createWebhook.mutateAsync(newWebhook);
+      setNewWebhook({
+        name: '',
+        trigger_type: 'problem_created',
+        actions: {
+          create_glpi_ticket: false,
+          send_whatsapp: false,
+          whatsapp_number: '',
+          glpi_entity_id: 0,
+          custom_message: ''
+        },
+        is_active: true
+      });
+      setIsCreating(false);
+    } catch (error) {
+      console.error('Create webhook error:', error);
+    }
   };
 
-  const handleUpdateWebhook = () => {
+  const handleUpdateWebhook = async () => {
     if (!editingWebhook) return;
 
-    setWebhooks(prev => prev.map(w => 
-      w.id === editingWebhook.id ? editingWebhook : w
-    ));
-    
-    setEditingWebhook(null);
-    
-    toast({
-      title: "✅ Webhook atualizado!",
-      description: "As alterações foram salvas com sucesso."
-    });
-  };
-
-  const handleDeleteWebhook = (id: string) => {
-    setWebhooks(prev => prev.filter(w => w.id !== id));
-    toast({
-      title: "Webhook removido",
-      description: "O webhook foi removido com sucesso."
-    });
-  };
-
-  const handleToggleWebhook = (id: string, isActive: boolean) => {
-    setWebhooks(prev => prev.map(w => 
-      w.id === id ? { ...w, is_active: isActive } : w
-    ));
-  };
-
-  const handleTestWebhook = async (id: string) => {
-    setTestingWebhook(id);
-    
-    const webhook = webhooks.find(w => w.id === id);
-    if (!webhook) return;
-    
     try {
-      console.log('🧪 Testando webhook:', webhook.name);
-      
-      // Simular dados de teste do Zabbix
-      const testData = {
-        problem_name: 'Teste - Problema de conectividade',
-        host_name: 'servidor-teste.empresa.com',
-        severity: '4',
-        timestamp: new Date().toISOString(),
-        event_id: 'test_123'
-      };
-
-      // Simular execução das ações
-      if (webhook.actions.create_glpi_ticket) {
-        console.log('📝 Simulando criação de chamado GLPI...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log('✅ Chamado GLPI criado (simulação)');
-      }
-
-      if (webhook.actions.send_whatsapp) {
-        console.log('📱 Simulando envio de WhatsApp...');
-        let message = webhook.actions.custom_message || 
-          '🚨 Alerta Zabbix: {problem_name} no host {host_name}';
-        
-        // Substituir variáveis
-        message = message
-          .replace('{problem_name}', testData.problem_name)
-          .replace('{host_name}', testData.host_name)
-          .replace('{severity}', testData.severity)
-          .replace('{timestamp}', new Date(testData.timestamp).toLocaleString('pt-BR'));
-
-        console.log('📲 Mensagem WhatsApp:', message);
-        console.log('📞 Número:', webhook.actions.whatsapp_number);
-        
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        console.log('✅ WhatsApp enviado (simulação)');
-      }
-
-      // Atualizar contador de execuções
-      setWebhooks(prev => prev.map(w => 
-        w.id === id ? { 
-          ...w, 
-          trigger_count: w.trigger_count + 1,
-          last_triggered: new Date()
-        } : w
-      ));
-      
-      toast({
-        title: "✅ Teste realizado!",
-        description: `O webhook "${webhook.name}" foi testado com sucesso. Verifique o console para detalhes.`
-      });
+      await updateWebhook.mutateAsync(editingWebhook);
+      setEditingWebhook(null);
     } catch (error) {
-      console.error('❌ Erro no teste:', error);
-      toast({
-        title: "❌ Erro no teste",
-        description: "Falha ao testar o webhook.",
-        variant: "destructive"
-      });
-    } finally {
-      setTestingWebhook(null);
+      console.error('Update webhook error:', error);
     }
   };
 
-  const handleExecuteWebhook = async (id: string) => {
-    const webhook = webhooks.find(w => w.id === id);
-    if (!webhook) return;
-
-    if (!webhook.is_active) {
-      toast({
-        title: "⚠️ Webhook inativo",
-        description: "Este webhook está desativado e não pode ser executado.",
-        variant: "destructive"
-      });
-      return;
+  const handleDeleteWebhook = async (id: string) => {
+    if (window.confirm('Tem certeza que deseja remover este webhook?')) {
+      try {
+        await deleteWebhook.mutateAsync(id);
+      } catch (error) {
+        console.error('Delete webhook error:', error);
+      }
     }
+  };
 
+  const handleToggleWebhook = async (id: string, isActive: boolean) => {
     try {
-      console.log('🚀 Executando webhook:', webhook.name);
-      
-      // Simular execução real (aqui você integraria com APIs reais)
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Atualizar estatísticas
-      setWebhooks(prev => prev.map(w => 
-        w.id === id ? { 
-          ...w, 
-          trigger_count: w.trigger_count + 1,
-          last_triggered: new Date()
-        } : w
-      ));
-
-      toast({
-        title: "✅ Webhook executado!",
-        description: `O webhook "${webhook.name}" foi executado com sucesso.`
-      });
+      await toggleWebhook.mutateAsync({ id, isActive });
     } catch (error) {
-      toast({
-        title: "❌ Erro na execução",
-        description: "Falha ao executar o webhook.",
-        variant: "destructive"
-      });
+      console.error('Toggle webhook error:', error);
     }
   };
 
   const resetEditForm = () => {
     setEditingWebhook(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <RefreshCcw className="h-8 w-8 animate-spin text-gray-400" />
+        <span className="ml-2 text-gray-400">Carregando webhooks...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -308,6 +187,7 @@ export const ZabbixWebhookManager = () => {
                     </Select>
                   </div>
 
+                  
                   <div className="space-y-4">
                     <Label className="text-gray-200 text-lg">Ações</Label>
                     
@@ -396,9 +276,13 @@ export const ZabbixWebhookManager = () => {
                   </div>
 
                   <div className="flex gap-2 pt-4">
-                    <Button onClick={handleCreateWebhook} className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Button 
+                      onClick={handleCreateWebhook} 
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      disabled={createWebhook.isPending}
+                    >
                       <Plus className="mr-2 h-4 w-4" />
-                      Criar Webhook
+                      {createWebhook.isPending ? 'Criando...' : 'Criar Webhook'}
                     </Button>
                     <Button variant="outline" onClick={() => setIsCreating(false)} className="border-gray-600 text-gray-200 hover:bg-gray-700">
                       Cancelar
@@ -420,6 +304,7 @@ export const ZabbixWebhookManager = () => {
               </DialogHeader>
               {editingWebhook && (
                 <div className="space-y-4">
+                  
                   <div className="grid gap-2">
                     <Label className="text-gray-200">Nome do Webhook</Label>
                     <Input
@@ -535,9 +420,13 @@ export const ZabbixWebhookManager = () => {
                   </div>
 
                   <div className="flex gap-2 pt-4">
-                    <Button onClick={handleUpdateWebhook} className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Button 
+                      onClick={handleUpdateWebhook} 
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      disabled={updateWebhook.isPending}
+                    >
                       <Edit className="mr-2 h-4 w-4" />
-                      Salvar Alterações
+                      {updateWebhook.isPending ? 'Salvando...' : 'Salvar Alterações'}
                     </Button>
                     <Button variant="outline" onClick={resetEditForm} className="border-gray-600 text-gray-200 hover:bg-gray-700">
                       Cancelar
@@ -563,7 +452,7 @@ export const ZabbixWebhookManager = () => {
                   <TableHead className="text-gray-300">Ações</TableHead>
                   <TableHead className="text-gray-300">Status</TableHead>
                   <TableHead className="text-gray-300">Execuções</TableHead>
-                  <TableHead className="text-gray-300">Ações</TableHead>
+                  <TableHead className="text-gray-300">Controles</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -607,7 +496,7 @@ export const ZabbixWebhookManager = () => {
                         <span>{webhook.trigger_count}</span>
                         {webhook.last_triggered && (
                           <span className="text-xs text-gray-500">
-                            {webhook.last_triggered.toLocaleString('pt-BR')}
+                            {new Date(webhook.last_triggered).toLocaleString('pt-BR')}
                           </span>
                         )}
                       </div>
@@ -617,22 +506,22 @@ export const ZabbixWebhookManager = () => {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleTestWebhook(webhook.id)}
+                          onClick={() => testWebhook(webhook)}
                           disabled={testingWebhook === webhook.id}
                           className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20"
                           title="Testar webhook"
                         >
-                          <TestTube className="h-4 w-4" />
+                          <TestTube className={`h-4 w-4 ${testingWebhook === webhook.id ? 'animate-pulse' : ''}`} />
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleExecuteWebhook(webhook.id)}
-                          disabled={!webhook.is_active}
+                          onClick={() => executeWebhook(webhook)}
+                          disabled={!webhook.is_active || executingWebhook === webhook.id}
                           className="text-green-400 hover:text-green-300 hover:bg-green-900/20"
                           title="Executar webhook"
                         >
-                          <Play className="h-4 w-4" />
+                          <Play className={`h-4 w-4 ${executingWebhook === webhook.id ? 'animate-pulse' : ''}`} />
                         </Button>
                         <Button
                           size="sm"
@@ -656,7 +545,7 @@ export const ZabbixWebhookManager = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
+              </tbody>
             </Table>
           )}
         </CardContent>

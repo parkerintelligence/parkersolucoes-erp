@@ -985,6 +985,45 @@ export type Database = {
         }
         Relationships: []
       }
+      zabbix_webhooks: {
+        Row: {
+          actions: Json
+          created_at: string
+          id: string
+          is_active: boolean
+          last_triggered: string | null
+          name: string
+          trigger_count: number
+          trigger_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actions?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_triggered?: string | null
+          name: string
+          trigger_count?: number
+          trigger_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actions?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_triggered?: string | null
+          name?: string
+          trigger_count?: number
+          trigger_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
