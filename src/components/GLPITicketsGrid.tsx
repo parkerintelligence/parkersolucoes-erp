@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useGLPI } from '@/hooks/useGLPI';
 import { GLPITicketConfirmDialog } from './GLPITicketConfirmDialog';
+import { GLPINewTicketDialog } from './GLPINewTicketDialog';
 
 interface GLPITicketsGridProps {
   filters?: any;
@@ -27,6 +27,7 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
   const { tickets, getStatusText, getPriorityText } = useGLPI();
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isNewTicketDialogOpen, setIsNewTicketDialogOpen] = useState(false);
 
   const getStatusColor = (status: number) => {
     switch (status) {
@@ -101,7 +102,11 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
       <Card className="bg-gray-800 border-gray-700">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-white">Chamados GLPI</CardTitle>
-          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button 
+            size="sm" 
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={() => setIsNewTicketDialogOpen(true)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Novo Chamado
           </Button>
@@ -184,6 +189,7 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
         </CardContent>
       </Card>
 
+      {/* View Ticket Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="max-w-2xl bg-gray-800 border-gray-700">
           <DialogHeader>
@@ -230,6 +236,12 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* New Ticket Dialog */}
+      <GLPINewTicketDialog
+        open={isNewTicketDialogOpen}
+        onOpenChange={setIsNewTicketDialogOpen}
+      />
     </div>
   );
 };

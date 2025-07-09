@@ -16,7 +16,6 @@ import {
   Shield,
   Cloud,
   Notebook,
-  Monitor,
   Database,
 } from 'lucide-react';
 
@@ -45,12 +44,7 @@ const menuItems = [
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
   { title: 'Automação', url: '/automation', icon: Settings, role: 'user' },
   { title: 'Zabbix', url: '/zabbix', icon: Activity, role: 'user' },
-  { title: 'Guacamole', url: '/guacamole', icon: Monitor, role: 'user' },
   { title: 'Bacula', url: '/bacula', icon: Database, role: 'user' },
-];
-
-const financialItems = [
-  { title: 'Financeiro', url: '/financial', icon: Calculator, role: 'master' },
 ];
 
 export function AppSidebar() {
@@ -63,10 +57,6 @@ export function AppSidebar() {
   const isCollapsed = state === 'collapsed';
   
   const filteredMainItems = menuItems.filter(item => 
-    item.role === 'user' || (item.role === 'master' && isMaster)
-  );
-  
-  const filteredFinancialItems = financialItems.filter(item => 
     item.role === 'user' || (item.role === 'master' && isMaster)
   );
 
@@ -106,31 +96,6 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {filteredFinancialItems.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-white font-medium">
-              {!isCollapsed && "Financeiro"}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
-                {filteredFinancialItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                      <NavLink 
-                        to={item.url} 
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all text-white hover:text-white"
-                      >
-                        <item.icon className="h-4 w-4 flex-shrink-0" />
-                        {!isCollapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
       </SidebarContent>
     </Sidebar>
   );

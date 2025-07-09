@@ -17,7 +17,6 @@ import Wasabi from '@/pages/Wasabi';
 import Schedule from '@/pages/Schedule';
 import Automation from '@/pages/Automation';
 import Zabbix from '@/pages/Zabbix';
-import Guacamole from '@/pages/Guacamole';
 import Services from '@/pages/Services';
 import Budgets from '@/pages/Budgets';
 import Contracts from '@/pages/Contracts';
@@ -139,14 +138,6 @@ function App() {
                 element={
                   <Layout>
                     <Zabbix />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/guacamole"
-                element={
-                  <Layout>
-                    <Guacamole />
                   </Layout>
                 }
               />
