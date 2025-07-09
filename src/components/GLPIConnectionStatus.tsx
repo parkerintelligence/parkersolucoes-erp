@@ -70,7 +70,7 @@ export const GLPIConnectionStatus = () => {
         </div>
         
         {tickets.error && (
-          <div className="mt-2 p-2 bg-red-900/20 border border-red-700 rounded text-sm text-red-300">
+          <div className="mt-2 p-2 bg-red-900/20 border border-red-700 text-sm text-red-300">
             Erro: {tickets.error.message}
           </div>
         )}

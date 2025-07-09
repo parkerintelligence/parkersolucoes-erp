@@ -1,348 +1,306 @@
 
-import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   Search, 
-  Monitor, 
-  Printer, 
-  Server, 
-  HardDrive,
-  Wifi,
-  Eye,
-  RefreshCw
+  Filter, 
+  Eye, 
+  RefreshCw,
+  Monitor,
+  Server,
+  Smartphone,
+  Laptop,
+  Printer,
+  Building2
 } from 'lucide-react';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useState, useMemo } from 'react';
 
 export const GLPIInventory = () => {
-  const { 
-    computers, 
-    monitors, 
-    printers, 
-    networkEquipment, 
-    software 
-  } = useGLPIExpanded();
-
+  const { computers, monitors, phones, printers, networks, entities } = useGLPIExpanded();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [entityFilter, setEntityFilter] = useState('all');
+  const [selectedItem, setSelectedItem] = useState<any>(null);
 
-  const filterAssets = (assets: any[]) => {
-    if (!assets) return [];
-    
-    return assets.filter((asset) => {
-      const matchesSearch = asset.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           asset.serial?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           asset.id?.toString().includes(searchTerm);
-      
-      const matchesStatus = statusFilter === 'all' || 
-                           (statusFilter === 'active' && asset.is_deleted === 0) ||
-                           (statusFilter === 'deleted' && asset.is_deleted === 1);
-      
-      return matchesSearch && matchesStatus;
-    });
+  const getEntityName = (entityId: number) => {
+    const entity = entities.data?.find(e => e.id === entityId);
+    return entity?.name || `Entidade ${entityId}`;
   };
 
-  const filteredComputers = useMemo(() => filterAssets(computers.data), [computers.data, searchTerm, statusFilter]);
-  const filteredMonitors = useMemo(() => filterAssets(monitors.data), [monitors.data, searchTerm, statusFilter]);
-  const filteredPrinters = useMemo(() => filterAssets(printers.data), [printers.data, searchTerm, statusFilter]);
-  const filteredNetworkEquipment = useMemo(() => filterAssets(networkEquipment.data), [networkEquipment.data, searchTerm, statusFilter]);
-  const filteredSoftware = useMemo(() => filterAssets(software.data), [software.data, searchTerm, statusFilter]);
+  const allInventoryItems = useMemo(() => {
+    const items: any[] = [];
+    
+    if (computers.data) {
+      computers.data.forEach(item => items.push({ ...item, type: 'computer', icon: Monitor }));
+    }
+    if (monitors.data) {
+      monitors.data.forEach(item => items.push({ ...item, type: 'monitor', icon: Monitor }));
+    }
+    if (phones.data) {
+      phones.data.forEach(item => items.push({ ...item, type: 'phone', icon: Smartphone }));
+    }
+    if (printers.data) {
+      printers.data.forEach(item => items.push({ ...item, type: 'printer', icon: Printer }));
+    }
+    if (networks.data) {
+      networks.data.forEach(item => items.push({ ...item, type: 'network', icon: Server }));
+    }
 
-  const FilterControls = () => (
-    <div className="flex flex-wrap gap-4 items-center mb-4">
-      <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-        <Search className="h-4 w-4 text-gray-500" />
-        <Input
-          placeholder="Buscar por nome, serial ou ID..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1"
-        />
-      </div>
+    return items;
+  }, [computers.data, monitors.data, phones.data, printers.data, networks.data]);
+
+  const filteredItems = useMemo(() => {
+    return allInventoryItems.filter((item) => {
+      const matchesSearch = item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item.id?.toString().includes(searchTerm);
       
-      <Select value={statusFilter} onValueChange={setStatusFilter}>
-        <SelectTrigger className="w-[140px]">
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos</SelectItem>
-          <SelectItem value="active">Ativos</SelectItem>
-          <SelectItem value="deleted">Excluídos</SelectItem>
-        </SelectContent>
-      </Select>
+      const matchesType = typeFilter === 'all' || item.type === typeFilter;
+      const matchesEntity = entityFilter === 'all' || item.entities_id?.toString() === entityFilter;
+      
+      return matchesSearch && matchesType && matchesEntity;
+    });
+  }, [allInventoryItems, searchTerm, typeFilter, entityFilter]);
 
-      <Button variant="outline" onClick={() => {
-        computers.refetch();
-        monitors.refetch();
-        printers.refetch();
-        networkEquipment.refetch();
-        software.refetch();
-      }}>
-        <RefreshCw className="h-4 w-4 mr-2" />
-        Atualizar
-      </Button>
-    </div>
-  );
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'computer':
+        return <Laptop className="h-4 w-4" />;
+      case 'monitor':
+        return <Monitor className="h-4 w-4" />;
+      case 'phone':
+        return <Smartphone className="h-4 w-4" />;
+      case 'printer':
+        return <Printer className="h-4 w-4" />;
+      case 'network':
+        return <Server className="h-4 w-4" />;
+      default:
+        return <Monitor className="h-4 w-4" />;
+    }
+  };
 
-  const ComputersTable = () => (
-    <Table>
-      <TableHeader>
-        <TableRow className="bg-gray-50">
-          <TableHead>ID</TableHead>
-          <TableHead>Nome</TableHead>
-          <TableHead>Serial</TableHead>
-          <TableHead>Contato</TableHead>
-          <TableHead>Localização</TableHead>
-          <TableHead>Estado</TableHead>
-          <TableHead>Última Modificação</TableHead>
-          <TableHead>Status</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {filteredComputers.map((computer) => (
-          <TableRow key={computer.id} className="hover:bg-blue-50">
-            <TableCell className="font-medium">{computer.id}</TableCell>
-            <TableCell>{computer.name}</TableCell>
-            <TableCell>{computer.serial || '-'}</TableCell>
-            <TableCell>{computer.contact || '-'}</TableCell>
-            <TableCell>{computer.locations_id || '-'}</TableCell>
-            <TableCell>{computer.states_id || '-'}</TableCell>
-            <TableCell className="text-sm text-gray-600">
-              {computer.date_mod ? format(new Date(computer.date_mod), 'dd/MM/yy', { locale: ptBR }) : '-'}
-            </TableCell>
-            <TableCell>
-              {computer.is_deleted === 0 ? 
-                <Badge className="bg-green-100 text-green-800">Ativo</Badge> : 
-                <Badge className="bg-red-100 text-red-800">Excluído</Badge>
-              }
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
+  const getTypeName = (type: string) => {
+    const typeNames: Record<string, string> = {
+      computer: 'Computador',
+      monitor: 'Monitor',
+      phone: 'Telefone',
+      printer: 'Impressora',
+      network: 'Rede'
+    };
+    return typeNames[type] || type;
+  };
 
-  const MonitorsTable = () => (
-    <Table>
-      <TableHeader>
-        <TableRow className="bg-gray-50">
-          <TableHead>ID</TableHead>
-          <TableHead>Nome</TableHead>
-          <TableHead>Serial</TableHead>
-          <TableHead>Tamanho</TableHead>
-          <TableHead>Conexões</TableHead>
-          <TableHead>Localização</TableHead>
-          <TableHead>Status</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {filteredMonitors.map((monitor) => (
-          <TableRow key={monitor.id} className="hover:bg-blue-50">
-            <TableCell className="font-medium">{monitor.id}</TableCell>
-            <TableCell>{monitor.name}</TableCell>
-            <TableCell>{monitor.serial || '-'}</TableCell>
-            <TableCell>{monitor.size ? `${monitor.size}"` : '-'}</TableCell>
-            <TableCell>
-              <div className="flex gap-1">
-                {monitor.have_hdmi && <Badge variant="outline" className="text-xs">HDMI</Badge>}
-                {monitor.have_dvi && <Badge variant="outline" className="text-xs">DVI</Badge>}
-                {monitor.have_displayport && <Badge variant="outline" className="text-xs">DP</Badge>}
-              </div>
-            </TableCell>
-            <TableCell>{monitor.locations_id || '-'}</TableCell>
-            <TableCell>
-              {monitor.is_deleted === 0 ? 
-                <Badge className="bg-green-100 text-green-800">Ativo</Badge> : 
-                <Badge className="bg-red-100 text-red-800">Excluído</Badge>
-              }
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-
-  const PrintersTable = () => (
-    <Table>
-      <TableHeader>
-        <TableRow className="bg-gray-50">
-          <TableHead>ID</TableHead>
-          <TableHead>Nome</TableHead>
-          <TableHead>Serial</TableHead>
-          <TableHead>Conexões</TableHead>
-          <TableHead>Localização</TableHead>
-          <TableHead>Status</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {filteredPrinters.map((printer) => (
-          <TableRow key={printer.id} className="hover:bg-blue-50">
-            <TableCell className="font-medium">{printer.id}</TableCell>
-            <TableCell>{printer.name}</TableCell>
-            <TableCell>{printer.serial || '-'}</TableCell>
-            <TableCell>
-              <div className="flex gap-1">
-                {printer.have_usb && <Badge variant="outline" className="text-xs">USB</Badge>}
-                {printer.have_ethernet && <Badge variant="outline" className="text-xs">Ethernet</Badge>}
-                {printer.have_wifi && <Badge variant="outline" className="text-xs">Wi-Fi</Badge>}
-              </div>
-            </TableCell>
-            <TableCell>{printer.locations_id || '-'}</TableCell>
-            <TableCell>
-              {printer.is_deleted === 0 ? 
-                <Badge className="bg-green-100 text-green-800">Ativo</Badge> : 
-                <Badge className="bg-red-100 text-red-800">Excluído</Badge>
-              }
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-
-  const NetworkTable = () => (
-    <Table>
-      <TableHeader>
-        <TableRow className="bg-gray-50">
-          <TableHead>ID</TableHead>
-          <TableHead>Nome</TableHead>
-          <TableHead>Serial</TableHead>
-          <TableHead>Firmware</TableHead>
-          <TableHead>RAM</TableHead>
-          <TableHead>Localização</TableHead>
-          <TableHead>Status</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {filteredNetworkEquipment.map((equipment) => (
-          <TableRow key={equipment.id} className="hover:bg-blue-50">
-            <TableCell className="font-medium">{equipment.id}</TableCell>
-            <TableCell>{equipment.name}</TableCell>
-            <TableCell>{equipment.serial || '-'}</TableCell>
-            <TableCell>{equipment.firmware || '-'}</TableCell>
-            <TableCell>{equipment.ram || '-'}</TableCell>
-            <TableCell>{equipment.locations_id || '-'}</TableCell>
-            <TableCell>
-              {equipment.is_deleted === 0 ? 
-                <Badge className="bg-green-100 text-green-800">Ativo</Badge> : 
-                <Badge className="bg-red-100 text-red-800">Excluído</Badge>
-              }
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-
-  const SoftwareTable = () => (
-    <Table>
-      <TableHeader>
-        <TableRow className="bg-gray-50">
-          <TableHead>ID</TableHead>
-          <TableHead>Nome</TableHead>
-          <TableHead>Comentário</TableHead>
-          <TableHead>Fabricante</TableHead>
-          <TableHead>Entidade</TableHead>
-          <TableHead>Criado em</TableHead>
-          <TableHead>Status</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {filteredSoftware.map((sw) => (
-          <TableRow key={sw.id} className="hover:bg-blue-50">
-            <TableCell className="font-medium">{sw.id}</TableCell>
-            <TableCell>{sw.name}</TableCell>
-            <TableCell className="max-w-xs truncate">{sw.comment || '-'}</TableCell>
-            <TableCell>{sw.manufacturers_id || '-'}</TableCell>
-            <TableCell>{sw.entities_id || '-'}</TableCell>
-            <TableCell className="text-sm text-gray-600">
-              {sw.date_creation ? format(new Date(sw.date_creation), 'dd/MM/yy', { locale: ptBR }) : '-'}
-            </TableCell>
-            <TableCell>
-              {sw.is_deleted === 0 ? 
-                <Badge className="bg-green-100 text-green-800">Ativo</Badge> : 
-                <Badge className="bg-red-100 text-red-800">Excluído</Badge>
-              }
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
+  const getStatusBadge = (status: number) => {
+    // Simplified status mapping
+    switch (status) {
+      case 1:
+        return <Badge className="bg-green-600 text-white">Ativo</Badge>;
+      case 2:
+        return <Badge className="bg-yellow-600 text-white">Em Uso</Badge>;
+      case 3:
+        return <Badge className="bg-red-600 text-white">Inativo</Badge>;
+      default:
+        return <Badge className="bg-slate-600 text-white">Status {status}</Badge>;
+    }
+  };
 
   return (
-    <Card className="border-blue-200">
-      <CardHeader>
-        <CardTitle className="text-blue-900 flex items-center gap-2">
-          <HardDrive className="h-5 w-5" />
-          Inventário Completo de Ativos
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <FilterControls />
-        
-        <Tabs defaultValue="computers" className="w-full">
-          <TabsList className="grid grid-cols-5 w-full">
-            <TabsTrigger value="computers" className="flex items-center gap-2">
-              <Monitor className="h-4 w-4" />
-              Computadores ({filteredComputers.length})
-            </TabsTrigger>
-            <TabsTrigger value="monitors" className="flex items-center gap-2">
-              <Monitor className="h-4 w-4" />
-              Monitores ({filteredMonitors.length})
-            </TabsTrigger>
-            <TabsTrigger value="printers" className="flex items-center gap-2">
-              <Printer className="h-4 w-4" />
-              Impressoras ({filteredPrinters.length})
-            </TabsTrigger>
-            <TabsTrigger value="network" className="flex items-center gap-2">
-              <Wifi className="h-4 w-4" />
-              Rede ({filteredNetworkEquipment.length})
-            </TabsTrigger>
-            <TabsTrigger value="software" className="flex items-center gap-2">
-              <HardDrive className="h-4 w-4" />
-              Software ({filteredSoftware.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="computers" className="mt-4">
-            <div className="border rounded-lg overflow-hidden">
-              <ComputersTable />
+    <div className="space-y-6 bg-slate-900 min-h-screen p-6">
+      <Card className="bg-slate-800 border-slate-700 shadow-xl">
+        <CardHeader className="bg-slate-700 text-white border-b border-slate-600">
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Monitor className="h-6 w-6" />
+            Inventário de Ativos GLPI
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 bg-slate-800">
+          {/* Filtros */}
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+              <Search className="h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Buscar por ID ou nome..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+              />
             </div>
-          </TabsContent>
+            
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-[140px] bg-slate-700 border-slate-600 text-white">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                <SelectItem value="all" className="text-white">Todos Tipos</SelectItem>
+                <SelectItem value="computer" className="text-white">Computador</SelectItem>
+                <SelectItem value="monitor" className="text-white">Monitor</SelectItem>
+                <SelectItem value="phone" className="text-white">Telefone</SelectItem>
+                <SelectItem value="printer" className="text-white">Impressora</SelectItem>
+                <SelectItem value="network" className="text-white">Rede</SelectItem>
+              </SelectContent>
+            </Select>
 
-          <TabsContent value="monitors" className="mt-4">
-            <div className="border rounded-lg overflow-hidden">
-              <MonitorsTable />
-            </div>
-          </TabsContent>
+            <Select value={entityFilter} onValueChange={setEntityFilter}>
+              <SelectTrigger className="w-[140px] bg-slate-700 border-slate-600 text-white">
+                <SelectValue placeholder="Entidade" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                <SelectItem value="all" className="text-white">Todas Entidades</SelectItem>
+                {entities.data?.map((entity) => (
+                  <SelectItem key={entity.id} value={entity.id.toString()} className="text-white">
+                    {entity.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <TabsContent value="printers" className="mt-4">
-            <div className="border rounded-lg overflow-hidden">
-              <PrintersTable />
-            </div>
-          </TabsContent>
+            <Button variant="outline" onClick={() => {
+              computers.refetch();
+              monitors.refetch();
+              phones.refetch();
+              printers.refetch();
+              networks.refetch();
+            }} className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Atualizar
+            </Button>
+          </div>
 
-          <TabsContent value="network" className="mt-4">
-            <div className="border rounded-lg overflow-hidden">
-              <NetworkTable />
-            </div>
-          </TabsContent>
+          {/* Resultados */}
+          <div className="text-sm text-slate-400">
+            Mostrando {filteredItems.length} itens de inventário
+          </div>
+        </CardContent>
+      </Card>
 
-          <TabsContent value="software" className="mt-4">
-            <div className="border rounded-lg overflow-hidden">
-              <SoftwareTable />
-            </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+      {/* Tabela de Inventário */}
+      <div className="bg-slate-800 border border-slate-700 overflow-hidden shadow-lg">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-slate-700 text-white hover:bg-slate-600 border-slate-600">
+              <TableHead className="w-[80px] text-white font-semibold">ID</TableHead>
+              <TableHead className="text-white font-semibold">Nome</TableHead>
+              <TableHead className="w-[120px] text-white font-semibold">Tipo</TableHead>
+              <TableHead className="w-[140px] text-white font-semibold">Entidade</TableHead>
+              <TableHead className="w-[120px] text-white font-semibold">Status</TableHead>
+              <TableHead className="w-[100px] text-white font-semibold">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredItems.map((item) => (
+              <TableRow key={`${item.type}-${item.id}`} className="hover:bg-slate-700 transition-colors border-b border-slate-600 text-white">
+                <TableCell className="font-medium text-white">#{item.id}</TableCell>
+                <TableCell className="text-white">
+                  <div className="flex items-center gap-2">
+                    {getTypeIcon(item.type)}
+                    {item.name || 'Sem nome'}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="bg-slate-700 text-slate-200 border-slate-600">
+                    {getTypeName(item.type)}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="gap-1 bg-slate-700 text-slate-200 border-slate-600">
+                    <Building2 className="h-3 w-3" />
+                    {getEntityName(item.entities_id)}
+                  </Badge>
+                </TableCell>
+                <TableCell>{getStatusBadge(item.states_id || 1)}</TableCell>
+                <TableCell>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setSelectedItem(item)}
+                        className="text-slate-200 hover:bg-slate-600"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-slate-800 border-slate-700 text-white">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-white">
+                          {getTypeIcon(selectedItem?.type)}
+                          {getTypeName(selectedItem?.type)} #{selectedItem?.id} - {selectedItem?.name}
+                        </DialogTitle>
+                      </DialogHeader>
+                      {selectedItem && (
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div>
+                              <label className="text-sm font-medium text-slate-300">ID</label>
+                              <p className="mt-1 text-sm text-slate-400">#{selectedItem.id}</p>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-slate-300">Nome</label>
+                              <p className="mt-1 text-sm text-slate-400">{selectedItem.name || 'Sem nome'}</p>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-slate-300">Tipo</label>
+                              <div className="mt-1">
+                                <Badge variant="outline" className="bg-slate-700 text-slate-200 border-slate-600">
+                                  {getTypeName(selectedItem.type)}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-sm font-medium text-slate-300">Entidade</label>
+                              <div className="mt-1">
+                                <Badge variant="outline" className="gap-1 bg-slate-700 text-slate-200 border-slate-600">
+                                  <Building2 className="h-3 w-3" />
+                                  {getEntityName(selectedItem.entities_id)}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-slate-300">Status</label>
+                              <div className="mt-1">{getStatusBadge(selectedItem.states_id || 1)}</div>
+                            </div>
+                          </div>
+
+                          {selectedItem.serial && (
+                            <div>
+                              <label className="text-sm font-medium text-slate-300">Número de Série</label>
+                              <p className="mt-1 text-sm text-slate-400">{selectedItem.serial}</p>
+                            </div>
+                          )}
+
+                          {selectedItem.otherserial && (
+                            <div>
+                              <label className="text-sm font-medium text-slate-300">Número de Inventário</label>
+                              <p className="mt-1 text-sm text-slate-400">{selectedItem.otherserial}</p>
+                            </div>
+                          )}
+
+                          {selectedItem.comment && (
+                            <div>
+                              <label className="text-sm font-medium text-slate-300">Comentários</label>
+                              <div className="mt-2 p-4 bg-slate-700">
+                                <p className="text-sm whitespace-pre-wrap text-slate-400">{selectedItem.comment}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </DialogContent>
+                  </Dialog>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 };

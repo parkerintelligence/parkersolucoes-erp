@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -223,7 +224,7 @@ export const GLPITicketsGrid = () => {
         </div>
       )}
       
-      <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-lg">
+      <div className="bg-slate-800 border border-slate-700 overflow-hidden shadow-lg">
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-700 text-white hover:bg-slate-600 border-slate-600">
@@ -261,21 +262,12 @@ export const GLPITicketsGrid = () => {
                 </div>
               </TableHead>
               <TableHead className="w-[100px] text-white font-semibold">Urgência</TableHead>
-              <TableHead className="w-[100px] text-white font-semibold">Impacto</TableHead>
               <TableHead 
                 className="w-[130px] text-white font-semibold cursor-pointer hover:bg-slate-600 transition-colors"
                 onClick={() => updateSort('date')}
               >
                 <div className="flex items-center gap-1">
                   Criado em {getSortIcon('date')}
-                </div>
-              </TableHead>
-              <TableHead 
-                className="w-[130px] text-white font-semibold cursor-pointer hover:bg-slate-600 transition-colors"
-                onClick={() => updateSort('date_mod')}
-              >
-                <div className="flex items-center gap-1">
-                  Modificado {getSortIcon('date_mod')}
                 </div>
               </TableHead>
               <TableHead className="w-[100px] text-white font-semibold">Ações</TableHead>
@@ -302,14 +294,8 @@ export const GLPITicketsGrid = () => {
                 <TableCell>
                   <Badge variant="outline" className="bg-slate-700 text-slate-200 border-slate-600">{getUrgencyText(ticket.urgency)}</Badge>
                 </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="bg-slate-700 text-slate-200 border-slate-600">{getUrgencyText(ticket.impact)}</Badge>
-                </TableCell>
                 <TableCell className="text-sm text-slate-300">
                   {format(new Date(ticket.date), 'dd/MM/yy HH:mm', { locale: ptBR })}
-                </TableCell>
-                <TableCell className="text-sm text-slate-300">
-                  {format(new Date(ticket.date_mod), 'dd/MM/yy HH:mm', { locale: ptBR })}
                 </TableCell>
                 <TableCell>
                   <Dialog>
@@ -397,7 +383,7 @@ export const GLPITicketsGrid = () => {
 
                           <div>
                             <label className="text-sm font-medium text-slate-300">Descrição Completa</label>
-                            <div className="mt-2 p-4 bg-slate-700 rounded-lg">
+                            <div className="mt-2 p-4 bg-slate-700">
                               <p className="text-sm whitespace-pre-wrap text-slate-400">{selectedTicket.content}</p>
                             </div>
                           </div>
@@ -430,9 +416,9 @@ export const GLPITicketsGrid = () => {
   );
 
   return (
-    <div className="space-y-6 bg-slate-900 min-h-screen p-6 rounded-xl">
+    <div className="space-y-6 bg-slate-900 min-h-screen p-6">
       <Card className="bg-slate-800 border-slate-700 shadow-xl">
-        <CardHeader className="bg-slate-700 text-white rounded-t-lg border-b border-slate-600">
+        <CardHeader className="bg-slate-700 text-white border-b border-slate-600">
           <CardTitle className="flex items-center gap-2 text-white">
             <AlertTriangle className="h-6 w-6" />
             Central de Chamados GLPI
@@ -570,46 +556,46 @@ export const GLPITicketsGrid = () => {
               ({format(dateFrom, 'dd/MM/yyyy', { locale: ptBR })} até {format(dateTo, 'dd/MM/yyyy', { locale: ptBR })})
             </span>
           </div>
-
-          {/* Tabelas */}
-          <div className="space-y-6">
-            {(Object.entries(paginatedTickets) as [string, GLPITicket[]][]).map(([groupName, ticketList]) => 
-              renderTicketTable(ticketList, groupName)
-            )}
-          </div>
-
-          {/* Paginação - apenas quando não agrupado */}
-          {!groupByEntity && totalPages > 1 && (
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-slate-400">
-                Página {currentPage} de {totalPages}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Anterior
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
-                >
-                  Próxima
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
+
+      {/* Tabelas */}
+      <div className="space-y-6">
+        {(Object.entries(paginatedTickets) as [string, GLPITicket[]][]).map(([groupName, ticketList]) => 
+          renderTicketTable(ticketList, groupName)
+        )}
+      </div>
+
+      {/* Paginação - apenas quando não agrupado */}
+      {!groupByEntity && totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-slate-400">
+            Página {currentPage} de {totalPages}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+            >
+              Próxima
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
