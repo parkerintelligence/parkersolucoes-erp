@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { AdminCompaniesPanel } from '@/components/AdminCompaniesPanel';
 import { AdminApiPanel } from '@/components/AdminApiPanel';
-import { SystemSettingsPanel } from '@/components/SystemSettingsPanel';
+import SystemSettingsPanel from '@/components/SystemSettingsPanel';
 import { BrandingSettingsPanel } from '@/components/BrandingSettingsPanel';
 import { ScheduledReportsPanel } from '@/components/ScheduledReportsPanel';
 import DebugPanel from '@/components/DebugPanel';
