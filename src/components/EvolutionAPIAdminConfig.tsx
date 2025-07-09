@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, MessageCircle, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Loader2, MessageCircle, AlertTriangle, CheckCircle, Wifi, WifiOff } from 'lucide-react';
+import { EvolutionApiService } from '@/utils/evolutionApiService';
 
 export const EvolutionAPIAdminConfig = () => {
   const { data: integrations } = useIntegrations();
@@ -15,6 +17,7 @@ export const EvolutionAPIAdminConfig = () => {
   const updateIntegration = useUpdateIntegration();
   
   const evolutionIntegration = integrations?.find(integration => integration.type === 'evolution_api');
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
 
   const [formData, setFormData] = useState({
     name: evolutionIntegration?.name || 'Evolution API WhatsApp',
@@ -86,24 +89,32 @@ export const EvolutionAPIAdminConfig = () => {
       return;
     }
 
-    try {
-      const response = await fetch(`${formData.base_url}/instance/fetchInstances`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': formData.api_token,
-        },
-      });
+    setIsTestingConnection(true);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Resposta do teste de conexão:', data);
+    try {
+      // Criar integração temporária para teste
+      const tempIntegration = {
+        base_url: formData.base_url,
+        api_token: formData.api_token,
+        instance_name: formData.instance_name
+      } as any;
+
+      const evolutionService = new EvolutionApiService(tempIntegration);
+      
+      // Verificar status da instância
+      const instanceStatus = await evolutionService.checkInstanceStatus();
+      
+      if (instanceStatus.active) {
         toast({
           title: "✅ Conexão bem-sucedida!",
-          description: "A conexão com a Evolution API está funcionando.",
+          description: "A conexão com a Evolution API está funcionando e a instância está ativa.",
         });
       } else {
-        throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        toast({
+          title: "⚠️ Instância inativa",
+          description: instanceStatus.error || "A instância não está ativa ou não foi encontrada.",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('Erro no teste de conexão:', error);
@@ -112,6 +123,8 @@ export const EvolutionAPIAdminConfig = () => {
         description: "Não foi possível conectar com a Evolution API. Verifique as configurações.",
         variant: "destructive"
       });
+    } finally {
+      setIsTestingConnection(false);
     }
   };
 
@@ -165,10 +178,10 @@ export const EvolutionAPIAdminConfig = () => {
               id="instance_name"
               value={formData.instance_name}
               onChange={(e) => setFormData({ ...formData, instance_name: e.target.value })}
-              placeholder="main_instance"
+              placeholder="SuporteParker"
             />
             <p className="text-sm text-gray-500 mt-1">
-              Nome da instância configurada na Evolution API
+              Nome da instância configurada na Evolution API (ex: SuporteParker)
             </p>
           </div>
 
@@ -221,10 +234,19 @@ export const EvolutionAPIAdminConfig = () => {
           <Button
             onClick={testConnection}
             variant="outline"
-            disabled={!formData.base_url || !formData.api_token || !formData.instance_name}
+            disabled={!formData.base_url || !formData.api_token || !formData.instance_name || isTestingConnection}
           >
-            <CheckCircle className="mr-2 h-4 w-4" />
-            Testar
+            {isTestingConnection ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Testando...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Testar Conexão
+              </>
+            )}
           </Button>
         </div>
 
@@ -233,13 +255,24 @@ export const EvolutionAPIAdminConfig = () => {
           <AlertDescription>
             <strong>Configuração necessária:</strong>
             <ul className="mt-2 space-y-1 text-sm">
-              <li>• Configure a instância da Evolution API (ex: main_instance)</li>
+              <li>• Configure a instância da Evolution API com o nome correto</li>
               <li>• Obtenha o token de acesso da sua instância</li>
-              <li>• Use o botão "Testar" para validar a configuração</li>
-              <li>• Conecte o número do WhatsApp na sua instância</li>
+              <li>• Use o botão "Testar Conexão" para validar a configuração</li>
+              <li>• Certifique-se de que a instância está conectada e ativa</li>
+              <li>• Verifique se o QR Code foi escaneado para conectar o WhatsApp</li>
             </ul>
           </AlertDescription>
         </Alert>
+
+        {evolutionIntegration && formData.is_active && (
+          <Alert>
+            <Wifi className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Status:</strong> Integração Evolution API configurada e ativa.
+              Use o botão "Testar Conexão" para verificar se está funcionando corretamente.
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
     </Card>
   );

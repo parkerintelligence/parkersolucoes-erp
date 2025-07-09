@@ -1,6 +1,5 @@
 
 import { Integration } from '@/hooks/useIntegrations';
-import { toast } from '@/hooks/use-toast';
 
 export interface EvolutionApiMessage {
   number: string;
@@ -80,6 +79,49 @@ export class EvolutionApiService {
     return { valid: errors.length === 0, errors };
   }
 
+  async checkInstanceStatus(): Promise<{ active: boolean; error?: string }> {
+    const configValidation = await this.validateConfiguration();
+    if (!configValidation.valid) {
+      return {
+        active: false,
+        error: `Configuração inválida: ${configValidation.errors.join(', ')}`
+      };
+    }
+
+    const integrationAny = this.integration as any;
+    const instanceName = integrationAny.instance_name || 'main_instance';
+    const baseUrl = this.normalizeUrl(this.integration.base_url);
+
+    const endpoints = [
+      `/instance/fetchInstances`,
+      `/instance/connect/${instanceName}`,
+      `/${instanceName}/instance/connectionState`,
+      `/fetchInstances`
+    ];
+
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(`${baseUrl}${endpoint}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': this.integration.api_token || '',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          this.addDebugLog(`✅ Instância verificada via ${endpoint}`);
+          return { active: true };
+        }
+      } catch (error) {
+        this.addDebugLog(`❌ Erro ao verificar instância via ${endpoint}: ${error}`);
+      }
+    }
+
+    return { active: false, error: 'Não foi possível verificar o status da instância' };
+  }
+
   private async sendWithAuthMethod(
     url: string, 
     payload: any, 
@@ -122,9 +164,8 @@ export class EvolutionApiService {
     success: boolean; 
     error?: EvolutionApiError 
   }> {
-    this.debugLogs = []; // Reset logs
+    this.debugLogs = [];
     
-    // Validar configuração
     const configValidation = await this.validateConfiguration();
     if (!configValidation.valid) {
       return {
@@ -137,7 +178,6 @@ export class EvolutionApiService {
       };
     }
 
-    // Limpar e validar número de telefone
     const cleanPhoneNumber = this.cleanPhoneNumber(phoneNumber);
     
     if (cleanPhoneNumber.length < 10 || cleanPhoneNumber.length > 15) {
@@ -157,114 +197,79 @@ export class EvolutionApiService {
     
     this.addDebugLog(`Configuração: Base URL: ${baseUrl}, Instância: ${instanceName}, Telefone: ${cleanPhoneNumber}`);
 
-    // Endpoints mais específicos da Evolution API
+    // Endpoints corretos da Evolution API (baseado nos padrões mais comuns)
     const endpoints = [
-      // Evolution API v2 - endpoints mais comuns
+      // Endpoints mais comuns da Evolution API v2
       `/message/sendText/${instanceName}`,
-      `/api/v2/message/sendText/${instanceName}`,
+      `/sendMessage/${instanceName}`,
       `/${instanceName}/message/sendText`,
-      `/v2/message/sendText/${instanceName}`,
+      `/${instanceName}/sendMessage`,
       
-      // Evolution API v1 - endpoints clássicos
+      // Endpoints da Evolution API v1
       `/api/sendText/${instanceName}`,
-      `/sendText/${instanceName}`,
-      `/${instanceName}/sendText`,
-      `/v1/sendText/${instanceName}`,
+      `/api/sendMessage/${instanceName}`,
       
-      // Endpoints alternativos
-      `/message/text/${instanceName}`,
-      `/api/v1/message/text/${instanceName}`,
-      `/text/${instanceName}`,
-      `/${instanceName}/text`,
-      
-      // Endpoints sem instância (algumas APIs)
+      // Endpoints sem instância específica
       `/message/sendText`,
+      `/sendMessage`,
       `/api/sendText`,
-      `/sendText`,
-      `/text`
+      `/api/sendMessage`
     ];
 
-    // Formatos de payload para Evolution API
+    // Formatos de payload simplificados (focando nos que funcionam)
     const payloadFormats = [
-      // Formato Evolution API v2 completo
-      {
-        number: `${cleanPhoneNumber}@s.whatsapp.net`,
-        options: {
-          delay: 1200,
-          presence: "composing"
-        },
-        textMessage: {
-          text: message
-        }
-      },
-      // Formato Evolution API v1 simples
+      // Formato mais simples e comum
       {
         number: cleanPhoneNumber,
         text: message
       },
-      // Formato com textMessage
+      // Formato com @s.whatsapp.net
+      {
+        number: `${cleanPhoneNumber}@s.whatsapp.net`,
+        text: message
+      },
+      // Formato Evolution API v2
       {
         number: cleanPhoneNumber,
         textMessage: {
           text: message
         }
-      },
-      // Formato com remoteJid
-      {
-        remoteJid: `${cleanPhoneNumber}@s.whatsapp.net`,
-        message: {
-          text: message
-        }
-      },
-      // Formato com to
-      {
-        to: `${cleanPhoneNumber}@s.whatsapp.net`,
-        body: message,
-        type: "text"
       }
     ];
 
-    // Métodos de autenticação
+    // Métodos de autenticação mais comuns
     const authMethods = [
       { 'apikey': this.integration.api_token },
-      { 'Api-Key': this.integration.api_token },
       { 'Authorization': `Bearer ${this.integration.api_token}` },
-      { 'x-api-key': this.integration.api_token },
-      { 'token': this.integration.api_token }
+      { 'x-api-key': this.integration.api_token }
     ];
 
     let lastError: EvolutionApiError | null = null;
 
-    // Testar todas as combinações
+    // Testar combinações mais prováveis primeiro
     for (const endpoint of endpoints) {
       const fullUrl = `${baseUrl}${endpoint}`;
       
       for (const payload of payloadFormats) {
         for (const authHeaders of authMethods) {
           try {
-            const payloadType = Object.keys(payload)[0];
-            const authType = Object.keys(authHeaders)[0];
-            
-            this.addDebugLog(`Testando: ${endpoint} | Payload: ${payloadType} | Auth: ${authType}`);
-            
             const { response, responseData } = await this.sendWithAuthMethod(fullUrl, payload, authHeaders);
             
             // Verificar sucesso
             if (response.ok && responseData && !responseData.error) {
-              this.addDebugLog(`✅ SUCESSO! Configuração funcional encontrada`);
+              this.addDebugLog(`✅ SUCESSO! Mensagem enviada via ${endpoint}`);
               return { success: true };
             }
             
-            // Capturar último erro para mostrar ao usuário
             lastError = {
               message: `Falha no envio`,
-              details: responseData?.message || responseData?.error || 'Erro desconhecido',
+              details: responseData?.message || responseData?.error || `Status ${response.status}`,
               endpoint: fullUrl,
               statusCode: response.status,
               logs: this.debugLogs
             };
             
-            this.addDebugLog(`❌ Falhou: Status ${response.status}, Erro: ${responseData?.error || responseData?.message || 'Desconhecido'}`);
+            this.addDebugLog(`❌ Falhou: ${endpoint} - Status ${response.status}`);
             
           } catch (error) {
             lastError = {
@@ -287,9 +292,32 @@ export class EvolutionApiService {
       success: false, 
       error: lastError || {
         message: 'Não foi possível enviar a mensagem',
-        details: 'Todas as configurações testadas falharam',
+        details: 'Todas as configurações testadas falharam. Verifique se a instância está ativa.',
         logs: this.debugLogs
       }
     };
+  }
+
+  async testConnection(): Promise<{ success: boolean; error?: string }> {
+    const instanceStatus = await this.checkInstanceStatus();
+    
+    if (!instanceStatus.active) {
+      return {
+        success: false,
+        error: instanceStatus.error || 'Instância não está ativa'
+      };
+    }
+
+    // Tentar enviar uma mensagem de teste para um número fictício
+    const testResult = await this.sendMessage('5511999999999', 'Teste de conexão');
+    
+    if (testResult.success) {
+      return { success: true };
+    } else {
+      return {
+        success: false,
+        error: testResult.error?.message || 'Falha no teste de conexão'
+      };
+    }
   }
 }
