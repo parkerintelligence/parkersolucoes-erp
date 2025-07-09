@@ -2,7 +2,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Crown, Shield, ChevronRight, Home, PanelLeft, Settings } from 'lucide-react';
+import { LogOut, User, Crown, Shield, ChevronRight, Home, PanelLeft, Settings, DollarSign } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
@@ -29,6 +29,10 @@ export const TopHeader = () => {
 
   const handleSettingsClick = () => {
     navigate('/admin');
+  };
+
+  const handleFinancialClick = () => {
+    navigate('/financial');
   };
 
   const getBreadcrumbTitle = () => {
@@ -91,6 +95,18 @@ export const TopHeader = () => {
 
         {/* Área do Usuário */}
         <div className="flex items-center gap-2">
+          {/* Botão Financeiro */}
+          {isMaster && (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={handleFinancialClick}
+              className="text-green-400 hover:text-green-300 hover:bg-slate-700 rounded-lg"
+            >
+              <DollarSign className="h-5 w-5" />
+            </Button>
+          )}
+
           {/* Ícone de Configurações */}
           <Button 
             variant="ghost" 

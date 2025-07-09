@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 interface PageWrapperProps {
   children: React.ReactNode;
@@ -19,26 +18,25 @@ export const PageWrapper: React.FC<PageWrapperProps> = ({
   headerActions,
   className = ""
 }) => {
-  const { getResponsiveClasses } = useResponsiveLayout();
-  const classes = getResponsiveClasses();
-
   return (
-    <div className={`${classes.container} ${className} bg-slate-900 text-white min-h-screen`}>
-      <div className={classes.header}>
+    <div className={`w-full max-w-full ${className}`}>
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
         <div className="flex items-center gap-3">
           {icon}
           <div>
-            <h1 className="text-2xl font-bold text-white">{title}</h1>
-            {subtitle && <p className="text-gray-400">{subtitle}</p>}
+            <h1 className="text-2xl lg:text-3xl font-bold text-white">{title}</h1>
+            {subtitle && <p className="text-gray-400 mt-1">{subtitle}</p>}
           </div>
         </div>
         {headerActions && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 w-full lg:w-auto">
             {headerActions}
           </div>
         )}
       </div>
-      {children}
+      <div className="w-full">
+        {children}
+      </div>
     </div>
   );
 };
