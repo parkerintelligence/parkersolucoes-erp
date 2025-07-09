@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
 
@@ -25,10 +24,32 @@ const handler = async (req: Request): Promise<Response> => {
   let reportLog = null;
 
   try {
-    const { report_id }: ScheduledReportRequest = await req.json();
-    console.log(`🚀 Iniciando envio do relatório: ${report_id}`);
-    console.log(`🕐 Horário UTC: ${new Date().toISOString()}`);
-    console.log(`🕐 Horário Brasília: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`);
+    console.log('🚀 [SEND] Iniciando função send-scheduled-report');
+    
+    let requestBody;
+    try {
+      const bodyText = await req.text();
+      console.log('📝 [SEND] Corpo da requisição recebido:', bodyText);
+      
+      if (!bodyText.trim()) {
+        throw new Error('Corpo da requisição está vazio');
+      }
+      
+      requestBody = JSON.parse(bodyText);
+    } catch (parseError: any) {
+      console.error('❌ [SEND] Erro ao parsear JSON:', parseError);
+      throw new Error(`Erro ao parsear JSON: ${parseError.message}`);
+    }
+
+    const { report_id }: ScheduledReportRequest = requestBody;
+    
+    if (!report_id) {
+      throw new Error('report_id é obrigatório');
+    }
+
+    console.log(`🚀 [SEND] Processando relatório: ${report_id}`);
+    console.log(`🕐 [SEND] Horário UTC: ${new Date().toISOString()}`);
+    console.log(`🕐 [SEND] Horário Brasília: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`);
     
     // Buscar configuração do relatório
     const { data: report, error: reportError } = await supabase
@@ -39,11 +60,11 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (reportError || !report) {
-      console.error('❌ Relatório não encontrado:', reportError);
+      console.error('❌ [SEND] Relatório não encontrado:', reportError);
       throw new Error(`Relatório não encontrado ou inativo: ${reportError?.message || 'Report not found'}`);
     }
 
-    console.log(`📋 Relatório encontrado: ${report.name} (${report.report_type})`);
+    console.log(`📋 [SEND] Relatório encontrado: ${report.name} (${report.report_type})`);
 
     // Criar log inicial
     reportLog = {
@@ -64,14 +85,14 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (integrationError || !integration) {
-      console.error('❌ Evolution API não configurada:', integrationError);
+      console.error('❌ [SEND] Evolution API não configurada:', integrationError);
       throw new Error(`Evolution API não configurada para este usuário: ${integrationError?.message || 'Integration not found'}`);
     }
 
-    console.log(`🔌 Integration encontrada: ${integration.name}`);
+    console.log(`🔌 [SEND] Integration encontrada: ${integration.name}`);
 
     // Buscar template da mensagem por ID (novo sistema unificado)
-    console.log(`🔍 Buscando template por ID: ${report.report_type}`);
+    console.log(`🔍 [SEND] Buscando template por ID: ${report.report_type}`);
     const { data: template, error: templateError } = await supabase
       .from('whatsapp_message_templates')
       .select('*')
@@ -81,15 +102,15 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (templateError || !template) {
-      console.error('❌ Template não encontrado:', templateError);
+      console.error('❌ [SEND] Template não encontrado:', templateError);
       throw new Error(`Template não encontrado ou inativo: ${report.report_type} - ${templateError?.message || 'Template not found'}`);
     }
 
-    console.log(`📝 Template encontrado: ${template.name} (tipo: ${template.template_type})`);
+    console.log(`📝 [SEND] Template encontrado: ${template.name} (tipo: ${template.template_type})`);
 
     // Gerar conteúdo baseado no template
     const message = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings);
-    console.log(`💬 Mensagem gerada (${message.length} caracteres)`);
+    console.log(`💬 [SEND] Mensagem gerada (${message.length} caracteres)`);
 
     // Atualizar log com conteúdo da mensagem
     reportLog.message_content = message.substring(0, 1000); // Limitar tamanho
@@ -98,7 +119,8 @@ const handler = async (req: Request): Promise<Response> => {
     const instanceName = integration.instance_name || 'main_instance';
     const cleanPhoneNumber = report.phone_number.replace(/\D/g, '');
     
-    console.log(`📱 Enviando para: ${cleanPhoneNumber} via instância: ${instanceName}`);
+    console.log(`📱 [SEND] Enviando para: ${cleanPhoneNumber} via instância: ${instanceName}`);
+    console.log(`🔗 [SEND] Base URL: ${integration.base_url}`);
     
     // Testar múltiplos endpoints da Evolution API
     const endpoints = [
@@ -115,7 +137,7 @@ const handler = async (req: Request): Promise<Response> => {
     for (const endpoint of endpoints) {
       try {
         const url = `${integration.base_url}${endpoint}`;
-        console.log(`🔄 Tentando endpoint: ${url}`);
+        console.log(`🔄 [SEND] Tentando endpoint: ${url}`);
         
         const whatsappApiResponse = await fetch(url, {
           method: 'POST',
@@ -129,21 +151,22 @@ const handler = async (req: Request): Promise<Response> => {
           }),
         });
 
-        console.log(`📡 Resposta do WhatsApp: ${whatsappApiResponse.status}`);
+        console.log(`📡 [SEND] Resposta do WhatsApp: ${whatsappApiResponse.status}`);
 
         if (whatsappApiResponse.ok) {
           whatsappResponse = await whatsappApiResponse.json();
-          console.log('✅ Mensagem enviada com sucesso via', endpoint);
+          console.log('✅ [SEND] Mensagem enviada com sucesso via', endpoint);
+          console.log('📋 [SEND] Resposta WhatsApp:', JSON.stringify(whatsappResponse, null, 2));
           whatsappSuccess = true;
           break;
         } else {
           const errorText = await whatsappApiResponse.text();
           lastError = `${whatsappApiResponse.status}: ${errorText}`;
-          console.log(`❌ Falha em ${endpoint}: ${lastError}`);
+          console.log(`❌ [SEND] Falha em ${endpoint}: ${lastError}`);
         }
       } catch (error: any) {
         lastError = error.message;
-        console.log(`❌ Erro de rede em ${endpoint}: ${lastError}`);
+        console.log(`❌ [SEND] Erro de rede em ${endpoint}: ${lastError}`);
       }
     }
 
@@ -163,18 +186,6 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Falha ao enviar mensagem WhatsApp: ${lastError}`);
     }
 
-    // Usar a função PostgreSQL para calcular a próxima execução
-    const { data: nextExecution, error: nextExecError } = await supabase
-      .rpc('calculate_next_execution', {
-        cron_expr: report.cron_expression,
-        from_time: new Date().toISOString()
-      });
-
-    if (nextExecError) {
-      console.error('❌ Erro ao calcular próxima execução:', nextExecError);
-      // Não falhar por causa disso, continuar
-    }
-
     // Log de sucesso
     await supabase.from('scheduled_reports_logs').insert({
       ...reportLog,
@@ -184,18 +195,20 @@ const handler = async (req: Request): Promise<Response> => {
       whatsapp_response: whatsappResponse
     });
 
-    console.log(`✅ Relatório enviado com sucesso para ${cleanPhoneNumber}`);
-    console.log(`⏰ Próxima execução calculada: ${nextExecution}`);
+    console.log(`✅ [SEND] Relatório enviado com sucesso para ${cleanPhoneNumber}`);
 
-    return new Response(JSON.stringify({ 
+    const successResponse = { 
       success: true, 
       message: 'Relatório enviado com sucesso',
       template_name: template.name,
       template_type: template.template_type,
       phone_number: cleanPhoneNumber,
-      next_execution: nextExecution,
       execution_time_ms: executionTime
-    }), {
+    };
+
+    console.log('📤 [SEND] Retornando resposta de sucesso:', JSON.stringify(successResponse, null, 2));
+
+    return new Response(JSON.stringify(successResponse), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
@@ -203,7 +216,8 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     const executionTime = Date.now() - startTime;
     
-    console.error("❌ Erro na função send-scheduled-report:", error);
+    console.error("❌ [SEND] Erro na função send-scheduled-report:", error);
+    console.error("❌ [SEND] Stack trace:", error.stack);
     
     // Log de erro se temos informações do relatório
     if (reportLog) {
@@ -216,22 +230,21 @@ const handler = async (req: Request): Promise<Response> => {
           execution_time_ms: executionTime
         });
       } catch (logError) {
-        console.error("❌ Erro ao salvar log:", logError);
+        console.error("❌ [SEND] Erro ao salvar log:", logError);
       }
     }
 
-    return new Response(
-      JSON.stringify({ 
-        success: false,
-        error: error.message,
-        timestamp: new Date().toISOString(),
-        execution_time_ms: executionTime
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    const errorResponse = { 
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString(),
+      execution_time_ms: executionTime
+    };
+
+    return new Response(JSON.stringify(errorResponse), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 };
 

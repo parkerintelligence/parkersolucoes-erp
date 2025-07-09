@@ -18,12 +18,14 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log('🔍 Verificando relatórios agendados...');
-    console.log('🕐 Horário atual (UTC):', new Date().toISOString());
-    console.log('🕐 Horário atual (Brasília):', new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
+    console.log('🔍 [CRON] Verificando relatórios agendados...');
+    console.log('🕐 [CRON] Horário atual (UTC):', new Date().toISOString());
+    console.log('🕐 [CRON] Horário atual (Brasília):', new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
     
     // Buscar todos os relatórios agendados que devem ser executados agora
     const now = new Date();
+    console.log('📋 [CRON] Buscando relatórios que devem ser executados até:', now.toISOString());
+    
     const { data: dueReports, error } = await supabase
       .from('scheduled_reports')
       .select('*')
@@ -31,36 +33,41 @@ const handler = async (req: Request): Promise<Response> => {
       .lte('next_execution', now.toISOString());
 
     if (error) {
-      console.error('❌ Erro ao buscar relatórios:', error);
+      console.error('❌ [CRON] Erro ao buscar relatórios:', error);
       throw new Error(`Erro ao buscar relatórios: ${error.message}`);
     }
 
-    console.log(`📋 Encontrados ${dueReports?.length || 0} relatórios para executar`);
+    console.log(`📋 [CRON] Encontrados ${dueReports?.length || 0} relatórios para executar`);
     
     // Log detalhado dos relatórios encontrados
     if (dueReports && dueReports.length > 0) {
       dueReports.forEach(report => {
-        console.log(`📄 Relatório: ${report.name}`);
+        console.log(`📄 [CRON] Relatório: ${report.name}`);
         console.log(`  - ID: ${report.id}`);
         console.log(`  - Próxima execução: ${report.next_execution}`);
         console.log(`  - Expressão cron: ${report.cron_expression}`);
         console.log(`  - Telefone: ${report.phone_number}`);
+        console.log(`  - Usuário: ${report.user_id}`);
       });
+    } else {
+      console.log('ℹ️ [CRON] Nenhum relatório encontrado para execução neste momento');
     }
 
     const results = [];
     
     for (const report of dueReports || []) {
-      console.log(`🚀 Processando relatório: ${report.name} (${report.id})`);
+      console.log(`🚀 [CRON] Processando relatório: ${report.name} (${report.id})`);
       
       try {
-        // Executar cada relatório
+        // Executar cada relatório usando invoke direto
+        console.log(`📞 [CRON] Chamando send-scheduled-report para: ${report.id}`);
+        
         const { data: result, error: functionError } = await supabase.functions.invoke('send-scheduled-report', {
-          body: { report_id: report.id }
+          body: JSON.stringify({ report_id: report.id })
         });
 
         if (functionError) {
-          console.error(`❌ Erro na função send-scheduled-report:`, functionError);
+          console.error(`❌ [CRON] Erro na função send-scheduled-report:`, functionError);
           results.push({
             report_id: report.id,
             report_name: report.name,
@@ -71,8 +78,10 @@ const handler = async (req: Request): Promise<Response> => {
           continue;
         }
         
+        console.log(`📋 [CRON] Resultado da função:`, result);
+        
         if (result?.success) {
-          console.log(`✅ Relatório ${report.name} executado com sucesso`);
+          console.log(`✅ [CRON] Relatório ${report.name} executado com sucesso`);
           
           // Usar a função PostgreSQL para calcular a próxima execução
           const { data: nextExecData, error: nextExecError } = await supabase
@@ -82,8 +91,10 @@ const handler = async (req: Request): Promise<Response> => {
             });
 
           if (nextExecError) {
-            console.error('❌ Erro ao calcular próxima execução:', nextExecError);
+            console.error('❌ [CRON] Erro ao calcular próxima execução:', nextExecError);
             // Continuar mesmo com erro de cálculo
+          } else {
+            console.log(`⏰ [CRON] Próxima execução calculada: ${nextExecData}`);
           }
 
           // Atualizar o registro com a próxima execução calculada pelo PostgreSQL
@@ -97,7 +108,9 @@ const handler = async (req: Request): Promise<Response> => {
             .eq('id', report.id);
 
           if (updateError) {
-            console.error('❌ Erro ao atualizar relatório:', updateError);
+            console.error('❌ [CRON] Erro ao atualizar relatório:', updateError);
+          } else {
+            console.log(`📝 [CRON] Relatório atualizado com próxima execução: ${nextExecData}`);
           }
 
           results.push({
@@ -109,7 +122,7 @@ const handler = async (req: Request): Promise<Response> => {
             next_execution: nextExecData
           });
         } else {
-          console.error(`❌ Falha no relatório ${report.name}:`, result);
+          console.error(`❌ [CRON] Falha no relatório ${report.name}:`, result);
           results.push({
             report_id: report.id,
             report_name: report.name,
@@ -120,7 +133,7 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
       } catch (reportError: any) {
-        console.error(`❌ Erro ao processar relatório ${report.name}:`, reportError);
+        console.error(`❌ [CRON] Erro ao processar relatório ${report.name}:`, reportError);
         results.push({
           report_id: report.id,
           report_name: report.name,
@@ -134,9 +147,9 @@ const handler = async (req: Request): Promise<Response> => {
     const successCount = results.filter(r => r.success).length;
     const failureCount = results.filter(r => !r.success).length;
 
-    console.log(`📊 Processamento concluído: ${successCount} sucessos, ${failureCount} falhas`);
+    console.log(`📊 [CRON] Processamento concluído: ${successCount} sucessos, ${failureCount} falhas`);
 
-    return new Response(JSON.stringify({ 
+    const responseData = { 
       executed_reports: results.length,
       successful: successCount,
       failed: failureCount,
@@ -144,25 +157,30 @@ const handler = async (req: Request): Promise<Response> => {
       timestamp: new Date().toISOString(),
       current_time_utc: now.toISOString(),
       current_time_brasilia: now.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
-    }), {
+    };
+
+    console.log('📤 [CRON] Retornando resposta:', JSON.stringify(responseData, null, 2));
+
+    return new Response(JSON.stringify(responseData), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
 
   } catch (error: any) {
-    console.error("❌ Erro na função process-scheduled-reports:", error);
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        timestamp: new Date().toISOString(),
-        current_time_utc: new Date().toISOString(),
-        current_time_brasilia: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    console.error("❌ [CRON] Erro na função process-scheduled-reports:", error);
+    console.error("❌ [CRON] Stack trace:", error.stack);
+    
+    const errorResponse = { 
+      error: error.message,
+      timestamp: new Date().toISOString(),
+      current_time_utc: new Date().toISOString(),
+      current_time_brasilia: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+    };
+
+    return new Response(JSON.stringify(errorResponse), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 };
 
