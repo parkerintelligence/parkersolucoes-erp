@@ -180,13 +180,11 @@ const Wasabi = () => {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700" onClick={() => handleDownload(object.name || object.Key)}>
+                              
+                              <Button size="sm" variant="outline" onClick={() => handleDownload(object.name || object.Key)} className="border-gray-600 bg-blue-950 hover:bg-blue-800 text-slate-50">
                                 <Download className="h-4 w-4" />
                               </Button>
-                              <Button size="sm" variant="outline" className="border-gray-600 text-red-400 hover:bg-red-900/20" onClick={() => handleDelete(object.name || object.Key)}>
+                              <Button size="sm" variant="outline" onClick={() => handleDelete(object.name || object.Key)} className="border-gray-600 bg-red-800 hover:bg-red-700 text-slate-50">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
