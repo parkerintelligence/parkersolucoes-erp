@@ -30,11 +30,15 @@ const Wasabi = () => {
     buckets, 
     objects, 
     isLoading, 
+    isLoadingBuckets,
     createBucket,
     uploadFile,
     downloadObject,
-    deleteObject
+    deleteObject,
+    listObjects,
+    listBuckets
   } = useWasabi();
+  
   const [refreshing, setRefreshing] = useState(false);
   const [selectedBucket, setSelectedBucket] = useState<string>('');
   const [createBucketDialogOpen, setCreateBucketDialogOpen] = useState(false);
@@ -45,7 +49,10 @@ const Wasabi = () => {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      listBuckets();
+      if (selectedBucket) {
+        listObjects(selectedBucket);
+      }
       toast({
         title: "Dados atualizados",
         description: "Informações do Wasabi foram atualizadas com sucesso.",
@@ -61,12 +68,26 @@ const Wasabi = () => {
     }
   };
 
+  const handleBucketChange = (bucketName: string) => {
+    console.log('Bucket selecionado:', bucketName);
+    setSelectedBucket(bucketName);
+    if (bucketName) {
+      listObjects(bucketName);
+    }
+  };
+
   const handleCreateBucket = (bucketName: string) => {
-    createBucket.mutate(bucketName);
+    createBucket.mutate(bucketName, {
+      onSuccess: () => {
+        setCreateBucketDialogOpen(false);
+        listBuckets();
+      }
+    });
   };
 
   const handleUpload = (files: FileList, bucketName: string) => {
     uploadFile(files, bucketName);
+    setUploadDialogOpen(false);
   };
 
   const handleDownload = (fileName: string) => {
@@ -153,8 +174,8 @@ const Wasabi = () => {
                   <WasabiBucketSelector
                     buckets={buckets || []}
                     selectedBucket={selectedBucket}
-                    onBucketChange={setSelectedBucket}
-                    isLoading={isLoading}
+                    onBucketChange={handleBucketChange}
+                    isLoading={isLoadingBuckets}
                   />
                 </div>
                 
@@ -209,15 +230,22 @@ const Wasabi = () => {
                       {objects && objects.length > 0 ? (
                         objects.map((object: any, index: number) => (
                           <div
-                            key={index}
+                            key={object.id || `file-${index}`}
                             className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg border border-gray-600"
                           >
                             <div className="flex items-center gap-3">
                               <FileText className="h-5 w-5 text-blue-400" />
                               <div>
-                                <p className="text-white font-medium">{object.name || object.Key || `arquivo-${index + 1}`}</p>
+                                <p className="text-white font-medium">
+                                  {object.name || object.Key || `arquivo-${index + 1}`}
+                                </p>
                                 <p className="text-gray-400 text-sm">
-                                  {object.size || object.Size ? `${(parseInt(object.size || object.Size) / 1024).toFixed(2)} KB` : 'Tamanho desconhecido'} • 
+                                  {object.size || object.Size 
+                                    ? `${typeof (object.size || object.Size) === 'number' 
+                                        ? ((object.size || object.Size) / 1024).toFixed(2) 
+                                        : object.size || object.Size} ${typeof (object.size || object.Size) === 'number' ? 'KB' : ''}` 
+                                    : 'Tamanho desconhecido'
+                                  } • 
                                   {object.lastModified || object.LastModified 
                                     ? new Date(object.lastModified || object.LastModified).toLocaleDateString('pt-BR')
                                     : 'Data desconhecida'

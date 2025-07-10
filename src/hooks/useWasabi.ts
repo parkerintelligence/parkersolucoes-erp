@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
@@ -37,11 +36,12 @@ export const useWasabi = () => {
     retryDelay: 1000,
   });
 
-  // Buscar arquivos de um bucket específico
+  // Buscar arquivos de um bucket específico - agora usa o selectedBucket interno
   const { data: objects = [], isLoading: isLoadingFiles } = useQuery({
     queryKey: ['wasabi-files', activeWasabiIntegration?.id, selectedBucket],
     queryFn: async (): Promise<WasabiFile[]> => {
       if (!activeWasabiIntegration || !selectedBucket) {
+        console.log('Integração ou bucket não selecionado');
         return [];
       }
 
@@ -71,8 +71,10 @@ export const useWasabi = () => {
   };
 
   const listObjects = (bucketName: string) => {
+    console.log('Chamando listObjects para bucket:', bucketName);
     setSelectedBucket(bucketName);
     setCurrentPath('');
+    // Invalidar e forçar nova busca dos arquivos
     queryClient.invalidateQueries({ queryKey: ['wasabi-files', activeWasabiIntegration?.id, bucketName] });
   };
 
@@ -231,8 +233,10 @@ export const useWasabi = () => {
     buckets,
     objects,
     currentPath,
+    selectedBucket,
     isLoading,
     isLoadingBuckets,
+    isLoadingFiles,
     error,
     bucketsError,
     isConfigured,
@@ -249,6 +253,6 @@ export const useWasabi = () => {
     downloadObject,
     deleteFile,
     deleteObject,
-    createBucket, // Return the full mutation object instead of just .mutate
+    createBucket,
   };
 };
