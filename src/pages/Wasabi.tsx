@@ -25,7 +25,16 @@ import { WasabiBucketSelector } from '@/components/WasabiBucketSelector';
 import { toast } from '@/hooks/use-toast';
 
 const Wasabi = () => {
-  const { wasabiIntegration, buckets, objects, isLoading } = useWasabi();
+  const { 
+    wasabiIntegration, 
+    buckets, 
+    objects, 
+    isLoading, 
+    createBucket,
+    uploadFile,
+    downloadObject,
+    deleteObject
+  } = useWasabi();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedBucket, setSelectedBucket] = useState<string>('');
   const [createBucketDialogOpen, setCreateBucketDialogOpen] = useState(false);
@@ -49,6 +58,26 @@ const Wasabi = () => {
       });
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleCreateBucket = (bucketName: string) => {
+    createBucket.mutate(bucketName);
+  };
+
+  const handleUpload = (files: FileList, bucketName: string) => {
+    uploadFile(files, bucketName);
+  };
+
+  const handleDownload = (fileName: string) => {
+    if (selectedBucket) {
+      downloadObject(selectedBucket, fileName);
+    }
+  };
+
+  const handleDelete = (fileName: string) => {
+    if (selectedBucket) {
+      deleteObject(selectedBucket, fileName);
     }
   };
 
@@ -122,7 +151,7 @@ const Wasabi = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <WasabiBucketSelector
-                    buckets={buckets?.data || []}
+                    buckets={buckets || []}
                     selectedBucket={selectedBucket}
                     onBucketChange={setSelectedBucket}
                     isLoading={isLoading}
@@ -177,8 +206,8 @@ const Wasabi = () => {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {objects?.data && objects.data.length > 0 ? (
-                        objects.data.map((object: any, index: number) => (
+                      {objects && objects.length > 0 ? (
+                        objects.map((object: any, index: number) => (
                           <div
                             key={index}
                             className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg border border-gray-600"
@@ -186,11 +215,11 @@ const Wasabi = () => {
                             <div className="flex items-center gap-3">
                               <FileText className="h-5 w-5 text-blue-400" />
                               <div>
-                                <p className="text-white font-medium">{object.Key || `arquivo-${index + 1}`}</p>
+                                <p className="text-white font-medium">{object.name || object.Key || `arquivo-${index + 1}`}</p>
                                 <p className="text-gray-400 text-sm">
-                                  {object.Size ? `${(object.Size / 1024).toFixed(2)} KB` : 'Tamanho desconhecido'} • 
-                                  {object.LastModified 
-                                    ? new Date(object.LastModified).toLocaleDateString('pt-BR')
+                                  {object.size || object.Size ? `${(parseInt(object.size || object.Size) / 1024).toFixed(2)} KB` : 'Tamanho desconhecido'} • 
+                                  {object.lastModified || object.LastModified 
+                                    ? new Date(object.lastModified || object.LastModified).toLocaleDateString('pt-BR')
                                     : 'Data desconhecida'
                                   }
                                 </p>
@@ -200,10 +229,20 @@ const Wasabi = () => {
                               <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                                onClick={() => handleDownload(object.name || object.Key)}
+                              >
                                 <Download className="h-4 w-4" />
                               </Button>
-                              <Button size="sm" variant="outline" className="border-gray-600 text-red-400 hover:bg-red-900/20">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-gray-600 text-red-400 hover:bg-red-900/20"
+                                onClick={() => handleDelete(object.name || object.Key)}
+                              >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
@@ -231,7 +270,7 @@ const Wasabi = () => {
                   <Folder className="h-4 w-4 text-blue-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-white">{buckets?.data?.length || 0}</div>
+                  <div className="text-2xl font-bold text-white">{buckets?.length || 0}</div>
                   <p className="text-xs text-gray-400">Buckets configurados</p>
                 </CardContent>
               </Card>
@@ -242,7 +281,7 @@ const Wasabi = () => {
                   <FileText className="h-4 w-4 text-green-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-white">{objects?.data?.length || 0}</div>
+                  <div className="text-2xl font-bold text-white">{objects?.length || 0}</div>
                   <p className="text-xs text-gray-400">Arquivos armazenados</p>
                 </CardContent>
               </Card>
@@ -269,12 +308,16 @@ const Wasabi = () => {
         <WasabiCreateBucketDialog
           open={createBucketDialogOpen}
           onOpenChange={setCreateBucketDialogOpen}
+          onCreateBucket={handleCreateBucket}
+          isCreating={createBucket.isPending}
         />
 
         <WasabiUploadDialog
           open={uploadDialogOpen}
           onOpenChange={setUploadDialogOpen}
           selectedBucket={selectedBucket}
+          onUpload={handleUpload}
+          isUploading={false}
         />
       </div>
     </div>
