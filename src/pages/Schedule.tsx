@@ -9,35 +9,32 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, Plus, Settings, Clock, CalendarDays, ExternalLink } from 'lucide-react';
 import { useScheduleItems, useUpdateScheduleItem, useDeleteScheduleItem } from '@/hooks/useScheduleItems';
-
 const Schedule = () => {
-  const { data: scheduleItems = [], isLoading } = useScheduleItems();
+  const {
+    data: scheduleItems = [],
+    isLoading
+  } = useScheduleItems();
   const updateScheduleItem = useUpdateScheduleItem();
   const deleteScheduleItem = useDeleteScheduleItem();
-  
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [showTypeDialog, setShowTypeDialog] = useState(false);
-
   const handleUpdateScheduleItem = (id: string, updates: Parameters<typeof updateScheduleItem.mutate>[0]['updates']) => {
-    updateScheduleItem.mutate({ id, updates });
+    updateScheduleItem.mutate({
+      id,
+      updates
+    });
   };
-
   const handleDeleteScheduleItem = (id: string) => {
     deleteScheduleItem.mutate(id);
   };
-
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-96">
+    return <div className="flex justify-center items-center h-96">
         <div className="text-muted-foreground">Carregando agenda...</div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-foreground">Agenda</h1>
+        <h1 className="text-2xl font-bold text-slate-50">Agenda</h1>
       </div>
 
       <Tabs defaultValue="calendar" className="space-y-6">
@@ -121,31 +118,19 @@ const Schedule = () => {
               <CardDescription>Controle de certificados, licenças e atualizações</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScheduleTable 
-                items={scheduleItems}
-                onUpdate={handleUpdateScheduleItem}
-                onDelete={handleDeleteScheduleItem}
-              />
+              <ScheduleTable items={scheduleItems} onUpdate={handleUpdateScheduleItem} onDelete={handleDeleteScheduleItem} />
             </CardContent>
           </Card>
           
           {/* Dialogs */}
-          <ScheduleDialog 
-            open={showScheduleDialog} 
-            onOpenChange={setShowScheduleDialog} 
-          />
-          <ScheduleTypeDialog 
-            open={showTypeDialog} 
-            onOpenChange={setShowTypeDialog} 
-          />
+          <ScheduleDialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog} />
+          <ScheduleTypeDialog open={showTypeDialog} onOpenChange={setShowTypeDialog} />
         </TabsContent>
 
         <TabsContent value="glpi-tickets">
           <GLPIScheduledTicketsView />
         </TabsContent>
       </Tabs>
-    </div>
-  );
+    </div>;
 };
-
 export default Schedule;
