@@ -49,13 +49,13 @@ const WhatsAppTemplatesPanel = () => {
       name: 'Alerta de Backups', 
       icon: HardDrive, 
       color: 'bg-red-600 text-white',
-      variables: ['{{date}}', '{{hours_threshold}}', '{{backup_list}}']
+      variables: ['{{date}}', '{{hours_threshold}}', '{{backup_list}}', '{{total_outdated}}']
     },
     schedule_critical: { 
       name: 'Vencimentos Críticos', 
       icon: Calendar, 
       color: 'bg-orange-600 text-white',
-      variables: ['{{date}}', '{{schedule_items}}', '{{total_items}}']
+      variables: ['{{date}}', '{{schedule_items}}', '{{total_items}}', '{{critical_count}}']
     },
     glpi_summary: { 
       name: 'Resumo GLPI', 
