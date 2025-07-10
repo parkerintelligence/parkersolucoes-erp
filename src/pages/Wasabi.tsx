@@ -15,7 +15,8 @@ import {
   Download,
   Upload,
   Trash2,
-  Eye
+  Eye,
+  FolderPlus
 } from 'lucide-react';
 import { useWasabi } from '@/hooks/useWasabi';
 import { WasabiCreateBucketDialog } from '@/components/WasabiCreateBucketDialog';
@@ -144,14 +145,31 @@ const Wasabi = () => {
               <CheckCircle className="h-5 w-5 text-green-400" />
               <span className="text-sm text-green-400">Conectado</span>
             </div>
-            <Button 
-              onClick={handleRefresh} 
-              disabled={refreshing}
-              className="bg-blue-900 hover:bg-blue-800 text-white"
-            >
-              <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-              Atualizar
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={handleRefresh} 
+                disabled={refreshing}
+                className="bg-blue-800 hover:bg-blue-700 text-white"
+              >
+                <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
+              <Button
+                onClick={() => setCreateBucketDialogOpen(true)}
+                className="bg-blue-800 hover:bg-blue-700 text-white"
+              >
+                <FolderPlus className="mr-2 h-4 w-4" />
+                Criar Bucket
+              </Button>
+              <Button
+                onClick={() => setUploadDialogOpen(true)}
+                disabled={!selectedBucket}
+                className="bg-blue-800 hover:bg-blue-700 text-white disabled:opacity-50"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Upload
+              </Button>
+            </div>
           </div>
         </div>
 
