@@ -15,8 +15,7 @@ import {
   Download,
   Upload,
   Trash2,
-  Eye,
-  Plus
+  Eye
 } from 'lucide-react';
 import { useWasabi } from '@/hooks/useWasabi';
 import { WasabiCreateBucketDialog } from '@/components/WasabiCreateBucketDialog';
@@ -36,7 +35,8 @@ const Wasabi = () => {
     downloadObject,
     deleteObject,
     listObjects,
-    listBuckets
+    listBuckets,
+    handleBucketChange
   } = useWasabi();
   
   const [refreshing, setRefreshing] = useState(false);
@@ -68,12 +68,10 @@ const Wasabi = () => {
     }
   };
 
-  const handleBucketChange = (bucketName: string) => {
+  const onBucketChange = (bucketName: string) => {
     console.log('Bucket selecionado:', bucketName);
     setSelectedBucket(bucketName);
-    if (bucketName) {
-      listObjects(bucketName);
-    }
+    handleBucketChange(bucketName);
   };
 
   const handleCreateBucket = (bucketName: string) => {
@@ -148,8 +146,7 @@ const Wasabi = () => {
             <Button 
               onClick={handleRefresh} 
               disabled={refreshing}
-              variant="outline"
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              className="bg-blue-900 hover:bg-blue-800 text-white"
             >
               <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               Atualizar
@@ -174,29 +171,9 @@ const Wasabi = () => {
                   <WasabiBucketSelector
                     buckets={buckets || []}
                     selectedBucket={selectedBucket}
-                    onBucketChange={handleBucketChange}
+                    onBucketChange={onBucketChange}
                     isLoading={isLoadingBuckets}
                   />
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => setCreateBucketDialogOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Novo Bucket
-                  </Button>
-                  
-                  {selectedBucket && (
-                    <Button
-                      onClick={() => setUploadDialogOpen(true)}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload
-                    </Button>
-                  )}
                 </div>
               </div>
 
