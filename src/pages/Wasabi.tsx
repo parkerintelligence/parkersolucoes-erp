@@ -35,8 +35,7 @@ const Wasabi = () => {
     downloadObject,
     deleteObject,
     listObjects,
-    listBuckets,
-    handleBucketChange
+    listBuckets
   } = useWasabi();
   
   const [refreshing, setRefreshing] = useState(false);
@@ -71,7 +70,9 @@ const Wasabi = () => {
   const onBucketChange = (bucketName: string) => {
     console.log('Bucket selecionado:', bucketName);
     setSelectedBucket(bucketName);
-    handleBucketChange(bucketName);
+    if (bucketName) {
+      listObjects(bucketName);
+    }
   };
 
   const handleCreateBucket = (bucketName: string) => {
