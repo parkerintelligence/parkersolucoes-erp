@@ -1,11 +1,9 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Upload } from 'lucide-react';
-
 interface WasabiUploadDialogProps {
   selectedBucket: string;
   onUpload: (files: FileList, bucketName: string) => void;
@@ -15,15 +13,14 @@ interface WasabiUploadDialogProps {
   bucketName?: string;
   folder?: string;
 }
-
-export const WasabiUploadDialog = ({ 
-  selectedBucket, 
-  onUpload, 
-  isUploading = false, 
-  open, 
+export const WasabiUploadDialog = ({
+  selectedBucket,
+  onUpload,
+  isUploading = false,
+  open,
   onOpenChange,
   bucketName,
-  folder = '' 
+  folder = ''
 }: WasabiUploadDialogProps) => {
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [internalOpen, setInternalOpen] = useState(false);
@@ -34,7 +31,6 @@ export const WasabiUploadDialog = ({
 
   // Use bucketName prop if provided, otherwise fall back to selectedBucket
   const targetBucket = bucketName || selectedBucket;
-
   const handleUpload = () => {
     if (selectedFiles && selectedFiles.length > 0 && targetBucket) {
       onUpload(selectedFiles, targetBucket);
@@ -42,19 +38,9 @@ export const WasabiUploadDialog = ({
       setIsOpen(false);
     }
   };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+  return <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={!targetBucket}
-          className="flex items-center gap-2"
-        >
-          <Upload className="h-4 w-4" />
-          Upload
-        </Button>
+        
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
@@ -66,27 +52,17 @@ export const WasabiUploadDialog = ({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="files">Selecionar Arquivos</Label>
-            <Input
-              id="files"
-              type="file"
-              multiple
-              onChange={(e) => setSelectedFiles(e.target.files)}
-              className="cursor-pointer"
-            />
+            <Input id="files" type="file" multiple onChange={e => setSelectedFiles(e.target.files)} className="cursor-pointer" />
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
-            <Button 
-              onClick={handleUpload}
-              disabled={!selectedFiles || selectedFiles.length === 0 || isUploading}
-            >
+            <Button onClick={handleUpload} disabled={!selectedFiles || selectedFiles.length === 0 || isUploading}>
               {isUploading ? 'Enviando...' : 'Upload'}
             </Button>
           </div>
         </div>
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>;
 };

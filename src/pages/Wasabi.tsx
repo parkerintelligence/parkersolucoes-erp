@@ -1,35 +1,20 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Cloud, 
-  RefreshCcw, 
-  AlertTriangle, 
-  CheckCircle, 
-  Settings,
-  FileText,
-  Folder,
-  Download,
-  Upload,
-  Trash2,
-  Eye,
-  FolderPlus
-} from 'lucide-react';
+import { Cloud, RefreshCcw, AlertTriangle, CheckCircle, Settings, FileText, Folder, Download, Upload, Trash2, Eye, FolderPlus } from 'lucide-react';
 import { useWasabi } from '@/hooks/useWasabi';
 import { WasabiCreateBucketDialog } from '@/components/WasabiCreateBucketDialog';
 import { WasabiUploadDialog } from '@/components/WasabiUploadDialog';
 import { WasabiBucketSelector } from '@/components/WasabiBucketSelector';
 import { toast } from '@/hooks/use-toast';
-
 const Wasabi = () => {
-  const { 
-    wasabiIntegration, 
-    buckets, 
-    objects, 
-    isLoading, 
+  const {
+    wasabiIntegration,
+    buckets,
+    objects,
+    isLoading,
     isLoadingBuckets,
     createBucket,
     uploadFile,
@@ -38,14 +23,11 @@ const Wasabi = () => {
     listObjects,
     listBuckets
   } = useWasabi();
-  
   const [refreshing, setRefreshing] = useState(false);
   const [selectedBucket, setSelectedBucket] = useState<string>('');
   const [createBucketDialogOpen, setCreateBucketDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-
   const isConfigured = !!wasabiIntegration;
-
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
@@ -55,19 +37,18 @@ const Wasabi = () => {
       }
       toast({
         title: "Dados atualizados",
-        description: "Informações do Wasabi foram atualizadas com sucesso.",
+        description: "Informações do Wasabi foram atualizadas com sucesso."
       });
     } catch (error) {
       toast({
         title: "Erro ao atualizar",
         description: "Não foi possível atualizar os dados do Wasabi.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setRefreshing(false);
     }
   };
-
   const onBucketChange = (bucketName: string) => {
     console.log('Bucket selecionado:', bucketName);
     setSelectedBucket(bucketName);
@@ -75,7 +56,6 @@ const Wasabi = () => {
       listObjects(bucketName);
     }
   };
-
   const handleCreateBucket = (bucketName: string) => {
     createBucket.mutate(bucketName, {
       onSuccess: () => {
@@ -84,27 +64,22 @@ const Wasabi = () => {
       }
     });
   };
-
   const handleUpload = (files: FileList, bucketName: string) => {
     uploadFile(files, bucketName);
     setUploadDialogOpen(false);
   };
-
   const handleDownload = (fileName: string) => {
     if (selectedBucket) {
       downloadObject(selectedBucket, fileName);
     }
   };
-
   const handleDelete = (fileName: string) => {
     if (selectedBucket) {
       deleteObject(selectedBucket, fileName);
     }
   };
-
   if (!isConfigured) {
-    return (
-      <div className="min-h-screen bg-gray-900 text-white p-6">
+    return <div className="min-h-screen bg-gray-900 text-white p-6">
         <Card className="border-yellow-600 bg-yellow-900/20">
           <CardContent className="p-6 text-center">
             <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-400" />
@@ -112,27 +87,19 @@ const Wasabi = () => {
             <p className="text-yellow-300 mb-4">
               Para usar o armazenamento Wasabi, configure a integração no painel de administração.
             </p>
-            <Button 
-              onClick={() => window.location.href = '/admin'} 
-              className="bg-blue-800 hover:bg-blue-700 text-white border border-yellow-600"
-            >
+            <Button onClick={() => window.location.href = '/admin'} className="bg-blue-800 hover:bg-blue-700 text-white border border-yellow-600">
               <Settings className="mr-2 h-4 w-4" />
               Configurar Wasabi
             </Button>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-gray-900 text-white">
+  return <div className="min-h-screen bg-gray-900 text-white">
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <Cloud className="h-6 w-6 text-white" />
-            </div>
+            
             <div>
               <h1 className="text-2xl font-bold text-white">Wasabi Cloud Storage</h1>
               <p className="text-gray-400">
@@ -146,26 +113,15 @@ const Wasabi = () => {
               <span className="text-sm text-green-400">Conectado</span>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                onClick={handleRefresh} 
-                disabled={refreshing}
-                className="bg-blue-800 hover:bg-blue-700 text-white"
-              >
+              <Button onClick={handleRefresh} disabled={refreshing} className="bg-blue-800 hover:bg-blue-700 text-white">
                 <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
                 Atualizar
               </Button>
-              <Button
-                onClick={() => setCreateBucketDialogOpen(true)}
-                className="bg-blue-800 hover:bg-blue-700 text-white"
-              >
+              <Button onClick={() => setCreateBucketDialogOpen(true)} className="bg-blue-800 hover:bg-blue-700 text-white">
                 <FolderPlus className="mr-2 h-4 w-4" />
                 Criar Bucket
               </Button>
-              <Button
-                onClick={() => setUploadDialogOpen(true)}
-                disabled={!selectedBucket}
-                className="bg-blue-800 hover:bg-blue-700 text-white disabled:opacity-50"
-              >
+              <Button onClick={() => setUploadDialogOpen(true)} disabled={!selectedBucket} className="bg-blue-800 hover:bg-blue-700 text-white disabled:opacity-50">
                 <Upload className="mr-2 h-4 w-4" />
                 Upload
               </Button>
@@ -187,12 +143,7 @@ const Wasabi = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <WasabiBucketSelector
-                    buckets={buckets || []}
-                    selectedBucket={selectedBucket}
-                    onBucketChange={onBucketChange}
-                    isLoading={isLoadingBuckets}
-                  />
+                  <WasabiBucketSelector buckets={buckets || []} selectedBucket={selectedBucket} onBucketChange={onBucketChange} isLoading={isLoadingBuckets} />
                 </div>
               </div>
 
@@ -203,32 +154,19 @@ const Wasabi = () => {
                     {selectedBucket ? `Arquivos em: ${selectedBucket}` : 'Selecione um bucket'}
                   </CardTitle>
                   <CardDescription className="text-gray-400">
-                    {selectedBucket 
-                      ? 'Gerencie os arquivos no bucket selecionado'
-                      : 'Escolha um bucket para visualizar os arquivos'
-                    }
+                    {selectedBucket ? 'Gerencie os arquivos no bucket selecionado' : 'Escolha um bucket para visualizar os arquivos'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {!selectedBucket ? (
-                    <div className="text-center py-8 text-gray-400">
+                  {!selectedBucket ? <div className="text-center py-8 text-gray-400">
                       <Cloud className="h-12 w-12 mx-auto mb-4 text-gray-500" />
                       <p className="text-lg font-medium mb-2">Nenhum bucket selecionado</p>
                       <p>Selecione um bucket no menu acima para visualizar os arquivos.</p>
-                    </div>
-                  ) : isLoading ? (
-                    <div className="text-center py-8 text-gray-400">
+                    </div> : isLoading ? <div className="text-center py-8 text-gray-400">
                       <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4" />
                       <p>Carregando arquivos...</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {objects && objects.length > 0 ? (
-                        objects.map((object: any, index: number) => (
-                          <div
-                            key={object.id || `file-${index}`}
-                            className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg border border-gray-600"
-                          >
+                    </div> : <div className="space-y-2">
+                      {objects && objects.length > 0 ? objects.map((object: any, index: number) => <div key={object.id || `file-${index}`} className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg border border-gray-600">
                             <div className="flex items-center gap-3">
                               <FileText className="h-5 w-5 text-blue-400" />
                               <div>
@@ -236,16 +174,8 @@ const Wasabi = () => {
                                   {object.name || object.Key || `arquivo-${index + 1}`}
                                 </p>
                                 <p className="text-gray-400 text-sm">
-                                  {object.size || object.Size 
-                                    ? `${typeof (object.size || object.Size) === 'number' 
-                                        ? ((object.size || object.Size) / 1024).toFixed(2) 
-                                        : object.size || object.Size} ${typeof (object.size || object.Size) === 'number' ? 'KB' : ''}` 
-                                    : 'Tamanho desconhecido'
-                                  } • 
-                                  {object.lastModified || object.LastModified 
-                                    ? new Date(object.lastModified || object.LastModified).toLocaleDateString('pt-BR')
-                                    : 'Data desconhecida'
-                                  }
+                                  {object.size || object.Size ? `${typeof (object.size || object.Size) === 'number' ? ((object.size || object.Size) / 1024).toFixed(2) : object.size || object.Size} ${typeof (object.size || object.Size) === 'number' ? 'KB' : ''}` : 'Tamanho desconhecido'} • 
+                                  {object.lastModified || object.LastModified ? new Date(object.lastModified || object.LastModified).toLocaleDateString('pt-BR') : 'Data desconhecida'}
                                 </p>
                               </div>
                             </div>
@@ -253,34 +183,19 @@ const Wasabi = () => {
                               <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                                onClick={() => handleDownload(object.name || object.Key)}
-                              >
+                              <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700" onClick={() => handleDownload(object.name || object.Key)}>
                                 <Download className="h-4 w-4" />
                               </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="border-gray-600 text-red-400 hover:bg-red-900/20"
-                                onClick={() => handleDelete(object.name || object.Key)}
-                              >
+                              <Button size="sm" variant="outline" className="border-gray-600 text-red-400 hover:bg-red-900/20" onClick={() => handleDelete(object.name || object.Key)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-8 text-gray-400">
+                          </div>) : <div className="text-center py-8 text-gray-400">
                           <FileText className="h-12 w-12 mx-auto mb-4 text-gray-500" />
                           <p className="text-lg font-medium mb-2">Bucket vazio</p>
                           <p>Este bucket não contém nenhum arquivo.</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        </div>}
+                    </div>}
                 </CardContent>
               </Card>
             </div>
@@ -329,23 +244,10 @@ const Wasabi = () => {
         </Tabs>
 
         {/* Dialogs */}
-        <WasabiCreateBucketDialog
-          open={createBucketDialogOpen}
-          onOpenChange={setCreateBucketDialogOpen}
-          onCreateBucket={handleCreateBucket}
-          isCreating={createBucket.isPending}
-        />
+        <WasabiCreateBucketDialog open={createBucketDialogOpen} onOpenChange={setCreateBucketDialogOpen} onCreateBucket={handleCreateBucket} isCreating={createBucket.isPending} />
 
-        <WasabiUploadDialog
-          open={uploadDialogOpen}
-          onOpenChange={setUploadDialogOpen}
-          selectedBucket={selectedBucket}
-          onUpload={handleUpload}
-          isUploading={false}
-        />
+        <WasabiUploadDialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen} selectedBucket={selectedBucket} onUpload={handleUpload} isUploading={false} />
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Wasabi;
