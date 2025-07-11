@@ -27,7 +27,16 @@ export const useBaculaJobsData = (jobsData: any, searchTerm: string, statusFilte
   const filteredJobs = React.useMemo(() => {
     let filtered = allJobs;
 
+    console.log('=== DEBUG BACULA FILTERS ===');
     console.log('Total jobs before filtering:', filtered.length);
+    console.log('Current filters:', { searchTerm, statusFilter, dateFilter });
+    console.log('Sample jobs:', filtered.slice(0, 3).map(job => ({
+      jobid: job.jobid,
+      name: job.name,
+      jobstatus: job.jobstatus,
+      starttime: job.starttime,
+      level: job.level
+    })));
 
     // Filtro por data
     const now = new Date();
@@ -62,10 +71,14 @@ export const useBaculaJobsData = (jobsData: any, searchTerm: string, statusFilte
       console.log(`Jobs after search filter (${searchTerm}):`, filtered.length);
     }
 
-    // Filtro por status
+    // Filtro por status - REMOVIDO TEMPORARIAMENTE PARA DEBUG
+    console.log('Status filter value:', statusFilter);
+    console.log('Unique job statuses found:', [...new Set(filtered.map(job => job.jobstatus))]);
+    
     if (statusFilter !== 'all') {
+      const beforeStatusFilter = filtered.length;
       filtered = filtered.filter(job => job.jobstatus === statusFilter);
-      console.log(`Jobs after status filter (${statusFilter}):`, filtered.length);
+      console.log(`Jobs after status filter (${statusFilter}): ${filtered.length} (was ${beforeStatusFilter})`);
     }
     
     // Ordenar por data mais recente primeiro
@@ -74,6 +87,13 @@ export const useBaculaJobsData = (jobsData: any, searchTerm: string, statusFilte
       const dateB = new Date(b.starttime || b.schedtime || 0);
       return dateB.getTime() - dateA.getTime();
     });
+
+    console.log('Final filtered jobs count:', filtered.length);
+    console.log('Status distribution:', filtered.reduce((acc: any, job: any) => {
+      acc[job.jobstatus] = (acc[job.jobstatus] || 0) + 1;
+      return acc;
+    }, {}));
+    console.log('=== END DEBUG ===');
     
     return filtered;
   }, [allJobs, searchTerm, statusFilter, dateFilter]);
