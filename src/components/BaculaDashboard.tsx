@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { RefreshCw } from 'lucide-react';
-import { useBaculaJobsByPeriod } from '@/hooks/useBaculaAPI';
+import { useBaculaJobsRecent } from '@/hooks/useBaculaAPI';
 import { useBaculaJobsData, formatBytes, formatDateTime, getJobStatusBadge } from '@/hooks/useBaculaJobsData';
 import { BaculaFilters } from '@/components/bacula/BaculaFilters';
 import { BaculaStatusCards } from '@/components/bacula/BaculaStatusCards';
@@ -13,13 +13,10 @@ export const BaculaDashboard = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('30days');
 
-  // Determinar quantos dias buscar baseado no filtro
-  const daysToFetch = dateFilter === '7days' ? 7 : dateFilter === '30days' ? 30 : undefined;
-  
   const {
     data: jobsData,
     isLoading: jobsLoading
-  } = useBaculaJobsByPeriod(daysToFetch);
+  } = useBaculaJobsRecent();
 
 
   // Usar o hook customizado para processar dados dos jobs
