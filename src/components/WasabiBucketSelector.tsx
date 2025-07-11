@@ -34,24 +34,22 @@ export const WasabiBucketSelector = ({
           id="bucket-selector"
           className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
         >
-          <SelectValue placeholder="Escolha um bucket para visualizar arquivos..." />
+          <SelectValue placeholder={
+            buckets.length === 0 
+              ? "Nenhum bucket disponível" 
+              : "Escolha um bucket para visualizar arquivos..."
+          } />
         </SelectTrigger>
         <SelectContent className="bg-gray-800 border-gray-700">
-          {buckets.length === 0 ? (
-            <SelectItem value="" disabled className="text-gray-400">
-              Nenhum bucket disponível
+          {buckets.map((bucket) => (
+            <SelectItem 
+              key={bucket.name} 
+              value={bucket.name}
+              className="text-white hover:bg-gray-700"
+            >
+              {bucket.name}
             </SelectItem>
-          ) : (
-            buckets.map((bucket) => (
-              <SelectItem 
-                key={bucket.name} 
-                value={bucket.name}
-                className="text-white hover:bg-gray-700"
-              >
-                {bucket.name}
-              </SelectItem>
-            ))
-          )}
+          ))}
         </SelectContent>
       </Select>
     </div>
