@@ -61,7 +61,7 @@ const GLPI = () => {
             <div className="bg-orange-600 p-2 rounded-lg">
               <ExternalLink className="h-6 w-6 text-white" />
             </div>
-            <div className="bg-slate-900">
+            <div className="bg-slate-950">
               <h1 className="text-2xl font-bold text-white">Central de Chamados GLPI</h1>
               <p className="text-gray-400">
                 Gerencie chamados, inventário e agendamentos do GLPI
