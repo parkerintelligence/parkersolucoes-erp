@@ -1,9 +1,7 @@
-
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, AlertCircle, XCircle, Clock, RefreshCw } from 'lucide-react';
-
 interface BaculaStatusTabsProps {
   jobs: any[];
   children: React.ReactNode;
@@ -12,27 +10,26 @@ interface BaculaStatusTabsProps {
   statusFilter: string;
   clientFilter: string;
 }
-
-export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({ 
-  jobs, 
-  children, 
-  startDate, 
-  endDate, 
-  statusFilter, 
-  clientFilter 
+export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
+  jobs,
+  children,
+  startDate,
+  endDate,
+  statusFilter,
+  clientFilter
 }) => {
   // Aplicar filtros aos jobs baseado nas datas e filtros ativos
   const applyFilters = (jobsList: any[]) => {
     return jobsList.filter((job: any) => {
       let passesFilter = true;
-      
+
       // Filtro por data inicial
       if (startDate) {
         const jobDate = new Date(job.starttime || job.schedtime || job.realendtime);
         const filterStartDate = new Date(startDate);
         passesFilter = passesFilter && jobDate >= filterStartDate;
       }
-      
+
       // Filtro por data final
       if (endDate) {
         const jobDate = new Date(job.starttime || job.schedtime || job.realendtime);
@@ -40,27 +37,23 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
         filterEndDate.setHours(23, 59, 59, 999); // Incluir todo o dia final
         passesFilter = passesFilter && jobDate <= filterEndDate;
       }
-      
+
       // Filtro por cliente
       if (clientFilter) {
         const client = (job.client || job.clientname || job.clientid || '').toLowerCase();
         passesFilter = passesFilter && client.includes(clientFilter.toLowerCase());
       }
-      
       return passesFilter;
     });
   };
-
   const getJobsByStatus = (status: string) => {
     const filteredJobs = applyFilters(jobs);
     if (status === 'all') return filteredJobs;
     return filteredJobs.filter((job: any) => job.jobstatus === status);
   };
-
   const getStatusCount = (status: string) => {
     return getJobsByStatus(status).length;
   };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'success':
@@ -75,11 +68,9 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
         return <Clock className="h-4 w-4 text-gray-400" />;
     }
   };
-
-  return (
-    <Tabs defaultValue="all" className="w-full">
-      <TabsList className="grid w-full grid-cols-6 bg-slate-800 border-slate-700">
-        <TabsTrigger value="all" className="text-slate-300 data-[state=active]:bg-slate-700">
+  return <Tabs defaultValue="all" className="w-full">
+      <TabsList className="grid w-full grid-cols-6 border-slate-700 bg-blue-950">
+        <TabsTrigger value="all" className="data-[state=active]:bg-slate-700 text-slate-50">
           Todos
           <Badge className="ml-2 bg-slate-600 text-white">
             {getJobsByStatus('all').length}
@@ -123,59 +114,58 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
       </TabsList>
       
       <TabsContent value="all" className="mt-6">
-        {React.cloneElement(children as React.ReactElement, { 
-          filteredJobs: getJobsByStatus('all'),
-          startDate,
-          endDate,
-          statusFilter,
-          clientFilter
-        })}
+        {React.cloneElement(children as React.ReactElement, {
+        filteredJobs: getJobsByStatus('all'),
+        startDate,
+        endDate,
+        statusFilter,
+        clientFilter
+      })}
       </TabsContent>
       <TabsContent value="T" className="mt-6">
-        {React.cloneElement(children as React.ReactElement, { 
-          filteredJobs: getJobsByStatus('T').concat(getJobsByStatus('W')),
-          startDate,
-          endDate,
-          statusFilter,
-          clientFilter
-        })}
+        {React.cloneElement(children as React.ReactElement, {
+        filteredJobs: getJobsByStatus('T').concat(getJobsByStatus('W')),
+        startDate,
+        endDate,
+        statusFilter,
+        clientFilter
+      })}
       </TabsContent>
       <TabsContent value="E" className="mt-6">
-        {React.cloneElement(children as React.ReactElement, { 
-          filteredJobs: getJobsByStatus('E').concat(getJobsByStatus('f')),
-          startDate,
-          endDate,
-          statusFilter,
-          clientFilter
-        })}
+        {React.cloneElement(children as React.ReactElement, {
+        filteredJobs: getJobsByStatus('E').concat(getJobsByStatus('f')),
+        startDate,
+        endDate,
+        statusFilter,
+        clientFilter
+      })}
       </TabsContent>
       <TabsContent value="R" className="mt-6">
-        {React.cloneElement(children as React.ReactElement, { 
-          filteredJobs: getJobsByStatus('R'),
-          startDate,
-          endDate,
-          statusFilter,
-          clientFilter
-        })}
+        {React.cloneElement(children as React.ReactElement, {
+        filteredJobs: getJobsByStatus('R'),
+        startDate,
+        endDate,
+        statusFilter,
+        clientFilter
+      })}
       </TabsContent>
       <TabsContent value="W" className="mt-6">
-        {React.cloneElement(children as React.ReactElement, { 
-          filteredJobs: getJobsByStatus('W'),
-          startDate,
-          endDate,
-          statusFilter,
-          clientFilter
-        })}
+        {React.cloneElement(children as React.ReactElement, {
+        filteredJobs: getJobsByStatus('W'),
+        startDate,
+        endDate,
+        statusFilter,
+        clientFilter
+      })}
       </TabsContent>
       <TabsContent value="pending" className="mt-6">
-        {React.cloneElement(children as React.ReactElement, { 
-          filteredJobs: getJobsByStatus('C').concat(getJobsByStatus('c')),
-          startDate,
-          endDate,
-          statusFilter,
-          clientFilter
-        })}
+        {React.cloneElement(children as React.ReactElement, {
+        filteredJobs: getJobsByStatus('C').concat(getJobsByStatus('c')),
+        startDate,
+        endDate,
+        statusFilter,
+        clientFilter
+      })}
       </TabsContent>
-    </Tabs>
-  );
+    </Tabs>;
 };

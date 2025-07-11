@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Database, Settings, AlertCircle } from 'lucide-react';
@@ -11,11 +10,15 @@ import { BaculaJobsGrid } from '@/components/BaculaJobsGrid';
 import { BaculaDashboard } from '@/components/BaculaDashboard';
 import { useBaculaJobsRecent } from '@/hooks/useBaculaAPI';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
 const Bacula = () => {
-  const { baculaIntegration, isEnabled } = useBaculaAPI();
-  const { data: jobsData } = useBaculaJobsRecent();
-  
+  const {
+    baculaIntegration,
+    isEnabled
+  } = useBaculaAPI();
+  const {
+    data: jobsData
+  } = useBaculaJobsRecent();
+
   // Estados para filtros - data padrão é ontem
   const [startDate, setStartDate] = useState(() => {
     const yesterday = new Date();
@@ -33,7 +36,6 @@ const Bacula = () => {
   // Extrair jobs da resposta
   const extractJobs = (data: any) => {
     if (!data) return [];
-    
     if (data.output && Array.isArray(data.output)) {
       return data.output;
     }
@@ -46,12 +48,9 @@ const Bacula = () => {
     if (Array.isArray(data)) {
       return data;
     }
-    
     return [];
   };
-
   const jobs = extractJobs(jobsData);
-
   const handleResetFilters = () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -61,10 +60,8 @@ const Bacula = () => {
     setStatusFilter('all');
     setClientFilter('');
   };
-
   if (!baculaIntegration) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-white p-6">
+    return <div className="min-h-screen bg-slate-900 text-white p-6">
         <div className="space-y-6">
           <div className="flex items-center gap-2 mb-6">
             <Database className="h-6 w-6 text-blue-400" />
@@ -95,12 +92,9 @@ const Bacula = () => {
             </CardContent>
           </Card>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-slate-900 text-white">
+  return <div className="min-h-screen bg-slate-900 text-white">
       <div className="space-y-6 p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -117,10 +111,10 @@ const Bacula = () => {
 
         <Tabs defaultValue="dashboard" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-slate-800 border-slate-700">
-            <TabsTrigger value="dashboard" className="text-slate-300 data-[state=active]:bg-slate-700">
+            <TabsTrigger value="dashboard" className="text-slate-300 bg-blue-800 hover:bg-blue-700">
               Dashboard
             </TabsTrigger>
-            <TabsTrigger value="jobs" className="text-slate-300 data-[state=active]:bg-slate-700">
+            <TabsTrigger value="jobs" className="text-slate-300 bg-blue-800 hover:bg-blue-700">
               Jobs
             </TabsTrigger>
           </TabsList>
@@ -134,32 +128,14 @@ const Bacula = () => {
 
             <BaculaAdvancedStats jobs={jobs} />
 
-            <BaculaFilters
-              startDate={startDate}
-              endDate={endDate}
-              statusFilter={statusFilter}
-              clientFilter={clientFilter}
-              onStartDateChange={setStartDate}
-              onEndDateChange={setEndDate}
-              onStatusFilterChange={setStatusFilter}
-              onClientFilterChange={setClientFilter}
-              onReset={handleResetFilters}
-            />
+            <BaculaFilters startDate={startDate} endDate={endDate} statusFilter={statusFilter} clientFilter={clientFilter} onStartDateChange={setStartDate} onEndDateChange={setEndDate} onStatusFilterChange={setStatusFilter} onClientFilterChange={setClientFilter} onReset={handleResetFilters} />
 
-            <BaculaStatusTabs 
-              jobs={jobs}
-              startDate={startDate}
-              endDate={endDate}
-              statusFilter={statusFilter}
-              clientFilter={clientFilter}
-            >
+            <BaculaStatusTabs jobs={jobs} startDate={startDate} endDate={endDate} statusFilter={statusFilter} clientFilter={clientFilter}>
               <BaculaJobsGrid />
             </BaculaStatusTabs>
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Bacula;
