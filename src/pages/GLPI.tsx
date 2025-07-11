@@ -58,10 +58,10 @@ const GLPI = () => {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-red-900">
+            <div className="bg-orange-600 p-2 rounded-lg">
               <ExternalLink className="h-6 w-6 text-white" />
             </div>
-            <div>
+            <div className="bg-slate-900">
               <h1 className="text-2xl font-bold text-white">Central de Chamados GLPI</h1>
               <p className="text-gray-400">
                 Gerencie chamados, inventário e agendamentos do GLPI
@@ -78,7 +78,7 @@ const GLPI = () => {
 
         <Tabs defaultValue="tickets" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
-            <TabsTrigger value="tickets" className="data-[state=active]:text-white bg-red-950 hover:bg-red-800">
+            <TabsTrigger value="tickets" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white">
               Chamados
             </TabsTrigger>
             <TabsTrigger value="inventory" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white">
