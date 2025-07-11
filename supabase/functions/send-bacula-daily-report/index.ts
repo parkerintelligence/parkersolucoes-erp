@@ -1,220 +1,283 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
-    console.log('Starting daily Bacula error report...')
+    const { test, phone_number, report_id } = await req.json().catch(() => ({}));
 
-    // Get yesterday's date range
-    const now = new Date()
-    const yesterday = new Date(now)
-    yesterday.setDate(yesterday.getDate() - 1)
-    yesterday.setHours(0, 0, 0, 0)
-    
-    const yesterdayEnd = new Date(yesterday)
-    yesterdayEnd.setHours(23, 59, 59, 999)
+    console.log('🔄 Iniciando processamento do relatório diário do Bacula');
 
-    console.log(`Checking for errors between ${yesterday.toISOString()} and ${yesterdayEnd.toISOString()}`)
+    // Buscar template do WhatsApp para relatórios Bacula
+    const { data: template, error: templateError } = await supabase
+      .from('whatsapp_message_templates')
+      .select('*')
+      .eq('name', 'Relatório Diário de Erros Bacula')
+      .eq('is_active', true)
+      .single();
 
-    // Get all users with active Evolution API integrations
-    const { data: evolutionIntegrations, error: evolutionError } = await supabase
+    if (templateError) {
+      console.error('❌ Erro ao buscar template:', templateError);
+      throw new Error('Template de WhatsApp não encontrado');
+    }
+
+    // Se for teste, usar número específico
+    let targetPhones = [];
+    if (test && phone_number) {
+      targetPhones = [phone_number];
+    } else if (report_id) {
+      // Buscar configuração específica do relatório
+      const { data: reportConfig, error: reportError } = await supabase
+        .from('scheduled_reports')
+        .select('phone_number, user_id')
+        .eq('id', report_id)
+        .eq('is_active', true)
+        .single();
+
+      if (reportError || !reportConfig) {
+        throw new Error('Configuração do relatório não encontrada');
+      }
+
+      targetPhones = [reportConfig.phone_number];
+    } else {
+      // Buscar usuários ativos para envio automático
+      const { data: users, error: usersError } = await supabase
+        .from('scheduled_reports')
+        .select('phone_number, user_id')
+        .eq('report_type', template.id)
+        .eq('is_active', true);
+
+      if (usersError) {
+        console.error('❌ Erro ao buscar usuários:', usersError);
+        throw new Error('Erro ao buscar usuários');
+      }
+
+      targetPhones = users?.map(u => u.phone_number) || [];
+    }
+
+    if (targetPhones.length === 0) {
+      console.log('⚠️ Nenhum destinatário encontrado');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'Nenhum destinatário configurado' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Buscar integração ativa do Evolution API
+    const { data: evolutionIntegration, error: evolutionError } = await supabase
       .from('integrations')
       .select('*')
       .eq('type', 'evolution_api')
       .eq('is_active', true)
+      .single();
 
-    if (evolutionError) {
-      console.error('Error fetching Evolution API integrations:', evolutionError)
-      return new Response(JSON.stringify({ error: 'Failed to fetch integrations' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+    if (evolutionError || !evolutionIntegration) {
+      console.error('❌ Integração Evolution API não encontrada:', evolutionError);
+      throw new Error('Integração Evolution API não configurada');
     }
 
-    console.log(`Found ${evolutionIntegrations?.length || 0} active Evolution API integrations`)
+    // Buscar integração ativa do Bacula
+    const { data: baculaIntegration, error: baculaError } = await supabase
+      .from('integrations')
+      .select('*')
+      .eq('type', 'bacula')
+      .eq('is_active', true)
+      .single();
 
-    // Process each user
-    for (const integration of evolutionIntegrations || []) {
-      try {
-        console.log(`Processing user ${integration.user_id}...`)
+    if (baculaError || !baculaIntegration) {
+      console.error('❌ Integração Bacula não encontrada:', baculaError);
+      throw new Error('Integração Bacula não configurada');
+    }
 
-        // Get user's Bacula integration
-        const { data: baculaIntegrations, error: baculaError } = await supabase
-          .from('integrations')
-          .select('*')
-          .eq('type', 'bacula')
-          .eq('user_id', integration.user_id)
-          .eq('is_active', true)
-          .limit(1)
+    // Buscar jobs com erro do dia anterior
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-        if (baculaError || !baculaIntegrations || baculaIntegrations.length === 0) {
-          console.log(`No active Bacula integration for user ${integration.user_id}`)
-          continue
+    console.log(`📅 Buscando jobs com erro do dia: ${yesterdayStr}`);
+
+    try {
+      // Fazer requisição para a API do Bacula via proxy
+      const { data: baculaData, error: baculaRequestError } = await supabase.functions.invoke('bacula-proxy', {
+        body: { 
+          endpoint: 'jobs/last24h',
+          integration_id: baculaIntegration.id 
         }
+      });
 
-        const baculaIntegration = baculaIntegrations[0]
+      if (baculaRequestError) {
+        console.error('❌ Erro ao buscar dados do Bacula:', baculaRequestError);
+        throw new Error('Erro ao conectar com Bacula');
+      }
 
-        // Fetch yesterday's failed jobs from Bacula
-        const ageInSeconds = 24 * 60 * 60 // 24 hours
-        const auth = btoa(`${baculaIntegration.username}:${baculaIntegration.password}`)
-        const baseUrl = baculaIntegration.base_url.replace(/\/$/, '')
-        const fullUrl = `${baseUrl}/api/v2/jobs?age=${ageInSeconds}&limit=1000&order_by=jobid&order_direction=desc`
+      // Extrair e filtrar jobs com erro
+      let allJobs = [];
+      if (baculaData?.output && Array.isArray(baculaData.output)) {
+        allJobs = baculaData.output;
+      } else if (baculaData?.result && Array.isArray(baculaData.result)) {
+        allJobs = baculaData.result;
+      } else if (Array.isArray(baculaData)) {
+        allJobs = baculaData;
+      }
 
-        console.log(`Fetching Bacula jobs from: ${fullUrl}`)
+      // Filtrar jobs com erro do dia anterior
+      const failedJobs = allJobs.filter(job => {
+        const jobDate = new Date(job.starttime || job.schedtime || job.endtime);
+        const isYesterday = jobDate.toISOString().split('T')[0] === yesterdayStr;
+        const hasError = job.jobstatus === 'E' || job.jobstatus === 'f';
+        return isYesterday && hasError;
+      });
 
-        const response = await fetch(fullUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          }
-        })
+      console.log(`📊 Encontrados ${failedJobs.length} jobs com erro`);
 
-        if (!response.ok) {
-          console.error(`Bacula API error for user ${integration.user_id}: ${response.status}`)
-          continue
+      // Preparar dados para o template
+      const reportData = {
+        date: yesterdayStr,
+        total_errors: failedJobs.length,
+        has_errors: failedJobs.length > 0,
+        failed_jobs: failedJobs.map(job => ({
+          name: job.name || job.jobname || 'N/A',
+          client: job.client || job.clientname || 'N/A',
+          status_description: job.jobstatus === 'E' ? 'Erro' : 'Falha Fatal',
+          start_time: job.starttime ? new Date(job.starttime).toLocaleString('pt-BR') : 'N/A',
+          job_id: job.jobid || job.id || 'N/A'
+        })),
+        timestamp: new Date().toLocaleString('pt-BR')
+      };
+
+      // Processar template com dados
+      let message = template.body;
+      
+      // Substituir variáveis simples
+      message = message.replace(/\{\{date\}\}/g, reportData.date);
+      message = message.replace(/\{\{total_errors\}\}/g, reportData.total_errors.toString());
+      message = message.replace(/\{\{timestamp\}\}/g, reportData.timestamp);
+
+      // Processar condicionais e loops (simplificado)
+      if (reportData.has_errors) {
+        // Manter seção de erros
+        message = message.replace(/\{\{#if has_errors\}\}([\s\S]*?)\{\{else\}\}[\s\S]*?\{\{\/if\}\}/g, '$1');
+        
+        // Processar lista de jobs
+        const jobsSection = message.match(/\{\{#each failed_jobs\}\}([\s\S]*?)\{\{\/each\}\}/);
+        if (jobsSection) {
+          const jobTemplate = jobsSection[1];
+          const jobsText = reportData.failed_jobs.map(job => {
+            return jobTemplate
+              .replace(/\{\{name\}\}/g, job.name)
+              .replace(/\{\{client\}\}/g, job.client)
+              .replace(/\{\{status_description\}\}/g, job.status_description)
+              .replace(/\{\{start_time\}\}/g, job.start_time)
+              .replace(/\{\{job_id\}\}/g, job.job_id);
+          }).join('\n');
+          
+          message = message.replace(/\{\{#each failed_jobs\}\}[\s\S]*?\{\{\/each\}\}/, jobsText);
         }
+      } else {
+        // Mostrar seção de "sem erros"
+        message = message.replace(/\{\{#if has_errors\}\}[\s\S]*?\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/g, '$1');
+      }
 
-        const baculaData = await response.json()
-        console.log(`Received ${baculaData?.output?.length || 0} jobs from Bacula`)
-
-        // Extract and filter failed jobs
-        const allJobs = baculaData?.output || baculaData?.result || baculaData?.data || []
-        const failedJobs = allJobs.filter((job: any) => {
-          // Check if job failed (status E or f)
-          const isFailed = job.jobstatus === 'E' || job.jobstatus === 'f'
-          
-          // Check if job was from yesterday
-          const jobDate = new Date(job.starttime || job.schedtime)
-          const isYesterday = jobDate >= yesterday && jobDate <= yesterdayEnd
-          
-          return isFailed && isYesterday
-        })
-
-        console.log(`Found ${failedJobs.length} failed jobs for user ${integration.user_id}`)
-
-        // If there are failed jobs, send WhatsApp notification
-        if (failedJobs.length > 0) {
-          const message = generateErrorReport(failedJobs, yesterday)
-          
-          // Send WhatsApp message via Evolution API
-          const evolutionUrl = `${integration.base_url}/message/sendText/${integration.instance_name}`
-          
-          const whatsappPayload = {
-            number: integration.phone_number,
-            text: message
-          }
-
-          console.log(`Sending WhatsApp message to ${integration.phone_number}`)
-
-          const whatsappResponse = await fetch(evolutionUrl, {
+      // Enviar mensagem para cada destinatário
+      const results = [];
+      for (const phoneNumber of targetPhones) {
+        console.log(`📱 Enviando para: ${phoneNumber}`);
+        
+        try {
+          const response = await fetch(`${evolutionIntegration.base_url}/message/sendText/${evolutionIntegration.instance_name}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'apikey': integration.api_token
+              'apikey': evolutionIntegration.api_token || ''
             },
-            body: JSON.stringify(whatsappPayload)
-          })
+            body: JSON.stringify({
+              number: phoneNumber,
+              text: message
+            })
+          });
 
-          if (whatsappResponse.ok) {
-            console.log(`Successfully sent error report to user ${integration.user_id}`)
-          } else {
-            console.error(`Failed to send WhatsApp message for user ${integration.user_id}: ${whatsappResponse.status}`)
+          if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
           }
-        } else {
-          console.log(`No failed jobs found for user ${integration.user_id}, skipping notification`)
+
+          const responseData = await response.json();
+          
+          results.push({
+            phone: phoneNumber,
+            success: true,
+            response: responseData
+          });
+
+          console.log(`✅ Mensagem enviada para ${phoneNumber}`);
+
+        } catch (error) {
+          console.error(`❌ Erro ao enviar para ${phoneNumber}:`, error);
+          results.push({
+            phone: phoneNumber,
+            success: false,
+            error: error.message
+          });
         }
-
-      } catch (userError) {
-        console.error(`Error processing user ${integration.user_id}:`, userError)
-        continue
       }
-    }
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      processed: evolutionIntegrations?.length || 0,
-      timestamp: new Date().toISOString()
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
+      console.log('✅ Processamento concluído');
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Relatório processado com sucesso',
+          results,
+          jobsWithError: failedJobs.length,
+          recipients: targetPhones.length
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
+    } catch (error) {
+      console.error('❌ Erro ao buscar dados do Bacula:', error);
+      
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'Erro ao processar relatório', 
+          error: error.message 
+        }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
 
   } catch (error) {
-    console.error('Error in daily Bacula report:', error)
-    return new Response(JSON.stringify({ 
-      error: 'Internal server error',
-      details: error.message 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
+    console.error('❌ Erro geral:', error);
+    
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        message: 'Erro interno do servidor', 
+        error: error.message 
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
   }
-})
-
-function generateErrorReport(failedJobs: any[], date: Date): string {
-  const dateStr = date.toLocaleDateString('pt-BR', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
-
-  let message = `🚨 *RELATÓRIO DE ERROS DE BACKUP* 🚨\n\n`
-  message += `📅 *Data:* ${dateStr}\n`
-  message += `❌ *Total de erros:* ${failedJobs.length}\n\n`
-  
-  message += `*DETALHES DOS ERROS:*\n`
-  message += `${'='.repeat(40)}\n\n`
-
-  failedJobs.forEach((job, index) => {
-    const jobTime = new Date(job.starttime || job.schedtime).toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-    
-    const statusText = job.jobstatus === 'E' ? 'ERRO' : 'FALHA FATAL'
-    const statusEmoji = job.jobstatus === 'E' ? '⚠️' : '💥'
-    
-    message += `${statusEmoji} *Job ${index + 1}:*\n`
-    message += `▪️ *Nome:* ${job.name || job.jobname || 'N/A'}\n`
-    message += `▪️ *Cliente:* ${job.client || job.clientname || 'N/A'}\n`
-    message += `▪️ *Status:* ${statusText}\n`
-    message += `▪️ *Horário:* ${jobTime}\n`
-    message += `▪️ *Job ID:* #${job.jobid}\n`
-    
-    if (job.joberrors && parseInt(job.joberrors) > 0) {
-      message += `▪️ *Erros:* ${job.joberrors}\n`
-    }
-    
-    message += `\n`
-  })
-
-  message += `${'='.repeat(40)}\n\n`
-  message += `📋 *AÇÕES RECOMENDADAS:*\n`
-  message += `• Verificar logs detalhados no Bacula\n`
-  message += `• Analisar espaço em disco\n`
-  message += `• Verificar conectividade dos clientes\n`
-  message += `• Executar backup manual se necessário\n\n`
-  
-  message += `🤖 *Relatório automático do Sistema Parker*\n`
-  message += `⏰ Enviado em: ${new Date().toLocaleString('pt-BR')}`
-
-  return message
-}
+});

@@ -3,13 +3,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Database, Settings, AlertCircle } from 'lucide-react';
 import { useBaculaAPI, useBaculaJobsAll } from '@/hooks/useBaculaAPI';
 import { useBaculaJobsData } from '@/hooks/useBaculaJobsData';
-import { BaculaReportSettings } from '@/components/BaculaReportSettings';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { BaculaDashboard } from '@/components/BaculaDashboard';
-import { BaculaFilters } from '@/components/bacula/BaculaFilters';
 import { BaculaConfiguredJobsTable } from '@/components/bacula/BaculaConfiguredJobsTable';
-import { formatBytes, formatDateTime, getJobStatusBadge } from '@/hooks/useBaculaJobsData';
+import { BarChart3, Database as DatabaseIcon } from 'lucide-react';
 
 const Bacula = () => {
   const {
@@ -139,15 +137,14 @@ const Bacula = () => {
         </div>
 
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-slate-800 border-slate-700">
-            <TabsTrigger value="dashboard" className="text-slate-300 data-[state=active]:bg-blue-800 data-[state=active]:text-white">
+          <TabsList className="grid w-full grid-cols-2 bg-slate-800 border-slate-700">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2 text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+              <BarChart3 className="h-4 w-4" />
               Dashboard
             </TabsTrigger>
-            <TabsTrigger value="jobs" className="text-slate-300 data-[state=active]:bg-blue-800 data-[state=active]:text-white">
-              Jobs
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="text-slate-300 data-[state=active]:bg-blue-800 data-[state=active]:text-white">
-              Relatórios
+            <TabsTrigger value="jobs" className="flex items-center gap-2 text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+              <DatabaseIcon className="h-4 w-4" />
+              Jobs Cadastrados
             </TabsTrigger>
           </TabsList>
           
@@ -157,10 +154,6 @@ const Bacula = () => {
           
           <TabsContent value="jobs" className="mt-6">
             <BaculaConfiguredJobsTable />
-          </TabsContent>
-
-          <TabsContent value="reports" className="mt-6">
-            <BaculaReportSettings />
           </TabsContent>
         </Tabs>
       </div>
