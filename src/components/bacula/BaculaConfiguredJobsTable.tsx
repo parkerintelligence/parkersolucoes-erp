@@ -133,13 +133,18 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
 
   // Filtrar jobs configurados
   const filteredJobs = configuredJobs.filter(job => {
-    const matchesSearch = !searchTerm || 
-      (job.name || job.jobname || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (job.client || job.clientname || '').toLowerCase().includes(searchTerm.toLowerCase());
+    console.log('Filtering job:', job);
     
+    const jobName = String(job.name || job.jobname || '');
+    const clientName = String(job.client || job.clientname || '');
+    
+    const matchesSearch = !searchTerm || 
+      jobName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      clientName.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const jobType = String(job.type || job.jobtype || '');
     const matchesType = typeFilter === 'all' || 
-      (job.type === typeFilter) ||
-      (job.jobtype === typeFilter);
+      (jobType === typeFilter);
     
     return matchesSearch && matchesType;
   });
@@ -306,11 +311,11 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                          <TableCell className="font-medium text-white py-3">
                            <div className="flex flex-col">
                              <span className="text-sm font-medium">
-                               {job.name || job.jobname || job.Job || job.JobName || 'N/A'}
+                               {String(job.name || job.jobname || job.Job || job.JobName || 'N/A')}
                              </span>
                              {(job.description || job.Description) && (
                                <span className="text-xs text-slate-400 mt-1">
-                                 {job.description || job.Description}
+                                 {String(job.description || job.Description)}
                                </span>
                              )}
                            </div>
@@ -321,7 +326,7 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                             )}
                           </TableCell>
                          <TableCell className="text-slate-300 py-3 text-sm">
-                           {job.client || job.clientname || job.Client || job.ClientName || '-'}
+                           {String(job.client || job.clientname || job.Client || job.ClientName || '-')}
                          </TableCell>
                         <TableCell className="py-3 text-sm">
                           {lastSuccessful ? (
