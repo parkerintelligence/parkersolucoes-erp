@@ -154,15 +154,32 @@ export const BaculaReportSettings = () => {
   };
 
   const handleTestReport = async () => {
+    if (!reportSettings.phone_number) {
+      toast({
+        title: "Erro",
+        description: "Configure um número de WhatsApp antes de testar",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('send-bacula-daily-report');
+      // Primeiro salvar as configurações se necessário
+      if (!existingReport && reportSettings.phone_number) {
+        await handleSave();
+      }
+
+      // Depois executar o teste
+      const { data, error } = await supabase.functions.invoke('send-bacula-daily-report', {
+        body: { test: true, phone_number: reportSettings.phone_number }
+      });
 
       if (error) throw error;
 
       toast({
-        title: "Teste executado",
+        title: "✅ Teste executado",
         description: "Relatório de teste enviado. Verifique seu WhatsApp.",
       });
 

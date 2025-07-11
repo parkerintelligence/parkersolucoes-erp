@@ -95,7 +95,7 @@ serve(async (req) => {
       'jobs/last24h': '/api/v2/jobs?age=86400',
       'jobs/last7days': '/api/v2/jobs?age=604800',
       'jobs/last30days': '/api/v2/jobs?age=2592000',
-      'jobs/configured': '/api/v2/config/dir/job',
+      'jobs/configured': '/api/v2/config/director/job',
       'clients': '/api/v2/clients',
       'clients/configured': '/api/v2/config/dir/client',
       'volumes': '/api/v2/volumes',

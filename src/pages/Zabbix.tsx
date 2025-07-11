@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { useZabbixAPI } from '@/hooks/useZabbixAPI';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
-import { ZabbixWebhookManager } from '@/components/ZabbixWebhookManager';
+import { ZabbixWebhookManagerSimple } from '@/components/ZabbixWebhookManagerSimple';
 import { GLPITicketConfirmDialog } from '@/components/GLPITicketConfirmDialog';
 import ZabbixAnalysisDialog from '@/components/ZabbixAnalysisDialog';
 import { toast } from '@/hooks/use-toast';
@@ -676,7 +676,7 @@ const Zabbix = () => {
           </TabsContent>
 
           <TabsContent value="webhooks" className="mt-6">
-            <ZabbixWebhookManager />
+            <ZabbixWebhookManagerSimple />
           </TabsContent>
         </Tabs>
 
