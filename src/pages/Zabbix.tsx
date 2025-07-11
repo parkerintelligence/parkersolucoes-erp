@@ -26,6 +26,7 @@ import { useZabbixAPI } from '@/hooks/useZabbixAPI';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { ZabbixWebhookManager } from '@/components/ZabbixWebhookManager';
 import { GLPITicketConfirmDialog } from '@/components/GLPITicketConfirmDialog';
+import ZabbixAnalysisDialog from '@/components/ZabbixAnalysisDialog';
 import { toast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -454,7 +455,8 @@ const Zabbix = () => {
                 <span>{filteredProblems.length} problema{filteredProblems.length !== 1 ? 's' : ''} | {hosts.length} host{hosts.length !== 1 ? 's' : ''}</span>
               </div>
 
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center gap-2">
+                <ZabbixAnalysisDialog problems={filteredProblems} hosts={hosts} />
                 <Button 
                   onClick={handleRefreshAll} 
                   disabled={refreshing || hostsLoading || problemsLoading}
