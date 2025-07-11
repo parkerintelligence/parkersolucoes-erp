@@ -65,10 +65,20 @@ const useHostingerVPS = (integrationId?: string) => {
         }
       });
 
-      console.log('📡 Resposta do proxy:', { data, error });
+      console.log('📡 Resposta completa do proxy:', { data, error });
 
       if (error) {
-        console.error('❌ Erro ao buscar VPS:', error);
+        console.error('❌ Erro detalhado:', {
+          message: error.message,
+          details: error,
+          functionError: data
+        });
+        
+        // Se há dados de erro da função, mostra eles também
+        if (data && typeof data === 'object') {
+          console.error('📄 Detalhes do erro da função:', data);
+        }
+        
         throw error;
       }
       
@@ -79,6 +89,7 @@ const useHostingerVPS = (integrationId?: string) => {
     },
     enabled: !!integrationId,
     refetchInterval: 30000, // Atualizar a cada 30 segundos
+    retry: 1, // Tentar apenas 1 vez para evitar spam de erros
   });
 };
 
