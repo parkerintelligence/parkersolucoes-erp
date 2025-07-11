@@ -36,18 +36,18 @@ export const useWasabi = () => {
     retryDelay: 1000,
   });
 
-  // Buscar arquivos de um bucket específico - agora usa o selectedBucket interno
+  // Buscar arquivos de um bucket específico - agora usa o selectedBucket interno e currentPath
   const { data: objects = [], isLoading: isLoadingFiles } = useQuery({
-    queryKey: ['wasabi-files', activeWasabiIntegration?.id, selectedBucket],
+    queryKey: ['wasabi-files', activeWasabiIntegration?.id, selectedBucket, currentPath],
     queryFn: async (): Promise<WasabiFile[]> => {
       if (!activeWasabiIntegration || !selectedBucket) {
         console.log('Integração ou bucket não selecionado');
         return [];
       }
 
-      console.log('Listando arquivos do bucket:', selectedBucket);
+      console.log('Listando arquivos do bucket:', selectedBucket, 'path:', currentPath);
       const wasabiService = new WasabiService(activeWasabiIntegration);
-      return await wasabiService.listFiles(selectedBucket);
+      return await wasabiService.listFiles(selectedBucket, currentPath);
     },
     enabled: !!activeWasabiIntegration && !!selectedBucket,
     retry: 2,
@@ -70,25 +70,29 @@ export const useWasabi = () => {
     queryClient.invalidateQueries({ queryKey: ['wasabi-buckets', activeWasabiIntegration?.id] });
   };
 
-  const listObjects = (bucketName: string) => {
-    console.log('Chamando listObjects para bucket:', bucketName);
+  const listObjects = (bucketName: string, prefix: string = '') => {
+    console.log('Chamando listObjects para bucket:', bucketName, 'prefix:', prefix);
     setSelectedBucket(bucketName);
-    setCurrentPath('');
+    setCurrentPath(prefix);
     // Invalidar e forçar nova busca dos arquivos
-    queryClient.invalidateQueries({ queryKey: ['wasabi-files', activeWasabiIntegration?.id, bucketName] });
+    queryClient.invalidateQueries({ queryKey: ['wasabi-files', activeWasabiIntegration?.id, bucketName, prefix] });
   };
 
   const navigateToFolder = (folderPath: string) => {
-    setCurrentPath(folderPath);
+    const newPath = currentPath ? `${currentPath}${folderPath}/` : `${folderPath}/`;
+    console.log('Navegando para pasta:', newPath);
+    setCurrentPath(newPath);
+    queryClient.invalidateQueries({ queryKey: ['wasabi-files', activeWasabiIntegration?.id, selectedBucket, newPath] });
   };
 
   const navigateBack = () => {
     const pathParts = currentPath.split('/').filter(Boolean);
     if (pathParts.length > 0) {
       pathParts.pop();
-      setCurrentPath(pathParts.join('/'));
-    } else {
-      setCurrentPath('');
+      const newPath = pathParts.length > 0 ? pathParts.join('/') + '/' : '';
+      console.log('Voltando para:', newPath);
+      setCurrentPath(newPath);
+      queryClient.invalidateQueries({ queryKey: ['wasabi-files', activeWasabiIntegration?.id, selectedBucket, newPath] });
     }
   };
 

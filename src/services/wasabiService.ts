@@ -9,6 +9,8 @@ export interface WasabiFile {
   type: string;
   bucket: string;
   sizeBytes: number;
+  isFolder: boolean;
+  prefix?: string;
 }
 
 export interface WasabiBucket {
@@ -102,45 +104,72 @@ export class WasabiService {
     }
   }
 
-  async listFiles(bucketName: string): Promise<WasabiFile[]> {
+  async listFiles(bucketName: string, prefix: string = ''): Promise<WasabiFile[]> {
     if (!this.s3Client || !bucketName) {
       throw new Error('Cliente S3 ou bucket não configurado');
     }
 
     try {
-      console.log('Listando arquivos do bucket:', bucketName);
+      console.log('Listando arquivos do bucket:', bucketName, 'prefix:', prefix);
       
       const command = new ListObjectsV2Command({
         Bucket: bucketName,
         MaxKeys: 1000,
+        Prefix: prefix,
+        Delimiter: '/' // Isso nos permite identificar "pastas"
       });
 
       const response = await this.s3Client.send(command);
       
-      if (!response.Contents) {
-        console.log('Nenhum arquivo encontrado no bucket');
-        return [];
+      const files: WasabiFile[] = [];
+
+      // Adicionar "pastas" (CommonPrefixes)
+      if (response.CommonPrefixes) {
+        response.CommonPrefixes.forEach((commonPrefix, index) => {
+          const folderName = commonPrefix.Prefix?.replace(prefix, '').replace('/', '') || '';
+          if (folderName) {
+            files.push({
+              id: `folder-${index}-${folderName}`,
+              name: folderName,
+              size: '-',
+              lastModified: '-',
+              type: 'folder',
+              bucket: bucketName,
+              sizeBytes: 0,
+              isFolder: true,
+              prefix: commonPrefix.Prefix
+            });
+          }
+        });
       }
 
-      const files: WasabiFile[] = response.Contents.map((object, index) => {
-        const sizeBytes = object.Size || 0;
-        const sizeFormatted = this.formatFileSize(sizeBytes);
-        const lastModified = object.LastModified ? 
-          object.LastModified.toLocaleString('pt-BR') : 
-          'Data não disponível';
+      // Adicionar arquivos (Contents)
+      if (response.Contents) {
+        response.Contents.forEach((object, index) => {
+          const fileName = object.Key?.replace(prefix, '') || '';
+          // Não mostrar se for apenas o prefixo (pasta vazia) ou se não tiver nome
+          if (fileName && fileName !== '' && !fileName.endsWith('/')) {
+            const sizeBytes = object.Size || 0;
+            const sizeFormatted = this.formatFileSize(sizeBytes);
+            const lastModified = object.LastModified ? 
+              object.LastModified.toLocaleString('pt-BR') : 
+              'Data não disponível';
 
-        return {
-          id: `${object.Key}-${index}`,
-          name: object.Key || 'Arquivo sem nome',
-          size: sizeFormatted,
-          lastModified,
-          type: this.getFileType(object.Key || ''),
-          bucket: bucketName,
-          sizeBytes
-        };
-      });
+            files.push({
+              id: `file-${index}-${fileName}`,
+              name: fileName,
+              size: sizeFormatted,
+              lastModified,
+              type: this.getFileType(fileName),
+              bucket: bucketName,
+              sizeBytes,
+              isFolder: false
+            });
+          }
+        });
+      }
 
-      console.log(`${files.length} arquivos encontrados no bucket ${bucketName}`);
+      console.log(`${files.length} itens encontrados no bucket ${bucketName} (prefix: ${prefix})`);
       return files;
     } catch (error) {
       console.error('Erro ao listar arquivos do Wasabi:', error);

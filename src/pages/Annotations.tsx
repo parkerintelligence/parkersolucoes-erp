@@ -326,8 +326,9 @@ const Annotations = () => {
             <TableHead className="font-semibold text-white">Nome</TableHead>
             <TableHead className="font-semibold text-white">Empresa</TableHead>
             <TableHead className="font-semibold text-white">Anotação</TableHead>
+            <TableHead className="font-semibold text-white">Observações</TableHead>
             <TableHead className="font-semibold text-white">Serviço</TableHead>
-            <TableHead className="font-semibold text-white">Ações</TableHead>
+            <TableHead className="font-semibold text-white w-32">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -342,6 +343,11 @@ const Annotations = () => {
                     {item.annotation || 'N/A'}
                   </div>
                 </TableCell>
+                <TableCell className="py-1 max-w-xs">
+                  <div className="truncate text-white" title={item.notes || ''}>
+                    {item.notes || '-'}
+                  </div>
+                </TableCell>
                 <TableCell className="py-1">
                   {item.service && (
                     <div className="flex items-center gap-1">
@@ -351,42 +357,42 @@ const Annotations = () => {
                   )}
                 </TableCell>
                 <TableCell className="py-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => handleViewAnnotation(item)}
-                      className="h-7 px-2 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+                      className="h-7 w-7 p-0 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+                      title="Ver"
                     >
-                      <Eye className="h-3 w-3 mr-1" />
-                      Ver
+                      <Eye className="h-3 w-3" />
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => handleWhatsAppShare(item)}
-                      className="h-7 px-2 bg-green-600 border-green-500 text-white hover:bg-green-700"
+                      className="h-7 w-7 p-0 bg-green-600 border-green-500 text-white hover:bg-green-700"
+                      title="WhatsApp"
                     >
-                      <MessageCircle className="h-3 w-3 mr-1" />
-                      WhatsApp
+                      <MessageCircle className="h-3 w-3" />
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => handleEditAnnotation(item)}
-                      className="h-7 px-2 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+                      className="h-7 w-7 p-0 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+                      title="Editar"
                     >
-                      <Edit className="h-3 w-3 mr-1" />
-                      Editar
+                      <Edit className="h-3 w-3" />
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="text-red-400 hover:text-red-300 border-red-600 hover:bg-red-900/20 h-7 px-2"
+                      className="h-7 w-7 p-0 text-red-400 hover:text-red-300 border-red-600 hover:bg-red-900/20"
                       onClick={() => handleDeleteAnnotation(item.id)}
+                      title="Excluir"
                     >
-                      <Trash2 className="h-3 w-3 mr-1" />
-                      Excluir
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                 </TableCell>
@@ -396,9 +402,11 @@ const Annotations = () => {
         </TableBody>
       </Table>
       {annotationsToShow.length === 0 && (
-        <div className="text-center py-8 text-white">
-          Nenhuma anotação encontrada nesta categoria.
-        </div>
+        <tr>
+          <td colSpan={6} className="text-center py-8 text-white">
+            Nenhuma anotação encontrada nesta categoria.
+          </td>
+        </tr>
       )}
     </div>
   );

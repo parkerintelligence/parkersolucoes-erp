@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Cloud, RefreshCcw, AlertTriangle, CheckCircle, Settings, FileText, Folder, Download, Upload, Trash2, Eye, FolderPlus } from 'lucide-react';
+import { Cloud, RefreshCcw, AlertTriangle, CheckCircle, Settings, FileText, Folder, Download, Upload, Trash2, Eye, FolderPlus, ArrowLeft, ChevronRight } from 'lucide-react';
 import { useWasabi } from '@/hooks/useWasabi';
 import { WasabiCreateBucketDialog } from '@/components/WasabiCreateBucketDialog';
 import { WasabiUploadDialog } from '@/components/WasabiUploadDialog';
@@ -14,6 +14,7 @@ const Wasabi = () => {
     wasabiIntegration,
     buckets,
     objects,
+    currentPath,
     isLoading,
     isLoadingBuckets,
     createBucket,
@@ -21,7 +22,9 @@ const Wasabi = () => {
     downloadObject,
     deleteObject,
     listObjects,
-    listBuckets
+    listBuckets,
+    navigateToFolder,
+    navigateBack
   } = useWasabi();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedBucket, setSelectedBucket] = useState<string>('');
@@ -53,7 +56,7 @@ const Wasabi = () => {
     console.log('Bucket selecionado:', bucketName);
     setSelectedBucket(bucketName);
     if (bucketName) {
-      listObjects(bucketName);
+      listObjects(bucketName, ''); // Reset para raiz quando trocar bucket
     }
   };
   const handleCreateBucket = (bucketName: string) => {
@@ -70,13 +73,34 @@ const Wasabi = () => {
   };
   const handleDownload = (fileName: string) => {
     if (selectedBucket) {
-      downloadObject(selectedBucket, fileName);
+      const fullPath = currentPath ? `${currentPath}${fileName}` : fileName;
+      downloadObject(selectedBucket, fullPath);
     }
   };
+
   const handleDelete = (fileName: string) => {
     if (selectedBucket) {
-      deleteObject(selectedBucket, fileName);
+      const fullPath = currentPath ? `${currentPath}${fileName}` : fileName;
+      deleteObject(selectedBucket, fullPath);
     }
+  };
+
+  const handleFileClick = (file: any) => {
+    if (file.isFolder) {
+      navigateToFolder(file.name);
+    }
+  };
+
+  const getFileIcon = (file: any) => {
+    if (file.isFolder) {
+      return <Folder className="h-5 w-5 text-blue-400" />;
+    }
+    return <FileText className="h-5 w-5 text-blue-400" />;
+  };
+
+  const getCurrentPathDisplay = () => {
+    if (!currentPath) return selectedBucket;
+    return `${selectedBucket}/${currentPath.replace(/\/$/, '')}`;
   };
   if (!isConfigured) {
     return <div className="min-h-screen bg-gray-900 text-white p-6">
@@ -149,10 +173,23 @@ const Wasabi = () => {
 
               <Card className="bg-gray-800 border-gray-700">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Folder className="h-5 w-5" />
-                    {selectedBucket ? `Arquivos em: ${selectedBucket}` : 'Selecione um bucket'}
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Folder className="h-5 w-5" />
+                      {selectedBucket ? `Arquivos em: ${getCurrentPathDisplay()}` : 'Selecione um bucket'}
+                    </CardTitle>
+                    {currentPath && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={navigateBack}
+                        className="bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+                      >
+                        <ArrowLeft className="h-4 w-4 mr-1" />
+                        Voltar
+                      </Button>
+                    )}
+                  </div>
                   <CardDescription className="text-gray-400">
                     {selectedBucket ? 'Gerencie os arquivos no bucket selecionado' : 'Escolha um bucket para visualizar os arquivos'}
                   </CardDescription>
@@ -166,21 +203,31 @@ const Wasabi = () => {
                       <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4" />
                       <p>Carregando arquivos...</p>
                     </div> : <div className="space-y-2">
-                      {objects && objects.length > 0 ? objects.map((object: any, index: number) => <div key={object.id || `file-${index}`} className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg border border-gray-600">
-                            <div className="flex items-center gap-3">
-                              <FileText className="h-5 w-5 text-blue-400" />
-                              <div>
-                                <p className="text-white font-medium">
-                                  {object.name || object.Key || `arquivo-${index + 1}`}
-                                </p>
-                                <p className="text-gray-400 text-sm">
-                                  {object.size || object.Size ? `${typeof (object.size || object.Size) === 'number' ? ((object.size || object.Size) / 1024).toFixed(2) : object.size || object.Size} ${typeof (object.size || object.Size) === 'number' ? 'KB' : ''}` : 'Tamanho desconhecido'} • 
-                                  {object.lastModified || object.LastModified ? new Date(object.lastModified || object.LastModified).toLocaleDateString('pt-BR') : 'Data desconhecida'}
-                                </p>
-                              </div>
+                      {objects && objects.length > 0 ? objects.map((object: any, index: number) => (
+                        <div 
+                          key={object.id || `file-${index}`} 
+                          className={`flex items-center justify-between p-3 bg-gray-700/50 rounded-lg border border-gray-600 ${object.isFolder ? 'cursor-pointer hover:bg-gray-600/50' : ''}`}
+                          onClick={() => object.isFolder ? handleFileClick(object) : undefined}
+                        >
+                          <div className="flex items-center gap-3">
+                            {getFileIcon(object)}
+                            <div>
+                              <p className="text-white font-medium flex items-center gap-2">
+                                {object.name || object.Key || `arquivo-${index + 1}`}
+                                {object.isFolder && <ChevronRight className="h-4 w-4 text-gray-400" />}
+                              </p>
+                              <p className="text-gray-400 text-sm">
+                                {object.isFolder ? 'Pasta' : (
+                                  <>
+                                    {object.size || object.Size ? `${typeof (object.size || object.Size) === 'number' ? ((object.size || object.Size) / 1024).toFixed(2) : object.size || object.Size} ${typeof (object.size || object.Size) === 'number' ? 'KB' : ''}` : 'Tamanho desconhecido'} • 
+                                    {object.lastModified || object.LastModified ? new Date(object.lastModified || object.LastModified).toLocaleDateString('pt-BR') : 'Data desconhecida'}
+                                  </>
+                                )}
+                              </p>
                             </div>
+                          </div>
+                          {!object.isFolder && (
                             <div className="flex items-center gap-2">
-                              
                               <Button size="sm" variant="outline" onClick={() => handleDownload(object.name || object.Key)} className="border-gray-600 bg-blue-950 hover:bg-blue-800 text-slate-50">
                                 <Download className="h-4 w-4" />
                               </Button>
@@ -188,10 +235,12 @@ const Wasabi = () => {
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
-                          </div>) : <div className="text-center py-8 text-gray-400">
+                          )}
+                        </div>
+                      )) : <div className="text-center py-8 text-gray-400">
                           <FileText className="h-12 w-12 mx-auto mb-4 text-gray-500" />
-                          <p className="text-lg font-medium mb-2">Bucket vazio</p>
-                          <p>Este bucket não contém nenhum arquivo.</p>
+                          <p className="text-lg font-medium mb-2">Pasta vazia</p>
+                          <p>Esta pasta não contém nenhum arquivo.</p>
                         </div>}
                     </div>}
                 </CardContent>
