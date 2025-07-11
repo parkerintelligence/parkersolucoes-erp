@@ -27,6 +27,35 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
     isLoading: executedJobsLoading 
   } = useBaculaJobs();
 
+  // Função para extrair valor de campo de forma segura
+  const getFieldValue = (job: any, fieldNames: string[], defaultValue: string = 'N/A') => {
+    for (const fieldName of fieldNames) {
+      const value = job[fieldName];
+      if (value !== undefined && value !== null && value !== '') {
+        // Se for objeto, tentar extrair propriedade name ou similar
+        if (typeof value === 'object' && value !== null) {
+          if (value.name) return String(value.name);
+          if (value.Name) return String(value.Name);
+          if (value.value) return String(value.value);
+          // Se for array, pegar o primeiro item
+          if (Array.isArray(value) && value.length > 0) {
+            const firstItem = value[0];
+            if (typeof firstItem === 'string') return firstItem;
+            if (typeof firstItem === 'object' && firstItem.name) return String(firstItem.name);
+          }
+          // Como último recurso para objetos, tentar JSON.stringify
+          try {
+            return JSON.stringify(value);
+          } catch {
+            return String(value);
+          }
+        }
+        return String(value);
+      }
+    }
+    return defaultValue;
+  };
+
   // Extrair dados dos jobs configurados
   const extractConfiguredJobs = (data: any) => {
     console.log('Raw configured jobs data:', JSON.stringify(data, null, 2));
@@ -51,7 +80,7 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
       // Se output é um objeto, converter para array
       if (typeof data.output === 'object' && !Array.isArray(data.output)) {
         const jobsArray = Object.values(data.output).filter((item: any) => 
-          item && typeof item === 'object' && (item.name || item.jobname)
+          item && typeof item === 'object' && (item.name || item.jobname || item.Job || item.JobName)
         );
         console.log('Converted output object to jobs array:', jobsArray);
         return jobsArray;
@@ -80,7 +109,7 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
       for (const key in data) {
         if (Array.isArray(data[key]) && data[key].length > 0) {
           const firstItem = data[key][0];
-          if (firstItem && (firstItem.name || firstItem.jobname)) {
+          if (firstItem && (firstItem.name || firstItem.jobname || firstItem.Job || firstItem.JobName)) {
             console.log(`Found jobs array in data.${key}:`, data[key]);
             return data[key];
           }
@@ -116,7 +145,10 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
   // Função para encontrar o último job bem-sucedido
   const getLastSuccessfulJob = (jobName: string) => {
     const successfulJobs = executedJobs
-      .filter(job => (job.name === jobName || job.jobname === jobName) && job.jobstatus === 'T')
+      .filter(job => {
+        const jobNameToMatch = getFieldValue(job, ['name', 'jobname', 'Job', 'JobName']);
+        return jobNameToMatch === jobName && job.jobstatus === 'T';
+      })
       .sort((a, b) => new Date(b.starttime || b.schedtime || 0).getTime() - new Date(a.starttime || a.schedtime || 0).getTime());
     
     return successfulJobs[0] || null;
@@ -125,7 +157,10 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
   // Função para encontrar o último job com falha
   const getLastFailedJob = (jobName: string) => {
     const failedJobs = executedJobs
-      .filter(job => (job.name === jobName || job.jobname === jobName) && (job.jobstatus === 'E' || job.jobstatus === 'f'))
+      .filter(job => {
+        const jobNameToMatch = getFieldValue(job, ['name', 'jobname', 'Job', 'JobName']);
+        return jobNameToMatch === jobName && (job.jobstatus === 'E' || job.jobstatus === 'f');
+      })
       .sort((a, b) => new Date(b.starttime || b.schedtime || 0).getTime() - new Date(a.starttime || a.schedtime || 0).getTime());
     
     return failedJobs[0] || null;
@@ -135,14 +170,14 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
   const filteredJobs = configuredJobs.filter(job => {
     console.log('Filtering job:', job);
     
-    const jobName = String(job.name || job.jobname || '');
-    const clientName = String(job.client || job.clientname || '');
+    const jobName = getFieldValue(job, ['name', 'jobname', 'Job', 'JobName']);
+    const clientName = getFieldValue(job, ['client', 'clientname', 'Client', 'ClientName']);
     
     const matchesSearch = !searchTerm || 
       jobName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       clientName.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const jobType = String(job.type || job.jobtype || '');
+    const jobType = getFieldValue(job, ['type', 'jobtype', 'Type', 'JobType']);
     const matchesType = typeFilter === 'all' || 
       (jobType === typeFilter);
     
@@ -290,36 +325,37 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredJobs.length > 0 ? (
-                  filteredJobs.map((job, index) => {
-                    const lastSuccessful = getLastSuccessfulJob(job.name || job.jobname);
-                    const lastFailed = getLastFailedJob(job.name || job.jobname);
+                 {filteredJobs.length > 0 ? (
+                   filteredJobs.map((job, index) => {
+                     const jobName = getFieldValue(job, ['name', 'jobname', 'Job', 'JobName']);
+                     const lastSuccessful = getLastSuccessfulJob(jobName);
+                     const lastFailed = getLastFailedJob(jobName);
                     
                     return (
                       <TableRow 
                         key={index} 
                         className="border-slate-700 hover:bg-slate-700/30 transition-colors"
                       >
-                          <TableCell className="font-medium text-white py-4 px-4">
-                            <div className="flex flex-col space-y-1">
-                              <span className="text-sm font-semibold text-white">
-                                {String(job.name || job.jobname || job.Job || job.JobName || 'N/A')}
-                              </span>
-                              {(job.description || job.Description) && (
-                                <span className="text-xs text-slate-400">
-                                  {String(job.description || job.Description)}
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-4 px-4">
-                             {getJobTypeBadge(
-                               String(job.type || job.jobtype || job.Type || job.JobType || 'Unknown')
-                             )}
+                           <TableCell className="font-medium text-white py-4 px-4">
+                             <div className="flex flex-col space-y-1">
+                               <span className="text-sm font-semibold text-white">
+                                 {getFieldValue(job, ['name', 'jobname', 'Job', 'JobName'])}
+                               </span>
+                               {getFieldValue(job, ['description', 'Description'], '') !== '' && (
+                                 <span className="text-xs text-slate-400">
+                                   {getFieldValue(job, ['description', 'Description'])}
+                                 </span>
+                               )}
+                             </div>
                            </TableCell>
-                          <TableCell className="text-slate-300 py-4 px-4 text-sm font-medium">
-                            {String(job.client || job.clientname || job.Client || job.ClientName || '-')}
-                          </TableCell>
+                           <TableCell className="py-4 px-4">
+                              {getJobTypeBadge(
+                                getFieldValue(job, ['type', 'jobtype', 'Type', 'JobType'], 'Unknown')
+                              )}
+                            </TableCell>
+                           <TableCell className="text-slate-300 py-4 px-4 text-sm font-medium">
+                             {getFieldValue(job, ['client', 'clientname', 'Client', 'ClientName'], '-')}
+                           </TableCell>
                          <TableCell className="py-4 px-4 text-sm">
                            {lastSuccessful ? (
                              <div className="space-y-2">
