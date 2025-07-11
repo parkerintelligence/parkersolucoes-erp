@@ -8,6 +8,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import { RefreshCw, Database, HardDrive, Clock, CheckCircle, AlertCircle, XCircle, Search, Filter } from 'lucide-react';
 import { useBaculaJobsRecent, useBaculaStatistics, useBaculaVolumes } from '@/hooks/useBaculaAPI';
 import { BaculaAnalysisDialog } from '@/components/BaculaAnalysisDialog';
+
 export const BaculaDashboard = () => {
   const {
     data: jobsData,
@@ -194,6 +195,7 @@ export const BaculaDashboard = () => {
         </div>
       </div>;
   }
+
   return <div className="space-y-6">
       {/* Header com filtros e botão de análise */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -239,168 +241,133 @@ export const BaculaDashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Tabela de Jobs Status Terminated - Ocupa 3 colunas */}
-        <div className="lg:col-span-3">
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white text-sm">Jobs Status Terminated</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto max-h-96">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-slate-700">
-                      <TableHead className="text-slate-300 text-xs">jobid</TableHead>
-                      <TableHead className="text-slate-300 text-xs">name</TableHead>
-                      <TableHead className="text-slate-300 text-xs">jobstatus</TableHead>
-                      <TableHead className="text-slate-300 text-xs">starttime</TableHead>
-                      <TableHead className="text-slate-300 text-xs">endtime</TableHead>
-                      <TableHead className="text-slate-300 text-xs">level</TableHead>
-                      <TableHead className="text-slate-300 text-xs">jobfiles</TableHead>
-                      <TableHead className="text-slate-300 text-xs">name</TableHead>
-                      <TableHead className="text-slate-300 text-xs">size</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentJobs.map((job: any, index: number) => <TableRow key={job.jobid || index} className="border-slate-700 hover:bg-slate-700/50">
-                        <TableCell className="text-slate-300 text-xs font-mono">{job.jobid || '-'}</TableCell>
-                        <TableCell className="text-slate-300 text-xs max-w-32 truncate">{job.name || job.jobname || '-'}</TableCell>
-                        <TableCell className="text-xs">
-                          {getJobStatusBadge(job.jobstatus)}
-                        </TableCell>
-                        <TableCell className="text-slate-300 text-xs font-mono">
-                          {job.starttime ? formatDateTime(job.starttime).split(' ')[0] + ' ' + formatDateTime(job.starttime).split(' ')[1] : '-'}
-                        </TableCell>
-                        <TableCell className="text-slate-300 text-xs font-mono">
-                          {job.endtime ? formatDateTime(job.endtime).split(' ')[0] + ' ' + formatDateTime(job.endtime).split(' ')[1] : '-'}
-                        </TableCell>
-                        <TableCell className="text-slate-300 text-xs">
-                          <Badge className="bg-orange-900/20 text-orange-400 border-orange-600 text-xs">
-                            {job.level === 'I' ? 'incremental' : job.level === 'F' ? 'completo' : job.level || 'incremental'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-slate-300 text-xs">{job.jobfiles || '-'}</TableCell>
-                        <TableCell className="text-slate-300 text-xs max-w-32 truncate">{job.client || job.clientname || '-'}</TableCell>
-                        <TableCell className="text-slate-300 text-xs">{job.jobbytes ? formatBytes(parseInt(job.jobbytes)) : '-'}</TableCell>
-                      </TableRow>)}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Cards de Resumo */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        {/* Jobs Ativos */}
+        <Card className="bg-purple-900/20 border-purple-600/30">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-purple-400 mb-1">0</div>
+            <div className="text-sm text-purple-300 font-medium">Jobs Ativos</div>
+            <div className="text-xs text-purple-400 mt-1">Executando agora</div>
+          </CardContent>
+        </Card>
 
-        {/* Painel lateral com estatísticas - 1 coluna */}
-        <div className="space-y-4">
-          {/* Gráfico de Pizza */}
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white text-sm">Jobs Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie dataKey="value" data={pieData} cx="50%" cy="50%" outerRadius={60} innerRadius={20}>
-                      {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                    </Pie>
-                    <Tooltip contentStyle={{
+        {/* All Volumes Size */}
+        <Card className="bg-purple-900/20 border-purple-600/30">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-purple-400 mb-1">247</div>
+            <div className="text-sm text-purple-300 font-medium">GB Total</div>
+            <div className="text-xs text-purple-400 mt-1">Armazenamento</div>
+          </CardContent>
+        </Card>
+
+        {/* Gráfico de Pizza - Status dos Jobs */}
+        <Card className="bg-slate-800 border-slate-700 col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white text-sm">Status dos Jobs</CardTitle>
+          </CardHeader>
+          <CardContent className="p-2">
+            <div className="h-24 mb-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie dataKey="value" data={pieData} cx="50%" cy="50%" outerRadius={30} innerRadius={15}>
+                    {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip contentStyle={{
                     backgroundColor: '#1e293b',
                     border: '1px solid #475569',
                     borderRadius: '8px',
                     color: '#e2e8f0'
                   }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-4 space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Value</span>
-                  <span className="text-slate-400">Percent</span>
-                </div>
-                {pieData.map((item, index) => <div key={index} className="flex justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded" style={{
-                    backgroundColor: item.color
-                  }} />
-                      <span className="text-slate-300">{item.name}</span>
-                    </div>
-                    <div className="text-slate-300">
-                      <span>{item.value}</span>
-                      <span className="ml-2">
-                        {jobStats.totalJobs > 0 ? Math.round(item.value / jobStats.totalJobs * 100) : 0}%
-                      </span>
-                    </div>
-                  </div>)}
-              </div>
-            </CardContent>
-          </Card>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="grid grid-cols-2 gap-1 text-xs">
+              {pieData.map((item, index) => <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded" style={{backgroundColor: item.color}} />
+                    <span className="text-slate-300 truncate">{item.name}</span>
+                  </div>
+                  <span className="text-slate-300">{item.value}</span>
+                </div>)}
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Jobs Ativos */}
-          <Card className="bg-purple-900/20 border-purple-600/30">
-            <CardContent className="p-6 text-center">
-              <div className="text-4xl font-bold text-purple-400 mb-2">0</div>
-              <div className="text-sm text-purple-300">Jobs Ativos</div>
-              <div className="text-xs text-purple-400 mt-1">Last bacula ProGra User</div>
-            </CardContent>
-          </Card>
-
-          {/* All Volumes Size */}
-          <div className="grid grid-cols-2 gap-4">
-            <Card className="bg-purple-900/20 border-purple-600/30">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-purple-400 mb-1">247</div>
-                <div className="text-xs text-purple-300">GB</div>
-                <div className="text-xs text-purple-400 mt-1">Tamanho Total - Armaze...</div>
-              </CardContent>
-            </Card>
-            
-            
-          </div>
-
-          {/* Jobs Status Terminated - Tamanho em GB */}
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white text-sm">Jobs Status Terminated - Tamanho em GB</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {clientStats.slice(0, 8).map((client: any, index) => <div key={index} className="flex justify-between items-center text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded" style={{
-                    backgroundColor: index % 2 === 0 ? '#22c55e' : '#3b82f6'
-                  }} />
-                      <span className="text-slate-300 truncate max-w-24">
-                        {client.name.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="text-slate-300 font-mono">
-                      {formatBytes(client.bytes)}
-                    </div>
-                    <div className="text-slate-400">
-                      avg
-                    </div>
-                  </div>)}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Jobs Status Terminated */}
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white text-sm">Jobs Status Terminated</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {clientStats.slice(0, 4).map((client: any, index) => <div key={index} className="flex justify-between items-center text-xs">
-                    <span className="text-slate-300">{client.name}</span>
-                    <span className="text-slate-300">{formatBytes(client.avgSize)}</span>
-                  </div>)}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Jobs por Cliente - Resumo */}
+        <Card className="bg-slate-800 border-slate-700 col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white text-sm">Top Clientes por Tamanho</CardTitle>
+          </CardHeader>
+          <CardContent className="p-2">
+            <div className="space-y-1 max-h-20 overflow-y-auto">
+              {clientStats.slice(0, 4).map((client: any, index) => <div key={index} className="flex justify-between items-center text-xs">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded" style={{backgroundColor: index % 2 === 0 ? '#22c55e' : '#3b82f6'}} />
+                    <span className="text-slate-300 truncate max-w-16">{client.name.toUpperCase()}</span>
+                  </div>
+                  <div className="text-slate-300 font-mono">{formatBytes(client.bytes)}</div>
+                </div>)}
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Tabela Principal de Jobs - Tela Completa */}
+      <Card className="bg-gray-800 border-gray-700">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Jobs Status Terminated
+            </span>
+            <Badge variant="outline" className="border-slate-600 text-slate-300">
+              {jobs.length} jobs
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-700">
+                  <TableHead className="text-slate-300 text-sm">JobID</TableHead>
+                  <TableHead className="text-slate-300 text-sm">Name</TableHead>
+                  <TableHead className="text-slate-300 text-sm">JobStatus</TableHead>
+                  <TableHead className="text-slate-300 text-sm">StartTime</TableHead>
+                  <TableHead className="text-slate-300 text-sm">EndTime</TableHead>
+                  <TableHead className="text-slate-300 text-sm">Level</TableHead>
+                  <TableHead className="text-slate-300 text-sm">JobFiles</TableHead>
+                  <TableHead className="text-slate-300 text-sm">Client</TableHead>
+                  <TableHead className="text-slate-300 text-sm">Size</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentJobs.map((job: any, index: number) => <TableRow key={job.jobid || index} className="border-slate-700 hover:bg-slate-700/50">
+                    <TableCell className="text-slate-300 font-mono">{job.jobid || '-'}</TableCell>
+                    <TableCell className="text-slate-300 max-w-48 truncate font-medium">{job.name || job.jobname || '-'}</TableCell>
+                    <TableCell>
+                      {getJobStatusBadge(job.jobstatus)}
+                    </TableCell>
+                    <TableCell className="text-slate-300 font-mono">
+                      {job.starttime ? formatDateTime(job.starttime).split(' ')[0] + ' ' + formatDateTime(job.starttime).split(' ')[1] : '-'}
+                    </TableCell>
+                    <TableCell className="text-slate-300 font-mono">
+                      {job.endtime ? formatDateTime(job.endtime).split(' ')[0] + ' ' + formatDateTime(job.endtime).split(' ')[1] : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className="bg-orange-900/20 text-orange-400 border-orange-600">
+                        {job.level === 'I' ? 'incremental' : job.level === 'F' ? 'completo' : job.level || 'incremental'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-slate-300">{job.jobfiles || '-'}</TableCell>
+                    <TableCell className="text-slate-300 max-w-32 truncate">{job.client || job.clientname || '-'}</TableCell>
+                    <TableCell className="text-slate-300">{job.jobbytes ? formatBytes(parseInt(job.jobbytes)) : '-'}</TableCell>
+                  </TableRow>)}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>;
 };
