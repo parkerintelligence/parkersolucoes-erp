@@ -147,47 +147,106 @@ serve(async (req) => {
     console.log(`📅 Buscando jobs com erro do dia: ${yesterdayStr}`);
 
     try {
-      // Fazer requisição para a API do Bacula via proxy
-      const { data: baculaData, error: baculaRequestError } = await supabase.functions.invoke('bacula-proxy', {
-        body: { 
-          endpoint: 'jobs/last24h'
-        }
-      });
+      // Fazer múltiplas consultas para obter dados completos do Bacula
+      const baculaRequests = [
+        supabase.functions.invoke('bacula-proxy', { body: { endpoint: 'jobs/last24h' } }),
+        supabase.functions.invoke('bacula-proxy', { body: { endpoint: 'jobs/errors' } }),
+        supabase.functions.invoke('bacula-proxy', { body: { endpoint: 'jobs/recent' } })
+      ];
 
-      if (baculaRequestError) {
-        console.error('❌ Erro ao buscar dados do Bacula:', baculaRequestError);
-        throw new Error('Erro ao conectar com Bacula');
-      }
-
-      // Extrair e filtrar jobs com erro
+      const responses = await Promise.allSettled(baculaRequests);
+      
       let allJobs = [];
-      if (baculaData?.output && Array.isArray(baculaData.output)) {
-        allJobs = baculaData.output;
-      } else if (baculaData?.result && Array.isArray(baculaData.result)) {
-        allJobs = baculaData.result;
-      } else if (Array.isArray(baculaData)) {
-        allJobs = baculaData;
-      } else if (baculaData?.data && Array.isArray(baculaData.data)) {
-        allJobs = baculaData.data;
+      
+      // Processar todas as respostas e combinar os dados
+      for (const response of responses) {
+        if (response.status === 'fulfilled' && response.value?.data) {
+          const data = response.value.data;
+          let jobs = [];
+          
+          // Extrair jobs de diferentes estruturas de resposta
+          if (data?.output && Array.isArray(data.output)) {
+            jobs = data.output;
+          } else if (data?.result && Array.isArray(data.result)) {
+            jobs = data.result;
+          } else if (data?.data && Array.isArray(data.data)) {
+            jobs = data.data;
+          } else if (Array.isArray(data)) {
+            jobs = data;
+          } else if (typeof data === 'object' && data !== null) {
+            // Tentar extrair de objeto
+            for (const key in data) {
+              if (Array.isArray(data[key]) && data[key].length > 0) {
+                const firstItem = data[key][0];
+                if (firstItem && (firstItem.name || firstItem.jobname || firstItem.Job || firstItem.JobName)) {
+                  jobs = data[key];
+                  break;
+                }
+              }
+            }
+          }
+          
+          allJobs = allJobs.concat(jobs);
+        }
       }
 
-      console.log(`📊 Total de jobs encontrados: ${allJobs.length}`);
+      // Remover duplicatas baseado no jobid
+      const uniqueJobs = allJobs.reduce((acc, job) => {
+        const jobId = job.jobid || job.JobId || job.id || `${job.name || job.jobname}_${job.starttime || job.schedtime}`;
+        if (!acc.some(existing => {
+          const existingId = existing.jobid || existing.JobId || existing.id || `${existing.name || existing.jobname}_${existing.starttime || existing.schedtime}`;
+          return existingId === jobId;
+        })) {
+          acc.push(job);
+        }
+        return acc;
+      }, []);
 
-      // Filtrar jobs com erro das últimas 24 horas
+      console.log(`📊 Total de jobs únicos encontrados: ${uniqueJobs.length}`);
+
+      // Filtrar jobs das últimas 24 horas com melhor lógica de data
       const now = new Date();
       const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
       
-      const failedJobs = allJobs.filter(job => {
-        const jobDate = new Date(job.starttime || job.schedtime || job.endtime);
+      const failedJobs = uniqueJobs.filter(job => {
+        // Melhor extração de data
+        let jobDate = null;
+        if (job.starttime) jobDate = new Date(job.starttime);
+        else if (job.schedtime) jobDate = new Date(job.schedtime);
+        else if (job.endtime) jobDate = new Date(job.endtime);
+        else if (job.realendtime) jobDate = new Date(job.realendtime);
+        
+        if (!jobDate || isNaN(jobDate.getTime())) {
+          console.log(`⚠️ Job sem data válida:`, job);
+          return false;
+        }
+        
         const isRecent = jobDate >= twentyFourHoursAgo;
-        const hasError = job.jobstatus === 'E' || job.jobstatus === 'f' || job.jobstatus === 'A';
+        
+        // Status de erro mais abrangente
+        const status = job.jobstatus || job.JobStatus || job.status;
+        const hasError = ['E', 'f', 'A', 'e', 'F', 'error', 'Error', 'ERROR', 'failed', 'Failed', 'FAILED'].includes(status);
+        
+        if (isRecent && hasError) {
+          console.log(`🔍 Job com erro encontrado: ${job.name || job.jobname} - Status: ${status} - Data: ${jobDate.toISOString()}`);
+        }
+        
         return isRecent && hasError;
       });
 
-      const successJobs = allJobs.filter(job => {
-        const jobDate = new Date(job.starttime || job.schedtime || job.endtime);
+      const successJobs = uniqueJobs.filter(job => {
+        let jobDate = null;
+        if (job.starttime) jobDate = new Date(job.starttime);
+        else if (job.schedtime) jobDate = new Date(job.schedtime);
+        else if (job.endtime) jobDate = new Date(job.endtime);
+        else if (job.realendtime) jobDate = new Date(job.realendtime);
+        
+        if (!jobDate || isNaN(jobDate.getTime())) return false;
+        
         const isRecent = jobDate >= twentyFourHoursAgo;
-        const isSuccess = job.jobstatus === 'T';
+        const status = job.jobstatus || job.JobStatus || job.status;
+        const isSuccess = ['T', 't', 'OK', 'ok', 'Ok', 'success', 'Success', 'SUCCESS', 'completed', 'Completed', 'COMPLETED'].includes(status);
+        
         return isRecent && isSuccess;
       });
 
@@ -195,21 +254,45 @@ serve(async (req) => {
 
       console.log(`📊 Encontrados ${failedJobs.length} jobs com erro`);
 
-      // Preparar dados para o template
+      // Preparar dados detalhados para o template
       const reportData = {
         date: now.toISOString().split('T')[0],
         totalJobs: totalRecentJobs,
         errorCount: failedJobs.length,
         errorRate: totalRecentJobs > 0 ? Math.round((failedJobs.length / totalRecentJobs) * 100) : 0,
         hasErrors: failedJobs.length > 0,
-        errorJobs: failedJobs.map(job => ({
-          name: job.name || job.jobname || 'N/A',
-          client: job.client || job.clientname || 'N/A', 
-          level: job.jobstatus === 'E' ? 'Erro' : job.jobstatus === 'f' ? 'Falha Fatal' : 'Cancelado',
-          startTime: job.starttime ? new Date(job.starttime).toLocaleString('pt-BR') : 'N/A',
-          bytes: job.jobbytes ? `${(parseInt(job.jobbytes) / (1024 * 1024)).toFixed(2)} MB` : '0 MB',
-          files: job.jobfiles || '0'
-        })),
+        errorJobs: failedJobs.map(job => {
+          // Extrair informações mais robustas
+          const getFieldValue = (obj, fields, defaultValue = 'N/A') => {
+            for (const field of fields) {
+              if (obj[field] !== undefined && obj[field] !== null && obj[field] !== '') {
+                return String(obj[field]);
+              }
+            }
+            return defaultValue;
+          };
+
+          const status = job.jobstatus || job.JobStatus || job.status;
+          let level = 'Erro';
+          if (status === 'E' || status === 'e') level = 'Erro';
+          else if (status === 'f' || status === 'F') level = 'Falha Fatal';
+          else if (status === 'A') level = 'Cancelado';
+          else if (status === 'error' || status === 'ERROR') level = 'Erro';
+          else if (status === 'failed' || status === 'FAILED') level = 'Falha';
+
+          return {
+            name: getFieldValue(job, ['name', 'jobname', 'Job', 'JobName']),
+            client: getFieldValue(job, ['client', 'clientname', 'Client', 'ClientName']),
+            level: level,
+            startTime: job.starttime ? new Date(job.starttime).toLocaleString('pt-BR') : 
+                      job.schedtime ? new Date(job.schedtime).toLocaleString('pt-BR') : 'N/A',
+            bytes: job.jobbytes ? `${(parseInt(job.jobbytes) / (1024 * 1024)).toFixed(2)} MB` : '0 MB',
+            files: getFieldValue(job, ['jobfiles', 'JobFiles', 'files'], '0'),
+            duration: job.jobend && job.jobstart ? 
+              Math.round((new Date(job.jobend) - new Date(job.jobstart)) / 60000) + ' min' : 'N/A',
+            errorMsg: getFieldValue(job, ['joberrors', 'JobErrors', 'error_message', 'message'], '').substring(0, 200)
+          };
+        }),
         timestamp: new Date().toLocaleString('pt-BR')
       };
 
