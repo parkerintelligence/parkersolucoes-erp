@@ -360,7 +360,7 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                                  </span>
                                  {lastSuccessful.jobbytes && (
                                    <span className="text-xs text-slate-500">
-                                     📊 {(parseInt(lastSuccessful.jobbytes) / (1024 * 1024)).toFixed(2)} MB
+                                     {(parseInt(lastSuccessful.jobbytes) / (1024 * 1024)).toFixed(2)} MB
                                    </span>
                                  )}
                                </div>
@@ -381,7 +381,7 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                                  </span>
                                  {lastFailed.joberrors && (
                                    <span className="text-xs text-red-400 max-w-xs truncate">
-                                     ⚠️ {String(lastFailed.joberrors).substring(0, 50)}...
+                                     {String(lastFailed.joberrors).substring(0, 50)}...
                                    </span>
                                  )}
                                </div>
