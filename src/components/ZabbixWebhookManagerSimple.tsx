@@ -22,19 +22,32 @@ import {
   RefreshCcw,
   Settings
 } from 'lucide-react';
-import { useZabbixWebhooks, ZabbixWebhook } from '@/hooks/useZabbixWebhooks';
+import { useZabbixWebhooks, ZabbixWebhook, useSendWhatsAppMessage } from '@/hooks/useZabbixWebhooks';
 import { useToast } from '@/hooks/use-toast';
 import { useIntegrations } from '@/hooks/useIntegrations';
+import { supabase } from '@/integrations/supabase/client';
 
 const triggerTypeLabels = {
   'problem_created': 'Problema Criado',
-  'problem_resolved': 'Problema Resolvido'
+  'problem_resolved': 'Problema Resolvido',
+  'host_down': 'Host Indisponível',
+  'host_up': 'Host Disponível'
+};
+
+const severityLabels = {
+  '0': 'Não Classificado',
+  '1': 'Informação',
+  '2': 'Aviso',
+  '3': 'Médio',
+  '4': 'Alto',
+  '5': 'Desastre'
 };
 
 export const ZabbixWebhookManagerSimple = () => {
   const { webhooks, isLoading, createWebhook, updateWebhook, deleteWebhook, toggleWebhook } = useZabbixWebhooks();
   const { data: integrations = [] } = useIntegrations();
   const { toast } = useToast();
+  const sendWhatsAppMessage = useSendWhatsAppMessage();
 
   const [isCreating, setIsCreating] = useState(false);
   const [editingWebhook, setEditingWebhook] = useState<ZabbixWebhook | null>(null);
@@ -44,8 +57,18 @@ export const ZabbixWebhookManagerSimple = () => {
     trigger_type: 'problem_created' as const,
     whatsapp_number: '',
     message: '',
-    is_active: true
+    is_active: true,
+    severity_filter: [] as string[],
+    host_groups: '',
+    time_restrictions: {
+      enabled: false,
+      start_time: '09:00',
+      end_time: '18:00',
+      weekdays_only: false
+    }
   });
+
+  const [testingWebhook, setTestingWebhook] = useState<string | null>(null);
 
   const evolutionIntegration = integrations.find(i => i.type === 'evolution_api' && i.is_active);
 
@@ -78,7 +101,15 @@ export const ZabbixWebhookManagerSimple = () => {
         trigger_type: 'problem_created',
         whatsapp_number: '',
         message: '',
-        is_active: true
+        is_active: true,
+        severity_filter: [],
+        host_groups: '',
+        time_restrictions: {
+          enabled: false,
+          start_time: '09:00',
+          end_time: '18:00',
+          weekdays_only: false
+        }
       });
       setIsCreating(false);
 
@@ -153,6 +184,51 @@ export const ZabbixWebhookManagerSimple = () => {
           variant: "destructive",
         });
       }
+    }
+  };
+
+  const handleTestWebhook = async (webhook: ZabbixWebhook) => {
+    if (!evolutionIntegration) {
+      toast({
+        title: "Erro",
+        description: "Evolution API não configurada",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setTestingWebhook(webhook.id);
+    
+    try {
+      const testMessage = `🧪 Teste de Webhook\n\nNome: ${webhook.name}\nTipo: ${triggerTypeLabels[webhook.trigger_type as keyof typeof triggerTypeLabels]}\nData: ${new Date().toLocaleString('pt-BR')}\n\nEste é um teste automático do webhook.`;
+      
+      await sendWhatsAppMessage.mutateAsync({
+        phoneNumber: (webhook.actions as any)?.whatsapp_number || '',
+        message: testMessage
+      });
+
+      // Atualizar contador de testes
+      await supabase
+        .from('zabbix_webhooks')
+        .update({
+          trigger_count: (webhook.trigger_count || 0) + 1,
+          last_triggered: new Date().toISOString()
+        })
+        .eq('id', webhook.id);
+
+      toast({
+        title: "Teste enviado!",
+        description: "Mensagem de teste enviada com sucesso.",
+      });
+    } catch (error) {
+      console.error('Test webhook error:', error);
+      toast({
+        title: "Erro no teste",
+        description: "Falha ao enviar mensagem de teste",
+        variant: "destructive",
+      });
+    } finally {
+      setTestingWebhook(null);
     }
   };
 
@@ -334,6 +410,19 @@ export const ZabbixWebhookManagerSimple = () => {
                         </Badge>
                       </div>
                       <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleTestWebhook(webhook)}
+                          disabled={testingWebhook === webhook.id || !evolutionIntegration}
+                          className="bg-green-600 border-green-500 text-white hover:bg-green-500"
+                        >
+                          {testingWebhook === webhook.id ? (
+                            <RefreshCcw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <TestTube className="h-4 w-4" />
+                          )}
+                        </Button>
                         <Switch
                           checked={webhook.is_active}
                           onCheckedChange={(checked) => handleToggleWebhook(webhook.id, checked)}

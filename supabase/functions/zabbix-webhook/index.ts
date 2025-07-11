@@ -82,7 +82,14 @@ serve(async (req) => {
     })
 
     // Find active Zabbix webhooks that match this trigger type
-    const triggerType = status === '0' ? 'problem_resolved' : 'problem_created'
+    let triggerType = status === '0' ? 'problem_resolved' : 'problem_created'
+    
+    // Determinar tipo de trigger baseado no status e outras condições
+    if (status === '0') {
+      triggerType = 'problem_resolved'
+    } else if (status === '1') {
+      triggerType = 'problem_created'
+    }
     
     const { data: webhooks, error: webhooksError } = await supabase
       .from('zabbix_webhooks')

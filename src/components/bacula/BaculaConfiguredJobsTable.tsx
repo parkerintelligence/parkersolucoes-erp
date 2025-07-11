@@ -29,19 +29,34 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
 
   // Extrair dados dos jobs configurados
   const extractConfiguredJobs = (data: any) => {
+    console.log('Extracting configured jobs from data:', data);
     if (!data) return [];
+    
+    // Tentar diferentes estruturas de resposta da API Bacula
     if (data.output && Array.isArray(data.output)) {
+      console.log('Found jobs in data.output:', data.output);
       return data.output;
     }
     if (data.result && Array.isArray(data.result)) {
+      console.log('Found jobs in data.result:', data.result);
       return data.result;
     }
     if (data.data && Array.isArray(data.data)) {
+      console.log('Found jobs in data.data:', data.data);
       return data.data;
     }
     if (Array.isArray(data)) {
+      console.log('Data is direct array:', data);
       return data;
     }
+    
+    // Verificar se há outras estruturas possíveis
+    if (data.jobs && Array.isArray(data.jobs)) {
+      console.log('Found jobs in data.jobs:', data.jobs);
+      return data.jobs;
+    }
+    
+    console.log('No jobs found in data structure, returning empty array');
     return [];
   };
 
@@ -193,6 +208,15 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
             className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
           >
             <RefreshCw className="h-4 w-4" />
+          </Button>
+          
+          <Button 
+            onClick={() => console.log('Raw data:', { configuredJobsData, executedJobsData })} 
+            size="sm" 
+            variant="outline" 
+            className="bg-amber-700 border-amber-600 text-white hover:bg-amber-600"
+          >
+            Debug
           </Button>
         </div>
       </div>

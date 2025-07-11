@@ -95,7 +95,7 @@ serve(async (req) => {
       'jobs/last24h': '/api/v2/jobs?age=86400',
       'jobs/last7days': '/api/v2/jobs?age=604800',
       'jobs/last30days': '/api/v2/jobs?age=2592000',
-      'jobs/configured': '/api/v2/config/job',
+      'jobs/configured': '/api/v2/config/dir/job',
       'clients': '/api/v2/clients',
       'clients/configured': '/api/v2/config/dir/client',
       'volumes': '/api/v2/volumes',
@@ -174,32 +174,43 @@ serve(async (req) => {
         // Se for 404, tentar com endpoints v1
         if (response.status === 404) {
           console.log('Tentando com endpoints v1...')
-          const v1Endpoint = apiEndpoint.replace('/api/v2/', '/api/v1/')
-          const v1Url = `${baseUrl}${v1Endpoint}`
+          let v1Endpoint = apiEndpoint.replace('/api/v2/', '/api/v1/')
           
+          // Para jobs configurados, tentar endpoint específico do v1
+          if (endpoint === 'jobs/configured') {
+            v1Endpoint = '/api/v1/config/job'
+          }
+          
+          const v1Url = `${baseUrl}${v1Endpoint}`
           console.log(`Trying v1 endpoint: ${v1Url}`)
           
-          const v1Response = await fetch(v1Url, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Basic ${auth}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'User-Agent': 'Parker Intelligence System'
-            },
-            signal: controller.signal
-          })
-          
-          if (v1Response.ok) {
-            const v1Data = await v1Response.json()
-            console.log(`V1 API response successful:`, v1Data)
-            return new Response(JSON.stringify(v1Data), {
-              ...corsOptions,
+          try {
+            const v1Response = await fetch(v1Url, {
+              method: 'GET',
               headers: {
-                ...corsOptions.headers,
-                'Content-Type': 'application/json'
-              }
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'User-Agent': 'Parker Intelligence System'
+              },
+              signal: controller.signal
             })
+            
+            if (v1Response.ok) {
+              const v1Data = await v1Response.json()
+              console.log(`V1 API response successful:`, v1Data)
+              return new Response(JSON.stringify(v1Data), {
+                ...corsOptions,
+                headers: {
+                  ...corsOptions.headers,
+                  'Content-Type': 'application/json'
+                }
+              })
+            } else {
+              console.log(`V1 endpoint also failed: ${v1Response.status}`)
+            }
+          } catch (v1Error) {
+            console.error('V1 endpoint error:', v1Error)
           }
         }
 
