@@ -48,9 +48,10 @@ export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
           <SelectContent className="bg-slate-800 border-slate-700">
             <SelectItem value="all" className="text-white">Todos</SelectItem>
             <SelectItem value="T" className="text-white">Completo</SelectItem>
-            <SelectItem value="E" className="text-white">Erro</SelectItem>
+            <SelectItem value="error" className="text-white">Erro</SelectItem>
             <SelectItem value="R" className="text-white">Executando</SelectItem>
-            <SelectItem value="W" className="text-white">Incremental</SelectItem>
+            <SelectItem value="W" className="text-white">Aviso</SelectItem>
+            <SelectItem value="A" className="text-white">Cancelado</SelectItem>
           </SelectContent>
         </Select>
 

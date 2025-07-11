@@ -9,16 +9,16 @@ export const useBaculaAPI = () => {
   
   const isEnabled = !!baculaIntegration;
 
-  const makeBaculaRequest = async (endpoint: string) => {
+  const makeBaculaRequest = async (endpoint: string, params?: any) => {
     if (!baculaIntegration) {
       throw new Error('Bacula integration not configured');
     }
 
-    console.log(`Making Bacula request to endpoint: ${endpoint}`);
+    console.log(`Making Bacula request to endpoint: ${endpoint}`, params ? `with params: ${JSON.stringify(params)}` : '');
     
     try {
       const { data, error } = await supabase.functions.invoke('bacula-proxy', {
-        body: { endpoint }
+        body: { endpoint, params }
       });
 
       if (error) {
@@ -184,20 +184,32 @@ export const useBaculaConnectionTest = () => {
   });
 };
 
-export const useBaculaJobsByPeriod = (days?: number) => {
+export const useBaculaJobsByPeriod = (days?: number, status?: string) => {
   const { makeBaculaRequest, isEnabled } = useBaculaAPI();
 
   return useQuery({
-    queryKey: ['bacula-jobs-period', days],
+    queryKey: ['bacula-jobs-period', days, status],
     queryFn: () => {
-      if (days) {
-        return makeBaculaRequest(`jobs/last${days}days`);
-      }
-      return makeBaculaRequest('jobs');
+      return makeBaculaRequest('jobs/period', { days, status });
     },
     enabled: isEnabled,
     refetchInterval: 30000,
     retry: 3,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000)
+  });
+};
+
+// New hook for fetching all jobs with better filtering
+export const useBaculaJobsAll = () => {
+  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
+
+  return useQuery({
+    queryKey: ['bacula-jobs-all'],
+    queryFn: () => makeBaculaRequest('jobs/all'),
+    enabled: isEnabled,
+    refetchInterval: 60000, // 1 minute since it's a larger dataset
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 30000 // Keep data fresh for 30 seconds
   });
 };

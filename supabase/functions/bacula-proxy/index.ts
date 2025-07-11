@@ -76,8 +76,9 @@ serve(async (req) => {
     const integration = integrations[0]
     console.log(`Found Bacula integration: ${integration.name}`)
 
-    const { endpoint } = await req.json()
+    const { endpoint, params } = await req.json()
     console.log(`Requested endpoint: ${endpoint}`)
+    console.log(`Request params:`, params)
 
     // Create base64 auth header
     const auth = btoa(`${integration.username}:${integration.password}`)
@@ -88,8 +89,12 @@ serve(async (req) => {
       'test': '/api/v2/config/api/info',
       'jobs': '/api/v2/jobs',
       'jobs/recent': '/api/v2/jobs?limit=50&order_by=jobid&order_direction=desc',
+      'jobs/all': '/api/v2/jobs?limit=1000&order_by=jobid&order_direction=desc',
+      'jobs/period': '/api/v2/jobs',
       'jobs/running': '/api/v2/jobs?jobstatus=R',
       'jobs/last24h': '/api/v2/jobs?age=86400',
+      'jobs/last7days': '/api/v2/jobs?age=604800',
+      'jobs/last30days': '/api/v2/jobs?age=2592000',
       'clients': '/api/v2/clients',
       'volumes': '/api/v2/volumes',
       'pools': '/api/v2/pools',
@@ -101,7 +106,31 @@ serve(async (req) => {
       'version': '/api/v2/config/api/info'
     }
 
-    const apiEndpoint = endpointMap[endpoint] || endpoint
+    let apiEndpoint = endpointMap[endpoint] || endpoint
+    
+    // Handle custom parameters for specific endpoints
+    if (endpoint === 'jobs/period' && params) {
+      const queryParams = new URLSearchParams()
+      
+      // Add age parameter if days is specified
+      if (params.days && params.days > 0) {
+        const ageInSeconds = params.days * 24 * 60 * 60
+        queryParams.append('age', ageInSeconds.toString())
+      }
+      
+      // Add limit and ordering
+      queryParams.append('limit', '1000')
+      queryParams.append('order_by', 'jobid')
+      queryParams.append('order_direction', 'desc')
+      
+      // Add status filter if specified
+      if (params.status && params.status !== 'all') {
+        queryParams.append('jobstatus', params.status)
+      }
+      
+      apiEndpoint = `/api/v2/jobs?${queryParams.toString()}`
+    }
+    
     const fullUrl = `${baseUrl}${apiEndpoint}`
 
     console.log(`Making request to: ${fullUrl}`)

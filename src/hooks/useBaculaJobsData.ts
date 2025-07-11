@@ -71,13 +71,20 @@ export const useBaculaJobsData = (jobsData: any, searchTerm: string, statusFilte
       console.log(`Jobs after search filter (${searchTerm}):`, filtered.length);
     }
 
-    // Filtro por status - REMOVIDO TEMPORARIAMENTE PARA DEBUG
+    // Filtro por status
     console.log('Status filter value:', statusFilter);
     console.log('Unique job statuses found:', [...new Set(filtered.map(job => job.jobstatus))]);
     
     if (statusFilter !== 'all') {
       const beforeStatusFilter = filtered.length;
-      filtered = filtered.filter(job => job.jobstatus === statusFilter);
+      
+      // Handle error status filter (includes both 'E' and 'f')
+      if (statusFilter === 'error') {
+        filtered = filtered.filter(job => job.jobstatus === 'E' || job.jobstatus === 'f');
+      } else {
+        filtered = filtered.filter(job => job.jobstatus === statusFilter);
+      }
+      
       console.log(`Jobs after status filter (${statusFilter}): ${filtered.length} (was ${beforeStatusFilter})`);
     }
     

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { RefreshCw } from 'lucide-react';
-import { useBaculaJobsRecent } from '@/hooks/useBaculaAPI';
+import { useBaculaJobsAll } from '@/hooks/useBaculaAPI';
 import { useBaculaJobsData, formatBytes, formatDateTime, getJobStatusBadge } from '@/hooks/useBaculaJobsData';
 import { BaculaFilters } from '@/components/bacula/BaculaFilters';
 import { BaculaStatusCards } from '@/components/bacula/BaculaStatusCards';
@@ -16,7 +16,7 @@ export const BaculaDashboard = () => {
   const {
     data: jobsData,
     isLoading: jobsLoading
-  } = useBaculaJobsRecent();
+  } = useBaculaJobsAll();
 
 
   // Usar o hook customizado para processar dados dos jobs
