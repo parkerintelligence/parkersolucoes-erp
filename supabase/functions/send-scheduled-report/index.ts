@@ -98,16 +98,17 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Buscar template da mensagem por ID
     console.log(`🔍 [SEND] Buscando template por ID: ${report.report_type}`);
+    // Removendo filtro user_id para busca por ID específico para evitar erro "multiple rows"
     const { data: template, error: templateError } = await supabase
       .from('whatsapp_message_templates')
       .select('*')
       .eq('id', report.report_type)
-      .eq('user_id', report.user_id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (templateError || !template) {
       console.error('❌ [SEND] Template não encontrado:', templateError);
+      console.error('❌ [SEND] Report details:', { report_type: report.report_type, user_id: report.user_id });
       throw new Error(`Template não encontrado ou inativo: ${report.report_type} - ${templateError?.message || 'Template not found'}`);
     }
 
