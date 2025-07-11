@@ -145,8 +145,8 @@ export const useBaculaJobsData = (jobsData: any, searchTerm: string, statusFilte
   }>;
   clientStats.sort((a, b) => b.bytes - a.bytes);
 
-  // Jobs recentes (primeiros 20 do filtro)
-  const recentJobs = filteredJobs.slice(0, 20);
+  // Todos os jobs filtrados (sem limite)
+  const recentJobs = filteredJobs;
 
   return {
     allJobs,
@@ -185,29 +185,31 @@ export const formatDateTime = (dateTime: string) => {
 export const getJobStatusBadge = (status: string) => {
   switch (status) {
     case 'T':
-      return React.createElement(Badge, { className: "bg-green-900/20 text-green-400 border-green-600" }, "Completo");
+      return React.createElement(Badge, { className: "bg-green-900/20 text-green-400 border-green-600 text-xs" }, "Completo - OK");
     case 'W':
-      return React.createElement(Badge, { className: "bg-yellow-900/20 text-yellow-400 border-yellow-600" }, "Aviso");
+      return React.createElement(Badge, { className: "bg-yellow-900/20 text-yellow-400 border-yellow-600 text-xs" }, "Aviso");
     case 'E':
-      return React.createElement(Badge, { className: "bg-red-900/20 text-red-400 border-red-600" }, "Erro");
+      return React.createElement(Badge, { className: "bg-red-900/20 text-red-400 border-red-600 text-xs" }, "Erro");
     case 'f':
-      return React.createElement(Badge, { className: "bg-red-900/20 text-red-400 border-red-600" }, "Fatal");
+      return React.createElement(Badge, { className: "bg-red-900/20 text-red-400 border-red-600 text-xs" }, "Fatal");
     case 'R':
-      return React.createElement(Badge, { className: "bg-blue-900/20 text-blue-400 border-blue-600" }, "Executando");
+      return React.createElement(Badge, { className: "bg-blue-900/20 text-blue-400 border-blue-600 text-xs" }, "Executando");
+    case 'A':
+      return React.createElement(Badge, { className: "bg-gray-900/20 text-gray-400 border-gray-600 text-xs" }, "Cancelado");
     default:
-      return React.createElement(Badge, { className: "bg-gray-900/20 text-gray-400 border-gray-600" }, status);
+      return React.createElement(Badge, { className: "bg-gray-900/20 text-gray-400 border-gray-600 text-xs" }, status);
   }
 };
 
 export const getJobLevelBadge = (level: string) => {
   switch (level) {
     case 'F':
-      return React.createElement(Badge, { className: "bg-green-900/20 text-green-400 border-green-600" }, "Completo");
+      return React.createElement(Badge, { className: "bg-blue-900/20 text-blue-400 border-blue-600 text-xs" }, "Completo");
     case 'I':
-      return React.createElement(Badge, { className: "bg-blue-900/20 text-blue-400 border-blue-600" }, "Incremental");
+      return React.createElement(Badge, { className: "bg-orange-900/20 text-orange-400 border-orange-600 text-xs" }, "Incremental");
     case 'D':
-      return React.createElement(Badge, { className: "bg-purple-900/20 text-purple-400 border-purple-600" }, "Diferencial");
+      return React.createElement(Badge, { className: "bg-purple-900/20 text-purple-400 border-purple-600 text-xs" }, "Diferencial");
     default:
-      return React.createElement(Badge, { className: "bg-gray-900/20 text-gray-400 border-gray-600" }, level || "N/A");
+      return React.createElement(Badge, { className: "bg-gray-900/20 text-gray-400 border-gray-600 text-xs" }, level || "N/A");
   }
 };
