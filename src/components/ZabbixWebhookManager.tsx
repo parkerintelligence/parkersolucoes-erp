@@ -30,7 +30,14 @@ const triggerTypeLabels = {
   'problem_created': 'Problema Criado',
   'problem_resolved': 'Problema Resolvido', 
   'host_down': 'Host Indisponível',
-  'host_up': 'Host Disponível'
+  'host_up': 'Host Disponível',
+  'host_restarted': 'Host Reiniciado',
+  'service_restarted': 'Serviço Reiniciado',
+  'low_disk_space': 'Pouco Espaço em Disco',
+  'high_cpu_usage': 'Alto Uso de CPU',
+  'memory_high': 'Memória Alta',
+  'network_issue': 'Problema de Rede',
+  'all_events': 'Todos os Eventos'
 };
 
 export const ZabbixWebhookManager = () => {

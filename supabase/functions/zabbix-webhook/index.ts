@@ -84,17 +84,39 @@ serve(async (req) => {
     // Find active Zabbix webhooks that match this trigger type
     let triggerType = status === '0' ? 'problem_resolved' : 'problem_created'
     
-    // Determinar tipo de trigger baseado no status e outras condições
+    // Determinar tipo de trigger baseado no nome do problema e status
+    const problemNameLower = problem_name.toLowerCase()
+    
     if (status === '0') {
       triggerType = 'problem_resolved'
     } else if (status === '1') {
-      triggerType = 'problem_created'
+      // Verificar se é um evento específico baseado no nome
+      if (problemNameLower.includes('restart') || problemNameLower.includes('reinici')) {
+        triggerType = 'host_restarted'
+      } else if (problemNameLower.includes('disk') || problemNameLower.includes('disco')) {
+        triggerType = 'low_disk_space'
+      } else if (problemNameLower.includes('cpu')) {
+        triggerType = 'high_cpu_usage'
+      } else if (problemNameLower.includes('memory') || problemNameLower.includes('memoria')) {
+        triggerType = 'memory_high'
+      } else if (problemNameLower.includes('network') || problemNameLower.includes('rede')) {
+        triggerType = 'network_issue'
+      } else if (problemNameLower.includes('down') || problemNameLower.includes('unavailable')) {
+        triggerType = 'host_down'
+      } else if (problemNameLower.includes('up') || problemNameLower.includes('available')) {
+        triggerType = 'host_up'
+      } else {
+        triggerType = 'problem_created'
+      }
     }
     
+    console.log(`Trigger type determined: ${triggerType} based on problem: "${problem_name}" and status: ${status}`)
+    
+    // Buscar webhooks para o tipo específico E também para "all_events"
     const { data: webhooks, error: webhooksError } = await supabase
       .from('zabbix_webhooks')
       .select('*')
-      .eq('trigger_type', triggerType)
+      .in('trigger_type', [triggerType, 'all_events'])
       .eq('is_active', true)
 
     if (webhooksError) {
