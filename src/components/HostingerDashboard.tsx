@@ -372,12 +372,14 @@ const VPSCard: React.FC<VPSCardProps> = ({
   return (
     <Card className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-all">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-white text-lg flex items-center gap-2">
-            <Server className="h-5 w-5 text-orange-500" />
-            {safeValue(vps.hostname) || safeValue(vps.name) || safeValue(vps.id)}
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-white text-sm md:text-base flex items-center gap-2 truncate min-w-0 flex-1">
+            <Server className="h-4 w-4 text-orange-500 flex-shrink-0" />
+            <span className="truncate">
+              {safeValue(vps.hostname) || safeValue(vps.name) || safeValue(vps.id)}
+            </span>
           </CardTitle>
-          <Badge variant="outline" className={getStatusColor(getVpsStatus(vps))}>
+          <Badge variant="outline" className={`${getStatusColor(getVpsStatus(vps))} text-xs flex-shrink-0`}>
             {getVpsStatus(vps)}
           </Badge>
         </div>
