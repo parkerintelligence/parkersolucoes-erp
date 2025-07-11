@@ -22,12 +22,46 @@ serve(async (req) => {
     console.log('🔄 Iniciando processamento do relatório diário do Bacula');
 
     // Buscar template do WhatsApp para relatórios Bacula
-    const { data: template, error: templateError } = await supabase
-      .from('whatsapp_message_templates')
-      .select('*')
-      .eq('name', 'Relatório Diário de Erros Bacula')
-      .eq('is_active', true)
-      .single();
+    let template = null;
+    let templateError = null;
+
+    // Primeiro tentar buscar por ID (se report_id for fornecido)
+    if (report_id) {
+      const { data: reportConfig } = await supabase
+        .from('scheduled_reports')
+        .select('report_type')
+        .eq('id', report_id)
+        .single();
+
+      if (reportConfig?.report_type) {
+        // Verificar se é UUID (novo formato) ou string (formato antigo)
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reportConfig.report_type);
+        
+        if (isUUID) {
+          // Buscar por ID
+          const result = await supabase
+            .from('whatsapp_message_templates')
+            .select('*')
+            .eq('id', reportConfig.report_type)
+            .eq('is_active', true)
+            .single();
+          template = result.data;
+          templateError = result.error;
+        }
+      }
+    }
+
+    // Fallback: buscar por nome se não encontrou por ID
+    if (!template) {
+      const result = await supabase
+        .from('whatsapp_message_templates')
+        .select('*')
+        .eq('name', 'Relatório Diário de Erros Bacula')
+        .eq('is_active', true)
+        .single();
+      template = result.data;
+      templateError = result.error;
+    }
 
     if (templateError) {
       console.error('❌ Erro ao buscar template:', templateError);
