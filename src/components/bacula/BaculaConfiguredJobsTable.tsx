@@ -290,34 +290,34 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader>
-                 <TableRow className="border-slate-700 bg-slate-800/50 hover:bg-slate-700/50">
-                   <TableHead className="text-slate-200 font-semibold py-3 px-4 w-[250px]">
+               <TableHeader>
+                 <TableRow className="border-slate-700 bg-slate-800/50 h-10">
+                   <TableHead className="text-slate-200 font-semibold py-1 px-3 h-10 text-sm">
                      <div className="flex items-center gap-2">
-                       <Database className="h-4 w-4" />
+                       <Database className="h-3 w-3" />
                        Job Name
                      </div>
                    </TableHead>
-                   <TableHead className="text-slate-200 font-semibold py-3 px-4 w-[120px]">
+                   <TableHead className="text-slate-200 font-semibold py-1 px-3 h-10 text-sm w-[100px]">
                      <div className="flex items-center gap-2">
-                       <Filter className="h-4 w-4" />
+                       <Filter className="h-3 w-3" />
                        Type
                      </div>
                    </TableHead>
-                   <TableHead className="text-slate-200 font-semibold py-3 px-4 w-[200px]">
+                   <TableHead className="text-slate-200 font-semibold py-1 px-3 h-10 text-sm w-[180px]">
                      <div className="flex items-center gap-2">
-                       <Calendar className="h-4 w-4" />
+                       <Calendar className="h-3 w-3" />
                        Last Success
                      </div>
                    </TableHead>
-                   <TableHead className="text-slate-200 font-semibold py-3 px-4 w-[200px]">
+                   <TableHead className="text-slate-200 font-semibold py-1 px-3 h-10 text-sm w-[180px]">
                      <div className="flex items-center gap-2">
-                       <Clock className="h-4 w-4" />
+                       <Clock className="h-3 w-3" />
                        Last Failure
                      </div>
                    </TableHead>
                 </TableRow>
-              </TableHeader>
+               </TableHeader>
               <TableBody>
                  {filteredJobs.length > 0 ? (
                    filteredJobs.map((job, index) => {
@@ -326,78 +326,78 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                      const lastFailed = getLastFailedJob(jobName);
                     
                     return (
-                       <TableRow 
-                         key={index} 
-                         className="border-slate-700 hover:bg-slate-700/30 transition-colors"
-                       >
-                            <TableCell className="font-medium text-white py-2 px-4">
-                              <div className="flex flex-col space-y-1">
-                                <span className="text-sm font-semibold text-white">
-                                  {getFieldValue(job, ['name', 'jobname', 'Job', 'JobName'])}
-                                </span>
-                                {getFieldValue(job, ['description', 'Description'], '') !== '' && (
-                                  <span className="text-xs text-slate-400">
-                                    {getFieldValue(job, ['description', 'Description'])}
-                                  </span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-2 px-4">
-                               {getJobTypeBadge(
-                                 getFieldValue(job, ['type', 'jobtype', 'Type', 'JobType'], 'Unknown')
-                               )}
+                        <TableRow 
+                          key={index} 
+                          className="border-slate-700 hover:bg-slate-700/30 transition-colors h-12"
+                        >
+                             <TableCell className="font-medium text-white py-1 px-3">
+                               <div className="flex flex-col">
+                                 <span className="text-sm font-semibold text-white leading-tight">
+                                   {getFieldValue(job, ['name', 'jobname', 'Job', 'JobName'])}
+                                 </span>
+                                 {getFieldValue(job, ['description', 'Description'], '') !== '' && (
+                                   <span className="text-xs text-slate-400 leading-tight">
+                                     {getFieldValue(job, ['description', 'Description'])}
+                                   </span>
+                                 )}
+                               </div>
                              </TableCell>
-                          <TableCell className="py-2 px-4 text-sm">
-                            {lastSuccessful ? (
-                              <div className="space-y-1">
-                                <div className="flex items-center space-x-2">
-                                  <Badge variant="outline" className="bg-emerald-500/20 border-emerald-500/40 text-emerald-300 text-xs font-medium px-2 py-1">
-                                    ✓ Sucesso
-                                  </Badge>
-                                </div>
-                                <div className="text-xs text-slate-400">
-                                  {formatDateTime(lastSuccessful.starttime || lastSuccessful.schedtime)}
-                                </div>
-                                {lastSuccessful.jobbytes && (
-                                  <div className="text-xs text-slate-500">
-                                    📊 {(parseInt(lastSuccessful.jobbytes) / (1024 * 1024)).toFixed(2)} MB
-                                  </div>
+                             <TableCell className="py-1 px-3">
+                                {getJobTypeBadge(
+                                  getFieldValue(job, ['type', 'jobtype', 'Type', 'JobType'], 'Unknown')
                                 )}
-                              </div>
-                            ) : (
-                              <div className="flex items-center space-x-2">
-                                <Badge variant="outline" className="bg-slate-500/20 border-slate-500/40 text-slate-400 text-xs">
-                                  — Sem registro
-                                </Badge>
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="py-2 px-4 text-sm">
-                            {lastFailed ? (
-                              <div className="space-y-1">
-                                <div className="flex items-center space-x-2">
-                                  <Badge variant="outline" className="bg-red-500/20 border-red-500/40 text-red-300 text-xs font-medium px-2 py-1">
-                                    ✗ Falha
-                                  </Badge>
-                                </div>
-                                <div className="text-xs text-slate-400">
-                                  {formatDateTime(lastFailed.starttime || lastFailed.schedtime)}
-                                </div>
-                                {lastFailed.joberrors && (
-                                  <div className="text-xs text-red-400 max-w-xs break-words">
-                                    ⚠️ {String(lastFailed.joberrors).substring(0, 100)}...
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="flex items-center space-x-2">
-                                <Badge variant="outline" className="bg-slate-500/20 border-slate-500/40 text-slate-400 text-xs">
-                                  — Sem falhas
-                                </Badge>
-                              </div>
-                            )}
-                          </TableCell>
-                       </TableRow>
+                              </TableCell>
+                           <TableCell className="py-1 px-3 text-sm">
+                             {lastSuccessful ? (
+                               <div className="space-y-0.5">
+                                 <div className="flex items-center">
+                                   <Badge variant="outline" className="bg-emerald-500/20 border-emerald-500/40 text-emerald-300 text-xs font-medium px-1.5 py-0.5">
+                                     ✓ Sucesso
+                                   </Badge>
+                                 </div>
+                                 <div className="text-xs text-slate-400 leading-tight">
+                                   {formatDateTime(lastSuccessful.starttime || lastSuccessful.schedtime)}
+                                 </div>
+                                 {lastSuccessful.jobbytes && (
+                                   <div className="text-xs text-slate-500 leading-tight">
+                                     📊 {(parseInt(lastSuccessful.jobbytes) / (1024 * 1024)).toFixed(2)} MB
+                                   </div>
+                                 )}
+                               </div>
+                             ) : (
+                               <div className="flex items-center">
+                                 <Badge variant="outline" className="bg-slate-500/20 border-slate-500/40 text-slate-400 text-xs px-1.5 py-0.5">
+                                   — Sem registro
+                                 </Badge>
+                               </div>
+                             )}
+                           </TableCell>
+                           <TableCell className="py-1 px-3 text-sm">
+                             {lastFailed ? (
+                               <div className="space-y-0.5">
+                                 <div className="flex items-center">
+                                   <Badge variant="outline" className="bg-red-500/20 border-red-500/40 text-red-300 text-xs font-medium px-1.5 py-0.5">
+                                     ✗ Falha
+                                   </Badge>
+                                 </div>
+                                 <div className="text-xs text-slate-400 leading-tight">
+                                   {formatDateTime(lastFailed.starttime || lastFailed.schedtime)}
+                                 </div>
+                                 {lastFailed.joberrors && (
+                                   <div className="text-xs text-red-400 max-w-xs break-words leading-tight">
+                                     ⚠️ {String(lastFailed.joberrors).substring(0, 80)}...
+                                   </div>
+                                 )}
+                               </div>
+                             ) : (
+                               <div className="flex items-center">
+                                 <Badge variant="outline" className="bg-slate-500/20 border-slate-500/40 text-slate-400 text-xs px-1.5 py-0.5">
+                                   — Sem falhas
+                                 </Badge>
+                               </div>
+                             )}
+                           </TableCell>
+                        </TableRow>
                     );
                   })
                 ) : (
