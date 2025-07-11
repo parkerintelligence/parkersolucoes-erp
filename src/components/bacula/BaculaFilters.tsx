@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Search, Filter, Calendar } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { CalendarIcon, Search, Filter, Calendar as CalendarLucide } from 'lucide-react';
+import { format } from 'date-fns';
 import { BaculaAnalysisDialog } from '@/components/BaculaAnalysisDialog';
 
 interface BaculaFiltersProps {
@@ -18,7 +22,7 @@ interface BaculaFiltersProps {
   jobsCount: number;
   allJobs: any[];
 }
-
+  const [customDateRange, setCustomDateRange] = useState<{start: Date | null, end: Date | null}>({start: null, end: null});
 export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
   searchTerm,
   setSearchTerm,

@@ -12,7 +12,7 @@ export const BaculaDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('7days');
-  const [groupByDate, setGroupByDate] = useState(false);
+  const [groupByDate, setGroupByDate] = useState(true); // Default agrupado por data
 
   const {
     data: jobsData,
