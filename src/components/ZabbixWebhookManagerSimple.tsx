@@ -49,73 +49,135 @@ export const ZabbixWebhookManagerSimple = () => {
   const { data: integrations = [] } = useIntegrations();
   const { toast } = useToast();
   const sendWhatsAppMessage = useSendWhatsAppMessage();
+  const [isSimulating, setIsSimulating] = useState(false);
 
   // Função para simular 3 incidentes do Zabbix
   const simulateZabbixIncidents = async () => {
+    if (isSimulating) return;
+    
+    setIsSimulating(true);
+    
+    // Verificar se existem webhooks ativos
+    const activeWebhooks = webhooks.filter(w => w.is_active);
+    if (activeWebhooks.length === 0) {
+      toast({
+        title: "Nenhum webhook ativo",
+        description: "Crie e ative pelo menos um webhook antes de simular incidentes",
+        variant: "destructive",
+        duration: 5000,
+      });
+      setIsSimulating(false);
+      return;
+    }
+
+    toast({
+      title: "Iniciando simulação",
+      description: `Simulando 3 incidentes para ${activeWebhooks.length} webhook(s) ativo(s)`,
+      duration: 3000,
+    });
+
     const incidents = [
       {
-        alert_name: "High CPU usage on Zabbix server",
-        severity: "Average",
-        host: "Zabbix server",
-        trigger_type: "problem_created",
-        status: "PROBLEM",
-        item_value: "85%",
-        trigger_url: "https://monitoramento.parkersolucoes.com.br/zabbix/tr_events.php?triggerid=1001",
-        event_date: new Date().toISOString()
+        problem_name: "High CPU usage on Zabbix server",
+        host_name: "Zabbix server",
+        severity: "3",
+        eventid: "1001",
+        status: "1",
+        trigger_url: "https://monitoramento.parkersolucoes.com.br/zabbix/tr_events.php?triggerid=1001"
       },
       {
-        alert_name: "Disk space low on SRVDB001",
-        severity: "High", 
-        host: "DREAM PARK - SRVDB001",
-        trigger_type: "problem_created",
-        status: "PROBLEM",
-        item_value: "92% used",
-        trigger_url: "https://monitoramento.parkersolucoes.com.br/zabbix/tr_events.php?triggerid=1002",
-        event_date: new Date().toISOString()
+        problem_name: "Disk space low on SRVDB001",
+        host_name: "DREAM PARK - SRVDB001",
+        severity: "4",
+        eventid: "1002",
+        status: "1",
+        trigger_url: "https://monitoramento.parkersolucoes.com.br/zabbix/tr_events.php?triggerid=1002"
       },
       {
-        alert_name: "Service unavailable",
-        severity: "Disaster",
-        host: "GLOBAL PARK - SRVDB003", 
-        trigger_type: "problem_created",
-        status: "PROBLEM",
-        item_value: "Service down",
-        trigger_url: "https://monitoramento.parkersolucoes.com.br/zabbix/tr_events.php?triggerid=1003",
-        event_date: new Date().toISOString()
+        problem_name: "Service unavailable",
+        host_name: "GLOBAL PARK - SRVDB003",
+        severity: "5",
+        eventid: "1003",
+        status: "1",
+        trigger_url: "https://monitoramento.parkersolucoes.com.br/zabbix/tr_events.php?triggerid=1003"
       }
     ];
 
-    for (const incident of incidents) {
+    let successCount = 0;
+    let errorCount = 0;
+    const errors: string[] = [];
+
+    for (const [index, incident] of incidents.entries()) {
       try {
-        console.log('Simulando incidente:', incident);
-        const response = await fetch('https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/zabbix-webhook', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(incident)
+        console.log(`Simulando incidente ${index + 1}:`, incident);
+        
+        const response = await supabase.functions.invoke('zabbix-webhook', {
+          body: incident
         });
         
-        const result = await response.json();
-        console.log('Resposta do webhook:', result);
+        console.log(`Resposta do incidente ${index + 1}:`, response);
+        
+        if (response.error) {
+          throw new Error(response.error.message || 'Erro na chamada da função');
+        }
+        
+        successCount++;
         
         toast({
-          title: "Incidente Simulado",
-          description: `${incident.alert_name} enviado para webhooks ativos`,
-          duration: 3000,
+          title: `Incidente ${index + 1} simulado`,
+          description: `${incident.problem_name} processado com sucesso`,
+          duration: 2000,
         });
         
-        // Aguardar 1 segundo entre envios
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Aguardar 1.5 segundos entre envios
+        if (index < incidents.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+        
       } catch (error) {
-        console.error('Erro ao simular incidente:', error);
+        errorCount++;
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        errors.push(`Incidente ${index + 1}: ${errorMessage}`);
+        
+        console.error(`Erro no incidente ${index + 1}:`, error);
+        
         toast({
-          title: "Erro na Simulação",
-          description: `Falha ao enviar ${incident.alert_name}`,
+          title: `Erro no incidente ${index + 1}`,
+          description: `Falha ao simular: ${incident.problem_name}`,
           variant: "destructive",
           duration: 3000,
         });
       }
+    }
+
+    // Resultado final
+    setIsSimulating(false);
+    
+    if (successCount === incidents.length) {
+      toast({
+        title: "Simulação concluída com sucesso!",
+        description: `Todos os ${successCount} incidentes foram processados`,
+        duration: 5000,
+      });
+    } else if (successCount > 0) {
+      toast({
+        title: "Simulação parcialmente concluída",
+        description: `${successCount} sucesso(s), ${errorCount} erro(s)`,
+        variant: "destructive",
+        duration: 5000,
+      });
+    } else {
+      toast({
+        title: "Simulação falhou completamente",
+        description: `Todos os ${errorCount} incidentes falharam. Verifique as configurações.`,
+        variant: "destructive",
+        duration: 7000,
+      });
+    }
+
+    // Log detalhado de erros
+    if (errors.length > 0) {
+      console.error('Erros detalhados da simulação:', errors);
     }
   };
 
@@ -501,9 +563,14 @@ export const ZabbixWebhookManagerSimple = () => {
                 onClick={simulateZabbixIncidents}
                 variant="outline"
                 className="bg-orange-600 hover:bg-orange-700 border-orange-500 text-white"
+                disabled={isSimulating}
               >
-                <TestTube className="h-4 w-4 mr-2" />
-                Simular 3 Incidentes
+                {isSimulating ? (
+                  <RefreshCcw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <TestTube className="h-4 w-4 mr-2" />
+                )}
+                {isSimulating ? 'Simulando...' : 'Simular 3 Incidentes'}
               </Button>
             </div>
           </div>
