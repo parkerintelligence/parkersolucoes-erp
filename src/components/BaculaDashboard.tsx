@@ -53,7 +53,6 @@ export const BaculaDashboard = () => {
     // Filtro por data (últimos 7 dias por padrão)
     const now = new Date();
     let cutoffDate = new Date();
-    
     switch (dateFilter) {
       case '7days':
         cutoffDate.setDate(now.getDate() - 7);
@@ -65,7 +64,6 @@ export const BaculaDashboard = () => {
         cutoffDate = new Date(0);
         break;
     }
-    
     filtered = filtered.filter(job => {
       if (!job.starttime) return true;
       const jobDate = new Date(job.starttime);
@@ -75,20 +73,15 @@ export const BaculaDashboard = () => {
     // Filtro por termo de busca
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(job => 
-        (job.name || job.jobname || '').toLowerCase().includes(searchLower) ||
-        (job.client || job.clientname || '').toLowerCase().includes(searchLower)
-      );
+      filtered = filtered.filter(job => (job.name || job.jobname || '').toLowerCase().includes(searchLower) || (job.client || job.clientname || '').toLowerCase().includes(searchLower));
     }
 
     // Filtro por status
     if (statusFilter !== 'all') {
       filtered = filtered.filter(job => job.jobstatus === statusFilter);
     }
-
     return filtered;
   }, [allJobs, searchTerm, statusFilter, dateFilter]);
-
   const jobs = filteredJobs;
 
   // Calcular estatísticas dos jobs
@@ -210,12 +203,7 @@ export const BaculaDashboard = () => {
           {/* Filtros */}
           <div className="flex items-center gap-2">
             <Search className="h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Buscar jobs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-40 h-8 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-            />
+            <Input placeholder="Buscar jobs..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-40 h-8 bg-slate-700 border-slate-600 text-white placeholder-slate-400" />
           </div>
           
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -368,13 +356,7 @@ export const BaculaDashboard = () => {
               </CardContent>
             </Card>
             
-            <Card className="bg-orange-900/20 border-orange-600/30">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-orange-400 mb-1">886</div>
-                <div className="text-xs text-orange-300">GB</div>
-                <div className="text-xs text-orange-400 mt-1">All Volumes Size</div>
-              </CardContent>
-            </Card>
+            
           </div>
 
           {/* Jobs Status Terminated - Tamanho em GB */}
