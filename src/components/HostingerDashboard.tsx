@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { MasterPasswordDialog } from '@/components/MasterPasswordDialog';
 import { 
   useHostingerIntegrations, 
   useHostingerVPS, 
@@ -22,14 +24,19 @@ import {
   Activity,
   Zap,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 
 export const HostingerDashboard = () => {
   const { toast } = useToast();
+  const { isMaster } = useAuth();
   const { data: integrations, isLoading: integrationsLoading } = useHostingerIntegrations();
   const { restartVPS, createSnapshot } = useHostingerActions();
   const [selectedIntegration, setSelectedIntegration] = useState<string>('');
+  const [showMasterPasswordDialog, setShowMasterPasswordDialog] = useState(false);
+  const [pendingRestartVpsId, setPendingRestartVpsId] = useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   const { data: vpsList, isLoading: vpsLoading, refetch: refetchVPS } = useHostingerVPS(
     selectedIntegration || integrations?.[0]?.id
@@ -79,18 +86,45 @@ export const HostingerDashboard = () => {
     }
   };
 
-  const handleRestart = async (vpsId: string) => {
-    if (window.confirm('Tem certeza que deseja reiniciar este VPS?')) {
+  const handleRestart = (vpsId: string) => {
+    if (!isMaster) {
+      toast({
+        title: "Acesso Negado",
+        description: "Apenas usuários master podem reiniciar VPS",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setPendingRestartVpsId(vpsId);
+    setShowMasterPasswordDialog(true);
+  };
+
+  const handleMasterPasswordSuccess = async () => {
+    if (!pendingRestartVpsId) return;
+    
+    try {
       await restartVPS.mutateAsync({
         integrationId: selectedIntegration,
-        vpsId
+        vpsId: pendingRestartVpsId
       });
       setTimeout(() => refetchVPS(), 2000);
+    } finally {
+      setPendingRestartVpsId(null);
     }
   };
 
+  const handleRefresh = () => {
+    refetchVPS();
+    setLastRefresh(new Date());
+    toast({
+      title: "Dados Atualizados",
+      description: "Dashboard atualizado com sucesso",
+    });
+  };
+
   const handleSnapshot = async (vpsId: string, vpsName: any) => {
-    const safeName = typeof vpsName === 'object' ? (vpsName?.name || vpsName?.id || vpsId) : (vpsName || vpsId);
+    const safeName = typeof vpsName === 'object' ? (vpsName?.hostname || vpsName?.name || vpsName?.id || vpsId) : (vpsName || vpsId);
     const snapshotName = `${safeName}_${new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')}`;
     await createSnapshot.mutateAsync({
       integrationId: selectedIntegration,
@@ -125,6 +159,38 @@ export const HostingerDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header com Botão Atualizar */}
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Server className="h-5 w-5 text-orange-500" />
+                Dashboard Hostinger VPS
+              </CardTitle>
+              <p className="text-slate-400 text-sm mt-1">
+                Gerencie seus servidores virtuais Hostinger
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-xs text-slate-400 flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Última atualização: {lastRefresh.toLocaleTimeString()}
+              </div>
+              <Button
+                onClick={handleRefresh}
+                variant="outline"
+                size="sm"
+                className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Atualizar
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
       {/* Seletor de Integração */}
       {integrations.length > 1 && (
         <Card className="bg-slate-800 border-slate-700">
@@ -177,7 +243,7 @@ export const HostingerDashboard = () => {
                 vps={vps}
                 integrationId={selectedIntegration}
                 onRestart={() => handleRestart(vps.id)}
-                onSnapshot={() => handleSnapshot(vps.id, vps.name)}
+                onSnapshot={() => handleSnapshot(vps.id, vps.hostname || vps.name)}
                 restarting={restartVPS.isPending}
                 snapshotting={createSnapshot.isPending}
               />
@@ -185,6 +251,15 @@ export const HostingerDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Dialog de Senha Master */}
+      <MasterPasswordDialog
+        open={showMasterPasswordDialog}
+        onOpenChange={setShowMasterPasswordDialog}
+        onSuccess={handleMasterPasswordSuccess}
+        title="Autorização para Reiniciar VPS"
+        description="Esta ação irá reiniciar o servidor virtual. Para continuar, confirme sua senha master:"
+      />
     </div>
   );
 };
@@ -209,8 +284,16 @@ const VPSCard: React.FC<VPSCardProps> = ({
   const { data: metrics } = useHostingerVPSMetrics(integrationId, vps.id);
 
   // Função para extrair valores de forma segura de objetos ou strings
-  const safeValue = (value: any, fallback: string = 'N/A') => {
+  const safeValue = (value: any, fallback: any = 'N/A') => {
     if (typeof value === 'object' && value !== null) {
+      // Se for um array (como ipv4), retorna o primeiro elemento
+      if (Array.isArray(value) && value.length > 0) {
+        const firstItem = value[0];
+        if (typeof firstItem === 'object' && firstItem.address) {
+          return firstItem.address;
+        }
+        return firstItem;
+      }
       // Se for um objeto com address (como IPv4/IPv6)
       if (value.address) return value.address;
       // Se for um objeto com name
@@ -220,7 +303,23 @@ const VPSCard: React.FC<VPSCardProps> = ({
       // Se for um objeto sem propriedades conhecidas, retorna o fallback
       return fallback;
     }
-    return value || fallback;
+    return value !== undefined && value !== null ? value : fallback;
+  };
+
+  const formatMemory = (mb: number) => {
+    if (!mb) return '0 MB';
+    if (mb >= 1024) {
+      return `${(mb / 1024).toFixed(1)} GB`;
+    }
+    return `${mb} MB`;
+  };
+
+  const formatDisk = (gb: number) => {
+    if (!gb) return '0 GB';
+    if (gb >= 1024) {
+      return `${(gb / 1024).toFixed(1)} TB`;
+    }
+    return `${gb} GB`;
   };
 
   const formatUptime = (seconds: number) => {
@@ -254,7 +353,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
         <div className="flex items-center justify-between">
           <CardTitle className="text-white text-lg flex items-center gap-2">
             <Server className="h-5 w-5 text-orange-500" />
-            {safeValue(vps.name) || safeValue(vps.id)}
+            {safeValue(vps.hostname) || safeValue(vps.name) || safeValue(vps.id)}
           </CardTitle>
           <Badge variant="outline" className={getStatusColor(safeValue(vps.status))}>
             {safeValue(vps.status)}
@@ -286,12 +385,12 @@ const VPSCard: React.FC<VPSCardProps> = ({
 
         {/* Especificações */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Cpu className="h-4 w-4 text-blue-400" />
               <span className="text-slate-400">CPU:</span>
             </div>
-            <span className="text-white">{safeValue(vps.cpu, '0')} cores</span>
+            <span className="text-white">{safeValue(vps.cpus, '0')} cores</span>
           </div>
           
           <div className="flex items-center justify-between">
@@ -299,7 +398,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
               <Zap className="h-4 w-4 text-green-400" />
               <span className="text-slate-400">RAM:</span>
             </div>
-            <span className="text-white">{safeValue(vps.memory, '0')} MB</span>
+            <span className="text-white">{formatMemory(safeValue(vps.memory, 0))}</span>
           </div>
           
           <div className="flex items-center justify-between">
@@ -307,7 +406,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
               <HardDrive className="h-4 w-4 text-purple-400" />
               <span className="text-slate-400">Disco:</span>
             </div>
-            <span className="text-white">{safeValue(vps.disk, '0')} GB</span>
+            <span className="text-white">{formatDisk(safeValue(vps.disk, 0))}</span>
           </div>
         </div>
 
@@ -360,10 +459,10 @@ const VPSCard: React.FC<VPSCardProps> = ({
             </span>
           </div>
           
-          {vps.os && (
+          {(vps.template || vps.os) && (
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-400">OS:</span>
-              <span className="text-slate-300">{safeValue(vps.os)}</span>
+              <span className="text-slate-300">{safeValue(vps.template?.name) || safeValue(vps.os)}</span>
             </div>
           )}
           
