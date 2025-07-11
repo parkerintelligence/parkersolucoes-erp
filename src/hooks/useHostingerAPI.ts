@@ -55,16 +55,27 @@ const useHostingerVPS = (integrationId?: string) => {
     queryFn: async () => {
       if (!integrationId) return [];
       
+      console.log('🔄 Buscando VPS para integração:', integrationId);
+      
       const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
         body: {
           integration_id: integrationId,
-          endpoint: '/vps',
+          endpoint: '/virtual-machines',
           method: 'GET'
         }
       });
 
-      if (error) throw error;
-      return data?.data || [];
+      console.log('📡 Resposta do proxy:', { data, error });
+
+      if (error) {
+        console.error('❌ Erro ao buscar VPS:', error);
+        throw error;
+      }
+      
+      const vpsList = data?.data || [];
+      console.log('✅ VPS encontrados:', vpsList);
+      
+      return vpsList;
     },
     enabled: !!integrationId,
     refetchInterval: 30000, // Atualizar a cada 30 segundos
@@ -78,7 +89,7 @@ const useHostingerVPSDetails = (integrationId: string, vpsId: string) => {
       const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
         body: {
           integration_id: integrationId,
-          endpoint: `/vps/${vpsId}`,
+          endpoint: `/virtual-machines/${vpsId}`,
           method: 'GET'
         }
       });
@@ -98,7 +109,7 @@ const useHostingerVPSMetrics = (integrationId: string, vpsId: string) => {
       const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
         body: {
           integration_id: integrationId,
-          endpoint: `/vps/${vpsId}/metrics`,
+          endpoint: `/virtual-machines/${vpsId}/metrics`,
           method: 'GET'
         }
       });
@@ -120,7 +131,7 @@ const useHostingerActions = () => {
       const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
         body: {
           integration_id: integrationId,
-          endpoint: `/vps/${vpsId}/restart`,
+          endpoint: `/virtual-machines/${vpsId}/restart`,
           method: 'POST'
         }
       });
@@ -157,7 +168,7 @@ const useHostingerActions = () => {
       const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
         body: {
           integration_id: integrationId,
-          endpoint: `/vps/${vpsId}/snapshots`,
+          endpoint: `/virtual-machines/${vpsId}/snapshots`,
           method: 'POST',
           data: {
             name: name || `Snapshot ${new Date().toLocaleString()}`

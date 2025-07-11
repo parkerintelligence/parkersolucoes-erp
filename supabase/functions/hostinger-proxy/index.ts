@@ -47,7 +47,7 @@ serve(async (req) => {
     }
 
     // Construir URL da API
-    const baseUrl = integration.base_url || 'https://api.hostinger.com/v1'
+    const baseUrl = integration.base_url || 'https://developers.hostinger.com/api/vps/v1'
     const url = `${baseUrl}${endpoint}`
 
     console.log('Making request to:', url)
