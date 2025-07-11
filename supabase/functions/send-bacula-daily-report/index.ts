@@ -150,8 +150,7 @@ serve(async (req) => {
       // Fazer requisição para a API do Bacula via proxy
       const { data: baculaData, error: baculaRequestError } = await supabase.functions.invoke('bacula-proxy', {
         body: { 
-          endpoint: 'jobs/last24h',
-          integration_id: baculaIntegration.id 
+          endpoint: 'jobs/last24h'
         }
       });
 
@@ -168,29 +167,48 @@ serve(async (req) => {
         allJobs = baculaData.result;
       } else if (Array.isArray(baculaData)) {
         allJobs = baculaData;
+      } else if (baculaData?.data && Array.isArray(baculaData.data)) {
+        allJobs = baculaData.data;
       }
 
-      // Filtrar jobs com erro do dia anterior
+      console.log(`📊 Total de jobs encontrados: ${allJobs.length}`);
+
+      // Filtrar jobs com erro das últimas 24 horas
+      const now = new Date();
+      const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+      
       const failedJobs = allJobs.filter(job => {
         const jobDate = new Date(job.starttime || job.schedtime || job.endtime);
-        const isYesterday = jobDate.toISOString().split('T')[0] === yesterdayStr;
-        const hasError = job.jobstatus === 'E' || job.jobstatus === 'f';
-        return isYesterday && hasError;
+        const isRecent = jobDate >= twentyFourHoursAgo;
+        const hasError = job.jobstatus === 'E' || job.jobstatus === 'f' || job.jobstatus === 'A';
+        return isRecent && hasError;
       });
+
+      const successJobs = allJobs.filter(job => {
+        const jobDate = new Date(job.starttime || job.schedtime || job.endtime);
+        const isRecent = jobDate >= twentyFourHoursAgo;
+        const isSuccess = job.jobstatus === 'T';
+        return isRecent && isSuccess;
+      });
+
+      const totalRecentJobs = failedJobs.length + successJobs.length;
 
       console.log(`📊 Encontrados ${failedJobs.length} jobs com erro`);
 
       // Preparar dados para o template
       const reportData = {
-        date: yesterdayStr,
-        total_errors: failedJobs.length,
-        has_errors: failedJobs.length > 0,
-        failed_jobs: failedJobs.map(job => ({
+        date: now.toISOString().split('T')[0],
+        totalJobs: totalRecentJobs,
+        errorCount: failedJobs.length,
+        errorRate: totalRecentJobs > 0 ? Math.round((failedJobs.length / totalRecentJobs) * 100) : 0,
+        hasErrors: failedJobs.length > 0,
+        errorJobs: failedJobs.map(job => ({
           name: job.name || job.jobname || 'N/A',
-          client: job.client || job.clientname || 'N/A',
-          status_description: job.jobstatus === 'E' ? 'Erro' : 'Falha Fatal',
-          start_time: job.starttime ? new Date(job.starttime).toLocaleString('pt-BR') : 'N/A',
-          job_id: job.jobid || job.id || 'N/A'
+          client: job.client || job.clientname || 'N/A', 
+          level: job.jobstatus === 'E' ? 'Erro' : job.jobstatus === 'f' ? 'Falha Fatal' : 'Cancelado',
+          startTime: job.starttime ? new Date(job.starttime).toLocaleString('pt-BR') : 'N/A',
+          bytes: job.jobbytes ? `${(parseInt(job.jobbytes) / (1024 * 1024)).toFixed(2)} MB` : '0 MB',
+          files: job.jobfiles || '0'
         })),
         timestamp: new Date().toLocaleString('pt-BR')
       };
@@ -200,32 +218,35 @@ serve(async (req) => {
       
       // Substituir variáveis simples
       message = message.replace(/\{\{date\}\}/g, reportData.date);
-      message = message.replace(/\{\{total_errors\}\}/g, reportData.total_errors.toString());
+      message = message.replace(/\{\{totalJobs\}\}/g, reportData.totalJobs.toString());
+      message = message.replace(/\{\{errorCount\}\}/g, reportData.errorCount.toString());
+      message = message.replace(/\{\{errorRate\}\}/g, reportData.errorRate.toString());
       message = message.replace(/\{\{timestamp\}\}/g, reportData.timestamp);
 
-      // Processar condicionais e loops (simplificado)
-      if (reportData.has_errors) {
+      // Processar condicionais e loops
+      if (reportData.hasErrors) {
         // Manter seção de erros
-        message = message.replace(/\{\{#if has_errors\}\}([\s\S]*?)\{\{else\}\}[\s\S]*?\{\{\/if\}\}/g, '$1');
+        message = message.replace(/\{\{#if hasErrors\}\}([\s\S]*?)\{\{else\}\}[\s\S]*?\{\{\/if\}\}/g, '$1');
         
-        // Processar lista de jobs
-        const jobsSection = message.match(/\{\{#each failed_jobs\}\}([\s\S]*?)\{\{\/each\}\}/);
+        // Processar lista de jobs com erro
+        const jobsSection = message.match(/\{\{#each errorJobs\}\}([\s\S]*?)\{\{\/each\}\}/);
         if (jobsSection) {
           const jobTemplate = jobsSection[1];
-          const jobsText = reportData.failed_jobs.map(job => {
+          const jobsText = reportData.errorJobs.map(job => {
             return jobTemplate
               .replace(/\{\{name\}\}/g, job.name)
               .replace(/\{\{client\}\}/g, job.client)
-              .replace(/\{\{status_description\}\}/g, job.status_description)
-              .replace(/\{\{start_time\}\}/g, job.start_time)
-              .replace(/\{\{job_id\}\}/g, job.job_id);
+              .replace(/\{\{level\}\}/g, job.level)
+              .replace(/\{\{startTime\}\}/g, job.startTime)
+              .replace(/\{\{bytes\}\}/g, job.bytes)
+              .replace(/\{\{files\}\}/g, job.files);
           }).join('\n');
           
-          message = message.replace(/\{\{#each failed_jobs\}\}[\s\S]*?\{\{\/each\}\}/, jobsText);
+          message = message.replace(/\{\{#each errorJobs\}\}[\s\S]*?\{\{\/each\}\}/, jobsText);
         }
       } else {
         // Mostrar seção de "sem erros"
-        message = message.replace(/\{\{#if has_errors\}\}[\s\S]*?\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/g, '$1');
+        message = message.replace(/\{\{#if hasErrors\}\}[\s\S]*?\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/g, '$1');
       }
 
       // Enviar mensagem para cada destinatário
@@ -277,6 +298,7 @@ serve(async (req) => {
           success: true, 
           message: 'Relatório processado com sucesso',
           results,
+          totalJobs: totalRecentJobs,
           jobsWithError: failedJobs.length,
           recipients: targetPhones.length
         }),

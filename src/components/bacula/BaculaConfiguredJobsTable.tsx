@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Filter, Calendar, Clock, User, Database, RefreshCw } from 'lucide-react';
-import { useBaculaJobsConfigured, useBaculaJobsAll } from '@/hooks/useBaculaAPI';
+import { useBaculaJobsConfigured, useBaculaJobs } from '@/hooks/useBaculaAPI';
 
 interface ConfiguredJobsTableProps {
   // Props podem ser adicionadas conforme necessário
@@ -25,7 +25,7 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
   const { 
     data: executedJobsData, 
     isLoading: executedJobsLoading 
-  } = useBaculaJobsAll();
+  } = useBaculaJobs();
 
   // Extrair dados dos jobs configurados
   const extractConfiguredJobs = (data: any) => {
@@ -247,14 +247,6 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
             <RefreshCw className="h-4 w-4" />
           </Button>
           
-          <Button 
-            onClick={() => console.log('Raw data:', { configuredJobsData, executedJobsData })} 
-            size="sm" 
-            variant="outline" 
-            className="bg-amber-700 border-amber-600 text-white hover:bg-amber-600"
-          >
-            Debug
-          </Button>
         </div>
       </div>
 
