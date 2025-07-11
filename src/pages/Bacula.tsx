@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { BaculaDashboard } from '@/components/BaculaDashboard';
 import { BaculaFilters } from '@/components/bacula/BaculaFilters';
-import { BaculaJobsTable } from '@/components/bacula/BaculaJobsTable';
+import { BaculaConfiguredJobsTable } from '@/components/bacula/BaculaConfiguredJobsTable';
 import { formatBytes, formatDateTime, getJobStatusBadge } from '@/hooks/useBaculaJobsData';
 
 const Bacula = () => {
@@ -152,28 +152,7 @@ const Bacula = () => {
           </TabsContent>
           
           <TabsContent value="jobs" className="mt-6">
-            <div className="space-y-6">
-              {/* Header com filtros */}
-              <BaculaFilters
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                statusFilter={statusFilter}
-                setStatusFilter={setStatusFilter}
-                dateFilter={dateFilter}
-                setDateFilter={setDateFilter}
-                jobsCount={filteredJobs.length}
-                allJobs={allJobs}
-              />
-
-              {/* Tabela de Jobs - usando o mesmo componente do dashboard */}
-              <BaculaJobsTable
-                jobs={filteredJobs}
-                recentJobs={recentJobs}
-                formatDateTime={formatDateTime}
-                formatBytes={formatBytes}
-                getJobStatusBadge={getJobStatusBadge}
-              />
-            </div>
+            <BaculaConfiguredJobsTable />
           </TabsContent>
         </Tabs>
       </div>

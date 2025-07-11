@@ -213,3 +213,33 @@ export const useBaculaJobsAll = () => {
     staleTime: 30000 // Keep data fresh for 30 seconds
   });
 };
+
+// New hook for fetching configured jobs (job definitions)
+export const useBaculaJobsConfigured = () => {
+  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
+
+  return useQuery({
+    queryKey: ['bacula-jobs-configured'],
+    queryFn: () => makeBaculaRequest('jobs/configured'),
+    enabled: isEnabled,
+    refetchInterval: 300000, // 5 minutes since configurations don't change often
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 60000 // Keep data fresh for 1 minute
+  });
+};
+
+// New hook for fetching configured clients
+export const useBaculaClientsConfigured = () => {
+  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
+
+  return useQuery({
+    queryKey: ['bacula-clients-configured'],
+    queryFn: () => makeBaculaRequest('clients/configured'),
+    enabled: isEnabled,
+    refetchInterval: 300000, // 5 minutes since configurations don't change often
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 60000 // Keep data fresh for 1 minute
+  });
+};
