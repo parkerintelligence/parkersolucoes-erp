@@ -306,6 +306,12 @@ const VPSCard: React.FC<VPSCardProps> = ({
     return value !== undefined && value !== null ? value : fallback;
   };
 
+  // Função específica para obter o status do VPS
+  const getVpsStatus = (vps: any) => {
+    // Tentar diferentes campos de status
+    return vps.state || vps.status || 'unknown';
+  };
+
   const formatMemory = (mb: number) => {
     if (!mb) return '0 MB';
     if (mb >= 1024) {
@@ -370,8 +376,8 @@ const VPSCard: React.FC<VPSCardProps> = ({
             <Server className="h-5 w-5 text-orange-500" />
             {safeValue(vps.hostname) || safeValue(vps.name) || safeValue(vps.id)}
           </CardTitle>
-          <Badge variant="outline" className={getStatusColor(safeValue(vps.status))}>
-            {safeValue(vps.status)}
+          <Badge variant="outline" className={getStatusColor(getVpsStatus(vps))}>
+            {getVpsStatus(vps)}
           </Badge>
         </div>
       </CardHeader>
@@ -640,7 +646,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
             size="sm"
             variant="outline"
             onClick={onSnapshot}
-            disabled={snapshotting || safeValue(vps.status)?.toLowerCase() !== 'running'}
+            disabled={snapshotting || getVpsStatus(vps)?.toLowerCase() !== 'running'}
             className="flex-1 bg-blue-600 border-blue-500 text-white hover:bg-blue-500"
           >
             {snapshotting ? (
@@ -655,7 +661,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
             size="sm"
             variant="outline"
             onClick={onRestart}
-            disabled={restarting || safeValue(vps.status)?.toLowerCase() !== 'running'}
+            disabled={restarting || getVpsStatus(vps)?.toLowerCase() !== 'running'}
             className="flex-1 bg-orange-600 border-orange-500 text-white hover:bg-orange-500"
           >
             {restarting ? (

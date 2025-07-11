@@ -91,24 +91,26 @@ const useHostingerVPS = (integrationId?: string) => {
       const vpsList = data?.data || [];
       console.log('✅ VPS encontrados:', vpsList);
       
-      // Enriquecer dados com informações processadas
+      // Enriquecer dados com informações processadas e mapeamento correto
       const enrichedVpsList = vpsList.map((vps: any) => ({
         ...vps,
+        // Mapear os campos corretos da API do Hostinger
+        status: vps.state || vps.status, // Hostinger usa 'state', não 'status'
         // Processar dados reais da API
         realData: {
           id: vps.id,
           hostname: vps.hostname || vps.name,
-          status: vps.status,
+          status: vps.state || vps.status, // Mapear corretamente
           ipv4: vps.ipv4,
           ipv6: vps.ipv6,
           region: vps.region,
           plan: vps.plan,
-          os: vps.os,
+          os: vps.template?.name || vps.os,
           cpus: vps.cpus || vps.cpu,
           memory: vps.memory,
           disk: vps.disk,
           datacenter: vps.datacenter,
-          template: vps.template,
+          template: vps.template?.name,
           created_at: vps.created_at,
           last_updated: new Date().toISOString()
         }
