@@ -317,7 +317,8 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                          </TableCell>
                          <TableCell className="py-3">
                            {getJobTypeBadge(
-                             job.type || job.jobtype || job.Type || job.JobType || job.Level || 'Unknown'
+                             String(job.type || job.jobtype || job.Type || job.JobType || 
+                                   (typeof job.Level === 'string' ? job.Level : '') || 'Unknown')
                            )}
                          </TableCell>
                          <TableCell className="text-slate-300 py-3 text-sm">
