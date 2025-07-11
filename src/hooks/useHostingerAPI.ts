@@ -285,30 +285,51 @@ const useHostingerActions = () => {
     }) => {
       console.log('📸 Iniciando criação de snapshot para VPS:', vpsId, 'Nome:', name);
       
-      const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
-        body: {
-          integration_id: integrationId,
-          endpoint: `/virtual-machines/${vpsId}/snapshots`,
-          method: 'POST',
-          data: {
-            name: name || `Snapshot ${new Date().toLocaleString()}`
+      // Tentar diferentes endpoints para snapshots baseados na documentação da API Hostinger
+      const endpoints = [
+        `/virtual-machines/${vpsId}/snapshots`,  // Endpoint padrão documentado
+        `/virtual-machines/${vpsId}/snapshot`,   // Variação singular
+        `/vps/${vpsId}/snapshots`,               // Endpoint alternativo
+        `/virtual-machines/${vpsId}/backup`,     // Backup como alternativa
+        `/virtual-machines/${vpsId}/image`       // Criar imagem como snapshot
+      ];
+      
+      let lastError;
+      
+      for (const endpoint of endpoints) {
+        try {
+          console.log('🔍 Testando endpoint de snapshot:', endpoint);
+          
+          const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
+            body: {
+              integration_id: integrationId,
+              endpoint: endpoint,
+              method: 'POST',
+              data: {
+                name: name || `Snapshot ${new Date().toLocaleString()}`
+              }
+            }
+          });
+
+          if (error) {
+            console.warn(`❌ Endpoint ${endpoint} falhou:`, error);
+            lastError = error;
+            continue;
           }
+          
+          // Se chegou aqui, o endpoint funcionou
+          console.log('✅ Endpoint funcionou:', endpoint, data);
+          return data;
+          
+        } catch (err) {
+          console.warn(`❌ Erro no endpoint ${endpoint}:`, err);
+          lastError = err;
         }
-      });
-
-      console.log('📡 Resposta da API de snapshot:', { data, error, vpsId, name });
-
-      if (error) {
-        console.error('❌ Erro no snapshot:', error);
-        throw error;
       }
       
-      // Verificar se a operação foi bem-sucedida
-      if (data?.success === false) {
-        throw new Error(data?.message || 'Falha na criação do snapshot');
-      }
-
-      return data;
+      // Se todos os endpoints falharam, throw do último erro
+      console.error('❌ Todos os endpoints de snapshot falharam');
+      throw lastError;
     },
     onSuccess: (data, variables) => {
       console.log('✅ Snapshot criado com sucesso:', data);
@@ -326,9 +347,29 @@ const useHostingerActions = () => {
       queryClient.invalidateQueries({ queryKey: ['hostinger-vps'] });
     },
     onError: (error: any, variables) => {
-      console.error('❌ Erro no snapshot:', error);
+      console.error('❌ Erro detalhado no snapshot:', {
+        error,
+        variables,
+        errorMessage: error?.message,
+        errorData: error?.data,
+        lastErrorDetails: error
+      });
       
-      const errorMessage = error?.message || 'Erro desconhecido ao criar snapshot';
+      // Tentar extrair mensagem de erro mais específica
+      let errorMessage = 'Erro desconhecido ao criar snapshot';
+      
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      // Se o erro indica que o endpoint não existe, informar sobre limitação da API
+      if (errorMessage.includes('route') && errorMessage.includes('could not be found')) {
+        errorMessage = 'Funcionalidade de snapshot não disponível na API do Hostinger. Verifique a documentação para endpoints suportados.';
+      }
       
       toast({
         title: "Erro no Snapshot",
