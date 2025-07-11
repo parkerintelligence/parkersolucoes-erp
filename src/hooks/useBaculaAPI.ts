@@ -183,3 +183,21 @@ export const useBaculaConnectionTest = () => {
     staleTime: 5000 // 5 seconds
   });
 };
+
+export const useBaculaJobsByPeriod = (days?: number) => {
+  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
+
+  return useQuery({
+    queryKey: ['bacula-jobs-period', days],
+    queryFn: () => {
+      if (days) {
+        return makeBaculaRequest(`jobs/last${days}days`);
+      }
+      return makeBaculaRequest('jobs');
+    },
+    enabled: isEnabled,
+    refetchInterval: 30000,
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000)
+  });
+};

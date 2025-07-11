@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Database } from 'lucide-react';
+import { getJobLevelBadge } from '@/hooks/useBaculaJobsData';
 
 interface BaculaJobsTableProps {
   jobs: any[];
@@ -39,12 +40,12 @@ export const BaculaJobsTable: React.FC<BaculaJobsTableProps> = ({
               <TableRow className="border-slate-700">
                 <TableHead className="text-slate-300 text-sm">JobID</TableHead>
                 <TableHead className="text-slate-300 text-sm">Name</TableHead>
-                <TableHead className="text-slate-300 text-sm">JobStatus</TableHead>
+                <TableHead className="text-slate-300 text-sm">Client</TableHead>
+                <TableHead className="text-slate-300 text-sm">Status</TableHead>
+                <TableHead className="text-slate-300 text-sm">Level</TableHead>
                 <TableHead className="text-slate-300 text-sm">StartTime</TableHead>
                 <TableHead className="text-slate-300 text-sm">EndTime</TableHead>
-                <TableHead className="text-slate-300 text-sm">Level</TableHead>
-                <TableHead className="text-slate-300 text-sm">JobFiles</TableHead>
-                <TableHead className="text-slate-300 text-sm">Client</TableHead>
+                <TableHead className="text-slate-300 text-sm">Files</TableHead>
                 <TableHead className="text-slate-300 text-sm">Size</TableHead>
               </TableRow>
             </TableHeader>
@@ -55,24 +56,22 @@ export const BaculaJobsTable: React.FC<BaculaJobsTableProps> = ({
                   <TableCell className="text-slate-300 max-w-48 truncate font-medium">
                     {job.name || job.jobname || '-'}
                   </TableCell>
-                  <TableCell>
-                    {getJobStatusBadge(job.jobstatus)}
-                  </TableCell>
-                  <TableCell className="text-slate-300 font-mono">
-                    {job.starttime ? formatDateTime(job.starttime).split(' ')[0] + ' ' + formatDateTime(job.starttime).split(' ')[1] : '-'}
-                  </TableCell>
-                  <TableCell className="text-slate-300 font-mono">
-                    {job.endtime ? formatDateTime(job.endtime).split(' ')[0] + ' ' + formatDateTime(job.endtime).split(' ')[1] : '-'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className="bg-orange-900/20 text-orange-400 border-orange-600">
-                      {job.level === 'I' ? 'incremental' : job.level === 'F' ? 'completo' : job.level || 'incremental'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-slate-300">{job.jobfiles || '-'}</TableCell>
                   <TableCell className="text-slate-300 max-w-32 truncate">
                     {job.client || job.clientname || '-'}
                   </TableCell>
+                  <TableCell>
+                    {getJobStatusBadge(job.jobstatus)}
+                  </TableCell>
+                  <TableCell>
+                    {getJobLevelBadge(job.level)}
+                  </TableCell>
+                  <TableCell className="text-slate-300 font-mono text-xs">
+                    {job.starttime ? formatDateTime(job.starttime) : '-'}
+                  </TableCell>
+                  <TableCell className="text-slate-300 font-mono text-xs">
+                    {job.endtime ? formatDateTime(job.endtime) : '-'}
+                  </TableCell>
+                  <TableCell className="text-slate-300">{job.jobfiles || '-'}</TableCell>
                   <TableCell className="text-slate-300">
                     {job.jobbytes ? formatBytes(parseInt(job.jobbytes)) : '-'}
                   </TableCell>

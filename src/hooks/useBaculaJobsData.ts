@@ -27,6 +27,8 @@ export const useBaculaJobsData = (jobsData: any, searchTerm: string, statusFilte
   const filteredJobs = React.useMemo(() => {
     let filtered = allJobs;
 
+    console.log('Total jobs before filtering:', filtered.length);
+
     // Filtro por data
     const now = new Date();
     let cutoffDate = new Date();
@@ -41,11 +43,14 @@ export const useBaculaJobsData = (jobsData: any, searchTerm: string, statusFilte
         cutoffDate = new Date(0);
         break;
     }
+    
     filtered = filtered.filter(job => {
-      if (!job.starttime) return true;
-      const jobDate = new Date(job.starttime);
+      if (!job.starttime && !job.schedtime) return dateFilter === 'all';
+      const jobDate = new Date(job.starttime || job.schedtime);
       return jobDate >= cutoffDate;
     });
+
+    console.log(`Jobs after date filter (${dateFilter}):`, filtered.length);
 
     // Filtro por termo de busca
     if (searchTerm) {
@@ -54,12 +59,21 @@ export const useBaculaJobsData = (jobsData: any, searchTerm: string, statusFilte
         (job.name || job.jobname || '').toLowerCase().includes(searchLower) || 
         (job.client || job.clientname || '').toLowerCase().includes(searchLower)
       );
+      console.log(`Jobs after search filter (${searchTerm}):`, filtered.length);
     }
 
     // Filtro por status
     if (statusFilter !== 'all') {
       filtered = filtered.filter(job => job.jobstatus === statusFilter);
+      console.log(`Jobs after status filter (${statusFilter}):`, filtered.length);
     }
+    
+    // Ordenar por data mais recente primeiro
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.starttime || a.schedtime || 0);
+      const dateB = new Date(b.starttime || b.schedtime || 0);
+      return dateB.getTime() - dateA.getTime();
+    });
     
     return filtered;
   }, [allJobs, searchTerm, statusFilter, dateFilter]);
@@ -173,7 +187,7 @@ export const getJobStatusBadge = (status: string) => {
     case 'T':
       return React.createElement(Badge, { className: "bg-green-900/20 text-green-400 border-green-600" }, "Completo");
     case 'W':
-      return React.createElement(Badge, { className: "bg-yellow-900/20 text-yellow-400 border-yellow-600" }, "Incremental");
+      return React.createElement(Badge, { className: "bg-yellow-900/20 text-yellow-400 border-yellow-600" }, "Aviso");
     case 'E':
       return React.createElement(Badge, { className: "bg-red-900/20 text-red-400 border-red-600" }, "Erro");
     case 'f':
@@ -182,5 +196,18 @@ export const getJobStatusBadge = (status: string) => {
       return React.createElement(Badge, { className: "bg-blue-900/20 text-blue-400 border-blue-600" }, "Executando");
     default:
       return React.createElement(Badge, { className: "bg-gray-900/20 text-gray-400 border-gray-600" }, status);
+  }
+};
+
+export const getJobLevelBadge = (level: string) => {
+  switch (level) {
+    case 'F':
+      return React.createElement(Badge, { className: "bg-green-900/20 text-green-400 border-green-600" }, "Completo");
+    case 'I':
+      return React.createElement(Badge, { className: "bg-blue-900/20 text-blue-400 border-blue-600" }, "Incremental");
+    case 'D':
+      return React.createElement(Badge, { className: "bg-purple-900/20 text-purple-400 border-purple-600" }, "Diferencial");
+    default:
+      return React.createElement(Badge, { className: "bg-gray-900/20 text-gray-400 border-gray-600" }, level || "N/A");
   }
 };
