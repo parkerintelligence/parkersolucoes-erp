@@ -143,8 +143,6 @@ export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
           <Filter className="h-4 w-4" />
           <span>{jobsCount} jobs</span>
         </div>
-        
-        <BaculaAnalysisDialog jobs={allJobs} />
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { useBaculaJobsData } from '@/hooks/useBaculaJobsData';
 import { Button } from '@/components/ui/button';
 import { BaculaDashboard } from '@/components/BaculaDashboard';
 import { BaculaAnalysisDialog } from '@/components/BaculaAnalysisDialog';
+import { BaculaJobsDialog } from '@/components/BaculaJobsDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -92,6 +93,10 @@ const Bacula = () => {
               <span className="font-medium">Conectado a:</span> {baculaIntegration.name} ({baculaIntegration.base_url})
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            <BaculaJobsDialog />
+            <BaculaAnalysisDialog jobs={allJobs} />
+          </div>
         </div>
 
         {/* Cards principais acima das abas - usando dados filtrados */}
@@ -122,17 +127,13 @@ const Bacula = () => {
             </CardContent>
           </Card>
           
-          <div className="flex flex-col gap-2">
-            <BaculaAnalysisDialog jobs={allJobs} />
-            
-            <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-slate-300 mb-1">{jobStats.totalJobs}</div>
-                <div className="text-sm text-slate-300 font-medium">Job Status Terminated</div>
-                <div className="text-xs text-slate-400 mt-1">Todos os jobs finalizados</div>
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="bg-slate-800 border-slate-700">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-slate-300 mb-1">{jobStats.totalJobs}</div>
+              <div className="text-sm text-slate-300 font-medium">Job Status Terminated</div>
+              <div className="text-xs text-slate-400 mt-1">Todos os jobs finalizados</div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Dashboard principal */}
