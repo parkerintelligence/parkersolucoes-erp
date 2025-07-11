@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -511,7 +510,7 @@ const Zabbix = () => {
                        <TableHeader>
                          <TableRow className="border-gray-700 hover:bg-gray-800/50">
                            <TableHead 
-                             className="text-gray-300 text-xs w-[120px] cursor-pointer hover:text-white"
+                             className="text-gray-300 text-xs w-[160px] cursor-pointer hover:text-white"
                              onClick={() => handleSort('clock')}
                            >
                              <Clock className="inline-block h-3 w-3 mr-1" />
@@ -523,7 +522,6 @@ const Zabbix = () => {
                            >
                              Severidade {sortField === 'severity' && (sortDirection === 'asc' ? '↑' : '↓')}
                            </TableHead>
-                           <TableHead className="text-gray-300 text-xs w-[120px]">Hora da Recuperação</TableHead>
                            <TableHead className="text-gray-300 text-xs w-[60px]">Status</TableHead>
                            <TableHead 
                              className="text-gray-300 text-xs cursor-pointer hover:text-white"
@@ -552,9 +550,6 @@ const Zabbix = () => {
                                <Badge className={`${getSeverityColor(problem.severity)} text-xs px-1 py-0`}>
                                  {getSeverityLabel(problem.severity)}
                                </Badge>
-                             </TableCell>
-                             <TableCell className="py-1 text-gray-400 text-xs">
-                               -
                              </TableCell>
                              <TableCell className="py-1">
                                {problem.acknowledged === '1' ? (
