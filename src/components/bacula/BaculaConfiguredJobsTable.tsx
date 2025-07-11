@@ -353,7 +353,7 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                              {lastSuccessful ? (
                                <div className="flex items-center gap-2">
                                  <Badge variant="outline" className="bg-emerald-500/20 border-emerald-500/40 text-emerald-300 text-xs font-medium px-1.5 py-0.5">
-                                   ✓ Sucesso
+                                   ✓
                                  </Badge>
                                  <span className="text-xs text-slate-400">
                                    {formatDateTime(lastSuccessful.starttime || lastSuccessful.schedtime)}
@@ -373,9 +373,9 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                            <TableCell className="py-2 px-3 text-sm">
                              {lastFailed ? (
                                <div className="flex items-center gap-2">
-                                 <Badge variant="outline" className="bg-red-500/20 border-red-500/40 text-red-300 text-xs font-medium px-1.5 py-0.5">
-                                   ✗ Falha
-                                 </Badge>
+                                  <Badge variant="outline" className="bg-red-500/20 border-red-500/40 text-red-300 text-xs font-medium px-1.5 py-0.5">
+                                    ✗
+                                  </Badge>
                                  <span className="text-xs text-slate-400">
                                    {formatDateTime(lastFailed.starttime || lastFailed.schedtime)}
                                  </span>
