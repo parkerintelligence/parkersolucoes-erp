@@ -39,6 +39,7 @@ const templateTypeIcons = {
   backup_alert: HardDrive,
   schedule_critical: Calendar,
   glpi_summary: ExternalLink,
+  bacula_daily: HardDrive,
   custom: MessageCircle
 };
 
