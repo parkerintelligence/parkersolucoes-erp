@@ -11,7 +11,6 @@ import { BaculaAnalysisDialog } from '@/components/BaculaAnalysisDialog';
 import { BarChart3, Database as DatabaseIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
 const Bacula = () => {
   const {
     baculaIntegration,
@@ -22,7 +21,6 @@ const Bacula = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('7days');
-
   const {
     data: jobsData,
     isLoading: jobsLoading
@@ -37,16 +35,13 @@ const Bacula = () => {
     clientStats,
     recentJobs
   } = useBaculaJobsData(jobsData, searchTerm, statusFilter, dateFilter);
-
   const handleResetFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
     setDateFilter('7days'); // Reset para 7 dias
   };
-
   if (!baculaIntegration) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-white p-6">
+    return <div className="min-h-screen bg-slate-900 text-white p-6">
         <div className="space-y-6">
           <div className="flex items-center gap-2 mb-6">
             <Database className="h-6 w-6 text-blue-400" />
@@ -69,10 +64,7 @@ const Bacula = () => {
                     <li>• Senha do usuário</li>
                   </ul>
                 </div>
-                <Button 
-                  onClick={() => window.location.href = '/admin'} 
-                  className="bg-blue-800 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2 mx-auto"
-                >
+                <Button onClick={() => window.location.href = '/admin'} className="bg-blue-800 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2 mx-auto">
                   <Settings className="h-4 w-4" />
                   Configurar BaculaWeb
                 </Button>
@@ -80,12 +72,9 @@ const Bacula = () => {
             </CardContent>
           </Card>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-slate-900 text-white">
+  return <div className="min-h-screen bg-slate-900 text-white">
       <div className="space-y-6 p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -121,9 +110,7 @@ const Bacula = () => {
           <Card className="bg-blue-900/20 border-blue-600/30">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-blue-400 mb-1">
-                {jobStats.totalBytes > 0 
-                  ? `${Math.round(jobStats.totalBytes / (1024 ** 3))}` 
-                  : '0'}
+                {jobStats.totalBytes > 0 ? `${Math.round(jobStats.totalBytes / 1024 ** 3)}` : '0'}
               </div>
               <div className="text-sm text-blue-300 font-medium">Tamanho Total</div>
               <div className="text-xs text-blue-400 mt-1">GB processados</div>
@@ -134,27 +121,7 @@ const Bacula = () => {
             <BaculaAnalysisDialog jobs={allJobs} />
             
             {/* Botão de Teste do Relatório Diário */}
-            <Button 
-              onClick={async () => {
-                try {
-                  await supabase.functions.invoke('send-scheduled-report', {
-                    body: { report_id: 'bf1005ec-7c62-4b43-bb7f-b663f81d2cbb' }
-                  });
-                  toast.success('✅ Teste do relatório Bacula enviado!', {
-                    description: 'Verifique seu WhatsApp para confirmar o recebimento.',
-                  });
-                } catch (error: any) {
-                  console.error('Erro ao testar relatório:', error);
-                  toast.error('❌ Erro ao testar relatório', {
-                    description: error.message || 'Falha ao enviar teste.',
-                  });
-                }
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              size="sm"
-            >
-              🧪 Testar Relatório Diário
-            </Button>
+            
             
             <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-4 text-center">
@@ -187,8 +154,6 @@ const Bacula = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Bacula;
