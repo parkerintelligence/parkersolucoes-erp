@@ -254,7 +254,11 @@ const VPSCard: React.FC<VPSCardProps> = ({
               <Wifi className="h-4 w-4 text-slate-400" />
               <span className="text-slate-400">IP:</span>
             </div>
-            <p className="text-white font-mono text-xs">{vps.ipv4 || 'N/A'}</p>
+            <p className="text-white font-mono text-xs">
+              {typeof vps.ipv4 === 'object' && vps.ipv4?.address 
+                ? vps.ipv4.address 
+                : vps.ipv4 || 'N/A'}
+            </p>
           </div>
           
           <div className="space-y-2">
