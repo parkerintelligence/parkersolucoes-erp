@@ -347,6 +347,21 @@ const VPSCard: React.FC<VPSCardProps> = ({
     }
   };
 
+  const getUsageColor = (usage: number) => {
+    if (usage >= 85) return 'text-red-300';
+    if (usage >= 70) return 'text-yellow-300';
+    return 'text-white';
+  };
+
+
+  const formatNetworkSpeed = (bytes: number) => {
+    if (!bytes) return '0 B/s';
+    const k = 1024;
+    const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
   return (
     <Card className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-all">
       <CardHeader className="pb-3">
@@ -410,38 +425,120 @@ const VPSCard: React.FC<VPSCardProps> = ({
           </div>
         </div>
 
-        {/* Métricas de Uso (se disponíveis) */}
+        {/* Métricas de Uso */}
         {metrics && (
           <div className="space-y-3 pt-2 border-t border-slate-600">
-            <div className="text-sm font-medium text-slate-300">Utilização</div>
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-slate-300">Utilização em Tempo Real</div>
+              {metrics.simulated && (
+                <Badge variant="outline" className="bg-blue-500/20 text-blue-300 border-blue-500/40 text-xs">
+                  Simulado
+                </Badge>
+              )}
+            </div>
             
-            {metrics.cpu_usage !== undefined && (
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
+            {/* CPU Usage */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <div className="flex items-center gap-1">
+                  <Activity className="h-3 w-3 text-blue-400" />
                   <span className="text-slate-400">CPU</span>
-                  <span className="text-white">{metrics.cpu_usage}%</span>
                 </div>
-                <Progress value={metrics.cpu_usage} className="h-2" />
+                <span className={`font-mono ${getUsageColor(metrics.cpu_usage)}`}>
+                  {Math.round(metrics.cpu_usage)}%
+                </span>
               </div>
-            )}
+              <Progress 
+                value={metrics.cpu_usage} 
+                className="h-2"
+              />
+            </div>
             
-            {metrics.memory_usage !== undefined && (
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
+            {/* Memory Usage */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <div className="flex items-center gap-1">
+                  <Zap className="h-3 w-3 text-green-400" />
                   <span className="text-slate-400">Memória</span>
-                  <span className="text-white">{metrics.memory_usage}%</span>
                 </div>
-                <Progress value={metrics.memory_usage} className="h-2" />
+                <span className={`font-mono ${getUsageColor(metrics.memory_usage)}`}>
+                  {Math.round(metrics.memory_usage)}%
+                </span>
+              </div>
+              <Progress 
+                value={metrics.memory_usage} 
+                className="h-2"
+              />
+            </div>
+            
+            {/* Disk Usage */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <div className="flex items-center gap-1">
+                  <HardDrive className="h-3 w-3 text-purple-400" />
+                  <span className="text-slate-400">Disco</span>
+                </div>
+                <span className={`font-mono ${getUsageColor(metrics.disk_usage)}`}>
+                  {Math.round(metrics.disk_usage)}%
+                </span>
+              </div>
+              <Progress 
+                value={metrics.disk_usage} 
+                className="h-2"
+              />
+            </div>
+
+            {/* Network Activity */}
+            {(metrics.network_in !== undefined || metrics.network_out !== undefined) && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1 text-xs text-slate-400">
+                  <Wifi className="h-3 w-3" />
+                  <span>Rede</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">↓ In:</span>
+                    <span className="text-green-300 font-mono">
+                      {formatNetworkSpeed(metrics.network_in)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">↑ Out:</span>
+                    <span className="text-blue-300 font-mono">
+                      {formatNetworkSpeed(metrics.network_out)}
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
-            
-            {metrics.disk_usage !== undefined && (
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Disco</span>
-                  <span className="text-white">{metrics.disk_usage}%</span>
+
+            {/* System Metrics */}
+            {(metrics.uptime !== undefined || metrics.load_average !== undefined || metrics.processes !== undefined) && (
+              <div className="space-y-2 pt-2 border-t border-slate-600">
+                <div className="flex items-center gap-1 text-xs text-slate-400">
+                  <Activity className="h-3 w-3" />
+                  <span>Sistema</span>
                 </div>
-                <Progress value={metrics.disk_usage} className="h-2" />
+                <div className="space-y-1 text-xs">
+                  {metrics.uptime !== undefined && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Uptime:</span>
+                      <span className="text-white font-mono">{formatUptime(metrics.uptime)}</span>
+                    </div>
+                  )}
+                  {metrics.load_average !== undefined && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Load:</span>
+                      <span className="text-white font-mono">{metrics.load_average.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {metrics.processes !== undefined && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Processos:</span>
+                      <span className="text-white font-mono">{metrics.processes}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
