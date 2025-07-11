@@ -19,16 +19,15 @@ const Bacula = () => {
     data: jobsData
   } = useBaculaJobsRecent();
 
-  // Estados para filtros - data padrão é ontem
+  // Estados para filtros - últimos 7 dias por padrão
   const [startDate, setStartDate] = useState(() => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toISOString().split('T')[0];
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    return sevenDaysAgo.toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = useState(() => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toISOString().split('T')[0];
+    const today = new Date();
+    return today.toISOString().split('T')[0];
   });
   const [statusFilter, setStatusFilter] = useState('all');
   const [clientFilter, setClientFilter] = useState('');
@@ -52,11 +51,11 @@ const Bacula = () => {
   };
   const jobs = extractJobs(jobsData);
   const handleResetFilters = () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
-    setStartDate(yesterdayStr);
-    setEndDate(yesterdayStr);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const today = new Date();
+    setStartDate(sevenDaysAgo.toISOString().split('T')[0]);
+    setEndDate(today.toISOString().split('T')[0]);
     setStatusFilter('all');
     setClientFilter('');
   };
@@ -109,12 +108,32 @@ const Bacula = () => {
           </div>
         </div>
 
+        {/* Cards discretos acima das abas */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-center">
+            <div className="text-lg font-bold text-green-400">{jobs.filter(j => j.jobstatus === 'T').length}</div>
+            <div className="text-xs text-slate-400">Completos</div>
+          </div>
+          <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-center">
+            <div className="text-lg font-bold text-red-400">{jobs.filter(j => j.jobstatus === 'E' || j.jobstatus === 'f').length}</div>
+            <div className="text-xs text-slate-400">Erros</div>
+          </div>
+          <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-center">
+            <div className="text-lg font-bold text-blue-400">{jobs.filter(j => j.jobstatus === 'R').length}</div>
+            <div className="text-xs text-slate-400">Executando</div>
+          </div>
+          <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-center">
+            <div className="text-lg font-bold text-slate-300">{jobs.length}</div>
+            <div className="text-xs text-slate-400">Total</div>
+          </div>
+        </div>
+
         <Tabs defaultValue="dashboard" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-slate-800 border-slate-700">
-            <TabsTrigger value="dashboard" className="text-slate-300 bg-blue-800 hover:bg-blue-700">
+            <TabsTrigger value="dashboard" className="text-slate-300 data-[state=active]:bg-blue-800 data-[state=active]:text-white">
               Dashboard
             </TabsTrigger>
-            <TabsTrigger value="jobs" className="text-slate-300 bg-blue-800 hover:bg-blue-700">
+            <TabsTrigger value="jobs" className="text-slate-300 data-[state=active]:bg-blue-800 data-[state=active]:text-white">
               Jobs
             </TabsTrigger>
           </TabsList>
@@ -143,7 +162,12 @@ const Bacula = () => {
               statusFilter={statusFilter} 
               clientFilter={clientFilter}
             >
-              <BaculaJobsGrid />
+              <BaculaJobsGrid 
+                startDate={startDate}
+                endDate={endDate}
+                statusFilter={statusFilter}
+                clientFilter={clientFilter}
+              />
             </BaculaStatusTabs>
           </TabsContent>
         </Tabs>

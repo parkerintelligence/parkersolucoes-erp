@@ -251,9 +251,9 @@ export const BaculaDashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Tabela de Jobs Status Terminated - Maior */}
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Tabela de Jobs Status Terminated - Ocupa 3 colunas */}
+        <div className="lg:col-span-3">
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white text-sm">Jobs Status Terminated</CardTitle>
@@ -303,8 +303,8 @@ export const BaculaDashboard = () => {
           </Card>
         </div>
 
-        {/* Painel lateral com estatísticas */}
-        <div className="space-y-6">
+        {/* Painel lateral com estatísticas - 1 coluna */}
+        <div className="space-y-4">
           {/* Gráfico de Pizza */}
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader>

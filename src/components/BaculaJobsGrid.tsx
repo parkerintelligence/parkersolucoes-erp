@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, ExternalLink } from 'lucide-react';
+import { RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useBaculaJobsRecent } from '@/hooks/useBaculaAPI';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { GLPITicketConfirmDialog } from '@/components/GLPITicketConfirmDialog';
@@ -11,16 +11,26 @@ import { toast } from '@/hooks/use-toast';
 
 interface BaculaJobsGridProps {
   filteredJobs?: any[];
+  startDate?: string;
+  endDate?: string;
+  statusFilter?: string;
+  clientFilter?: string;
 }
 
 export const BaculaJobsGrid: React.FC<BaculaJobsGridProps> = ({ 
-  filteredJobs
+  filteredJobs,
+  startDate,
+  endDate,
+  statusFilter,
+  clientFilter
 }) => {
   const { data: jobsData, isLoading, error, refetch } = useBaculaJobsRecent();
   const { createTicket } = useGLPIExpanded();
   
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [sortField, setSortField] = useState('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Extrair jobs da resposta
   const extractJobs = (data: any) => {
@@ -42,35 +52,114 @@ export const BaculaJobsGrid: React.FC<BaculaJobsGridProps> = ({
     return [];
   };
 
-  const jobs = filteredJobs || extractJobs(jobsData);
+  const allJobs = extractJobs(jobsData);
+
+  // Filtrar jobs pelos últimos 7 dias e outros filtros
+  const getFilteredJobs = () => {
+    if (filteredJobs) return filteredJobs;
+
+    let filtered = allJobs;
+
+    // Filtro por data (últimos 7 dias por padrão)
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // Final do dia
+
+      filtered = filtered.filter(job => {
+        if (!job.starttime) return true;
+        const jobDate = new Date(job.starttime);
+        return jobDate >= start && jobDate <= end;
+      });
+    }
+
+    // Filtro por status
+    if (statusFilter && statusFilter !== 'all') {
+      filtered = filtered.filter(job => job.jobstatus === statusFilter);
+    }
+
+    // Filtro por cliente
+    if (clientFilter) {
+      const searchLower = clientFilter.toLowerCase();
+      filtered = filtered.filter(job => 
+        (job.client || job.clientname || '').toLowerCase().includes(searchLower)
+      );
+    }
+
+    return filtered;
+  };
+
+  const jobs = getFilteredJobs();
+
+  // Função de ordenação
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Aplicar ordenação
+  const sortedJobs = [...jobs].sort((a, b) => {
+    let aValue, bValue;
+    
+    switch (sortField) {
+      case 'name':
+        aValue = (a.name || a.jobname || '').toLowerCase();
+        bValue = (b.name || b.jobname || '').toLowerCase();
+        break;
+      case 'starttime':
+        aValue = new Date(a.starttime || 0).getTime();
+        bValue = new Date(b.starttime || 0).getTime();
+        break;
+      case 'status':
+        aValue = a.jobstatus || '';
+        bValue = b.jobstatus || '';
+        break;
+      case 'client':
+        aValue = (a.client || a.clientname || '').toLowerCase();
+        bValue = (b.client || b.clientname || '').toLowerCase();
+        break;
+      default:
+        return 0;
+    }
+    
+    if (sortDirection === 'asc') {
+      return aValue > bValue ? 1 : -1;
+    } else {
+      return aValue < bValue ? 1 : -1;
+    }
+  });
 
   const getJobStatusBadge = (status: string) => {
     switch (status) {
       case 'T':
-        return <Badge className="bg-green-900/20 text-green-400 border-green-600">Completo - OK</Badge>;
+        return <Badge className="bg-emerald-900/30 text-emerald-400 border-emerald-600">Completo - OK</Badge>;
       case 'W':
-        return <Badge className="bg-yellow-900/20 text-yellow-400 border-yellow-600">Incremental</Badge>;
+        return <Badge className="bg-amber-900/30 text-amber-400 border-amber-600">Incremental</Badge>;
       case 'E':
-        return <Badge className="bg-red-900/20 text-red-400 border-red-600">Erro</Badge>;
+        return <Badge className="bg-red-900/30 text-red-400 border-red-600">Erro</Badge>;
       case 'f':
-        return <Badge className="bg-red-900/20 text-red-400 border-red-600">Fatal</Badge>;
+        return <Badge className="bg-red-900/30 text-red-400 border-red-600">Fatal</Badge>;
       case 'R':
-        return <Badge className="bg-blue-900/20 text-blue-400 border-blue-600">Executando</Badge>;
+        return <Badge className="bg-blue-900/30 text-blue-400 border-blue-600">Executando</Badge>;
       case 'C':
-        return <Badge className="bg-gray-900/20 text-gray-400 border-gray-600">Criado</Badge>;
+        return <Badge className="bg-gray-900/30 text-gray-400 border-gray-600">Criado</Badge>;
       case 'c':
-        return <Badge className="bg-yellow-900/20 text-yellow-400 border-yellow-600">Aguardando</Badge>;
+        return <Badge className="bg-yellow-900/30 text-yellow-400 border-yellow-600">Aguardando</Badge>;
       default:
-        return <Badge className="bg-gray-900/20 text-gray-400 border-gray-600">{status}</Badge>;
+        return <Badge className="bg-gray-900/30 text-gray-400 border-gray-600">{status}</Badge>;
     }
   };
 
   const getJobStatusIcon = (status: string) => {
     switch (status) {
       case 'T':
-        return <CheckCircle className="h-4 w-4 text-green-400" />;
+        return <CheckCircle className="h-4 w-4 text-emerald-400" />;
       case 'W':
-        return <AlertCircle className="h-4 w-4 text-yellow-400" />;
+        return <AlertCircle className="h-4 w-4 text-amber-400" />;
       case 'E':
       case 'f':
         return <XCircle className="h-4 w-4 text-red-400" />;
@@ -86,13 +175,13 @@ export const BaculaJobsGrid: React.FC<BaculaJobsGridProps> = ({
     
     switch (level) {
       case 'F':
-        return <Badge className="bg-blue-900/20 text-blue-400 border-blue-600">Completo</Badge>;
+        return <Badge className="bg-indigo-900/30 text-indigo-400 border-indigo-600">Completo</Badge>;
       case 'I':
-        return <Badge className="bg-green-900/20 text-green-400 border-green-600">Incremental</Badge>;
+        return <Badge className="bg-teal-900/30 text-teal-400 border-teal-600">Incremental</Badge>;
       case 'D':
-        return <Badge className="bg-yellow-900/20 text-yellow-400 border-yellow-600">Diferencial</Badge>;
+        return <Badge className="bg-orange-900/30 text-orange-400 border-orange-600">Diferencial</Badge>;
       default:
-        return <Badge className="bg-gray-900/20 text-gray-400 border-gray-600">{level || 'N/A'}</Badge>;
+        return <Badge className="bg-gray-900/30 text-gray-400 border-gray-600">{level || 'N/A'}</Badge>;
     }
   };
 
@@ -184,6 +273,13 @@ Necessário investigar o motivo da falha no backup.`,
     }
   };
 
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-3 w-3 ml-1" />;
+    }
+    return sortDirection === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
+
   if (error) {
     return (
       <Card className="bg-slate-800 border-slate-700">
@@ -213,7 +309,7 @@ Necessário investigar o motivo da falha no backup.`,
     );
   }
 
-  if (jobs.length === 0) {
+  if (sortedJobs.length === 0) {
     return (
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="p-8 text-center">
@@ -233,7 +329,7 @@ Necessário investigar o motivo da falha no backup.`,
             Jobs Status Terminated
           </span>
           <Badge variant="outline" className="border-slate-600 text-slate-300">
-            {jobs.length} jobs
+            {sortedJobs.length} jobs
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -243,19 +339,51 @@ Necessário investigar o motivo da falha no backup.`,
             <TableHeader>
               <TableRow className="border-slate-700">
                 <TableHead className="text-slate-300 w-16">JobID</TableHead>
-                <TableHead className="text-slate-300">Name</TableHead>
-                <TableHead className="text-slate-300">JobStatus</TableHead>
-                <TableHead className="text-slate-300">StartTime</TableHead>
+                <TableHead 
+                  className="text-slate-300 cursor-pointer hover:text-white"
+                  onClick={() => handleSort('name')}
+                >
+                  <div className="flex items-center">
+                    Name
+                    {getSortIcon('name')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-slate-300 cursor-pointer hover:text-white"
+                  onClick={() => handleSort('status')}
+                >
+                  <div className="flex items-center">
+                    JobStatus
+                    {getSortIcon('status')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-slate-300 cursor-pointer hover:text-white"
+                  onClick={() => handleSort('starttime')}
+                >
+                  <div className="flex items-center">
+                    StartTime
+                    {getSortIcon('starttime')}
+                  </div>
+                </TableHead>
                 <TableHead className="text-slate-300">EndTime</TableHead>
                 <TableHead className="text-slate-300">Level</TableHead>
                 <TableHead className="text-slate-300">JobFiles</TableHead>
-                <TableHead className="text-slate-300">Name</TableHead>
+                <TableHead 
+                  className="text-slate-300 cursor-pointer hover:text-white"
+                  onClick={() => handleSort('client')}
+                >
+                  <div className="flex items-center">
+                    Name
+                    {getSortIcon('client')}
+                  </div>
+                </TableHead>
                 <TableHead className="text-slate-300">Size</TableHead>
                 <TableHead className="text-slate-300 w-20">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {jobs.map((job: any, index: number) => (
+              {sortedJobs.map((job: any, index: number) => (
                 <TableRow key={job.jobid || index} className="border-slate-700 hover:bg-slate-700/50">
                   <TableCell className="text-slate-300 font-mono text-sm">
                     {job.jobid || '-'}
