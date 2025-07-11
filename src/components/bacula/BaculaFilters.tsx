@@ -22,7 +22,7 @@ interface BaculaFiltersProps {
   jobsCount: number;
   allJobs: any[];
 }
-  const [customDateRange, setCustomDateRange] = useState<{start: Date | null, end: Date | null}>({start: null, end: null});
+
 export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
   searchTerm,
   setSearchTerm,
@@ -35,6 +35,8 @@ export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
   jobsCount,
   allJobs
 }) => {
+  const [customDateRange, setCustomDateRange] = useState<{start: Date | null, end: Date | null}>({start: null, end: null});
+
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <h2 className="text-lg font-semibold text-white">Dashboard - Jobs Status Terminated</h2>
@@ -65,16 +67,58 @@ export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
           </SelectContent>
         </Select>
 
-        <Select value={dateFilter} onValueChange={setDateFilter}>
-          <SelectTrigger className="w-32 h-8 bg-slate-700 border-slate-600 text-white">
-            <SelectValue placeholder="Período" />
-          </SelectTrigger>
-          <SelectContent className="bg-slate-800 border-slate-700">
-            <SelectItem value="7days" className="text-white">7 dias</SelectItem>
-            <SelectItem value="30days" className="text-white">30 dias</SelectItem>
-            <SelectItem value="all" className="text-white">Todos</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <CalendarLucide className="h-4 w-4 text-slate-400" />
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="w-40 h-8 bg-slate-700 border-slate-600 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectItem value="1day" className="text-white">Último dia</SelectItem>
+              <SelectItem value="7days" className="text-white">Últimos 7 dias</SelectItem>
+              <SelectItem value="30days" className="text-white">Últimos 30 dias</SelectItem>
+              <SelectItem value="custom" className="text-white">Período personalizado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {dateFilter === 'custom' && (
+          <div className="flex items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-40 h-8 bg-slate-700 border-slate-600 text-white justify-start">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {customDateRange.start ? format(customDateRange.start, "dd/MM") : "Data início"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-700">
+                <Calendar
+                  mode="single"
+                  selected={customDateRange.start || undefined}
+                  onSelect={(date) => setCustomDateRange(prev => ({...prev, start: date || null}))}
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+            
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-40 h-8 bg-slate-700 border-slate-600 text-white justify-start">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {customDateRange.end ? format(customDateRange.end, "dd/MM") : "Data fim"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-700">
+                <Calendar
+                  mode="single"
+                  selected={customDateRange.end || undefined}
+                  onSelect={(date) => setCustomDateRange(prev => ({...prev, end: date || null}))}
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
 
         {/* Switch para agrupar por data */}
         {setGroupByDate && (
@@ -87,7 +131,7 @@ export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
             />
             <Label htmlFor="group-by-date" className="text-sm text-slate-300 cursor-pointer">
               <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
+                <CalendarLucide className="h-4 w-4" />
                 Agrupar por data
               </div>
             </Label>
