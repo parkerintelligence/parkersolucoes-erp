@@ -12,6 +12,7 @@ export const BaculaDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('7days');
+  const [groupByDate, setGroupByDate] = useState(false);
 
   const {
     data: jobsData,
@@ -55,6 +56,8 @@ export const BaculaDashboard = () => {
         setStatusFilter={setStatusFilter}
         dateFilter={dateFilter}
         setDateFilter={setDateFilter}
+        groupByDate={groupByDate}
+        setGroupByDate={setGroupByDate}
         jobsCount={jobs.length}
         allJobs={allJobs}
       />
@@ -74,6 +77,7 @@ export const BaculaDashboard = () => {
         formatDateTime={formatDateTime}
         formatBytes={formatBytes}
         getJobStatusBadge={getJobStatusBadge}
+        groupByDate={groupByDate}
       />
     </div>
   );

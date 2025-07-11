@@ -1,7 +1,9 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Search, Filter, Calendar } from 'lucide-react';
 import { BaculaAnalysisDialog } from '@/components/BaculaAnalysisDialog';
 
 interface BaculaFiltersProps {
@@ -11,6 +13,8 @@ interface BaculaFiltersProps {
   setStatusFilter: (status: string) => void;
   dateFilter: string;
   setDateFilter: (date: string) => void;
+  groupByDate?: boolean;
+  setGroupByDate?: (group: boolean) => void;
   jobsCount: number;
   allJobs: any[];
 }
@@ -22,6 +26,8 @@ export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
   setStatusFilter,
   dateFilter,
   setDateFilter,
+  groupByDate = false,
+  setGroupByDate,
   jobsCount,
   allJobs
 }) => {
@@ -65,6 +71,24 @@ export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
             <SelectItem value="all" className="text-white">Todos</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* Switch para agrupar por data */}
+        {setGroupByDate && (
+          <div className="flex items-center gap-2">
+            <Switch
+              id="group-by-date"
+              checked={groupByDate}
+              onCheckedChange={setGroupByDate}
+              className="data-[state=checked]:bg-blue-600"
+            />
+            <Label htmlFor="group-by-date" className="text-sm text-slate-300 cursor-pointer">
+              <div className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                Agrupar por data
+              </div>
+            </Label>
+          </div>
+        )}
 
         <div className="flex items-center gap-2 text-sm text-slate-400">
           <Filter className="h-4 w-4" />
