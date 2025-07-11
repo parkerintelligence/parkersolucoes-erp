@@ -281,8 +281,6 @@ const VPSCard: React.FC<VPSCardProps> = ({
   restarting, 
   snapshotting 
 }) => {
-  const { data: metrics } = useHostingerVPSMetrics(integrationId, vps.id);
-
   // Função para extrair valores de forma segura de objetos ou strings
   const safeValue = (value: any, fallback: any = 'N/A') => {
     if (typeof value === 'object' && value !== null) {
@@ -311,6 +309,9 @@ const VPSCard: React.FC<VPSCardProps> = ({
     // Tentar diferentes campos de status
     return vps.state || vps.status || 'unknown';
   };
+
+  const { data: metrics } = useHostingerVPSMetrics(integrationId, vps.id, safeValue(vps.ipv4));
+
 
   const formatMemory = (mb: number) => {
     if (!mb) return '0 MB';

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useHostingerRealMetrics } from './useHostingerRealMetrics';
 
 export interface HostingerVPS {
   id: string;
@@ -146,38 +147,23 @@ const useHostingerVPSDetails = (integrationId: string, vpsId: string) => {
   });
 };
 
-const useHostingerVPSMetrics = (integrationId: string, vpsId: string) => {
+const useHostingerVPSMetrics = (integrationId: string, vpsId: string, vpsIP?: string) => {
+  // Tentar obter métricas reais através de múltiplos métodos
+  const { data: realMetrics } = useHostingerRealMetrics({
+    integrationId,
+    vpsId,
+    vpsIP,
+    enabled: !!integrationId && !!vpsId
+  });
+
   return useQuery({
     queryKey: ['hostinger-vps-metrics', integrationId, vpsId],
     queryFn: async () => {
-      console.log('📊 Buscando métricas para VPS:', vpsId);
+      console.log('📊 Processando métricas para VPS:', vpsId);
       
-      // Tentar buscar métricas reais primeiro
-      let realMetrics = null;
-      try {
-        const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
-          body: {
-            integration_id: integrationId,
-            endpoint: `/virtual-machines/${vpsId}/metrics`,
-            method: 'GET'
-          }
-        });
-
-        // Se obtivemos dados reais, usar eles
-        if (!error && data?.data && typeof data.data === 'object' && data.data.cpu_usage !== undefined) {
-          console.log('✅ Métricas reais encontradas:', data.data);
-          realMetrics = {
-            ...data.data,
-            isReal: true,
-            lastUpdated: new Date().toISOString()
-          };
-        }
-      } catch (e) {
-        console.log('⚠️ API de métricas não disponível:', e.message);
-      }
-
-      // Se temos métricas reais, retornar elas
+      // Se temos métricas reais, usar elas
       if (realMetrics) {
+        console.log('✅ Usando métricas reais:', realMetrics);
         return realMetrics;
       }
 
@@ -219,14 +205,14 @@ const useHostingerVPSMetrics = (integrationId: string, vpsId: string) => {
         isReal: false,
         simulated: true,
         lastUpdated: new Date().toISOString(),
-        note: 'Dados simulados - API do Hostinger não fornece métricas em tempo real'
+        note: 'Dados simulados - Configure agente de monitoramento (Prometheus, Netdata) para dados reais'
       };
       
       console.log('📈 Métricas simuladas geradas:', { vpsId, metrics: simulatedMetrics });
       return simulatedMetrics;
     },
     enabled: !!integrationId && !!vpsId,
-    refetchInterval: 15000, // Atualizar a cada 15 segundos
+    refetchInterval: realMetrics ? 15000 : 30000, // Mais frequente se temos dados reais
     retry: 1,
   });
 };
@@ -237,6 +223,8 @@ const useHostingerActions = () => {
 
   const restartVPS = useMutation({
     mutationFn: async ({ integrationId, vpsId }: { integrationId: string; vpsId: string }) => {
+      console.log('🔄 Iniciando restart do VPS:', vpsId);
+      
       const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
         body: {
           integration_id: integrationId,
@@ -245,20 +233,41 @@ const useHostingerActions = () => {
         }
       });
 
-      if (error) throw error;
+      console.log('📡 Resposta da API de restart:', { data, error, vpsId });
+
+      if (error) {
+        console.error('❌ Erro no restart:', error);
+        throw error;
+      }
+      
+      // Verificar se a operação foi bem-sucedida
+      if (data?.success === false) {
+        throw new Error(data?.message || 'Falha na operação de restart');
+      }
+
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      console.log('✅ Restart bem-sucedido:', data);
+      
+      // Feedback mais detalhado baseado na resposta da API
+      const message = data?.data?.message || data?.message || 'VPS reiniciado com sucesso!';
+      
       toast({
-        title: "Sucesso",
-        description: "VPS reiniciado com sucesso!",
+        title: "Restart Iniciado",
+        description: `${message} - VPS ID: ${variables.vpsId}`,
       });
       queryClient.invalidateQueries({ queryKey: ['hostinger-vps'] });
+      queryClient.invalidateQueries({ queryKey: ['hostinger-vps-metrics'] });
     },
-    onError: () => {
+    onError: (error: any, variables) => {
+      console.error('❌ Erro no restart:', error);
+      
+      const errorMessage = error?.message || 'Erro desconhecido ao reiniciar VPS';
+      
       toast({
-        title: "Erro",
-        description: "Erro ao reiniciar VPS",
+        title: "Erro no Restart",
+        description: `${errorMessage} - VPS ID: ${variables.vpsId}`,
         variant: "destructive",
       });
     },
@@ -274,6 +283,8 @@ const useHostingerActions = () => {
       vpsId: string; 
       name?: string;
     }) => {
+      console.log('📸 Iniciando criação de snapshot para VPS:', vpsId, 'Nome:', name);
+      
       const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
         body: {
           integration_id: integrationId,
@@ -285,20 +296,43 @@ const useHostingerActions = () => {
         }
       });
 
-      if (error) throw error;
+      console.log('📡 Resposta da API de snapshot:', { data, error, vpsId, name });
+
+      if (error) {
+        console.error('❌ Erro no snapshot:', error);
+        throw error;
+      }
+      
+      // Verificar se a operação foi bem-sucedida
+      if (data?.success === false) {
+        throw new Error(data?.message || 'Falha na criação do snapshot');
+      }
+
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      console.log('✅ Snapshot criado com sucesso:', data);
+      
+      // Feedback mais detalhado baseado na resposta da API
+      const snapshotInfo = data?.data;
+      const message = snapshotInfo?.id 
+        ? `Snapshot criado! ID: ${snapshotInfo.id}` 
+        : data?.message || 'Snapshot criado com sucesso!';
+      
       toast({
-        title: "Sucesso",
-        description: "Snapshot criado com sucesso!",
+        title: "Snapshot Criado",
+        description: `${message} - ${variables.name}`,
       });
       queryClient.invalidateQueries({ queryKey: ['hostinger-vps'] });
     },
-    onError: () => {
+    onError: (error: any, variables) => {
+      console.error('❌ Erro no snapshot:', error);
+      
+      const errorMessage = error?.message || 'Erro desconhecido ao criar snapshot';
+      
       toast({
-        title: "Erro",
-        description: "Erro ao criar snapshot",
+        title: "Erro no Snapshot",
+        description: `${errorMessage} - ${variables.name}`,
         variant: "destructive",
       });
     },
