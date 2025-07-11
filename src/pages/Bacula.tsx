@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Database, Settings, AlertCircle } from 'lucide-react';
@@ -6,8 +7,6 @@ import { useBaculaJobsData } from '@/hooks/useBaculaJobsData';
 import { Button } from '@/components/ui/button';
 import { BaculaDashboard } from '@/components/BaculaDashboard';
 import { BaculaAnalysisDialog } from '@/components/BaculaAnalysisDialog';
-import { BaculaJobsDialog } from '@/components/BaculaJobsDialog';
-import { BarChart3, Database as DatabaseIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -125,7 +124,6 @@ const Bacula = () => {
           
           <div className="flex flex-col gap-2">
             <BaculaAnalysisDialog jobs={allJobs} />
-            <BaculaJobsDialog />
             
             <Card className="bg-slate-800 border-slate-700">
               <CardContent className="p-4 text-center">
