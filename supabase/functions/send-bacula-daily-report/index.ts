@@ -239,37 +239,37 @@ serve(async (req) => {
         const responses = await fetchBaculaData();
         allJobs = [];
       
-      // Processar todas as respostas e combinar os dados
-      for (const response of responses) {
-        if (response.status === 'fulfilled' && response.value?.data) {
-          const data = response.value.data;
-          let jobs = [];
-          
-          // Extrair jobs de diferentes estruturas de resposta
-          if (data?.output && Array.isArray(data.output)) {
-            jobs = data.output;
-          } else if (data?.result && Array.isArray(data.result)) {
-            jobs = data.result;
-          } else if (data?.data && Array.isArray(data.data)) {
-            jobs = data.data;
-          } else if (Array.isArray(data)) {
-            jobs = data;
-          } else if (typeof data === 'object' && data !== null) {
-            // Tentar extrair de objeto
-            for (const key in data) {
-              if (Array.isArray(data[key]) && data[key].length > 0) {
-                const firstItem = data[key][0];
-                if (firstItem && (firstItem.name || firstItem.jobname || firstItem.Job || firstItem.JobName)) {
-                  jobs = data[key];
-                  break;
+        // Processar todas as respostas e combinar os dados
+        for (const response of responses) {
+          if (response.status === 'fulfilled' && response.value?.data) {
+            const data = response.value.data;
+            let jobs = [];
+            
+            // Extrair jobs de diferentes estruturas de resposta
+            if (data?.output && Array.isArray(data.output)) {
+              jobs = data.output;
+            } else if (data?.result && Array.isArray(data.result)) {
+              jobs = data.result;
+            } else if (data?.data && Array.isArray(data.data)) {
+              jobs = data.data;
+            } else if (Array.isArray(data)) {
+              jobs = data;
+            } else if (typeof data === 'object' && data !== null) {
+              // Tentar extrair de objeto
+              for (const key in data) {
+                if (Array.isArray(data[key]) && data[key].length > 0) {
+                  const firstItem = data[key][0];
+                  if (firstItem && (firstItem.name || firstItem.jobname || firstItem.Job || firstItem.JobName)) {
+                    jobs = data[key];
+                    break;
+                  }
                 }
               }
             }
+            
+            allJobs = allJobs.concat(jobs);
           }
-          
-          allJobs = allJobs.concat(jobs);
         }
-      }
 
         // Remover duplicatas baseado no jobid
         const uniqueJobs = allJobs.reduce((acc, job) => {
@@ -578,22 +578,6 @@ serve(async (req) => {
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-
-    } catch (error) {
-      console.error('❌ Erro ao buscar dados do Bacula:', error);
-      
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'Erro ao processar relatório', 
-          error: error.message 
-        }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
 
   } catch (error) {
     console.error('❌ Erro geral:', error);
