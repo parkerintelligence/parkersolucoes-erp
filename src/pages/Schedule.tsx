@@ -1,14 +1,15 @@
+
 import { useState } from 'react';
 import { ScheduleTable } from '@/components/ScheduleTable';
 import { ScheduleDialog } from '@/components/ScheduleDialog';
 import { ScheduleTypeDialog } from '@/components/ScheduleTypeDialog';
 import { ScheduleCalendarView } from '@/components/ScheduleCalendarView';
-import GLPIScheduledTicketsView from '@/components/GLPIScheduledTicketsView';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Plus, Settings, Clock, CalendarDays, ExternalLink } from 'lucide-react';
+import { Calendar, Plus, Settings, Clock, CalendarDays } from 'lucide-react';
 import { useScheduleItems, useUpdateScheduleItem, useDeleteScheduleItem } from '@/hooks/useScheduleItems';
+
 const Schedule = () => {
   const {
     data: scheduleItems = [],
@@ -18,20 +19,24 @@ const Schedule = () => {
   const deleteScheduleItem = useDeleteScheduleItem();
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [showTypeDialog, setShowTypeDialog] = useState(false);
+
   const handleUpdateScheduleItem = (id: string, updates: Parameters<typeof updateScheduleItem.mutate>[0]['updates']) => {
     updateScheduleItem.mutate({
       id,
       updates
     });
   };
+
   const handleDeleteScheduleItem = (id: string) => {
     deleteScheduleItem.mutate(id);
   };
+
   if (isLoading) {
     return <div className="flex justify-center items-center h-96">
         <div className="text-muted-foreground">Carregando agenda...</div>
       </div>;
   }
+
   return <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-slate-50">Agenda</h1>
@@ -46,10 +51,6 @@ const Schedule = () => {
           <TabsTrigger value="schedule" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Agenda de Vencimentos
-          </TabsTrigger>
-          <TabsTrigger value="glpi-tickets" className="flex items-center gap-2">
-            <ExternalLink className="h-4 w-4" />
-            Agenda de Chamados
           </TabsTrigger>
         </TabsList>
 
@@ -126,11 +127,8 @@ const Schedule = () => {
           <ScheduleDialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog} />
           <ScheduleTypeDialog open={showTypeDialog} onOpenChange={setShowTypeDialog} />
         </TabsContent>
-
-        <TabsContent value="glpi-tickets">
-          <GLPIScheduledTicketsView />
-        </TabsContent>
       </Tabs>
     </div>;
 };
+
 export default Schedule;
