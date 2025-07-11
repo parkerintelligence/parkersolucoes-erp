@@ -377,65 +377,137 @@ const VPSCard: React.FC<VPSCardProps> = ({
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Informações Básicas */}
+        {/* Badge de Dados Reais */}
+        <div className="flex justify-between items-center">
+          <Badge variant="outline" className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40 text-xs">
+            🟢 Dados Reais da API
+          </Badge>
+          <span className="text-xs text-slate-400">
+            Atualizado: {new Date(vps.realData?.last_updated || new Date()).toLocaleTimeString()}
+          </span>
+        </div>
+
+        {/* Informações Básicas - Dados Reais */}
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Wifi className="h-4 w-4 text-slate-400" />
-              <span className="text-slate-400">IP:</span>
+              <Wifi className="h-4 w-4 text-emerald-400" />
+              <span className="text-slate-400">IP Principal:</span>
             </div>
             <p className="text-white font-mono text-xs">
               {safeValue(vps.ipv4)}
             </p>
+            {vps.ipv6 && (
+              <p className="text-slate-300 font-mono text-xs">
+                IPv6: {safeValue(vps.ipv6)}
+              </p>
+            )}
           </div>
           
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-slate-400" />
-              <span className="text-slate-400">Região:</span>
+              <MapPin className="h-4 w-4 text-emerald-400" />
+              <span className="text-slate-400">Localização:</span>
             </div>
             <p className="text-white">{safeValue(vps.region)}</p>
+            {vps.datacenter && (
+              <p className="text-slate-300 text-xs">
+                DC: {safeValue(vps.datacenter)}
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Especificações */}
-        <div className="space-y-3">
-            <div className="flex items-center justify-between">
+        {/* Sistema Operacional e Plano */}
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Cpu className="h-4 w-4 text-blue-400" />
+              <Activity className="h-4 w-4 text-emerald-400" />
+              <span className="text-slate-400">Sistema:</span>
+            </div>
+            <p className="text-white">{safeValue(vps.os)}</p>
+            {vps.template && (
+              <p className="text-slate-300 text-xs">
+                Template: {safeValue(vps.template)}
+              </p>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-emerald-400" />
+              <span className="text-slate-400">Plano:</span>
+            </div>
+            <p className="text-white">{safeValue(vps.plan)}</p>
+            {vps.created_at && (
+              <p className="text-slate-300 text-xs">
+                Criado: {new Date(vps.created_at).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Especificações de Hardware - Dados Reais */}
+        <div className="space-y-3 pt-2 border-t border-slate-600">
+          <div className="text-sm font-medium text-slate-300 flex items-center gap-2">
+            <Server className="h-4 w-4 text-emerald-400" />
+            Especificações de Hardware
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Cpu className="h-4 w-4 text-emerald-400" />
               <span className="text-slate-400">CPU:</span>
             </div>
-            <span className="text-white">{safeValue(vps.cpus, '0')} cores</span>
+            <span className="text-white font-medium">{safeValue(vps.cpus || vps.cpu, '0')} cores</span>
           </div>
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-green-400" />
+              <Zap className="h-4 w-4 text-emerald-400" />
               <span className="text-slate-400">RAM:</span>
             </div>
-            <span className="text-white">{formatMemory(safeValue(vps.memory, 0))}</span>
+            <span className="text-white font-medium">{formatMemory(safeValue(vps.memory, 0))}</span>
           </div>
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <HardDrive className="h-4 w-4 text-purple-400" />
+              <HardDrive className="h-4 w-4 text-emerald-400" />
               <span className="text-slate-400">Disco:</span>
             </div>
-            <span className="text-white">{formatDisk(safeValue(vps.disk, 0))}</span>
+            <span className="text-white font-medium">{formatDisk(safeValue(vps.disk, 0))}</span>
           </div>
         </div>
 
-        {/* Métricas de Uso */}
+        {/* Métricas de Performance */}
         {metrics && (
           <div className="space-y-3 pt-2 border-t border-slate-600">
             <div className="flex items-center justify-between">
-              <div className="text-sm font-medium text-slate-300">Utilização em Tempo Real</div>
-              {metrics.simulated && (
-                <Badge variant="outline" className="bg-blue-500/20 text-blue-300 border-blue-500/40 text-xs">
-                  Simulado
-                </Badge>
-              )}
+              <div className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Métricas de Performance
+              </div>
+              <div className="flex items-center gap-2">
+                {metrics.isReal ? (
+                  <Badge variant="outline" className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40 text-xs">
+                    🟢 Tempo Real
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-xs">
+                    🟡 Simulado
+                  </Badge>
+                )}
+                <span className="text-xs text-slate-400">
+                  {new Date(metrics.lastUpdated).toLocaleTimeString()}
+                </span>
+              </div>
             </div>
+            
+            {!metrics.isReal && metrics.note && (
+              <p className="text-xs text-amber-300 bg-amber-500/10 p-2 rounded border border-amber-500/20">
+                ⚠️ {metrics.note}
+              </p>
+            )}
             
             {/* CPU Usage */}
             <div className="space-y-1">
@@ -541,35 +613,26 @@ const VPSCard: React.FC<VPSCardProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Status da Fonte de Dados */}
+            <div className="pt-2 border-t border-slate-600">
+              <div className="text-xs">
+                {metrics.isReal ? (
+                  <div className="flex items-center gap-2 text-emerald-300">
+                    <span className="w-2 h-2 bg-emerald-400 rounded-full"></span>
+                    Dados obtidos da API Hostinger em tempo real
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-amber-300">
+                    <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
+                    Dados simulados - Configure agente de monitoramento para dados reais
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Informações Adicionais */}
-        <div className="space-y-2 pt-2 border-t border-slate-600">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-3 w-3 text-slate-500" />
-              <span className="text-slate-400">Criado:</span>
-            </div>
-            <span className="text-slate-300">
-              {vps.created_at ? new Date(vps.created_at).toLocaleDateString() : 'N/A'}
-            </span>
-          </div>
-          
-          {(vps.template || vps.os) && (
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400">OS:</span>
-              <span className="text-slate-300">{safeValue(vps.template?.name) || safeValue(vps.os)}</span>
-            </div>
-          )}
-          
-          {vps.plan && (
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400">Plano:</span>
-              <span className="text-slate-300">{safeValue(vps.plan)}</span>
-            </div>
-          )}
-        </div>
 
         {/* Ações */}
         <div className="flex gap-2 pt-4">

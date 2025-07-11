@@ -5,18 +5,24 @@ import { useToast } from '@/hooks/use-toast';
 export interface HostingerVPS {
   id: string;
   name: string;
+  hostname?: string;
   status: string;
-  ipv4: string;
-  ipv6?: string;
-  region: string;
-  plan: string;
-  os: string;
+  ipv4: string | { address: string }[];
+  ipv6?: string | { address: string }[];
+  region: string | { name: string };
+  plan: string | { name: string };
+  os: string | { name: string };
   cpu: number;
+  cpus?: number;
   memory: number;
   disk: number;
-  bandwidth: number;
+  bandwidth?: number;
   created_at: string;
   snapshot_count?: number;
+  // Dados reais da API quando disponíveis
+  datacenter?: string;
+  template?: string;
+  // Métricas (simuladas quando não disponíveis na API)
   cpu_usage?: number;
   memory_usage?: number;
   disk_usage?: number;
@@ -85,12 +91,32 @@ const useHostingerVPS = (integrationId?: string) => {
       const vpsList = data?.data || [];
       console.log('✅ VPS encontrados:', vpsList);
       
-      // Debug: Log estrutura completa dos dados para identificar objetos
-      if (vpsList.length > 0) {
-        console.log('🔍 Estrutura do primeiro VPS:', JSON.stringify(vpsList[0], null, 2));
-      }
+      // Enriquecer dados com informações processadas
+      const enrichedVpsList = vpsList.map((vps: any) => ({
+        ...vps,
+        // Processar dados reais da API
+        realData: {
+          id: vps.id,
+          hostname: vps.hostname || vps.name,
+          status: vps.status,
+          ipv4: vps.ipv4,
+          ipv6: vps.ipv6,
+          region: vps.region,
+          plan: vps.plan,
+          os: vps.os,
+          cpus: vps.cpus || vps.cpu,
+          memory: vps.memory,
+          disk: vps.disk,
+          datacenter: vps.datacenter,
+          template: vps.template,
+          created_at: vps.created_at,
+          last_updated: new Date().toISOString()
+        }
+      }));
       
-      return vpsList;
+      console.log('🔍 VPS enriquecidos:', enrichedVpsList);
+      
+      return enrichedVpsList;
     },
     enabled: !!integrationId,
     refetchInterval: 30000, // Atualizar a cada 30 segundos
@@ -122,7 +148,10 @@ const useHostingerVPSMetrics = (integrationId: string, vpsId: string) => {
   return useQuery({
     queryKey: ['hostinger-vps-metrics', integrationId, vpsId],
     queryFn: async () => {
+      console.log('📊 Buscando métricas para VPS:', vpsId);
+      
       // Tentar buscar métricas reais primeiro
+      let realMetrics = null;
       try {
         const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
           body: {
@@ -132,44 +161,71 @@ const useHostingerVPSMetrics = (integrationId: string, vpsId: string) => {
           }
         });
 
-        // Se obtivemos dados reais, retornar
-        if (!error && data?.data && typeof data.data === 'object') {
-          return data.data;
+        // Se obtivemos dados reais, usar eles
+        if (!error && data?.data && typeof data.data === 'object' && data.data.cpu_usage !== undefined) {
+          console.log('✅ Métricas reais encontradas:', data.data);
+          realMetrics = {
+            ...data.data,
+            isReal: true,
+            lastUpdated: new Date().toISOString()
+          };
         }
       } catch (e) {
-        console.log('Métricas reais não disponíveis, usando simulação:', e);
+        console.log('⚠️ API de métricas não disponível:', e.message);
+      }
+
+      // Se temos métricas reais, retornar elas
+      if (realMetrics) {
+        return realMetrics;
       }
 
       // Fallback: gerar métricas simuladas realísticas
+      console.log('🔄 Gerando métricas simuladas para VPS:', vpsId);
       const now = Date.now();
-      const seed = parseInt(vpsId) || vpsId.charCodeAt(0) || 1;
+      const seed = parseInt(vpsId.replace(/\D/g, '')) || vpsId.charCodeAt(0) || 1;
       
       // Usar seed para gerar variações consistentes mas realísticas
-      const timeVariation = Math.sin(now / 60000 + seed) * 0.3 + 0.5; // Variação temporal suave
-      const randomVariation = Math.sin(now / 30000 + seed * 2) * 0.2 + 0.8; // Variação adicional
+      const timeVariation = Math.sin(now / 120000 + seed) * 0.3 + 0.5; // Variação temporal mais lenta
+      const dailyPattern = Math.sin((now / 86400000) * 2 * Math.PI + seed) * 0.2 + 0.8; // Padrão diário
+      const randomVariation = Math.sin(now / 45000 + seed * 3) * 0.15 + 0.85; // Variação menor
+      
+      const variation = timeVariation * dailyPattern * randomVariation;
       
       const simulatedMetrics = {
-        cpu_usage: Math.max(5, Math.min(95, 
-          (20 + timeVariation * 40 + Math.random() * 10) * randomVariation
+        // CPU: Varia entre 5% e 85%, com padrões realísticos
+        cpu_usage: Math.max(5, Math.min(85, 
+          (25 + variation * 35 + (Math.random() - 0.5) * 8)
         )),
-        memory_usage: Math.max(10, Math.min(90, 
-          (35 + timeVariation * 35 + Math.random() * 15) * randomVariation
+        // Memória: Geralmente mais estável, entre 20% e 80%
+        memory_usage: Math.max(20, Math.min(80, 
+          (40 + variation * 25 + (Math.random() - 0.5) * 6)
         )),
-        disk_usage: Math.max(15, Math.min(85, 
-          (25 + timeVariation * 30 + Math.random() * 10) * randomVariation
+        // Disco: Cresce lentamente ao longo do tempo, entre 15% e 75%
+        disk_usage: Math.max(15, Math.min(75, 
+          (30 + variation * 20 + (Math.random() - 0.5) * 5)
         )),
-        network_in: Math.random() * 1000000, // bytes/s
-        network_out: Math.random() * 500000, // bytes/s
-        uptime: Math.floor(Math.random() * 2592000) + 86400, // 1 dia a 30 dias
-        load_average: Math.random() * 2 + 0.1,
-        processes: Math.floor(Math.random() * 200) + 50,
-        simulated: true
+        // Rede: Picos ocasionais
+        network_in: Math.random() * 800000 * (variation + 0.2), // bytes/s
+        network_out: Math.random() * 400000 * (variation + 0.2), // bytes/s
+        // Uptime: Entre 1 hora e 90 dias
+        uptime: Math.floor(Math.random() * 7776000) + 3600,
+        // Load average: Entre 0.1 e 3.0
+        load_average: Math.max(0.1, Math.min(3.0, variation * 1.5 + Math.random() * 0.5)),
+        // Processos: Entre 50 e 300
+        processes: Math.floor(50 + variation * 150 + Math.random() * 50),
+        // Marca como simulado
+        isReal: false,
+        simulated: true,
+        lastUpdated: new Date().toISOString(),
+        note: 'Dados simulados - API do Hostinger não fornece métricas em tempo real'
       };
       
+      console.log('📈 Métricas simuladas geradas:', { vpsId, metrics: simulatedMetrics });
       return simulatedMetrics;
     },
     enabled: !!integrationId && !!vpsId,
     refetchInterval: 15000, // Atualizar a cada 15 segundos
+    retry: 1,
   });
 };
 
