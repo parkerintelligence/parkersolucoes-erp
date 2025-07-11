@@ -20,7 +20,8 @@ import {
   Play,
   TestTube,
   RefreshCcw,
-  Settings
+  Settings,
+  Send
 } from 'lucide-react';
 import { useZabbixWebhooks, ZabbixWebhook, useSendWhatsAppMessage } from '@/hooks/useZabbixWebhooks';
 import { useToast } from '@/hooks/use-toast';
@@ -48,6 +49,119 @@ export const ZabbixWebhookManagerSimple = () => {
   const { data: integrations = [] } = useIntegrations();
   const { toast } = useToast();
   const sendWhatsAppMessage = useSendWhatsAppMessage();
+
+  // Função para simular 3 incidentes do Zabbix
+  const simulateZabbixIncidents = async () => {
+    const incidents = [
+      {
+        alert_name: "High CPU usage on Zabbix server",
+        severity: "Average",
+        host: "Zabbix server",
+        trigger_type: "problem_created",
+        status: "PROBLEM",
+        item_value: "85%",
+        trigger_url: "https://monitoramento.parkersolucoes.com.br/zabbix/tr_events.php?triggerid=1001",
+        event_date: new Date().toISOString()
+      },
+      {
+        alert_name: "Disk space low on SRVDB001",
+        severity: "High", 
+        host: "DREAM PARK - SRVDB001",
+        trigger_type: "problem_created",
+        status: "PROBLEM",
+        item_value: "92% used",
+        trigger_url: "https://monitoramento.parkersolucoes.com.br/zabbix/tr_events.php?triggerid=1002",
+        event_date: new Date().toISOString()
+      },
+      {
+        alert_name: "Service unavailable",
+        severity: "Disaster",
+        host: "GLOBAL PARK - SRVDB003", 
+        trigger_type: "problem_created",
+        status: "PROBLEM",
+        item_value: "Service down",
+        trigger_url: "https://monitoramento.parkersolucoes.com.br/zabbix/tr_events.php?triggerid=1003",
+        event_date: new Date().toISOString()
+      }
+    ];
+
+    for (const incident of incidents) {
+      try {
+        console.log('Simulando incidente:', incident);
+        const response = await fetch('https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/zabbix-webhook', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(incident)
+        });
+        
+        const result = await response.json();
+        console.log('Resposta do webhook:', result);
+        
+        toast({
+          title: "Incidente Simulado",
+          description: `${incident.alert_name} enviado para webhooks ativos`,
+          duration: 3000,
+        });
+        
+        // Aguardar 1 segundo entre envios
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error) {
+        console.error('Erro ao simular incidente:', error);
+        toast({
+          title: "Erro na Simulação",
+          description: `Falha ao enviar ${incident.alert_name}`,
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
+    }
+  };
+
+  // Função para testar um webhook específico
+  const testSingleWebhook = async (webhook: any) => {
+    const testIncident = {
+      alert_name: `[TESTE] High memory usage on test server`,
+      severity: "Warning",
+      host: "Test Server",
+      trigger_type: webhook.trigger_type || "problem_created",
+      status: "PROBLEM",
+      item_value: "78% used",
+      trigger_url: "https://monitoramento.parkersolucoes.com.br/zabbix/tr_events.php?triggerid=9999",
+      event_date: new Date().toISOString(),
+      webhook_test: true
+    };
+
+    try {
+      console.log('Testando webhook:', webhook.name, 'com dados:', testIncident);
+      
+      const response = await fetch('https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/zabbix-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(testIncident)
+      });
+      
+      const result = await response.json();
+      console.log('Resposta do teste de webhook:', result);
+      
+      toast({
+        title: "Teste de Webhook",
+        description: `Webhook "${webhook.name}" testado com sucesso`,
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Erro ao testar webhook:', error);
+      toast({
+        title: "Erro no Teste",
+        description: `Falha ao testar webhook "${webhook.name}"`,
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  };
 
   const [isCreating, setIsCreating] = useState(false);
   const [editingWebhook, setEditingWebhook] = useState<ZabbixWebhook | null>(null);
@@ -302,14 +416,15 @@ export const ZabbixWebhookManagerSimple = () => {
                 Configure notificações automáticas via WhatsApp para eventos do Zabbix
               </CardDescription>
             </div>
-            <Dialog open={isCreating} onOpenChange={setIsCreating}>
-              <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Novo Webhook
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-lg">
+            <div className="flex gap-2">
+              <Dialog open={isCreating} onOpenChange={setIsCreating}>
+                <DialogTrigger asChild>
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Novo Webhook
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-lg">
                 <DialogHeader>
                   <DialogTitle className="text-white">Criar Webhook</DialogTitle>
                   <DialogDescription className="text-slate-400">
@@ -381,7 +496,16 @@ export const ZabbixWebhookManagerSimple = () => {
                   </div>
                 </div>
               </DialogContent>
-            </Dialog>
+              </Dialog>
+              <Button 
+                onClick={simulateZabbixIncidents}
+                variant="outline"
+                className="bg-orange-600 hover:bg-orange-700 border-orange-500 text-white"
+              >
+                <TestTube className="h-4 w-4 mr-2" />
+                Simular 3 Incidentes
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -413,14 +537,14 @@ export const ZabbixWebhookManagerSimple = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleTestWebhook(webhook)}
+                          onClick={() => testSingleWebhook(webhook)}
                           disabled={testingWebhook === webhook.id || !evolutionIntegration}
                           className="bg-green-600 border-green-500 text-white hover:bg-green-500"
                         >
                           {testingWebhook === webhook.id ? (
                             <RefreshCcw className="h-4 w-4 animate-spin" />
                           ) : (
-                            <TestTube className="h-4 w-4" />
+                            <Send className="h-4 w-4" />
                           )}
                         </Button>
                         <Switch

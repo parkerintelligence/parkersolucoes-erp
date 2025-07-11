@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
@@ -8,6 +7,87 @@ const corsOptions = {
     ...corsHeaders,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   },
+}
+
+// Função para transformar dados de jobs configurados em estrutura consistente
+function transformConfiguredJobs(data: any): any {
+  console.log('Transforming configured jobs data:', data);
+  
+  if (!data) return { output: [], total: 0 };
+  
+  let jobs: any[] = [];
+  
+  // Se os dados vêm como objeto com jobs
+  if (data.output && typeof data.output === 'object') {
+    if (Array.isArray(data.output)) {
+      jobs = data.output;
+    } else {
+      // Converter objeto para array
+      jobs = Object.entries(data.output).map(([key, value]: [string, any]) => ({
+        name: value.name || value.Name || key,
+        jobname: value.name || value.Name || key,
+        type: value.type || value.Type || value.JobType || 'B',
+        client: value.client || value.Client || value.ClientName || 'Unknown',
+        level: value.level || value.Level || 'Full',
+        schedule: value.schedule || value.Schedule || '',
+        pool: value.pool || value.Pool || '',
+        storage: value.storage || value.Storage || '',
+        fileset: value.fileset || value.FileSet || '',
+        enabled: value.enabled !== false,
+        ...value
+      }));
+    }
+  } else if (data.result && Array.isArray(data.result)) {
+    jobs = data.result;
+  } else if (Array.isArray(data)) {
+    jobs = data;
+  } else if (typeof data === 'object') {
+    // Se é um objeto, tentar extrair jobs de qualquer propriedade
+    for (const key in data) {
+      if (Array.isArray(data[key])) {
+        jobs = data[key];
+        break;
+      } else if (typeof data[key] === 'object' && data[key] !== null) {
+        // Se é um objeto aninhado, converter para array
+        jobs = Object.entries(data[key]).map(([jobKey, jobValue]: [string, any]) => ({
+          name: jobValue.name || jobValue.Name || jobKey,
+          jobname: jobValue.name || jobValue.Name || jobKey,
+          type: jobValue.type || jobValue.Type || jobValue.JobType || 'B',
+          client: jobValue.client || jobValue.Client || jobValue.ClientName || 'Unknown',
+          level: jobValue.level || jobValue.Level || 'Full',
+          schedule: jobValue.schedule || jobValue.Schedule || '',
+          pool: jobValue.pool || jobValue.Pool || '',
+          storage: jobValue.storage || jobValue.Storage || '',
+          fileset: jobValue.fileset || jobValue.FileSet || '',
+          enabled: jobValue.enabled !== false,
+          ...jobValue
+        }));
+        break;
+      }
+    }
+  }
+  
+  // Normalizar cada job
+  const normalizedJobs = jobs.map((job: any) => ({
+    name: job.name || job.jobname || job.Name || job.Job || 'Unknown',
+    jobname: job.name || job.jobname || job.Name || job.Job || 'Unknown',
+    type: job.type || job.Type || job.JobType || job.Level || 'B',
+    client: job.client || job.Client || job.ClientName || 'Unknown',
+    level: job.level || job.Level || 'Full',
+    schedule: job.schedule || job.Schedule || '',
+    pool: job.pool || job.Pool || '',
+    storage: job.storage || job.Storage || '',
+    fileset: job.fileset || job.FileSet || '',
+    enabled: job.enabled !== false,
+    ...job
+  }));
+  
+  console.log('Transformed jobs:', normalizedJobs);
+  
+  return {
+    output: normalizedJobs,
+    total: normalizedJobs.length
+  };
 }
 
 serve(async (req) => {
@@ -199,6 +279,19 @@ serve(async (req) => {
             if (v1Response.ok) {
               const v1Data = await v1Response.json()
               console.log(`V1 API response successful:`, v1Data)
+              
+              // Para jobs configurados, estruturar os dados se necessário
+              if (endpoint === 'jobs/configured' && v1Data && typeof v1Data === 'object') {
+                const structuredData = transformConfiguredJobs(v1Data);
+                return new Response(JSON.stringify(structuredData), {
+                  ...corsOptions,
+                  headers: {
+                    ...corsOptions.headers,
+                    'Content-Type': 'application/json'
+                  }
+                })
+              }
+              
               return new Response(JSON.stringify(v1Data), {
                 ...corsOptions,
                 headers: {
@@ -233,6 +326,11 @@ serve(async (req) => {
         try {
           data = await response.json()
           console.log(`BaculaWeb API response data:`, JSON.stringify(data, null, 2))
+          
+          // Para jobs configurados, estruturar os dados se necessário
+          if (endpoint === 'jobs/configured' && data) {
+            data = transformConfiguredJobs(data);
+          }
         } catch (jsonError) {
           console.error('JSON parsing error:', jsonError)
           const textData = await response.text()

@@ -29,34 +29,66 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
 
   // Extrair dados dos jobs configurados
   const extractConfiguredJobs = (data: any) => {
-    console.log('Extracting configured jobs from data:', data);
+    console.log('Raw configured jobs data:', JSON.stringify(data, null, 2));
     if (!data) return [];
     
-    // Tentar diferentes estruturas de resposta da API Bacula
-    if (data.output && Array.isArray(data.output)) {
-      console.log('Found jobs in data.output:', data.output);
-      return data.output;
+    // Verificar estruturas mais específicas do Bacula
+    if (data.output) {
+      console.log('Found data.output:', data.output);
+      
+      // Se output é um objeto com jobs array
+      if (data.output.jobs && Array.isArray(data.output.jobs)) {
+        console.log('Found jobs array in output.jobs:', data.output.jobs);
+        return data.output.jobs;
+      }
+      
+      // Se output é diretamente um array
+      if (Array.isArray(data.output)) {
+        console.log('Output is direct array:', data.output);
+        return data.output;
+      }
+      
+      // Se output é um objeto, converter para array
+      if (typeof data.output === 'object' && !Array.isArray(data.output)) {
+        const jobsArray = Object.values(data.output).filter((item: any) => 
+          item && typeof item === 'object' && (item.name || item.jobname)
+        );
+        console.log('Converted output object to jobs array:', jobsArray);
+        return jobsArray;
+      }
     }
+    
+    // Verificar outras estruturas
     if (data.result && Array.isArray(data.result)) {
       console.log('Found jobs in data.result:', data.result);
       return data.result;
     }
+    
     if (data.data && Array.isArray(data.data)) {
       console.log('Found jobs in data.data:', data.data);
       return data.data;
     }
+    
     if (Array.isArray(data)) {
       console.log('Data is direct array:', data);
       return data;
     }
     
-    // Verificar se há outras estruturas possíveis
-    if (data.jobs && Array.isArray(data.jobs)) {
-      console.log('Found jobs in data.jobs:', data.jobs);
-      return data.jobs;
+    // Se data é um objeto, tentar extrair jobs
+    if (typeof data === 'object' && data !== null) {
+      // Buscar por qualquer array dentro do objeto
+      for (const key in data) {
+        if (Array.isArray(data[key]) && data[key].length > 0) {
+          const firstItem = data[key][0];
+          if (firstItem && (firstItem.name || firstItem.jobname)) {
+            console.log(`Found jobs array in data.${key}:`, data[key]);
+            return data[key];
+          }
+        }
+      }
     }
     
-    console.log('No jobs found in data structure, returning empty array');
+    console.log('No valid jobs structure found, returning empty array');
     return [];
   };
 
@@ -271,20 +303,26 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                         key={index} 
                         className="border-slate-700 hover:bg-slate-700/30 transition-colors"
                       >
-                        <TableCell className="font-medium text-white py-3">
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium">{job.name || job.jobname || 'N/A'}</span>
-                            {job.description && (
-                              <span className="text-xs text-slate-400 mt-1">{job.description}</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3">
-                          {getJobTypeBadge(job.type || job.jobtype)}
-                        </TableCell>
-                        <TableCell className="text-slate-300 py-3 text-sm">
-                          {job.client || job.clientname || '-'}
-                        </TableCell>
+                         <TableCell className="font-medium text-white py-3">
+                           <div className="flex flex-col">
+                             <span className="text-sm font-medium">
+                               {job.name || job.jobname || job.Job || job.JobName || 'N/A'}
+                             </span>
+                             {(job.description || job.Description) && (
+                               <span className="text-xs text-slate-400 mt-1">
+                                 {job.description || job.Description}
+                               </span>
+                             )}
+                           </div>
+                         </TableCell>
+                         <TableCell className="py-3">
+                           {getJobTypeBadge(
+                             job.type || job.jobtype || job.Type || job.JobType || job.Level || 'Unknown'
+                           )}
+                         </TableCell>
+                         <TableCell className="text-slate-300 py-3 text-sm">
+                           {job.client || job.clientname || job.Client || job.ClientName || '-'}
+                         </TableCell>
                         <TableCell className="py-3 text-sm">
                           {lastSuccessful ? (
                             <div className="text-green-400">
