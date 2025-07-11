@@ -3,14 +3,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Database, Settings, AlertCircle } from 'lucide-react';
 import { useBaculaAPI, useBaculaJobsAll } from '@/hooks/useBaculaAPI';
 import { useBaculaJobsData } from '@/hooks/useBaculaJobsData';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { BaculaDashboard } from '@/components/BaculaDashboard';
-import { BaculaConfiguredJobsTable } from '@/components/bacula/BaculaConfiguredJobsTable';
 import { BaculaAnalysisDialog } from '@/components/BaculaAnalysisDialog';
+import { BaculaJobsDialog } from '@/components/BaculaJobsDialog';
 import { BarChart3, Database as DatabaseIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
 const Bacula = () => {
   const {
     baculaIntegration,
@@ -35,13 +35,16 @@ const Bacula = () => {
     clientStats,
     recentJobs
   } = useBaculaJobsData(jobsData, searchTerm, statusFilter, dateFilter);
+  
   const handleResetFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
     setDateFilter('7days'); // Reset para 7 dias
   };
+
   if (!baculaIntegration) {
-    return <div className="min-h-screen bg-slate-900 text-white p-6">
+    return (
+      <div className="min-h-screen bg-slate-900 text-white p-6">
         <div className="space-y-6">
           <div className="flex items-center gap-2 mb-6">
             <Database className="h-6 w-6 text-blue-400" />
@@ -72,9 +75,12 @@ const Bacula = () => {
             </CardContent>
           </Card>
         </div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen bg-slate-900 text-white">
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-white">
       <div className="space-y-6 p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -119,41 +125,23 @@ const Bacula = () => {
           
           <div className="flex flex-col gap-2">
             <BaculaAnalysisDialog jobs={allJobs} />
-            
-            {/* Botão de Teste do Relatório Diário */}
-            
+            <BaculaJobsDialog />
             
             <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-slate-300 mb-1">{jobStats.totalJobs}</div>
-              <div className="text-sm text-slate-300 font-medium">Job Status Terminated</div>
-              <div className="text-xs text-slate-400 mt-1">Todos os jobs finalizados</div>
-            </CardContent>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-slate-300 mb-1">{jobStats.totalJobs}</div>
+                <div className="text-sm text-slate-300 font-medium">Job Status Terminated</div>
+                <div className="text-xs text-slate-400 mt-1">Todos os jobs finalizados</div>
+              </CardContent>
             </Card>
           </div>
         </div>
 
-        <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-slate-800 border-slate-700">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2 text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-              <BarChart3 className="h-4 w-4" />
-              Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="jobs" className="flex items-center gap-2 text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-              <DatabaseIcon className="h-4 w-4" />
-              Jobs Cadastrados
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="dashboard" className="mt-6">
-            <BaculaDashboard />
-          </TabsContent>
-          
-          <TabsContent value="jobs" className="mt-6">
-            <BaculaConfiguredJobsTable />
-          </TabsContent>
-        </Tabs>
+        {/* Dashboard principal */}
+        <BaculaDashboard />
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default Bacula;
