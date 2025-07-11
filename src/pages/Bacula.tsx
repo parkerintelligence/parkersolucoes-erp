@@ -9,6 +9,8 @@ import { BaculaDashboard } from '@/components/BaculaDashboard';
 import { BaculaConfiguredJobsTable } from '@/components/bacula/BaculaConfiguredJobsTable';
 import { BaculaAnalysisDialog } from '@/components/BaculaAnalysisDialog';
 import { BarChart3, Database as DatabaseIcon } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Bacula = () => {
   const {
@@ -130,6 +132,30 @@ const Bacula = () => {
           
           <div className="flex flex-col gap-2">
             <BaculaAnalysisDialog jobs={allJobs} />
+            
+            {/* Botão de Teste do Relatório Diário */}
+            <Button 
+              onClick={async () => {
+                try {
+                  await supabase.functions.invoke('send-scheduled-report', {
+                    body: { report_id: 'bf1005ec-7c62-4b43-bb7f-b663f81d2cbb' }
+                  });
+                  toast.success('✅ Teste do relatório Bacula enviado!', {
+                    description: 'Verifique seu WhatsApp para confirmar o recebimento.',
+                  });
+                } catch (error: any) {
+                  console.error('Erro ao testar relatório:', error);
+                  toast.error('❌ Erro ao testar relatório', {
+                    description: error.message || 'Falha ao enviar teste.',
+                  });
+                }
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              size="sm"
+            >
+              🧪 Testar Relatório Diário
+            </Button>
+            
             <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-slate-300 mb-1">{jobStats.totalJobs}</div>

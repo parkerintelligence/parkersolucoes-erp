@@ -27,7 +27,9 @@ export const ZabbixWebhookTester = () => {
     severity: '4',
     eventid: '12345',
     triggerid: '67890',
-    status: '1'
+    status: '1',
+    trigger_type: 'problem_created', // Adicionado para coincidir com webhooks configurados
+    timestamp: new Date().toISOString()
   });
 
   const webhookUrl = `https://mpvxppgoyadedukkfoccs.supabase.co/functions/v1/zabbix-webhook`;
@@ -37,12 +39,19 @@ export const ZabbixWebhookTester = () => {
     setTestResult(null);
 
     try {
+      console.log('🔥 Testando webhook com dados:', testData);
+      
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(testData)
+        body: JSON.stringify({
+          ...testData,
+          timestamp: new Date().toISOString(),
+          // Determinar trigger_type baseado no status
+          trigger_type: testData.status === '0' ? 'problem_resolved' : 'problem_created'
+        })
       });
 
       const result = await response.json();

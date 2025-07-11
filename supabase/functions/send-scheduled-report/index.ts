@@ -24,6 +24,10 @@ const handler = async (req: Request): Promise<Response> => {
   const startTime = Date.now();
   let reportLog = null;
 
+  console.log('🚀 [SEND] Iniciando função send-scheduled-report');
+  console.log('🚀 [SEND] Método da requisição:', req.method);
+  console.log('🚀 [SEND] Headers da requisição:', Object.fromEntries(req.headers.entries()));
+
   try {
     console.log('🚀 [SEND] Iniciando função send-scheduled-report');
     
@@ -275,20 +279,31 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
 
     case 'bacula_daily':
       const baculaData = await getBaculaData(userId, settings);
+      
+      // Substituições básicas
       messageContent = messageContent
         .replace(/\{\{date\}\}/g, currentDate)
-        .replace(/\{\{hasErrors\}\}/g, baculaData.hasErrors ? 'true' : 'false')
-        .replace(/\{\{errorJobs\}\}/g, baculaData.errorJobs)
         .replace(/\{\{totalJobs\}\}/g, baculaData.totalJobs.toString())
         .replace(/\{\{errorCount\}\}/g, baculaData.errorCount.toString())
         .replace(/\{\{errorRate\}\}/g, baculaData.errorRate.toString());
       
-      // Handle conditional blocks
+      // Handle conditional blocks com regex mais robusta
       if (baculaData.hasErrors) {
+        // Remove else block e mantém if block
         messageContent = messageContent.replace(/\{\{#if hasErrors\}\}([\s\S]*?)\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/g, '$1');
+        // Handle errorJobs dentro do if block
+        messageContent = messageContent.replace(/\{\{#each errorJobs\}\}([\s\S]*?)\{\{\/each\}\}/g, baculaData.errorJobs);
+        messageContent = messageContent.replace(/\{\{errorJobs\}\}/g, baculaData.errorJobs);
       } else {
+        // Remove if block e mantém else block
         messageContent = messageContent.replace(/\{\{#if hasErrors\}\}([\s\S]*?)\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/g, '$2');
       }
+      
+      // Cleanup any remaining template variables
+      messageContent = messageContent
+        .replace(/\{\{[^}]+\}\}/g, '') // Remove any remaining template variables
+        .replace(/\n\s*\n\s*\n/g, '\n\n') // Clean up multiple newlines
+        .trim();
       break;
   }
 
@@ -627,13 +642,10 @@ async function getBaculaData(userId: string, settings: any) {
   console.log(`🔌 [BACULA] Integração Bacula encontrada: ${baculaIntegration.name}`);
 
   try {
-    // Chamar a função bacula-proxy para obter jobs do último dia
+    // Chamar a função bacula-proxy para obter jobs das últimas 24h
     const { data: baculaResponse, error: baculaError } = await supabase.functions.invoke('bacula-proxy', {
       body: {
-        host: baculaIntegration.base_url,
-        port: baculaIntegration.port || 9101,
-        password: baculaIntegration.password,
-        command: 'status director'
+        endpoint: 'jobs/last24h'
       }
     });
 
@@ -644,8 +656,18 @@ async function getBaculaData(userId: string, settings: any) {
 
     console.log('📊 [BACULA] Resposta do Bacula:', JSON.stringify(baculaResponse, null, 2));
 
-    // Se temos dados reais, processar
-    const jobs = baculaResponse?.jobs || [];
+    // Processar estrutura de dados do Bacula (pode variar)
+    let jobs = [];
+    if (baculaResponse?.output && Array.isArray(baculaResponse.output)) {
+      jobs = baculaResponse.output;
+    } else if (Array.isArray(baculaResponse?.jobs)) {
+      jobs = baculaResponse.jobs;
+    } else if (Array.isArray(baculaResponse)) {
+      jobs = baculaResponse;
+    } else if (baculaResponse?.data && Array.isArray(baculaResponse.data)) {
+      jobs = baculaResponse.data;
+    }
+    
     console.log(`💼 [BACULA] Total de jobs encontrados: ${jobs.length}`);
 
     // Filtrar jobs do último dia
