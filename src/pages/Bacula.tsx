@@ -123,14 +123,26 @@ const Bacula = () => {
             <BaculaDashboard />
           </TabsContent>
           
-          <TabsContent value="jobs" className="mt-6 space-y-6">
-            <BaculaStatusCards />
+          <TabsContent value="jobs" className="mt-6 space-y-4">
+            <BaculaFilters 
+              startDate={startDate} 
+              endDate={endDate} 
+              statusFilter={statusFilter} 
+              clientFilter={clientFilter} 
+              onStartDateChange={setStartDate} 
+              onEndDateChange={setEndDate} 
+              onStatusFilterChange={setStatusFilter} 
+              onClientFilterChange={setClientFilter} 
+              onReset={handleResetFilters} 
+            />
 
-            <BaculaAdvancedStats jobs={jobs} />
-
-            <BaculaFilters startDate={startDate} endDate={endDate} statusFilter={statusFilter} clientFilter={clientFilter} onStartDateChange={setStartDate} onEndDateChange={setEndDate} onStatusFilterChange={setStatusFilter} onClientFilterChange={setClientFilter} onReset={handleResetFilters} />
-
-            <BaculaStatusTabs jobs={jobs} startDate={startDate} endDate={endDate} statusFilter={statusFilter} clientFilter={clientFilter}>
+            <BaculaStatusTabs 
+              jobs={jobs} 
+              startDate={startDate} 
+              endDate={endDate} 
+              statusFilter={statusFilter} 
+              clientFilter={clientFilter}
+            >
               <BaculaJobsGrid />
             </BaculaStatusTabs>
           </TabsContent>
