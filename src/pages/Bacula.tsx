@@ -7,8 +7,10 @@ import { BaculaStatusCards } from '@/components/BaculaStatusCards';
 import { BaculaFilters } from '@/components/BaculaFilters';
 import { BaculaStatusTabs } from '@/components/BaculaStatusTabs';
 import { BaculaAdvancedStats } from '@/components/BaculaAdvancedStats';
-import { BaculaJobsByClient } from '@/components/BaculaJobsByClient';
+import { BaculaJobsGrid } from '@/components/BaculaJobsGrid';
+import { BaculaDashboard } from '@/components/BaculaDashboard';
 import { useBaculaJobsRecent } from '@/hooks/useBaculaAPI';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Bacula = () => {
   const { baculaIntegration, isEnabled } = useBaculaAPI();
@@ -113,36 +115,48 @@ const Bacula = () => {
           </div>
         </div>
 
-        <BaculaStatusCards />
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 bg-slate-800 border-slate-700">
+            <TabsTrigger value="dashboard" className="text-slate-300 data-[state=active]:bg-slate-700">
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="jobs" className="text-slate-300 data-[state=active]:bg-slate-700">
+              Jobs
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="dashboard" className="mt-6">
+            <BaculaDashboard />
+          </TabsContent>
+          
+          <TabsContent value="jobs" className="mt-6 space-y-6">
+            <BaculaStatusCards />
 
-        <BaculaAdvancedStats jobs={jobs} />
+            <BaculaAdvancedStats jobs={jobs} />
 
-        <BaculaFilters
-          startDate={startDate}
-          endDate={endDate}
-          statusFilter={statusFilter}
-          clientFilter={clientFilter}
-          onStartDateChange={setStartDate}
-          onEndDateChange={setEndDate}
-          onStatusFilterChange={setStatusFilter}
-          onClientFilterChange={setClientFilter}
-          onReset={handleResetFilters}
-        />
+            <BaculaFilters
+              startDate={startDate}
+              endDate={endDate}
+              statusFilter={statusFilter}
+              clientFilter={clientFilter}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+              onStatusFilterChange={setStatusFilter}
+              onClientFilterChange={setClientFilter}
+              onReset={handleResetFilters}
+            />
 
-        <BaculaStatusTabs 
-          jobs={jobs}
-          startDate={startDate}
-          endDate={endDate}
-          statusFilter={statusFilter}
-          clientFilter={clientFilter}
-        >
-          <BaculaJobsByClient 
-            startDate={startDate}
-            endDate={endDate}
-            statusFilter={statusFilter}
-            clientFilter={clientFilter}
-          />
-        </BaculaStatusTabs>
+            <BaculaStatusTabs 
+              jobs={jobs}
+              startDate={startDate}
+              endDate={endDate}
+              statusFilter={statusFilter}
+              clientFilter={clientFilter}
+            >
+              <BaculaJobsGrid />
+            </BaculaStatusTabs>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
