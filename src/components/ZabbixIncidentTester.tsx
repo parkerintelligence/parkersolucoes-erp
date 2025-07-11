@@ -1,114 +1,136 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { 
-  TestTube, 
-  MessageSquare, 
-  AlertTriangle, 
-  CheckCircle,
-  RefreshCw,
-  Zap
+  Download, 
+  ExternalLink, 
+  Settings,
+  Code,
+  FileText,
+  Copy
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export const ZabbixIncidentTester = () => {
-  const [isTesting, setIsTesting] = useState(false);
-  const [lastTestResult, setLastTestResult] = useState<any>(null);
   const { toast } = useToast();
 
-  const testBaculaIncident = async () => {
-    setIsTesting(true);
-    setLastTestResult(null);
+  const webhookUrl = 'https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/zabbix-webhook';
 
-    try {
-      console.log('🧪 Testando webhook com dados do incidente Bacula...');
-
-      // Dados simulados baseados no incidente real
-      const incidentData = {
-        problem_name: 'Port 4000 is down',
-        host_name: 'bacula-server',
-        severity: '4',
-        eventid: `test_${Date.now()}`,
-        triggerid: '12345',
-        status: '1', // 1 = problema ativo
-        timestamp: '2025-07-11 18:28:00'
-      };
-
-      console.log('📊 Dados do teste:', incidentData);
-
-      // Chamar o webhook do Zabbix
-      const { data, error } = await supabase.functions.invoke('zabbix-webhook', {
-        body: incidentData
-      });
-
-      if (error) {
-        console.error('❌ Erro no teste do webhook:', error);
-        throw error;
-      }
-
-      console.log('✅ Resultado do teste:', data);
-      setLastTestResult(data);
-
-      toast({
-        title: "Teste executado com sucesso",
-        description: `Webhooks processados: ${data.processed_webhooks || 0}`,
-      });
-
-    } catch (error) {
-      console.error('❌ Erro no teste:', error);
-      setLastTestResult({ error: error.message });
-      
-      toast({
-        title: "Erro no teste",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsTesting(false);
-    }
+  const copyToClipboard = (text: string, description: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copiado!",
+      description: `${description} copiado para a área de transferência.`,
+    });
   };
 
-  const testHostDownIncident = async () => {
-    setIsTesting(true);
-    setLastTestResult(null);
+  const javascriptCode = `// Webhook para integração com Supabase
+var req = new HttpRequest();
+req.addHeader('Content-Type: application/json');
 
-    try {
-      const incidentData = {
-        problem_name: 'Bacula Director service is down',
-        host_name: 'bacula-director',
-        severity: '5',
-        eventid: `test_host_${Date.now()}`,
-        triggerid: '54321',
-        status: '1',
-        timestamp: new Date().toLocaleString('pt-BR')
-      };
+var body = JSON.stringify({
+    'problem_name': '{EVENT.NAME}',
+    'host_name': '{HOST.NAME}',
+    'severity': '{EVENT.SEVERITY}',
+    'eventid': '{EVENT.ID}',
+    'triggerid': '{TRIGGER.ID}',
+    'status': '{EVENT.STATUS}',
+    'timestamp': '{DATE} {TIME}',
+    'item_key': '{ITEM.KEY}',
+    'item_value': '{ITEM.LASTVALUE}'
+});
 
-      const { data, error } = await supabase.functions.invoke('zabbix-webhook', {
-        body: incidentData
-      });
+Zabbix.log(4, '[Supabase Webhook] Sending: ' + body);
 
-      if (error) throw error;
+var response = req.post('${webhookUrl}', body);
 
-      setLastTestResult(data);
-      toast({
-        title: "Teste de host down executado",
-        description: `Webhooks processados: ${data.processed_webhooks || 0}`,
-      });
+Zabbix.log(4, '[Supabase Webhook] Response code: ' + req.getStatus());
+Zabbix.log(4, '[Supabase Webhook] Response: ' + response);
 
-    } catch (error) {
-      console.error('❌ Erro no teste de host down:', error);
-      setLastTestResult({ error: error.message });
-      
-      toast({
-        title: "Erro no teste",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsTesting(false);
-    }
+if (req.getStatus() !== 200) {
+    throw 'Response code: ' + req.getStatus();
+}
+
+return response;`;
+
+  const xmlConfig = `<?xml version="1.0" encoding="UTF-8"?>
+<zabbix_export>
+    <version>6.0</version>
+    <date>2025-07-11T21:00:00Z</date>
+    <media_types>
+        <media_type>
+            <name>Supabase Webhook</name>
+            <type>WEBHOOK</type>
+            <parameters>
+                <parameter>
+                    <name>HTTPProxy</name>
+                    <value/>
+                </parameter>
+                <parameter>
+                    <name>Message</name>
+                    <value>{ALERT.MESSAGE}</value>
+                </parameter>
+                <parameter>
+                    <name>Subject</name>
+                    <value>{ALERT.SUBJECT}</value>
+                </parameter>
+                <parameter>
+                    <name>To</name>
+                    <value>{ALERT.SENDTO}</value>
+                </parameter>
+                <parameter>
+                    <name>URL</name>
+                    <value>${webhookUrl}</value>
+                </parameter>
+            </parameters>
+            <script>${javascriptCode.replace(/'/g, '&apos;')}</script>
+            <timeout>30s</timeout>
+            <process_tags>YES</process_tags>
+            <show_event_menu>YES</show_event_menu>
+            <event_menu_url/>
+            <event_menu_name/>
+            <description>Webhook para envio de alertas para Supabase</description>
+            <message_templates>
+                <message_template>
+                    <event_source>TRIGGERS</event_source>
+                    <operation_mode>PROBLEM</operation_mode>
+                    <subject>Problema: {EVENT.NAME}</subject>
+                    <message>Problema: {EVENT.NAME}
+Host: {HOST.NAME}
+Severidade: {EVENT.SEVERITY}
+Status: {EVENT.STATUS}
+Horário: {EVENT.TIME} {EVENT.DATE}</message>
+                </message_template>
+                <message_template>
+                    <event_source>TRIGGERS</event_source>
+                    <operation_mode>RECOVERY</operation_mode>
+                    <subject>Resolvido: {EVENT.NAME}</subject>
+                    <message>Problema resolvido: {EVENT.NAME}
+Host: {HOST.NAME}
+Duração: {EVENT.DURATION}
+Horário: {EVENT.RECOVERY.TIME} {EVENT.RECOVERY.DATE}</message>
+                </message_template>
+            </message_templates>
+        </media_type>
+    </media_types>
+</zabbix_export>`;
+
+  const downloadConfig = () => {
+    const blob = new Blob([xmlConfig], { type: 'application/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'supabase-webhook-mediatype.xml';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Download iniciado",
+      description: "Arquivo de configuração baixado com sucesso.",
+    });
   };
 
   return (
@@ -116,103 +138,110 @@ export const ZabbixIncidentTester = () => {
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
-            <Zap className="h-5 w-5 text-yellow-400" />
-            Teste de Incidentes Bacula
+            <Settings className="h-5 w-5 text-blue-400" />
+            Configuração do Zabbix
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button
-              onClick={testBaculaIncident}
-              disabled={isTesting}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              {isTesting ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <TestTube className="h-4 w-4 mr-2" />
-              )}
-              Testar: Port 4000 Down
-            </Button>
-
-            <Button
-              onClick={testHostDownIncident}
-              disabled={isTesting}
-              variant="outline"
-              className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-            >
-              {isTesting ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <AlertTriangle className="h-4 w-4 mr-2" />
-              )}
-              Testar: Host Down
-            </Button>
-          </div>
-
-          {lastTestResult && (
-            <div className="mt-6 p-4 bg-slate-900 rounded-lg border border-slate-600">
-              <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                {lastTestResult.error ? (
-                  <AlertTriangle className="h-4 w-4 text-red-400" />
-                ) : (
-                  <CheckCircle className="h-4 w-4 text-green-400" />
-                )}
-                Resultado do Teste
-              </h4>
-              
-              {lastTestResult.error ? (
-                <div className="text-red-400 text-sm font-mono">
-                  {lastTestResult.error}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-green-900/20 text-green-400 border-green-600">
-                      Sucesso
-                    </Badge>
-                    <span className="text-slate-300 text-sm">
-                      {lastTestResult.processed_webhooks} webhook(s) processado(s)
-                    </span>
-                  </div>
-                  
-                  {lastTestResult.results?.map((result: any, index: number) => (
-                    <div key={index} className="bg-slate-800 p-3 rounded border border-slate-600">
-                      <div className="text-white font-medium mb-2">
-                        {result.webhook_name}
-                      </div>
-                      
-                      {result.actions?.map((action: any, actionIndex: number) => (
-                        <div key={actionIndex} className="flex items-center gap-2 text-sm">
-                          {action.type === 'whatsapp_message' && (
-                            <MessageSquare className="h-3 w-3 text-green-400" />
-                          )}
-                          <span className="text-slate-300">{action.type}:</span>
-                          <Badge 
-                            className={action.success 
-                              ? "bg-green-900/20 text-green-400 border-green-600" 
-                              : "bg-red-900/20 text-red-400 border-red-600"
-                            }
-                          >
-                            {action.success ? 'Enviado' : 'Falhou'}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              )}
+        <CardContent className="space-y-6">
+          
+          {/* URL do Webhook */}
+          <div className="space-y-3">
+            <h3 className="text-white font-semibold flex items-center gap-2">
+              <ExternalLink className="h-4 w-4" />
+              URL do Webhook
+            </h3>
+            <div className="bg-slate-900 p-3 rounded border border-slate-600">
+              <code className="text-green-400 text-sm break-all">{webhookUrl}</code>
+              <Button
+                onClick={() => copyToClipboard(webhookUrl, 'URL do webhook')}
+                size="sm"
+                variant="outline"
+                className="ml-2 bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
             </div>
-          )}
-
-          <div className="mt-4 p-3 bg-blue-900/20 border border-blue-600 rounded-lg">
-            <p className="text-blue-300 text-sm">
-              <strong>💡 Dica:</strong> Para o webhook funcionar automaticamente, configure no Zabbix:
-            </p>
-            <code className="text-blue-200 text-xs block mt-2 bg-blue-900/30 p-2 rounded">
-              URL: https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/zabbix-webhook
-            </code>
           </div>
+
+          {/* Instruções passo a passo */}
+          <div className="space-y-3">
+            <h3 className="text-white font-semibold">📋 Configuração Passo a Passo</h3>
+            <div className="bg-slate-900 p-4 rounded border border-slate-600 space-y-3">
+              <div className="space-y-2 text-sm text-slate-300">
+                <p><Badge className="bg-blue-900/20 text-blue-400 border-blue-600 mr-2">1</Badge>
+                   Acesse <strong>Administration → Media types</strong></p>
+                <p><Badge className="bg-blue-900/20 text-blue-400 border-blue-600 mr-2">2</Badge>
+                   Clique em <strong>Create media type</strong></p>
+                <p><Badge className="bg-blue-900/20 text-blue-400 border-blue-600 mr-2">3</Badge>
+                   Configure os dados:</p>
+                <ul className="ml-8 space-y-1 text-slate-400">
+                  <li>• <strong>Name:</strong> Supabase Webhook</li>
+                  <li>• <strong>Type:</strong> Webhook</li>
+                  <li>• <strong>Script:</strong> Use o código JavaScript abaixo</li>
+                  <li>• <strong>Timeout:</strong> 30s</li>
+                </ul>
+                <p><Badge className="bg-blue-900/20 text-blue-400 border-blue-600 mr-2">4</Badge>
+                   Salve e configure em <strong>Users → Media</strong></p>
+              </div>
+            </div>
+          </div>
+
+          {/* Código JavaScript */}
+          <div className="space-y-3">
+            <h3 className="text-white font-semibold flex items-center gap-2">
+              <Code className="h-4 w-4" />
+              Código JavaScript para Media Type
+            </h3>
+            <div className="bg-slate-900 p-4 rounded border border-slate-600">
+              <pre className="text-xs text-green-400 overflow-x-auto whitespace-pre-wrap">
+                <code>{javascriptCode}</code>
+              </pre>
+              <Button
+                onClick={() => copyToClipboard(javascriptCode, 'Código JavaScript')}
+                size="sm"
+                variant="outline"
+                className="mt-3 bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+              >
+                <Copy className="h-3 w-3 mr-2" />
+                Copiar Código
+              </Button>
+            </div>
+          </div>
+
+          {/* Download do arquivo */}
+          <div className="space-y-3">
+            <h3 className="text-white font-semibold flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Arquivo de Configuração
+            </h3>
+            <div className="bg-slate-900 p-4 rounded border border-slate-600">
+              <p className="text-slate-300 text-sm mb-3">
+                Baixe o arquivo XML com a configuração completa para importar diretamente no Zabbix:
+              </p>
+              <Button
+                onClick={downloadConfig}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Baixar supabase-webhook-mediatype.xml
+              </Button>
+            </div>
+          </div>
+
+          {/* Importação */}
+          <div className="space-y-3">
+            <h3 className="text-white font-semibold">📥 Como Importar</h3>
+            <div className="bg-blue-900/20 border border-blue-600 rounded-lg p-4">
+              <div className="space-y-2 text-sm text-blue-300">
+                <p><strong>Para importar o arquivo:</strong></p>
+                <p>1. <strong>Administration → General → Import</strong></p>
+                <p>2. Selecione o arquivo <code>supabase-webhook-mediatype.xml</code></p>
+                <p>3. Marque <strong>Media types</strong> e clique em <strong>Import</strong></p>
+                <p>4. Configure o Media Type no usuário desejado</p>
+              </div>
+            </div>
+          </div>
+
         </CardContent>
       </Card>
     </div>
