@@ -316,11 +316,10 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                            </div>
                          </TableCell>
                          <TableCell className="py-3">
-                           {getJobTypeBadge(
-                             String(job.type || job.jobtype || job.Type || job.JobType || 
-                                   (typeof job.Level === 'string' ? job.Level : '') || 'Unknown')
-                           )}
-                         </TableCell>
+                            {getJobTypeBadge(
+                              String(job.type || job.jobtype || job.Type || job.JobType || 'Unknown')
+                            )}
+                          </TableCell>
                          <TableCell className="text-slate-300 py-3 text-sm">
                            {job.client || job.clientname || job.Client || job.ClientName || '-'}
                          </TableCell>
