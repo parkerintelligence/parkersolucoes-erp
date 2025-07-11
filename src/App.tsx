@@ -181,7 +181,14 @@ function App() {
                   </Layout>
                 }
               />
-              <Route path="/bacula" element={<Layout><Bacula /></Layout>} />
+              <Route 
+                path="/bacula" 
+                element={
+                  <Layout>
+                    <Bacula />
+                  </Layout>
+                } 
+              />
             </Routes>
           </div>
         </BrowserRouter>

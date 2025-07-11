@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -83,48 +84,63 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
   };
 
   const handleSend = async () => {
-    if (!phoneNumber.trim()) {
-      toast({
-        title: "❌ Número obrigatório",
-        description: "Digite o número do WhatsApp para enviar a senha.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!validatePhoneNumber(phoneNumber)) {
-      toast({
-        title: "❌ Número inválido",
-        description: "Digite um número válido:\n• 11 dígitos: 11999999999\n• 13 dígitos: 5511999999999",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const evolutionApiIntegration = integrations?.find(int => int.type === 'evolution_api' && int.is_active);
-    
-    if (!evolutionApiIntegration) {
-      toast({
-        title: "❌ Evolution API não configurada",
-        description: "Configure uma Evolution API ativa no painel administrativo primeiro.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validar se api_token e instance_name existem
-    if (!evolutionApiIntegration.api_token || !evolutionApiIntegration.instance_name) {
-      toast({
-        title: "❌ Configuração incompleta",
-        description: "API Token e Nome da Instância são obrigatórios na configuração da Evolution API.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    
     try {
+      if (!phoneNumber.trim()) {
+        toast({
+          title: "❌ Número obrigatório",
+          description: "Digite o número do WhatsApp para enviar a senha.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!validatePhoneNumber(phoneNumber)) {
+        toast({
+          title: "❌ Número inválido",
+          description: "Digite um número válido:\n• 11 dígitos: 11999999999\n• 13 dígitos: 5511999999999",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('🔍 Verificando integrações disponíveis...');
+      console.log('📋 Integrações encontradas:', integrations);
+
+      const evolutionApiIntegration = integrations?.find(int => 
+        int.type === 'evolution_api' && int.is_active
+      );
+      
+      if (!evolutionApiIntegration) {
+        console.error('❌ Nenhuma integração Evolution API ativa encontrada');
+        toast({
+          title: "❌ Evolution API não configurada",
+          description: "Configure uma Evolution API ativa no painel administrativo primeiro.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ Integração Evolution API encontrada:', {
+        id: evolutionApiIntegration.id,
+        name: evolutionApiIntegration.name,
+        base_url: evolutionApiIntegration.base_url,
+        instance_name: evolutionApiIntegration.instance_name,
+        hasToken: !!evolutionApiIntegration.api_token
+      });
+
+      // Validar se api_token e instance_name existem
+      if (!evolutionApiIntegration.api_token || !evolutionApiIntegration.instance_name) {
+        console.error('❌ Configuração incompleta da Evolution API');
+        toast({
+          title: "❌ Configuração incompleta",
+          description: "API Token e Nome da Instância são obrigatórios na configuração da Evolution API.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setIsLoading(true);
+      
       // Usar a integração completa diretamente
       const evolutionService = new EvolutionApiService(evolutionApiIntegration);
       const formattedPhone = formatPhoneForDisplay(phoneNumber);
@@ -142,13 +158,14 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
         onOpenChange(false);
         setPhoneNumber('');
       } else {
+        console.error('❌ Falha no envio:', result.error);
         setErrorDialog({
           open: true,
           error: result.error
         });
       }
     } catch (error) {
-      console.error('❌ Erro crítico:', error);
+      console.error('❌ Erro crítico no handleSend:', error);
       setErrorDialog({
         open: true,
         error: {

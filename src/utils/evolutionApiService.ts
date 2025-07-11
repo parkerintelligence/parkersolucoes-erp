@@ -1,3 +1,4 @@
+
 import { Integration } from '@/hooks/useIntegrations';
 
 export interface EvolutionApiError {
@@ -21,10 +22,19 @@ export class EvolutionApiService {
     if (!integration.instance_name) {
       throw new Error('Instance name is required for Evolution API integration');
     }
+    if (!integration.base_url) {
+      throw new Error('Base URL is required for Evolution API integration');
+    }
 
     this.baseUrl = integration.base_url.replace(/\/$/, '');
     this.apiToken = integration.api_token;
     this.instanceName = integration.instance_name;
+
+    console.log('🔌 Evolution API Service initialized:', {
+      baseUrl: this.baseUrl,
+      instanceName: this.instanceName,
+      hasToken: !!this.apiToken
+    });
   }
 
   async createInstance(): Promise<{ success: boolean; error?: string }> {
@@ -47,8 +57,9 @@ export class EvolutionApiService {
       });
 
       if (!response.ok) {
-        console.error('❌ Erro ao criar instância:', response.status, response.statusText);
-        return { success: false, error: `Erro HTTP: ${response.status}` };
+        const errorText = await response.text();
+        console.error('❌ Erro ao criar instância:', response.status, response.statusText, errorText);
+        return { success: false, error: `Erro HTTP ${response.status}: ${errorText}` };
       }
 
       const data = await response.json();
@@ -72,8 +83,9 @@ export class EvolutionApiService {
       });
 
       if (!response.ok) {
-        console.error('❌ Erro ao buscar QR Code:', response.status, response.statusText);
-        return { error: `Erro HTTP: ${response.status}` };
+        const errorText = await response.text();
+        console.error('❌ Erro ao buscar QR Code:', response.status, response.statusText, errorText);
+        return { error: `Erro HTTP ${response.status}: ${errorText}` };
       }
 
       const data = await response.json();
@@ -102,13 +114,16 @@ export class EvolutionApiService {
       });
 
       if (!response.ok) {
-        console.error('❌ Erro ao verificar status:', response.status, response.statusText);
-        return { active: false, error: `Erro HTTP: ${response.status} ${response.statusText}` };
+        const errorText = await response.text();
+        console.error('❌ Erro ao verificar status:', response.status, response.statusText, errorText);
+        return { active: false, error: `Erro HTTP ${response.status}: ${errorText}` };
       }
 
       const data = await response.json();
       console.log('✅ Status da instância:', data);
-      return { active: data.state === 'open' || data.status === 'CONNECTED' };
+      
+      const isActive = data.state === 'open' || data.status === 'CONNECTED';
+      return { active: isActive };
     } catch (error) {
       console.error('❌ Erro ao verificar status:', error);
       return { active: false, error: error instanceof Error ? error.message : 'Erro desconhecido' };
@@ -498,30 +513,62 @@ export class EvolutionApiService {
   async sendMessage(number: string, text: string): Promise<{ success: boolean, error?: any }> {
     try {
       console.log(`✉️ Evolution API: Enviando mensagem para ${number}...`);
+      console.log(`🔗 URL: ${this.baseUrl}/message/sendText/${this.instanceName}`);
+      console.log(`🔑 Token: ${this.apiToken.substring(0, 10)}...`);
+      
+      const payload = {
+        number: number,
+        text: text
+      };
+      
+      console.log(`📤 Payload:`, payload);
+      
       const response = await fetch(`${this.baseUrl}/message/sendText/${this.instanceName}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': this.apiToken
         },
-        body: JSON.stringify({
-          number: number,
-          text: text
-        })
+        body: JSON.stringify(payload)
       });
 
-      const result = await response.json();
+      const responseText = await response.text();
+      console.log(`📨 Resposta bruta:`, responseText);
+      
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch {
+        result = { raw: responseText };
+      }
 
       if (response.ok) {
         console.log('✅ Mensagem enviada com sucesso:', result);
         return { success: true };
       } else {
-        console.error('❌ Erro ao enviar mensagem:', result);
-        return { success: false, error: result };
+        console.error('❌ Erro ao enviar mensagem:', {
+          status: response.status,
+          statusText: response.statusText,
+          response: result
+        });
+        return { 
+          success: false, 
+          error: {
+            message: `Erro HTTP ${response.status}: ${response.statusText}`,
+            details: responseText,
+            statusCode: response.status
+          }
+        };
       }
     } catch (error) {
-      console.error('❌ Erro ao enviar mensagem:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido' };
+      console.error('❌ Erro crítico ao enviar mensagem:', error);
+      return { 
+        success: false, 
+        error: {
+          message: 'Erro crítico na comunicação',
+          details: error instanceof Error ? error.message : 'Erro desconhecido'
+        }
+      };
     }
   }
 }
