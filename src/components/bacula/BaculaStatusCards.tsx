@@ -104,7 +104,7 @@ export const BaculaStatusCards: React.FC<BaculaStatusCardsProps> = ({
                     className="w-2 h-2 rounded" 
                     style={{backgroundColor: index % 2 === 0 ? '#22c55e' : '#3b82f6'}} 
                   />
-                  <span className="text-slate-300 truncate max-w-16">
+                  <span className="text-slate-300 text-xs">
                     {client.name.toUpperCase()}
                   </span>
                 </div>
