@@ -443,7 +443,17 @@ serve(async (req) => {
             errorMsg: getFieldValue(job, ['joberrors', 'JobErrors', 'error_message', 'message'], '').substring(0, 200)
           };
         }),
-        timestamp: new Date().toLocaleString('pt-BR')
+        timestamp: new Date().toLocaleString('pt-BR'),
+        // Dados para logging e métricas
+        reportMetrics: {
+          executionTime: Date.now(),
+          dataSourcesUsed: ['bacula-proxy'],
+          cacheHit: getCached(cacheKey) !== null,
+          errorsByLevel: failedJobsAnalysis.byLevel,
+          topFailedClients: Object.entries(failedJobsAnalysis.byClient)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 5)
+        }
       };
 
       // Processar template com dados
@@ -452,9 +462,18 @@ serve(async (req) => {
       // Substituir variáveis simples
       message = message.replace(/\{\{date\}\}/g, reportData.date);
       message = message.replace(/\{\{totalJobs\}\}/g, reportData.totalJobs.toString());
+      message = message.replace(/\{\{successCount\}\}/g, reportData.successCount.toString());
       message = message.replace(/\{\{errorCount\}\}/g, reportData.errorCount.toString());
       message = message.replace(/\{\{errorRate\}\}/g, reportData.errorRate.toString());
+      message = message.replace(/\{\{clientsAffected\}\}/g, reportData.clientsAffected.toString());
+      message = message.replace(/\{\{recurrentFailuresCount\}\}/g, reportData.recurrentFailuresCount.toString());
       message = message.replace(/\{\{timestamp\}\}/g, reportData.timestamp);
+
+      // Processar condicionais avançados
+      message = message.replace(/\{\{#if hasCriticalErrors\}\}([\s\S]*?)\{\{\/if\}\}/g, 
+        reportData.hasCriticalErrors ? '$1' : '');
+      message = message.replace(/\{\{#if recurrentFailuresCount\}\}([\s\S]*?)\{\{\/if\}\}/g, 
+        reportData.recurrentFailuresCount > 0 ? '$1' : '');
 
       // Processar condicionais e loops
       if (reportData.hasErrors) {
@@ -513,6 +532,28 @@ serve(async (req) => {
           });
 
           console.log(`✅ Mensagem enviada para ${phoneNumber}`);
+
+          // Registrar métricas no sistema de monitoramento
+          try {
+            await supabase.functions.invoke('bacula-reports-monitor', {
+              body: {
+                action: 'log_execution',
+                data: {
+                  report_id: report_id || 'auto',
+                  user_id: baculaIntegration.user_id,
+                  execution_time: Date.now() - reportData.reportMetrics.executionTime,
+                  total_jobs: reportData.totalJobs,
+                  failed_jobs: reportData.errorCount,
+                  success_rate: 100 - reportData.errorRate,
+                  cache_hit: reportData.reportMetrics.cacheHit,
+                  error_patterns: reportData.reportMetrics.errorsByLevel,
+                  phone_number: phoneNumber
+                }
+              }
+            });
+          } catch (monitorError) {
+            console.warn('⚠️ Erro ao registrar métricas:', monitorError);
+          }
 
         } catch (error) {
           console.error(`❌ Erro ao enviar para ${phoneNumber}:`, error);
