@@ -85,6 +85,11 @@ const useHostingerVPS = (integrationId?: string) => {
       const vpsList = data?.data || [];
       console.log('✅ VPS encontrados:', vpsList);
       
+      // Debug: Log estrutura completa dos dados para identificar objetos
+      if (vpsList.length > 0) {
+        console.log('🔍 Estrutura do primeiro VPS:', JSON.stringify(vpsList[0], null, 2));
+      }
+      
       return vpsList;
     },
     enabled: !!integrationId,

@@ -89,8 +89,9 @@ export const HostingerDashboard = () => {
     }
   };
 
-  const handleSnapshot = async (vpsId: string, vpsName: string) => {
-    const snapshotName = `${vpsName}_${new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')}`;
+  const handleSnapshot = async (vpsId: string, vpsName: any) => {
+    const safeName = typeof vpsName === 'object' ? (vpsName?.name || vpsName?.id || vpsId) : (vpsName || vpsId);
+    const snapshotName = `${safeName}_${new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')}`;
     await createSnapshot.mutateAsync({
       integrationId: selectedIntegration,
       vpsId,
@@ -207,6 +208,21 @@ const VPSCard: React.FC<VPSCardProps> = ({
 }) => {
   const { data: metrics } = useHostingerVPSMetrics(integrationId, vps.id);
 
+  // Função para extrair valores de forma segura de objetos ou strings
+  const safeValue = (value: any, fallback: string = 'N/A') => {
+    if (typeof value === 'object' && value !== null) {
+      // Se for um objeto com address (como IPv4/IPv6)
+      if (value.address) return value.address;
+      // Se for um objeto com name
+      if (value.name) return value.name;
+      // Se for um objeto com id
+      if (value.id) return value.id;
+      // Se for um objeto sem propriedades conhecidas, retorna o fallback
+      return fallback;
+    }
+    return value || fallback;
+  };
+
   const formatUptime = (seconds: number) => {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
@@ -238,10 +254,10 @@ const VPSCard: React.FC<VPSCardProps> = ({
         <div className="flex items-center justify-between">
           <CardTitle className="text-white text-lg flex items-center gap-2">
             <Server className="h-5 w-5 text-orange-500" />
-            {vps.name || vps.id}
+            {safeValue(vps.name) || safeValue(vps.id)}
           </CardTitle>
-          <Badge variant="outline" className={getStatusColor(vps.status)}>
-            {vps.status}
+          <Badge variant="outline" className={getStatusColor(safeValue(vps.status))}>
+            {safeValue(vps.status)}
           </Badge>
         </div>
       </CardHeader>
@@ -255,9 +271,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
               <span className="text-slate-400">IP:</span>
             </div>
             <p className="text-white font-mono text-xs">
-              {typeof vps.ipv4 === 'object' && vps.ipv4?.address 
-                ? vps.ipv4.address 
-                : vps.ipv4 || 'N/A'}
+              {safeValue(vps.ipv4)}
             </p>
           </div>
           
@@ -266,7 +280,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
               <MapPin className="h-4 w-4 text-slate-400" />
               <span className="text-slate-400">Região:</span>
             </div>
-            <p className="text-white">{vps.region || 'N/A'}</p>
+            <p className="text-white">{safeValue(vps.region)}</p>
           </div>
         </div>
 
@@ -277,7 +291,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
               <Cpu className="h-4 w-4 text-blue-400" />
               <span className="text-slate-400">CPU:</span>
             </div>
-            <span className="text-white">{vps.cpu || 0} cores</span>
+            <span className="text-white">{safeValue(vps.cpu, '0')} cores</span>
           </div>
           
           <div className="flex items-center justify-between">
@@ -285,7 +299,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
               <Zap className="h-4 w-4 text-green-400" />
               <span className="text-slate-400">RAM:</span>
             </div>
-            <span className="text-white">{vps.memory || 0} MB</span>
+            <span className="text-white">{safeValue(vps.memory, '0')} MB</span>
           </div>
           
           <div className="flex items-center justify-between">
@@ -293,7 +307,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
               <HardDrive className="h-4 w-4 text-purple-400" />
               <span className="text-slate-400">Disco:</span>
             </div>
-            <span className="text-white">{vps.disk || 0} GB</span>
+            <span className="text-white">{safeValue(vps.disk, '0')} GB</span>
           </div>
         </div>
 
@@ -349,14 +363,14 @@ const VPSCard: React.FC<VPSCardProps> = ({
           {vps.os && (
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-400">OS:</span>
-              <span className="text-slate-300">{vps.os}</span>
+              <span className="text-slate-300">{safeValue(vps.os)}</span>
             </div>
           )}
           
           {vps.plan && (
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-400">Plano:</span>
-              <span className="text-slate-300">{vps.plan}</span>
+              <span className="text-slate-300">{safeValue(vps.plan)}</span>
             </div>
           )}
         </div>
@@ -367,7 +381,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
             size="sm"
             variant="outline"
             onClick={onSnapshot}
-            disabled={snapshotting || vps.status?.toLowerCase() !== 'running'}
+            disabled={snapshotting || safeValue(vps.status)?.toLowerCase() !== 'running'}
             className="flex-1 bg-blue-600 border-blue-500 text-white hover:bg-blue-500"
           >
             {snapshotting ? (
@@ -382,7 +396,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
             size="sm"
             variant="outline"
             onClick={onRestart}
-            disabled={restarting || vps.status?.toLowerCase() !== 'running'}
+            disabled={restarting || safeValue(vps.status)?.toLowerCase() !== 'running'}
             className="flex-1 bg-orange-600 border-orange-500 text-white hover:bg-orange-500"
           >
             {restarting ? (
