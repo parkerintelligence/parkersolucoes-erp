@@ -11,7 +11,7 @@ export const BaculaDashboard = () => {
   // Filtros para o dashboard
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('7days');
 
   const {
     data: jobsData,
