@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,8 @@ import {
   ExternalLink,
   Webhook,
   Search,
-  Filter
+  Filter,
+  Clock
 } from 'lucide-react';
 import { useZabbixAPI } from '@/hooks/useZabbixAPI';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
@@ -149,6 +151,36 @@ const Zabbix = () => {
       case '2': return 'Aviso';
       case '1': return 'Informação';
       default: return 'Desconhecida';
+    }
+  };
+
+  const formatDateTime = (timestamp: string) => {
+    const date = new Date(parseInt(timestamp) * 1000);
+    return date.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const formatDuration = (timestamp: string) => {
+    const problemTime = new Date(parseInt(timestamp) * 1000);
+    const now = new Date();
+    const diffMs = now.getTime() - problemTime.getTime();
+    
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (diffHours > 24) {
+      const days = Math.floor(diffHours / 24);
+      const hours = diffHours % 24;
+      return `${days}d ${hours}h ${diffMinutes}m`;
+    } else if (diffHours > 0) {
+      return `${diffHours}h ${diffMinutes}m`;
+    } else {
+      return `${diffMinutes}m`;
     }
   };
 
@@ -456,7 +488,7 @@ const Zabbix = () => {
                   Problemas Ativos
                 </CardTitle>
                 <CardDescription className="text-gray-400">
-                  Lista de problemas atualmente ativos no Zabbix organizados por host
+                  Lista de problemas atualmente ativos no Zabbix
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -472,59 +504,74 @@ const Zabbix = () => {
                     <p className="text-sm text-gray-400">Todos os sistemas estão funcionando normalmente.</p>
                   </div>
                 ) : (
-                  <div className="space-y-6">
-                    {Object.entries(groupedProblems).map(([hostName, hostProblems]) => (
-                      <div key={hostName} className="border border-gray-700 rounded-lg overflow-hidden bg-gray-900">
-                        <div className="bg-gray-800 px-4 py-2 font-medium text-sm text-gray-200">
-                          <Server className="inline-block h-4 w-4 mr-2" />
-                          {hostName} ({hostProblems.length} problema{hostProblems.length !== 1 ? 's' : ''})
-                        </div>
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="border-gray-700 hover:bg-gray-800/50">
-                              <TableHead className="text-gray-300">Problema</TableHead>
-                              <TableHead className="text-gray-300">Severidade</TableHead>
-                              <TableHead className="text-gray-300">Data/Hora</TableHead>
-                              <TableHead className="text-gray-300">Status</TableHead>
-                              <TableHead className="text-gray-300">Ações</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {hostProblems.map((problem) => (
-                              <TableRow key={problem.eventid} className="h-8 border-gray-700 hover:bg-gray-800/30">
-                                <TableCell className="font-medium py-2 text-gray-200">{problem.name}</TableCell>
-                                <TableCell className="py-2">
-                                  <Badge className={getSeverityColor(problem.severity)}>
-                                    {getSeverityLabel(problem.severity)}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="py-2 text-gray-300">
-                                  {new Date(parseInt(problem.clock) * 1000).toLocaleString('pt-BR')}
-                                </TableCell>
-                                <TableCell className="py-2">
-                                  {problem.acknowledged === '1' ? (
-                                    <Badge className="bg-gray-600 text-white">Reconhecido</Badge>
-                                  ) : (
-                                    <Badge className="bg-red-600 text-white">Novo</Badge>
-                                  )}
-                                </TableCell>
-                                <TableCell className="py-2">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleCreateGLPITicket(problem)}
-                                    disabled={createTicket.isPending}
-                                    className="bg-blue-800 hover:bg-blue-700 text-white p-2"
-                                    title="Criar chamado no GLPI"
-                                  >
-                                    <ExternalLink className="h-4 w-4" />
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    ))}
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-gray-700 hover:bg-gray-800/50">
+                          <TableHead className="text-gray-300 text-xs w-[120px]">
+                            <Clock className="inline-block h-3 w-3 mr-1" />
+                            Hora
+                          </TableHead>
+                          <TableHead className="text-gray-300 text-xs w-[80px]">Severidade</TableHead>
+                          <TableHead className="text-gray-300 text-xs w-[120px]">Hora da Recuperação</TableHead>
+                          <TableHead className="text-gray-300 text-xs w-[60px]">Status</TableHead>
+                          <TableHead className="text-gray-300 text-xs">Informação</TableHead>
+                          <TableHead className="text-gray-300 text-xs w-[200px]">Host</TableHead>
+                          <TableHead className="text-gray-300 text-xs w-[80px]">Incidente</TableHead>
+                          <TableHead className="text-gray-300 text-xs w-[100px]">Duração</TableHead>
+                          <TableHead className="text-gray-300 text-xs w-[80px]">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {problems.map((problem) => (
+                          <TableRow key={problem.eventid} className="border-gray-700 hover:bg-gray-800/30 text-xs">
+                            <TableCell className="py-1 text-gray-300 font-mono text-xs">
+                              {formatDateTime(problem.clock)}
+                            </TableCell>
+                            <TableCell className="py-1">
+                              <Badge className={`${getSeverityColor(problem.severity)} text-xs px-1 py-0`}>
+                                {getSeverityLabel(problem.severity)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="py-1 text-gray-400 text-xs">
+                              -
+                            </TableCell>
+                            <TableCell className="py-1">
+                              {problem.acknowledged === '1' ? (
+                                <Badge className="bg-gray-600 text-white text-xs px-1 py-0">OK</Badge>
+                              ) : (
+                                <Badge className="bg-red-600 text-white text-xs px-1 py-0">PROBLEMA</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-1 text-gray-200 text-xs max-w-[300px] truncate">
+                              {problem.name}
+                            </TableCell>
+                            <TableCell className="py-1 text-gray-300 text-xs">
+                              {problem.hosts?.[0]?.name || 'Host Desconhecido'}
+                            </TableCell>
+                            <TableCell className="py-1">
+                              <Badge className="bg-red-600 text-white text-xs px-1 py-0">
+                                INCIDENTE
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="py-1 text-gray-300 text-xs font-mono">
+                              {formatDuration(problem.clock)}
+                            </TableCell>
+                            <TableCell className="py-1">
+                              <Button
+                                size="sm"
+                                onClick={() => handleCreateGLPITicket(problem)}
+                                disabled={createTicket.isPending}
+                                className="bg-blue-800 hover:bg-blue-700 text-white p-1 h-6 w-6"
+                                title="Criar chamado no GLPI"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
               </CardContent>
