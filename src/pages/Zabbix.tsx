@@ -25,6 +25,7 @@ import {
 import { useZabbixAPI } from '@/hooks/useZabbixAPI';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { ZabbixWebhookManagerSimple } from '@/components/ZabbixWebhookManagerSimple';
+import { ZabbixIncidentTester } from '@/components/ZabbixIncidentTester';
 import { GLPITicketConfirmDialog } from '@/components/GLPITicketConfirmDialog';
 import ZabbixAnalysisDialog from '@/components/ZabbixAnalysisDialog';
 import { toast } from '@/hooks/use-toast';
@@ -675,7 +676,8 @@ const Zabbix = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="webhooks" className="mt-6">
+          <TabsContent value="webhooks" className="mt-6 space-y-6">
+            <ZabbixIncidentTester />
             <ZabbixWebhookManagerSimple />
           </TabsContent>
         </Tabs>
