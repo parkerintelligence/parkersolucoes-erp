@@ -108,24 +108,43 @@ const Bacula = () => {
           </div>
         </div>
 
-        {/* Cards discretos acima das abas */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-center">
-            <div className="text-lg font-bold text-green-400">{jobs.filter(j => j.jobstatus === 'T').length}</div>
-            <div className="text-xs text-slate-400">Completos</div>
-          </div>
-          <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-center">
-            <div className="text-lg font-bold text-red-400">{jobs.filter(j => j.jobstatus === 'E' || j.jobstatus === 'f').length}</div>
-            <div className="text-xs text-slate-400">Erros</div>
-          </div>
-          <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-center">
-            <div className="text-lg font-bold text-blue-400">{jobs.filter(j => j.jobstatus === 'R').length}</div>
-            <div className="text-xs text-slate-400">Executando</div>
-          </div>
-          <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-center">
-            <div className="text-lg font-bold text-slate-300">{jobs.length}</div>
-            <div className="text-xs text-slate-400">Total</div>
-          </div>
+        {/* Cards principais acima das abas */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Card className="bg-slate-800 border-slate-700">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-green-400 mb-1">{jobs.filter(j => j.jobstatus === 'T').length}</div>
+              <div className="text-sm text-slate-300 font-medium">Job Status</div>
+              <div className="text-xs text-slate-400 mt-1">Terminados com sucesso</div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-purple-900/20 border-purple-600/30">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-purple-400 mb-1">{jobs.filter(j => j.jobstatus === 'R').length}</div>
+              <div className="text-sm text-purple-300 font-medium">Jobs Ativos</div>
+              <div className="text-xs text-purple-400 mt-1">Executando agora</div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-blue-900/20 border-blue-600/30">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-blue-400 mb-1">
+                {jobs.reduce((sum, j) => sum + (parseInt(j.jobbytes) || 0), 0) > 0 
+                  ? `${Math.round(jobs.reduce((sum, j) => sum + (parseInt(j.jobbytes) || 0), 0) / (1024 ** 3))}` 
+                  : '0'}
+              </div>
+              <div className="text-sm text-blue-300 font-medium">Tamanho Total</div>
+              <div className="text-xs text-blue-400 mt-1">GB processados</div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-slate-800 border-slate-700">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-slate-300 mb-1">{jobs.filter(j => j.jobstatus === 'T' || j.jobstatus === 'E' || j.jobstatus === 'f').length}</div>
+              <div className="text-sm text-slate-300 font-medium">Job Status Terminated</div>
+              <div className="text-xs text-slate-400 mt-1">Todos os jobs finalizados</div>
+            </CardContent>
+          </Card>
         </div>
 
         <Tabs defaultValue="dashboard" className="w-full">
@@ -155,20 +174,17 @@ const Bacula = () => {
               onReset={handleResetFilters} 
             />
 
-            <BaculaStatusTabs 
-              jobs={jobs} 
-              startDate={startDate} 
-              endDate={endDate} 
-              statusFilter={statusFilter} 
-              clientFilter={clientFilter}
-            >
-              <BaculaJobsGrid 
-                startDate={startDate}
-                endDate={endDate}
-                statusFilter={statusFilter}
-                clientFilter={clientFilter}
-              />
-            </BaculaStatusTabs>
+            {/* Grid destacado similar ao Zabbix */}
+            <Card className="bg-gray-800 border-gray-700">
+              <CardContent className="p-6">
+                <BaculaJobsGrid 
+                  startDate={startDate}
+                  endDate={endDate}
+                  statusFilter={statusFilter}
+                  clientFilter={clientFilter}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
