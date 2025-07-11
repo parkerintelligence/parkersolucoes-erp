@@ -1064,6 +1064,7 @@ export type Database = {
         | "unifi"
         | "google_drive"
         | "bacula"
+        | "hostinger"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1204,6 +1205,7 @@ export const Constants = {
         "unifi",
         "google_drive",
         "bacula",
+        "hostinger",
       ],
     },
   },

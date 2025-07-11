@@ -13,6 +13,7 @@ import { FtpAdminConfig } from "@/components/FtpAdminConfig";
 import { GLPIConfig } from "@/components/GLPIConfig";
 import GuacamoleAdminConfig from "@/components/GuacamoleAdminConfig";
 import { BaculaAdminConfig } from "@/components/BaculaAdminConfig";
+import { HostingerAdminConfig } from "@/components/HostingerAdminConfig";
 import { AdminCompaniesPanel } from "@/components/AdminCompaniesPanel";
 import SystemSettingsPanel from "@/components/SystemSettingsPanel";
 import { BrandingSettingsPanel } from "@/components/BrandingSettingsPanel";
@@ -88,6 +89,12 @@ const Admin = () => {
       label: "Bacula",
       icon: <Archive className="h-5 w-5" />,
       component: <BaculaAdminConfig />
+    },
+    {
+      id: "hostinger",
+      label: "Hostinger",
+      icon: <Server className="h-5 w-5 text-orange-500" />,
+      component: <HostingerAdminConfig />
     },
     {
       id: "bomcontrole",
