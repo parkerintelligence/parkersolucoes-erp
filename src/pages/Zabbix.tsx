@@ -25,6 +25,7 @@ import {
 import { useZabbixAPI } from '@/hooks/useZabbixAPI';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { ZabbixWebhookManager } from '@/components/ZabbixWebhookManager';
+import { GLPITicketConfirmDialog } from '@/components/GLPITicketConfirmDialog';
 import { toast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -105,6 +106,11 @@ const Zabbix = () => {
     }
   };
 
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [selectedProblem, setSelectedProblem] = useState<any>(null);
+  const [sortField, setSortField] = useState('clock');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
   const handleCreateGLPITicket = async (problem: any) => {
     try {
       const ticketData = {
@@ -129,6 +135,26 @@ const Zabbix = () => {
         description: "Não foi possível criar o chamado no GLPI. Verifique a configuração.",
         variant: "destructive",
       });
+    }
+  };
+
+  const openConfirmDialog = (problem: any) => {
+    setSelectedProblem(problem);
+    setConfirmDialogOpen(true);
+  };
+
+  const handleConfirmGLPITicket = () => {
+    if (selectedProblem) {
+      handleCreateGLPITicket(selectedProblem);
+    }
+  };
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
     }
   };
 
@@ -236,8 +262,54 @@ const Zabbix = () => {
     return acc;
   }, {} as Record<string, typeof hosts>);
 
+  // Filtrar e ordenar problemas
+  const filteredProblems = problems.filter(problem => {
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = 
+        problem.name?.toLowerCase().includes(searchLower) ||
+        problem.hosts?.[0]?.name?.toLowerCase().includes(searchLower);
+      if (!matchesSearch) return false;
+    }
+    
+    if (severityFilter !== 'all' && problem.severity !== severityFilter) {
+      return false;
+    }
+    
+    return true;
+  }).sort((a, b) => {
+    let aValue, bValue;
+    
+    switch (sortField) {
+      case 'clock':
+        aValue = parseInt(a.clock);
+        bValue = parseInt(b.clock);
+        break;
+      case 'severity':
+        aValue = parseInt(a.severity);
+        bValue = parseInt(b.severity);
+        break;
+      case 'name':
+        aValue = a.name || '';
+        bValue = b.name || '';
+        break;
+      case 'host':
+        aValue = a.hosts?.[0]?.name || '';
+        bValue = b.hosts?.[0]?.name || '';
+        break;
+      default:
+        return 0;
+    }
+    
+    if (sortDirection === 'asc') {
+      return aValue > bValue ? 1 : -1;
+    } else {
+      return aValue < bValue ? 1 : -1;
+    }
+  });
+
   // Agrupar problemas por host
-  const groupedProblems = problems.reduce((acc, problem) => {
+  const groupedProblems = filteredProblems.reduce((acc, problem) => {
     const hostName = problem.hosts?.[0]?.name || 'Host Desconhecido';
     if (!acc[hostName]) {
       acc[hostName] = [];
@@ -349,58 +421,26 @@ const Zabbix = () => {
           </Card>
         )}
 
-        {/* Card de Sessão com Filtros */}
+        {/* Filtros Compactos */}
         <Card className="bg-gray-800 border-gray-700">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <Activity className="h-5 w-5" />
-                  Sessão e Controles
-                </CardTitle>
-                <CardDescription className="text-gray-400">
-                  Status da conexão e filtros de dados
-                </CardDescription>
-              </div>
-              <Button 
-                onClick={handleRefreshAll} 
-                disabled={refreshing || hostsLoading || problemsLoading}
-                className="bg-blue-800 hover:bg-blue-700 text-white disabled:opacity-50"
-              >
-                <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                {refreshing ? 'Atualizando...' : 'Atualizar'}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="flex items-center gap-2">
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2 min-w-48">
                 <Search className="h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 h-8 text-sm"
                 />
               </div>
               
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                  <SelectValue placeholder="Filtrar por status" />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700">
-                  <SelectItem value="all" className="text-white">Todos os status</SelectItem>
-                  <SelectItem value="active" className="text-white">Ativo</SelectItem>
-                  <SelectItem value="inactive" className="text-white">Inativo</SelectItem>
-                </SelectContent>
-              </Select>
-
               <Select value={severityFilter} onValueChange={setSeverityFilter}>
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                  <SelectValue placeholder="Filtrar por severidade" />
+                <SelectTrigger className="bg-gray-700 border-gray-600 text-white h-8 w-40">
+                  <SelectValue placeholder="Severidade" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700">
-                  <SelectItem value="all" className="text-white">Todas as severidades</SelectItem>
+                  <SelectItem value="all" className="text-white">Todas</SelectItem>
                   <SelectItem value="5" className="text-white">Desastre</SelectItem>
                   <SelectItem value="4" className="text-white">Alta</SelectItem>
                   <SelectItem value="3" className="text-white">Média</SelectItem>
@@ -409,66 +449,25 @@ const Zabbix = () => {
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-400">
-                  {problems.length} problema{problems.length !== 1 ? 's' : ''} | {hosts.length} host{hosts.length !== 1 ? 's' : ''}
-                </span>
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <Filter className="h-4 w-4" />
+                <span>{filteredProblems.length} problema{filteredProblems.length !== 1 ? 's' : ''} | {hosts.length} host{hosts.length !== 1 ? 's' : ''}</span>
+              </div>
+
+              <div className="ml-auto">
+                <Button 
+                  onClick={handleRefreshAll} 
+                  disabled={refreshing || hostsLoading || problemsLoading}
+                  className="bg-blue-800 hover:bg-blue-700 text-white disabled:opacity-50 h-8 px-3"
+                  size="sm"
+                >
+                  <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  {refreshing ? 'Atualizando...' : 'Atualizar'}
+                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* Cards de estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-200">Hosts Totais</CardTitle>
-              <Server className="h-4 w-4 text-gray-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{hosts.length}</div>
-              <p className="text-xs text-gray-400">
-                {hosts.filter(h => h.status === '0').length} ativos
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-200">Problemas Ativos</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-gray-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-400">{problems.length}</div>
-              <p className="text-xs text-gray-400">
-                {problems.filter(p => p.acknowledged === '0').length} não reconhecidos
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-200">Status Geral</CardTitle>
-              <Activity className="h-4 w-4 text-gray-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                {problems.length === 0 ? (
-                  <>
-                    <CheckCircle className="h-5 w-5 text-green-400" />
-                    <span className="text-sm font-medium text-green-400">OK</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="h-5 w-5 text-red-400" />
-                    <span className="text-sm font-medium text-red-400">Problemas</span>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
         <Tabs defaultValue="problems" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
@@ -506,71 +505,89 @@ const Zabbix = () => {
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
-                      <TableHeader>
-                        <TableRow className="border-gray-700 hover:bg-gray-800/50">
-                          <TableHead className="text-gray-300 text-xs w-[120px]">
-                            <Clock className="inline-block h-3 w-3 mr-1" />
-                            Hora
-                          </TableHead>
-                          <TableHead className="text-gray-300 text-xs w-[80px]">Severidade</TableHead>
-                          <TableHead className="text-gray-300 text-xs w-[120px]">Hora da Recuperação</TableHead>
-                          <TableHead className="text-gray-300 text-xs w-[60px]">Status</TableHead>
-                          <TableHead className="text-gray-300 text-xs">Informação</TableHead>
-                          <TableHead className="text-gray-300 text-xs w-[200px]">Host</TableHead>
-                          <TableHead className="text-gray-300 text-xs w-[80px]">Incidente</TableHead>
-                          <TableHead className="text-gray-300 text-xs w-[100px]">Duração</TableHead>
-                          <TableHead className="text-gray-300 text-xs w-[80px]">Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {problems.map((problem) => (
-                          <TableRow key={problem.eventid} className="border-gray-700 hover:bg-gray-800/30 text-xs">
-                            <TableCell className="py-1 text-gray-300 font-mono text-xs">
-                              {formatDateTime(problem.clock)}
-                            </TableCell>
-                            <TableCell className="py-1">
-                              <Badge className={`${getSeverityColor(problem.severity)} text-xs px-1 py-0`}>
-                                {getSeverityLabel(problem.severity)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="py-1 text-gray-400 text-xs">
-                              -
-                            </TableCell>
-                            <TableCell className="py-1">
-                              {problem.acknowledged === '1' ? (
-                                <Badge className="bg-gray-600 text-white text-xs px-1 py-0">OK</Badge>
-                              ) : (
-                                <Badge className="bg-red-600 text-white text-xs px-1 py-0">PROBLEMA</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="py-1 text-gray-200 text-xs max-w-[300px] truncate">
-                              {problem.name}
-                            </TableCell>
-                            <TableCell className="py-1 text-gray-300 text-xs">
-                              {problem.hosts?.[0]?.name || 'Host Desconhecido'}
-                            </TableCell>
-                            <TableCell className="py-1">
-                              <Badge className="bg-red-600 text-white text-xs px-1 py-0">
-                                INCIDENTE
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="py-1 text-gray-300 text-xs font-mono">
-                              {formatDuration(problem.clock)}
-                            </TableCell>
-                            <TableCell className="py-1">
-                              <Button
-                                size="sm"
-                                onClick={() => handleCreateGLPITicket(problem)}
-                                disabled={createTicket.isPending}
-                                className="bg-blue-800 hover:bg-blue-700 text-white p-1 h-6 w-6"
-                                title="Criar chamado no GLPI"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
+                       <TableHeader>
+                         <TableRow className="border-gray-700 hover:bg-gray-800/50">
+                           <TableHead 
+                             className="text-gray-300 text-xs w-[120px] cursor-pointer hover:text-white"
+                             onClick={() => handleSort('clock')}
+                           >
+                             <Clock className="inline-block h-3 w-3 mr-1" />
+                             Hora {sortField === 'clock' && (sortDirection === 'asc' ? '↑' : '↓')}
+                           </TableHead>
+                           <TableHead 
+                             className="text-gray-300 text-xs w-[80px] cursor-pointer hover:text-white"
+                             onClick={() => handleSort('severity')}
+                           >
+                             Severidade {sortField === 'severity' && (sortDirection === 'asc' ? '↑' : '↓')}
+                           </TableHead>
+                           <TableHead className="text-gray-300 text-xs w-[120px]">Hora da Recuperação</TableHead>
+                           <TableHead className="text-gray-300 text-xs w-[60px]">Status</TableHead>
+                           <TableHead 
+                             className="text-gray-300 text-xs cursor-pointer hover:text-white"
+                             onClick={() => handleSort('name')}
+                           >
+                             Informação {sortField === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
+                           </TableHead>
+                           <TableHead 
+                             className="text-gray-300 text-xs w-[200px] cursor-pointer hover:text-white"
+                             onClick={() => handleSort('host')}
+                           >
+                             Host {sortField === 'host' && (sortDirection === 'asc' ? '↑' : '↓')}
+                           </TableHead>
+                           <TableHead className="text-gray-300 text-xs w-[80px]">Incidente</TableHead>
+                           <TableHead className="text-gray-300 text-xs w-[100px]">Duração</TableHead>
+                           <TableHead className="text-gray-300 text-xs w-[80px]">Ações</TableHead>
+                         </TableRow>
+                       </TableHeader>
+                       <TableBody>
+                         {filteredProblems.map((problem) => (
+                           <TableRow key={problem.eventid} className="border-gray-700 hover:bg-gray-800/30 text-xs">
+                             <TableCell className="py-1 text-gray-300 font-mono text-xs">
+                               {formatDateTime(problem.clock)}
+                             </TableCell>
+                             <TableCell className="py-1">
+                               <Badge className={`${getSeverityColor(problem.severity)} text-xs px-1 py-0`}>
+                                 {getSeverityLabel(problem.severity)}
+                               </Badge>
+                             </TableCell>
+                             <TableCell className="py-1 text-gray-400 text-xs">
+                               -
+                             </TableCell>
+                             <TableCell className="py-1">
+                               {problem.acknowledged === '1' ? (
+                                 <Badge className="bg-gray-600 text-white text-xs px-1 py-0">OK</Badge>
+                               ) : (
+                                 <Badge className="bg-red-600 text-white text-xs px-1 py-0">PROBLEMA</Badge>
+                               )}
+                             </TableCell>
+                             <TableCell className="py-1 text-gray-200 text-xs max-w-[300px] truncate">
+                               {problem.name}
+                             </TableCell>
+                             <TableCell className="py-1 text-gray-300 text-xs">
+                               {problem.hosts?.[0]?.name || 'Host Desconhecido'}
+                             </TableCell>
+                             <TableCell className="py-1">
+                               <Badge className="bg-red-600 text-white text-xs px-1 py-0">
+                                 INCIDENTE
+                               </Badge>
+                             </TableCell>
+                             <TableCell className="py-1 text-gray-300 text-xs font-mono">
+                               {formatDuration(problem.clock)}
+                             </TableCell>
+                             <TableCell className="py-1">
+                               <Button
+                                 size="sm"
+                                 onClick={() => openConfirmDialog(problem)}
+                                 disabled={createTicket.isPending}
+                                 className="bg-blue-800 hover:bg-blue-700 text-white p-1 h-6 w-6"
+                                 title="Criar chamado no GLPI"
+                               >
+                                 <ExternalLink className="h-3 w-3" />
+                               </Button>
+                             </TableCell>
+                           </TableRow>
+                         ))}
+                       </TableBody>
                     </Table>
                   </div>
                 )}
@@ -660,6 +677,13 @@ const Zabbix = () => {
             <ZabbixWebhookManager />
           </TabsContent>
         </Tabs>
+
+        <GLPITicketConfirmDialog
+          open={confirmDialogOpen}
+          onOpenChange={setConfirmDialogOpen}
+          onConfirm={handleConfirmGLPITicket}
+          description="Deseja abrir um chamado GLPI para este problema do Zabbix?"
+        />
       </div>
     </div>
   );

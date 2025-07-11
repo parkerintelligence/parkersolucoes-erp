@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { RefreshCw, Database, HardDrive, Clock, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { RefreshCw, Database, HardDrive, Clock, CheckCircle, AlertCircle, XCircle, Search, Filter } from 'lucide-react';
 import { useBaculaJobsRecent, useBaculaStatistics, useBaculaVolumes } from '@/hooks/useBaculaAPI';
+import { BaculaAnalysisDialog } from '@/components/BaculaAnalysisDialog';
 export const BaculaDashboard = () => {
   const {
     data: jobsData,
@@ -18,6 +21,11 @@ export const BaculaDashboard = () => {
     data: volumesData,
     isLoading: volumesLoading
   } = useBaculaVolumes();
+
+  // Filtros para o dashboard
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('7days');
 
   // Extrair jobs da resposta
   const extractJobs = (data: any) => {
@@ -36,7 +44,52 @@ export const BaculaDashboard = () => {
     }
     return [];
   };
-  const jobs = extractJobs(jobsData);
+  const allJobs = extractJobs(jobsData);
+
+  // Filtrar jobs (últimos 7 dias por padrão)
+  const filteredJobs = React.useMemo(() => {
+    let filtered = allJobs;
+
+    // Filtro por data (últimos 7 dias por padrão)
+    const now = new Date();
+    let cutoffDate = new Date();
+    
+    switch (dateFilter) {
+      case '7days':
+        cutoffDate.setDate(now.getDate() - 7);
+        break;
+      case '30days':
+        cutoffDate.setDate(now.getDate() - 30);
+        break;
+      case 'all':
+        cutoffDate = new Date(0);
+        break;
+    }
+    
+    filtered = filtered.filter(job => {
+      if (!job.starttime) return true;
+      const jobDate = new Date(job.starttime);
+      return jobDate >= cutoffDate;
+    });
+
+    // Filtro por termo de busca
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(job => 
+        (job.name || job.jobname || '').toLowerCase().includes(searchLower) ||
+        (job.client || job.clientname || '').toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Filtro por status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(job => job.jobstatus === statusFilter);
+    }
+
+    return filtered;
+  }, [allJobs, searchTerm, statusFilter, dateFilter]);
+
+  const jobs = filteredJobs;
 
   // Calcular estatísticas dos jobs
   const jobStats = React.useMemo(() => {
@@ -134,8 +187,8 @@ export const BaculaDashboard = () => {
     }
   };
 
-  // Jobs recentes (últimos 10)
-  const recentJobs = jobs.slice(0, 10);
+  // Jobs recentes (primeiros 20 do filtro)
+  const recentJobs = jobs.slice(0, 20);
   if (jobsLoading) {
     return <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -149,11 +202,57 @@ export const BaculaDashboard = () => {
       </div>;
   }
   return <div className="space-y-6">
-      {/* Cards de estatísticas no topo */}
-      
+      {/* Header com filtros e botão de análise */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold text-white">Dashboard - Jobs Status Terminated</h2>
+        
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Filtros */}
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Buscar jobs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-40 h-8 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+            />
+          </div>
+          
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-32 h-8 bg-slate-700 border-slate-600 text-white">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectItem value="all" className="text-white">Todos</SelectItem>
+              <SelectItem value="T" className="text-white">Completo</SelectItem>
+              <SelectItem value="E" className="text-white">Erro</SelectItem>
+              <SelectItem value="R" className="text-white">Executando</SelectItem>
+              <SelectItem value="W" className="text-white">Incremental</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="w-32 h-8 bg-slate-700 border-slate-600 text-white">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectItem value="7days" className="text-white">7 dias</SelectItem>
+              <SelectItem value="30days" className="text-white">30 dias</SelectItem>
+              <SelectItem value="all" className="text-white">Todos</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center gap-2 text-sm text-slate-400">
+            <Filter className="h-4 w-4" />
+            <span>{jobs.length} jobs</span>
+          </div>
+          
+          <BaculaAnalysisDialog jobs={allJobs} />
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Tabela de Jobs Status Terminated */}
+        {/* Tabela de Jobs Status Terminated - Maior */}
         <div className="lg:col-span-2">
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader>
@@ -171,7 +270,6 @@ export const BaculaDashboard = () => {
                       <TableHead className="text-slate-300 text-xs">endtime</TableHead>
                       <TableHead className="text-slate-300 text-xs">level</TableHead>
                       <TableHead className="text-slate-300 text-xs">jobfiles</TableHead>
-                      <TableHead className="text-slate-300 text-xs">jobbytes</TableHead>
                       <TableHead className="text-slate-300 text-xs">name</TableHead>
                       <TableHead className="text-slate-300 text-xs">size</TableHead>
                     </TableRow>
@@ -195,7 +293,6 @@ export const BaculaDashboard = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-slate-300 text-xs">{job.jobfiles || '-'}</TableCell>
-                        <TableCell className="text-slate-300 text-xs">{job.jobbytes ? formatBytes(parseInt(job.jobbytes)) : '-'}</TableCell>
                         <TableCell className="text-slate-300 text-xs max-w-32 truncate">{job.client || job.clientname || '-'}</TableCell>
                         <TableCell className="text-slate-300 text-xs">{job.jobbytes ? formatBytes(parseInt(job.jobbytes)) : '-'}</TableCell>
                       </TableRow>)}

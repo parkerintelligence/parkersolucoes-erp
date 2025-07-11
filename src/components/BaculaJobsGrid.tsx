@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, ExternalLink } from 'lucide-react';
 import { useBaculaJobsRecent } from '@/hooks/useBaculaAPI';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
+import { GLPITicketConfirmDialog } from '@/components/GLPITicketConfirmDialog';
 import { toast } from '@/hooks/use-toast';
 
 interface BaculaJobsGridProps {
@@ -17,6 +18,9 @@ export const BaculaJobsGrid: React.FC<BaculaJobsGridProps> = ({
 }) => {
   const { data: jobsData, isLoading, error, refetch } = useBaculaJobsRecent();
   const { createTicket } = useGLPIExpanded();
+  
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<any>(null);
 
   // Extrair jobs da resposta
   const extractJobs = (data: any) => {
@@ -130,6 +134,11 @@ export const BaculaJobsGrid: React.FC<BaculaJobsGridProps> = ({
     }
   };
 
+  const openConfirmDialog = (job: any) => {
+    setSelectedJob(job);
+    setConfirmDialogOpen(true);
+  };
+
   const handleCreateGLPITicket = async (job: any) => {
     try {
       const ticketData = {
@@ -166,6 +175,12 @@ Necessário investigar o motivo da falha no backup.`,
         description: "Não foi possível criar o chamado no GLPI. Verifique a configuração.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleConfirmGLPITicket = () => {
+    if (selectedJob) {
+      handleCreateGLPITicket(selectedJob);
     }
   };
 
@@ -234,7 +249,6 @@ Necessário investigar o motivo da falha no backup.`,
                 <TableHead className="text-slate-300">EndTime</TableHead>
                 <TableHead className="text-slate-300">Level</TableHead>
                 <TableHead className="text-slate-300">JobFiles</TableHead>
-                <TableHead className="text-slate-300">JobBytes</TableHead>
                 <TableHead className="text-slate-300">Name</TableHead>
                 <TableHead className="text-slate-300">Size</TableHead>
                 <TableHead className="text-slate-300 w-20">Ações</TableHead>
@@ -267,9 +281,6 @@ Necessário investigar o motivo da falha no backup.`,
                   <TableCell className="text-slate-300">
                     {job.jobfiles || job.jobfilescount || '-'}
                   </TableCell>
-                  <TableCell className="text-slate-300">
-                    {job.jobbytes ? formatBytes(job.jobbytes) : '-'}
-                  </TableCell>
                   <TableCell className="text-slate-300 max-w-48 truncate">
                     {job.client || job.clientname || job.clientid || '-'}
                   </TableCell>
@@ -280,7 +291,7 @@ Necessário investigar o motivo da falha no backup.`,
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleCreateGLPITicket(job)}
+                      onClick={() => openConfirmDialog(job)}
                       className="h-8 w-8 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20"
                       disabled={createTicket.isPending}
                       title="Criar chamado no GLPI"
@@ -294,6 +305,13 @@ Necessário investigar o motivo da falha no backup.`,
           </Table>
         </div>
       </CardContent>
+      
+      <GLPITicketConfirmDialog
+        open={confirmDialogOpen}
+        onOpenChange={setConfirmDialogOpen}
+        onConfirm={handleConfirmGLPITicket}
+        description="Deseja abrir um chamado GLPI para este job do Bacula?"
+      />
     </Card>
   );
 };

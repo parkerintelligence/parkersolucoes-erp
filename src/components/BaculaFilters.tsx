@@ -37,45 +37,41 @@ export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
   };
 
   return (
-    <Card className="bg-slate-800 border-slate-700 mb-6">
-      <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
-          <Filter className="h-5 w-5" />
-          Filtros
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div>
-            <Label htmlFor="start-date-filter" className="text-slate-300">Data Inicial</Label>
+    <Card className="bg-slate-800 border-slate-700 mb-4">
+      <CardContent className="p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex items-center gap-2 text-sm text-slate-300">
+            <Filter className="h-4 w-4" />
+            <span>Filtros:</span>
+          </div>
+          
+          <div className="min-w-[120px]">
             <Input
-              id="start-date-filter"
               type="date"
               value={startDate}
               onChange={(e) => onStartDateChange(e.target.value)}
-              className="bg-slate-700 border-slate-600 text-white"
+              className="h-8 bg-slate-700 border-slate-600 text-white text-xs"
+              title="Data Inicial"
             />
           </div>
 
-          <div>
-            <Label htmlFor="end-date-filter" className="text-slate-300">Data Final</Label>
+          <div className="min-w-[120px]">
             <Input
-              id="end-date-filter"
               type="date"
               value={endDate}
               onChange={(e) => onEndDateChange(e.target.value)}
-              className="bg-slate-700 border-slate-600 text-white"
+              className="h-8 bg-slate-700 border-slate-600 text-white text-xs"
+              title="Data Final"
             />
           </div>
 
-          <div>
-            <Label htmlFor="status-filter" className="text-slate-300">Status</Label>
+          <div className="min-w-[120px]">
             <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                <SelectValue placeholder="Todos os status" />
+              <SelectTrigger className="h-8 bg-slate-700 border-slate-600 text-white text-xs">
+                <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent className="bg-slate-700 border-slate-600">
-                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="T">Sucesso</SelectItem>
                 <SelectItem value="W">Aviso</SelectItem>
                 <SelectItem value="E">Erro</SelectItem>
@@ -85,28 +81,25 @@ export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
             </Select>
           </div>
 
-          <div>
-            <Label htmlFor="client-filter" className="text-slate-300">Cliente</Label>
+          <div className="min-w-[120px]">
             <Input
-              id="client-filter"
               type="text"
-              placeholder="Filtrar por cliente"
+              placeholder="Cliente"
               value={clientFilter}
               onChange={(e) => onClientFilterChange(e.target.value)}
-              className="bg-slate-700 border-slate-600 text-white"
+              className="h-8 bg-slate-700 border-slate-600 text-white text-xs placeholder-slate-400"
             />
           </div>
 
-          <div className="flex items-end">
-            <Button
-              onClick={onReset}
-              variant="outline"
-              className="border-slate-600 text-slate-300 hover:bg-slate-700"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Resetar
-            </Button>
-          </div>
+          <Button
+            onClick={onReset}
+            variant="outline"
+            size="sm"
+            className="h-8 px-3 border-slate-600 text-slate-300 hover:bg-slate-700"
+          >
+            <RotateCcw className="h-3 w-3 mr-1" />
+            Resetar
+          </Button>
         </div>
       </CardContent>
     </Card>
