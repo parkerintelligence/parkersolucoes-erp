@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { BaculaDashboard } from '@/components/BaculaDashboard';
 import { BaculaConfiguredJobsTable } from '@/components/bacula/BaculaConfiguredJobsTable';
+import { BaculaAnalysisDialog } from '@/components/BaculaAnalysisDialog';
 import { BarChart3, Database as DatabaseIcon } from 'lucide-react';
 
 const Bacula = () => {
@@ -127,13 +128,16 @@ const Bacula = () => {
             </CardContent>
           </Card>
           
-          <Card className="bg-slate-800 border-slate-700">
+          <div className="flex flex-col gap-2">
+            <BaculaAnalysisDialog jobs={allJobs} />
+            <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-slate-300 mb-1">{jobStats.totalJobs}</div>
               <div className="text-sm text-slate-300 font-medium">Job Status Terminated</div>
               <div className="text-xs text-slate-400 mt-1">Todos os jobs finalizados</div>
             </CardContent>
-          </Card>
+            </Card>
+          </div>
         </div>
 
         <Tabs defaultValue="dashboard" className="w-full">
