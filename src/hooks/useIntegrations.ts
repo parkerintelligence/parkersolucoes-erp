@@ -51,39 +51,46 @@ export const useCreateIntegration = () => {
 
   return useMutation({
     mutationFn: async (integration: Omit<Integration, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+      console.log('🚀 Iniciando criação de integração:', integration);
+      
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      if (!user) {
+        console.error('❌ Usuário não autenticado');
+        throw new Error('User not authenticated');
+      }
+
+      console.log('✅ Usuário autenticado:', user.id);
+
+      const integrationWithUser = {
+        ...integration,
+        user_id: user.id
+      };
+
+      console.log('📝 Dados completos para inserção:', integrationWithUser);
 
       const { data, error } = await supabase
         .from('integrations')
-        .insert([{
-          ...integration,
-          user_id: user.id
-        }])
+        .insert([integrationWithUser])
         .select()
         .single();
 
       if (error) {
-        console.error('Error creating integration:', error);
+        console.error('❌ Erro na inserção no banco:', error);
+        console.error('❌ Código do erro:', error.code);
+        console.error('❌ Detalhes do erro:', error.details);
+        console.error('❌ Hint do erro:', error.hint);
         throw error;
       }
 
+      console.log('✅ Integração criada com sucesso:', data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('🎉 Sucesso na criação, invalidando cache...');
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
-      toast({
-        title: "Integração criada!",
-        description: "A integração foi criada com sucesso.",
-      });
     },
     onError: (error) => {
-      console.error('Error creating integration:', error);
-      toast({
-        title: "Erro ao criar integração",
-        description: "Ocorreu um erro ao criar a integração.",
-        variant: "destructive"
-      });
+      console.error('💥 Erro final no hook:', error);
     },
   });
 };

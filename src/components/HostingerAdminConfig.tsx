@@ -41,18 +41,30 @@ export const HostingerAdminConfig = () => {
 
     try {
       const integrationData = {
-        name: formData.name,
+        name: formData.name.trim(),
         type: 'hostinger' as const,
-        base_url: formData.base_url,
-        api_token: formData.api_token,
+        base_url: formData.base_url.trim(),
+        api_token: formData.api_token.trim(),
         is_active: formData.is_active
       };
 
+      console.log('Tentando salvar integração Hostinger:', integrationData);
+
       if (editingId) {
+        console.log('Atualizando integração existente:', editingId);
         await updateIntegration.mutateAsync({ id: editingId, updates: integrationData });
         setEditingId(null);
+        toast({
+          title: "Sucesso",
+          description: "Integração Hostinger atualizada com sucesso!",
+        });
       } else {
+        console.log('Criando nova integração Hostinger');
         await createIntegration.mutateAsync(integrationData);
+        toast({
+          title: "Sucesso", 
+          description: "Integração Hostinger criada com sucesso!",
+        });
       }
 
       setFormData({
@@ -62,9 +74,11 @@ export const HostingerAdminConfig = () => {
         is_active: true
       });
     } catch (error) {
+      console.error('Erro ao salvar integração Hostinger:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro",
-        description: "Erro ao salvar integração Hostinger",
+        description: `Erro ao salvar integração Hostinger: ${errorMessage}`,
         variant: "destructive",
       });
     }
