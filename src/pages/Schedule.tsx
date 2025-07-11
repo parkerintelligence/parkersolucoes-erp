@@ -72,7 +72,7 @@ const Schedule = () => {
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="border-blue-200">
-              <CardContent className="p-4">
+              <CardContent className="p-4 bg-slate-200">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-blue-500" />
                   <div>
@@ -83,7 +83,7 @@ const Schedule = () => {
               </CardContent>
             </Card>
             <Card className="border-blue-200">
-              <CardContent className="p-4">
+              <CardContent className="p-4 bg-slate-200">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-yellow-500" />
                   <div>
@@ -94,7 +94,7 @@ const Schedule = () => {
               </CardContent>
             </Card>
             <Card className="border-blue-200">
-              <CardContent className="p-4">
+              <CardContent className="p-4 bg-slate-200">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-red-500" />
                   <div>
@@ -113,11 +113,11 @@ const Schedule = () => {
 
           {/* Schedule Table */}
           <Card className="border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-blue-900">Agenda de Vencimentos</CardTitle>
-              <CardDescription>Controle de certificados, licenças e atualizações</CardDescription>
+            <CardHeader className="bg-gray-900">
+              <CardTitle className="text-slate-50">Agenda de Vencimentos</CardTitle>
+              <CardDescription className="text-slate-50">Controle de certificados, licenças e atualizações</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="bg-gray-900">
               <ScheduleTable items={scheduleItems} onUpdate={handleUpdateScheduleItem} onDelete={handleDeleteScheduleItem} />
             </CardContent>
           </Card>
