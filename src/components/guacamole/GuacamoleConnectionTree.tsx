@@ -42,12 +42,14 @@ export const GuacamoleConnectionTree = ({
       };
     });
 
-    // Grupo padrão para conexões sem grupo específico
-    groups['general'] = {
-      identifier: 'general',
-      name: 'Conexões Gerais',
-      connections: []
-    };
+    // Adicionar grupo ROOT se não existir (grupo padrão do Guacamole)
+    if (!groups['ROOT']) {
+      groups['ROOT'] = {
+        identifier: 'ROOT',
+        name: 'Conexões Principais',
+        connections: []
+      };
+    }
 
     // Filtrar conexões baseado no texto de pesquisa
     const filteredConnections = connections.filter(connection => {
@@ -59,91 +61,92 @@ export const GuacamoleConnectionTree = ({
       return connectionName.includes(searchTerm);
     });
 
-    // Distribuir conexões filtradas pelos grupos
+    // Distribuir conexões pelos grupos corretos
     filteredConnections.forEach(connection => {
-      // Buscar o grupo da conexão usando diferentes estratégias mais abrangentes
-      let groupId = 'general';
-      
-      // Lista de possíveis campos onde pode estar a informação do grupo
-      const possibleGroupFields = [
-        'parentIdentifier', 'parent-identifier', 'parentGroup', 'parent-group',
-        'groupIdentifier', 'group-identifier', 'connectionGroup', 'connection-group',
-        'group', 'folder', 'category', 'path', 'container'
-      ];
-      
-      // Buscar em diferentes locais da estrutura da conexão
-      const sources = [
-        connection as any,
-        connection.attributes || {},
-        connection.parameters || {},
-        (connection as any).parent || {},
-        (connection as any).group || {}
-      ];
-      
-      // Tentar encontrar o grupo em qualquer um dos campos possíveis
-      for (const source of sources) {
-        if (!source || typeof source !== 'object') continue;
-        
-        for (const field of possibleGroupFields) {
-          if (source[field] && source[field] !== 'ROOT' && source[field] !== groupId) {
-            groupId = source[field];
-            console.log(`🎯 Group found for ${connection.name}: "${groupId}" in field "${field}"`);
-            break;
-          }
-        }
-        
-        if (groupId !== 'general') break;
-      }
+      let assignedGroupId = 'ROOT'; // Grupo padrão
 
-      // Debug expandido: log para verificar a estrutura completa
-      console.log('🔍 Connection group detection:', {
-        connectionName: connection.name,
-        connectionIdentifier: connection.identifier,
-        detectedGroupId: groupId,
-        allPossibleFields: possibleGroupFields.reduce((acc, field) => {
-          sources.forEach((source, idx) => {
-            if (source && typeof source === 'object' && source[field]) {
-              acc[`source${idx}_${field}`] = source[field];
-            }
-          });
-          return acc;
-        }, {} as Record<string, any>),
-        availableGroups: connectionGroups.map(g => ({ id: g.identifier, name: g.name }))
+      // Verificar nos grupos de conexão se esta conexão pertence a algum grupo específico
+      connectionGroups.forEach(group => {
+        if (group.childConnections && group.childConnections.includes(connection.identifier)) {
+          assignedGroupId = group.identifier;
+          console.log(`🎯 Connection "${connection.name}" found in group "${group.name}" (${group.identifier})`);
+        }
       });
 
-      // Se o grupo não existe, criar um novo grupo baseado no nome encontrado
-      if (!groups[groupId] && groupId !== 'general') {
-        // Buscar o nome real do grupo nos connectionGroups
-        const foundGroup = connectionGroups.find(g => 
-          g.identifier === groupId || 
-          g.name === groupId ||
-          (g as any).id === groupId
-        );
+      // Se o grupo específico não foi encontrado, verificar nos parâmetros/atributos da conexão
+      if (assignedGroupId === 'ROOT') {
+        const possibleGroupFields = [
+          'parentIdentifier', 'parent-identifier', 'parentGroup', 'parent-group',
+          'groupIdentifier', 'group-identifier', 'connectionGroup', 'connection-group',
+          'group', 'folder', 'category', 'path', 'container'
+        ];
         
-        groups[groupId] = {
-          identifier: groupId,
-          name: foundGroup?.name || foundGroup?.identifier || groupId,
-          connections: []
-        };
+        const sources = [
+          connection as any,
+          connection.attributes || {},
+          connection.parameters || {},
+          (connection as any).parent || {},
+          (connection as any).group || {}
+        ];
         
-        console.log(`📁 Created new group: ${groups[groupId].name} (${groupId})`);
+        // Tentar encontrar o grupo em qualquer um dos campos possíveis
+        for (const source of sources) {
+          if (!source || typeof source !== 'object') continue;
+          
+          for (const field of possibleGroupFields) {
+            if (source[field] && source[field] !== 'ROOT' && groups[source[field]]) {
+              assignedGroupId = source[field];
+              console.log(`🎯 Group found for ${connection.name}: "${assignedGroupId}" in field "${field}"`);
+              break;
+            }
+          }
+          
+          if (assignedGroupId !== 'ROOT') break;
+        }
       }
 
-      groups[groupId].connections.push(connection);
+      // Se ainda não tem um grupo válido, manter no ROOT
+      if (!groups[assignedGroupId]) {
+        assignedGroupId = 'ROOT';
+      }
+
+      // Debug da atribuição final
+      console.log('🔍 Connection group assignment:', {
+        connectionName: connection.name,
+        connectionIdentifier: connection.identifier,
+        assignedGroup: assignedGroupId,
+        groupName: groups[assignedGroupId]?.name,
+        availableGroups: connectionGroups.map(g => ({ id: g.identifier, name: g.name, childConnections: g.childConnections }))
+      });
+
+      groups[assignedGroupId].connections.push(connection);
     });
 
-    // Filtrar grupos também pelo nome do grupo
+    // Filtrar grupos também pelo nome do grupo e remover grupos vazios
     const filteredGroups = Object.values(groups).filter(group => {
-      if (!searchFilter.trim()) {
-        return group.connections.length > 0;
+      // Sempre manter grupos com conexões
+      if (group.connections.length > 0) {
+        return true;
       }
-      
-      const searchTerm = searchFilter.toLowerCase().trim();
-      const groupName = group.name.toLowerCase();
-      
-      // Mostrar grupo se o nome do grupo contém o termo de pesquisa OU se tem conexões
-      return groupName.includes(searchTerm) || group.connections.length > 0;
+
+      // Se há filtro, verificar se o nome do grupo corresponde
+      if (searchFilter.trim()) {
+        const searchTerm = searchFilter.toLowerCase().trim();
+        const groupName = group.name.toLowerCase();
+        return groupName.includes(searchTerm);
+      }
+
+      // Remover grupos vazios quando não há filtro
+      return false;
     });
+
+    // Se não há grupos com conexões e não há filtro, mostrar mensagem apropriada
+    console.log('📊 Final groups distribution:', filteredGroups.map(g => ({
+      name: g.name,
+      id: g.identifier,
+      connectionCount: g.connections.length,
+      connections: g.connections.map(c => c.name)
+    })));
 
     return filteredGroups;
   };
