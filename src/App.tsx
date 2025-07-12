@@ -25,7 +25,6 @@ import Companies from '@/pages/Companies';
 import Bacula from '@/pages/Bacula';
 import ReportsDashboard from '@/pages/ReportsDashboard';
 import { Layout } from '@/components/Layout';
-import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 
 // Create a single QueryClient instance
 const queryClient = new QueryClient();
@@ -200,7 +199,6 @@ function App() {
                 } 
               />
             </Routes>
-            <PWAInstallPrompt />
           </div>
         </BrowserRouter>
       </QueryClientProvider>
