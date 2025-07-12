@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -27,7 +28,6 @@ import { GuacamoleTokenStatus } from '@/components/guacamole/GuacamoleTokenStatu
 import { GuacamoleConnectionDialog } from '@/components/guacamole/GuacamoleConnectionDialog';
 import { GuacamoleLogs } from '@/components/guacamole/GuacamoleLogs';
 import { GuacamoleConnectionTest } from '@/components/guacamole/GuacamoleConnectionTest';
-import { GuacamoleTestPanel } from '@/components/guacamole/GuacamoleTestPanel';
 import { toast } from '@/hooks/use-toast';
 
 const Guacamole = () => {
@@ -230,9 +230,11 @@ const Guacamole = () => {
             <p className="text-yellow-700 mb-4">
               Para usar o gerenciamento do Apache Guacamole, configure a integração no painel de administração.
             </p>
-            <Button variant="outline" onClick={() => window.location.href = '/admin'}>
-              <Settings className="mr-2 h-4 w-4" />
-              Configurar Guacamole
+            <Button variant="outline" asChild>
+              <Link to="/admin">
+                <Settings className="mr-2 h-4 w-4" />
+                Configurar Guacamole
+              </Link>
             </Button>
           </CardContent>
         </Card>
@@ -655,12 +657,18 @@ const Guacamole = () => {
         </TabsContent>
 
         <TabsContent value="tests" className="mt-6">
-          <GuacamoleTestPanel 
-            connections={connections}
-            users={users}
-            sessions={sessions}
-            isConfigured={isConfigured}
-            integration={integration}
+          <GuacamoleConnectionTest 
+            onLog={(type, message, options) => {
+              if (type === 'request') {
+                logRequest(options?.method || 'GET', options?.url || '', options?.dataSource);
+              } else if (type === 'response') {
+                logResponse(options?.status || 200, message, options?.url, options?.details);
+              } else if (type === 'error') {
+                logError(message, options?.url, options?.details);
+              } else {
+                logInfo(message, options);
+              }
+            }}
           />
         </TabsContent>
       </Tabs>

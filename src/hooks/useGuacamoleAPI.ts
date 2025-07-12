@@ -67,22 +67,6 @@ export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?
     integration?.password
   );
 
-  // Log de debug melhorado
-  if (onLog) {
-    onLog('info', 'Hook useGuacamoleAPI inicializado', {
-      integrationFound: !!integration,
-      isConfigured,
-      integrationDetails: integration ? {
-        id: integration.id,
-        name: integration.name,
-        base_url: integration.base_url,
-        normalizedUrl: integration.base_url ? normalizeBaseUrl(integration.base_url) : null,
-        username: integration.username,
-        dataSource: integration.directory || 'postgresql',
-        is_active: integration.is_active
-      } : null
-    });
-  }
 
   const callGuacamoleAPI = async (endpoint: string, options: any = {}) => {
     if (!integration) {
