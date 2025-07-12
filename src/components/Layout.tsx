@@ -33,7 +33,7 @@ export const Layout = ({ children }: LayoutProps) => {
         <AppSidebar />
         <SidebarInset className="flex-1 min-w-0 flex flex-col transition-all duration-200 md:ml-0">
           <TopHeader />
-          <main className="flex-1 overflow-auto bg-primary">
+          <main className="flex-1 overflow-auto bg-slate-900">
             <div className="container-responsive py-4 sm:py-6 lg:py-8 bg-slate-900">
               {children}
             </div>
