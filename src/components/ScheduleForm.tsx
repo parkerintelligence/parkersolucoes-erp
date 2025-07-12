@@ -77,24 +77,25 @@ export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="title">Título *</Label>
+        <Label htmlFor="title" className="text-gray-300">Título *</Label>
         <Input
           id="title"
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           placeholder="Ex: Renovação Certificado SSL"
+          className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-400"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="schedule_type_id">Tipo *</Label>
+        <Label htmlFor="schedule_type_id" className="text-gray-300">Tipo *</Label>
         <Select value={formData.schedule_type_id} onValueChange={(value) => setFormData({ ...formData, schedule_type_id: value })}>
-          <SelectTrigger>
+          <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
             <SelectValue placeholder="Selecione o tipo" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-gray-900 border-gray-700">
             {scheduleTypes.map((type) => (
-              <SelectItem key={type.id} value={type.id}>
+              <SelectItem key={type.id} value={type.id} className="text-white hover:bg-gray-800">
                 <div className="flex items-center gap-2">
                   <div 
                     className="w-3 h-3 rounded-full" 
@@ -109,14 +110,14 @@ export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="company">Empresa *</Label>
+        <Label htmlFor="company" className="text-gray-300">Empresa *</Label>
         <Select value={formData.company_id} onValueChange={handleCompanyChange}>
-          <SelectTrigger>
+          <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
             <SelectValue placeholder="Selecione a empresa" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-gray-900 border-gray-700">
             {companies.map((company) => (
-              <SelectItem key={company.id} value={company.id}>
+              <SelectItem key={company.id} value={company.id} className="text-white hover:bg-gray-800">
                 {company.name}
               </SelectItem>
             ))}
@@ -125,40 +126,42 @@ export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="due_date">Data de Vencimento *</Label>
+        <Label htmlFor="due_date" className="text-gray-300">Data de Vencimento *</Label>
         <Input
           id="due_date"
           type="date"
           value={formData.due_date}
           onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+          className="bg-gray-900 border-gray-700 text-white"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Descrição</Label>
+        <Label htmlFor="description" className="text-gray-300">Descrição</Label>
         <Textarea
           id="description"
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           placeholder="Detalhes sobre o agendamento..."
           rows={3}
+          className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-400"
         />
       </div>
 
       {glpiIntegration && !initialData && (
-        <div className="flex items-center space-x-2 p-3 bg-muted rounded-lg">
+        <div className="flex items-center space-x-2 p-3 bg-gray-700 rounded-lg">
           <Checkbox
             id="create_glpi_ticket"
             checked={createGLPITicket}
             onCheckedChange={(checked) => setCreateGLPITicket(checked as boolean)}
           />
-          <Label htmlFor="create_glpi_ticket" className="text-sm">
+          <Label htmlFor="create_glpi_ticket" className="text-sm text-gray-300">
             Criar chamado no GLPI na data de vencimento
           </Label>
         </div>
       )}
 
-      <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
+      <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
         <Plus className="mr-2 h-4 w-4" />
         {initialData ? 'Atualizar Agendamento' : 'Adicionar Agendamento'}
       </Button>
