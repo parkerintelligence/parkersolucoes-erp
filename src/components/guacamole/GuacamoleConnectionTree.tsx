@@ -116,6 +116,14 @@ export const GuacamoleConnectionTree = ({
                                 {connection.name}
                               </h4>
                               <div className="flex items-center gap-2 mt-1">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => onConnect(connection)}
+                                  className="h-6 px-2 text-xs bg-green-600 hover:bg-green-700 border-green-600 text-white"
+                                >
+                                  Conectar
+                                </Button>
                                 <Badge variant="outline" className={`text-xs ${getProtocolColor(connection.protocol)}`}>
                                   {connection.protocol.toUpperCase()}
                                 </Badge>
