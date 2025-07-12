@@ -292,53 +292,53 @@ serve(async (req) => {
       console.warn('Data sources disponíveis:', authTokenData.availableDataSources)
     }
 
-    // Construir URL da API baseada no endpoint solicitado usando dataSource dinamicamente
+    // Construir URL da API baseada no endpoint solicitado seguindo o padrão testado
     let apiPath = ''
     
     switch (endpoint) {
       case 'connections':
-        apiPath = `/api/session/data/${dataSource}/connections`
+        apiPath = `/api/connections`
         break
       case 'users':
-        apiPath = `/api/session/data/${dataSource}/users`
+        apiPath = `/api/users`
         break
       case 'sessions':
-        apiPath = `/api/session/data/${dataSource}/activeConnections`
+        apiPath = `/api/sessions`
         break
       case 'connectionGroups':
-        apiPath = `/api/session/data/${dataSource}/connectionGroups`
+        apiPath = `/api/connectionGroups`
         break
       case 'permissions':
-        apiPath = `/api/session/data/${dataSource}/permissions`
+        apiPath = `/api/permissions`
         break
       case 'schemas':
-        apiPath = `/api/session/data/${dataSource}/schema/userAttributes`
+        apiPath = `/api/schemas`
         break
       case 'history':
-        apiPath = `/api/session/data/${dataSource}/history/connections`
+        apiPath = `/api/history`
         break
       default:
         if (endpoint.startsWith('connections/')) {
           const connectionId = endpoint.split('/')[1]
           const action = endpoint.split('/')[2]
           if (action) {
-            apiPath = `/api/session/data/${dataSource}/connections/${encodeURIComponent(connectionId)}/${action}`
+            apiPath = `/api/connections/${encodeURIComponent(connectionId)}/${action}`
           } else {
-            apiPath = `/api/session/data/${dataSource}/connections/${encodeURIComponent(connectionId)}`
+            apiPath = `/api/connections/${encodeURIComponent(connectionId)}`
           }
         } else if (endpoint.startsWith('sessions/')) {
           const sessionId = endpoint.split('/')[1]
-          apiPath = `/api/session/data/${dataSource}/activeConnections/${encodeURIComponent(sessionId)}`
+          apiPath = `/api/sessions/${encodeURIComponent(sessionId)}`
         } else if (endpoint.startsWith('users/')) {
           const username = endpoint.split('/')[1]
           const action = endpoint.split('/')[2]
           if (action) {
-            apiPath = `/api/session/data/${dataSource}/users/${encodeURIComponent(username)}/${action}`
+            apiPath = `/api/users/${encodeURIComponent(username)}/${action}`
           } else {
-            apiPath = `/api/session/data/${dataSource}/users/${encodeURIComponent(username)}`
+            apiPath = `/api/users/${encodeURIComponent(username)}`
           }
         } else {
-          apiPath = `/api/session/data/${dataSource}/${endpoint}`
+          apiPath = `/api/${endpoint}`
         }
     }
 
@@ -347,7 +347,6 @@ serve(async (req) => {
 
     console.log('=== Making API call ===')
     console.log('API Path:', apiPath)
-    console.log('Data Source:', dataSource)
     console.log('Base URL:', baseUrl)
     console.log('Full URL (token masked):', `${baseUrl}${apiPath}?token=***MASKED***`)
     console.log('Token length:', authTokenData.authToken.length)
@@ -374,8 +373,7 @@ serve(async (req) => {
           • O servidor Guacamole está online
           • A URL está correta: ${baseUrl}
           • Não há bloqueios de firewall
-          • A API REST está habilitada no Guacamole
-          • O Data Source '${dataSource}' está configurado corretamente`
+          • A API REST está habilitada no Guacamole`
         }),
         { 
           status: 200, 
@@ -408,7 +406,7 @@ serve(async (req) => {
           errorMessage = `Acesso negado à API do Guacamole. IMPORTANTE: O usuário "${integration.username}" precisa ter permissões ADMINISTRATIVAS no Guacamole para acessar os dados de conexões, usuários e sessões ativas. Verifique no painel administrativo do Guacamole se este usuário tem as permissões corretas.`
           break
         case 404:
-          errorMessage = `Endpoint da API não encontrado. Verifique se a versão do Guacamole é compatível, se a API REST está habilitada e se o Data Source '${dataSource}' está configurado corretamente.`
+          errorMessage = `Endpoint da API não encontrado: ${apiPath}. Verifique se a versão do Guacamole é compatível e se a API REST está habilitada.`
           break
         default:
           errorMessage = `Erro da API Guacamole: ${apiResponse.status} - ${apiResponse.statusText}`
@@ -421,7 +419,6 @@ serve(async (req) => {
             status: apiResponse.status,
             statusText: apiResponse.statusText,
             endpoint: apiPath,
-            dataSource: dataSource,
             baseUrl: baseUrl,
             response: errorText.substring(0, 500),
             username: integration.username,
@@ -463,7 +460,6 @@ serve(async (req) => {
     console.log('Result type:', typeof result)
     console.log('Result keys:', Object.keys(result || {}))
     console.log('Token cache status:', tokenCache.has(integrationId) ? 'cached' : 'not cached')
-    console.log('Data Source used:', dataSource)
     console.log('Base URL used:', baseUrl)
 
     return new Response(
