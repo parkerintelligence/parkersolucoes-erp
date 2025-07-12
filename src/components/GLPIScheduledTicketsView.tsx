@@ -70,13 +70,23 @@ const GLPIScheduledTicketsView = () => {
     }
   };
 
-  const handleDeleteTicket = async (id: string) => {
+  const handleDeleteTicket = async (ticketId: string) => {
     if (window.confirm('Tem certeza que deseja excluir este agendamento?')) {
       try {
-        await deleteTicket.mutateAsync(id);
+        console.log('🗑️ [GLPI-DELETE] Deletando agendamento:', ticketId);
+        await deleteTicket.mutateAsync(ticketId);
+        toast({
+          title: "Agendamento excluído!",
+          description: "O agendamento foi removido com sucesso.",
+        });
         refetch();
       } catch (error) {
-        console.error('Erro ao excluir agendamento:', error);
+        console.error('❌ [GLPI-DELETE] Erro ao deletar:', error);
+        toast({
+          title: "Erro ao deletar",
+          description: "Não foi possível deletar o agendamento",
+          variant: "destructive"
+        });
       }
     }
   };
@@ -96,7 +106,6 @@ const GLPIScheduledTicketsView = () => {
     setEditingTicket(null);
     refetch();
   };
-
   const handleTestCron = async () => {
     try {
       console.log('🧪 [GLPI-TEST] Iniciando teste manual do agendamento...');
