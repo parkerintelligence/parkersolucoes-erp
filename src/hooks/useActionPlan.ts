@@ -96,11 +96,16 @@ export const useActionPlan = () => {
     fetchData();
   }, [selectedBoard]);
 
-  const createBoard = async (data: ActionBoardInsert) => {
+  const createBoard = async (data: Omit<ActionBoardInsert, 'user_id'>) => {
     try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const { data: boardData, error } = await supabase
         .from('action_boards')
-        .insert(data)
+        .insert({ ...data, user_id: user.id })
         .select()
         .single();
 
