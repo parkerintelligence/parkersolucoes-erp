@@ -301,74 +301,84 @@ export const ScheduleServicesDialog = ({ open, onOpenChange }: ScheduleServicesD
         </Tabs>
 
         {/* Formulário */}
-        {showForm && (
-          <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-            <div className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-slate-700 bg-slate-800 text-white p-6 shadow-lg duration-200 sm:rounded-lg">
-              <div className="flex flex-col space-y-1.5 text-center sm:text-left">
-                <h2 className="text-lg font-semibold leading-none tracking-tight text-white">
-                  {editingService ? 'Editar Sistema/Serviço' : 'Novo Sistema/Serviço'}
-                </h2>
+        <Dialog open={showForm} onOpenChange={(open) => !open && resetForm()}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                {editingService ? 'Editar Sistema/Serviço' : 'Novo Sistema/Serviço'}
+              </DialogTitle>
+              <DialogDescription>
+                {editingService ? 'Atualize as informações do sistema/serviço' : 'Cadastre um novo sistema/serviço para agendamentos'}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Ex: Sistema ERP, Backup Servidor Principal"
+                />
               </div>
-              
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Ex: Sistema ERP, Backup Servidor Principal"
-                  />
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="category">Categoria *</Label>
-                  <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma categoria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SERVICE_CATEGORIES.map((category) => {
-                        const IconComponent = category.icon;
-                        return (
-                          <SelectItem key={category.value} value={category.value}>
-                            <div className="flex items-center gap-2">
-                              <IconComponent className="h-4 w-4" />
-                              {category.label}
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Categoria *</Label>
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SERVICE_CATEGORIES.map((category) => {
+                      const IconComponent = category.icon;
+                      return (
+                        <SelectItem key={category.value} value={category.value}>
+                          <div className="flex items-center gap-2">
+                            <IconComponent className="h-4 w-4" />
+                            {category.label}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="description">Descrição</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Descrição opcional do sistema/serviço"
-                    rows={3}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Descrição</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Descrição opcional do sistema/serviço"
+                  rows={3}
+                />
+              </div>
 
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={resetForm}>
-                    Cancelar
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    disabled={createService.isPending || updateService.isPending}
-                  >
-                    {editingService ? 'Atualizar' : 'Criar'}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={createService.isPending || updateService.isPending}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  {createService.isPending || updateService.isPending ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      {editingService ? 'Atualizando...' : 'Criando...'}
+                    </>
+                  ) : (
+                    editingService ? 'Atualizar' : 'Criar'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
