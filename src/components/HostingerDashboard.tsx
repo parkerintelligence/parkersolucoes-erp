@@ -159,10 +159,10 @@ export const HostingerDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header com Botão Atualizar */}
+      {/* Header com Botão Atualizar e Seletor de Integração */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <CardTitle className="text-white flex items-center gap-2">
                 <Server className="h-5 w-5 text-orange-500" />
@@ -172,11 +172,34 @@ export const HostingerDashboard = () => {
                 Gerencie seus servidores virtuais Hostinger
               </p>
             </div>
-            <div className="flex items-center gap-4">
+            
+            <div className="flex items-center gap-4 flex-wrap">
+              {/* Seletor de Integração (inline) */}
+              {integrations.length > 1 && (
+                <div className="flex gap-2">
+                  {integrations.map((integration) => (
+                    <Button
+                      key={integration.id}
+                      variant={selectedIntegration === integration.id ? "default" : "outline"}
+                      onClick={() => setSelectedIntegration(integration.id)}
+                      size="sm"
+                      className={selectedIntegration === integration.id 
+                        ? "bg-orange-600 hover:bg-orange-700" 
+                        : "bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                      }
+                    >
+                      <Server className="h-3 w-3 mr-1" />
+                      {integration.name}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              
               <div className="text-xs text-slate-400 flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 Última atualização: {lastRefresh.toLocaleTimeString()}
               </div>
+              
               <Button
                 onClick={handleRefresh}
                 variant="outline"
@@ -190,33 +213,6 @@ export const HostingerDashboard = () => {
           </div>
         </CardHeader>
       </Card>
-
-      {/* Seletor de Integração */}
-      {integrations.length > 1 && (
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white">Selecionar Integração</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2 flex-wrap">
-              {integrations.map((integration) => (
-                <Button
-                  key={integration.id}
-                  variant={selectedIntegration === integration.id ? "default" : "outline"}
-                  onClick={() => setSelectedIntegration(integration.id)}
-                  className={selectedIntegration === integration.id 
-                    ? "bg-orange-600 hover:bg-orange-700" 
-                    : "bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-                  }
-                >
-                  <Server className="h-4 w-4 mr-2" />
-                  {integration.name}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Lista de VPS */}
       <div className="grid gap-6">
