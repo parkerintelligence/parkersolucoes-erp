@@ -78,9 +78,7 @@ export function AppSidebar() {
   return <Sidebar className="border-r border-primary-foreground/20 bg-primary" collapsible="icon">
       <SidebarHeader className="p-2 sm:p-4 border-b border-primary-foreground/20 bg-primary">
         <div className="flex items-center justify-center">
-          <div className="bg-secondary p-1 sm:p-2 rounded-lg shadow-sm">
-            
-          </div>
+          
         </div>
       </SidebarHeader>
 
