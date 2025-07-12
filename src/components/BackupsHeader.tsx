@@ -43,7 +43,7 @@ const BackupsHeader: React.FC<BackupsHeaderProps> = ({
       case 'unavailable':
         return <span className="bg-red-900/20 text-red-400 border-red-600 px-2 py-1 rounded text-xs">Indisponível</span>;
       default:
-        return <span className="bg-gray-900/20 text-gray-400 border-gray-600 px-2 py-1 rounded text-xs">Desconhecido</span>;
+        return <span className="bg-slate-900/20 text-gray-400 border-gray-600 px-2 py-1 rounded text-xs">Desconhecido</span>;
     }
   };
 

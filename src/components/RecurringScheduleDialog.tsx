@@ -124,7 +124,7 @@ export const RecurringScheduleDialog = ({ isOpen, onOpenChange, editingSchedule 
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-gray-900 border-gray-700">
+      <DialogContent className="sm:max-w-[500px] bg-slate-900 border-gray-700">
         <DialogHeader>
           <DialogTitle className="text-white">{editingSchedule ? 'Editar Agendamento' : 'Novo Agendamento Recorrente'}</DialogTitle>
           <DialogDescription className="text-gray-300">

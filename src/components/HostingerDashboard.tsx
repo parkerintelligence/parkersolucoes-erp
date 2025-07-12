@@ -646,7 +646,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
             variant="ghost"
             onClick={onSnapshot}
             disabled={snapshotting || getVpsStatus(vps)?.toLowerCase() !== 'running'}
-            className="h-8 w-8 p-0 bg-gray-900 hover:bg-gray-800 text-white border-none"
+            className="h-8 w-8 p-0 bg-slate-900 hover:bg-gray-800 text-white border-none"
             title="Criar Snapshot"
           >
             {snapshotting ? (
@@ -661,7 +661,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
             variant="ghost"
             onClick={onRestart}
             disabled={restarting || getVpsStatus(vps)?.toLowerCase() !== 'running'}
-            className="h-8 w-8 p-0 bg-gray-900 hover:bg-gray-800 text-white border-none"
+            className="h-8 w-8 p-0 bg-slate-900 hover:bg-gray-800 text-white border-none"
             title="Reiniciar VPS"
           >
             {restarting ? (

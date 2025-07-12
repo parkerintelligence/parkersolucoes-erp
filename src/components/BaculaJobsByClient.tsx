@@ -80,11 +80,11 @@ export const BaculaJobsByClient: React.FC<BaculaJobsByClientProps> = ({
       case 'R': // Running
         return <Badge className="bg-blue-900/20 text-blue-400 border-blue-600">Executando</Badge>;
       case 'C': // Created but not yet running
-        return <Badge className="bg-gray-900/20 text-gray-400 border-gray-600">Criado</Badge>;
+        return <Badge className="bg-slate-900/20 text-gray-400 border-gray-600">Criado</Badge>;
       case 'c': // Waiting for client
         return <Badge className="bg-yellow-900/20 text-yellow-400 border-yellow-600">Aguardando Cliente</Badge>;
       default:
-        return <Badge className="bg-gray-900/20 text-gray-400 border-gray-600">{status}</Badge>;
+        return <Badge className="bg-slate-900/20 text-gray-400 border-gray-600">{status}</Badge>;
     }
   };
 
@@ -134,9 +134,9 @@ export const BaculaJobsByClient: React.FC<BaculaJobsByClientProps> = ({
         } else if (type === 'V' || type === 'Verify') {
           return <Badge className="bg-pink-900/20 text-pink-400 border-pink-600">Verify</Badge>;
         } else if (type === 'A' || type === 'Admin') {
-          return <Badge className="bg-gray-900/20 text-gray-400 border-gray-600">Admin</Badge>;
+          return <Badge className="bg-slate-900/20 text-gray-400 border-gray-600">Admin</Badge>;
         }
-        return <Badge className="bg-gray-900/20 text-gray-400 border-gray-600">{level || type || 'N/A'}</Badge>;
+        return <Badge className="bg-slate-900/20 text-gray-400 border-gray-600">{level || type || 'N/A'}</Badge>;
     }
   };
 

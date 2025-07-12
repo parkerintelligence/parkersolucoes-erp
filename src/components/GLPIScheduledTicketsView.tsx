@@ -162,7 +162,7 @@ const GLPIScheduledTicketsView = () => {
 
   if (!glpiIntegration) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white p-6">
+      <div className="min-h-screen bg-slate-900 text-white p-6">
         <Card className="border-yellow-600 bg-yellow-900/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
@@ -193,7 +193,7 @@ const GLPIScheduledTicketsView = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white">
+      <div className="min-h-screen bg-slate-900 text-white">
         <div className="flex justify-center items-center h-96">
           <div className="text-gray-400">Carregando agendamentos...</div>
         </div>
@@ -202,7 +202,7 @@ const GLPIScheduledTicketsView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
+    <div className="min-h-screen bg-slate-900 text-white p-6">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
