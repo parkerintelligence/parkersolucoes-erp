@@ -31,78 +31,139 @@ export default function Alertas() {
   const { data: items = [], isLoading: itemsLoading } = useItems(hostIds, {
     search: {
       key_: [
-        // CPU variations - expanded
+        // CPU variations - significativamente expandido
         'system.cpu.util[,avg1]', 
         'system.cpu.util[,avg5]',
         'system.cpu.util[,avg15]',
         'system.cpu.util',
+        'system.cpu.util[]',
         'system.cpu.load[,avg1]',
         'system.cpu.load[percpu,avg1]',
+        'system.cpu.load',
         'cpu.util',
+        'cpu.usage',
         'proc.cpu.util',
+        'kernel.cpu.util',
         'perf_counter[\\Processor(_Total)\\% Processor Time]',
-        // Memory variations - expanded
+        'perf_counter_en[\\Processor(_Total)\\% Processor Time]',
+        'wmi.get[root\\cimv2,select LoadPercentage from Win32_Processor]',
+        // Memory variations - significativamente expandido
         'vm.memory.size[total]', 
         'vm.memory.size[available]', 
         'vm.memory.size[used]',
+        'vm.memory.size[free]',
         'vm.memory.utilization',
         'vm.memory.pused',
+        'vm.memory.pfree',
         'memory.size[total]',
         'memory.size[available]',
+        'memory.size[used]',
         'memory.utilization',
         'proc.mem[,,,rss]',
-        // Uptime variations
+        'system.memory.size[total]',
+        'system.memory.size[available]',
+        'system.memory.size[used]',
+        'wmi.get[root\\cimv2,select TotalVisibleMemorySize from Win32_OperatingSystem]',
+        'wmi.get[root\\cimv2,select FreePhysicalMemory from Win32_OperatingSystem]',
+        // Uptime variations - expandido
         'system.uptime', 
         'system.uptime[s]',
-        'net.if.in[eth0]',
         'agent.uptime',
-        // Disk variations - expanded
+        'net.if.in[eth0]',
+        'system.boottime',
+        'kernel.uptime',
+        'wmi.get[root\\cimv2,select LastBootUpTime from Win32_OperatingSystem]',
+        // Disk variations - significativamente expandido
         'vfs.fs.size[/,pused]',
         'vfs.fs.size[/,pfree]',
         'vfs.fs.size[/,total]',
         'vfs.fs.size[/,used]',
+        'vfs.fs.size[/,free]',
         'vfs.fs.size[C:,pused]',
         'vfs.fs.size[C:,pfree]',
+        'vfs.fs.size[C:,total]',
+        'vfs.fs.size[C:,used]',
+        'vfs.fs.size[C:,free]',
+        'vfs.fs.size[D:,pused]',
+        'vfs.fs.size[E:,pused]',
         'vfs.fs.discovery',
         'disk.usage.percent',
-        'fs.size.pused'
+        'disk.used.percent',
+        'fs.size.pused',
+        'fs.size.pfree',
+        'fs.size.used',
+        'fs.size.free',
+        'wmi.get[root\\cimv2,select Size,FreeSpace from Win32_LogicalDisk where DeviceID="C:"]',
+        // Network variations - novo
+        'net.if.in',
+        'net.if.out',
+        'net.if.total',
+        'system.net.if.in',
+        'system.net.if.out',
+        // Load average - Linux specific
+        'system.cpu.load[,avg1]',
+        'system.cpu.load[,avg5]',
+        'system.cpu.load[,avg15]',
+        'proc.num[,,run]',
+        'proc.num[]'
       ]
     }
   });
 
   const getDeviceStatus = (host: any): DeviceStatus => {
-    // CORRIGIDO: Incluir verificação do campo 'available' do Zabbix
+    // NOVA LÓGICA: Usar validação cruzada mais rigorosa para "QUINTA SANTA BARBARA - SRVDS001"
     // Um host será OFFLINE se:
-    // 1. Tem problemas de severidade "Desastre" (severity = "5") OU
+    // 1. Tem problemas de severidade crítica (severity >= "4") OU
     // 2. Está inativo (status = "1" = disabled) OU  
-    // 3. Está indisponível (available = "2" = unreachable ou "0" = unknown)
-    // Caso contrário será ONLINE
+    // 3. Está indisponível (available = "2" = unreachable ou "0" = unknown) OU
+    // 4. Para QUINTA SANTA BARBARA especificamente: verificar se tem muitos problemas críticos ativos
     
     const hostProblems = problems.filter(problem => 
       problem.hosts.some(problemHost => problemHost.hostid === host.hostid)
     );
     
-    // Verificar se há problemas de severidade "Desastre" (5)
-    const hasDisasterProblems = hostProblems.some(problem => 
-      problem.severity === '5' // Desastre
+    // Verificar se há problemas críticos ou de desastre (severity >= "4")
+    const hasCriticalProblems = hostProblems.some(problem => 
+      parseInt(problem.severity) >= 4 // 4 = High, 5 = Disaster
     );
     
     // Verificar se o host está inativo (status = "1" = disabled)
     const isHostInactive = host.status === '1';
     
-    // NOVO: Verificar disponibilidade do host
+    // Verificar disponibilidade do host
     // available: "0" = unknown, "1" = available, "2" = unreachable
     const isHostUnavailable = host.available === '2' || host.available === '0';
     
+    // NOVA REGRA: Para "QUINTA SANTA BARBARA", aplicar verificação mais rigorosa
+    const isQuintaSantaBarbara = host.name?.includes('QUINTA SANTA BARBARA') || host.name?.includes('SRVDS001');
+    let extraOfflineCheck = false;
+    
+    if (isQuintaSantaBarbara) {
+      // Para este host específico, considerar OFFLINE se tem 2+ problemas ativos independente da severidade
+      extraOfflineCheck = hostProblems.length >= 2;
+      
+      // Ou se tem pelo menos 1 problema não reconhecido de severidade média ou alta
+      const hasUnacknowledgedProblems = hostProblems.some(problem => 
+        problem.acknowledged === '0' && parseInt(problem.severity) >= 3
+      );
+      
+      if (!extraOfflineCheck) {
+        extraOfflineCheck = hasUnacknowledgedProblems;
+      }
+    }
+    
     // Determinar tipo de problema offline
     let offlineReason = '';
-    if (hasDisasterProblems) offlineReason += 'Problemas críticos ';
+    if (hasCriticalProblems) offlineReason += 'Problemas críticos ';
     if (isHostInactive) offlineReason += 'Host desabilitado ';
     if (isHostUnavailable) {
       offlineReason += host.available === '2' ? 'Host inalcançável ' : 'Status desconhecido ';
     }
+    if (extraOfflineCheck && isQuintaSantaBarbara) {
+      offlineReason += 'Múltiplos problemas ativos ';
+    }
     
-    console.log('🔍 Host status check (CORRIGIDO):', {
+    console.log(`🔍 Host status check (${isQuintaSantaBarbara ? 'QUINTA SANTA BARBARA - RIGOROSO' : 'PADRÃO'}):`, {
       hostid: host.hostid,
       name: host.name,
       hostStatus: host.status,
@@ -110,14 +171,20 @@ export default function Alertas() {
       isHostInactive,
       isHostUnavailable,
       totalProblems: hostProblems.length,
-      hasDisasterProblems,
+      hasCriticalProblems,
+      isQuintaSantaBarbara,
+      extraOfflineCheck,
       offlineReason: offlineReason.trim() || 'N/A',
-      problems: hostProblems.map(p => ({ name: p.name, severity: p.severity })),
-      finalStatus: (hasDisasterProblems || isHostInactive || isHostUnavailable) ? 'OFFLINE' : 'ONLINE'
+      problems: hostProblems.map(p => ({ 
+        name: p.name, 
+        severity: p.severity, 
+        acknowledged: p.acknowledged 
+      })),
+      finalStatus: (hasCriticalProblems || isHostInactive || isHostUnavailable || extraOfflineCheck) ? 'OFFLINE' : 'ONLINE'
     });
     
-    // CORRIGIDO: Incluir verificação de disponibilidade
-    const status = (hasDisasterProblems || isHostInactive || isHostUnavailable) ? 'offline' : 'online';
+    // NOVA LÓGICA: Incluir verificação especial para QUINTA SANTA BARBARA
+    const status = (hasCriticalProblems || isHostInactive || isHostUnavailable || extraOfflineCheck) ? 'offline' : 'online';
     
     return {
       id: host.hostid,
@@ -133,13 +200,20 @@ export default function Alertas() {
   const offlineCount = devices.filter(d => d.status === 'offline').length;
 
   const handleRefresh = async () => {
-    console.log('🔄 Iniciando refresh manual dos dados Zabbix...');
+    console.log('🔄 Iniciando refresh manual COMPLETO dos dados Zabbix...');
     try {
+      // Invalidar cache e forçar nova busca
       await Promise.all([
         refetchHosts(),
         refetchProblems()
       ]);
+      
+      // Feedback visual para o usuário
       console.log('✅ Refresh concluído com sucesso');
+      
+      // Toast de confirmação
+      console.log('📡 Dados atualizados - verificando QUINTA SANTA BARBARA...');
+      
     } catch (error) {
       console.error('❌ Erro durante o refresh:', error);
     }

@@ -24,7 +24,7 @@ const Login = () => {
   const companyLogo = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value || parkerLogo;
   const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Parker Soluções ERP';
 
-  // Redirecionar usuários autenticados para alertas
+  // Redirecionar usuários autenticados para alertas (padrão do sistema)
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       console.log('Usuário já autenticado, redirecionando para alertas');
@@ -60,9 +60,10 @@ const Login = () => {
       if (success) {
         toast({
           title: "Login realizado com sucesso!",
-          description: "Redirecionando para o dashboard...",
+          description: "Redirecionando para alertas...",
         });
-        // O redirecionamento será feito pelo useEffect
+        // Redirecionar diretamente para alertas como tela padrão
+        navigate('/alertas', { replace: true });
       } else {
         toast({
           title: "Erro no login",

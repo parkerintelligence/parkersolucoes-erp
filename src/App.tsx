@@ -3,6 +3,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { useUserActivity } from '@/hooks/useUserActivity';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Admin from '@/pages/Admin';
@@ -29,6 +30,204 @@ import ActionPlan from '@/pages/ActionPlan';
 import Alertas from '@/pages/Alertas';
 import { Layout } from '@/components/Layout';
 
+// Componente interno para usar o hook de atividade
+function AppContent() {
+  useUserActivity(); // Detectar atividade do usuário e resetar timer
+  
+  return (
+    <div className="min-h-screen bg-background">
+      <Routes>
+        <Route path="/" element={<Navigate to="/alertas" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/alertas"
+          element={
+            <Layout>
+              <Alertas />
+            </Layout>
+          }
+        />
+        <Route
+          path="/links"
+          element={
+            <Layout>
+              <Links />
+            </Layout>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <Layout>
+              <Dashboard />
+            </Layout>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <Layout>
+              <Admin />
+            </Layout>
+          }
+        />
+        <Route
+          path="/glpi"
+          element={
+            <Layout>
+              <GLPI />
+            </Layout>
+          }
+        />
+        <Route
+          path="/conexao-remota"
+          element={
+            <Layout>
+              <Guacamole />
+            </Layout>
+          }
+        />
+        <Route
+          path="/backups"
+          element={
+            <Layout>
+              <Backups />
+            </Layout>
+          }
+        />
+        <Route
+          path="/passwords"
+          element={
+            <Layout>
+              <Passwords />
+            </Layout>
+          }
+        />
+        <Route
+          path="/annotations"
+          element={
+            <Layout>
+              <Annotations />
+            </Layout>
+          }
+        />
+        <Route
+          path="/whatsapp"
+          element={
+            <Layout>
+              <WhatsApp />
+            </Layout>
+          }
+        />
+        <Route
+          path="/whatsapp-templates"
+          element={
+            <Layout>
+              <WhatsAppTemplates />
+            </Layout>
+          }
+        />
+        <Route
+          path="/wasabi"
+          element={
+            <Layout>
+              <Wasabi />
+            </Layout>
+          }
+        />
+        <Route
+          path="/schedule"
+          element={
+            <Layout>
+              <Schedule />
+            </Layout>
+          }
+        />
+        <Route
+          path="/automation"
+          element={
+            <Layout>
+              <Automation />
+            </Layout>
+          }
+        />
+        <Route
+          path="/zabbix"
+          element={
+            <Layout>
+              <Zabbix />
+            </Layout>
+          }
+        />
+        <Route
+          path="/services"
+          element={
+            <Layout>
+              <Services />
+            </Layout>
+          }
+        />
+        <Route
+          path="/budgets"
+          element={
+            <Layout>
+              <Budgets />
+            </Layout>
+          }
+        />
+        <Route
+          path="/contracts"
+          element={
+            <Layout>
+              <Contracts />
+            </Layout>
+          }
+        />
+        <Route
+          path="/financial"
+          element={
+            <Layout>
+              <Financial />
+            </Layout>
+          }
+        />
+        <Route
+          path="/companies"
+          element={
+            <Layout>
+              <Companies />
+            </Layout>
+          }
+        />
+        <Route 
+          path="/bacula" 
+          element={
+            <Layout>
+              <Bacula />
+            </Layout>
+          } 
+        />
+        <Route 
+          path="/reports" 
+          element={
+            <Layout>
+              <ReportsDashboard />
+            </Layout>
+          } 
+        />
+        <Route 
+          path="/plano-de-acao" 
+          element={
+            <Layout>
+              <ActionPlan />
+            </Layout>
+          } 
+        />
+      </Routes>
+    </div>
+  );
+}
+
 // Create a single QueryClient instance
 const queryClient = new QueryClient();
 
@@ -37,196 +236,7 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <div className="min-h-screen bg-background">
-            <Routes>
-              <Route path="/" element={<Login />} />
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/alertas"
-                element={
-                  <Layout>
-                    <Alertas />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/links"
-                element={
-                  <Layout>
-                    <Links />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/dashboard"
-                element={
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
-                }
-               />
-              <Route
-                path="/admin"
-                element={
-                  <Layout>
-                    <Admin />
-                  </Layout>
-                }
-              />
-               <Route
-                 path="/glpi"
-                 element={
-                   <Layout>
-                     <GLPI />
-                   </Layout>
-                 }
-               />
-               <Route
-                 path="/conexao-remota"
-                 element={
-                   <Layout>
-                     <Guacamole />
-                   </Layout>
-                 }
-               />
-               <Route
-                 path="/backups"
-                element={
-                  <Layout>
-                    <Backups />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/passwords"
-                element={
-                  <Layout>
-                    <Passwords />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/annotations"
-                element={
-                  <Layout>
-                    <Annotations />
-                  </Layout>
-                }
-               />
-              <Route
-                path="/whatsapp"
-                element={
-                  <Layout>
-                    <WhatsApp />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/whatsapp-templates"
-                element={
-                  <Layout>
-                    <WhatsAppTemplates />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/wasabi"
-                element={
-                  <Layout>
-                    <Wasabi />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/schedule"
-                element={
-                  <Layout>
-                    <Schedule />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/automation"
-                element={
-                  <Layout>
-                    <Automation />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/zabbix"
-                element={
-                  <Layout>
-                    <Zabbix />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/services"
-                element={
-                  <Layout>
-                    <Services />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/budgets"
-                element={
-                  <Layout>
-                    <Budgets />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/contracts"
-                element={
-                  <Layout>
-                    <Contracts />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/financial"
-                element={
-                  <Layout>
-                    <Financial />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/companies"
-                element={
-                  <Layout>
-                    <Companies />
-                  </Layout>
-                }
-              />
-              <Route 
-                path="/bacula" 
-                element={
-                  <Layout>
-                    <Bacula />
-                  </Layout>
-                } 
-              />
-              <Route 
-                path="/reports" 
-                element={
-                  <Layout>
-                    <ReportsDashboard />
-                  </Layout>
-                } 
-              />
-              <Route 
-                path="/plano-de-acao" 
-                element={
-                  <Layout>
-                    <ActionPlan />
-                  </Layout>
-                } 
-              />
-            </Routes>
-          </div>
+          <AppContent />
         </BrowserRouter>
       </QueryClientProvider>
     </AuthProvider>
