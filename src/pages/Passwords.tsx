@@ -553,43 +553,41 @@ const Passwords = () => {
         <ServiceDialog isOpen={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen} onSave={handleSaveService} editingService={editingService} onEdit={handleEditService} onDelete={handleDeleteService} existingServices={availableServices} />
 
         {/* Filtros */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-white" />
-              <CardTitle className="text-white">Filtros</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
-                <Input placeholder="Buscar senhas..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-8 bg-slate-700 border-slate-600 text-white" />
-              </div>
-              
-              <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                  <SelectValue placeholder="Todas as empresas" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-700 border-slate-600">
-                  <SelectItem value="all" className="text-white">Todas as empresas</SelectItem>
-                  {companies.map(company => <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+        <div className="flex items-center gap-3 p-3 bg-slate-800/50 border border-slate-700 rounded-lg">
+          <Filter className="h-4 w-4 text-slate-400" />
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2 top-2 h-3 w-3 text-slate-400" />
+            <Input
+              placeholder="Buscar..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-7 h-8 text-sm bg-slate-700 border-slate-600 text-white"
+            />
+          </div>
+          
+          <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+            <SelectTrigger className="h-8 w-40 text-sm bg-slate-700 border-slate-600 text-white">
+              <SelectValue placeholder="Empresa" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-700 border-slate-600">
+              <SelectItem value="all" className="text-white">Todas</SelectItem>
+              {companies.map((company) => (
+                <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                  <SelectValue placeholder="Status do link" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-700 border-slate-600">
-                  <SelectItem value="all" className="text-white">Todos os status</SelectItem>
-                  <SelectItem value="with_link" className="text-white">Com link gerado</SelectItem>
-                  <SelectItem value="without_link" className="text-white">Sem link gerado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <SelectTrigger className="h-8 w-32 text-sm bg-slate-700 border-slate-600 text-white">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-700 border-slate-600">
+              <SelectItem value="all" className="text-white">Todos</SelectItem>
+              <SelectItem value="with_link" className="text-white">Com link</SelectItem>
+              <SelectItem value="without_link" className="text-white">Sem link</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         {/* Abas por Tipo de Serviço */}
         <Card className="bg-slate-800 border-slate-700">
