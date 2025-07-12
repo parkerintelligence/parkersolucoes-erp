@@ -15,19 +15,21 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
-import { useGLPI } from '@/hooks/useGLPI';
+import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { GLPITicketConfirmDialog } from './GLPITicketConfirmDialog';
 import { GLPINewTicketDialog } from './GLPINewTicketDialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface GLPITicketsGridProps {
   filters?: any;
 }
 
 const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
-  const { tickets, getStatusText, getPriorityText } = useGLPI();
+  const { tickets, getStatusText, getPriorityText, deleteTicket } = useGLPIExpanded();
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isNewTicketDialogOpen, setIsNewTicketDialogOpen] = useState(false);
+  const [ticketToDelete, setTicketToDelete] = useState<any>(null);
 
   const getStatusColor = (status: number) => {
     switch (status) {
@@ -68,6 +70,17 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
   const handleViewTicket = (ticket: any) => {
     setSelectedTicket(ticket);
     setIsViewDialogOpen(true);
+  };
+
+  const handleDeleteTicket = async () => {
+    if (ticketToDelete) {
+      try {
+        await deleteTicket.mutateAsync(ticketToDelete.id);
+        setTicketToDelete(null);
+      } catch (error) {
+        console.error('Erro ao excluir chamado:', error);
+      }
+    }
   };
 
   if (tickets.isLoading) {
@@ -175,6 +188,7 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => setTicketToDelete(ticket)}
                           className="border-gray-600 text-red-400 hover:bg-red-900/20"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -242,6 +256,34 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
         open={isNewTicketDialogOpen}
         onOpenChange={setIsNewTicketDialogOpen}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!ticketToDelete} onOpenChange={() => setTicketToDelete(null)}>
+        <AlertDialogContent className="bg-gray-800 border-gray-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-300">
+              Tem certeza que deseja excluir o chamado #{ticketToDelete?.id} - "{ticketToDelete?.name}"?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => setTicketToDelete(null)}
+              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTicket}
+              disabled={deleteTicket.isPending}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleteTicket.isPending ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
