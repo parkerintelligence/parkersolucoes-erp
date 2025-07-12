@@ -432,27 +432,34 @@ serve(async (req) => {
       const normalizedEndpoint = apiEndpoint.startsWith('/') ? apiEndpoint : `/${apiEndpoint}`
       const fullUrl = `${baseUrl}${normalizedEndpoint}`
       console.log(`🔄 Tentando endpoint: ${fullUrl}`)
+      console.log(`🔑 Autenticação: Basic ${auth.substring(0, 10)}...`)
 
       try {
         // Make request to BaculaWeb API with timeout
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+        const timeoutId = setTimeout(() => {
+          console.log(`⏰ Timeout de 30s atingido para ${fullUrl}`)
+          controller.abort()
+        }, 30000) // 30 second timeout
 
+        const startRequest = Date.now()
         const response = await fetch(fullUrl, {
           method: 'GET',
           headers: {
             'Authorization': `Basic ${auth}`,
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'User-Agent': 'Parker Intelligence System'
+            'User-Agent': 'Parker Intelligence System',
+            'Cache-Control': 'no-cache'
           },
           signal: controller.signal
         })
 
         clearTimeout(timeoutId)
+        const requestTime = Date.now() - startRequest
 
-        console.log(`📊 Resposta ${fullUrl}: ${response.status} ${response.statusText}`)
-        console.log(`📊 Headers:`, Object.fromEntries(response.headers.entries()))
+        console.log(`📊 Resposta ${fullUrl}: ${response.status} ${response.statusText} (${requestTime}ms)`)
+        console.log(`📊 Headers de resposta:`, Object.fromEntries(response.headers.entries()))
 
         if (!response.ok) {
           console.error(`❌ Erro HTTP ${response.status} no endpoint ${apiEndpoint}`)
@@ -462,7 +469,7 @@ serve(async (req) => {
           try {
             const errorText = await response.text()
             errorDetail = errorText || response.statusText
-            console.error(`❌ Detalhes do erro: ${errorDetail}`)
+            console.error(`❌ Detalhes do erro: ${errorDetail.substring(0, 200)}`)
           } catch (e) {
             errorDetail = response.statusText
           }
@@ -471,9 +478,22 @@ serve(async (req) => {
             error: `HTTP ${response.status}`,
             details: errorDetail,
             endpoint: apiEndpoint,
-            url: fullUrl
+            url: fullUrl,
+            response_time: requestTime,
+            timestamp: new Date().toISOString()
           }
-          continue; // Tentar próximo endpoint
+          
+          // Para alguns erros específicos, tentar próximo endpoint
+          if (response.status === 404 || response.status === 405) {
+            console.log(`🔄 Erro ${response.status} - tentando próximo endpoint...`)
+            continue; 
+          } else if (response.status === 401 || response.status === 403) {
+            console.error('🚨 Erro de autenticação - verificar credenciais')
+            // Para erros de auth, não tentar outros endpoints
+            break;
+          } else {
+            continue; // Tentar próximo endpoint para outros erros
+          }
         }
 
         let data
