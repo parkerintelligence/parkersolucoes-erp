@@ -90,26 +90,26 @@ export const ScheduleTable = ({
   };
   const getStatusBadge = (status: string, daysUntil: number) => {
     if (status === 'completed') {
-      return <Badge className="bg-green-100 text-green-800 border-green-200">Concluído</Badge>;
+      return <Badge className="bg-green-800 text-green-100 border-green-700">Concluído</Badge>;
     }
     if (daysUntil < 0) {
-      return <Badge className="bg-red-100 text-red-800 border-red-200">Vencido</Badge>;
+      return <Badge className="bg-red-800 text-red-100 border-red-700">Vencido</Badge>;
     }
     if (daysUntil <= 30) {
-      return <Badge className="bg-orange-100 text-orange-800 border-orange-200">Crítico</Badge>;
+      return <Badge className="bg-orange-800 text-orange-100 border-orange-700">Crítico</Badge>;
     }
-    return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Pendente</Badge>;
+    return <Badge className="bg-blue-800 text-blue-100 border-blue-700">Pendente</Badge>;
   };
   const getTypeBadge = (type: string) => {
     const colors = {
-      'Certificado SSL': 'bg-blue-100 text-blue-800 border-blue-200',
-      'Licença Software': 'bg-purple-100 text-purple-800 border-purple-200',
-      'Renovação Domínio': 'bg-green-100 text-green-800 border-green-200',
-      'Backup': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'Manutenção': 'bg-gray-100 text-gray-800 border-gray-200',
-      'Atualização': 'bg-indigo-100 text-indigo-800 border-indigo-200'
+      'Certificado SSL': 'bg-blue-800 text-blue-100 border-blue-700',
+      'Licença Software': 'bg-purple-800 text-purple-100 border-purple-700',
+      'Renovação Domínio': 'bg-green-800 text-green-100 border-green-700',
+      'Backup': 'bg-yellow-800 text-yellow-100 border-yellow-700',
+      'Manutenção': 'bg-gray-700 text-gray-100 border-gray-600',
+      'Atualização': 'bg-indigo-800 text-indigo-100 border-indigo-700'
     };
-    return <Badge className={colors[type] || 'bg-gray-100 text-gray-800 border-gray-200'}>{type}</Badge>;
+    return <Badge className={colors[type] || 'bg-gray-700 text-gray-100 border-gray-600'}>{type}</Badge>;
   };
   const filteredItems = items.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || item.company.toLowerCase().includes(searchTerm.toLowerCase());
@@ -118,9 +118,9 @@ export const ScheduleTable = ({
     return matchesSearch && matchesStatus && matchesType;
   });
   const uniqueTypes = [...new Set(items.map(item => item.type))];
-  return <Card className="border-blue-200">
-      <CardHeader className="rounded-sm bg-gray-900">
-        <CardTitle className="flex items-center gap-2 text-slate-50">
+  return <Card className="bg-gray-800 border-gray-700">
+      <CardHeader className="rounded-sm bg-gray-800">
+        <CardTitle className="flex items-center gap-2 text-white">
           <Calendar className="h-5 w-5" />
           Lista de Agendamentos
         </CardTitle>
@@ -129,41 +129,41 @@ export const ScheduleTable = ({
         <div className="flex gap-4 mt-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-              <Input placeholder="Buscar por título ou empresa..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-8" />
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+              <Input placeholder="Buscar por título ou empresa..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-8 bg-gray-700 border-gray-600 text-white placeholder:text-gray-400" />
             </div>
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-40 bg-gray-700 border-gray-600 text-white">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="pending">Pendente</SelectItem>
-              <SelectItem value="completed">Concluído</SelectItem>
+            <SelectContent className="bg-gray-700 border-gray-600">
+              <SelectItem value="all" className="text-white hover:bg-gray-600">Todos</SelectItem>
+              <SelectItem value="pending" className="text-white hover:bg-gray-600">Pendente</SelectItem>
+              <SelectItem value="completed" className="text-white hover:bg-gray-600">Concluído</SelectItem>
             </SelectContent>
           </Select>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-48 bg-gray-700 border-gray-600 text-white">
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os tipos</SelectItem>
-              {uniqueTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+            <SelectContent className="bg-gray-700 border-gray-600">
+              <SelectItem value="all" className="text-white hover:bg-gray-600">Todos os tipos</SelectItem>
+              {uniqueTypes.map(type => <SelectItem key={type} value={type} className="text-white hover:bg-gray-600">{type}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
       </CardHeader>
       
-      <CardContent className="bg-gray-900">
+      <CardContent className="bg-gray-800">
         <Table>
           <TableHeader>
-            <TableRow className="h-10">
-              <TableHead className="bg-gray-900 py-2">Título</TableHead>
-              <TableHead className="py-2">Empresa</TableHead>
-              <TableHead className="py-2">Tipo</TableHead>
-              <TableHead className="py-2">Vencimento</TableHead>
-              <TableHead className="py-2 w-32">Ações</TableHead>
+            <TableRow className="h-10 border-gray-700">
+              <TableHead className="bg-gray-800 py-2 text-gray-300">Título</TableHead>
+              <TableHead className="py-2 text-gray-300">Empresa</TableHead>
+              <TableHead className="py-2 text-gray-300">Tipo</TableHead>
+              <TableHead className="py-2 text-gray-300">Vencimento</TableHead>
+              <TableHead className="py-2 w-32 text-gray-300">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -171,39 +171,39 @@ export const ScheduleTable = ({
             const daysUntil = getDaysUntilDue(item.due_date);
             const isUrgent = daysUntil <= 7;
             const isGood = daysUntil > 7;
-            return <TableRow key={item.id} className={`h-12 hover:bg-blue-50 ${isUrgent ? 'bg-red-50 border-l-4 border-l-red-500' : isGood ? 'bg-green-50 border-l-4 border-l-green-500' : ''}`}>
-                  <TableCell className="font-medium py-2">{item.title}</TableCell>
+            return <TableRow key={item.id} className={`h-12 hover:bg-gray-700 border-gray-700 ${isUrgent ? 'bg-red-900/20 border-l-4 border-l-red-500' : isGood ? 'bg-green-900/20 border-l-4 border-l-green-500' : ''}`}>
+                  <TableCell className="font-medium py-2 text-white">{item.title}</TableCell>
                   <TableCell className="py-2">
                     <div className="flex items-center gap-2">
-                      <Building className="h-4 w-4 text-gray-500" />
-                      {item.company}
+                      <Building className="h-4 w-4 text-gray-400" />
+                      <span className="text-gray-300">{item.company}</span>
                     </div>
                   </TableCell>
                   <TableCell className="py-2">{getTypeBadge(item.type)}</TableCell>
                   <TableCell className="py-2">
                     <div className="flex items-center gap-2">
-                      <div className="font-medium">
+                      <div className="font-medium text-white">
                         {format(new Date(item.due_date), 'dd/MM/yyyy', {
                       locale: ptBR
                     })}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-400">
                         ({daysUntil >= 0 ? `${daysUntil}d` : `${Math.abs(daysUntil)}d atrás`})
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <Button variant="outline" size="icon" onClick={() => handleEditItem(item)} className="h-8 w-8 text-slate-50 bg-blue-900 hover:bg-blue-800" title="Editar">
+                      <Button variant="outline" size="icon" onClick={() => handleEditItem(item)} className="h-8 w-8 text-white bg-blue-800 hover:bg-blue-700 border-blue-700" title="Editar">
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="icon" onClick={() => handleOpenGLPITicket(item)} className="h-8 w-8 bg-blue-900 hover:bg-blue-800 text-slate-50" title="Criar ticket GLPI">
+                      <Button variant="outline" size="icon" onClick={() => handleOpenGLPITicket(item)} className="h-8 w-8 bg-blue-800 hover:bg-blue-700 text-white border-blue-700" title="Criar ticket GLPI">
                         <ExternalLink className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => onDelete(item.id)} className="h-8 w-8 bg-red-800 hover:bg-red-700 text-slate-50" title="Excluir">
+                      <Button variant="ghost" size="icon" onClick={() => onDelete(item.id)} className="h-8 w-8 bg-red-800 hover:bg-red-700 text-white" title="Excluir">
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="icon" onClick={() => handleWhatsAppShare(item)} className="h-8 w-8 bg-green-700 hover:bg-green-600 text-slate-50" title="Compartilhar via WhatsApp">
+                      <Button variant="outline" size="icon" onClick={() => handleWhatsAppShare(item)} className="h-8 w-8 bg-green-700 hover:bg-green-600 text-white border-green-600" title="Compartilhar via WhatsApp">
                         <MessageCircle className="h-4 w-4" />
                       </Button>
                     </div>
@@ -213,7 +213,7 @@ export const ScheduleTable = ({
           </TableBody>
         </Table>
         
-        {filteredItems.length === 0 && <div className="text-center py-8 text-gray-500">
+        {filteredItems.length === 0 && <div className="text-center py-8 text-gray-400">
             <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Nenhum agendamento encontrado com os filtros aplicados.</p>
           </div>}

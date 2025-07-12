@@ -68,9 +68,9 @@ const DailySchedulePanel = ({ schedules, companies, onEdit }: DailySchedulePanel
   };
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-6 bg-gray-800 border-gray-700">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-white">
           <CalendarDays className="h-5 w-5" />
           Agendamentos de Hoje ({today.toLocaleDateString('pt-BR', { 
             weekday: 'long', 
@@ -79,9 +79,9 @@ const DailySchedulePanel = ({ schedules, companies, onEdit }: DailySchedulePanel
           })})
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="bg-gray-800">
         {todaySchedules.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-8 text-gray-400">
             <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Nenhum agendamento para hoje.</p>
           </div>
@@ -94,22 +94,21 @@ const DailySchedulePanel = ({ schedules, companies, onEdit }: DailySchedulePanel
               return (
                 <div
                   key={schedule.id}
-                  className="p-4 rounded-lg cursor-pointer hover:opacity-90 transition-all"
-                  style={{ 
-                    backgroundColor: companyColor,
-                    color: 'hsl(var(--company-text))'
-                  }}
+                  className="p-4 rounded-lg cursor-pointer hover:bg-gray-700 transition-all bg-gray-800 border border-gray-600"
                   onClick={() => onEdit(schedule)}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <div className="font-semibold text-lg">{schedule.name}</div>
-                    <div className="flex items-center gap-1 text-sm font-medium">
+                    <div className="font-semibold text-lg text-white flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: companyColor }}></div>
+                      {schedule.name}
+                    </div>
+                    <div className="flex items-center gap-1 text-sm font-medium text-gray-300">
                       <Clock className="h-4 w-4" />
                       {formatTime(schedule.time_hour, schedule.time_minute)}
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-300">
                     {companyName !== 'N/A' && (
                       <div className="flex items-center gap-1">
                         <Building className="h-4 w-4" />
@@ -131,7 +130,7 @@ const DailySchedulePanel = ({ schedules, companies, onEdit }: DailySchedulePanel
                   </div>
                   
                   {schedule.description && (
-                    <div className="mt-2 text-sm opacity-90">
+                    <div className="mt-2 text-sm text-gray-400">
                       {schedule.description}
                     </div>
                   )}
@@ -199,38 +198,38 @@ const WeeklyView = ({ schedules, companies, onEdit, onDelete }: WeeklyViewProps)
   };
 
   return (
-    <Card>
+    <Card className="bg-gray-800 border-gray-700">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-white">
             <Calendar className="h-5 w-5" />
             Visualização Semanal
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
+            <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')} className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600">
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm font-medium">
+            <span className="text-sm font-medium text-gray-300">
               {weekDates[0].toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} - {' '}
               {weekDates[6].toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
             </span>
-            <Button variant="outline" size="sm" onClick={() => navigateWeek('next')}>
+            <Button variant="outline" size="sm" onClick={() => navigateWeek('next')} className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="bg-gray-800">
         <div className="grid grid-cols-7 gap-2">
           {weekDates.map((date, index) => {
             const daySchedules = getSchedulesForDay(index);
             const isToday = date.toDateString() === new Date().toDateString();
             
             return (
-              <div key={index} className={`p-3 border rounded-lg ${isToday ? 'bg-primary/5 border-primary' : 'bg-muted/30'}`}>
+              <div key={index} className={`p-3 border rounded-lg ${isToday ? 'bg-blue-900/30 border-blue-600' : 'bg-gray-700 border-gray-600'}`}>
                 <div className="text-center mb-2">
-                  <div className="text-sm font-medium">{DAYS_OF_WEEK[index]}</div>
-                  <div className={`text-xs ${isToday ? 'text-primary font-bold' : 'text-muted-foreground'}`}>
+                  <div className="text-sm font-medium text-gray-300">{DAYS_OF_WEEK[index]}</div>
+                  <div className={`text-xs ${isToday ? 'text-blue-400 font-bold' : 'text-gray-400'}`}>
                     {date.getDate()}
                   </div>
                 </div>
@@ -243,25 +242,24 @@ const WeeklyView = ({ schedules, companies, onEdit, onDelete }: WeeklyViewProps)
                     return (
                       <div
                         key={schedule.id}
-                        className="p-2 rounded border text-xs cursor-pointer hover:opacity-90 transition-all"
-                        style={{ 
-                          backgroundColor: companyColor,
-                          color: 'hsl(var(--company-text))'
-                        }}
+                        className="p-2 rounded border text-xs cursor-pointer hover:bg-gray-600 transition-all bg-gray-800 border-gray-600"
                         onClick={() => onEdit(schedule)}
                       >
-                        <div className="font-medium truncate">{schedule.name}</div>
-                        <div className="opacity-90">
+                        <div className="font-medium truncate text-white flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: companyColor }}></div>
+                          {schedule.name}
+                        </div>
+                        <div className="text-gray-300">
                           {formatTime(schedule.time_hour, schedule.time_minute)}
                         </div>
                         {companyName !== 'N/A' && (
-                          <div className="opacity-90 truncate flex items-center gap-1">
+                          <div className="text-gray-400 truncate flex items-center gap-1">
                             <Building className="h-3 w-3" />
                             {companyName}
                           </div>
                         )}
                         {schedule.system_name && (
-                          <div className="opacity-90 truncate">
+                          <div className="text-gray-400 truncate">
                             📱 {schedule.system_name}
                           </div>
                         )}
@@ -347,31 +345,31 @@ const MonthlyView = ({ schedules, companies, onEdit }: MonthlyViewProps) => {
   };
 
   return (
-    <Card>
+    <Card className="bg-gray-800 border-gray-700">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-white">
             <Calendar className="h-5 w-5" />
             Visualização Mensal
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
+            <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')} className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600">
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm font-medium">
+            <span className="text-sm font-medium text-gray-300">
               {MONTH_NAMES[currentMonth.getMonth()]} {currentMonth.getFullYear()}
             </span>
-            <Button variant="outline" size="sm" onClick={() => navigateMonth('next')}>
+            <Button variant="outline" size="sm" onClick={() => navigateMonth('next')} className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="bg-gray-800">
         <div className="grid grid-cols-7 gap-1">
           {/* Cabeçalho dos dias da semana */}
           {DAYS_OF_WEEK.map((day) => (
-            <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">
+            <div key={day} className="p-2 text-center text-sm font-medium text-gray-300">
               {day}
             </div>
           ))}
@@ -384,15 +382,15 @@ const MonthlyView = ({ schedules, companies, onEdit }: MonthlyViewProps) => {
             return (
               <div
                 key={index}
-                className={`min-h-[80px] p-1 border rounded text-xs ${
+                className={`min-h-[80px] p-1 border rounded text-xs border-gray-600 ${
                   day.isCurrentMonth 
                     ? isToday 
-                      ? 'bg-primary/5 border-primary' 
-                      : 'bg-background'
-                    : 'bg-muted/30 text-muted-foreground'
+                      ? 'bg-blue-900/30 border-blue-600' 
+                      : 'bg-gray-700'
+                    : 'bg-gray-800 text-gray-500'
                 }`}
               >
-                <div className={`text-center mb-1 ${isToday ? 'font-bold text-primary' : ''}`}>
+                <div className={`text-center mb-1 ${isToday ? 'font-bold text-blue-400' : day.isCurrentMonth ? 'text-gray-300' : 'text-gray-500'}`}>
                   {day.date.getDate()}
                 </div>
                 
@@ -404,21 +402,20 @@ const MonthlyView = ({ schedules, companies, onEdit }: MonthlyViewProps) => {
                     return (
                       <div
                         key={schedule.id}
-                        className="p-1 rounded cursor-pointer hover:opacity-90 transition-all"
-                        style={{ 
-                          backgroundColor: companyColor,
-                          color: 'hsl(var(--company-text))'
-                        }}
+                        className="p-1 rounded cursor-pointer hover:bg-gray-600 transition-all bg-gray-800 border border-gray-600"
                         onClick={() => onEdit(schedule)}
                       >
-                        <div className="truncate font-medium">{schedule.name}</div>
+                        <div className="truncate font-medium text-white flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: companyColor }}></div>
+                          {schedule.name}
+                        </div>
                         {companyName !== 'N/A' && (
-                          <div className="truncate text-xs opacity-90">
+                          <div className="truncate text-xs text-gray-400">
                             {companyName}
                           </div>
                         )}
                         {schedule.system_name && (
-                          <div className="truncate text-xs opacity-90">
+                          <div className="truncate text-xs text-gray-400">
                             📱 {schedule.system_name}
                           </div>
                         )}
@@ -426,7 +423,7 @@ const MonthlyView = ({ schedules, companies, onEdit }: MonthlyViewProps) => {
                     );
                   })}
                   {daySchedules.length > 2 && (
-                    <div className="text-center text-muted-foreground">
+                    <div className="text-center text-gray-400">
                       +{daySchedules.length - 2} mais
                     </div>
                   )}
@@ -556,22 +553,22 @@ export const ScheduleCalendarView = () => {
       )}
 
       {activeView === 'list' && (
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle>Lista de Agendamentos</CardTitle>
+            <CardTitle className="text-white">Lista de Agendamentos</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="bg-gray-800">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Sistema</TableHead>
-                  <TableHead>Horário</TableHead>
-                  <TableHead>Dias</TableHead>
-                  <TableHead>Local</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ações</TableHead>
+                <TableRow className="border-gray-700">
+                  <TableHead className="text-gray-300">Nome</TableHead>
+                  <TableHead className="text-gray-300">Cliente</TableHead>
+                  <TableHead className="text-gray-300">Sistema</TableHead>
+                  <TableHead className="text-gray-300">Horário</TableHead>
+                  <TableHead className="text-gray-300">Dias</TableHead>
+                  <TableHead className="text-gray-300">Local</TableHead>
+                  <TableHead className="text-gray-300">Status</TableHead>
+                  <TableHead className="text-gray-300">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -581,50 +578,43 @@ export const ScheduleCalendarView = () => {
                   return (
                     <TableRow 
                       key={schedule.id}
-                      style={{ 
-                        backgroundColor: companyColor + '20', // 20% opacity
-                      }}
+                      className="hover:bg-gray-700 border-gray-700"
                     >
-                      <TableCell className="font-medium">{schedule.name}</TableCell>
+                      <TableCell className="font-medium text-white">{schedule.name}</TableCell>
                       <TableCell>
-                        <div 
-                          className="inline-block px-2 py-1 rounded text-xs font-medium"
-                          style={{ 
-                            backgroundColor: companyColor,
-                            color: 'hsl(var(--company-text))'
-                          }}
-                        >
-                          {getCompanyName(schedule.client_id)}
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: companyColor }}></div>
+                          <span className="text-gray-300">{getCompanyName(schedule.client_id)}</span>
                         </div>
                       </TableCell>
-                      <TableCell>{schedule.system_name}</TableCell>
-                      <TableCell className="flex items-center gap-1">
+                      <TableCell className="text-gray-300">{schedule.system_name}</TableCell>
+                      <TableCell className="flex items-center gap-1 text-gray-300">
                         <Clock className="h-4 w-4" />
                         {formatTime(schedule.time_hour, schedule.time_minute)}
                       </TableCell>
-                      <TableCell>{getDayNames(schedule.days_of_week || [])}</TableCell>
+                      <TableCell className="text-gray-300">{getDayNames(schedule.days_of_week || [])}</TableCell>
                       <TableCell>
                         {schedule.location && (
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 text-gray-300">
                             <MapPin className="h-4 w-4" />
                             {schedule.location}
                           </div>
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={schedule.is_active ? 'default' : 'secondary'}>
+                        <Badge variant={schedule.is_active ? 'default' : 'secondary'} className={schedule.is_active ? 'bg-green-800 text-green-100' : 'bg-gray-700 text-gray-300'}>
                           {schedule.is_active ? 'Ativo' : 'Inativo'}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEdit(schedule)}>
+                          <Button size="sm" variant="outline" onClick={() => handleEdit(schedule)} className="bg-blue-800 hover:bg-blue-700 text-white border-blue-700">
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button 
                             size="sm" 
                             variant="outline" 
-                            className="text-destructive"
+                            className="bg-red-800 hover:bg-red-700 text-white border-red-700"
                             onClick={() => handleDelete(schedule.id)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -638,7 +628,7 @@ export const ScheduleCalendarView = () => {
             </Table>
             
             {schedules.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 text-gray-400">
                 Nenhum agendamento encontrado. Crie seu primeiro agendamento!
               </div>
             )}
