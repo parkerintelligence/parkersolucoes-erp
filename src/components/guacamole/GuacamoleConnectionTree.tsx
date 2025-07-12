@@ -126,7 +126,7 @@ export const GuacamoleConnectionTree = ({
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 bg-slate-50">
                             <Button variant="ghost" size="sm" onClick={() => onConnect(connection)} className="h-7 w-7 p-0 hover:bg-slate-600">
                               <ExternalLink className="h-3 w-3" />
                             </Button>
