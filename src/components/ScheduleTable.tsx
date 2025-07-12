@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Edit, Trash2, Calendar, Building, Search, ExternalLink, MessageCircle } from 'lucide-react';
+import { Edit, Trash2, Calendar, Building, Search, ExternalLink, MessageCircle, AlertTriangle, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -100,18 +100,46 @@ export const ScheduleTable = ({
     }
     return <Badge className="bg-blue-800 text-blue-100 border-blue-700">Pendente</Badge>;
   };
-  const getTypeBadge = (type: string, daysUntil: number) => {
-    // Cores mais suaves baseadas no status de vencimento
-    let badgeColor = '';
+  const getTypeBadge = (type: string) => {
+    // Badge neutro sem cores baseadas no status
+    return <Badge className="bg-gray-100 text-gray-800 border-gray-300">{type}</Badge>;
+  };
+
+  const getStatusIcon = (daysUntil: number) => {
     if (daysUntil < 0) {
-      // Vencido - vermelho suave
-      badgeColor = 'bg-red-100 text-red-800 border-red-300';
-    } else {
-      // A vencer - cinza neutro
-      badgeColor = 'bg-gray-100 text-gray-800 border-gray-300';
+      // Vencido - ícone de X vermelho
+      return (
+        <div className="flex items-center gap-1" title="Vencido">
+          <XCircle className="h-5 w-5 text-red-500" />
+          <span className="text-xs text-red-500 font-medium">Vencido</span>
+        </div>
+      );
     }
-    
-    return <Badge className={badgeColor}>{type}</Badge>;
+    if (daysUntil < 7) {
+      // Crítico <7 dias - ícone de alerta vermelho
+      return (
+        <div className="flex items-center gap-1" title="Crítico - vence em menos de 7 dias">
+          <AlertTriangle className="h-5 w-5 text-red-500" />
+          <span className="text-xs text-red-500 font-medium">Crítico</span>
+        </div>
+      );
+    }
+    if (daysUntil >= 10) {
+      // Bom >10 dias - ícone de check verde
+      return (
+        <div className="flex items-center gap-1" title="Ok - vence em mais de 10 dias">
+          <CheckCircle2 className="h-5 w-5 text-green-500" />
+          <span className="text-xs text-green-500 font-medium">Ok</span>
+        </div>
+      );
+    }
+    // Entre 7-10 dias - ícone de relógio amarelo
+    return (
+      <div className="flex items-center gap-1" title="Atenção - vence entre 7-10 dias">
+        <Clock className="h-5 w-5 text-yellow-500" />
+        <span className="text-xs text-yellow-500 font-medium">Atenção</span>
+      </div>
+    );
   };
   const filteredItems = items.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || item.company.toLowerCase().includes(searchTerm.toLowerCase());
@@ -164,6 +192,7 @@ export const ScheduleTable = ({
               <TableHead className="bg-gray-800 py-2 text-gray-300">Título</TableHead>
               <TableHead className="py-2 text-gray-300">Empresa</TableHead>
               <TableHead className="py-2 text-gray-300">Tipo</TableHead>
+              <TableHead className="py-2 text-gray-300">Status</TableHead>
               <TableHead className="py-2 text-gray-300">Vencimento</TableHead>
               <TableHead className="py-2 w-32 text-gray-300">Ações</TableHead>
             </TableRow>
@@ -171,9 +200,7 @@ export const ScheduleTable = ({
           <TableBody>
             {filteredItems.map(item => {
             const daysUntil = getDaysUntilDue(item.due_date);
-            const isUrgent = daysUntil <= 7;
-            const isGood = daysUntil > 7;
-            return <TableRow key={item.id} className={`h-12 hover:bg-gray-700 border-gray-700 ${isUrgent ? 'border-l-2 border-l-red-400' : isGood ? 'border-l-2 border-l-green-400' : ''}`}>
+            return <TableRow key={item.id} className="h-12 hover:bg-gray-700 border-gray-700">
                   <TableCell className="font-medium py-2 text-white">{item.title}</TableCell>
                   <TableCell className="py-2">
                     <div className="flex items-center gap-2">
@@ -181,7 +208,8 @@ export const ScheduleTable = ({
                       <span className="text-gray-300">{item.company}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="py-2">{getTypeBadge(item.type, daysUntil)}</TableCell>
+                  <TableCell className="py-2">{getTypeBadge(item.type)}</TableCell>
+                  <TableCell className="py-2">{getStatusIcon(daysUntil)}</TableCell>
                   <TableCell className="py-2">
                     <div className="flex items-center gap-2">
                       <div className="font-medium text-white">
