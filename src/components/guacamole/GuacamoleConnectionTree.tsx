@@ -243,7 +243,7 @@ export const GuacamoleConnectionTree = ({
                     Nenhuma conexão neste grupo
                   </div> : <div className="ml-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {group.connections.map(connection => <Card key={connection.identifier} className="bg-slate-700 border-slate-600">
-                      <CardContent className="p-3 bg-gray-900 rounded-xl">
+                      <CardContent className="p-2 bg-gray-900 rounded-xl">
                         <div className="space-y-2">
                           {/* Header com ícone e nome */}
                           <div className="flex items-center gap-2">
@@ -278,7 +278,7 @@ export const GuacamoleConnectionTree = ({
                             variant="outline" 
                             size="sm" 
                             onClick={() => onConnect(connection)} 
-                            className="w-full h-7 text-xs bg-green-600 hover:bg-green-700 border-green-600 text-white"
+                            className="w-full h-6 text-xs bg-green-600 hover:bg-green-700 border-green-600 text-white"
                           >
                             Conectar
                           </Button>
