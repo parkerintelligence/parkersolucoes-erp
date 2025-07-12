@@ -27,6 +27,7 @@ import { GuacamoleTokenStatus } from '@/components/guacamole/GuacamoleTokenStatu
 import { GuacamoleConnectionDialog } from '@/components/guacamole/GuacamoleConnectionDialog';
 import { GuacamoleLogs } from '@/components/guacamole/GuacamoleLogs';
 import { GuacamoleConnectionTest } from '@/components/guacamole/GuacamoleConnectionTest';
+import { GuacamoleTestPanel } from '@/components/guacamole/GuacamoleTestPanel';
 import { toast } from '@/hooks/use-toast';
 
 const Guacamole = () => {
@@ -654,18 +655,12 @@ const Guacamole = () => {
         </TabsContent>
 
         <TabsContent value="tests" className="mt-6">
-          <GuacamoleConnectionTest 
-            onLog={(type, message, options) => {
-              if (type === 'request') {
-                logRequest(options?.method || 'GET', options?.url || '', options?.dataSource);
-              } else if (type === 'response') {
-                logResponse(options?.status || 200, message, options?.url, options?.details);
-              } else if (type === 'error') {
-                logError(message, options?.url, options?.details);
-              } else {
-                logInfo(message, options);
-              }
-            }}
+          <GuacamoleTestPanel 
+            connections={connections}
+            users={users}
+            sessions={sessions}
+            isConfigured={isConfigured}
+            integration={integration}
           />
         </TabsContent>
       </Tabs>
