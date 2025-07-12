@@ -46,12 +46,7 @@ const GuacamoleAdminConfig = () => {
   }, [guacamoleIntegration]);
 
   const normalizeBaseUrl = (url: string): string => {
-    let normalizedUrl = url.trim();
-    
-    // Remove trailing slashes
-    normalizedUrl = normalizedUrl.replace(/\/+$/, '');
-    
-    return normalizedUrl;
+    return url.trim();
   };
 
   const validateUrl = (url: string): boolean => {
