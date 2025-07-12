@@ -129,7 +129,7 @@ export const ScheduleTable = ({
       return (
         <div className="flex items-center gap-1" title="Ok - vence em mais de 10 dias">
           <CheckCircle2 className="h-5 w-5 text-green-500" />
-          <span className="text-xs text-green-500 font-medium">Ok</span>
+          <span className="text-xs text-green-500 font-medium">A Vencer</span>
         </div>
       );
     }
