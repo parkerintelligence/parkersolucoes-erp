@@ -204,10 +204,11 @@ export const GuacamoleConnectionTree = ({
               </div>
             </Button>
 
-            {expandedGroups.has(group.identifier) && <div className="mt-3 space-y-2">
+            {expandedGroups.has(group.identifier) && <div className="mt-3">
                 {group.connections.length === 0 ? <div className="ml-6 py-4 text-center text-slate-500 text-sm">
                     Nenhuma conexão neste grupo
-                  </div> : group.connections.map(connection => <Card key={connection.identifier} className="ml-6 bg-slate-700 border-slate-600">
+                  </div> : <div className="ml-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {group.connections.map(connection => <Card key={connection.identifier} className="bg-slate-700 border-slate-600">
                       <CardContent className="p-3 bg-gray-900 rounded-xl">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -244,6 +245,7 @@ export const GuacamoleConnectionTree = ({
                         </div>
                       </CardContent>
                     </Card>)}
+                  </div>}
               </div>}
           </div>
         </Card>)}
