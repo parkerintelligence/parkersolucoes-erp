@@ -34,7 +34,7 @@ export const PWAInstallButton = () => {
       setDeferredPrompt(null);
       toast({
         title: "App Instalado!",
-        description: "Azure IT Control Center foi instalado com sucesso.",
+        description: "Parker Soluções ERP foi instalado com sucesso.",
       });
     };
 

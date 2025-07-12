@@ -36,8 +36,8 @@ function App() {
         <BrowserRouter>
           <div className="min-h-screen bg-background">
             <Routes>
+              <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/" element={<Navigate to="/dashboard" />} />
               <Route
                 path="/dashboard"
                 element={
