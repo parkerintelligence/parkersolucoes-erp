@@ -152,17 +152,43 @@ export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?
         }
         
         if (typeof result === 'object' && result !== null) {
-          const connections = Object.keys(result).map(key => ({
-            identifier: key,
-            name: result[key]?.name || key,
-            protocol: result[key]?.protocol || 'unknown',
-            parameters: result[key]?.parameters || {},
-            attributes: result[key]?.attributes || {},
-            activeConnections: result[key]?.activeConnections || 0
-          }));
+          const connections = Object.keys(result).map(key => {
+            const connectionData = result[key];
+            return {
+              identifier: key,
+              name: connectionData?.name || key,
+              protocol: connectionData?.protocol || 'unknown',
+              parameters: connectionData?.parameters || {},
+              attributes: connectionData?.attributes || {},
+              activeConnections: connectionData?.activeConnections || 0
+            };
+          });
+          
+          // Buscar sessões ativas para atualizar status das conexões
+          try {
+            const sessionsResult = await callGuacamoleAPI('sessions');
+            const activeSessions = Array.isArray(sessionsResult) ? sessionsResult : 
+              (typeof sessionsResult === 'object' && sessionsResult !== null) ? Object.values(sessionsResult) : [];
+            
+            // Contar sessões ativas por conexão
+            const sessionCounts = {};
+            activeSessions.forEach(session => {
+              if (session?.connectionIdentifier) {
+                sessionCounts[session.connectionIdentifier] = (sessionCounts[session.connectionIdentifier] || 0) + 1;
+              }
+            });
+            
+            // Atualizar contadores de sessões ativas
+            connections.forEach(connection => {
+              connection.activeConnections = sessionCounts[connection.identifier] || 0;
+            });
+            
+          } catch (sessionError) {
+            onLog?.('warning', 'Erro ao buscar sessões ativas para atualizar status', { error: sessionError.message });
+          }
           
           onLog?.('response', `${connections.length} conexões processadas (formato objeto)`, {
-            connections: connections.map(c => ({ id: c.identifier, name: c.name, protocol: c.protocol }))
+            connections: connections.map(c => ({ id: c.identifier, name: c.name, protocol: c.protocol, active: c.activeConnections }))
           });
           
           return connections;

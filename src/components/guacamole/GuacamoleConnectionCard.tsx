@@ -8,10 +8,7 @@ import {
   ExternalLink, 
   Edit, 
   Trash2, 
-  Power, 
-  Settings,
-  Eye,
-  EyeOff
+  Power
 } from 'lucide-react';
 import { GuacamoleConnection } from '@/hooks/useGuacamoleAPI';
 
@@ -20,8 +17,6 @@ interface GuacamoleConnectionCardProps {
   onConnect: (connection: GuacamoleConnection) => void;
   onEdit: (connection: GuacamoleConnection) => void;
   onDelete: (connectionId: string) => void;
-  onToggleDetails: (connectionId: string) => void;
-  showDetails: boolean;
   isDeleting?: boolean;
 }
 
@@ -30,10 +25,8 @@ export const GuacamoleConnectionCard = ({
   onConnect,
   onEdit,
   onDelete,
-  onToggleDetails,
-  showDetails,
   isDeleting = false
-}: GuacamoleConnectionCardProps) => {
+}: Omit<GuacamoleConnectionCardProps, 'onToggleDetails' | 'showDetails'>) => {
   const [isConnecting, setIsConnecting] = useState(false);
 
   const getProtocolColor = (protocol: string) => {
@@ -56,69 +49,53 @@ export const GuacamoleConnectionCard = ({
   };
 
   const getConnectionStatus = () => {
-    if (connection.activeConnections > 0) {
-      return { label: 'Ativo', color: 'bg-green-500' };
+    // Verificar se há sessões ativas para esta conexão
+    if (connection.activeConnections && connection.activeConnections > 0) {
+      return { label: 'Ativo', color: 'bg-emerald-500' };
     }
-    return { label: 'Inativo', color: 'bg-muted-foreground' };
+    // Verificar se a conexão está configurada corretamente
+    if (connection.parameters?.hostname) {
+      return { label: 'Disponível', color: 'bg-blue-500' };
+    }
+    return { label: 'Configuração Incompleta', color: 'bg-orange-500' };
   };
 
   const status = getConnectionStatus();
 
   return (
-    <Card className="bg-card border-border hover:shadow-md hover:border-primary/20 transition-all hover-scale">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary/10 p-2 rounded-lg">
-              <Monitor className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">{connection.name}</CardTitle>
-              <CardDescription className="flex items-center gap-2 mt-1">
-                <Badge className={getProtocolColor(connection.protocol)}>
-                  {connection.protocol?.toUpperCase()}
-                </Badge>
-                <div className="flex items-center gap-1">
-                  <div className={`w-2 h-2 rounded-full ${status.color}`} />
-                  <span className="text-sm">{status.label}</span>
-                </div>
-              </CardDescription>
-            </div>
+    <Card className="bg-card border-border hover:shadow-sm hover:border-primary/20 transition-all">
+      <CardHeader className="pb-2 px-4 pt-3">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary/10 p-1.5 rounded-md">
+            <Monitor className="h-4 w-4 text-primary" />
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onToggleDetails(connection.identifier)}
-          >
-            {showDetails ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </Button>
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-base truncate">{connection.name}</CardTitle>
+            <CardDescription className="flex items-center gap-2 mt-0.5">
+              <Badge className={getProtocolColor(connection.protocol)} variant="secondary">
+                {connection.protocol?.toUpperCase()}
+              </Badge>
+              <div className="flex items-center gap-1">
+                <div className={`w-1.5 h-1.5 rounded-full ${status.color}`} />
+                <span className="text-xs">{status.label}</span>
+              </div>
+            </CardDescription>
+          </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        {showDetails && (
-          <div className="bg-muted/50 p-3 rounded-lg space-y-2 text-sm border border-border">
-            <div><strong>ID:</strong> {connection.identifier}</div>
-            {connection.parameters?.hostname && (
-              <div><strong>Host:</strong> {connection.parameters.hostname}</div>
-            )}
-            {connection.parameters?.port && (
-              <div><strong>Porta:</strong> {connection.parameters.port}</div>
-            )}
-            <div><strong>Sessões Ativas:</strong> {connection.activeConnections}</div>
-          </div>
-        )}
-
-        <div className="flex gap-2 flex-wrap">
+      <CardContent className="px-4 pb-3">
+        <div className="flex items-center gap-2">
           <Button
             onClick={handleConnect}
             disabled={isConnecting}
-            className="flex-1 min-w-[120px]"
+            size="sm"
+            className="flex-1"
           >
             {isConnecting ? (
-              <Power className="h-4 w-4 mr-2 animate-spin" />
+              <Power className="h-3 w-3 mr-1.5 animate-spin" />
             ) : (
-              <ExternalLink className="h-4 w-4 mr-2" />
+              <ExternalLink className="h-3 w-3 mr-1.5" />
             )}
             {isConnecting ? 'Conectando...' : 'Conectar'}
           </Button>
@@ -128,7 +105,7 @@ export const GuacamoleConnectionCard = ({
             size="sm"
             onClick={() => onEdit(connection)}
           >
-            <Edit className="h-4 w-4" />
+            <Edit className="h-3 w-3" />
           </Button>
 
           <Button
@@ -137,7 +114,7 @@ export const GuacamoleConnectionCard = ({
             onClick={() => onDelete(connection.identifier)}
             disabled={isDeleting}
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3 w-3" />
           </Button>
         </div>
       </CardContent>

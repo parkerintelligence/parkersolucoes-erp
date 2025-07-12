@@ -349,6 +349,49 @@ serve(async (req) => {
           const connectionId = endpoint.split('/')[1]
           // Para criar túneis, usamos o endpoint padrão do Guacamole
           apiPath = `/api/session/tunnels/${encodeURIComponent(connectionId)}`
+        } else if (endpoint.startsWith('connect/')) {
+          const connectionId = endpoint.split('/')[1]
+          // Endpoint especial para criar sessão de conexão direta
+          try {
+            // Primeiro criar um tunnel
+            const tunnelResponse = await fetch(`${baseUrl}/api/session/tunnels/${encodeURIComponent(connectionId)}`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${authTokenData.authToken}`,
+                'Content-Type': 'application/json',
+              }
+            });
+
+            if (!tunnelResponse.ok) {
+              throw new Error(`Erro ao criar túnel: ${tunnelResponse.status}`);
+            }
+
+            const tunnelData = await tunnelResponse.json();
+            
+            // Construir URL de sessão direta
+            const sessionUrl = `${baseUrl}/#/client/${encodeURIComponent(connectionId)}?token=${authTokenData.authToken}`;
+            
+            return new Response(JSON.stringify({
+              result: {
+                sessionUrl,
+                tunnelData,
+                connectionId,
+                authToken: authTokenData.authToken
+              }
+            }), {
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          } catch (error) {
+            console.error('Erro ao criar sessão de conexão:', error);
+            return new Response(JSON.stringify({
+              error: 'Erro ao criar sessão de conexão',
+              details: error.message
+            }), {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
         } else {
           apiPath = `/api/session/data/${dataSource}/${endpoint}`
         }

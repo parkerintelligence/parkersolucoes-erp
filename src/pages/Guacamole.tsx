@@ -73,7 +73,7 @@ const Guacamole = () => {
     open: boolean;
     connection?: GuacamoleConnection | null;
   }>({ open: false });
-  const [expandedConnections, setExpandedConnections] = useState<Set<string>>(new Set());
+  
 
   // Carregar dados do Guacamole
   const { data: connections = [], isLoading: connectionsLoading, refetch: refetchConnections, error: connectionsError } = useConnections();
@@ -129,55 +129,50 @@ const Guacamole = () => {
     }
 
     try {
-      // Primeiro, criar um túnel/sessão para a conexão
-      const { data: tunnelData, error } = await supabase.functions.invoke('guacamole-proxy', {
+      // Criar URL de conexão direta com autenticação automática
+      const { data: sessionData, error } = await supabase.functions.invoke('guacamole-proxy', {
         body: {
           integrationId: integration.id,
-          endpoint: `tunnels/${connection.identifier}`,
+          endpoint: `connect/${connection.identifier}`,
           method: 'POST'
         }
       });
 
-      if (error) {
-        console.error('Erro ao criar túnel:', error);
-        // Fallback: tentar conexão direta sem túnel
-      }
-
-      // Obter token válido para conexão
-      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('guacamole-proxy', {
-        body: {
-          integrationId: integration.id,
-          endpoint: 'token-status',
-          method: 'GET'
-        }
-      });
-
-      if (tokenError || !tokenData?.isValid) {
+      if (error || !sessionData?.sessionUrl) {
+        console.error('Erro ao criar sessão:', error);
+        
+        // Fallback: URL direta simples
+        const baseUrl = integration.base_url.replace(/\/$/, '');
+        const fallbackUrl = `${baseUrl}/#/client/${encodeURIComponent(connection.identifier)}`;
+        
+        logInfo('Usando URL de fallback para conexão', {
+          connectionId: connection.identifier,
+          connectionName: connection.name,
+          url: fallbackUrl
+        });
+        
+        window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+        
         toast({
-          title: "Erro de autenticação",
-          description: "Token de acesso inválido. Verifique a configuração.",
-          variant: "destructive",
+          title: "Conectando...",
+          description: `Abrindo conexão "${connection.name}" (modo básico).`,
         });
         return;
       }
 
-      // Construir URL de conexão com token válido
-      const baseUrl = integration.base_url.replace(/\/$/, ''); // Remove trailing slash
-      const guacamoleUrl = `${baseUrl}/#/client/${encodeURIComponent(connection.identifier)}`;
-      
-      logInfo('Abrindo conexão do Guacamole', {
+      // Usar URL de sessão direta se disponível
+      logInfo('Abrindo conexão do Guacamole com sessão direta', {
         connectionId: connection.identifier,
         connectionName: connection.name,
-        url: guacamoleUrl,
-        hasValidToken: tokenData?.isValid
+        hasSessionUrl: !!sessionData.sessionUrl
       });
       
-      // Abrir em nova aba
-      window.open(guacamoleUrl, '_blank', 'noopener,noreferrer');
+      // Abrir em nova aba com sessão autenticada
+      window.open(sessionData.sessionUrl, '_blank', 'noopener,noreferrer');
       
       toast({
         title: "Conectando...",
-        description: `Abrindo conexão "${connection.name}" em nova aba.`,
+        description: `Abrindo conexão "${connection.name}" com acesso direto.`,
       });
 
     } catch (error) {
@@ -233,15 +228,6 @@ const Guacamole = () => {
     }
   };
 
-  const toggleConnectionDetails = (connectionId: string) => {
-    const newExpanded = new Set(expandedConnections);
-    if (newExpanded.has(connectionId)) {
-      newExpanded.delete(connectionId);
-    } else {
-      newExpanded.add(connectionId);
-    }
-    setExpandedConnections(newExpanded);
-  };
 
   const getProtocolColor = (protocol: string) => {
     switch (protocol?.toLowerCase()) {
@@ -468,18 +454,88 @@ const Guacamole = () => {
                 </div>
               ) : viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {connections.map((connection) => (
-                    <GuacamoleConnectionCard
-                      key={connection.identifier}
-                      connection={connection}
-                      onConnect={handleConnectToGuacamole}
-                      onEdit={(conn) => setConnectionDialog({ open: true, connection: conn })}
-                      onDelete={handleDeleteConnection}
-                      onToggleDetails={toggleConnectionDetails}
-                      showDetails={expandedConnections.has(connection.identifier)}
-                      isDeleting={deleteConnectionMutation.isPending}
-                    />
-                  ))}
+                  {connectionGroups && connectionGroups.length > 0 ? (
+                    // Mostrar conexões organizadas por grupos
+                    <>
+                      {connectionGroups.map((group) => {
+                        const groupConnections = connections.filter(conn => 
+                          group.childConnections.includes(conn.identifier)
+                        );
+                        
+                        if (groupConnections.length === 0) return null;
+                        
+                        return (
+                          <div key={group.identifier} className="col-span-full space-y-3">
+                            <div className="flex items-center gap-2 px-2">
+                              <div className="h-px bg-border flex-1" />
+                              <h3 className="text-sm font-medium text-muted-foreground">
+                                {group.name}
+                              </h3>
+                              <div className="h-px bg-border flex-1" />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {groupConnections.map((connection) => (
+                                <GuacamoleConnectionCard
+                                  key={connection.identifier}
+                                  connection={connection}
+                                  onConnect={handleConnectToGuacamole}
+                                  onEdit={(conn) => setConnectionDialog({ open: true, connection: conn })}
+                                  onDelete={handleDeleteConnection}
+                                  isDeleting={deleteConnectionMutation.isPending}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Conexões sem grupo */}
+                      {(() => {
+                        const groupedConnectionIds = connectionGroups.flatMap(g => g.childConnections);
+                        const ungroupedConnections = connections.filter(conn => 
+                          !groupedConnectionIds.includes(conn.identifier)
+                        );
+                        
+                        if (ungroupedConnections.length === 0) return null;
+                        
+                        return (
+                          <div key="ungrouped" className="col-span-full space-y-3">
+                            <div className="flex items-center gap-2 px-2">
+                              <div className="h-px bg-border flex-1" />
+                              <h3 className="text-sm font-medium text-muted-foreground">
+                                Outras Conexões
+                              </h3>
+                              <div className="h-px bg-border flex-1" />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {ungroupedConnections.map((connection) => (
+                                <GuacamoleConnectionCard
+                                  key={connection.identifier}
+                                  connection={connection}
+                                  onConnect={handleConnectToGuacamole}
+                                  onEdit={(conn) => setConnectionDialog({ open: true, connection: conn })}
+                                  onDelete={handleDeleteConnection}
+                                  isDeleting={deleteConnectionMutation.isPending}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </>
+                  ) : (
+                    // Fallback: mostrar todas as conexões sem agrupamento
+                    connections.map((connection) => (
+                      <GuacamoleConnectionCard
+                        key={connection.identifier}
+                        connection={connection}
+                        onConnect={handleConnectToGuacamole}
+                        onEdit={(conn) => setConnectionDialog({ open: true, connection: conn })}
+                        onDelete={handleDeleteConnection}
+                        isDeleting={deleteConnectionMutation.isPending}
+                      />
+                    ))
+                  )}
                 </div>
               ) : (
                 <Table>
