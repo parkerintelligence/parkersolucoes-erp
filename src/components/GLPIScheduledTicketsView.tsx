@@ -31,12 +31,12 @@ const GLPIScheduledTicketsView = () => {
   const [editingTicket, setEditingTicket] = useState<GLPIScheduledTicket | null>(null);
 
   const PRIORITY_MAP: Record<number, { label: string; color: string }> = {
-    1: { label: 'Muito Baixa', color: 'bg-gray-100 text-gray-800' },
-    2: { label: 'Baixa', color: 'bg-blue-100 text-blue-800' },
-    3: { label: 'Média', color: 'bg-green-100 text-green-800' },
-    4: { label: 'Alta', color: 'bg-yellow-100 text-yellow-800' },
-    5: { label: 'Muito Alta', color: 'bg-orange-100 text-orange-800' },
-    6: { label: 'Crítica', color: 'bg-red-100 text-red-800' },
+    1: { label: 'Muito Baixa', color: 'bg-gray-800 text-gray-100 border-gray-700' },
+    2: { label: 'Baixa', color: 'bg-blue-800 text-blue-100 border-blue-700' },
+    3: { label: 'Média', color: 'bg-green-800 text-green-100 border-green-700' },
+    4: { label: 'Alta', color: 'bg-yellow-800 text-yellow-100 border-yellow-700' },
+    5: { label: 'Muito Alta', color: 'bg-orange-800 text-orange-100 border-orange-700' },
+    6: { label: 'Crítica', color: 'bg-red-800 text-red-100 border-red-700' },
   };
 
   const formatNextExecution = (datetime: string) => {
@@ -222,31 +222,31 @@ const GLPIScheduledTicketsView = () => {
               Testar Agendamentos
             </Button>
             
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={handleCreateNew} className="bg-orange-600 hover:bg-orange-700 text-white">
-                <Plus className="mr-2 h-4 w-4" />
-                Novo Agendamento
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700">
-              <DialogHeader>
-                <DialogTitle className="text-white">
-                  {editingTicket ? 'Editar Agendamento' : 'Novo Agendamento de Chamado'}
-                </DialogTitle>
-                <DialogDescription className="text-gray-400">
-                  Configure um agendamento automático para criação de chamados no GLPI
-                </DialogDescription>
-              </DialogHeader>
-              <GLPIScheduledTicketForm
-                editingTicket={editingTicket}
-                onSave={handleSave}
-                onCancel={() => setIsDialogOpen(false)}
-              />
-            </DialogContent>
-          </Dialog>
+            <Button onClick={handleCreateNew} className="bg-orange-600 hover:bg-orange-700 text-white">
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Agendamento
+            </Button>
           </div>
         </div>
+
+        {/* Dialog */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700">
+            <DialogHeader>
+              <DialogTitle className="text-white">
+                {editingTicket ? 'Editar Agendamento' : 'Novo Agendamento de Chamado'}
+              </DialogTitle>
+              <DialogDescription className="text-gray-400">
+                Configure um agendamento automático para criação de chamados no GLPI
+              </DialogDescription>
+            </DialogHeader>
+            <GLPIScheduledTicketForm
+              editingTicket={editingTicket}
+              onSave={handleSave}
+              onCancel={() => setIsDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
