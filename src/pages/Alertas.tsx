@@ -45,9 +45,12 @@ export default function Alertas() {
   });
 
   const getDeviceStatus = (host: any): DeviceStatus => {
-    // Verificar se o host tem problemas de severidade "Desastre" (severity = "5")
-    // OU se o host está marcado como inativo (status = "1")
-    // Se tiver problemas de Desastre OU estiver inativo = OFFLINE, caso contrário = ONLINE
+    // CORRIGIDO: Incluir verificação do campo 'available' do Zabbix
+    // Um host será OFFLINE se:
+    // 1. Tem problemas de severidade "Desastre" (severity = "5") OU
+    // 2. Está inativo (status = "1" = disabled) OU  
+    // 3. Está indisponível (available = "2" = unreachable ou "0" = unknown)
+    // Caso contrário será ONLINE
     
     const hostProblems = problems.filter(problem => 
       problem.hosts.some(problemHost => problemHost.hostid === host.hostid)
@@ -61,19 +64,34 @@ export default function Alertas() {
     // Verificar se o host está inativo (status = "1" = disabled)
     const isHostInactive = host.status === '1';
     
-    console.log('🔍 Host status check:', {
+    // NOVO: Verificar disponibilidade do host
+    // available: "0" = unknown, "1" = available, "2" = unreachable
+    const isHostUnavailable = host.available === '2' || host.available === '0';
+    
+    // Determinar tipo de problema offline
+    let offlineReason = '';
+    if (hasDisasterProblems) offlineReason += 'Problemas críticos ';
+    if (isHostInactive) offlineReason += 'Host desabilitado ';
+    if (isHostUnavailable) {
+      offlineReason += host.available === '2' ? 'Host inalcançável ' : 'Status desconhecido ';
+    }
+    
+    console.log('🔍 Host status check (CORRIGIDO):', {
       hostid: host.hostid,
       name: host.name,
       hostStatus: host.status,
+      available: host.available,
       isHostInactive,
+      isHostUnavailable,
       totalProblems: hostProblems.length,
       hasDisasterProblems,
+      offlineReason: offlineReason.trim() || 'N/A',
       problems: hostProblems.map(p => ({ name: p.name, severity: p.severity })),
-      available: host.available
+      finalStatus: (hasDisasterProblems || isHostInactive || isHostUnavailable) ? 'OFFLINE' : 'ONLINE'
     });
     
-    // Se tem problemas de Desastre OU host inativo = OFFLINE, caso contrário = ONLINE
-    const status = (hasDisasterProblems || isHostInactive) ? 'offline' : 'online';
+    // CORRIGIDO: Incluir verificação de disponibilidade
+    const status = (hasDisasterProblems || isHostInactive || isHostUnavailable) ? 'offline' : 'online';
     
     return {
       id: host.hostid,
@@ -96,10 +114,14 @@ export default function Alertas() {
   const getPerformanceData = (hostId: string) => {
     const hostItems = items.filter(item => item.hostid === hostId);
     
-    // Buscar diferentes variações dos itens de CPU
+    // Buscar diferentes variações dos itens de CPU - EXPANDIDO
     const cpuItem = hostItems.find(item => 
       item.key_.includes('system.cpu.util') || 
-      item.key_.includes('cpu.util')
+      item.key_.includes('cpu.util') ||
+      item.key_.includes('system.cpu.load') ||
+      item.key_.includes('cpu.load') ||
+      item.key_.includes('processor.util') ||
+      item.key_.includes('system.cpu.usage')
     );
     
     // Buscar itens de memória - diferentes variações
@@ -299,31 +321,51 @@ export default function Alertas() {
         </TabsList>
         
         <TabsContent value="status" className="space-y-4 mt-6">
-          {/* Improved Responsive Grid with better spacing */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-            {devices.map((device) => (
-              <Card 
-                key={device.id} 
-                className={cn(
-                  "transition-all duration-200 hover:shadow-md min-h-[120px]",
-                  getStatusColor(device.status)
-                )}
-              >
-                <CardContent className="p-4">
-                  <div className="flex flex-col items-center space-y-3">
-                    {getStatusIcon(device.status)}
-                    <h3 
-                      className="font-medium text-sm text-center text-white leading-tight break-words hyphens-auto max-w-full"
-                      title={device.name}
-                      style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
-                    >
-                      {device.name}
-                    </h3>
-                    {getStatusBadge(device.status)}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          {/* Cards menores e mais compactos para melhor visualização */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
+            {devices.map((device) => {
+              const host = hosts.find(h => h.hostid === device.id);
+              const availabilityText = host?.available === '2' ? 'Inalcançável' : 
+                                     host?.available === '0' ? 'Desconhecido' : 
+                                     host?.available === '1' ? 'Disponível' : 'N/A';
+              
+              return (
+                <Card 
+                  key={device.id} 
+                  className={cn(
+                    "transition-all duration-200 hover:shadow-md min-h-[100px] hover:scale-105",
+                    getStatusColor(device.status)
+                  )}
+                  title={`${device.name}\nStatus: ${device.status.toUpperCase()}\nDisponibilidade: ${availabilityText}`}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex flex-col items-center space-y-2">
+                      {getStatusIcon(device.status)}
+                      <h3 
+                        className="font-medium text-xs text-center text-white leading-tight break-words max-w-full"
+                        style={{ 
+                          wordBreak: 'break-word', 
+                          overflowWrap: 'break-word',
+                          fontSize: '0.75rem',
+                          lineHeight: '1.2'
+                        }}
+                      >
+                        {device.name}
+                      </h3>
+                      <div className="flex flex-col items-center space-y-1">
+                        {getStatusBadge(device.status)}
+                        {host?.available === '2' && (
+                          <div className="text-xs text-red-300 font-medium">Inalcançável</div>
+                        )}
+                        {host?.available === '0' && (
+                          <div className="text-xs text-yellow-300 font-medium">Desconhecido</div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </TabsContent>
         
