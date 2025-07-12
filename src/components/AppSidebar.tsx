@@ -75,14 +75,14 @@ export function AppSidebar() {
   const isActive = (path: string) => currentPath === path;
   const isCollapsed = state === 'collapsed';
   const filteredMainItems = menuItems.filter(item => item.role === 'user' || item.role === 'master' && isMaster);
-  return <Sidebar className="border-r border-primary-foreground/20 bg-primary" collapsible="icon">
-      <SidebarHeader className="p-2 sm:p-4 border-b border-primary-foreground/20 bg-primary">
+  return <Sidebar className="border-r border-primary-foreground/20 bg-slate-900" collapsible="icon">
+      <SidebarHeader className="p-2 sm:p-4 border-b border-primary-foreground/20 bg-slate-900">
         <div className="flex items-center justify-center">
           
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-primary">
+      <SidebarContent className="bg-slate-900">
         <SidebarGroup>
           <SidebarGroupLabel className="text-white font-medium text-xs sm:text-sm px-2 sm:px-0">
             {!isCollapsed && <span className="hidden sm:inline">Menu Principal</span>}
