@@ -51,16 +51,6 @@ export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?
   const queryClient = useQueryClient();
 
   const integration = integrations?.find(i => i.type === 'guacamole' && i.is_active);
-  
-  // Normalizar URL base para incluir /guacamole se necessário
-  const normalizeBaseUrl = (url: string): string => {
-    let normalizedUrl = url.trim().replace(/\/+$/, ''); // Remove trailing slashes
-    if (!normalizedUrl.endsWith('/guacamole')) {
-      normalizedUrl += '/guacamole';
-    }
-    return normalizedUrl;
-  };
-
   const isConfigured = Boolean(
     integration?.base_url && 
     integration?.username && 
@@ -75,13 +65,11 @@ export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?
       throw new Error(error);
     }
 
-    const normalizedBaseUrl = normalizeBaseUrl(integration.base_url);
     const dataSource = integration.directory || 'postgresql';
     
     onLog?.('request', `Chamando API do Guacamole: ${endpoint}`, {
       integrationId: integration.id,
-      baseUrl: normalizedBaseUrl,
-      originalUrl: integration.base_url,
+      baseUrl: integration.base_url,
       dataSource,
       endpoint,
       options
@@ -518,7 +506,6 @@ export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?
       });
     },
     isConfigured,
-    integration,
-    normalizeBaseUrl
+    integration
   };
 };

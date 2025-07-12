@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -7,8 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Cache de tokens em memória por integração
-const tokenCache = new Map<string, { token: string, expires: number }>()
+// Cache de tokens em memória por integração com informações completas
+const tokenCache = new Map<string, { 
+  authToken: string, 
+  username: string,
+  dataSource: string,
+  availableDataSources: string[],
+  expires: number 
+}>()
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -73,14 +78,10 @@ serve(async (req) => {
       )
     }
 
-    // Obter dataSource da integração (campo directory)
-    const dataSource = integration.directory || 'postgresql'
-
     console.log('Integration found:', {
       name: integration.name,
       base_url: integration.base_url,
       username: integration.username,
-      dataSource: dataSource,
       has_password: !!integration.password
     })
 
@@ -97,23 +98,18 @@ serve(async (req) => {
       )
     }
 
-    // Preparar URL da API - normalizar para incluir /guacamole se necessário
+    // Preparar URL da API - usar exatamente como configurado
     let baseUrl = integration.base_url.replace(/\/+$/, '') // Remove barras no final
-    
-    // Adicionar /guacamole se não estiver presente
-    if (!baseUrl.endsWith('/guacamole')) {
-      baseUrl += '/guacamole';
-    }
     
     // Garantir que a URL seja válida e acessível
     try {
       const urlTest = new URL(baseUrl)
-      console.log('Base URL normalizada e validada:', baseUrl)
+      console.log('Base URL validada:', baseUrl)
     } catch (urlError) {
       console.error('Invalid base URL:', baseUrl, urlError)
       return new Response(
         JSON.stringify({ 
-          error: `URL base inválida: ${baseUrl}. Use formato: http://servidor:porta/guacamole`
+          error: `URL base inválida: ${baseUrl}. Use formato: http://servidor:porta`
         }),
         { 
           status: 200, 
@@ -124,12 +120,17 @@ serve(async (req) => {
 
     // Verificar se temos um token em cache ainda válido
     const now = Date.now()
-    const cachedToken = tokenCache.get(integrationId)
-    let authToken = ''
+    const cachedAuth = tokenCache.get(integrationId)
+    let authTokenData: any = null
 
-    if (cachedToken && cachedToken.expires > now) {
+    if (cachedAuth && cachedAuth.expires > now) {
       console.log('=== Usando token em cache ===')
-      authToken = cachedToken.token
+      authTokenData = {
+        authToken: cachedAuth.authToken,
+        username: cachedAuth.username,
+        dataSource: cachedAuth.dataSource,
+        availableDataSources: cachedAuth.availableDataSources
+      }
     } else {
       console.log('=== Fazendo login para obter novo token ===')
       const tokenUrl = `${baseUrl}/api/tokens`
@@ -165,7 +166,7 @@ serve(async (req) => {
               errorMessage = 'Acesso negado. Verifique se o usuário tem permissões administrativas no Guacamole.'
               break
             case 404:
-              errorMessage = 'URL do Guacamole não encontrada. Verifique se a URL está correta e inclui /guacamole se necessário.'
+              errorMessage = 'URL do Guacamole não encontrada. Verifique se a URL está correta.'
               break
             case 500:
               errorMessage = 'Erro interno do servidor Guacamole. Verifique se o serviço está funcionando.'
@@ -181,8 +182,7 @@ serve(async (req) => {
                 status: loginResponse.status,
                 statusText: loginResponse.statusText,
                 url: tokenUrl,
-                response: errorText.substring(0, 500),
-                baseUrlNormalized: baseUrl
+                response: errorText.substring(0, 500)
               }
             }),
             { 
@@ -192,20 +192,62 @@ serve(async (req) => {
           )
         }
 
-        authToken = await loginResponse.text()
-        console.log('Auth token obtained successfully, length:', authToken.length)
-        console.log('Token preview (first 20 chars):', authToken.substring(0, 20) + '...')
+        let responseText
+        try {
+          responseText = await loginResponse.text()
+          console.log('Login response text:', responseText.substring(0, 200) + '...')
+          
+          // Tentar fazer parse como JSON primeiro (formato estruturado)
+          try {
+            authTokenData = JSON.parse(responseText)
+            console.log('Auth response parsed as JSON:', {
+              hasAuthToken: !!authTokenData.authToken,
+              username: authTokenData.username,
+              dataSource: authTokenData.dataSource,
+              availableDataSources: authTokenData.availableDataSources
+            })
+            
+            // Validar se tem o campo authToken
+            if (!authTokenData.authToken) {
+              throw new Error('Resposta não contém authToken')
+            }
+            
+          } catch (jsonError) {
+            // Fallback: assumir que a resposta é apenas o token (formato antigo)
+            console.log('Response is not JSON, treating as plain token')
+            authTokenData = {
+              authToken: responseText.trim(),
+              username: integration.username,
+              dataSource: integration.directory || 'postgresql',
+              availableDataSources: [integration.directory || 'postgresql']
+            }
+          }
+          
+        } catch (textError) {
+          console.error('Error reading response text:', textError)
+          return new Response(
+            JSON.stringify({ 
+              error: 'Erro ao ler resposta do servidor de autenticação'
+            }),
+            { 
+              status: 200, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          )
+        }
 
         // Cache do token por 50 minutos (tokens do Guacamole geralmente expiram em 60 min)
-        // Também verificar se o token é válido antes de cachear
-        if (authToken && authToken.length > 10) {
+        if (authTokenData && authTokenData.authToken && authTokenData.authToken.length > 10) {
           tokenCache.set(integrationId, {
-            token: authToken,
+            authToken: authTokenData.authToken,
+            username: authTokenData.username,
+            dataSource: authTokenData.dataSource,
+            availableDataSources: authTokenData.availableDataSources || [authTokenData.dataSource],
             expires: now + (50 * 60 * 1000) // 50 minutos
           })
-          console.log('Token cached successfully')
+          console.log('Token cached successfully with data source:', authTokenData.dataSource)
         } else {
-          console.warn('Token muito curto ou inválido, não será cacheado:', authToken?.length || 0)
+          console.warn('Token data inválido, não será cacheado')
         }
         
       } catch (fetchError) {
@@ -215,8 +257,7 @@ serve(async (req) => {
             error: `Erro de conectividade: Não foi possível acessar ${tokenUrl}. Verifique se:
             • A URL está correta e acessível
             • O servidor Guacamole está online
-            • Não há bloqueios de firewall
-            • A URL inclui /guacamole se necessário`
+            • Não há bloqueios de firewall`
           }),
           { 
             status: 200, 
@@ -226,8 +267,8 @@ serve(async (req) => {
       }
     }
     
-    // Validar se o token foi obtido
-    if (!authToken || authToken.trim() === '') {
+    // Validar se os dados de autenticação foram obtidos
+    if (!authTokenData || !authTokenData.authToken || authTokenData.authToken.trim() === '') {
       return new Response(
         JSON.stringify({ 
           error: 'Token de autenticação vazio retornado pelo Guacamole'
@@ -237,6 +278,18 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
+    }
+
+    // Usar o dataSource retornado pelo servidor ou fallback para configuração
+    const dataSource = authTokenData.dataSource || integration.directory || 'postgresql'
+    console.log('Data source sendo usado:', dataSource)
+    console.log('Data sources disponíveis:', authTokenData.availableDataSources)
+    
+    // Validar se o dataSource está disponível
+    if (authTokenData.availableDataSources && 
+        !authTokenData.availableDataSources.includes(dataSource)) {
+      console.warn('Data source não está disponível:', dataSource)
+      console.warn('Data sources disponíveis:', authTokenData.availableDataSources)
     }
 
     // Construir URL da API baseada no endpoint solicitado usando dataSource dinamicamente
@@ -290,15 +343,14 @@ serve(async (req) => {
     }
 
     // Construir URL final com token como parâmetro
-    const apiUrl = `${baseUrl}${apiPath}?token=${encodeURIComponent(authToken)}`
+    const apiUrl = `${baseUrl}${apiPath}?token=${encodeURIComponent(authTokenData.authToken)}`
 
     console.log('=== Making API call ===')
     console.log('API Path:', apiPath)
     console.log('Data Source:', dataSource)
     console.log('Base URL:', baseUrl)
     console.log('Full URL (token masked):', `${baseUrl}${apiPath}?token=***MASKED***`)
-    console.log('Token length:', authToken.length)
-    console.log('Token valid:', !!authToken && authToken.length > 0)
+    console.log('Token length:', authTokenData.authToken.length)
 
     const requestOptions: RequestInit = {
       method: method,
