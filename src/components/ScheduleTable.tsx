@@ -100,16 +100,18 @@ export const ScheduleTable = ({
     }
     return <Badge className="bg-blue-800 text-blue-100 border-blue-700">Pendente</Badge>;
   };
-  const getTypeBadge = (type: string) => {
-    const colors = {
-      'Certificado SSL': 'bg-blue-800 text-blue-100 border-blue-700',
-      'Licença Software': 'bg-purple-800 text-purple-100 border-purple-700',
-      'Renovação Domínio': 'bg-green-800 text-green-100 border-green-700',
-      'Backup': 'bg-yellow-800 text-yellow-100 border-yellow-700',
-      'Manutenção': 'bg-gray-700 text-gray-100 border-gray-600',
-      'Atualização': 'bg-indigo-800 text-indigo-100 border-indigo-700'
-    };
-    return <Badge className={colors[type] || 'bg-gray-700 text-gray-100 border-gray-600'}>{type}</Badge>;
+  const getTypeBadge = (type: string, daysUntil: number) => {
+    // Cores baseadas no status de vencimento
+    let badgeColor = '';
+    if (daysUntil < 0) {
+      // Vencido - vermelho
+      badgeColor = 'bg-red-800 text-red-100 border-red-700';
+    } else {
+      // A vencer - verde
+      badgeColor = 'bg-green-800 text-green-100 border-green-700';
+    }
+    
+    return <Badge className={badgeColor}>{type}</Badge>;
   };
   const filteredItems = items.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || item.company.toLowerCase().includes(searchTerm.toLowerCase());
@@ -179,7 +181,7 @@ export const ScheduleTable = ({
                       <span className="text-gray-300">{item.company}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="py-2">{getTypeBadge(item.type)}</TableCell>
+                  <TableCell className="py-2">{getTypeBadge(item.type, daysUntil)}</TableCell>
                   <TableCell className="py-2">
                     <div className="flex items-center gap-2">
                       <div className="font-medium text-white">
