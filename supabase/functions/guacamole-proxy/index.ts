@@ -292,53 +292,53 @@ serve(async (req) => {
       console.warn('Data sources disponíveis:', authTokenData.availableDataSources)
     }
 
-    // Construir URL da API baseada no endpoint solicitado seguindo o padrão testado
+    // Construir URL da API baseada no endpoint solicitado usando o padrão do Guacamole
     let apiPath = ''
     
     switch (endpoint) {
       case 'connections':
-        apiPath = `/api/connections`
+        apiPath = `/api/session/data/${dataSource}/connections`
         break
       case 'users':
-        apiPath = `/api/users`
+        apiPath = `/api/session/data/${dataSource}/users`
         break
       case 'sessions':
-        apiPath = `/api/sessions`
+        apiPath = `/api/session/data/${dataSource}/activeConnections`
         break
       case 'connectionGroups':
-        apiPath = `/api/connectionGroups`
+        apiPath = `/api/session/data/${dataSource}/connectionGroups`
         break
       case 'permissions':
-        apiPath = `/api/permissions`
+        apiPath = `/api/session/data/${dataSource}/permissions`
         break
       case 'schemas':
-        apiPath = `/api/schemas`
+        apiPath = `/api/session/data/${dataSource}/schema`
         break
       case 'history':
-        apiPath = `/api/history`
+        apiPath = `/api/session/data/${dataSource}/history`
         break
       default:
         if (endpoint.startsWith('connections/')) {
           const connectionId = endpoint.split('/')[1]
           const action = endpoint.split('/')[2]
           if (action) {
-            apiPath = `/api/connections/${encodeURIComponent(connectionId)}/${action}`
+            apiPath = `/api/session/data/${dataSource}/connections/${encodeURIComponent(connectionId)}/${action}`
           } else {
-            apiPath = `/api/connections/${encodeURIComponent(connectionId)}`
+            apiPath = `/api/session/data/${dataSource}/connections/${encodeURIComponent(connectionId)}`
           }
         } else if (endpoint.startsWith('sessions/')) {
           const sessionId = endpoint.split('/')[1]
-          apiPath = `/api/sessions/${encodeURIComponent(sessionId)}`
+          apiPath = `/api/session/data/${dataSource}/activeConnections/${encodeURIComponent(sessionId)}`
         } else if (endpoint.startsWith('users/')) {
           const username = endpoint.split('/')[1]
           const action = endpoint.split('/')[2]
           if (action) {
-            apiPath = `/api/users/${encodeURIComponent(username)}/${action}`
+            apiPath = `/api/session/data/${dataSource}/users/${encodeURIComponent(username)}/${action}`
           } else {
-            apiPath = `/api/users/${encodeURIComponent(username)}`
+            apiPath = `/api/session/data/${dataSource}/users/${encodeURIComponent(username)}`
           }
         } else {
-          apiPath = `/api/${endpoint}`
+          apiPath = `/api/session/data/${dataSource}/${endpoint}`
         }
     }
 
