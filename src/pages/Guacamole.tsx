@@ -5,21 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { 
-  Monitor, 
-  Users, 
-  Activity, 
-  Plus,
-  RefreshCcw, 
-  Power,
-  AlertTriangle,
-  Settings,
-  ExternalLink,
-  Grid,
-  List,
-  FileText,
-  FolderOpen
-} from 'lucide-react';
+import { Monitor, Users, Activity, Plus, RefreshCcw, Power, AlertTriangle, Settings, ExternalLink, Grid, List, FileText, FolderOpen } from 'lucide-react';
 import { useGuacamoleAPI, GuacamoleConnection } from '@/hooks/useGuacamoleAPI';
 import { useGuacamoleLogs } from '@/hooks/useGuacamoleLogs';
 import { GuacamoleConnectionCard } from '@/components/guacamole/GuacamoleConnectionCard';
@@ -30,20 +16,18 @@ import { GuacamoleLogs } from '@/components/guacamole/GuacamoleLogs';
 import { GuacamoleConnectionTest } from '@/components/guacamole/GuacamoleConnectionTest';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-
 const Guacamole = () => {
-  const { 
-    logs, 
-    clearLogs, 
-    logRequest, 
-    logResponse, 
-    logError, 
-    logInfo 
+  const {
+    logs,
+    clearLogs,
+    logRequest,
+    logResponse,
+    logError,
+    logInfo
   } = useGuacamoleLogs();
-
-  const { 
-    useConnections, 
-    useUsers, 
+  const {
+    useConnections,
+    useUsers,
     useActiveSessions,
     useConnectionGroups,
     useConnectionHistory,
@@ -53,7 +37,7 @@ const Guacamole = () => {
     useDeleteConnection,
     useDisconnectSession,
     isConfigured,
-    integration 
+    integration
   } = useGuacamoleAPI((type, message, options) => {
     // Integrar logs do hook com o sistema de logs
     if (type === 'request') {
@@ -66,96 +50,106 @@ const Guacamole = () => {
       logInfo(message, options);
     }
   });
-
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [connectionDialog, setConnectionDialog] = useState<{
     open: boolean;
     connection?: GuacamoleConnection | null;
-  }>({ open: false });
-  
+  }>({
+    open: false
+  });
 
   // Carregar dados do Guacamole
-  const { data: connections = [], isLoading: connectionsLoading, refetch: refetchConnections, error: connectionsError } = useConnections();
-  const { data: users = [], isLoading: usersLoading, refetch: refetchUsers, error: usersError } = useUsers();
-  const { data: activeSessions = [], isLoading: sessionsLoading, refetch: refetchSessions, error: sessionsError } = useActiveSessions();
-  const { data: connectionGroups = [], refetch: refetchGroups } = useConnectionGroups();
-  const { data: connectionHistory = [], refetch: refetchHistory } = useConnectionHistory();
-
+  const {
+    data: connections = [],
+    isLoading: connectionsLoading,
+    refetch: refetchConnections,
+    error: connectionsError
+  } = useConnections();
+  const {
+    data: users = [],
+    isLoading: usersLoading,
+    refetch: refetchUsers,
+    error: usersError
+  } = useUsers();
+  const {
+    data: activeSessions = [],
+    isLoading: sessionsLoading,
+    refetch: refetchSessions,
+    error: sessionsError
+  } = useActiveSessions();
+  const {
+    data: connectionGroups = [],
+    refetch: refetchGroups
+  } = useConnectionGroups();
+  const {
+    data: connectionHistory = [],
+    refetch: refetchHistory
+  } = useConnectionHistory();
   const createConnectionMutation = useCreateConnection();
   const updateConnectionMutation = useUpdateConnection();
   const deleteConnectionMutation = useDeleteConnection();
   const disconnectSessionMutation = useDisconnectSession();
   const testConnectionMutation = useTestConnection();
-
   const handleRefreshAll = async () => {
     setRefreshing(true);
     logInfo('Iniciando atualização manual de todos os dados');
-    
     try {
-      await Promise.all([
-        refetchConnections(),
-        refetchUsers(),
-        refetchSessions(),
-        refetchGroups(),
-        refetchHistory()
-      ]);
-      
+      await Promise.all([refetchConnections(), refetchUsers(), refetchSessions(), refetchGroups(), refetchHistory()]);
       logInfo('Atualização manual concluída com sucesso');
       toast({
         title: "Dados atualizados",
-        description: "Informações do Guacamole foram atualizadas com sucesso.",
+        description: "Informações do Guacamole foram atualizadas com sucesso."
       });
     } catch (error) {
-      logError('Erro durante atualização manual', '', { error: error.message });
+      logError('Erro durante atualização manual', '', {
+        error: error.message
+      });
       toast({
         title: "Erro ao atualizar",
         description: "Não foi possível atualizar os dados do Guacamole.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setRefreshing(false);
     }
   };
-
   const handleConnectToGuacamole = async (connection: GuacamoleConnection) => {
     if (!integration?.base_url) {
       toast({
         title: "Erro de configuração",
         description: "URL base do Guacamole não configurada.",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-
     try {
       // Criar URL de conexão direta com autenticação automática
-      const { data: sessionData, error } = await supabase.functions.invoke('guacamole-proxy', {
+      const {
+        data: sessionData,
+        error
+      } = await supabase.functions.invoke('guacamole-proxy', {
         body: {
           integrationId: integration.id,
           endpoint: `connect/${connection.identifier}`,
           method: 'POST'
         }
       });
-
       if (error || !sessionData?.sessionUrl) {
         console.error('Erro ao criar sessão:', error);
-        
+
         // Fallback: URL direta simples
         const baseUrl = integration.base_url.replace(/\/$/, '');
         const fallbackUrl = `${baseUrl}/#/client/${encodeURIComponent(connection.identifier)}`;
-        
         logInfo('Usando URL de fallback para conexão', {
           connectionId: connection.identifier,
           connectionName: connection.name,
           url: fallbackUrl
         });
-        
         window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
-        
         toast({
           title: "Conectando...",
-          description: `Abrindo conexão "${connection.name}" (modo básico).`,
+          description: `Abrindo conexão "${connection.name}" (modo básico).`
         });
         return;
       }
@@ -166,91 +160,87 @@ const Guacamole = () => {
         connectionName: connection.name,
         hasSessionUrl: !!sessionData.sessionUrl
       });
-      
+
       // Abrir em nova aba com sessão autenticada
       window.open(sessionData.sessionUrl, '_blank', 'noopener,noreferrer');
-      
       toast({
         title: "Conectando...",
-        description: `Abrindo conexão "${connection.name}" com acesso direto.`,
+        description: `Abrindo conexão "${connection.name}" com acesso direto.`
       });
-
     } catch (error) {
       console.error('Erro ao conectar:', error);
       toast({
         title: "Erro na conexão",
         description: "Não foi possível estabelecer a conexão. Tente novamente.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const handleCreateConnection = async (connectionData: Partial<GuacamoleConnection>) => {
     try {
       await createConnectionMutation.mutateAsync(connectionData);
-      setConnectionDialog({ open: false });
+      setConnectionDialog({
+        open: false
+      });
     } catch (error) {
       console.error('Erro ao criar conexão:', error);
     }
   };
-
   const handleUpdateConnection = async (connectionData: Partial<GuacamoleConnection>) => {
     console.log('Atualizando conexão:', connectionData);
-    
     if (!connectionData.identifier) {
       toast({
         title: "Erro",
         description: "ID da conexão não encontrado",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-
     try {
       await updateConnectionMutation.mutateAsync({
         identifier: connectionData.identifier,
         updates: connectionData
       });
-      setConnectionDialog({ open: false, connection: null });
+      setConnectionDialog({
+        open: false,
+        connection: null
+      });
     } catch (error) {
       console.error('Erro ao atualizar conexão:', error);
     }
   };
-
   const handleDeleteConnection = async (identifier: string) => {
     if (!confirm('Tem certeza que deseja remover esta conexão?')) return;
-    
     try {
       await deleteConnectionMutation.mutateAsync(identifier);
     } catch (error) {
       console.error('Erro ao deletar conexão:', error);
     }
   };
-
   const handleDisconnectSession = async (sessionId: string) => {
     if (!confirm('Tem certeza que deseja desconectar esta sessão?')) return;
-    
     try {
       await disconnectSessionMutation.mutateAsync(sessionId);
     } catch (error) {
       console.error('Erro ao desconectar sessão:', error);
     }
   };
-
-
   const getProtocolColor = (protocol: string) => {
     switch (protocol?.toLowerCase()) {
-      case 'rdp': return 'bg-blue-400/20 text-blue-300 border-blue-400/30';
-      case 'vnc': return 'bg-green-400/20 text-green-300 border-green-400/30';
-      case 'ssh': return 'bg-purple-400/20 text-purple-300 border-purple-400/30';
-      case 'telnet': return 'bg-orange-400/20 text-orange-300 border-orange-400/30';
-      default: return 'bg-slate-600/20 text-slate-400 border-slate-600/30';
+      case 'rdp':
+        return 'bg-blue-400/20 text-blue-300 border-blue-400/30';
+      case 'vnc':
+        return 'bg-green-400/20 text-green-300 border-green-400/30';
+      case 'ssh':
+        return 'bg-purple-400/20 text-purple-300 border-purple-400/30';
+      case 'telnet':
+        return 'bg-orange-400/20 text-orange-300 border-orange-400/30';
+      default:
+        return 'bg-slate-600/20 text-slate-400 border-slate-600/30';
     }
   };
-
   if (!isConfigured) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-white p-6">
+    return <div className="min-h-screen bg-slate-900 text-white p-6">
         <div className="space-y-6">
           <div className="flex items-center gap-3">
             <div className="bg-blue-500/10 p-2 rounded-lg">
@@ -280,12 +270,9 @@ const Guacamole = () => {
             </CardContent>
           </Card>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-slate-900 text-white p-6">
+  return <div className="min-h-screen bg-slate-900 text-white p-6">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -300,18 +287,8 @@ const Guacamole = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <GuacamoleStatusPopover 
-              connections={connections}
-              users={users}
-              activeSessions={activeSessions}
-              connectionGroups={connectionGroups}
-            />
-            <Button 
-              onClick={handleRefreshAll} 
-              disabled={refreshing}
-              variant="outline"
-              className="border-slate-600 text-slate-300 hover:bg-slate-700"
-            >
+            <GuacamoleStatusPopover connections={connections} users={users} activeSessions={activeSessions} connectionGroups={connectionGroups} />
+            <Button onClick={handleRefreshAll} disabled={refreshing} variant="outline" className="border-slate-600 text-slate-50 bg-slate-900 hover:bg-slate-800">
               <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
@@ -320,8 +297,7 @@ const Guacamole = () => {
 
 
         {/* Error Display */}
-        {(connectionsError || usersError || sessionsError) && (
-          <Card className="bg-red-900/20 border-red-800/30">
+        {(connectionsError || usersError || sessionsError) && <Card className="bg-red-900/20 border-red-800/30">
             <CardHeader>
               <CardTitle className="text-red-400 flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5" />
@@ -330,28 +306,21 @@ const Guacamole = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2 text-sm">
-                {connectionsError && (
-                  <div className="bg-red-900/30 p-3 rounded border-l-4 border-red-500">
+                {connectionsError && <div className="bg-red-900/30 p-3 rounded border-l-4 border-red-500">
                     <strong className="text-red-300">Erro ao buscar conexões:</strong> 
                     <span className="text-red-400 ml-2">{connectionsError.message}</span>
-                  </div>
-                )}
-                {usersError && (
-                  <div className="bg-red-900/30 p-3 rounded border-l-4 border-red-500">
+                  </div>}
+                {usersError && <div className="bg-red-900/30 p-3 rounded border-l-4 border-red-500">
                     <strong className="text-red-300">Erro ao buscar usuários:</strong> 
                     <span className="text-red-400 ml-2">{usersError.message}</span>
-                  </div>
-                )}
-                {sessionsError && (
-                  <div className="bg-red-900/30 p-3 rounded border-l-4 border-red-500">
+                  </div>}
+                {sessionsError && <div className="bg-red-900/30 p-3 rounded border-l-4 border-red-500">
                     <strong className="text-red-300">Erro ao buscar sessões:</strong> 
                     <span className="text-red-400 ml-2">{sessionsError.message}</span>
-                  </div>
-                )}
+                  </div>}
               </div>
             </CardContent>
-          </Card>
-        )}
+          </Card>}
 
 
         {/* Main Content */}
@@ -392,27 +361,16 @@ const Guacamole = () => {
                   </div>
                   <div className="flex gap-2">
                     <div className="flex border border-slate-600 rounded-md">
-                      <Button
-                        variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setViewMode('grid')}
-                        className="bg-slate-700 text-white border-slate-600"
-                      >
+                      <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')} className="bg-slate-700 text-white border-slate-600">
                         <Grid className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant={viewMode === 'list' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setViewMode('list')}
-                        className="bg-slate-700 text-white border-slate-600"
-                      >
+                      <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('list')} className="bg-slate-700 text-white border-slate-600">
                         <List className="h-4 w-4" />
                       </Button>
                     </div>
-                    <Button 
-                      onClick={() => setConnectionDialog({ open: true })}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
+                    <Button onClick={() => setConnectionDialog({
+                    open: true
+                  })} className="bg-blue-600 hover:bg-blue-700 text-white">
                       <Plus className="mr-2 h-4 w-4" />
                       Nova Conexão
                     </Button>
@@ -420,35 +378,23 @@ const Guacamole = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {connectionsLoading ? (
-                  <div className="text-center py-8">
+                {connectionsLoading ? <div className="text-center py-8">
                     <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
                     <p className="text-slate-300">Carregando conexões...</p>
-                  </div>
-                ) : !connections || connections.length === 0 ? (
-                  <div className="text-center py-8">
+                  </div> : !connections || connections.length === 0 ? <div className="text-center py-8">
                     <Monitor className="h-12 w-12 mx-auto mb-4 text-slate-600" />
                     <p className="text-lg font-medium text-white">Nenhuma conexão encontrada</p>
                     <p className="text-sm text-slate-400 mb-4">Configure suas primeiras conexões remotas.</p>
-                    <Button 
-                      onClick={() => setConnectionDialog({ open: true })}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
+                    <Button onClick={() => setConnectionDialog({
+                  open: true
+                })} className="bg-blue-600 hover:bg-blue-700 text-white">
                       <Plus className="mr-2 h-4 w-4" />
                       Criar Primeira Conexão
                     </Button>
-                  </div>
-                ) : viewMode === 'grid' ? (
-                  <GuacamoleConnectionTree
-                    connections={connections}
-                    connectionGroups={connectionGroups}
-                    onConnect={handleConnectToGuacamole}
-                    onEdit={(conn) => setConnectionDialog({ open: true, connection: conn })}
-                    onDelete={handleDeleteConnection}
-                    isDeleting={deleteConnectionMutation.isPending}
-                  />
-                ) : (
-                  <div className="bg-slate-800 rounded-lg overflow-hidden">
+                  </div> : viewMode === 'grid' ? <GuacamoleConnectionTree connections={connections} connectionGroups={connectionGroups} onConnect={handleConnectToGuacamole} onEdit={conn => setConnectionDialog({
+                open: true,
+                connection: conn
+              })} onDelete={handleDeleteConnection} isDeleting={deleteConnectionMutation.isPending} /> : <div className="bg-slate-800 rounded-lg overflow-hidden">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-slate-700">
@@ -460,8 +406,7 @@ const Guacamole = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {connections.map((connection) => (
-                          <TableRow key={connection.identifier} className="border-slate-700">
+                        {connections.map(connection => <TableRow key={connection.identifier} className="border-slate-700">
                             <TableCell className="font-medium text-white">{connection.name}</TableCell>
                             <TableCell>
                               <Badge className={getProtocolColor(connection.protocol)}>
@@ -478,21 +423,15 @@ const Guacamole = () => {
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-2">
-                                <Button 
-                                  size="sm" 
-                                  onClick={() => handleConnectToGuacamole(connection)}
-                                  className="bg-blue-600 hover:bg-blue-700"
-                                >
+                                <Button size="sm" onClick={() => handleConnectToGuacamole(connection)} className="bg-blue-600 hover:bg-blue-700">
                                   <ExternalLink className="h-4 w-4" />
                                 </Button>
                               </div>
                             </TableCell>
-                          </TableRow>
-                        ))}
+                          </TableRow>)}
                       </TableBody>
                     </Table>
-                  </div>
-                )}
+                  </div>}
               </CardContent>
             </Card>
           </TabsContent>
@@ -509,19 +448,14 @@ const Guacamole = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {sessionsLoading ? (
-                  <div className="text-center py-8">
+                {sessionsLoading ? <div className="text-center py-8">
                     <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
                     <p className="text-slate-300">Carregando sessões...</p>
-                  </div>
-                ) : !activeSessions || activeSessions.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400">
+                  </div> : !activeSessions || activeSessions.length === 0 ? <div className="text-center py-8 text-slate-400">
                     <Activity className="h-12 w-12 mx-auto mb-4" />
                     <p className="text-lg font-medium text-white">Nenhuma sessão ativa</p>
                     <p className="text-sm">Todas as conexões estão desconectadas.</p>
-                  </div>
-                ) : (
-                  <Table>
+                  </div> : <Table>
                     <TableHeader>
                       <TableRow className="border-slate-700">
                         <TableHead className="text-slate-300">Usuário</TableHead>
@@ -532,8 +466,7 @@ const Guacamole = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {activeSessions.map((session, index) => (
-                        <TableRow key={index} className="border-slate-700">
+                      {activeSessions.map((session, index) => <TableRow key={index} className="border-slate-700">
                           <TableCell className="font-medium text-white">{session.username || 'N/A'}</TableCell>
                           <TableCell className="text-slate-300">{session.connectionName || 'N/A'}</TableCell>
                           <TableCell>
@@ -545,21 +478,13 @@ const Guacamole = () => {
                             {session.startTime ? new Date(session.startTime).toLocaleString('pt-BR') : 'N/A'}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDisconnectSession(session.id)}
-                              disabled={disconnectSessionMutation.isPending}
-                              className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                            >
+                            <Button size="sm" variant="outline" onClick={() => handleDisconnectSession(session.id)} disabled={disconnectSessionMutation.isPending} className="border-slate-600 text-slate-300 hover:bg-slate-700">
                               <Power className="h-4 w-4" />
                             </Button>
                           </TableCell>
-                        </TableRow>
-                      ))}
+                        </TableRow>)}
                     </TableBody>
-                  </Table>
-                )}
+                  </Table>}
               </CardContent>
             </Card>
           </TabsContent>
@@ -576,13 +501,10 @@ const Guacamole = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {usersLoading ? (
-                  <div className="text-center py-8">
+                {usersLoading ? <div className="text-center py-8">
                     <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
                     <p className="text-slate-300">Carregando usuários...</p>
-                  </div>
-                ) : (
-                  <Table>
+                  </div> : <Table>
                     <TableHeader>
                       <TableRow className="border-slate-700">
                         <TableHead className="text-slate-300">Nome de Usuário</TableHead>
@@ -591,8 +513,7 @@ const Guacamole = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {users && users.map((user) => (
-                        <TableRow key={user.username} className="border-slate-700">
+                      {users && users.map(user => <TableRow key={user.username} className="border-slate-700">
                           <TableCell className="font-medium text-white">{user.username}</TableCell>
                           <TableCell className="text-slate-300">
                             {user.lastActive ? new Date(user.lastActive).toLocaleString('pt-BR') : 'Nunca'}
@@ -600,11 +521,9 @@ const Guacamole = () => {
                           <TableCell>
                             <Badge variant="default" className="bg-emerald-600 text-white">Ativo</Badge>
                           </TableCell>
-                        </TableRow>
-                      ))}
+                        </TableRow>)}
                     </TableBody>
-                  </Table>
-                )}
+                  </Table>}
               </CardContent>
             </Card>
           </TabsContent>
@@ -632,9 +551,7 @@ const Guacamole = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {connectionHistory && connectionHistory.length > 0 ? (
-                      connectionHistory.map((record, index) => (
-                        <TableRow key={index} className="border-slate-700">
+                    {connectionHistory && connectionHistory.length > 0 ? connectionHistory.map((record, index) => <TableRow key={index} className="border-slate-700">
                           <TableCell className="font-medium text-white">{record.connectionName}</TableCell>
                           <TableCell className="text-slate-300">{record.username}</TableCell>
                           <TableCell className="text-slate-300">
@@ -646,17 +563,13 @@ const Guacamole = () => {
                           <TableCell className="text-slate-300">
                             {record.duration ? `${Math.round(record.duration / 60)} min` : 'N/A'}
                           </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
+                        </TableRow>) : <TableRow>
                         <TableCell colSpan={5} className="text-center py-8 text-slate-400">
                           <FileText className="h-12 w-12 mx-auto mb-4" />
                           <p className="text-lg font-medium text-white">Nenhum registro encontrado</p>
                           <p className="text-sm">O histórico aparecerá conforme as conexões forem utilizadas.</p>
                         </TableCell>
-                      </TableRow>
-                    )}
+                      </TableRow>}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -664,41 +577,30 @@ const Guacamole = () => {
           </TabsContent>
 
           <TabsContent value="logs" className="mt-6">
-            <GuacamoleLogs 
-              logs={logs}
-              onClearLogs={clearLogs}
-              onRefresh={handleRefreshAll}
-            />
+            <GuacamoleLogs logs={logs} onClearLogs={clearLogs} onRefresh={handleRefreshAll} />
           </TabsContent>
 
           <TabsContent value="tests" className="mt-6">
-            <GuacamoleConnectionTest 
-              onLog={(type, message, options) => {
-                if (type === 'request') {
-                  logRequest(options?.method || 'GET', options?.url || '', options?.dataSource);
-                } else if (type === 'response') {
-                  logResponse(options?.status || 200, message, options?.url, options?.details);
-                } else if (type === 'error') {
-                  logError(message, options?.url, options?.details);
-                } else {
-                  logInfo(message, options);
-                }
-              }}
-            />
+            <GuacamoleConnectionTest onLog={(type, message, options) => {
+            if (type === 'request') {
+              logRequest(options?.method || 'GET', options?.url || '', options?.dataSource);
+            } else if (type === 'response') {
+              logResponse(options?.status || 200, message, options?.url, options?.details);
+            } else if (type === 'error') {
+              logError(message, options?.url, options?.details);
+            } else {
+              logInfo(message, options);
+            }
+          }} />
           </TabsContent>
         </Tabs>
 
         {/* Connection Dialog */}
-        <GuacamoleConnectionDialog
-          open={connectionDialog.open}
-          onOpenChange={(open) => setConnectionDialog({ open, connection: null })}
-          connection={connectionDialog.connection}
-          onSave={connectionDialog.connection ? handleUpdateConnection : handleCreateConnection}
-          isSaving={createConnectionMutation.isPending || updateConnectionMutation.isPending}
-        />
+        <GuacamoleConnectionDialog open={connectionDialog.open} onOpenChange={open => setConnectionDialog({
+        open,
+        connection: null
+      })} connection={connectionDialog.connection} onSave={connectionDialog.connection ? handleUpdateConnection : handleCreateConnection} isSaving={createConnectionMutation.isPending || updateConnectionMutation.isPending} />
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Guacamole;
