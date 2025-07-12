@@ -150,14 +150,14 @@ const WhatsAppTemplates = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex justify-center items-center">
+      <div className="min-h-screen bg-slate-900 flex justify-center items-center">
         <div className="text-gray-400">Carregando templates...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6 space-y-6">
+    <div className="min-h-screen bg-slate-900 text-white p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

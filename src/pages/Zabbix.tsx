@@ -360,7 +360,7 @@ const Zabbix = () => {
 
   if (!isConfigured) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white p-6">
+      <div className="min-h-screen bg-slate-900 text-white p-6">
         <Card className="border-yellow-600 bg-yellow-900/20">
           <CardContent className="p-6 text-center">
             <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-400" />

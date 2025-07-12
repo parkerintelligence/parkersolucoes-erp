@@ -37,7 +37,7 @@ const Schedule = () => {
       </div>;
   }
 
-  return <div className="min-h-screen bg-gray-900 text-white">
+  return <div className="min-h-screen bg-slate-900 text-white">
       <div className="container mx-auto p-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Agenda</h1>
