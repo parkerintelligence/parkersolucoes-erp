@@ -53,12 +53,17 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log('🔍 [GLPI-CRON] Iniciando processamento de chamados agendados...');
     console.log('🕐 [GLPI-CRON] Horário atual (UTC):', currentTime.toISOString());
+    console.log('🕐 [GLPI-CRON] Horário atual (Brazil):', currentTime.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
     console.log('🐛 [GLPI-CRON] Debug mode:', !!requestBody.debug);
+    console.log('🔁 [GLPI-CRON] Cron execution:', !!requestBody.cron_execution);
+    console.log('🧪 [GLPI-CRON] Manual test:', !!requestBody.manual_test);
     
     // Log da execução do cron
-    await logCronExecution('process-glpi-tickets-fixed', 'started', {
+    await logCronExecution('process-glpi-tickets', 'started', {
       timestamp: currentTime.toISOString(),
-      debug: !!requestBody.debug
+      debug: !!requestBody.debug,
+      cron_execution: !!requestBody.cron_execution,
+      manual_test: !!requestBody.manual_test
     });
     
     // Buscar chamados que devem ser executados agora

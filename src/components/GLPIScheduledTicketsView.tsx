@@ -289,6 +289,28 @@ const GLPIScheduledTicketsView = () => {
               </div>
             </CardContent>
           </Card>
+          
+          <Card className="bg-gray-800 border-gray-700">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-blue-500" />
+                <div>
+                  <p className="text-sm font-bold text-white">
+                    {scheduledTickets
+                      .filter(t => t.is_active && t.next_execution)
+                      .sort((a, b) => new Date(a.next_execution!).getTime() - new Date(b.next_execution!).getTime())[0]
+                      ? `${formatNextExecution(scheduledTickets
+                          .filter(t => t.is_active && t.next_execution)
+                          .sort((a, b) => new Date(a.next_execution!).getTime() - new Date(b.next_execution!).getTime())[0]
+                          .next_execution || '')}`
+                      : 'N/A'
+                    }
+                  </p>
+                  <p className="text-sm text-gray-400">Próximo Agendamento</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Tickets Table */}
