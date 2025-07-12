@@ -18,12 +18,22 @@ export function ActionBoard({ boardId, columns, cards, cardItems }: ActionBoardP
   const { createColumn } = useActionPlan();
 
   const handleCreateColumn = async (data: any) => {
-    await createColumn({
-      ...data,
-      board_id: boardId,
-      position: columns.length,
-    });
-    setIsCreateColumnOpen(false);
+    try {
+      console.log('🎯 Creating column with data:', {
+        ...data,
+        board_id: boardId,
+        position: columns.length,
+      });
+      
+      await createColumn({
+        ...data,
+        board_id: boardId,
+        position: columns.length,
+      });
+      setIsCreateColumnOpen(false);
+    } catch (error) {
+      console.error('❌ Error creating column:', error);
+    }
   };
 
   const getCardsForColumn = (columnId: string) => {

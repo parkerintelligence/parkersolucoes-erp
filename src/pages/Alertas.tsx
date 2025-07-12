@@ -30,12 +30,21 @@ export default function Alertas() {
   const hostIds = hosts.map(host => host.hostid);
   const { data: items = [], isLoading: itemsLoading } = useItems(hostIds, {
     search: {
-      key_: ['system.cpu.util', 'vm.memory.size', 'system.uptime', 'vfs.fs.size']
+      key_: ['system.cpu.util[,avg1]', 'vm.memory.size[total]', 'vm.memory.size[available]', 'system.uptime', 'vfs.fs.size[/,pused]']
     }
   });
 
   const getDeviceStatus = (host: any): DeviceStatus => {
-    // Check if host is available (available: "1" = available, "0" = not available)
+    // Check if host is available properly
+    // available: "1" = Available, "2" = Unavailable, "0" = Unknown/Unreachable
+    console.log('🔍 Host availability check:', {
+      hostid: host.hostid,
+      name: host.name,
+      available: host.available,
+      status: host.status,
+      error: host.error
+    });
+    
     const isAvailable = host.available === '1';
     
     return {
@@ -60,22 +69,35 @@ export default function Alertas() {
     const hostItems = items.filter(item => item.hostid === hostId);
     
     const cpuItem = hostItems.find(item => item.key_.includes('system.cpu.util'));
-    const memoryItem = hostItems.find(item => item.key_.includes('vm.memory.size'));
+    const memoryTotalItem = hostItems.find(item => item.key_.includes('vm.memory.size[total]'));
+    const memoryAvailableItem = hostItems.find(item => item.key_.includes('vm.memory.size[available]'));
     const uptimeItem = hostItems.find(item => item.key_.includes('system.uptime'));
-    const diskItem = hostItems.find(item => item.key_.includes('vfs.fs.size') && item.key_.includes('[/,pfree]'));
+    const diskItem = hostItems.find(item => item.key_.includes('vfs.fs.size') && item.key_.includes('[/,pused]'));
+    
+    console.log('📊 Performance data for host', hostId, {
+      cpuItem: cpuItem ? { key: cpuItem.key_, value: cpuItem.lastvalue } : null,
+      memoryTotalItem: memoryTotalItem ? { key: memoryTotalItem.key_, value: memoryTotalItem.lastvalue } : null,
+      memoryAvailableItem: memoryAvailableItem ? { key: memoryAvailableItem.key_, value: memoryAvailableItem.lastvalue } : null,
+      uptimeItem: uptimeItem ? { key: uptimeItem.key_, value: uptimeItem.lastvalue } : null,
+      diskItem: diskItem ? { key: diskItem.key_, value: diskItem.lastvalue } : null,
+    });
     
     const cpuUsage = cpuItem?.lastvalue ? parseFloat(cpuItem.lastvalue) : 0;
-    // Converter bytes para GB (assumindo que vm.memory.size retorna em bytes)
-    const memoryBytes = memoryItem?.lastvalue ? parseFloat(memoryItem.lastvalue) : 0;
-    const memoryGB = memoryBytes / (1024 * 1024 * 1024);
+    
+    // Calcular memória em GB
+    const memoryTotalBytes = memoryTotalItem?.lastvalue ? parseFloat(memoryTotalItem.lastvalue) : 0;
+    const memoryAvailableBytes = memoryAvailableItem?.lastvalue ? parseFloat(memoryAvailableItem.lastvalue) : 0;
+    const memoryUsedBytes = memoryTotalBytes - memoryAvailableBytes;
+    const memoryUsedGB = memoryUsedBytes / (1024 * 1024 * 1024);
+    
     const uptime = uptimeItem?.lastvalue ? parseInt(uptimeItem.lastvalue) : 0;
-    // Disk percentage free (se disponível)
-    const diskFreePercent = diskItem?.lastvalue ? parseFloat(diskItem.lastvalue) : 0;
-    const diskUsedPercent = diskFreePercent > 0 ? (100 - diskFreePercent) : 0;
+    
+    // Disk percentage usado (vfs.fs.size[/,pused] já retorna porcentagem)
+    const diskUsedPercent = diskItem?.lastvalue ? parseFloat(diskItem.lastvalue) : 0;
     
     return {
       cpu: cpuUsage,
-      memory: memoryGB,
+      memory: memoryUsedGB,
       uptime: uptime,
       disk: diskUsedPercent,
     };

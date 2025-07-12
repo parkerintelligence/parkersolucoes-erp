@@ -31,13 +31,23 @@ export const GuacamoleConnectionTree = ({
 
   // Extrair grupo do nome da conexão (texto antes do primeiro hífen)
   const extractGroupFromConnectionName = (connectionName: string) => {
-    const parts = connectionName.split(' - ');
+    console.log('🔍 Extracting group from connection name:', connectionName);
+    
+    const parts = connectionName.split('-');
     if (parts.length > 1) {
+      const groupName = parts[0].trim();
+      const connectionDisplayName = parts.slice(1).join('-').trim();
+      
+      console.log('✅ Group extracted:', { groupName, connectionDisplayName });
+      
       return {
-        groupName: parts[0].trim(),
-        connectionDisplayName: parts.slice(1).join(' - ').trim()
+        groupName,
+        connectionDisplayName
       };
     }
+    
+    console.log('⚠️ No group found, using default');
+    
     return {
       groupName: 'Conexões Gerais',
       connectionDisplayName: connectionName
@@ -199,14 +209,33 @@ export const GuacamoleConnectionTree = ({
                           </div>
 
                           {/* Botões de ação */}
-                          <div className="flex items-center gap-1 justify-end">
-                            <Button variant="ghost" size="sm" onClick={() => onEdit(connection)} className="h-6 w-6 p-0 text-slate-300 hover:bg-slate-600 hover:text-white">
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => onDelete(connection.identifier)} disabled={isDeleting} className="h-6 w-6 p-0 text-slate-300 hover:bg-red-600 hover:text-white">
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
+                           <div className="flex items-center gap-1 justify-end">
+                             <Button 
+                               variant="ghost" 
+                               size="sm" 
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 console.log('🖊️ Editing connection:', connection);
+                                 onEdit(connection);
+                               }} 
+                               className="h-6 w-6 p-0 text-slate-300 hover:bg-slate-600 hover:text-white"
+                             >
+                               <Edit className="h-3 w-3" />
+                             </Button>
+                             <Button 
+                               variant="ghost" 
+                               size="sm" 
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 console.log('🗑️ Deleting connection:', connection.identifier);
+                                 onDelete(connection.identifier);
+                               }} 
+                               disabled={isDeleting} 
+                               className="h-6 w-6 p-0 text-slate-300 hover:bg-red-600 hover:text-white"
+                             >
+                               <Trash2 className="h-3 w-3" />
+                             </Button>
+                           </div>
 
                           {/* Status e protocolo */}
                           <div className="flex items-center gap-1 flex-wrap">

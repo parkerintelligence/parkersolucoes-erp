@@ -177,11 +177,16 @@ export const useActionPlan = () => {
     }
   };
 
-  const createColumn = async (data: ActionColumnInsert) => {
+  const createColumn = async (data: Omit<ActionColumnInsert, 'user_id'>) => {
     try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const { error } = await supabase
         .from('action_columns')
-        .insert(data);
+        .insert({ ...data, user_id: user.id });
 
       if (error) throw error;
       await fetchData();
