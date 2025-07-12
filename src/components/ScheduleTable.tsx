@@ -158,12 +158,12 @@ export const ScheduleTable = ({
       <CardContent className="bg-gray-900">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="bg-gray-900">Título</TableHead>
-              <TableHead>Empresa</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Vencimento</TableHead>
-              <TableHead>Ações</TableHead>
+            <TableRow className="h-10">
+              <TableHead className="bg-gray-900 py-2">Título</TableHead>
+              <TableHead className="py-2">Empresa</TableHead>
+              <TableHead className="py-2">Tipo</TableHead>
+              <TableHead className="py-2">Vencimento</TableHead>
+              <TableHead className="py-2 w-32">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -171,41 +171,39 @@ export const ScheduleTable = ({
             const daysUntil = getDaysUntilDue(item.due_date);
             const isUrgent = daysUntil <= 7;
             const isGood = daysUntil > 7;
-            return <TableRow key={item.id} className={`hover:bg-blue-50 ${isUrgent ? 'bg-red-50 border-l-4 border-l-red-500' : isGood ? 'bg-green-50 border-l-4 border-l-green-500' : ''}`}>
-                  <TableCell className="font-medium">{item.title}</TableCell>
-                  <TableCell>
+            return <TableRow key={item.id} className={`h-12 hover:bg-blue-50 ${isUrgent ? 'bg-red-50 border-l-4 border-l-red-500' : isGood ? 'bg-green-50 border-l-4 border-l-green-500' : ''}`}>
+                  <TableCell className="font-medium py-2">{item.title}</TableCell>
+                  <TableCell className="py-2">
                     <div className="flex items-center gap-2">
                       <Building className="h-4 w-4 text-gray-500" />
                       {item.company}
                     </div>
                   </TableCell>
-                  <TableCell>{getTypeBadge(item.type)}</TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
+                  <TableCell className="py-2">{getTypeBadge(item.type)}</TableCell>
+                  <TableCell className="py-2">
+                    <div className="flex items-center gap-2">
                       <div className="font-medium">
                         {format(new Date(item.due_date), 'dd/MM/yyyy', {
                       locale: ptBR
                     })}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {daysUntil >= 0 ? `${daysUntil} dias` : `${Math.abs(daysUntil)} dias atrás`}
+                        ({daysUntil >= 0 ? `${daysUntil}d` : `${Math.abs(daysUntil)}d atrás`})
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <Button variant="outline" size="sm" onClick={() => handleEditItem(item)} className="text-slate-50 bg-blue-900 hover:bg-blue-800">
-                        <Edit className="h-4 w-4 mr-1" />
-                        Editar
+                      <Button variant="outline" size="icon" onClick={() => handleEditItem(item)} className="h-8 w-8 text-slate-50 bg-blue-900 hover:bg-blue-800" title="Editar">
+                        <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleOpenGLPITicket(item)} className="bg-blue-900 hover:bg-blue-800 text-slate-50">
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        GLPI
+                      <Button variant="outline" size="icon" onClick={() => handleOpenGLPITicket(item)} className="h-8 w-8 bg-blue-900 hover:bg-blue-800 text-slate-50" title="Criar ticket GLPI">
+                        <ExternalLink className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => onDelete(item.id)} className="bg-red-800 hover:bg-red-700 text-slate-50">
+                      <Button variant="ghost" size="icon" onClick={() => onDelete(item.id)} className="h-8 w-8 bg-red-800 hover:bg-red-700 text-slate-50" title="Excluir">
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleWhatsAppShare(item)} className="bg-green-700 hover:bg-green-600 text-slate-50">
+                      <Button variant="outline" size="icon" onClick={() => handleWhatsAppShare(item)} className="h-8 w-8 bg-green-700 hover:bg-green-600 text-slate-50" title="Compartilhar via WhatsApp">
                         <MessageCircle className="h-4 w-4" />
                       </Button>
                     </div>
