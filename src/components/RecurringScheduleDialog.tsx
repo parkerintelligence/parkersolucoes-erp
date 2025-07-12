@@ -10,6 +10,7 @@ import { useCreateRecurringSchedule, useUpdateRecurringSchedule } from '@/hooks/
 import { useCompanies } from '@/hooks/useCompanies';
 import { useScheduleServices } from '@/hooks/useScheduleServices';
 import { toast } from '@/hooks/use-toast';
+import { scheduleColorPalette } from '@/utils/colorUtils';
 import type { Tables } from '@/integrations/supabase/types';
 
 type RecurringSchedule = Tables<'recurring_schedules'>;
@@ -116,16 +117,10 @@ export const RecurringScheduleDialog = ({ isOpen, onOpenChange, editingSchedule 
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   };
 
-  const colorOptions = [
-    { value: '#ef4444', label: 'Vermelho' },
-    { value: '#f97316', label: 'Laranja' },
-    { value: '#eab308', label: 'Amarelo' },
-    { value: '#22c55e', label: 'Verde' },
-    { value: '#3b82f6', label: 'Azul' },
-    { value: '#8b5cf6', label: 'Roxo' },
-    { value: '#ec4899', label: 'Rosa' },
-    { value: '#6b7280', label: 'Cinza' },
-  ];
+  const colorOptions = scheduleColorPalette.map((color, index) => ({
+    value: color,
+    label: `Cor ${index + 1}`
+  }));
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>

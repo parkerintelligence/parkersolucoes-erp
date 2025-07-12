@@ -70,7 +70,13 @@ export const RecurringScheduleGrid = ({ onEdit }: RecurringScheduleGridProps) =>
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {schedules.map((schedule) => (
-        <Card key={schedule.id} className="bg-gray-800 border-gray-700 transition-all duration-200 hover:shadow-md hover:shadow-blue-500/20">
+        <Card 
+          key={schedule.id} 
+          className="bg-gray-800 border-gray-700 transition-all duration-200 hover:shadow-md hover:shadow-blue-500/20 border-l-4"
+          style={{
+            borderLeftColor: schedule.color || '#3b82f6'
+          }}
+        >
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2">

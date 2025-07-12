@@ -643,36 +643,36 @@ const VPSCard: React.FC<VPSCardProps> = ({
         )}
 
 
-        {/* Ações */}
-        <div className="flex gap-2 pt-4">
+        {/* Ações - Ícones Discretos */}
+        <div className="flex justify-end gap-2 pt-4">
           <Button
             size="sm"
-            variant="outline"
+            variant="ghost"
             onClick={onSnapshot}
             disabled={snapshotting || getVpsStatus(vps)?.toLowerCase() !== 'running'}
-            className="flex-1 bg-blue-600 border-blue-500 text-white hover:bg-blue-500"
+            className="h-8 w-8 p-0 bg-gray-900 hover:bg-gray-800 text-white border-none"
+            title="Criar Snapshot"
           >
             {snapshotting ? (
-              <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+              <RefreshCw className="h-4 w-4 animate-spin" />
             ) : (
-              <Camera className="h-4 w-4 mr-1" />
+              <Camera className="h-4 w-4" />
             )}
-            Snapshot
           </Button>
           
           <Button
             size="sm"
-            variant="outline"
+            variant="ghost"
             onClick={onRestart}
             disabled={restarting || getVpsStatus(vps)?.toLowerCase() !== 'running'}
-            className="flex-1 bg-orange-600 border-orange-500 text-white hover:bg-orange-500"
+            className="h-8 w-8 p-0 bg-gray-900 hover:bg-gray-800 text-white border-none"
+            title="Reiniciar VPS"
           >
             {restarting ? (
-              <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+              <RefreshCw className="h-4 w-4 animate-spin" />
             ) : (
-              <RotateCcw className="h-4 w-4 mr-1" />
+              <RotateCcw className="h-4 w-4" />
             )}
-            Reiniciar
           </Button>
         </div>
       </CardContent>

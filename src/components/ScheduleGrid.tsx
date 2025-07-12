@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, Calendar, Clock, Trash2, Edit } from 'lucide-react';
 import { ScheduleItem } from '@/hooks/useScheduleItems';
+import { getContrastColor } from '@/utils/colorUtils';
 
 interface ScheduleGridProps {
   items: ScheduleItem[];
@@ -87,7 +88,15 @@ export const ScheduleGrid = ({ items, onUpdate, onDelete }: ScheduleGridProps) =
       {items.map((item) => {
         const Icon = typeIcons[item.type] || Calendar; // Fallback para Calendar se o tipo não existir
         return (
-        <Card key={item.id} className="bg-gray-800 border-gray-700 transition-all duration-200 hover:shadow-md hover:shadow-blue-500/20">
+        <Card 
+          key={item.id} 
+          className="border-2 transition-all duration-200 hover:shadow-md hover:scale-[1.02]"
+          style={{
+            backgroundColor: item.color || '#3b82f6',
+            color: getContrastColor(item.color || '#3b82f6'),
+            borderColor: item.color || '#3b82f6'
+          }}
+        >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">

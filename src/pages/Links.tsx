@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Link, ExternalLink, Search, Building, Globe, Shield, Mail, Server, Database, Cloud, Code, Monitor, Settings, Filter, Grid, List, Copy, Eye, EyeOff, Download } from 'lucide-react';
+import { Link, ExternalLink, Search, Building, Globe, Shield, Mail, Server, Database, Cloud, Code, Monitor, Settings, Filter, Grid, List, Copy, Eye, EyeOff, Download, TreePine } from 'lucide-react';
+import { LinksTreeView } from '@/components/LinksTreeView';
 import { toast } from '@/hooks/use-toast';
 const Links = () => {
   const {
@@ -22,7 +23,7 @@ const Links = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
   const [activeServiceTab, setActiveServiceTab] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'tree'>('grid');
   const [sortBy, setSortBy] = useState('name');
   const [visibleCards, setVisibleCards] = useState<Record<string, boolean>>({});
 
@@ -131,6 +132,9 @@ const Links = () => {
             <Button variant={viewMode === 'list' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('list')} className="h-8 w-8 p-0">
               <List className="h-3 w-3" />
             </Button>
+            <Button variant={viewMode === 'tree' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('tree')} className="h-8 w-8 p-0">
+              <TreePine className="h-3 w-3" />
+            </Button>
           </div>
         </div>
       </div>
@@ -183,8 +187,10 @@ const Links = () => {
         </TabsList>
 
         <TabsContent value={activeServiceTab} className="mt-4">
-          {/* Grid/Lista de Links */}
-          {sortedLinks.length > 0 ? viewMode === 'grid' ? <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+          {/* Grid/Lista/Árvore de Links */}
+          {viewMode === 'tree' ? (
+            <LinksTreeView />
+          ) : sortedLinks.length > 0 ? viewMode === 'grid' ? <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
                 {sortedLinks.map(link => {
             const company = companies.find(c => c.id === link.company_id);
             const service = link.service || 'Sistema';

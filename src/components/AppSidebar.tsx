@@ -33,11 +33,11 @@ import {
 
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, role: 'user' },
+  { title: 'Links de acesso', url: '/links', icon: Link, role: 'user' },
   { title: 'GLPI', url: '/glpi', icon: Headphones, role: 'user' },
   { title: 'Backups FTP', url: '/backups', icon: HardDrive, role: 'user' },
   { title: 'Senhas', url: '/passwords', icon: Lock, role: 'user' },
   { title: 'Anotações', url: '/annotations', icon: Notebook, role: 'user' },
-  { title: 'Links', url: '/links', icon: Link, role: 'user' },
   { title: 'Modelos WhatsApp', url: '/whatsapp-templates', icon: MessageCircle, role: 'user' },
   { title: 'Wasabi', url: '/wasabi', icon: Cloud, role: 'user' },
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },

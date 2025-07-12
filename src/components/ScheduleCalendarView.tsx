@@ -9,6 +9,7 @@ import { useCompanies } from '@/hooks/useCompanies';
 import { RecurringScheduleDialog } from './RecurringScheduleDialog';
 import { RecurringScheduleGrid } from './RecurringScheduleGrid';
 import { ScheduleServicesDialog } from './ScheduleServicesDialog';
+import { getContrastColor } from '@/utils/colorUtils';
 import type { Tables } from '@/integrations/supabase/types';
 
 type RecurringSchedule = Tables<'recurring_schedules'>;
@@ -246,10 +247,15 @@ const WeeklyView = ({ schedules, companies, onEdit, onDelete }: WeeklyViewProps)
                         className="p-2 rounded border text-xs cursor-pointer hover:bg-gray-600 transition-all bg-gray-800 border-gray-600"
                         onClick={() => onEdit(schedule)}
                       >
-                         <div className="font-medium truncate text-white flex items-center gap-1">
-                           <div className="w-2 h-2 rounded-full border border-white/20" style={{ backgroundColor: schedule.color || '#3b82f6' }}></div>
-                           {schedule.name}
-                         </div>
+                          <div 
+                            className="font-medium truncate flex items-center gap-1 px-2 py-1 rounded text-xs"
+                            style={{ 
+                              backgroundColor: schedule.color || '#3b82f6',
+                              color: getContrastColor(schedule.color || '#3b82f6')
+                            }}
+                          >
+                            {schedule.name}
+                          </div>
                         <div className="text-gray-300">
                           {formatTime(schedule.time_hour, schedule.time_minute)}
                         </div>
