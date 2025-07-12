@@ -37,97 +37,102 @@ const Schedule = () => {
       </div>;
   }
 
-  return <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-slate-50">Agenda</h1>
+  return <div className="min-h-screen bg-gray-900 text-white">
+      <div className="container mx-auto p-6">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Agenda</h1>
+          <p className="text-gray-300">
+            Gerencie agendamentos recorrentes e agenda de vencimentos
+          </p>
+        </div>
+
+        <Tabs defaultValue="calendar" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 bg-gray-800 border-gray-700">
+            <TabsTrigger value="calendar" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+              <CalendarDays className="h-4 w-4" />
+              Agendamentos Recorrentes
+            </TabsTrigger>
+            <TabsTrigger value="schedule" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+              <Clock className="h-4 w-4" />
+              Agenda de Vencimentos
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="calendar">
+            <ScheduleCalendarView />
+          </TabsContent>
+
+          <TabsContent value="schedule" className="space-y-6">
+            <div className="flex justify-end gap-2">
+              <Button onClick={() => setShowTypeDialog(true)} variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white">
+                <Settings className="mr-2 h-4 w-4" />
+                Gerenciar Sistemas/Serviços
+              </Button>
+              <Button onClick={() => setShowScheduleDialog(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Agendamento
+              </Button>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="bg-gray-800 border-gray-700">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-blue-400" />
+                    <div>
+                      <p className="text-2xl font-bold text-white">{scheduleItems.length}</p>
+                      <p className="text-sm text-gray-400">Total de Agendamentos</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-800 border-gray-700">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-yellow-400" />
+                    <div>
+                      <p className="text-2xl font-bold text-white">{scheduleItems.filter(item => item.status === 'pending').length}</p>
+                      <p className="text-sm text-gray-400">Pendentes</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-800 border-gray-700">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-red-400" />
+                    <div>
+                      <p className="text-2xl font-bold text-white">{scheduleItems.filter(item => {
+                        const today = new Date();
+                        const dueDate = new Date(item.due_date);
+                        const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                        return diffDays <= 7 && item.status === 'pending';
+                      }).length}</p>
+                      <p className="text-sm text-gray-400">Críticos (&lt;7 dias)</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Schedule Table */}
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <CardTitle className="text-white">Agenda de Vencimentos</CardTitle>
+                <CardDescription className="text-gray-400">Controle de certificados, licenças e atualizações</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScheduleTable items={scheduleItems} onUpdate={handleUpdateScheduleItem} onDelete={handleDeleteScheduleItem} />
+              </CardContent>
+            </Card>
+            
+            {/* Dialogs */}
+            <ScheduleDialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog} />
+            <ScheduleTypeDialog open={showTypeDialog} onOpenChange={setShowTypeDialog} />
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <Tabs defaultValue="calendar" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="calendar" className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4" />
-            Agendamentos Recorrentes
-          </TabsTrigger>
-          <TabsTrigger value="schedule" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Agenda de Vencimentos
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="calendar">
-          <ScheduleCalendarView />
-        </TabsContent>
-
-        <TabsContent value="schedule" className="space-y-6">
-          <div className="flex justify-end gap-2">
-            <Button onClick={() => setShowTypeDialog(true)} variant="outline">
-              <Settings className="mr-2 h-4 w-4" />
-              Gerenciar Sistemas/Serviços
-            </Button>
-            <Button onClick={() => setShowScheduleDialog(true)} className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Agendamento
-            </Button>
-          </div>
-
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="border-blue-200">
-              <CardContent className="p-4 bg-slate-200">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-blue-500" />
-                  <div>
-                    <p className="text-2xl font-bold text-blue-900">{scheduleItems.length}</p>
-                    <p className="text-sm text-blue-600">Total de Agendamentos</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-blue-200">
-              <CardContent className="p-4 bg-slate-200">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-yellow-500" />
-                  <div>
-                    <p className="text-2xl font-bold text-blue-900">{scheduleItems.filter(item => item.status === 'pending').length}</p>
-                    <p className="text-sm text-blue-600">Pendentes</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-blue-200">
-              <CardContent className="p-4 bg-slate-200">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-red-500" />
-                  <div>
-                    <p className="text-2xl font-bold text-blue-900">{scheduleItems.filter(item => {
-                      const today = new Date();
-                      const dueDate = new Date(item.due_date);
-                      const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                      return diffDays <= 7 && item.status === 'pending';
-                    }).length}</p>
-                    <p className="text-sm text-blue-600">Críticos (&lt;7 dias)</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Schedule Table */}
-          <Card className="border-blue-200">
-            <CardHeader className="bg-gray-900">
-              <CardTitle className="text-slate-50">Agenda de Vencimentos</CardTitle>
-              <CardDescription className="text-slate-50">Controle de certificados, licenças e atualizações</CardDescription>
-            </CardHeader>
-            <CardContent className="bg-gray-900">
-              <ScheduleTable items={scheduleItems} onUpdate={handleUpdateScheduleItem} onDelete={handleDeleteScheduleItem} />
-            </CardContent>
-          </Card>
-          
-          {/* Dialogs */}
-          <ScheduleDialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog} />
-          <ScheduleTypeDialog open={showTypeDialog} onOpenChange={setShowTypeDialog} />
-        </TabsContent>
-      </Tabs>
     </div>;
 };
 
