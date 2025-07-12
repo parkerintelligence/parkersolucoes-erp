@@ -25,6 +25,7 @@ import Financial from '@/pages/Financial';
 import Companies from '@/pages/Companies';
 import Bacula from '@/pages/Bacula';
 import ReportsDashboard from '@/pages/ReportsDashboard';
+import ActionPlan from '@/pages/ActionPlan';
 import { Layout } from '@/components/Layout';
 
 // Create a single QueryClient instance
@@ -204,6 +205,14 @@ function App() {
                 element={
                   <Layout>
                     <ReportsDashboard />
+                  </Layout>
+                } 
+              />
+              <Route 
+                path="/plano-de-acao" 
+                element={
+                  <Layout>
+                    <ActionPlan />
                   </Layout>
                 } 
               />

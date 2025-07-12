@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor } from 'lucide-react';
+import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar } from '@/components/ui/sidebar';
 const menuItems = [{
   title: 'Links de acesso',
@@ -16,6 +16,11 @@ const menuItems = [{
   title: 'GLPI',
   url: '/glpi',
   icon: Headphones,
+  role: 'user'
+}, {
+  title: 'Plano de Ação',
+  url: '/plano-de-acao',
+  icon: Kanban,
   role: 'user'
 }, {
   title: 'Senhas',

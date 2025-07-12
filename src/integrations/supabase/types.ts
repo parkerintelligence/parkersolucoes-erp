@@ -14,6 +14,168 @@ export type Database = {
   }
   public: {
     Tables: {
+      action_boards: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      action_card_items: {
+        Row: {
+          card_id: string
+          created_at: string
+          id: string
+          is_completed: boolean
+          position: number
+          text: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          position?: number
+          text: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          position?: number
+          text?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_card_items_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "action_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      action_cards: {
+        Row: {
+          color: string | null
+          column_id: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          position: number
+          priority: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          column_id: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          position?: number
+          priority?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          column_id?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          position?: number
+          priority?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_cards_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "action_columns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      action_columns: {
+        Row: {
+          board_id: string
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          position: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          board_id: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          board_id?: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_columns_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "action_boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       annotations: {
         Row: {
           annotation: string | null
