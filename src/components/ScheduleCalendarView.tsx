@@ -7,6 +7,7 @@ import { Clock, MapPin, Building, Settings, Edit, Trash2, Calendar, ChevronLeft,
 import { useRecurringSchedules, useDeleteRecurringSchedule } from '@/hooks/useRecurringSchedules';
 import { useCompanies } from '@/hooks/useCompanies';
 import { RecurringScheduleDialog } from './RecurringScheduleDialog';
+import { RecurringScheduleGrid } from './RecurringScheduleGrid';
 import { ScheduleServicesDialog } from './ScheduleServicesDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -98,10 +99,10 @@ const DailySchedulePanel = ({ schedules, companies, onEdit }: DailySchedulePanel
                   onClick={() => onEdit(schedule)}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <div className="font-semibold text-lg text-white flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: companyColor }}></div>
-                      {schedule.name}
-                    </div>
+                     <div className="font-semibold text-lg text-white flex items-center gap-2">
+                       <div className="w-3 h-3 rounded-full border-2 border-white/20" style={{ backgroundColor: schedule.color || '#3b82f6' }}></div>
+                       {schedule.name}
+                     </div>
                     <div className="flex items-center gap-1 text-sm font-medium text-gray-300">
                       <Clock className="h-4 w-4" />
                       {formatTime(schedule.time_hour, schedule.time_minute)}
@@ -245,10 +246,10 @@ const WeeklyView = ({ schedules, companies, onEdit, onDelete }: WeeklyViewProps)
                         className="p-2 rounded border text-xs cursor-pointer hover:bg-gray-600 transition-all bg-gray-800 border-gray-600"
                         onClick={() => onEdit(schedule)}
                       >
-                        <div className="font-medium truncate text-white flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: companyColor }}></div>
-                          {schedule.name}
-                        </div>
+                         <div className="font-medium truncate text-white flex items-center gap-1">
+                           <div className="w-2 h-2 rounded-full border border-white/20" style={{ backgroundColor: schedule.color || '#3b82f6' }}></div>
+                           {schedule.name}
+                         </div>
                         <div className="text-gray-300">
                           {formatTime(schedule.time_hour, schedule.time_minute)}
                         </div>
@@ -405,10 +406,10 @@ const MonthlyView = ({ schedules, companies, onEdit }: MonthlyViewProps) => {
                         className="p-1 rounded cursor-pointer hover:bg-gray-600 transition-all bg-gray-800 border border-gray-600"
                         onClick={() => onEdit(schedule)}
                       >
-                        <div className="truncate font-medium text-white flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: companyColor }}></div>
-                          {schedule.name}
-                        </div>
+                         <div className="truncate font-medium text-white flex items-center gap-1">
+                           <div className="w-2 h-2 rounded-full border border-white/20" style={{ backgroundColor: schedule.color || '#3b82f6' }}></div>
+                           {schedule.name}
+                         </div>
                         {companyName !== 'N/A' && (
                           <div className="truncate text-xs text-gray-400">
                             {companyName}
@@ -581,12 +582,12 @@ export const ScheduleCalendarView = () => {
                       className="hover:bg-gray-700 border-gray-700"
                     >
                       <TableCell className="font-medium text-white">{schedule.name}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: companyColor }}></div>
-                          <span className="text-gray-300">{getCompanyName(schedule.client_id)}</span>
-                        </div>
-                      </TableCell>
+                       <TableCell>
+                         <div className="flex items-center gap-2">
+                           <div className="w-3 h-3 rounded-full border-2 border-white/20" style={{ backgroundColor: schedule.color || '#3b82f6' }}></div>
+                           <span className="text-gray-300">{getCompanyName(schedule.client_id)}</span>
+                         </div>
+                       </TableCell>
                       <TableCell className="text-gray-300">{schedule.system_name}</TableCell>
                       <TableCell className="flex items-center gap-1 text-gray-300">
                         <Clock className="h-4 w-4" />

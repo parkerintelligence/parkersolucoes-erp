@@ -377,9 +377,18 @@ ${errorReport.suggestions.map(s => `• ${s}`).join('\n')}
       console.log('✅ Cache hit - usando dados cached');
     }
 
-    // Análise temporal aprimorada com timezone de Brasília
+    // Análise temporal aprimorada com timezone de Brasília - CORRIGIDO PARA DIA ANTERIOR
+    const brasiliaYesterday = new Date(brasiliaTime);
+    brasiliaYesterday.setDate(brasiliaYesterday.getDate() - 1);
+    brasiliaYesterday.setHours(0, 0, 0, 0);
+    
+    const brasiliaYesterdayEnd = new Date(brasiliaYesterday);
+    brasiliaYesterdayEnd.setHours(23, 59, 59, 999);
+
+    console.log(`📅 Analisando jobs especificamente do dia ${brasiliaYesterday.toLocaleDateString('pt-BR')} (${brasiliaYesterday.toISOString()} até ${brasiliaYesterdayEnd.toISOString()})`);
+
     const failedJobs = allJobs.filter(job => {
-        // Melhor extração de data
+        // Melhor extração de data - foco no dia anterior
         let jobDate = null;
         if (job.starttime) jobDate = new Date(job.starttime);
         else if (job.schedtime) jobDate = new Date(job.schedtime);
@@ -391,17 +400,18 @@ ${errorReport.suggestions.map(s => `• ${s}`).join('\n')}
           return false;
         }
         
-        const isRecent = jobDate >= twentyFourHoursAgo;
+        // CORREÇÃO: Verificar se o job é do dia anterior específico
+        const isFromYesterday = jobDate >= brasiliaYesterday && jobDate <= brasiliaYesterdayEnd;
         
         // Status de erro mais abrangente
         const status = job.jobstatus || job.JobStatus || job.status;
         const hasError = ['E', 'f', 'A', 'e', 'F', 'error', 'Error', 'ERROR', 'failed', 'Failed', 'FAILED'].includes(status);
         
-        if (isRecent && hasError) {
-          console.log(`🔍 Job com erro encontrado: ${job.name || job.jobname} - Status: ${status} - Data: ${jobDate.toISOString()}`);
+        if (isFromYesterday && hasError) {
+          console.log(`🔍 Job com erro do dia anterior encontrado: ${job.name || job.jobname} - Status: ${status} - Data: ${jobDate.toISOString()}`);
         }
         
-        return isRecent && hasError;
+        return isFromYesterday && hasError;
       });
 
     const successJobs = allJobs.filter(job => {
@@ -413,11 +423,12 @@ ${errorReport.suggestions.map(s => `• ${s}`).join('\n')}
       
       if (!jobDate || isNaN(jobDate.getTime())) return false;
       
-      const isRecent = jobDate >= twentyFourHoursAgo;
+      // CORREÇÃO: Verificar se o job é do dia anterior específico
+      const isFromYesterday = jobDate >= brasiliaYesterday && jobDate <= brasiliaYesterdayEnd;
       const status = job.jobstatus || job.JobStatus || job.status;
       const isSuccess = ['T', 't', 'OK', 'ok', 'Ok', 'success', 'Success', 'SUCCESS', 'completed', 'Completed', 'COMPLETED'].includes(status);
       
-      return isRecent && isSuccess;
+      return isFromYesterday && isSuccess;
     });
 
     const totalRecentJobs = failedJobs.length + successJobs.length;
@@ -475,9 +486,10 @@ ${errorReport.suggestions.map(s => `• ${s}`).join('\n')}
     console.log(`📊 Análise: ${failedJobs.length} erros, ${Object.keys(failedJobsAnalysis.byClient).length} clientes afetados`);
     console.log(`🔄 Falhas recorrentes: ${failedJobsAnalysis.recurrentFailures.length}`);
 
-    // Preparar dados detalhados para o template com análise inteligente
+    // Preparar dados detalhados para o template com análise inteligente - CORRIGIDO PARA DIA ANTERIOR
     const reportData = {
-      date: brasiliaTime.toISOString().split('T')[0],
+      date: brasiliaYesterday.toISOString().split('T')[0], // Data do dia anterior
+      reportDate: brasiliaTime.toISOString().split('T')[0], // Data do relatório (hoje)
       totalJobs: totalRecentJobs,
       errorCount: failedJobs.length,
       successCount: successJobs.length,

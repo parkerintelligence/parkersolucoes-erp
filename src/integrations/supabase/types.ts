@@ -514,6 +514,7 @@ export type Database = {
       recurring_schedules: {
         Row: {
           client_id: string | null
+          color: string | null
           created_at: string
           days_of_week: number[]
           description: string | null
@@ -529,6 +530,7 @@ export type Database = {
         }
         Insert: {
           client_id?: string | null
+          color?: string | null
           created_at?: string
           days_of_week: number[]
           description?: string | null
@@ -544,6 +546,7 @@ export type Database = {
         }
         Update: {
           client_id?: string | null
+          color?: string | null
           created_at?: string
           days_of_week?: number[]
           description?: string | null
@@ -569,6 +572,7 @@ export type Database = {
       }
       schedule_items: {
         Row: {
+          color: string | null
           company: string
           company_id: string | null
           created_at: string
@@ -583,6 +587,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          color?: string | null
           company: string
           company_id?: string | null
           created_at?: string
@@ -597,6 +602,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          color?: string | null
           company?: string
           company_id?: string | null
           created_at?: string
