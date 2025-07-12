@@ -23,6 +23,7 @@ import Contracts from '@/pages/Contracts';
 import Financial from '@/pages/Financial';
 import Companies from '@/pages/Companies';
 import Bacula from '@/pages/Bacula';
+import ReportsDashboard from '@/pages/ReportsDashboard';
 import { Layout } from '@/components/Layout';
 
 // Create a single QueryClient instance
@@ -186,6 +187,14 @@ function App() {
                 element={
                   <Layout>
                     <Bacula />
+                  </Layout>
+                } 
+              />
+              <Route 
+                path="/reports" 
+                element={
+                  <Layout>
+                    <ReportsDashboard />
                   </Layout>
                 } 
               />

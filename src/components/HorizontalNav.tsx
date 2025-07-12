@@ -17,6 +17,7 @@ import {
   ChevronDown,
   MessageSquare,
   Activity,
+  BarChart3,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -40,6 +41,7 @@ const menuItems = [
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
   { title: 'Automação', url: '/automation', icon: Settings, role: 'user' },
   { title: 'Bacula', url: '/bacula', icon: HardDrive, role: 'user' },
+  { title: 'Dashboard Relatórios', url: '/reports', icon: BarChart3, role: 'user' },
   { title: 'Grafana', url: '/monitoring', icon: Activity, role: 'user' },
 ];
 
