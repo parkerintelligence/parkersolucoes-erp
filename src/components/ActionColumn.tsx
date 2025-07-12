@@ -33,7 +33,6 @@ export function ActionColumn({ column, cards, cardItems, getItemsForCard }: Acti
         priority: data.priority || "medium",
         color: data.color || "#f8fafc",
         due_date: data.due_date || null,
-        user_id: data.user_id, // This should be set in the hook
       });
       setIsCreateCardOpen(false);
     } catch (error) {
