@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import GLPIScheduledTicketsView from '@/components/GLPIScheduledTicketsView';
 import { GLPIFiltersPanel } from '@/components/GLPIFiltersPanel';
 import { useGLPI } from '@/hooks/useGLPI';
 import { toast } from '@/hooks/use-toast';
+
 const GLPI = () => {
   const {
     glpiIntegration
@@ -18,6 +20,7 @@ const GLPI = () => {
   const [filters, setFilters] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const isConfigured = !!glpiIntegration;
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
@@ -37,8 +40,10 @@ const GLPI = () => {
       setRefreshing(false);
     }
   };
+
   if (!isConfigured) {
-    return <div className="min-h-screen bg-gray-900 text-white p-6">
+    return (
+      <div className="min-h-screen bg-gray-900 text-white p-6">
         <Card className="border-yellow-600 bg-yellow-900/20">
           <CardContent className="p-6 text-center">
             <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-400" />
@@ -52,16 +57,19 @@ const GLPI = () => {
             </Button>
           </CardContent>
         </Card>
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen bg-gray-900 text-white">
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-orange-600 p-2 rounded-lg">
               <ExternalLink className="h-6 w-6 text-white" />
             </div>
-            <div className="bg-slate-950">
+            <div className="bg-gray-900">
               <h1 className="text-2xl font-bold text-white">Central de Chamados GLPI</h1>
               <p className="text-gray-400">
                 Gerencie chamados, inventário e agendamentos do GLPI
@@ -69,7 +77,7 @@ const GLPI = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-gray-900 px-3 py-2 rounded-lg">
               <CheckCircle className="h-5 w-5 text-green-400" />
               <span className="text-sm text-green-400">Conectado</span>
             </div>
@@ -105,6 +113,8 @@ const GLPI = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default GLPI;
