@@ -347,7 +347,7 @@ serve(async (req) => {
           }
         } else if (endpoint.startsWith('tunnels/')) {
           const connectionId = endpoint.split('/')[1]
-          // Criar túnel para conexão
+          // Para criar túneis, usamos o endpoint padrão do Guacamole
           apiPath = `/api/session/tunnels/${encodeURIComponent(connectionId)}`
         } else {
           apiPath = `/api/session/data/${dataSource}/${endpoint}`

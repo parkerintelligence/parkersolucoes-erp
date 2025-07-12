@@ -29,6 +29,7 @@ import { GuacamoleConnectionDialog } from '@/components/guacamole/GuacamoleConne
 import { GuacamoleLogs } from '@/components/guacamole/GuacamoleLogs';
 import { GuacamoleConnectionTest } from '@/components/guacamole/GuacamoleConnectionTest';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const Guacamole = () => {
   const { 
@@ -117,7 +118,7 @@ const Guacamole = () => {
     }
   };
 
-  const handleConnectToGuacamole = (connection: GuacamoleConnection) => {
+  const handleConnectToGuacamole = async (connection: GuacamoleConnection) => {
     if (!integration?.base_url) {
       toast({
         title: "Erro de configuração",
@@ -127,22 +128,66 @@ const Guacamole = () => {
       return;
     }
 
-    // Construir URL de conexão direta
-    const guacamoleUrl = `${integration.base_url}/#/client/${encodeURIComponent(connection.identifier)}`;
-    
-    logInfo('Abrindo conexão do Guacamole', {
-      connectionId: connection.identifier,
-      connectionName: connection.name,
-      url: guacamoleUrl
-    });
-    
-    // Abrir em nova aba
-    window.open(guacamoleUrl, '_blank', 'noopener,noreferrer');
-    
-    toast({
-      title: "Conectando...",
-      description: `Abrindo conexão "${connection.name}" em nova aba.`,
-    });
+    try {
+      // Primeiro, criar um túnel/sessão para a conexão
+      const { data: tunnelData, error } = await supabase.functions.invoke('guacamole-proxy', {
+        body: {
+          integrationId: integration.id,
+          endpoint: `tunnels/${connection.identifier}`,
+          method: 'POST'
+        }
+      });
+
+      if (error) {
+        console.error('Erro ao criar túnel:', error);
+        // Fallback: tentar conexão direta sem túnel
+      }
+
+      // Obter token válido para conexão
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('guacamole-proxy', {
+        body: {
+          integrationId: integration.id,
+          endpoint: 'token-status',
+          method: 'GET'
+        }
+      });
+
+      if (tokenError || !tokenData?.isValid) {
+        toast({
+          title: "Erro de autenticação",
+          description: "Token de acesso inválido. Verifique a configuração.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Construir URL de conexão com token válido
+      const baseUrl = integration.base_url.replace(/\/$/, ''); // Remove trailing slash
+      const guacamoleUrl = `${baseUrl}/#/client/${encodeURIComponent(connection.identifier)}`;
+      
+      logInfo('Abrindo conexão do Guacamole', {
+        connectionId: connection.identifier,
+        connectionName: connection.name,
+        url: guacamoleUrl,
+        hasValidToken: tokenData?.isValid
+      });
+      
+      // Abrir em nova aba
+      window.open(guacamoleUrl, '_blank', 'noopener,noreferrer');
+      
+      toast({
+        title: "Conectando...",
+        description: `Abrindo conexão "${connection.name}" em nova aba.`,
+      });
+
+    } catch (error) {
+      console.error('Erro ao conectar:', error);
+      toast({
+        title: "Erro na conexão",
+        description: "Não foi possível estabelecer a conexão. Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCreateConnection = async (connectionData: Partial<GuacamoleConnection>) => {
