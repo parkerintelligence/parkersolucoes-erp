@@ -42,10 +42,10 @@ export const WasabiUploadDialog = ({
       <DialogTrigger asChild>
         
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-slate-800 border-slate-700 text-white">
         <DialogHeader>
-          <DialogTitle>Upload de Arquivos</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-white">Upload de Arquivos</DialogTitle>
+          <DialogDescription className="text-gray-400">
             Enviar arquivos para o bucket: <strong>{targetBucket}</strong>
           </DialogDescription>
         </DialogHeader>

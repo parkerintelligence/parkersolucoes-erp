@@ -136,13 +136,13 @@ export const ScheduleServicesDialog = ({ open, onOpenChange }: ScheduleServicesD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden bg-slate-800 border-slate-700 text-white">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-white">
             <Settings className="h-5 w-5" />
             Gerenciar Sistemas/Serviços
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-gray-400">
             Gerencie os sistemas e serviços disponíveis para agendamentos recorrentes
           </DialogDescription>
         </DialogHeader>
@@ -303,9 +303,9 @@ export const ScheduleServicesDialog = ({ open, onOpenChange }: ScheduleServicesD
         {/* Formulário */}
         {showForm && (
           <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-            <div className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg">
+            <div className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-slate-700 bg-slate-800 text-white p-6 shadow-lg duration-200 sm:rounded-lg">
               <div className="flex flex-col space-y-1.5 text-center sm:text-left">
-                <h2 className="text-lg font-semibold leading-none tracking-tight">
+                <h2 className="text-lg font-semibold leading-none tracking-tight text-white">
                   {editingService ? 'Editar Sistema/Serviço' : 'Novo Sistema/Serviço'}
                 </h2>
               </div>

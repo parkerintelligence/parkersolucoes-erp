@@ -164,22 +164,22 @@ export const BackupAlertDialog = ({ open, onOpenChange, files, type }: BackupAle
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700 text-white">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-white">
             {type === 'whatsapp' ? (
               <>
-                <MessageCircle className="h-5 w-5 text-green-600" />
+                <MessageCircle className="h-5 w-5 text-green-400" />
                 Enviar Alerta via WhatsApp
               </>
             ) : (
               <>
-                <ExternalLink className="h-5 w-5 text-blue-600" />
+                <ExternalLink className="h-5 w-5 text-blue-400" />
                 Criar Chamado GLPI
               </>
             )}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-gray-400">
             {type === 'whatsapp' 
               ? 'Envie um relatório dos backups não realizados via WhatsApp'
               : 'Crie um chamado no GLPI para os backups não realizados'

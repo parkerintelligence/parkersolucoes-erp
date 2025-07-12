@@ -98,9 +98,9 @@ export const GuacamoleConnectionDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-slate-800 border-slate-700 text-white">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="text-white">
             {connection ? 'Editar Conexão' : 'Nova Conexão'}
           </DialogTitle>
         </DialogHeader>

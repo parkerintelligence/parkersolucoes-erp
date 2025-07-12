@@ -33,10 +33,10 @@ export const WasabiCreateBucketDialog = ({
       <DialogTrigger asChild>
         
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-slate-800 border-slate-700 text-white">
         <DialogHeader>
-          <DialogTitle>Criar Novo Bucket</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-white">Criar Novo Bucket</DialogTitle>
+          <DialogDescription className="text-gray-400">
             Digite o nome do novo bucket. O nome deve ser único e em minúsculas.
           </DialogDescription>
         </DialogHeader>

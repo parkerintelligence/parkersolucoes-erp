@@ -46,10 +46,10 @@ export const FtpUploadDialog = () => {
           Upload para Servidor Real
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-slate-800 border-slate-700 text-white">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5 text-blue-600" />
+          <DialogTitle className="flex items-center gap-2 text-white">
+            <Upload className="h-5 w-5 text-blue-400" />
             Upload para Servidor FTP Real
           </DialogTitle>
         </DialogHeader>
