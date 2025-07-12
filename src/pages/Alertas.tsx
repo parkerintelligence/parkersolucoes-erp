@@ -9,9 +9,8 @@ import { cn } from '@/lib/utils';
 interface DeviceStatus {
   id: string;
   name: string;
-  status: 'online' | 'offline' | 'problem';
+  status: 'online' | 'offline';
   lastSeen?: string;
-  issues?: string[];
 }
 
 export default function Alertas() {
@@ -26,24 +25,14 @@ export default function Alertas() {
   });
 
   const getDeviceStatus = (host: any): DeviceStatus => {
-    const hostProblems = problems.filter(p => p.hosts?.some(h => h.hostid === host.hostid));
-    
     // Check if host is available (status: 0 = monitored, 1 = not monitored)
     const isMonitored = host.status === '0';
-    const hasProblems = hostProblems.length > 0;
     
-    // Determine status based on availability and problems
-    let status: 'online' | 'offline' | 'problem' = 'offline';
-    if (isMonitored) {
-      status = hasProblems ? 'problem' : 'online';
-    }
-
     return {
       id: host.hostid,
       name: host.name || host.host,
-      status,
+      status: isMonitored ? 'online' : 'offline',
       lastSeen: host.lastaccess ? new Date(parseInt(host.lastaccess) * 1000).toLocaleString('pt-BR') : undefined,
-      issues: hostProblems.map(p => p.name)
     };
   };
 
@@ -51,7 +40,6 @@ export default function Alertas() {
   
   const onlineCount = devices.filter(d => d.status === 'online').length;
   const offlineCount = devices.filter(d => d.status === 'offline').length;
-  const problemCount = devices.filter(d => d.status === 'problem').length;
 
   const handleRefresh = () => {
     refetchHosts();
@@ -61,37 +49,24 @@ export default function Alertas() {
   const getStatusIcon = (status: DeviceStatus['status']) => {
     switch (status) {
       case 'online':
-        return <Wifi className="h-5 w-5 text-green-500" />;
+        return <Wifi className="h-4 w-4 text-green-400" />;
       case 'offline':
-        return <WifiOff className="h-5 w-5 text-red-500" />;
-      case 'problem':
-        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+        return <WifiOff className="h-4 w-4 text-red-400" />;
       default:
-        return <Server className="h-5 w-5 text-gray-500" />;
+        return <Server className="h-4 w-4 text-gray-400" />;
     }
   };
 
   const getStatusColor = (status: DeviceStatus['status']) => {
-    switch (status) {
-      case 'online':
-        return 'bg-green-50 border-green-200 text-green-800';
-      case 'offline':
-        return 'bg-red-50 border-red-200 text-red-800';
-      case 'problem':
-        return 'bg-yellow-50 border-yellow-200 text-yellow-800';
-      default:
-        return 'bg-gray-50 border-gray-200 text-gray-800';
-    }
+    return 'bg-slate-800 border-slate-700';
   };
 
   const getStatusBadge = (status: DeviceStatus['status']) => {
     switch (status) {
       case 'online':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">ONLINE</Badge>;
+        return <Badge className="bg-green-900/20 text-green-400 border-green-400/30 hover:bg-green-900/20">ONLINE</Badge>;
       case 'offline':
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">OFFLINE</Badge>;
-      case 'problem':
-        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">PROBLEMA</Badge>;
+        return <Badge className="bg-red-900/20 text-red-400 border-red-400/30 hover:bg-red-900/20">OFFLINE</Badge>;
       default:
         return <Badge variant="secondary">DESCONHECIDO</Badge>;
     }
@@ -101,7 +76,7 @@ export default function Alertas() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Alertas Zabbix</h1>
+          <h1 className="text-3xl font-bold text-white">Alertas Zabbix</h1>
           <p className="text-muted-foreground">Monitor em tempo real do status dos dispositivos</p>
         </div>
         <Button 
@@ -116,58 +91,34 @@ export default function Alertas() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <Server className="h-8 w-8 text-blue-500" />
-              <div>
-                <p className="text-2xl font-bold">{devices.length}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
-              </div>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="bg-slate-800 border-slate-700">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-slate-300 mb-1">{devices.length}</div>
+            <div className="text-sm text-slate-300 font-medium">Total</div>
+            <div className="text-xs text-slate-400 mt-1">Dispositivos</div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <Wifi className="h-8 w-8 text-green-500" />
-              <div>
-                <p className="text-2xl font-bold text-green-600">{onlineCount}</p>
-                <p className="text-xs text-muted-foreground">Online</p>
-              </div>
-            </div>
+        <Card className="bg-slate-800 border-slate-700">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-green-400 mb-1">{onlineCount}</div>
+            <div className="text-sm text-slate-300 font-medium">Online</div>
+            <div className="text-xs text-slate-400 mt-1">Dispositivos ativos</div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <WifiOff className="h-8 w-8 text-red-500" />
-              <div>
-                <p className="text-2xl font-bold text-red-600">{offlineCount}</p>
-                <p className="text-xs text-muted-foreground">Offline</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <AlertTriangle className="h-8 w-8 text-yellow-500" />
-              <div>
-                <p className="text-2xl font-bold text-yellow-600">{problemCount}</p>
-                <p className="text-xs text-muted-foreground">Problemas</p>
-              </div>
-            </div>
+        <Card className="bg-slate-800 border-slate-700">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-red-400 mb-1">{offlineCount}</div>
+            <div className="text-sm text-slate-300 font-medium">Offline</div>
+            <div className="text-xs text-slate-400 mt-1">Dispositivos inativos</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Devices Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-3">
         {devices.map((device) => (
           <Card 
             key={device.id} 
@@ -176,39 +127,13 @@ export default function Alertas() {
               getStatusColor(device.status)
             )}
           >
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+            <CardContent className="p-3">
+              <div className="flex flex-col items-center space-y-2">
                 {getStatusIcon(device.status)}
-                {getStatusBadge(device.status)}
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-2">
-                <h3 className="font-semibold text-sm truncate" title={device.name}>
+                <h3 className="font-medium text-xs text-center text-white truncate w-full" title={device.name}>
                   {device.name}
                 </h3>
-                
-                {device.lastSeen && (
-                  <p className="text-xs text-muted-foreground">
-                    Última atividade: {device.lastSeen}
-                  </p>
-                )}
-                
-                {device.issues && device.issues.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium">Problemas:</p>
-                    {device.issues.slice(0, 2).map((issue, index) => (
-                      <p key={index} className="text-xs text-muted-foreground truncate" title={issue}>
-                        • {issue}
-                      </p>
-                    ))}
-                    {device.issues.length > 2 && (
-                      <p className="text-xs text-muted-foreground">
-                        +{device.issues.length - 2} mais...
-                      </p>
-                    )}
-                  </div>
-                )}
+                {getStatusBadge(device.status)}
               </div>
             </CardContent>
           </Card>
