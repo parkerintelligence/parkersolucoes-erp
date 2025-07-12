@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useZabbixAPI } from '@/hooks/useZabbixAPI';
 import { RefreshCw, Wifi, WifiOff, Server, AlertTriangle, Cpu, HardDrive, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -29,7 +30,7 @@ export default function Alertas() {
   const hostIds = hosts.map(host => host.hostid);
   const { data: items = [], isLoading: itemsLoading } = useItems(hostIds, {
     search: {
-      key_: ['system.cpu.util', 'vm.memory.util', 'system.uptime', 'vfs.fs.size']
+      key_: ['system.cpu.util', 'vm.memory.size', 'system.uptime', 'vfs.fs.size']
     }
   });
 
@@ -59,17 +60,24 @@ export default function Alertas() {
     const hostItems = items.filter(item => item.hostid === hostId);
     
     const cpuItem = hostItems.find(item => item.key_.includes('system.cpu.util'));
-    const memoryItem = hostItems.find(item => item.key_.includes('vm.memory.util'));
+    const memoryItem = hostItems.find(item => item.key_.includes('vm.memory.size'));
     const uptimeItem = hostItems.find(item => item.key_.includes('system.uptime'));
+    const diskItem = hostItems.find(item => item.key_.includes('vfs.fs.size') && item.key_.includes('[/,pfree]'));
     
     const cpuUsage = cpuItem?.lastvalue ? parseFloat(cpuItem.lastvalue) : 0;
-    const memoryUsage = memoryItem?.lastvalue ? parseFloat(memoryItem.lastvalue) : 0;
+    // Converter bytes para GB (assumindo que vm.memory.size retorna em bytes)
+    const memoryBytes = memoryItem?.lastvalue ? parseFloat(memoryItem.lastvalue) : 0;
+    const memoryGB = memoryBytes / (1024 * 1024 * 1024);
     const uptime = uptimeItem?.lastvalue ? parseInt(uptimeItem.lastvalue) : 0;
+    // Disk percentage free (se disponível)
+    const diskFreePercent = diskItem?.lastvalue ? parseFloat(diskItem.lastvalue) : 0;
+    const diskUsedPercent = diskFreePercent > 0 ? (100 - diskFreePercent) : 0;
     
     return {
       cpu: cpuUsage,
-      memory: memoryUsage,
+      memory: memoryGB,
       uptime: uptime,
+      disk: diskUsedPercent,
     };
   };
 
@@ -86,24 +94,31 @@ export default function Alertas() {
   const getStatusIcon = (status: DeviceStatus['status']) => {
     switch (status) {
       case 'online':
-        return <Wifi className="h-4 w-4 text-green-400" />;
+        return <Wifi className="h-4 w-4 text-green-300" />;
       case 'offline':
-        return <WifiOff className="h-4 w-4 text-red-400" />;
+        return <WifiOff className="h-4 w-4 text-red-300" />;
       default:
         return <Server className="h-4 w-4 text-gray-400" />;
     }
   };
 
   const getStatusColor = (status: DeviceStatus['status']) => {
-    return 'bg-slate-800 border-slate-700';
+    switch (status) {
+      case 'online':
+        return 'bg-green-900/30 border-green-700';
+      case 'offline':
+        return 'bg-red-900/30 border-red-700';
+      default:
+        return 'bg-slate-800 border-slate-700';
+    }
   };
 
   const getStatusBadge = (status: DeviceStatus['status']) => {
     switch (status) {
       case 'online':
-        return <Badge className="bg-green-900/20 text-green-400 border-green-400/30 hover:bg-green-900/20">ONLINE</Badge>;
+        return <Badge className="bg-green-900/30 text-green-300 border-green-700 hover:bg-green-900/30">ONLINE</Badge>;
       case 'offline':
-        return <Badge className="bg-red-900/20 text-red-400 border-red-400/30 hover:bg-red-900/20">OFFLINE</Badge>;
+        return <Badge className="bg-red-900/30 text-red-300 border-red-700 hover:bg-red-900/30">OFFLINE</Badge>;
       default:
         return <Badge variant="secondary">DESCONHECIDO</Badge>;
     }
@@ -139,7 +154,7 @@ export default function Alertas() {
         
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-400 mb-1">{onlineCount}</div>
+            <div className="text-2xl font-bold text-green-300 mb-1">{onlineCount}</div>
             <div className="text-sm text-slate-300 font-medium">Online</div>
             <div className="text-xs text-slate-400 mt-1">Dispositivos ativos</div>
           </CardContent>
@@ -147,7 +162,7 @@ export default function Alertas() {
         
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-red-400 mb-1">{offlineCount}</div>
+            <div className="text-2xl font-bold text-red-300 mb-1">{offlineCount}</div>
             <div className="text-sm text-slate-300 font-medium">Offline</div>
             <div className="text-xs text-slate-400 mt-1">Dispositivos inativos</div>
           </CardContent>
@@ -156,12 +171,12 @@ export default function Alertas() {
 
       {/* Tabs for Status and Performance */}
       <Tabs defaultValue="status" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="status">Status Server</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="status" className="space-y-4">
+        <TabsContent value="status" className="space-y-4 mt-6">
           {/* Devices Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-3">
             {devices.map((device) => (
@@ -186,85 +201,104 @@ export default function Alertas() {
           </div>
         </TabsContent>
         
-        <TabsContent value="performance" className="space-y-4">
-          {/* Performance Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {devices
-              .filter(device => device.status === 'online')
-              .map((device) => {
-                const perf = getPerformanceData(device.id);
-                return (
-                  <Card key={device.id} className="bg-slate-800 border-slate-700">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg text-white flex items-center gap-2">
-                        <Server className="h-5 w-5" />
-                        {device.name}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* CPU Usage */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Cpu className="h-4 w-4 text-blue-400" />
-                            <span className="text-sm text-slate-300">CPU</span>
-                          </div>
-                          <span className="text-sm font-medium text-white">{perf.cpu.toFixed(1)}%</span>
-                        </div>
-                        <Progress 
-                          value={perf.cpu} 
-                          className="h-2"
-                          style={{
-                            '--progress-foreground': perf.cpu > 80 ? 'hsl(0 70% 50%)' : perf.cpu > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
-                          } as React.CSSProperties}
-                        />
-                      </div>
+        <TabsContent value="performance" className="space-y-4 mt-6">
+          {/* Performance Table */}
+          <Card className="bg-slate-800 border-slate-700">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-slate-700/50">
+                    <TableHead className="text-slate-300 font-semibold">Servidor</TableHead>
+                    <TableHead className="text-slate-300 font-semibold">CPU %</TableHead>
+                    <TableHead className="text-slate-300 font-semibold">Memória GB</TableHead>
+                    <TableHead className="text-slate-300 font-semibold">Disco %</TableHead>
+                    <TableHead className="text-slate-300 font-semibold">Tempo Ligado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {devices
+                    .filter(device => device.status === 'online')
+                    .map((device) => {
+                      const perf = getPerformanceData(device.id);
+                      
+                      const getProgressColor = (value: number) => {
+                        if (value > 80) return 'hsl(0 70% 50%)'; // Vermelho
+                        if (value > 60) return 'hsl(45 100% 50%)'; // Amarelo
+                        return 'hsl(142 70% 45%)'; // Verde
+                      };
 
-                      {/* Memory Usage */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <HardDrive className="h-4 w-4 text-purple-400" />
-                            <span className="text-sm text-slate-300">Memória</span>
-                          </div>
-                          <span className="text-sm font-medium text-white">{perf.memory.toFixed(1)}%</span>
-                        </div>
-                        <Progress 
-                          value={perf.memory} 
-                          className="h-2"
-                          style={{
-                            '--progress-foreground': perf.memory > 80 ? 'hsl(0 70% 50%)' : perf.memory > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
-                          } as React.CSSProperties}
-                        />
-                      </div>
-
-                      {/* Uptime */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-green-400" />
-                            <span className="text-sm text-slate-300">Tempo Ligado</span>
-                          </div>
-                          <span className="text-sm font-medium text-white">{formatUptime(perf.uptime)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-          </div>
-
-          {devices.filter(device => device.status === 'online').length === 0 && (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center space-y-4">
-                <Server className="h-12 w-12 mx-auto text-muted-foreground" />
-                <div>
-                  <h3 className="text-lg font-semibold">Nenhum dispositivo online</h3>
-                  <p className="text-muted-foreground">Dados de performance só são exibidos para dispositivos online.</p>
+                      return (
+                        <TableRow key={device.id} className="hover:bg-slate-700/30">
+                          <TableCell className="text-white font-medium">
+                            <div className="flex items-center gap-2">
+                              <Server className="h-4 w-4 text-green-300" />
+                              {device.name}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-white text-sm">{perf.cpu.toFixed(1)}%</span>
+                              </div>
+                              <Progress 
+                                value={perf.cpu} 
+                                className="h-2 w-20"
+                                style={{
+                                  '--progress-foreground': getProgressColor(perf.cpu)
+                                } as React.CSSProperties}
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-white text-sm">{perf.memory.toFixed(1)} GB</span>
+                              </div>
+                              <Progress 
+                                value={Math.min((perf.memory / 16) * 100, 100)} 
+                                className="h-2 w-20"
+                                style={{
+                                  '--progress-foreground': getProgressColor((perf.memory / 16) * 100)
+                                } as React.CSSProperties}
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-white text-sm">{perf.disk.toFixed(1)}%</span>
+                              </div>
+                              <Progress 
+                                value={perf.disk} 
+                                className="h-2 w-20"
+                                style={{
+                                  '--progress-foreground': getProgressColor(perf.disk)
+                                } as React.CSSProperties}
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-white text-sm">{formatUptime(perf.uptime)}</span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                </TableBody>
+              </Table>
+              
+              {devices.filter(device => device.status === 'online').length === 0 && (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center space-y-4">
+                    <Server className="h-12 w-12 mx-auto text-muted-foreground" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Nenhum dispositivo online</h3>
+                      <p className="text-muted-foreground">Dados de performance só são exibidos para dispositivos online.</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
