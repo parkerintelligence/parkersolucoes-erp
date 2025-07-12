@@ -360,9 +360,9 @@ const VPSCard: React.FC<VPSCardProps> = ({
     <Card className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-all hover-scale">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-white text-lg flex items-center gap-2">
-            <Server className="h-5 w-5 text-blue-400" />
-            <span className="truncate">
+          <CardTitle className="text-white text-lg flex items-center gap-2 min-w-0">
+            <Server className="h-5 w-5 text-blue-400 flex-shrink-0" />
+            <span className="truncate flex-1 min-w-0">
               {safeValue(vps.hostname) || safeValue(vps.name) || safeValue(vps.id)}
             </span>
           </CardTitle>
