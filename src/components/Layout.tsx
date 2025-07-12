@@ -31,7 +31,7 @@ export const Layout = ({ children }: LayoutProps) => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-primary">
         <AppSidebar />
-        <SidebarInset className="flex-1 min-w-0 flex flex-col">
+        <SidebarInset className="flex-1 min-w-0 flex flex-col transition-all duration-200 md:ml-0">
           <TopHeader />
           <main className="flex-1 overflow-auto bg-primary">
             <div className="container-responsive py-4 sm:py-6 lg:py-8">

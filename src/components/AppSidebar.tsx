@@ -61,7 +61,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar 
-      className="border-r border-primary-foreground/20 bg-primary w-16 sm:w-64 lg:w-72" 
+      className="border-r border-primary-foreground/20 bg-primary" 
       collapsible="icon"
     >
       <SidebarHeader className="p-2 sm:p-4 border-b border-primary-foreground/20 bg-primary">
