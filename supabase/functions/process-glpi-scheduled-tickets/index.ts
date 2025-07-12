@@ -107,13 +107,28 @@ const handler = async (req: Request): Promise<Response> => {
 
         console.log(`🔐 [GLPI-CRON] Integração GLPI encontrada para usuário ${ticket.user_id}`);
 
+        // Verificar se os tokens necessários estão configurados
+        const appToken = glpiIntegration.api_token;
+        const userToken = glpiIntegration.user_token || glpiIntegration.username; // fallback para username se user_token não existir
+        
+        if (!appToken || !userToken) {
+          console.error(`❌ [GLPI-CRON] Tokens GLPI não configurados para usuário ${ticket.user_id}`);
+          results.push({
+            ticket_id: ticket.id,
+            ticket_name: ticket.name,
+            success: false,
+            error: 'App-Token ou User-Token não configurados na integração GLPI'
+          });
+          continue;
+        }
+
         // Primeiro fazer login no GLPI para obter Session-Token válido
         const loginResponse = await fetch(`${glpiIntegration.base_url}/apirest.php/initSession`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'App-Token': glpiIntegration.api_token || '',
-            'Authorization': `user_token ${glpiIntegration.username || ''}`, // username deveria ser o user_token
+            'App-Token': appToken,
+            'Authorization': `user_token ${userToken}`,
           }
         });
 

@@ -23,27 +23,29 @@ export const GLPIConfig = () => {
     name: glpiIntegration?.name || 'GLPI Principal',
     base_url: glpiIntegration?.base_url || '',
     api_token: glpiIntegration?.api_token || '',
+    user_token: (glpiIntegration as any)?.user_token || '',
     username: glpiIntegration?.username || '',
     password: glpiIntegration?.password || '',
     is_active: glpiIntegration?.is_active ?? true,
   });
 
   const handleSave = async () => {
-    if (!config.base_url || (!config.api_token && (!config.username || !config.password))) {
+    if (!config.base_url || (!config.api_token || !config.user_token) && (!config.username || !config.password)) {
       toast({
         title: "Configuração incompleta",
-        description: "Preencha todos os campos obrigatórios: URL Base e API Token ou usuário/senha.",
+        description: "Preencha URL Base e App-Token + User-Token (recomendado) ou usuário/senha.",
         variant: "destructive"
       });
       return;
     }
 
     try {
-      const integrationData = {
+      const integrationData: any = {
         type: 'glpi' as const,
         name: config.name,
         base_url: config.base_url,
         api_token: config.api_token || null,
+        user_token: config.user_token || null,
         username: config.username || null,
         password: config.password || null,
         is_active: config.is_active,
@@ -196,7 +198,7 @@ export const GLPIConfig = () => {
     }
   };
 
-  const isFormValid = config.base_url && (config.api_token || (config.username && config.password));
+  const isFormValid = config.base_url && ((config.api_token && config.user_token) || (config.username && config.password));
 
   return (
     <Card>
@@ -250,18 +252,34 @@ export const GLPIConfig = () => {
         <div className="space-y-4">
           <Label className="text-base font-medium">Método de Autenticação</Label>
           
-          <div className="space-y-2">
-            <Label htmlFor="glpi-token">Token de API (recomendado)</Label>
-            <Input
-              id="glpi-token"
-              type="password"
-              value={config.api_token}
-              onChange={(e) => setConfig({ ...config, api_token: e.target.value })}
-              placeholder="••••••••••••••••••••••••••••••••"
-            />
-            <p className="text-xs text-muted-foreground">
-              Token gerado no GLPI: Configuração → API → Chaves de API
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="glpi-app-token">App-Token *</Label>
+              <Input
+                id="glpi-app-token"
+                type="password"
+                value={config.api_token}
+                onChange={(e) => setConfig({ ...config, api_token: e.target.value })}
+                placeholder="••••••••••••••••••••••••••••••••"
+              />
+              <p className="text-xs text-muted-foreground">
+                Token da aplicação no GLPI
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="glpi-user-token">User-Token *</Label>
+              <Input
+                id="glpi-user-token"
+                type="password"
+                value={config.user_token}
+                onChange={(e) => setConfig({ ...config, user_token: e.target.value })}
+                placeholder="••••••••••••••••••••••••••••••••"
+              />
+              <p className="text-xs text-muted-foreground">
+                Token do usuário no GLPI
+              </p>
+            </div>
           </div>
 
           <div className="text-center text-sm text-muted-foreground">ou</div>
@@ -331,14 +349,29 @@ export const GLPIConfig = () => {
         </div>
 
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-2">Como configurar:</h4>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Acesse o GLPI como administrador</li>
-            <li>• Vá em Configuração → API → Configuração geral</li>
-            <li>• Ative a API REST do GLPI</li>
-            <li>• Crie um token de API ou use usuário/senha</li>
-            <li>• Use o endpoint correto: /apirest.php</li>
-          </ul>
+          <h4 className="font-medium text-blue-900 mb-2">Como configurar tokens GLPI:</h4>
+          <div className="text-sm text-blue-800 space-y-2">
+            <div>
+              <strong>1. App-Token (Token da Aplicação):</strong>
+              <ul className="ml-4 space-y-1">
+                <li>• Configuração → API → Clientes de API</li>
+                <li>• Clique em "Adicionar" e crie um novo cliente</li>
+                <li>• Copie o App-Token gerado</li>
+              </ul>
+            </div>
+            <div>
+              <strong>2. User-Token (Token do Usuário):</strong>
+              <ul className="ml-4 space-y-1">
+                <li>• Administração → Usuários → [Seu usuário]</li>
+                <li>• Aba "Configurações" → "Tokens de API pessoal"</li>
+                <li>• Clique em "Adicionar" e gere um novo token</li>
+                <li>• Copie o User-Token gerado</li>
+              </ul>
+            </div>
+            <div className="pt-2 border-t border-blue-300">
+              <strong>Nota:</strong> Certifique-se de que a API REST está ativada em Configuração → API → Configuração geral
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

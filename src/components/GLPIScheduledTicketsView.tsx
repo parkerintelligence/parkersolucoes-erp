@@ -19,6 +19,7 @@ import {
 import { GLPIScheduledTicketForm } from './GLPIScheduledTicketForm';
 import { useGLPI } from '@/hooks/useGLPI';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const GLPIScheduledTicketsView = () => {
   const { data: scheduledTickets = [], isLoading, refetch } = useGLPIScheduledTickets();
@@ -98,37 +99,50 @@ const GLPIScheduledTicketsView = () => {
 
   const handleTestCron = async () => {
     try {
-      const response = await fetch('https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/process-glpi-scheduled-tickets', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wdnhwcGdveWFkd3Vra2ZvY2NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzMjYyNjIsImV4cCI6MjA2NjkwMjI2Mn0.tNgNHrabYKZhE2nbFyqhKAyvuBBN3DMfqit8OQZBL3E'
-        },
-        body: JSON.stringify({ 
+      console.log('🧪 [GLPI-TEST] Iniciando teste manual do agendamento...');
+      
+      const { data, error } = await supabase.functions.invoke('process-glpi-scheduled-tickets', {
+        body: { 
           debug: true, 
           manual_test: true,
           time: new Date().toISOString()
-        })
+        }
       });
       
-      const result = await response.json();
+      if (error) {
+        console.error('❌ [GLPI-TEST] Erro na função:', error);
+        toast({
+          title: "Erro na função",
+          description: error.message || "Erro ao executar função de teste",
+          variant: "destructive"
+        });
+        return;
+      }
       
-      if (result.success) {
+      console.log('📋 [GLPI-TEST] Resultado:', data);
+      
+      if (data?.success) {
         toast({
           title: "Teste executado com sucesso!",
-          description: `${result.executed_tickets} chamados processados. ${result.successful} sucessos, ${result.failed} falhas.`,
+          description: `${data.executed_tickets} chamados processados. ${data.successful} sucessos, ${data.failed} falhas.`,
         });
+        
+        // Mostrar detalhes dos resultados se houver falhas
+        if (data.failed > 0 && data.results) {
+          const failedTickets = data.results.filter((r: any) => !r.success);
+          console.warn('⚠️ [GLPI-TEST] Chamados com falha:', failedTickets);
+        }
       } else {
         toast({
           title: "Erro no teste",
-          description: result.message || "Falha na execução do teste",
+          description: data?.message || "Falha na execução do teste",
           variant: "destructive"
         });
       }
       
       refetch();
     } catch (error) {
-      console.error('Erro ao testar cron:', error);
+      console.error('❌ [GLPI-TEST] Erro ao testar agendamento:', error);
       toast({
         title: "Erro na comunicação",
         description: "Erro ao executar teste manual",
