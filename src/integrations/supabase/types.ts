@@ -311,6 +311,30 @@ export type Database = {
           },
         ]
       }
+      cron_job_logs: {
+        Row: {
+          created_at: string
+          details: Json | null
+          id: string
+          job_name: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          job_name: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          job_name?: string
+          status?: string
+        }
+        Relationships: []
+      }
       glpi_scheduled_tickets: {
         Row: {
           assign_group_id: number | null

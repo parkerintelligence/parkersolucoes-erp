@@ -107,6 +107,26 @@ const handler = async (req: Request): Promise<Response> => {
 
         console.log(`🔐 [GLPI-CRON] Integração GLPI encontrada para usuário ${ticket.user_id}`);
 
+        // Primeiro fazer login no GLPI para obter Session-Token válido
+        const loginResponse = await fetch(`${glpiIntegration.base_url}/apirest.php/initSession`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'App-Token': glpiIntegration.api_token || '',
+            'Authorization': `user_token ${glpiIntegration.username || ''}`, // username deveria ser o user_token
+          }
+        });
+
+        if (!loginResponse.ok) {
+          const loginError = await loginResponse.text();
+          console.error(`❌ [GLPI-CRON] Erro no login GLPI: ${loginResponse.status} - ${loginError}`);
+          throw new Error(`GLPI Login Error: ${loginResponse.status} ${loginResponse.statusText}`);
+        }
+
+        const loginData = await loginResponse.json();
+        const sessionToken = loginData.session_token;
+        console.log(`🔑 [GLPI-CRON] Session token obtido: ${sessionToken?.substring(0, 10)}...`);
+
         // Preparar dados do chamado
         const ticketData: GLPITicketData = {
           name: ticket.title,
@@ -124,13 +144,13 @@ const handler = async (req: Request): Promise<Response> => {
 
         console.log(`📤 [GLPI-CRON] Enviando chamado para GLPI:`, ticketData);
 
-        // Criar chamado no GLPI
+        // Criar chamado no GLPI usando session token válido
         const glpiResponse = await fetch(`${glpiIntegration.base_url}/apirest.php/Ticket`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'App-Token': glpiIntegration.api_token || '',
-            'Session-Token': glpiIntegration.username || '', // Assumindo que username armazena session token
+            'Session-Token': sessionToken,
           },
           body: JSON.stringify({ input: ticketData }),
         });
@@ -178,6 +198,20 @@ const handler = async (req: Request): Promise<Response> => {
           glpi_ticket_id: glpiResult.id,
           next_execution: nextExecData
         });
+
+        // Fazer logout do GLPI para limpar a sessão
+        try {
+          await fetch(`${glpiIntegration.base_url}/apirest.php/killSession`, {
+            method: 'POST',
+            headers: {
+              'App-Token': glpiIntegration.api_token || '',
+              'Session-Token': sessionToken,
+            }
+          });
+          console.log(`🔓 [GLPI-CRON] Logout do GLPI realizado`);
+        } catch (logoutError) {
+          console.warn(`⚠️ [GLPI-CRON] Erro no logout (não crítico):`, logoutError);
+        }
 
       } catch (ticketError: any) {
         console.error(`❌ [GLPI-CRON] Erro ao processar chamado ${ticket.name}:`, ticketError);
