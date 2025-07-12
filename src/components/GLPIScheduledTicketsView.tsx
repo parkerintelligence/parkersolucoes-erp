@@ -96,6 +96,47 @@ const GLPIScheduledTicketsView = () => {
     refetch();
   };
 
+  const handleTestCron = async () => {
+    try {
+      const response = await fetch('https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/process-glpi-scheduled-tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wdnhwcGdveWFkd3Vra2ZvY2NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzMjYyNjIsImV4cCI6MjA2NjkwMjI2Mn0.tNgNHrabYKZhE2nbFyqhKAyvuBBN3DMfqit8OQZBL3E'
+        },
+        body: JSON.stringify({ 
+          debug: true, 
+          manual_test: true,
+          time: new Date().toISOString()
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Teste executado com sucesso!",
+          description: `${result.executed_tickets} chamados processados. ${result.successful} sucessos, ${result.failed} falhas.`,
+        });
+      } else {
+        toast({
+          title: "Erro no teste",
+          description: result.message || "Falha na execução do teste",
+          variant: "destructive"
+        });
+      }
+      
+      refetch();
+    } catch (error) {
+      console.error('Erro ao testar cron:', error);
+      toast({
+        title: "Erro na comunicação",
+        description: "Erro ao executar teste manual",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (!glpiIntegration) {
     return (
       <div className="min-h-screen bg-gray-900 text-white p-6">
@@ -148,7 +189,17 @@ const GLPIScheduledTicketsView = () => {
             </p>
           </div>
           
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleTestCron}
+              variant="outline"
+              className="bg-purple-600 border-purple-500 text-white hover:bg-purple-700"
+            >
+              <Play className="mr-2 h-4 w-4" />
+              Testar Agendamentos
+            </Button>
+            
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={handleCreateNew} className="bg-orange-600 hover:bg-orange-700 text-white">
                 <Plus className="mr-2 h-4 w-4" />
@@ -171,6 +222,7 @@ const GLPIScheduledTicketsView = () => {
               />
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Summary Cards */}
