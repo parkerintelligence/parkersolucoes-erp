@@ -198,58 +198,55 @@ const WhatsAppTemplates = () => {
         </CardContent>
       </Card>
 
-      {/* Templates List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Templates Grid */}
+      <div className="space-y-2">
         {filteredTemplates.map(template => {
           const templateTypeInfo = templateTypes[template.template_type as keyof typeof templateTypes];
           const Icon = templateTypeInfo?.icon || MessageCircle;
 
           return (
-            <Card key={template.id} className="bg-gray-800 border-gray-700 hover:bg-gray-800/50 transition-colors">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <MessageCircle className="h-5 w-5 text-green-600" />
-                    <span className="text-white">{template.name}</span>
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Badge className={getCategoryColor(template.template_type)}>
-                      <Icon className="h-3 w-3 mr-1" />
-                      {templateTypeInfo?.name || template.template_type}
-                    </Badge>
-                    {template.is_active ? (
-                      <Badge className="bg-green-600 text-white">Ativo</Badge>
-                    ) : (
-                      <Badge className="bg-gray-600 text-white">Inativo</Badge>
-                    )}
-                  </div>
+            <div
+              key={template.id}
+              className="bg-gray-800 border border-gray-700 p-3 rounded-lg hover:bg-gray-700/50 transition-colors"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <MessageCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                  <span className="font-medium text-white truncate flex-1">{template.name}</span>
+                  <Badge className={getCategoryColor(template.template_type)} title={templateTypeInfo?.name}>
+                    <Icon className="h-3 w-3" />
+                  </Badge>
+                  {template.is_active ? (
+                    <Badge className="bg-green-600 text-white">Ativo</Badge>
+                  ) : (
+                    <Badge className="bg-gray-600 text-white">Inativo</Badge>
+                  )}
                 </div>
-                <CardDescription className="text-gray-300">
-                  {template.subject}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 ml-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleEdit(template)}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                    className="h-7 w-7 p-0 bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                    title="Editar"
                   >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Editar
+                    <Edit className="h-3 w-3" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleDelete(template.id)}
-                    className="text-white border-red-600 bg-red-900 hover:bg-red-800"
+                    className="h-7 w-7 p-0 text-white border-red-600 bg-red-900 hover:bg-red-800"
+                    title="Excluir"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="mt-2 text-sm text-gray-400 truncate">
+                {template.subject}
+              </div>
+            </div>
           );
         })}
       </div>
