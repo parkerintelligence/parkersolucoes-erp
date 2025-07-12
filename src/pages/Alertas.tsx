@@ -299,20 +299,24 @@ export default function Alertas() {
         </TabsList>
         
         <TabsContent value="status" className="space-y-4 mt-6">
-          {/* Devices Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-3">
+          {/* Improved Responsive Grid with better spacing */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
             {devices.map((device) => (
               <Card 
                 key={device.id} 
                 className={cn(
-                  "transition-all duration-200 hover:shadow-md",
+                  "transition-all duration-200 hover:shadow-md min-h-[120px]",
                   getStatusColor(device.status)
                 )}
               >
-                <CardContent className="p-3">
-                  <div className="flex flex-col items-center space-y-2">
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center space-y-3">
                     {getStatusIcon(device.status)}
-                    <h3 className="font-medium text-xs text-center text-white truncate w-full" title={device.name}>
+                    <h3 
+                      className="font-medium text-sm text-center text-white leading-tight break-words hyphens-auto max-w-full"
+                      title={device.name}
+                      style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
+                    >
                       {device.name}
                     </h3>
                     {getStatusBadge(device.status)}
@@ -327,88 +331,90 @@ export default function Alertas() {
           {/* Performance Table */}
           <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-slate-700/50">
-                    <TableHead className="text-slate-300 font-semibold">Servidor</TableHead>
-                    <TableHead className="text-slate-300 font-semibold">CPU %</TableHead>
-                    <TableHead className="text-slate-300 font-semibold">Memória GB</TableHead>
-                    <TableHead className="text-slate-300 font-semibold">Disco %</TableHead>
-                    <TableHead className="text-slate-300 font-semibold">Tempo Ligado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {devices
-                    .filter(device => device.status === 'online')
-                    .map((device) => {
-                      const perf = getPerformanceData(device.id);
-                      
-                      const getProgressColor = (value: number) => {
-                        if (value > 80) return 'hsl(0 70% 50%)'; // Vermelho
-                        if (value > 60) return 'hsl(45 100% 50%)'; // Amarelo
-                        return 'hsl(142 70% 45%)'; // Verde
-                      };
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-slate-700/50">
+                      <TableHead className="text-slate-300 font-semibold min-w-[200px]">Servidor</TableHead>
+                      <TableHead className="text-slate-300 font-semibold min-w-[120px]">CPU %</TableHead>
+                      <TableHead className="text-slate-300 font-semibold min-w-[140px]">Memória GB</TableHead>
+                      <TableHead className="text-slate-300 font-semibold min-w-[120px]">Disco %</TableHead>
+                      <TableHead className="text-slate-300 font-semibold min-w-[120px]">Tempo Ligado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {devices
+                      .filter(device => device.status === 'online')
+                      .map((device) => {
+                        const perf = getPerformanceData(device.id);
+                        
+                        const getProgressColor = (value: number) => {
+                          if (value > 80) return 'hsl(0 70% 50%)'; // Vermelho
+                          if (value > 60) return 'hsl(45 100% 50%)'; // Amarelo
+                          return 'hsl(142 70% 45%)'; // Verde
+                        };
 
-                      return (
-                        <TableRow key={device.id} className="hover:bg-slate-700/30">
-                          <TableCell className="text-white font-medium">
-                            <div className="flex items-center gap-2">
-                              <Server className="h-4 w-4 text-green-300" />
-                              {device.name}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-white text-sm">{perf.cpu.toFixed(1)}%</span>
+                        return (
+                          <TableRow key={device.id} className="hover:bg-slate-700/30">
+                            <TableCell className="text-white font-medium">
+                              <div className="flex items-center gap-2">
+                                <Server className="h-4 w-4 text-green-300 flex-shrink-0" />
+                                <span className="break-words">{device.name}</span>
                               </div>
-                              <Progress 
-                                value={perf.cpu} 
-                                className="h-2 w-20"
-                                style={{
-                                  '--progress-foreground': getProgressColor(perf.cpu)
-                                } as React.CSSProperties}
-                              />
-                            </div>
-                          </TableCell>
-                           <TableCell>
-                             <div className="space-y-1">
-                               <div className="flex items-center justify-between">
-                                 <span className="text-white text-sm">
-                                   {perf.memory.toFixed(1)} GB ({perf.memoryPercent?.toFixed(1) || '0'}%)
-                                 </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-white text-sm">{perf.cpu.toFixed(1)}%</span>
+                                </div>
+                                <Progress 
+                                  value={perf.cpu} 
+                                  className="h-2 w-20"
+                                  style={{
+                                    '--progress-foreground': getProgressColor(perf.cpu)
+                                  } as React.CSSProperties}
+                                />
+                              </div>
+                            </TableCell>
+                             <TableCell>
+                               <div className="space-y-1">
+                                 <div className="flex items-center justify-between">
+                                   <span className="text-white text-sm">
+                                     {perf.memory.toFixed(1)} GB ({perf.memoryPercent?.toFixed(1) || '0'}%)
+                                   </span>
+                                 </div>
+                                 <Progress 
+                                   value={perf.memoryPercent || Math.min((perf.memory / 16) * 100, 100)} 
+                                   className="h-2 w-20"
+                                   style={{
+                                     '--progress-foreground': getProgressColor(perf.memoryPercent || (perf.memory / 16) * 100)
+                                   } as React.CSSProperties}
+                                 />
                                </div>
-                               <Progress 
-                                 value={perf.memoryPercent || Math.min((perf.memory / 16) * 100, 100)} 
-                                 className="h-2 w-20"
-                                 style={{
-                                   '--progress-foreground': getProgressColor(perf.memoryPercent || (perf.memory / 16) * 100)
-                                 } as React.CSSProperties}
-                               />
-                             </div>
-                           </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-white text-sm">{perf.disk.toFixed(1)}%</span>
+                             </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-white text-sm">{perf.disk.toFixed(1)}%</span>
+                                </div>
+                                <Progress 
+                                  value={perf.disk} 
+                                  className="h-2 w-20"
+                                  style={{
+                                    '--progress-foreground': getProgressColor(perf.disk)
+                                  } as React.CSSProperties}
+                                />
                               </div>
-                              <Progress 
-                                value={perf.disk} 
-                                className="h-2 w-20"
-                                style={{
-                                  '--progress-foreground': getProgressColor(perf.disk)
-                                } as React.CSSProperties}
-                              />
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-white text-sm">{formatUptime(perf.uptime)}</span>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                </TableBody>
-              </Table>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-white text-sm">{formatUptime(perf.uptime)}</span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </TableBody>
+                </Table>
+              </div>
               
               {devices.filter(device => device.status === 'online').length === 0 && (
                 <div className="flex items-center justify-center py-12">
