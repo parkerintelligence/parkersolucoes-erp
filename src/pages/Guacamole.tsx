@@ -23,7 +23,8 @@ import {
 import { useGuacamoleAPI, GuacamoleConnection } from '@/hooks/useGuacamoleAPI';
 import { useGuacamoleLogs } from '@/hooks/useGuacamoleLogs';
 import { GuacamoleConnectionCard } from '@/components/guacamole/GuacamoleConnectionCard';
-import { GuacamoleTokenStatus } from '@/components/guacamole/GuacamoleTokenStatus';
+import { GuacamoleStatusPopover } from '@/components/guacamole/GuacamoleStatusPopover';
+import { GuacamoleConnectionTree } from '@/components/guacamole/GuacamoleConnectionTree';
 import { GuacamoleConnectionDialog } from '@/components/guacamole/GuacamoleConnectionDialog';
 import { GuacamoleLogs } from '@/components/guacamole/GuacamoleLogs';
 import { GuacamoleConnectionTest } from '@/components/guacamole/GuacamoleConnectionTest';
@@ -298,19 +299,25 @@ const Guacamole = () => {
               </p>
             </div>
           </div>
-          <Button 
-            onClick={handleRefreshAll} 
-            disabled={refreshing}
-            variant="outline"
-            className="border-slate-600 text-slate-300 hover:bg-slate-700"
-          >
-            <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <GuacamoleStatusPopover 
+              connections={connections}
+              users={users}
+              activeSessions={activeSessions}
+              connectionGroups={connectionGroups}
+            />
+            <Button 
+              onClick={handleRefreshAll} 
+              disabled={refreshing}
+              variant="outline"
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+          </div>
         </div>
 
-        {/* Token Status */}
-        <GuacamoleTokenStatus />
 
         {/* Error Display */}
         {(connectionsError || usersError || sessionsError) && (
@@ -346,60 +353,6 @@ const Guacamole = () => {
           </Card>
         )}
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Conexões</CardTitle>
-              <Monitor className="h-4 w-4 text-blue-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{connections?.length || 0}</div>
-              <p className="text-xs text-slate-400">
-                Total configuradas
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Usuários</CardTitle>
-              <Users className="h-4 w-4 text-purple-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{users?.length || 0}</div>
-              <p className="text-xs text-slate-400">
-                Registrados
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Sessões Ativas</CardTitle>
-              <Activity className="h-4 w-4 text-emerald-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{activeSessions?.length || 0}</div>
-              <p className="text-xs text-slate-400">
-                Em andamento
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Grupos</CardTitle>
-              <FolderOpen className="h-4 w-4 text-amber-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{connectionGroups?.length || 0}</div>
-              <p className="text-xs text-slate-400">
-                Organizados
-              </p>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Main Content */}
         <Tabs defaultValue="connections" className="space-y-4">
@@ -486,101 +439,14 @@ const Guacamole = () => {
                     </Button>
                   </div>
                 ) : viewMode === 'grid' ? (
-                  <div className="space-y-6">
-                    {connectionGroups && connectionGroups.length > 0 ? (
-                      // Mostrar conexões organizadas por grupos
-                      <>
-                        {connectionGroups.map((group) => {
-                          const groupConnections = connections.filter(conn => 
-                            group.childConnections.includes(conn.identifier)
-                          );
-                          
-                          if (groupConnections.length === 0) return null;
-                          
-                          return (
-                            <div key={group.identifier} className="space-y-3">
-                              <div className="flex items-center gap-3">
-                                <div className="h-px bg-slate-700 flex-1" />
-                                <h3 className="text-sm font-medium text-slate-300 px-3 bg-slate-800 rounded-full">
-                                  {group.name}
-                                </h3>
-                                <div className="h-px bg-slate-700 flex-1" />
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
-                                {groupConnections.map((connection) => (
-                                  <GuacamoleConnectionCard
-                                    key={connection.identifier}
-                                    connection={connection}
-                                    onConnect={handleConnectToGuacamole}
-                                    onEdit={(conn) => setConnectionDialog({ open: true, connection: conn })}
-                                    onDelete={handleDeleteConnection}
-                                    isDeleting={deleteConnectionMutation.isPending}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })}
-                        
-                        {/* Conexões sem grupo */}
-                        {(() => {
-                          const groupedConnectionIds = connectionGroups.flatMap(g => g.childConnections);
-                          const ungroupedConnections = connections.filter(conn => 
-                            !groupedConnectionIds.includes(conn.identifier)
-                          );
-                          
-                          if (ungroupedConnections.length === 0) return null;
-                          
-                          return (
-                            <div key="ungrouped" className="space-y-3">
-                              <div className="flex items-center gap-3">
-                                <div className="h-px bg-slate-700 flex-1" />
-                                <h3 className="text-sm font-medium text-slate-300 px-3 bg-slate-800 rounded-full">
-                                  Grupo de Conexão Geral
-                                </h3>
-                                <div className="h-px bg-slate-700 flex-1" />
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
-                                {ungroupedConnections.map((connection) => (
-                                  <GuacamoleConnectionCard
-                                    key={connection.identifier}
-                                    connection={connection}
-                                    onConnect={handleConnectToGuacamole}
-                                    onEdit={(conn) => setConnectionDialog({ open: true, connection: conn })}
-                                    onDelete={handleDeleteConnection}
-                                    isDeleting={deleteConnectionMutation.isPending}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </>
-                    ) : (
-                      // Fallback: mostrar todas as conexões sem agrupamento
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <div className="h-px bg-slate-700 flex-1" />
-                          <h3 className="text-sm font-medium text-slate-300 px-3 bg-slate-800 rounded-full">
-                            Grupo de Conexão Geral
-                          </h3>
-                          <div className="h-px bg-slate-700 flex-1" />
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
-                          {connections.map((connection) => (
-                            <GuacamoleConnectionCard
-                              key={connection.identifier}
-                              connection={connection}
-                              onConnect={handleConnectToGuacamole}
-                              onEdit={(conn) => setConnectionDialog({ open: true, connection: conn })}
-                              onDelete={handleDeleteConnection}
-                              isDeleting={deleteConnectionMutation.isPending}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <GuacamoleConnectionTree
+                    connections={connections}
+                    connectionGroups={connectionGroups}
+                    onConnect={handleConnectToGuacamole}
+                    onEdit={(conn) => setConnectionDialog({ open: true, connection: conn })}
+                    onDelete={handleDeleteConnection}
+                    isDeleting={deleteConnectionMutation.isPending}
+                  />
                 ) : (
                   <div className="bg-slate-800 rounded-lg overflow-hidden">
                     <Table>
