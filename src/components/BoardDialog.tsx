@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ export function BoardDialog({ board, onSave }: BoardDialogProps) {
       setFormData({
         name: board.name,
         description: board.description || "",
-        color: board.color,
+        color: board.color || "#3b82f6",
       });
     } else {
       setFormData({
@@ -36,7 +37,9 @@ export function BoardDialog({ board, onSave }: BoardDialogProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    if (formData.name.trim()) {
+      onSave(formData);
+    }
   };
 
   const colorOptions = [
@@ -102,7 +105,7 @@ export function BoardDialog({ board, onSave }: BoardDialogProps) {
         </div>
         
         <div className="flex justify-end gap-2">
-          <Button type="submit">
+          <Button type="submit" disabled={!formData.name.trim()}>
             {board ? "Atualizar" : "Criar"}
           </Button>
         </div>
