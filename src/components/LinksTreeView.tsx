@@ -132,7 +132,7 @@ export const LinksTreeView = () => {
   return (
     <Card className="bg-slate-800 border-slate-700">
       <CardContent className="p-4">
-        <div className="space-y-2">
+        <div className="space-y-1">
           {Object.entries(linksTree).map(([companyId, services]) => {
             const company = companies.find(c => c.id === companyId);
             const companyName = company?.name || 'Sem empresa';
@@ -143,7 +143,7 @@ export const LinksTreeView = () => {
                 <CollapsibleTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="w-full justify-start p-2 h-auto text-left hover:bg-slate-700"
+                    className="w-full justify-start py-1 px-2 h-auto text-left hover:bg-slate-700"
                     onClick={() => toggleCompany(companyId)}
                   >
                     <div className="flex items-center gap-2 text-white">
@@ -161,8 +161,8 @@ export const LinksTreeView = () => {
                   </Button>
                 </CollapsibleTrigger>
                 
-                <CollapsibleContent className="ml-6 mt-1">
-                  <div className="space-y-1">
+                <CollapsibleContent className="ml-6 mt-0.5">
+                  <div className="space-y-0.5">
                     {Object.entries(services).map(([serviceName, serviceLinks]) => {
                       const serviceKey = `${companyId}-${serviceName}`;
                       const isServiceExpanded = expandedServices.has(serviceKey);
@@ -172,7 +172,7 @@ export const LinksTreeView = () => {
                           <CollapsibleTrigger asChild>
                             <Button
                               variant="ghost"
-                              className="w-full justify-start p-2 h-auto text-left hover:bg-slate-700"
+                              className="w-full justify-start py-1 px-2 h-auto text-left hover:bg-slate-700"
                               onClick={() => toggleService(serviceKey)}
                             >
                               <div className="flex items-center gap-2 text-slate-300">
@@ -190,17 +190,17 @@ export const LinksTreeView = () => {
                             </Button>
                           </CollapsibleTrigger>
                           
-                          <CollapsibleContent className="ml-6 mt-1">
-                            <div className="space-y-2">
+                          <CollapsibleContent className="ml-6 mt-0.5">
+                            <div className="space-y-1">
                               {serviceLinks.map(link => {
                                 const isPasswordVisible = visiblePasswords.has(link.id);
                                 
                                 return (
                                   <div
                                     key={link.id}
-                                    className="p-3 bg-slate-700 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors"
+                                    className="p-2 bg-slate-700 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors"
                                   >
-                                    <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center justify-between mb-1">
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
                                           <h4 className="font-medium text-white text-sm truncate">
