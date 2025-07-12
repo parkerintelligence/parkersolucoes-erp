@@ -16,15 +16,13 @@ import {
   Monitor,
   Users,
   ExternalLink,
-  Webhook,
+  
   Search,
   Filter,
   Clock
 } from 'lucide-react';
 import { useZabbixAPI } from '@/hooks/useZabbixAPI';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
-import { ZabbixWebhookManagerSimple } from '@/components/ZabbixWebhookManagerSimple';
-import { ZabbixIncidentTester } from '@/components/ZabbixIncidentTester';
 import { GLPITicketConfirmDialog } from '@/components/GLPITicketConfirmDialog';
 import ZabbixAnalysisDialog from '@/components/ZabbixAnalysisDialog';
 import { toast } from '@/hooks/use-toast';
@@ -472,13 +470,9 @@ const Zabbix = () => {
         </Card>
 
         <Tabs defaultValue="problems" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-slate-800 border-slate-700">
+          <TabsList className="grid w-full grid-cols-2 bg-slate-800 border-slate-700">
             <TabsTrigger value="problems" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Problemas</TabsTrigger>
             <TabsTrigger value="hosts" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Hosts</TabsTrigger>
-            <TabsTrigger value="webhooks" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-              <Webhook className="mr-2 h-4 w-4" />
-              Webhooks
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="problems" className="mt-6">
@@ -671,10 +665,6 @@ const Zabbix = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="webhooks" className="mt-6 space-y-6">
-            <ZabbixIncidentTester />
-            <ZabbixWebhookManagerSimple />
-          </TabsContent>
         </Tabs>
 
         <GLPITicketConfirmDialog
