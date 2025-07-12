@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FolderOpen, Folder, Monitor, ChevronDown, ChevronRight, ExternalLink, Edit, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { FolderOpen, Folder, Monitor, ChevronDown, ChevronRight, ExternalLink, Edit, Trash2, Search } from 'lucide-react';
 import { GuacamoleConnection } from '@/hooks/useGuacamoleAPI';
 interface GuacamoleConnectionTreeProps {
   connections: GuacamoleConnection[];
@@ -26,8 +27,9 @@ export const GuacamoleConnectionTree = ({
   isDeleting
 }: GuacamoleConnectionTreeProps) => {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['general']));
+  const [searchFilter, setSearchFilter] = useState('');
 
-  // Organizar conexões por grupo
+  // Organizar conexões por grupo com filtro
   const organizedConnections = () => {
     const groups: Record<string, ConnectionGroup> = {};
 
@@ -47,8 +49,18 @@ export const GuacamoleConnectionTree = ({
       connections: []
     };
 
-    // Distribuir conexões pelos grupos
-    connections.forEach(connection => {
+    // Filtrar conexões baseado no texto de pesquisa
+    const filteredConnections = connections.filter(connection => {
+      if (!searchFilter.trim()) return true;
+      
+      const searchTerm = searchFilter.toLowerCase().trim();
+      const connectionName = connection.name.toLowerCase();
+      
+      return connectionName.includes(searchTerm);
+    });
+
+    // Distribuir conexões filtradas pelos grupos
+    filteredConnections.forEach(connection => {
       // Buscar o grupo da conexão usando os atributos ou parentIdentifier
       let groupId = 'general';
       
@@ -75,8 +87,20 @@ export const GuacamoleConnectionTree = ({
       groups[groupId].connections.push(connection);
     });
 
-    // Retornar apenas grupos que têm conexões
-    return Object.values(groups).filter(group => group.connections.length > 0);
+    // Filtrar grupos também pelo nome do grupo
+    const filteredGroups = Object.values(groups).filter(group => {
+      if (!searchFilter.trim()) {
+        return group.connections.length > 0;
+      }
+      
+      const searchTerm = searchFilter.toLowerCase().trim();
+      const groupName = group.name.toLowerCase();
+      
+      // Mostrar grupo se o nome do grupo contém o termo de pesquisa OU se tem conexões
+      return groupName.includes(searchTerm) || group.connections.length > 0;
+    });
+
+    return filteredGroups;
   };
   const toggleGroup = (groupId: string) => {
     const newExpanded = new Set(expandedGroups);
@@ -104,7 +128,21 @@ export const GuacamoleConnectionTree = ({
     return status === 'Conectado' ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400';
   };
   const groups = organizedConnections();
-  return <div className="space-y-2">
+  return <div className="space-y-4">
+      {/* Campo de filtro/pesquisa */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Input
+          type="text"
+          placeholder="Pesquisar por grupo ou nome da conexão..."
+          value={searchFilter}
+          onChange={(e) => setSearchFilter(e.target.value)}
+          className="pl-10 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+        />
+      </div>
+
+      {/* Lista de grupos e conexões */}
+      <div className="space-y-2">
       {groups.map(group => <Card key={group.identifier} className="bg-slate-800 border-slate-700">
           <div className="p-3">
             <Button variant="ghost" className="w-full justify-start p-0 h-auto hover:bg-slate-700" onClick={() => toggleGroup(group.identifier)}>
@@ -161,5 +199,6 @@ export const GuacamoleConnectionTree = ({
               </div>}
           </div>
         </Card>)}
+      </div>
     </div>;
 };
