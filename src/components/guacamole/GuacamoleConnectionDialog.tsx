@@ -41,18 +41,44 @@ export const GuacamoleConnectionDialog = ({
       
       // Mapear corretamente os dados da conexão para edição
       const params = connection.parameters || {};
-      console.log('Parâmetros da conexão:', params);
+      const attributes = connection.attributes || {};
+      
+      console.log('Estrutura completa da conexão:', {
+        connection,
+        parameters: params,
+        attributes: attributes
+      });
+      
+      // Tentar múltiplas variações de campos para hostname
+      const hostname = params.hostname || params.host || params['guacd-hostname'] || 
+                      attributes.hostname || attributes.host || '';
+      
+      // Tentar múltiplas variações de campos para port
+      const port = params.port || params['guacd-port'] || attributes.port || 
+                  (params.port === 0 ? '0' : '') || '';
+      
+      // Tentar múltiplas variações de campos para username
+      const username = params.username || params.user || params['username'] || 
+                      attributes.username || attributes.user || '';
+      
+      // Tentar múltiplas variações de campos para password
+      const password = params.password || params.passwd || attributes.password || '';
+      
+      // Tentar múltiplas variações de campos para domain
+      const domain = params.domain || params['domain-name'] || params.workstation ||
+                    attributes.domain || attributes['domain-name'] || '';
       
       setFormData({
         name: connection.name || '',
         protocol: connection.protocol || 'rdp',
-        hostname: params.hostname || params.host || '',
-        port: params.port || (params.port === 0 ? '0' : '') || '',
-        username: params.username || params.user || '',
-        password: params.password || '',
-        domain: params.domain || params['domain-name'] || '',
-        security: params.security || '',
-        ignoreServerCert: params['ignore-server-cert'] === 'true' || params['ignore-server-cert'] === true
+        hostname: hostname,
+        port: port.toString(),
+        username: username,
+        password: password,
+        domain: domain,
+        security: params.security || params['security-mode'] || '',
+        ignoreServerCert: params['ignore-server-cert'] === 'true' || params['ignore-server-cert'] === true ||
+                         params['ignore-cert'] === 'true' || params['ignore-cert'] === true
       });
     } else if (open) {
       // Reset form for new connection
