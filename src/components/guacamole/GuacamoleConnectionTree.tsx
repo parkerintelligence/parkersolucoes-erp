@@ -125,7 +125,7 @@ export const GuacamoleConnectionTree = ({
     return connection.activeConnections > 0 ? 'Conectado' : 'Disponível';
   };
   const getStatusColor = (status: string) => {
-    return status === 'Conectado' ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400';
+    return status === 'Conectado' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400';
   };
   const groups = organizedConnections();
   return <div className="space-y-4">
