@@ -61,20 +61,20 @@ export function AppSidebar() {
 
   return (
     <Sidebar 
-      className="border-r border-primary bg-primary z-30" 
+      className="border-r border-sidebar-border bg-sidebar-background" 
       collapsible="icon"
     >
-      <SidebarHeader className="p-4 border-b border-primary-foreground/20 bg-primary">
+      <SidebarHeader className="p-4 border-b border-sidebar-border bg-sidebar-background">
         <div className="flex items-center justify-center">
-          <div className="bg-secondary p-2 rounded-lg shadow-sm">
-            <Shield className="h-6 w-6 text-secondary-foreground" />
+          <div className="bg-sidebar-accent p-2 rounded-lg shadow-sm">
+            <Shield className="h-6 w-6 text-sidebar-accent-foreground" />
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-primary">
+      <SidebarContent className="bg-sidebar-background">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-white font-medium">
+          <SidebarGroupLabel className="text-sidebar-foreground font-medium">
             {!isCollapsed && "Menu Principal"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -84,7 +84,13 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink 
                       to={item.url} 
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all text-white hover:text-white"
+                      className={({ isActive }) => 
+                        `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all ${
+                          isActive 
+                            ? 'bg-sidebar-accent text-sidebar-accent-foreground' 
+                            : 'text-sidebar-foreground hover:bg-sidebar-accent/10 hover:text-sidebar-accent-foreground'
+                        }`
+                      }
                     >
                       <item.icon className="h-4 w-4 flex-shrink-0" />
                       {!isCollapsed && <span>{item.title}</span>}
