@@ -346,6 +346,13 @@ serve(async (req) => {
         '/api/jobs?limit=1000',
         '/jobs?limit=1000'
       ],
+      'jobs/all': [
+        '/api/v2/jobs?limit=1000&order_by=starttime&order_direction=desc', 
+        '/api/v1/jobs?limit=1000', 
+        '/web/api/v2/jobs?limit=1000',
+        '/api/jobs?limit=1000',
+        '/jobs?limit=1000'
+      ],
       'jobs/recent': [
         '/api/v2/jobs?limit=100&order_by=jobid&order_direction=desc', 
         '/api/v1/jobs?limit=100',
@@ -376,7 +383,7 @@ serve(async (req) => {
       ]
     }
 
-    let apiEndpoints = endpointMap[endpoint] || [endpoint]
+    let apiEndpoints = endpointMap[endpoint] || [endpoint.startsWith('/') ? endpoint : `/${endpoint}`]
     
     // Aplicar filtros específicos para jobs das últimas 24h
     if (endpoint === 'jobs' || endpoint === 'jobs/last24h') {
@@ -421,7 +428,9 @@ serve(async (req) => {
     let rawData = null;
 
     for (const apiEndpoint of apiEndpoints) {
-      const fullUrl = `${baseUrl}${apiEndpoint}`
+      // Garantir que sempre tenha a barra entre baseUrl e endpoint
+      const normalizedEndpoint = apiEndpoint.startsWith('/') ? apiEndpoint : `/${apiEndpoint}`
+      const fullUrl = `${baseUrl}${normalizedEndpoint}`
       console.log(`🔄 Tentando endpoint: ${fullUrl}`)
 
       try {
