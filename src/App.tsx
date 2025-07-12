@@ -26,6 +26,7 @@ import Companies from '@/pages/Companies';
 import Bacula from '@/pages/Bacula';
 import ReportsDashboard from '@/pages/ReportsDashboard';
 import ActionPlan from '@/pages/ActionPlan';
+import Alertas from '@/pages/Alertas';
 import { Layout } from '@/components/Layout';
 
 // Create a single QueryClient instance
@@ -40,6 +41,14 @@ function App() {
             <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
+              <Route
+                path="/alertas"
+                element={
+                  <Layout>
+                    <Alertas />
+                  </Layout>
+                }
+              />
               <Route
                 path="/links"
                 element={

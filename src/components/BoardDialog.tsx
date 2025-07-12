@@ -51,7 +51,7 @@ export function BoardDialog({ board, onSave }: BoardDialogProps) {
   ];
 
   return (
-    <DialogContent>
+    <DialogContent className="sm:max-w-md">
       <DialogHeader>
         <DialogTitle>
           {board ? "Editar Quadro" : "Novo Quadro"}
