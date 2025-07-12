@@ -222,76 +222,156 @@ serve(async (req) => {
       console.log('🔄 Cache miss - buscando dados do Bacula...');
       
       try {
-        // Fazer múltiplas consultas com retry automático
-        const fetchBaculaData = async () => {
-          const endpoints = ['jobs/last24h', 'jobs/errors', 'jobs/recent', 'jobs/all'];
-          const requests = endpoints.map(endpoint => 
-            retryWithBackoff(() => 
-              supabase.functions.invoke('bacula-proxy', { 
-                body: { endpoint, integration_id: baculaIntegration.id } 
-              })
-            )
-          );
+        // Primeiro, testar conectividade com a API Bacula
+        console.log('🔍 Testando conectividade com API Bacula...');
+        const connectionTest = await retryWithBackoff(() => 
+          supabase.functions.invoke('bacula-proxy', { 
+            body: { endpoint: 'test' } 
+          })
+        );
 
-          return Promise.allSettled(requests);
-        };
+        if (connectionTest.error) {
+          console.error('❌ Falha no teste de conectividade Bacula:', connectionTest.error);
+          throw new Error(`Falha na conexão com Bacula: ${connectionTest.error.message}`);
+        }
 
-        const responses = await fetchBaculaData();
-        allJobs = [];
-      
-        // Processar todas as respostas e combinar os dados
-        for (const response of responses) {
-          if (response.status === 'fulfilled' && response.value?.data) {
-            const data = response.value.data;
-            let jobs = [];
-            
-            // Extrair jobs de diferentes estruturas de resposta
-            if (data?.output && Array.isArray(data.output)) {
-              jobs = data.output;
-            } else if (data?.result && Array.isArray(data.result)) {
-              jobs = data.result;
-            } else if (data?.data && Array.isArray(data.data)) {
-              jobs = data.data;
-            } else if (Array.isArray(data)) {
-              jobs = data;
-            } else if (typeof data === 'object' && data !== null) {
-              // Tentar extrair de objeto
-              for (const key in data) {
-                if (Array.isArray(data[key]) && data[key].length > 0) {
-                  const firstItem = data[key][0];
-                  if (firstItem && (firstItem.name || firstItem.jobname || firstItem.Job || firstItem.JobName)) {
-                    jobs = data[key];
-                    break;
-                  }
-                }
+        console.log('✅ Conectividade Bacula OK:', connectionTest.data);
+
+        // Fazer consulta específica para jobs das últimas 24h
+        console.log('📊 Buscando jobs das últimas 24h...');
+        const jobsResponse = await retryWithBackoff(() => 
+          supabase.functions.invoke('bacula-proxy', { 
+            body: { 
+              endpoint: 'jobs/last24h',
+              params: { age: 86400 } // 24 horas em segundos
+            } 
+          })
+        );
+
+        if (jobsResponse.error) {
+          console.error('❌ Erro ao buscar jobs últimas 24h:', jobsResponse.error);
+          throw new Error(`Erro ao buscar jobs: ${jobsResponse.error.message}`);
+        }
+
+        console.log('📦 Resposta bruta da API Bacula:', JSON.stringify(jobsResponse.data, null, 2));
+
+        let jobs = [];
+        const data = jobsResponse.data;
+
+        // Processar dados do Bacula com parsing robusto
+        if (data?.output && Array.isArray(data.output)) {
+          jobs = data.output;
+          console.log('✅ Dados extraídos de data.output');
+        } else if (data?.result && Array.isArray(data.result)) {
+          jobs = data.result;
+          console.log('✅ Dados extraídos de data.result');
+        } else if (data?.data && Array.isArray(data.data)) {
+          jobs = data.data;
+          console.log('✅ Dados extraídos de data.data');
+        } else if (Array.isArray(data)) {
+          jobs = data;
+          console.log('✅ Dados extraídos diretamente (array)');
+        } else if (typeof data === 'object' && data !== null) {
+          // Buscar arrays dentro do objeto
+          for (const key in data) {
+            if (Array.isArray(data[key]) && data[key].length > 0) {
+              const firstItem = data[key][0];
+              if (firstItem && (
+                firstItem.jobid || firstItem.JobId || firstItem.id ||
+                firstItem.name || firstItem.jobname || firstItem.Job || firstItem.JobName
+              )) {
+                jobs = data[key];
+                console.log(`✅ Dados extraídos de data.${key}`);
+                break;
               }
             }
-            
-            allJobs = allJobs.concat(jobs);
           }
         }
 
-        // Remover duplicatas baseado no jobid
-        const uniqueJobs = allJobs.reduce((acc, job) => {
-          const jobId = job.jobid || job.JobId || job.id || `${job.name || job.jobname}_${job.starttime || job.schedtime}`;
-          if (!acc.some(existing => {
-            const existingId = existing.jobid || existing.JobId || existing.id || `${existing.name || existing.jobname}_${existing.starttime || existing.schedtime}`;
-            return existingId === jobId;
-          })) {
-            acc.push(job);
-          }
-          return acc;
-        }, []);
+        if (jobs.length === 0) {
+          console.log('⚠️ Nenhum job encontrado nas últimas 24h');
+          // Se não há jobs, não é erro - pode ser que realmente não houve jobs
+          allJobs = [];
+        } else {
+          console.log(`📊 ${jobs.length} jobs encontrados nas últimas 24h`);
+          allJobs = jobs;
+        }
 
-        console.log(`📊 Total de jobs únicos encontrados: ${uniqueJobs.length}`);
-        
         // Armazenar no cache
-        setCache(cacheKey, uniqueJobs);
-        allJobs = uniqueJobs;
+        setCache(cacheKey, allJobs);
         
       } catch (error) {
-        console.error('❌ Erro ao buscar dados do Bacula:', error);
-        throw error;
+        console.error('❌ ERRO CRÍTICO ao conectar com Bacula:', error);
+        
+        // Preparar mensagem de erro detalhada para o relatório
+        const errorReport = {
+          date: brasiliaTime.toISOString().split('T')[0],
+          timestamp: new Date().toLocaleString('pt-BR'),
+          errorType: 'CONECTIVIDADE',
+          errorMessage: error.message,
+          baculaUrl: baculaIntegration.base_url,
+          suggestions: [
+            'Verificar se o serviço Bacula/BaculaWeb está ativo',
+            'Verificar conectividade de rede',
+            'Verificar credenciais de autenticação',
+            'Verificar se a porta 9097 está acessível'
+          ]
+        };
+
+        // Enviar notificação de erro ao invés de relatório normal
+        const errorMessage = `🚨 *ERRO DE CONECTIVIDADE BACULA*
+
+📅 *Data:* ${errorReport.date}
+⏰ *Horário:* ${errorReport.timestamp}
+🔗 *URL:* ${errorReport.baculaUrl}
+
+❌ *Erro:* ${errorReport.errorMessage}
+
+🔧 *Ações Recomendadas:*
+${errorReport.suggestions.map(s => `• ${s}`).join('\n')}
+
+⚠️ O relatório diário de backups não pôde ser gerado devido à falha de conectividade com o sistema Bacula.`;
+
+        console.log('📧 Enviando notificação de erro...');
+
+        // Enviar mensagem de erro para os destinatários
+        const promises = targetPhones.map(async (phoneNumber) => {
+          try {
+            const response = await fetch(`${evolutionIntegration.base_url}/message/sendText/${evolutionIntegration.instance_name}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': evolutionIntegration.api_token
+              },
+              body: JSON.stringify({
+                number: phoneNumber,
+                text: errorMessage
+              })
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            return await response.json();
+          } catch (sendError) {
+            console.error(`❌ Erro ao enviar para ${phoneNumber}:`, sendError);
+            throw sendError;
+          }
+        });
+
+        const results = await Promise.allSettled(promises);
+        
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Bacula connectivity failed',
+          details: errorReport,
+          notifications_sent: results.filter(r => r.status === 'fulfilled').length,
+          total_recipients: targetPhones.length
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500
+        });
       }
     } else {
       console.log('✅ Cache hit - usando dados cached');

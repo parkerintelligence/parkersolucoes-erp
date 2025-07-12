@@ -164,31 +164,34 @@ serve(async (req) => {
     const auth = btoa(`${integration.username}:${integration.password}`)
     const baseUrl = integration.base_url.replace(/\/$/, '')
 
-    // BaculaWeb/Baculum API endpoints mapping - usando endpoints corretos do Baculum
-    const endpointMap: Record<string, string> = {
-      'test': '/api/v2/config/api/info',
-      'jobs': '/api/v2/jobs',
-      'jobs/recent': '/api/v2/jobs?limit=50&order_by=jobid&order_direction=desc',
-      'jobs/all': '/api/v2/jobs?limit=1000&order_by=jobid&order_direction=desc',
-      'jobs/period': '/api/v2/jobs',
-      'jobs/running': '/api/v2/jobs?jobstatus=R',
-      'jobs/last24h': '/api/v2/jobs?age=86400',
-      'jobs/last7days': '/api/v2/jobs?age=604800',
-      'jobs/last30days': '/api/v2/jobs?age=2592000',
-      'jobs/configured': '/api/v2/config/dir/job',
-      'clients': '/api/v2/clients',
-      'clients/configured': '/api/v2/config/dir/client',
-      'volumes': '/api/v2/volumes',
-      'pools': '/api/v2/pools',
-      'storages': '/api/v2/storages',
-      'status': '/api/v2/status',
-      'director': '/api/v2/status/director',
-      'statistics': '/api/v2/jobs/totals',
-      'catalog': '/api/v2/catalog',
-      'version': '/api/v2/config/api/info'
+    console.log(`🔗 Conectando com Bacula em: ${baseUrl}`)
+    console.log(`👤 Usuário: ${integration.username}`)
+
+    // BaculaWeb/Baculum API endpoints mapping - testando múltiplas versões
+    const endpointMap: Record<string, string[]> = {
+      'test': ['/api/v2/config/api/info', '/api/v1/config/api/info', '/web/api/v2/config/api/info'],
+      'jobs': ['/api/v2/jobs', '/api/v1/jobs', '/web/api/v2/jobs'],
+      'jobs/recent': ['/api/v2/jobs?limit=50&order_by=jobid&order_direction=desc', '/api/v1/jobs?limit=50'],
+      'jobs/all': ['/api/v2/jobs?limit=1000&order_by=jobid&order_direction=desc', '/api/v1/jobs?limit=1000'],
+      'jobs/period': ['/api/v2/jobs', '/api/v1/jobs'],
+      'jobs/running': ['/api/v2/jobs?jobstatus=R', '/api/v1/jobs?jobstatus=R'],
+      'jobs/last24h': ['/api/v2/jobs?age=86400', '/api/v1/jobs?age=86400', '/api/v2/jobs'],
+      'jobs/last7days': ['/api/v2/jobs?age=604800', '/api/v1/jobs?age=604800'],
+      'jobs/last30days': ['/api/v2/jobs?age=2592000', '/api/v1/jobs?age=2592000'],
+      'jobs/configured': ['/api/v2/config/dir/job', '/api/v1/config/dir/job'],
+      'clients': ['/api/v2/clients', '/api/v1/clients'],
+      'clients/configured': ['/api/v2/config/dir/client', '/api/v1/config/dir/client'],
+      'volumes': ['/api/v2/volumes', '/api/v1/volumes'],
+      'pools': ['/api/v2/pools', '/api/v1/pools'],
+      'storages': ['/api/v2/storages', '/api/v1/storages'],
+      'status': ['/api/v2/status', '/api/v1/status'],
+      'director': ['/api/v2/status/director', '/api/v1/status/director'],
+      'statistics': ['/api/v2/jobs/totals', '/api/v1/jobs/totals'],
+      'catalog': ['/api/v2/catalog', '/api/v1/catalog'],
+      'version': ['/api/v2/config/api/info', '/api/v1/config/api/info']
     }
 
-    let apiEndpoint = endpointMap[endpoint] || endpoint
+    let apiEndpoints = endpointMap[endpoint] || [endpoint]
     
     // Handle custom parameters for specific endpoints
     if (endpoint === 'jobs/period' && params) {
@@ -210,30 +213,32 @@ serve(async (req) => {
         queryParams.append('jobstatus', params.status)
       }
       
-      apiEndpoint = `/api/v2/jobs?${queryParams.toString()}`
+      apiEndpoints[0] = `/api/v2/jobs?${queryParams.toString()}`
     }
-    
-    const fullUrl = `${baseUrl}${apiEndpoint}`
 
-    console.log(`Making request to: ${fullUrl}`)
+    // Tentar múltiplos endpoints até encontrar um que funcione
+    let lastError = null;
+    for (const apiEndpoint of apiEndpoints) {
+      const fullUrl = `${baseUrl}${apiEndpoint}`
+      console.log(`🔄 Tentando endpoint: ${fullUrl}`)
 
-    try {
-      // Make request to BaculaWeb API with timeout
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+      try {
+        // Make request to BaculaWeb API with timeout
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
 
-      const response = await fetch(fullUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Basic ${auth}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'User-Agent': 'Parker Intelligence System'
-        },
-        signal: controller.signal
-      })
+        const response = await fetch(fullUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'User-Agent': 'Parker Intelligence System'
+          },
+          signal: controller.signal
+        })
 
-      clearTimeout(timeoutId)
+        clearTimeout(timeoutId)
 
       console.log(`Response status: ${response.status}`)
       console.log(`Response headers:`, Object.fromEntries(response.headers.entries()))
@@ -307,15 +312,14 @@ serve(async (req) => {
           }
         }
 
-        return new Response(JSON.stringify({ 
+        console.log(`❌ Endpoint ${apiEndpoint} falhou com status ${response.status}`)
+        lastError = {
           error: `BaculaWeb API error: ${response.status}`,
           details: errorDetail,
           endpoint: apiEndpoint,
           url: fullUrl
-        }), {
-          ...corsOptions,
-          status: response.status
-        })
+        }
+        continue; // Tentar próximo endpoint
       }
 
       let data
@@ -380,25 +384,37 @@ serve(async (req) => {
         }
       })
 
-    } catch (fetchError) {
-      console.error('Fetch error:', fetchError)
-      
-      let errorMessage = 'Connection failed'
-      if (fetchError.name === 'AbortError') {
-        errorMessage = 'Request timeout'
-      } else if (fetchError.message) {
-        errorMessage = fetchError.message
-      }
+      } catch (fetchError) {
+        console.error(`Fetch error para ${apiEndpoint}:`, fetchError)
+        
+        let errorMessage = 'Connection failed'
+        if (fetchError.name === 'AbortError') {
+          errorMessage = 'Request timeout'
+        } else if (fetchError.message) {
+          errorMessage = fetchError.message
+        }
 
-      return new Response(JSON.stringify({ 
-        error: errorMessage,
-        details: `Failed to connect to ${fullUrl}`,
-        endpoint: apiEndpoint
-      }), {
-        ...corsOptions,
-        status: 500
-      })
+        lastError = {
+          error: errorMessage,
+          details: `Failed to connect to ${fullUrl}`,
+          endpoint: apiEndpoint
+        }
+        continue; // Tentar próximo endpoint
+      }
     }
+
+    // Se chegou aqui, todos os endpoints falharam
+    console.error('❌ Todos os endpoints falharam para:', endpoint)
+    return new Response(JSON.stringify({ 
+      error: 'All endpoints failed',
+      details: 'Não foi possível conectar com nenhum endpoint da API Bacula',
+      lastError: lastError,
+      endpoints: apiEndpoints,
+      baseUrl: baseUrl
+    }), {
+      ...corsOptions,
+      status: 500
+    })
 
   } catch (error) {
     console.error('Error in bacula-proxy:', error)
