@@ -201,10 +201,23 @@ export const LinksTreeView = () => {
                                     className="p-3 bg-slate-700 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors"
                                   >
                                     <div className="flex items-center justify-between mb-2">
-                                      <h4 className="font-medium text-white text-sm truncate flex-1">
-                                        {link.name}
-                                      </h4>
-                                      <div className="flex items-center gap-1">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <h4 className="font-medium text-white text-sm truncate">
+                                            {link.name}
+                                          </h4>
+                                          {link.url && (
+                                            <button
+                                              onClick={() => handleOpenLink(link.url)}
+                                              className="text-blue-400 text-xs hover:text-blue-300 truncate max-w-xs cursor-pointer hover:underline"
+                                              title={link.url}
+                                            >
+                                              {link.url}
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-1 ml-2">
                                         <Button
                                           variant="ghost"
                                           size="sm"
@@ -227,12 +240,6 @@ export const LinksTreeView = () => {
                                         </Button>
                                       </div>
                                     </div>
-                                    
-                                    {link.url && (
-                                      <p className="text-blue-400 text-xs truncate mb-2" title={link.url}>
-                                        {link.url}
-                                      </p>
-                                    )}
                                     
                                     {isPasswordVisible && (
                                       <div className="space-y-1 text-xs">
