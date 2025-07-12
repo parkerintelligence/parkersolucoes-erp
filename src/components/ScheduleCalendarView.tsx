@@ -3,13 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Clock, MapPin, Building, Settings, Edit, Trash2, Calendar, ChevronLeft, ChevronRight, Plus, CalendarDays } from 'lucide-react';
+import { Clock, MapPin, Building, Settings, Edit, Trash2, Calendar, ChevronLeft, ChevronRight, Plus, CalendarDays, CalendarIcon } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { useRecurringSchedules, useDeleteRecurringSchedule } from '@/hooks/useRecurringSchedules';
 import { useCompanies } from '@/hooks/useCompanies';
 import { RecurringScheduleDialog } from './RecurringScheduleDialog';
 import { RecurringScheduleGrid } from './RecurringScheduleGrid';
 import { ScheduleServicesDialog } from './ScheduleServicesDialog';
 import { getContrastColor } from '@/utils/colorUtils';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import type { Tables } from '@/integrations/supabase/types';
 
 type RecurringSchedule = Tables<'recurring_schedules'>;
@@ -42,8 +46,7 @@ interface DailySchedulePanelProps {
 }
 
 const DailySchedulePanel = ({ schedules, companies, onEdit }: DailySchedulePanelProps) => {
-  const today = new Date();
-  const todayDayOfWeek = today.getDay();
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const getCompanyName = (clientId: string | null) => {
     if (!clientId) return 'N/A';
@@ -57,8 +60,10 @@ const DailySchedulePanel = ({ schedules, companies, onEdit }: DailySchedulePanel
     return companyIndex >= 0 ? COMPANY_COLORS[companyIndex % COMPANY_COLORS.length] : COMPANY_COLORS[0];
   };
 
+  const selectedDateDayOfWeek = selectedDate.getDay();
+
   const todaySchedules = schedules
-    .filter(schedule => schedule.is_active && schedule.days_of_week?.includes(todayDayOfWeek))
+    .filter(schedule => schedule.is_active && schedule.days_of_week?.includes(selectedDateDayOfWeek))
     .sort((a, b) => {
       const timeA = a.time_hour * 60 + a.time_minute;
       const timeB = b.time_hour * 60 + b.time_minute;
@@ -69,23 +74,45 @@ const DailySchedulePanel = ({ schedules, companies, onEdit }: DailySchedulePanel
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   };
 
+  const isToday = selectedDate.toDateString() === new Date().toDateString();
+
   return (
     <Card className="mb-6 bg-gray-800 border-gray-700">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-white">
-          <CalendarDays className="h-5 w-5" />
-          Agendamentos de Hoje ({today.toLocaleDateString('pt-BR', { 
-            weekday: 'long', 
-            day: '2-digit', 
-            month: 'long' 
-          })})
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-white">
+            <CalendarDays className="h-5 w-5" />
+            Agendamentos de {isToday ? 'Hoje' : format(selectedDate, 'dd/MM/yyyy')} ({selectedDate.toLocaleDateString('pt-BR', { 
+              weekday: 'long', 
+              day: '2-digit', 
+              month: 'long' 
+            })})
+          </CardTitle>
+          
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600">
+                <CalendarIcon className="h-4 w-4 mr-2" />
+                {format(selectedDate, 'dd/MM/yyyy')}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <CalendarComponent
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setSelectedDate(date)}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
       </CardHeader>
       <CardContent className="bg-gray-800">
         {todaySchedules.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
             <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhum agendamento para hoje.</p>
+            <p>Nenhum agendamento para {isToday ? 'hoje' : 'esta data'}.</p>
           </div>
         ) : (
           <div className="grid gap-3">
