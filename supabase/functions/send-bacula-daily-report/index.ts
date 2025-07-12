@@ -69,6 +69,15 @@ function getErrorLevel(status: string): { level: string, label: string, priority
   return ERROR_LEVELS[status] || { level: 'unknown', label: 'Desconhecido', priority: 5 };
 }
 
+// Função auxiliar para formatBytes
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -491,16 +500,6 @@ serve(async (req) => {
       period_end: endOfYesterday.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
     };
 
-    // Função auxiliar para formatBytes
-    function formatBytes(bytes) {
-      if (bytes === 0) return '0 B';
-      const k = 1024;
-      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-    };
-
     console.log('Dados do relatório preparados:', {
       total_jobs: reportData.total_jobs,
       error_jobs: reportData.error_jobs,
@@ -532,8 +531,13 @@ serve(async (req) => {
 
     // Adicionar informações de diagnóstico se necessário
     message = message.replace(/\{\{dataSource\}\}/g, dataSource);
+    message = message.replace(/\{\{data_source\}\}/g, dataSource);
     message = message.replace(/\{\{rawDataJobs\}\}/g, jobs.length.toString());
+    message = message.replace(/\{\{raw_jobs_count\}\}/g, jobs.length.toString());
     message = message.replace(/\{\{successfulStrategy\}\}/g, successfulStrategy || 'cache');
+    message = message.replace(/\{\{successful_strategy\}\}/g, successfulStrategy || 'cache');
+    message = message.replace(/\{\{period_start\}\}/g, reportData.period_start);
+    message = message.replace(/\{\{period_end\}\}/g, reportData.period_end);
 
     // Processar seções condicionais com múltiplas variações
     const conditionalPatterns = [
@@ -571,6 +575,7 @@ serve(async (req) => {
             errorContent = errorContent.replace(/\{\{level\}\}/g, error.level || 'Full');
             errorContent = errorContent.replace(/\{\{bytes\}\}/g, error.bytes || '0 B');
             errorContent = errorContent.replace(/\{\{files\}\}/g, error.files || '0');
+            errorContent = errorContent.replace(/\{\{errors\}\}/g, error.errors || '0');
             return errorContent;
           }).join('');
         });
