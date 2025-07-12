@@ -43,6 +43,9 @@ const Guacamole = () => {
     useConnections, 
     useUsers, 
     useActiveSessions,
+    useConnectionGroups,
+    useConnectionHistory,
+    useTestConnection,
     useCreateConnection,
     useUpdateConnection,
     useDeleteConnection,
@@ -74,11 +77,14 @@ const Guacamole = () => {
   const { data: connections = [], isLoading: connectionsLoading, refetch: refetchConnections, error: connectionsError } = useConnections();
   const { data: users = [], isLoading: usersLoading, refetch: refetchUsers, error: usersError } = useUsers();
   const { data: sessions = [], isLoading: sessionsLoading, refetch: refetchSessions, error: sessionsError } = useActiveSessions();
+  const { data: connectionGroups = [], refetch: refetchGroups } = useConnectionGroups();
+  const { data: connectionHistory = [], refetch: refetchHistory } = useConnectionHistory();
 
   const createConnectionMutation = useCreateConnection();
   const updateConnectionMutation = useUpdateConnection();
   const deleteConnectionMutation = useDeleteConnection();
   const disconnectSessionMutation = useDisconnectSession();
+  const testConnectionMutation = useTestConnection();
 
   const handleRefreshAll = async () => {
     setRefreshing(true);
@@ -88,7 +94,9 @@ const Guacamole = () => {
       await Promise.all([
         refetchConnections(),
         refetchUsers(),
-        refetchSessions()
+        refetchSessions(),
+        refetchGroups(),
+        refetchHistory()
       ]);
       
       logInfo('Atualização manual concluída com sucesso');
@@ -191,11 +199,11 @@ const Guacamole = () => {
 
   const getProtocolColor = (protocol: string) => {
     switch (protocol?.toLowerCase()) {
-      case 'rdp': return 'bg-blue-100 text-blue-800';
-      case 'vnc': return 'bg-green-100 text-green-800';
-      case 'ssh': return 'bg-purple-100 text-purple-800';
-      case 'telnet': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'rdp': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+      case 'vnc': return 'bg-green-500/10 text-green-600 border-green-500/20';
+      case 'ssh': return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
+      case 'telnet': return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -203,13 +211,13 @@ const Guacamole = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <div className="bg-orange-100 p-2 rounded-lg">
-            <Monitor className="h-6 w-6 text-orange-600" />
+          <div className="bg-primary/10 p-2 rounded-lg">
+            <Monitor className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Apache Guacamole</h1>
+            <h1 className="text-2xl font-bold text-foreground">Conexão Remota</h1>
             <p className="text-muted-foreground">
-              Gerencie conexões remotas e sessões ativas
+              Gerencie conexões remotas e sessões ativas do Guacamole
             </p>
           </div>
         </div>
@@ -235,13 +243,13 @@ const Guacamole = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="bg-orange-100 p-2 rounded-lg">
-            <Monitor className="h-6 w-6 text-orange-600" />
+          <div className="bg-primary/10 p-2 rounded-lg">
+            <Monitor className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Apache Guacamole</h1>
+            <h1 className="text-2xl font-bold text-foreground">Conexão Remota</h1>
             <p className="text-muted-foreground">
-              Gerencie conexões remotas e sessões ativas
+              Gerencie conexões remotas e sessões ativas do Guacamole
             </p>
           </div>
         </div>
@@ -332,23 +340,24 @@ const Guacamole = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Status</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Grupos</CardTitle>
+            <Grid className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="text-sm font-medium text-green-600">Online</span>
-            </div>
+            <div className="text-2xl font-bold">{connectionGroups?.length || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Grupos de conexões
+            </p>
           </CardContent>
         </Card>
       </div>
 
       <Tabs defaultValue="connections" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="connections">Conexões</TabsTrigger>
           <TabsTrigger value="sessions">Sessões Ativas</TabsTrigger>
           <TabsTrigger value="users">Usuários</TabsTrigger>
+          <TabsTrigger value="history">Histórico</TabsTrigger>
           <TabsTrigger value="logs">
             <FileText className="h-4 w-4 mr-2" />
             Logs
@@ -578,6 +587,60 @@ const Guacamole = () => {
                   </TableBody>
                 </Table>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Histórico de Conexões
+              </CardTitle>
+              <CardDescription>
+                Registro de conexões realizadas no Guacamole
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Conexão</TableHead>
+                    <TableHead>Usuário</TableHead>
+                    <TableHead>Início</TableHead>
+                    <TableHead>Fim</TableHead>
+                    <TableHead>Duração</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {connectionHistory && connectionHistory.length > 0 ? (
+                    connectionHistory.map((record, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">{record.connectionName}</TableCell>
+                        <TableCell>{record.username}</TableCell>
+                        <TableCell>
+                          {record.startDate ? new Date(record.startDate).toLocaleString('pt-BR') : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {record.endDate ? new Date(record.endDate).toLocaleString('pt-BR') : 'Em andamento'}
+                        </TableCell>
+                        <TableCell>
+                          {record.duration ? `${Math.round(record.duration / 60)} min` : 'N/A'}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        <FileText className="h-12 w-12 mx-auto mb-4" />
+                        <p className="text-lg font-medium">Nenhum registro encontrado</p>
+                        <p className="text-sm">O histórico aparecerá conforme as conexões forem utilizadas.</p>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>

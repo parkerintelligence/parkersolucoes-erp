@@ -197,10 +197,16 @@ serve(async (req) => {
         console.log('Token preview (first 20 chars):', authToken.substring(0, 20) + '...')
 
         // Cache do token por 50 minutos (tokens do Guacamole geralmente expiram em 60 min)
-        tokenCache.set(integrationId, {
-          token: authToken,
-          expires: now + (50 * 60 * 1000) // 50 minutos
-        })
+        // Também verificar se o token é válido antes de cachear
+        if (authToken && authToken.length > 10) {
+          tokenCache.set(integrationId, {
+            token: authToken,
+            expires: now + (50 * 60 * 1000) // 50 minutos
+          })
+          console.log('Token cached successfully')
+        } else {
+          console.warn('Token muito curto ou inválido, não será cacheado:', authToken?.length || 0)
+        }
         
       } catch (fetchError) {
         console.error('Network error during login:', fetchError)
@@ -246,13 +252,38 @@ serve(async (req) => {
       case 'sessions':
         apiPath = `/api/session/data/${dataSource}/activeConnections`
         break
+      case 'connectionGroups':
+        apiPath = `/api/session/data/${dataSource}/connectionGroups`
+        break
+      case 'permissions':
+        apiPath = `/api/session/data/${dataSource}/permissions`
+        break
+      case 'schemas':
+        apiPath = `/api/session/data/${dataSource}/schema/userAttributes`
+        break
+      case 'history':
+        apiPath = `/api/session/data/${dataSource}/history/connections`
+        break
       default:
         if (endpoint.startsWith('connections/')) {
           const connectionId = endpoint.split('/')[1]
-          apiPath = `/api/session/data/${dataSource}/connections/${encodeURIComponent(connectionId)}`
+          const action = endpoint.split('/')[2]
+          if (action) {
+            apiPath = `/api/session/data/${dataSource}/connections/${encodeURIComponent(connectionId)}/${action}`
+          } else {
+            apiPath = `/api/session/data/${dataSource}/connections/${encodeURIComponent(connectionId)}`
+          }
         } else if (endpoint.startsWith('sessions/')) {
           const sessionId = endpoint.split('/')[1]
           apiPath = `/api/session/data/${dataSource}/activeConnections/${encodeURIComponent(sessionId)}`
+        } else if (endpoint.startsWith('users/')) {
+          const username = endpoint.split('/')[1]
+          const action = endpoint.split('/')[2]
+          if (action) {
+            apiPath = `/api/session/data/${dataSource}/users/${encodeURIComponent(username)}/${action}`
+          } else {
+            apiPath = `/api/session/data/${dataSource}/users/${encodeURIComponent(username)}`
+          }
         } else {
           apiPath = `/api/session/data/${dataSource}/${endpoint}`
         }

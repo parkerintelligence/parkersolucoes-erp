@@ -7,6 +7,7 @@ import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Admin from '@/pages/Admin';
 import GLPI from '@/pages/GLPI';
+import Guacamole from '@/pages/Guacamole';
 import Backups from '@/pages/Backups';
 import Passwords from '@/pages/Passwords';
 import Annotations from '@/pages/Annotations';
@@ -62,16 +63,24 @@ function App() {
                   </Layout>
                 }
               />
-              <Route
-                path="/glpi"
-                element={
-                  <Layout>
-                    <GLPI />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/backups"
+               <Route
+                 path="/glpi"
+                 element={
+                   <Layout>
+                     <GLPI />
+                   </Layout>
+                 }
+               />
+               <Route
+                 path="/conexao-remota"
+                 element={
+                   <Layout>
+                     <Guacamole />
+                   </Layout>
+                 }
+               />
+               <Route
+                 path="/backups"
                 element={
                   <Layout>
                     <Backups />

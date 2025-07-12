@@ -38,11 +38,11 @@ export const GuacamoleConnectionCard = ({
 
   const getProtocolColor = (protocol: string) => {
     switch (protocol?.toLowerCase()) {
-      case 'rdp': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'vnc': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'ssh': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
-      case 'telnet': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+      case 'rdp': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+      case 'vnc': return 'bg-green-500/10 text-green-600 border-green-500/20';
+      case 'ssh': return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
+      case 'telnet': return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -59,18 +59,18 @@ export const GuacamoleConnectionCard = ({
     if (connection.activeConnections > 0) {
       return { label: 'Ativo', color: 'bg-green-500' };
     }
-    return { label: 'Inativo', color: 'bg-gray-400' };
+    return { label: 'Inativo', color: 'bg-muted-foreground' };
   };
 
   const status = getConnectionStatus();
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="bg-card border-border hover:shadow-md hover:border-primary/20 transition-all hover-scale">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-orange-100 p-2 rounded-lg dark:bg-orange-900">
-              <Monitor className="h-5 w-5 text-orange-600 dark:text-orange-300" />
+            <div className="bg-primary/10 p-2 rounded-lg">
+              <Monitor className="h-5 w-5 text-primary" />
             </div>
             <div>
               <CardTitle className="text-lg">{connection.name}</CardTitle>
@@ -97,7 +97,7 @@ export const GuacamoleConnectionCard = ({
 
       <CardContent className="space-y-4">
         {showDetails && (
-          <div className="bg-muted p-3 rounded-lg space-y-2 text-sm">
+          <div className="bg-muted/50 p-3 rounded-lg space-y-2 text-sm border border-border">
             <div><strong>ID:</strong> {connection.identifier}</div>
             {connection.parameters?.hostname && (
               <div><strong>Host:</strong> {connection.parameters.hostname}</div>

@@ -24,6 +24,26 @@ export interface GuacamoleSession {
   connectionName: string;
   protocol: string;
   startTime: string;
+  remoteHost?: string;
+  tunnel?: any;
+}
+
+export interface GuacamoleConnectionGroup {
+  identifier: string;
+  name: string;
+  type: string;
+  childConnections: string[];
+  childConnectionGroups: string[];
+  attributes: Record<string, any>;
+}
+
+export interface GuacamoleConnectionHistory {
+  connectionIdentifier: string;
+  connectionName: string;
+  username: string;
+  startDate: string;
+  endDate?: string;
+  duration?: number;
 }
 
 export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?: any) => void) => {
@@ -267,7 +287,9 @@ export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?
             username: result[sessionId]?.username || 'unknown',
             connectionName: result[sessionId]?.connectionName || 'unknown',
             protocol: result[sessionId]?.protocol || 'unknown',
-            startTime: result[sessionId]?.startTime || new Date().toISOString()
+            startTime: result[sessionId]?.startTime || new Date().toISOString(),
+            remoteHost: result[sessionId]?.remoteHost,
+            tunnel: result[sessionId]?.tunnel
           }));
           
           onLog?.('response', `${sessions.length} sessões processadas (formato objeto)`);
@@ -298,10 +320,117 @@ export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?
     });
   };
 
+  const useConnectionGroups = () => {
+    return useQuery({
+      queryKey: ['guacamole', 'connectionGroups', integration?.id],
+      queryFn: async () => {
+        onLog?.('info', 'Iniciando busca de grupos de conexão');
+        const result = await callGuacamoleAPI('connectionGroups');
+        
+        if (Array.isArray(result)) {
+          return result;
+        }
+        
+        if (typeof result === 'object' && result !== null) {
+          const groups = Object.keys(result).map(groupId => ({
+            identifier: groupId,
+            name: result[groupId]?.name || groupId,
+            type: result[groupId]?.type || 'organizational',
+            childConnections: result[groupId]?.childConnections || [],
+            childConnectionGroups: result[groupId]?.childConnectionGroups || [],
+            attributes: result[groupId]?.attributes || {}
+          }));
+          
+          onLog?.('response', `${groups.length} grupos processados`);
+          return groups;
+        }
+        
+        return [];
+      },
+      enabled: isConfigured,
+      staleTime: 60000,
+      retry: (failureCount, error) => {
+        if (error.message.includes('Configuração incompleta') || 
+            error.message.includes('Credenciais inválidas') ||
+            error.message.includes('ERRO DE PERMISSÕES')) {
+          return false;
+        }
+        return failureCount < 2;
+      },
+    });
+  };
+
+  const useConnectionHistory = () => {
+    return useQuery({
+      queryKey: ['guacamole', 'history', integration?.id],
+      queryFn: async () => {
+        onLog?.('info', 'Iniciando busca de histórico de conexões');
+        const result = await callGuacamoleAPI('history');
+        
+        if (Array.isArray(result)) {
+          return result;
+        }
+        
+        if (typeof result === 'object' && result !== null) {
+          const history = Object.keys(result).map(recordId => ({
+            connectionIdentifier: result[recordId]?.connectionIdentifier || 'unknown',
+            connectionName: result[recordId]?.connectionName || 'unknown',
+            username: result[recordId]?.username || 'unknown',
+            startDate: result[recordId]?.startDate || new Date().toISOString(),
+            endDate: result[recordId]?.endDate,
+            duration: result[recordId]?.duration
+          }));
+          
+          onLog?.('response', `${history.length} registros de histórico processados`);
+          return history;
+        }
+        
+        return [];
+      },
+      enabled: isConfigured,
+      staleTime: 120000, // 2 minutos
+      retry: (failureCount, error) => {
+        if (error.message.includes('Configuração incompleta') || 
+            error.message.includes('Credenciais inválidas') ||
+            error.message.includes('ERRO DE PERMISSÕES')) {
+          return false;
+        }
+        return failureCount < 2;
+      },
+    });
+  };
+
+  const useTestConnection = () => {
+    return useMutation({
+      mutationFn: async (connectionId: string) => {
+        onLog?.('info', 'Testando conectividade da conexão', { connectionId });
+        return callGuacamoleAPI(`connections/${connectionId}/test`, { method: 'GET' });
+      },
+      onSuccess: (data, connectionId) => {
+        onLog?.('response', 'Teste de conexão bem-sucedido', { connectionId });
+        toast({
+          title: "Teste bem-sucedido!",
+          description: "A conexão está funcionando corretamente.",
+        });
+      },
+      onError: (error: Error, connectionId) => {
+        onLog?.('error', `Erro no teste de conexão: ${error.message}`, { connectionId });
+        toast({
+          title: "Teste falhou",
+          description: error.message,
+          variant: "destructive"
+        });
+      },
+    });
+  };
+
   return {
     useConnections,
     useUsers,
     useActiveSessions,
+    useConnectionGroups,
+    useConnectionHistory,
+    useTestConnection,
     useCreateConnection: () => {
       return useMutation({
         mutationFn: (connectionData: Partial<GuacamoleConnection>) => {
@@ -405,6 +534,7 @@ export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?
       });
     },
     isConfigured,
-    integration
+    integration,
+    normalizeBaseUrl
   };
 };
