@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +26,7 @@ export const GuacamoleConnectionTree = ({
   onDelete,
   isDeleting
 }: GuacamoleConnectionTreeProps) => {
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set()); // Começar todos recolhidos
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set()); // Começar todos expandidos após carregar
   const [searchFilter, setSearchFilter] = useState('');
 
   // Extrair grupo do nome da conexão (texto antes do primeiro hífen)
@@ -140,6 +140,15 @@ export const GuacamoleConnectionTree = ({
   };
 
   const groups = organizedConnections();
+  
+  // Expandir todos os grupos automaticamente quando houver dados
+  React.useEffect(() => {
+    if (groups.length > 0 && expandedGroups.size === 0) {
+      const allGroupIds = groups.map(group => group.identifier);
+      setExpandedGroups(new Set(allGroupIds));
+    }
+  }, [groups.length]);
+
   return <div className="space-y-4">
       {/* Controles superiores */}
       <div className="flex gap-4">

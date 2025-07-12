@@ -30,35 +30,50 @@ export default function Alertas() {
   const hostIds = hosts.map(host => host.hostid);
   const { data: items = [], isLoading: itemsLoading } = useItems(hostIds, {
     search: {
-      key_: ['system.cpu.util[,avg1]', 'vm.memory.size[total]', 'vm.memory.size[available]', 'system.uptime', 'vfs.fs.size[/,pused]']
+      key_: [
+        'system.cpu.util[,avg1]', 
+        'system.cpu.util',
+        'vm.memory.size[total]', 
+        'vm.memory.size[available]', 
+        'vm.memory.utilization',
+        'system.uptime', 
+        'vfs.fs.size[/,pused]',
+        'vfs.fs.size[/,pfree]',
+        'vfs.fs.size[/,total]'
+      ]
     }
   });
 
   const getDeviceStatus = (host: any): DeviceStatus => {
     // Verificar se o host tem problemas de severidade "Desastre" (severity = "5")
-    // Se tiver problemas de Desastre = OFFLINE, caso contrário = ONLINE
+    // OU se o host está marcado como inativo (status = "1")
+    // Se tiver problemas de Desastre OU estiver inativo = OFFLINE, caso contrário = ONLINE
     
     const hostProblems = problems.filter(problem => 
       problem.hosts.some(problemHost => problemHost.hostid === host.hostid)
     );
     
-    // Verificar se há problemas de severidade "Desastre" (5) ou "Alto" (4)
+    // Verificar se há problemas de severidade "Desastre" (5)
     const hasDisasterProblems = hostProblems.some(problem => 
       problem.severity === '5' // Desastre
     );
     
-    console.log('🔍 Host disaster check:', {
+    // Verificar se o host está inativo (status = "1" = disabled)
+    const isHostInactive = host.status === '1';
+    
+    console.log('🔍 Host status check:', {
       hostid: host.hostid,
       name: host.name,
+      hostStatus: host.status,
+      isHostInactive,
       totalProblems: hostProblems.length,
       hasDisasterProblems,
       problems: hostProblems.map(p => ({ name: p.name, severity: p.severity })),
-      available: host.available,
-      status: host.status
+      available: host.available
     });
     
-    // Se tem problemas de Desastre = OFFLINE, caso contrário = ONLINE
-    const status = hasDisasterProblems ? 'offline' : 'online';
+    // Se tem problemas de Desastre OU host inativo = OFFLINE, caso contrário = ONLINE
+    const status = (hasDisasterProblems || isHostInactive) ? 'offline' : 'online';
     
     return {
       id: host.hostid,
@@ -81,36 +96,108 @@ export default function Alertas() {
   const getPerformanceData = (hostId: string) => {
     const hostItems = items.filter(item => item.hostid === hostId);
     
-    const cpuItem = hostItems.find(item => item.key_.includes('system.cpu.util'));
-    const memoryTotalItem = hostItems.find(item => item.key_.includes('vm.memory.size[total]'));
-    const memoryAvailableItem = hostItems.find(item => item.key_.includes('vm.memory.size[available]'));
-    const uptimeItem = hostItems.find(item => item.key_.includes('system.uptime'));
-    const diskItem = hostItems.find(item => item.key_.includes('vfs.fs.size') && item.key_.includes('[/,pused]'));
+    // Buscar diferentes variações dos itens de CPU
+    const cpuItem = hostItems.find(item => 
+      item.key_.includes('system.cpu.util') || 
+      item.key_.includes('cpu.util')
+    );
+    
+    // Buscar itens de memória - diferentes variações
+    const memoryTotalItem = hostItems.find(item => 
+      item.key_.includes('vm.memory.size[total]') ||
+      item.key_.includes('memory.size[total]') ||
+      item.key_.includes('vm.memory.total')
+    );
+    
+    const memoryAvailableItem = hostItems.find(item => 
+      item.key_.includes('vm.memory.size[available]') ||
+      item.key_.includes('memory.size[available]') ||
+      item.key_.includes('vm.memory.available')
+    );
+    
+    const memoryUtilItem = hostItems.find(item => 
+      item.key_.includes('vm.memory.utilization') ||
+      item.key_.includes('memory.utilization')
+    );
+    
+    // Buscar uptime
+    const uptimeItem = hostItems.find(item => 
+      item.key_.includes('system.uptime') ||
+      item.key_.includes('uptime')
+    );
+    
+    // Buscar itens de disco - diferentes variações
+    const diskUsedItem = hostItems.find(item => 
+      item.key_.includes('vfs.fs.size[/,pused]') ||
+      item.key_.includes('fs.size[/,pused]') ||
+      item.key_.includes('disk.used.percent')
+    );
+    
+    const diskFreeItem = hostItems.find(item => 
+      item.key_.includes('vfs.fs.size[/,pfree]') ||
+      item.key_.includes('fs.size[/,pfree]')
+    );
     
     console.log('📊 Performance data for host', hostId, {
-      cpuItem: cpuItem ? { key: cpuItem.key_, value: cpuItem.lastvalue } : null,
-      memoryTotalItem: memoryTotalItem ? { key: memoryTotalItem.key_, value: memoryTotalItem.lastvalue } : null,
-      memoryAvailableItem: memoryAvailableItem ? { key: memoryAvailableItem.key_, value: memoryAvailableItem.lastvalue } : null,
-      uptimeItem: uptimeItem ? { key: uptimeItem.key_, value: uptimeItem.lastvalue } : null,
-      diskItem: diskItem ? { key: diskItem.key_, value: diskItem.lastvalue } : null,
+      totalItems: hostItems.length,
+      availableItems: hostItems.map(item => ({ key: item.key_, value: item.lastvalue, units: item.units })),
+      cpuItem: cpuItem ? { key: cpuItem.key_, value: cpuItem.lastvalue, units: cpuItem.units } : null,
+      memoryTotalItem: memoryTotalItem ? { key: memoryTotalItem.key_, value: memoryTotalItem.lastvalue, units: memoryTotalItem.units } : null,
+      memoryAvailableItem: memoryAvailableItem ? { key: memoryAvailableItem.key_, value: memoryAvailableItem.lastvalue, units: memoryAvailableItem.units } : null,
+      memoryUtilItem: memoryUtilItem ? { key: memoryUtilItem.key_, value: memoryUtilItem.lastvalue, units: memoryUtilItem.units } : null,
+      uptimeItem: uptimeItem ? { key: uptimeItem.key_, value: uptimeItem.lastvalue, units: uptimeItem.units } : null,
+      diskUsedItem: diskUsedItem ? { key: diskUsedItem.key_, value: diskUsedItem.lastvalue, units: diskUsedItem.units } : null,
+      diskFreeItem: diskFreeItem ? { key: diskFreeItem.key_, value: diskFreeItem.lastvalue, units: diskFreeItem.units } : null,
     });
     
-    const cpuUsage = cpuItem?.lastvalue ? parseFloat(cpuItem.lastvalue) : 0;
+    // CPU Usage - tentar diferentes fontes
+    let cpuUsage = 0;
+    if (cpuItem?.lastvalue) {
+      cpuUsage = parseFloat(cpuItem.lastvalue);
+      // Se o valor estiver em decimal (0-1), converter para porcentagem
+      if (cpuUsage <= 1) {
+        cpuUsage = cpuUsage * 100;
+      }
+    }
     
-    // Calcular memória em GB
-    const memoryTotalBytes = memoryTotalItem?.lastvalue ? parseFloat(memoryTotalItem.lastvalue) : 0;
-    const memoryAvailableBytes = memoryAvailableItem?.lastvalue ? parseFloat(memoryAvailableItem.lastvalue) : 0;
-    const memoryUsedBytes = memoryTotalBytes - memoryAvailableBytes;
-    const memoryUsedGB = memoryUsedBytes / (1024 * 1024 * 1024);
+    // Memória - tentar diferentes abordagens
+    let memoryUsedGB = 0;
+    let memoryUsedPercent = 0;
     
+    if (memoryUtilItem?.lastvalue) {
+      // Se temos utilização direta em porcentagem
+      memoryUsedPercent = parseFloat(memoryUtilItem.lastvalue);
+      // Estimar GB baseado na porcentagem (assumindo 8GB padrão se não soubermos o total)
+      const estimatedTotalGB = 8;
+      memoryUsedGB = (memoryUsedPercent / 100) * estimatedTotalGB;
+    } else if (memoryTotalItem?.lastvalue && memoryAvailableItem?.lastvalue) {
+      // Calcular baseado em total e disponível
+      const memoryTotalBytes = parseFloat(memoryTotalItem.lastvalue);
+      const memoryAvailableBytes = parseFloat(memoryAvailableItem.lastvalue);
+      const memoryUsedBytes = memoryTotalBytes - memoryAvailableBytes;
+      
+      // Converter para GB (assumindo que os valores estão em bytes)
+      memoryUsedGB = memoryUsedBytes / (1024 * 1024 * 1024);
+      memoryUsedPercent = (memoryUsedBytes / memoryTotalBytes) * 100;
+    }
+    
+    // Uptime
     const uptime = uptimeItem?.lastvalue ? parseInt(uptimeItem.lastvalue) : 0;
     
-    // Disk percentage usado (vfs.fs.size[/,pused] já retorna porcentagem)
-    const diskUsedPercent = diskItem?.lastvalue ? parseFloat(diskItem.lastvalue) : 0;
+    // Disk Usage - tentar diferentes fontes
+    let diskUsedPercent = 0;
+    if (diskUsedItem?.lastvalue) {
+      diskUsedPercent = parseFloat(diskUsedItem.lastvalue);
+    } else if (diskFreeItem?.lastvalue) {
+      // Se temos só o espaço livre, calcular o usado
+      const diskFreePercent = parseFloat(diskFreeItem.lastvalue);
+      diskUsedPercent = 100 - diskFreePercent;
+    }
     
     return {
       cpu: cpuUsage,
       memory: memoryUsedGB,
+      memoryPercent: memoryUsedPercent,
       uptime: uptime,
       disk: diskUsedPercent,
     };
@@ -284,20 +371,22 @@ export default function Alertas() {
                               />
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-white text-sm">{perf.memory.toFixed(1)} GB</span>
-                              </div>
-                              <Progress 
-                                value={Math.min((perf.memory / 16) * 100, 100)} 
-                                className="h-2 w-20"
-                                style={{
-                                  '--progress-foreground': getProgressColor((perf.memory / 16) * 100)
-                                } as React.CSSProperties}
-                              />
-                            </div>
-                          </TableCell>
+                           <TableCell>
+                             <div className="space-y-1">
+                               <div className="flex items-center justify-between">
+                                 <span className="text-white text-sm">
+                                   {perf.memory.toFixed(1)} GB ({perf.memoryPercent?.toFixed(1) || '0'}%)
+                                 </span>
+                               </div>
+                               <Progress 
+                                 value={perf.memoryPercent || Math.min((perf.memory / 16) * 100, 100)} 
+                                 className="h-2 w-20"
+                                 style={{
+                                   '--progress-foreground': getProgressColor(perf.memoryPercent || (perf.memory / 16) * 100)
+                                 } as React.CSSProperties}
+                               />
+                             </div>
+                           </TableCell>
                           <TableCell>
                             <div className="space-y-1">
                               <div className="flex items-center justify-between">
