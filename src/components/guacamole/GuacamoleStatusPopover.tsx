@@ -197,7 +197,7 @@ export const GuacamoleStatusPopover = ({
           <Shield className="h-4 w-4 mr-2" />
           {getStatusText()}
           {tokenStatus?.isValid && tokenStatus.timeLeft && (
-            <span className="ml-2 text-xs opacity-70">
+            <span className="ml-2 text-xs text-yellow-400">
               {Math.round(tokenStatus.timeLeft)}min
             </span>
           )}
