@@ -61,38 +61,72 @@ export const GuacamoleConnectionTree = ({
 
     // Distribuir conexões filtradas pelos grupos
     filteredConnections.forEach(connection => {
-      // Buscar o grupo da conexão usando diferentes estratégias
+      // Buscar o grupo da conexão usando diferentes estratégias mais abrangentes
       let groupId = 'general';
       
-      // Verificar diferentes campos possíveis para o grupo
-      if ((connection as any).parentIdentifier) {
-        groupId = (connection as any).parentIdentifier;
-      } else if (connection.attributes?.parentIdentifier) {
-        groupId = connection.attributes.parentIdentifier;
-      } else if ((connection as any).parentGroup) {
-        groupId = (connection as any).parentGroup;
-      } else if (connection.attributes?.group) {
-        groupId = connection.attributes.group;
+      // Lista de possíveis campos onde pode estar a informação do grupo
+      const possibleGroupFields = [
+        'parentIdentifier', 'parent-identifier', 'parentGroup', 'parent-group',
+        'groupIdentifier', 'group-identifier', 'connectionGroup', 'connection-group',
+        'group', 'folder', 'category', 'path', 'container'
+      ];
+      
+      // Buscar em diferentes locais da estrutura da conexão
+      const sources = [
+        connection as any,
+        connection.attributes || {},
+        connection.parameters || {},
+        (connection as any).parent || {},
+        (connection as any).group || {}
+      ];
+      
+      // Tentar encontrar o grupo em qualquer um dos campos possíveis
+      for (const source of sources) {
+        if (!source || typeof source !== 'object') continue;
+        
+        for (const field of possibleGroupFields) {
+          if (source[field] && source[field] !== 'ROOT' && source[field] !== groupId) {
+            groupId = source[field];
+            console.log(`🎯 Group found for ${connection.name}: "${groupId}" in field "${field}"`);
+            break;
+          }
+        }
+        
+        if (groupId !== 'general') break;
       }
 
-      // Debug: log para verificar a estrutura
-      console.log('Connection group detection:', {
+      // Debug expandido: log para verificar a estrutura completa
+      console.log('🔍 Connection group detection:', {
         connectionName: connection.name,
-        parentIdentifier: (connection as any).parentIdentifier,
-        attributesParentId: connection.attributes?.parentIdentifier,
+        connectionIdentifier: connection.identifier,
         detectedGroupId: groupId,
-        fullConnection: connection
+        allPossibleFields: possibleGroupFields.reduce((acc, field) => {
+          sources.forEach((source, idx) => {
+            if (source && typeof source === 'object' && source[field]) {
+              acc[`source${idx}_${field}`] = source[field];
+            }
+          });
+          return acc;
+        }, {} as Record<string, any>),
+        availableGroups: connectionGroups.map(g => ({ id: g.identifier, name: g.name }))
       });
 
       // Se o grupo não existe, criar um novo grupo baseado no nome encontrado
       if (!groups[groupId] && groupId !== 'general') {
         // Buscar o nome real do grupo nos connectionGroups
-        const foundGroup = connectionGroups.find(g => g.identifier === groupId);
+        const foundGroup = connectionGroups.find(g => 
+          g.identifier === groupId || 
+          g.name === groupId ||
+          (g as any).id === groupId
+        );
+        
         groups[groupId] = {
           identifier: groupId,
-          name: foundGroup?.name || groupId,
+          name: foundGroup?.name || foundGroup?.identifier || groupId,
           connections: []
         };
+        
+        console.log(`📁 Created new group: ${groups[groupId].name} (${groupId})`);
       }
 
       groups[groupId].connections.push(connection);
@@ -210,38 +244,44 @@ export const GuacamoleConnectionTree = ({
                   </div> : <div className="ml-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {group.connections.map(connection => <Card key={connection.identifier} className="bg-slate-700 border-slate-600">
                       <CardContent className="p-3 bg-gray-900 rounded-xl">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="space-y-2">
+                          {/* Header com ícone e nome */}
+                          <div className="flex items-center gap-2">
                             <Monitor className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-medium text-white truncate">
-                                {connection.name}
-                              </h4>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Button variant="outline" size="sm" onClick={() => onConnect(connection)} className="h-6 px-2 text-xs bg-green-600 hover:bg-green-700 border-green-600 text-white">
-                                  Conectar
-                                </Button>
-                                <Badge variant="outline" className={`text-xs ${getProtocolColor(connection.protocol)}`}>
-                                  {connection.protocol.toUpperCase()}
-                                </Badge>
-                                <Badge variant="secondary" className={`text-xs ${getStatusColor(getConnectionStatus(connection))}`}>
-                                  {getConnectionStatus(connection)}
-                                </Badge>
-                              </div>
-                            </div>
+                            <h4 className="text-sm font-medium text-white truncate flex-1">
+                              {connection.name}
+                            </h4>
                           </div>
 
-                          <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => onConnect(connection)} className="h-7 w-7 p-0 text-slate-300 hover:bg-slate-600 hover:text-white">
-                              <ExternalLink className="h-3 w-3" />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => onEdit(connection)} className="h-7 w-7 p-0 text-slate-300 hover:bg-slate-600 hover:text-white">
+                          {/* Botões de ação */}
+                          <div className="flex items-center gap-1 justify-end">
+                            <Button variant="ghost" size="sm" onClick={() => onEdit(connection)} className="h-6 w-6 p-0 text-slate-300 hover:bg-slate-600 hover:text-white">
                               <Edit className="h-3 w-3" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => onDelete(connection.identifier)} disabled={isDeleting} className="h-7 w-7 p-0 text-slate-300 hover:bg-red-600 hover:text-white">
+                            <Button variant="ghost" size="sm" onClick={() => onDelete(connection.identifier)} disabled={isDeleting} className="h-6 w-6 p-0 text-slate-300 hover:bg-red-600 hover:text-white">
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
+
+                          {/* Status e protocolo */}
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <Badge variant="outline" className={`text-xs ${getProtocolColor(connection.protocol)}`}>
+                              {connection.protocol.toUpperCase()}
+                            </Badge>
+                            <Badge variant="secondary" className={`text-xs ${getStatusColor(getConnectionStatus(connection))}`}>
+                              {getConnectionStatus(connection)}
+                            </Badge>
+                          </div>
+
+                          {/* Botão conectar */}
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => onConnect(connection)} 
+                            className="w-full h-7 text-xs bg-green-600 hover:bg-green-700 border-green-600 text-white"
+                          >
+                            Conectar
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>)}
