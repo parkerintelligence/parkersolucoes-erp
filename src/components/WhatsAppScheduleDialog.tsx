@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -5,11 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MessageCircle, Send, User } from 'lucide-react';
+import { MessageCircle, Send, User, Copy } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { EvolutionApiService } from '@/utils/evolutionApiService';
+import { WhatsAppErrorDialog } from './WhatsAppErrorDialog';
 
 interface ScheduleItem {
   id: string;
@@ -89,23 +92,20 @@ Equipe de Suporte`
 ];
 
 export const WhatsAppScheduleDialog = ({ open, onOpenChange, scheduleItem }: WhatsAppScheduleDialogProps) => {
-  const { data: integrations = [] } = useIntegrations();
+  const { data: integrations } = useIntegrations();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [message, setMessage] = useState('');
-  const [selectedIntegration, setSelectedIntegration] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorDialog, setErrorDialog] = useState<{
+    open: boolean;
+    error: any;
+  }>({ open: false, error: null });
 
   // Filtrar integrações da Evolution API
-  const evolutionIntegrations = integrations.filter(integration => 
+  const evolutionIntegrations = integrations?.filter(integration => 
     integration.type === 'evolution_api' && integration.is_active
-  );
-
-  useEffect(() => {
-    if (evolutionIntegrations.length > 0 && !selectedIntegration) {
-      setSelectedIntegration(evolutionIntegrations[0].id);
-    }
-  }, [evolutionIntegrations, selectedIntegration]);
+  ) || [];
 
   useEffect(() => {
     if (selectedTemplate) {
@@ -123,209 +123,277 @@ export const WhatsAppScheduleDialog = ({ open, onOpenChange, scheduleItem }: Wha
     }
   }, [selectedTemplate, scheduleItem]);
 
-  const handleSendMessage = async () => {
-    if (!phoneNumber || !message || !selectedIntegration) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Preencha todos os campos antes de enviar.",
-        variant: "destructive"
-      });
-      return;
-    }
+  const formatMessage = () => {
+    return message || `📋 *${scheduleItem.title}*
 
-    setIsLoading(true);
-    
+🏢 *Empresa:* ${scheduleItem.company}
+📅 *Vencimento:* ${format(new Date(scheduleItem.due_date), 'dd/MM/yyyy', { locale: ptBR })}
+📝 *Tipo:* ${scheduleItem.type}
+${scheduleItem.description ? `📄 *Descrição:* ${scheduleItem.description}` : ''}
+
+🕒 Compartilhado em: ${new Date().toLocaleString('pt-BR')}`;
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(formatMessage());
+    toast({
+      title: "Mensagem copiada!",
+      description: "A mensagem foi copiada para a área de transferência.",
+    });
+  };
+
+  const validatePhoneNumber = (phone: string): boolean => {
+    const cleaned = phone.replace(/\D/g, '');
+    return (cleaned.length === 11 || cleaned.length === 13) && 
+           (cleaned.length === 13 ? cleaned.startsWith('55') : true);
+  };
+
+  const formatPhoneForDisplay = (phone: string): string => {
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 11 && !cleaned.startsWith('55')) {
+      return `55${cleaned}`;
+    }
+    return cleaned;
+  };
+
+  const handleSend = async () => {
     try {
-      const integration = evolutionIntegrations.find(i => i.id === selectedIntegration);
-      
-      if (!integration) {
-        throw new Error('Integração não encontrada');
+      if (!phoneNumber.trim()) {
+        toast({
+          title: "❌ Número obrigatório",
+          description: "Digite o número do WhatsApp para enviar a mensagem.",
+          variant: "destructive",
+        });
+        return;
       }
 
-      const integrationAny = integration as any;
-      const instanceName = integrationAny.instance_name || 'main_instance';
-      
-      console.log('Enviando mensagem via Evolution API:', {
-        url: `${integration.base_url}/message/sendText/${instanceName}`,
-        phoneNumber: phoneNumber,
-        messageLength: message.length,
-        integration: integration.name,
-        instance: instanceName,
-        apiToken: integration.api_token ? '***masked***' : 'missing'
-      });
-
-      const response = await fetch(`${integration.base_url}/message/sendText/${instanceName}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': integration.api_token || '',
-        },
-        body: JSON.stringify({
-          number: phoneNumber,
-          text: message,
-        }),
-      });
-
-      console.log('Resposta da Evolution API:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
-
-      if (response.ok) {
+      if (!validatePhoneNumber(phoneNumber)) {
         toast({
-          title: "✅ Mensagem enviada!",
-          description: `Mensagem enviada com sucesso para ${phoneNumber}`,
+          title: "❌ Número inválido",
+          description: "Digite um número válido:\n• 11 dígitos: 11999999999\n• 13 dígitos: 5511999999999",
+          variant: "destructive",
         });
+        return;
+      }
+
+      console.log('🔍 Verificando integrações disponíveis...');
+      console.log('📋 Integrações encontradas:', integrations);
+
+      const evolutionApiIntegration = evolutionIntegrations[0];
+      
+      if (!evolutionApiIntegration) {
+        console.error('❌ Nenhuma integração Evolution API ativa encontrada');
+        toast({
+          title: "❌ Evolution API não configurada",
+          description: "Configure uma Evolution API ativa no painel administrativo primeiro.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ Integração Evolution API encontrada:', {
+        id: evolutionApiIntegration.id,
+        name: evolutionApiIntegration.name,
+        base_url: evolutionApiIntegration.base_url,
+        instance_name: evolutionApiIntegration.instance_name,
+        hasToken: !!evolutionApiIntegration.api_token
+      });
+
+      // Validar se api_token e instance_name existem
+      if (!evolutionApiIntegration.api_token || !evolutionApiIntegration.instance_name) {
+        console.error('❌ Configuração incompleta da Evolution API');
+        toast({
+          title: "❌ Configuração incompleta",
+          description: "API Token e Nome da Instância são obrigatórios na configuração da Evolution API.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setIsLoading(true);
+      
+      // Usar a integração completa diretamente
+      const evolutionService = new EvolutionApiService(evolutionApiIntegration);
+      const formattedPhone = formatPhoneForDisplay(phoneNumber);
+      
+      console.log('🚀 Iniciando envio da mensagem para:', formattedPhone);
+      
+      const result = await evolutionService.sendMessage(formattedPhone, formatMessage());
+
+      if (result.success) {
+        toast({
+          title: "✅ Mensagem enviada com sucesso!",
+          description: `Mensagem enviada para ${formattedPhone} via WhatsApp`,
+        });
+        
         onOpenChange(false);
         setPhoneNumber('');
         setMessage('');
         setSelectedTemplate('');
       } else {
-        throw new Error('Erro ao enviar mensagem');
+        console.error('❌ Falha no envio:', result.error);
+        setErrorDialog({
+          open: true,
+          error: result.error
+        });
       }
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
-      toast({
-        title: "❌ Erro ao enviar",
-        description: "Não foi possível enviar a mensagem. Verifique a configuração da Evolution API.",
-        variant: "destructive"
+      console.error('❌ Erro crítico no handleSend:', error);
+      setErrorDialog({
+        open: true,
+        error: {
+          message: 'Erro crítico no sistema',
+          details: error instanceof Error ? error.message : 'Erro desconhecido',
+          logs: [`Erro crítico: ${error}`]
+        }
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MessageCircle className="h-5 w-5 text-green-600" />
-            Enviar via WhatsApp
-          </DialogTitle>
-          <DialogDescription>
-            Envie os dados do agendamento por WhatsApp usando a Evolution API
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <MessageCircle className="h-5 w-5 text-green-600" />
+              Enviar via WhatsApp
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Compartilhe os dados do agendamento de forma segura via WhatsApp
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Seleção da Integração */}
-          {evolutionIntegrations.length > 0 ? (
+          <div className="space-y-4">
+            {/* Status da Evolution API */}
+            {evolutionIntegrations.length > 0 ? (
+              <div className="p-3 bg-green-900/20 border border-green-700 rounded-lg">
+                <p className="text-sm text-green-300">
+                  ✅ Evolution API configurada: {evolutionIntegrations[0].name}
+                </p>
+              </div>
+            ) : (
+              <div className="p-4 bg-yellow-900/20 border border-yellow-700 rounded-lg">
+                <p className="text-sm text-yellow-300">
+                  ⚠️ Nenhuma integração Evolution API configurada. Configure uma integração no painel de administração.
+                </p>
+              </div>
+            )}
+
+            {/* Campo de número */}
             <div className="space-y-2">
-              <Label htmlFor="integration">Integração Evolution API</Label>
-              <Select value={selectedIntegration} onValueChange={setSelectedIntegration}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a integração" />
+              <Label htmlFor="phone" className="text-white">Número do WhatsApp</Label>
+              <div className="relative">
+                <User className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Ex: 5511999999999 ou 11999999999"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className="pl-8 font-mono bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                />
+              </div>
+              <p className="text-xs text-slate-400">
+                Digite o número com ou sem código do país (55). Mínimo 10 dígitos.
+              </p>
+            </div>
+
+            {/* Modelo de mensagem */}
+            <div className="space-y-2">
+              <Label htmlFor="template" className="text-white">Modelo de mensagem</Label>
+              <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue placeholder="Selecione um modelo" />
                 </SelectTrigger>
-                <SelectContent>
-                  {evolutionIntegrations.map((integration) => (
-                    <SelectItem key={integration.id} value={integration.id}>
-                      {integration.name} - {integration.phone_number}
+                <SelectContent className="bg-slate-700 border-slate-600">
+                  {MESSAGE_TEMPLATES.map((template) => (
+                    <SelectItem key={template.id} value={template.id} className="text-white hover:bg-slate-600">
+                      {template.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          ) : (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800">
-                ⚠️ Nenhuma integração Evolution API configurada. Configure uma integração no painel de administração.
+
+            {/* Preview da mensagem */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-white">Preview da mensagem:</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyToClipboard}
+                  className="text-slate-300 border-slate-600 hover:bg-slate-700"
+                >
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copiar
+                </Button>
+              </div>
+              <Textarea
+                value={formatMessage()}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Digite sua mensagem ou selecione um modelo acima"
+                rows={8}
+                className="resize-none text-xs font-mono bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+              />
+              <p className="text-xs text-slate-400">
+                A mensagem será personalizada com os dados do agendamento
               </p>
             </div>
-          )}
 
-          {/* Número de telefone */}
-          <div className="space-y-2">
-            <Label htmlFor="phone">Número de telefone *</Label>
-            <div className="relative">
-              <User className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="phone"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
-                placeholder="5511999999999"
-                className="pl-8"
-                maxLength={13}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Digite apenas números (ex: 5511999999999)
-            </p>
-          </div>
-
-          {/* Modelo de mensagem */}
-          <div className="space-y-2">
-            <Label htmlFor="template">Modelo de mensagem</Label>
-            <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um modelo" />
-              </SelectTrigger>
-              <SelectContent>
-                {MESSAGE_TEMPLATES.map((template) => (
-                  <SelectItem key={template.id} value={template.id}>
-                    {template.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Mensagem */}
-          <div className="space-y-2">
-            <Label htmlFor="message">Mensagem *</Label>
-            <Textarea
-              id="message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Digite sua mensagem ou selecione um modelo acima"
-              rows={8}
-              className="resize-none"
-            />
-            <p className="text-xs text-muted-foreground">
-              A mensagem será personalizada com os dados do agendamento
-            </p>
-          </div>
-
-          {/* Resumo do agendamento */}
-          <div className="p-3 bg-muted/50 rounded-lg space-y-1">
-            <h4 className="text-sm font-medium">Dados do agendamento:</h4>
-            <p className="text-xs"><strong>Título:</strong> {scheduleItem.title}</p>
-            <p className="text-xs"><strong>Empresa:</strong> {scheduleItem.company}</p>
-            <p className="text-xs"><strong>Vencimento:</strong> {format(new Date(scheduleItem.due_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
-            <p className="text-xs"><strong>Tipo:</strong> {scheduleItem.type}</p>
-            {scheduleItem.description && (
-              <p className="text-xs"><strong>Descrição:</strong> {scheduleItem.description}</p>
-            )}
-          </div>
-
-          {/* Botões */}
-          <div className="flex justify-end gap-2 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSendMessage}
-              disabled={isLoading || !phoneNumber || !message || evolutionIntegrations.length === 0}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {isLoading ? (
-                <>Enviando...</>
-              ) : (
-                <>
-                  <Send className="mr-2 h-4 w-4" />
-                  Enviar
-                </>
+            {/* Resumo do agendamento */}
+            <div className="p-3 bg-slate-700 rounded-lg space-y-1 border border-slate-600">
+              <h4 className="text-sm font-medium text-white">Dados do agendamento:</h4>
+              <p className="text-xs text-slate-300"><strong>Título:</strong> {scheduleItem.title}</p>
+              <p className="text-xs text-slate-300"><strong>Empresa:</strong> {scheduleItem.company}</p>
+              <p className="text-xs text-slate-300"><strong>Vencimento:</strong> {format(new Date(scheduleItem.due_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+              <p className="text-xs text-slate-300"><strong>Tipo:</strong> {scheduleItem.type}</p>
+              {scheduleItem.description && (
+                <p className="text-xs text-slate-300"><strong>Descrição:</strong> {scheduleItem.description}</p>
               )}
-            </Button>
+            </div>
+
+            {/* Botões */}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isLoading}
+                className="border-slate-600 text-white hover:bg-slate-700"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSend}
+                disabled={isLoading || !phoneNumber.trim() || evolutionIntegrations.length === 0}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    Enviar WhatsApp
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de erro */}
+      <WhatsAppErrorDialog
+        open={errorDialog.open}
+        onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
+        error={errorDialog.error}
+      />
+    </>
   );
 };
