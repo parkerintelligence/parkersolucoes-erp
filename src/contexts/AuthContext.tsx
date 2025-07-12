@@ -79,12 +79,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetSessionTimer = () => {
-    if (session && user) {
-      if (sessionTimer) {
-        clearTimeout(sessionTimer);
-      }
-      startSessionTimer();
+    // Só resetar se tiver usuário e sessão válidos
+    if (session && user && sessionTimer) {
       console.log('Timer de sessão resetado por atividade do usuário');
+      startSessionTimer();
     }
   };
 
@@ -193,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      console.log('Tentando fazer login com:', email);
+      console.log('🔐 Tentando fazer login com:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -201,14 +199,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        console.error('Erro no login:', error);
+        console.error('❌ Erro no login:', error.message);
         return false;
       }
 
-      console.log('Login bem-sucedido para:', email);
-      return !!data.user;
+      if (!data.user) {
+        console.error('❌ Login sem usuário retornado');
+        return false;
+      }
+
+      console.log('✅ Login bem-sucedido para:', email);
+      console.log('👤 Usuário:', data.user.id);
+      console.log('🔑 Sessão:', !!data.session);
+      
+      return true;
     } catch (error) {
-      console.error('Erro no login:', error);
+      console.error('❌ Erro inesperado no login:', error);
       return false;
     }
   };

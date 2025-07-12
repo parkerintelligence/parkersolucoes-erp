@@ -3,15 +3,21 @@ import { useAuth } from '@/contexts/AuthContext';
 
 // Hook para detectar atividade do usuário e resetar timer de sessão
 export const useUserActivity = () => {
-  const { resetSessionTimer, isAuthenticated } = useAuth();
+  const { resetSessionTimer, isAuthenticated, session } = useAuth();
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    // Só ativar se estiver autenticado e tiver sessão
+    if (!isAuthenticated || !session) return;
 
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    let debounceTimer: NodeJS.Timeout;
     
     const resetTimer = () => {
-      resetSessionTimer();
+      // Debounce para evitar chamadas excessivas
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        resetSessionTimer();
+      }, 1000); // 1 segundo de debounce
     };
 
     // Adicionar listeners para atividade do usuário
@@ -21,9 +27,10 @@ export const useUserActivity = () => {
 
     // Cleanup
     return () => {
+      clearTimeout(debounceTimer);
       events.forEach(event => {
         document.removeEventListener(event, resetTimer, true);
       });
     };
-  }, [isAuthenticated, resetSessionTimer]);
+  }, [isAuthenticated, session, resetSessionTimer]);
 };

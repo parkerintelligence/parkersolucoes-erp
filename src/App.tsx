@@ -30,12 +30,24 @@ import ActionPlan from '@/pages/ActionPlan';
 import Alertas from '@/pages/Alertas';
 import { Layout } from '@/components/Layout';
 
+// Componente para detectar atividade apenas em páginas autenticadas
+function AuthenticatedContent() {
+  const { isAuthenticated } = useAuth();
+  
+  // Só usar o hook de atividade se estiver autenticado
+  if (isAuthenticated) {
+    useUserActivity();
+  }
+  
+  return null;
+}
+
 // Componente interno para usar o hook de atividade
 function AppContent() {
-  useUserActivity(); // Detectar atividade do usuário e resetar timer
   
   return (
     <div className="min-h-screen bg-background">
+      <AuthenticatedContent />
       <Routes>
         <Route path="/" element={<Navigate to="/alertas" replace />} />
         <Route path="/login" element={<Login />} />
