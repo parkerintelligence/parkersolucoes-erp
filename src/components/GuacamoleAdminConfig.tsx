@@ -51,11 +51,6 @@ const GuacamoleAdminConfig = () => {
     // Remove trailing slashes
     normalizedUrl = normalizedUrl.replace(/\/+$/, '');
     
-    // Sugerir /guacamole se não estiver presente
-    if (!normalizedUrl.includes('/guacamole') && !normalizedUrl.endsWith(':8080')) {
-      return `${normalizedUrl}/guacamole`;
-    }
-    
     return normalizedUrl;
   };
 
