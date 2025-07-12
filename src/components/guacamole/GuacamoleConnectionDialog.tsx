@@ -36,21 +36,25 @@ export const GuacamoleConnectionDialog = ({
   });
 
   useEffect(() => {
-    if (connection) {
+    if (connection && open) {
+      console.log('Carregando dados da conexão para edição:', connection);
+      
       // Mapear corretamente os dados da conexão para edição
       const params = connection.parameters || {};
+      console.log('Parâmetros da conexão:', params);
+      
       setFormData({
         name: connection.name || '',
         protocol: connection.protocol || 'rdp',
-        hostname: params.hostname || '',
-        port: params.port || '',
-        username: params.username || '',
+        hostname: params.hostname || params.host || '',
+        port: params.port || (params.port === 0 ? '0' : '') || '',
+        username: params.username || params.user || '',
         password: params.password || '',
-        domain: params.domain || '',
+        domain: params.domain || params['domain-name'] || '',
         security: params.security || '',
         ignoreServerCert: params['ignore-server-cert'] === 'true' || params['ignore-server-cert'] === true
       });
-    } else {
+    } else if (open) {
       // Reset form for new connection
       setFormData({
         name: '',

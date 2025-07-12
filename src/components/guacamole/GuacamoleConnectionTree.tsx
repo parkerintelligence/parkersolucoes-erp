@@ -43,25 +43,40 @@ export const GuacamoleConnectionTree = ({
     // Grupo padrão para conexões sem grupo específico
     groups['general'] = {
       identifier: 'general',
-      name: 'Grupo de Conexão Geral',
+      name: 'Conexões Gerais',
       connections: []
     };
 
     // Distribuir conexões pelos grupos
     connections.forEach(connection => {
-      const groupId = (connection as any).parentIdentifier || 'general';
-      if (!groups[groupId]) {
+      // Buscar o grupo da conexão usando os atributos ou parentIdentifier
+      let groupId = 'general';
+      
+      // Verificar se existe parentIdentifier na conexão
+      if (connection.attributes?.parentIdentifier) {
+        groupId = connection.attributes.parentIdentifier;
+      } else if ((connection as any).parentIdentifier) {
+        groupId = (connection as any).parentIdentifier;
+      } else if (connection.attributes?.group) {
+        groupId = connection.attributes.group;
+      }
+
+      // Se o grupo não existe, criar um novo grupo baseado no nome encontrado
+      if (!groups[groupId] && groupId !== 'general') {
+        // Buscar o nome real do grupo nos connectionGroups
+        const foundGroup = connectionGroups.find(g => g.identifier === groupId);
         groups[groupId] = {
           identifier: groupId,
-          name: `Grupo ${groupId}`,
+          name: foundGroup?.name || groupId,
           connections: []
         };
       }
+
       groups[groupId].connections.push(connection);
     });
 
-    // Remover grupos vazios (exceto o geral)
-    return Object.values(groups).filter(group => group.connections.length > 0 || group.identifier === 'general');
+    // Retornar apenas grupos que têm conexões
+    return Object.values(groups).filter(group => group.connections.length > 0);
   };
   const toggleGroup = (groupId: string) => {
     const newExpanded = new Set(expandedGroups);
@@ -129,14 +144,14 @@ export const GuacamoleConnectionTree = ({
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1 bg-slate-50">
-                            <Button variant="ghost" size="sm" onClick={() => onConnect(connection)} className="h-7 w-7 p-0 hover:bg-slate-600">
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => onConnect(connection)} className="h-7 w-7 p-0 text-slate-300 hover:bg-slate-600 hover:text-white">
                               <ExternalLink className="h-3 w-3" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => onEdit(connection)} className="h-7 w-7 p-0 hover:bg-slate-600">
+                            <Button variant="ghost" size="sm" onClick={() => onEdit(connection)} className="h-7 w-7 p-0 text-slate-300 hover:bg-slate-600 hover:text-white">
                               <Edit className="h-3 w-3" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => onDelete(connection.identifier)} disabled={isDeleting} className="h-7 w-7 p-0 hover:bg-red-600">
+                            <Button variant="ghost" size="sm" onClick={() => onDelete(connection.identifier)} disabled={isDeleting} className="h-7 w-7 p-0 text-slate-300 hover:bg-red-600 hover:text-white">
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>

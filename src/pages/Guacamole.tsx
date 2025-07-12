@@ -13,7 +13,7 @@ import { GuacamoleStatusPopover } from '@/components/guacamole/GuacamoleStatusPo
 import { GuacamoleConnectionTree } from '@/components/guacamole/GuacamoleConnectionTree';
 import { GuacamoleConnectionDialog } from '@/components/guacamole/GuacamoleConnectionDialog';
 import { GuacamoleLogs } from '@/components/guacamole/GuacamoleLogs';
-import { GuacamoleConnectionTest } from '@/components/guacamole/GuacamoleConnectionTest';
+
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 const Guacamole = () => {
@@ -341,9 +341,6 @@ const Guacamole = () => {
             <TabsTrigger value="logs" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
               Logs
             </TabsTrigger>
-            <TabsTrigger value="tests" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
-              Testes
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="connections" className="mt-6">
@@ -580,19 +577,6 @@ const Guacamole = () => {
             <GuacamoleLogs logs={logs} onClearLogs={clearLogs} onRefresh={handleRefreshAll} />
           </TabsContent>
 
-          <TabsContent value="tests" className="mt-6">
-            <GuacamoleConnectionTest onLog={(type, message, options) => {
-            if (type === 'request') {
-              logRequest(options?.method || 'GET', options?.url || '', options?.dataSource);
-            } else if (type === 'response') {
-              logResponse(options?.status || 200, message, options?.url, options?.details);
-            } else if (type === 'error') {
-              logError(message, options?.url, options?.details);
-            } else {
-              logInfo(message, options);
-            }
-          }} />
-          </TabsContent>
         </Tabs>
 
         {/* Connection Dialog */}
