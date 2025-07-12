@@ -116,11 +116,11 @@ export const ScheduleTable = ({
       );
     }
     if (daysUntil < 7) {
-      // Crítico <7 dias - ícone de alerta vermelho
+      // Crítico <7 dias - ícone de alerta amarelo
       return (
         <div className="flex items-center gap-1" title="Crítico - vence em menos de 7 dias">
-          <AlertTriangle className="h-5 w-5 text-red-500" />
-          <span className="text-xs text-red-500 font-medium">Crítico</span>
+          <AlertTriangle className="h-5 w-5 text-yellow-500" />
+          <span className="text-xs text-yellow-500 font-medium">Crítico</span>
         </div>
       );
     }
