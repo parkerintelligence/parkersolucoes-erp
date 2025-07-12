@@ -20,7 +20,9 @@ import {
   Shield,
   Monitor,
   Settings,
-  Code
+  Code,
+  Expand,
+  Minimize2
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -79,6 +81,23 @@ export const LinksTreeView = () => {
     setVisiblePasswords(newVisible);
   };
 
+  const expandAll = () => {
+    // Expandir todas as empresas
+    const allCompanyIds = Object.keys(linksTree);
+    setExpandedCompanies(new Set(allCompanyIds));
+    
+    // Expandir todos os serviços
+    const allServiceKeys = Object.entries(linksTree).flatMap(([companyId, services]) =>
+      Object.keys(services).map(serviceName => `${companyId}-${serviceName}`)
+    );
+    setExpandedServices(new Set(allServiceKeys));
+  };
+
+  const collapseAll = () => {
+    setExpandedCompanies(new Set());
+    setExpandedServices(new Set());
+  };
+
   const handleOpenLink = (url: string) => {
     if (url) {
       window.open(url, '_blank', 'noopener,noreferrer');
@@ -132,6 +151,28 @@ export const LinksTreeView = () => {
   return (
     <Card className="bg-slate-800 border-slate-700">
       <CardContent className="p-4">
+        {/* Botões de Expandir/Recolher */}
+        <div className="flex gap-2 mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={expandAll}
+            className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+          >
+            <Expand className="h-4 w-4 mr-2" />
+            Expandir Tudo
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={collapseAll}
+            className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+          >
+            <Minimize2 className="h-4 w-4 mr-2" />
+            Recolher Tudo
+          </Button>
+        </div>
+        
         <div className="space-y-1">
           {Object.entries(linksTree).map(([companyId, services]) => {
             const company = companies.find(c => c.id === companyId);
