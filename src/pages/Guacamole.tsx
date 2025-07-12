@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -195,14 +195,23 @@ const Guacamole = () => {
   };
 
   const handleUpdateConnection = async (connectionData: Partial<GuacamoleConnection>) => {
-    if (!connectionData.identifier) return;
+    console.log('Atualizando conexão:', connectionData);
     
+    if (!connectionData.identifier) {
+      toast({
+        title: "Erro",
+        description: "ID da conexão não encontrado",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await updateConnectionMutation.mutateAsync({
         identifier: connectionData.identifier,
         updates: connectionData
       });
-      setConnectionDialog({ open: false });
+      setConnectionDialog({ open: false, connection: null });
     } catch (error) {
       console.error('Erro ao atualizar conexão:', error);
     }
@@ -302,7 +311,8 @@ const Guacamole = () => {
 
       {/* Error Display */}
       {(connectionsError || usersError || sessionsError) && (
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-200 bg-red-50"
+        >
           <CardHeader>
             <CardTitle className="text-red-800 flex items-center gap-2">
               <AlertTriangle className="h-5 w-5" />
@@ -453,7 +463,7 @@ const Guacamole = () => {
                   </Button>
                 </div>
               ) : viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {connectionGroups && connectionGroups.length > 0 ? (
                     // Mostrar conexões organizadas por grupos
                     <>
@@ -465,27 +475,27 @@ const Guacamole = () => {
                         if (groupConnections.length === 0) return null;
                         
                         return (
-                          <div key={group.identifier} className="col-span-full space-y-3">
-                            <div className="flex items-center gap-2 px-2">
-                              <div className="h-px bg-border flex-1" />
-                              <h3 className="text-sm font-medium text-muted-foreground">
-                                {group.name}
-                              </h3>
-                              <div className="h-px bg-border flex-1" />
+                          <React.Fragment key={group.identifier}>
+                            <div className="col-span-full mb-2">
+                              <div className="flex items-center gap-2">
+                                <div className="h-px bg-border flex-1" />
+                                <h3 className="text-xs font-medium text-muted-foreground px-2">
+                                  {group.name}
+                                </h3>
+                                <div className="h-px bg-border flex-1" />
+                              </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {groupConnections.map((connection) => (
-                                <GuacamoleConnectionCard
-                                  key={connection.identifier}
-                                  connection={connection}
-                                  onConnect={handleConnectToGuacamole}
-                                  onEdit={(conn) => setConnectionDialog({ open: true, connection: conn })}
-                                  onDelete={handleDeleteConnection}
-                                  isDeleting={deleteConnectionMutation.isPending}
-                                />
-                              ))}
-                            </div>
-                          </div>
+                            {groupConnections.map((connection) => (
+                              <GuacamoleConnectionCard
+                                key={connection.identifier}
+                                connection={connection}
+                                onConnect={handleConnectToGuacamole}
+                                onEdit={(conn) => setConnectionDialog({ open: true, connection: conn })}
+                                onDelete={handleDeleteConnection}
+                                isDeleting={deleteConnectionMutation.isPending}
+                              />
+                            ))}
+                          </React.Fragment>
                         );
                       })}
                       
@@ -499,27 +509,27 @@ const Guacamole = () => {
                         if (ungroupedConnections.length === 0) return null;
                         
                         return (
-                          <div key="ungrouped" className="col-span-full space-y-3">
-                            <div className="flex items-center gap-2 px-2">
-                              <div className="h-px bg-border flex-1" />
-                              <h3 className="text-sm font-medium text-muted-foreground">
-                                Outras Conexões
-                              </h3>
-                              <div className="h-px bg-border flex-1" />
+                          <React.Fragment key="ungrouped">
+                            <div className="col-span-full mb-2">
+                              <div className="flex items-center gap-2">
+                                <div className="h-px bg-border flex-1" />
+                                <h3 className="text-xs font-medium text-muted-foreground px-2">
+                                  Conexões Gerais
+                                </h3>
+                                <div className="h-px bg-border flex-1" />
+                              </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {ungroupedConnections.map((connection) => (
-                                <GuacamoleConnectionCard
-                                  key={connection.identifier}
-                                  connection={connection}
-                                  onConnect={handleConnectToGuacamole}
-                                  onEdit={(conn) => setConnectionDialog({ open: true, connection: conn })}
-                                  onDelete={handleDeleteConnection}
-                                  isDeleting={deleteConnectionMutation.isPending}
-                                />
-                              ))}
-                            </div>
-                          </div>
+                            {ungroupedConnections.map((connection) => (
+                              <GuacamoleConnectionCard
+                                key={connection.identifier}
+                                connection={connection}
+                                onConnect={handleConnectToGuacamole}
+                                onEdit={(conn) => setConnectionDialog({ open: true, connection: conn })}
+                                onDelete={handleDeleteConnection}
+                                isDeleting={deleteConnectionMutation.isPending}
+                              />
+                            ))}
+                          </React.Fragment>
                         );
                       })()}
                     </>
@@ -777,7 +787,7 @@ const Guacamole = () => {
       {/* Connection Dialog */}
       <GuacamoleConnectionDialog
         open={connectionDialog.open}
-        onOpenChange={(open) => setConnectionDialog({ open })}
+        onOpenChange={(open) => setConnectionDialog({ open, connection: null })}
         connection={connectionDialog.connection}
         onSave={connectionDialog.connection ? handleUpdateConnection : handleCreateConnection}
         isSaving={createConnectionMutation.isPending || updateConnectionMutation.isPending}

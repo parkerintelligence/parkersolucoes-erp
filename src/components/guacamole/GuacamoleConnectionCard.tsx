@@ -64,19 +64,19 @@ export const GuacamoleConnectionCard = ({
 
   return (
     <Card className="bg-card border-border hover:shadow-sm hover:border-primary/20 transition-all">
-      <CardHeader className="pb-2 px-4 pt-3">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary/10 p-1.5 rounded-md">
-            <Monitor className="h-4 w-4 text-primary" />
+      <CardHeader className="pb-1 px-3 pt-2">
+        <div className="flex items-center gap-2">
+          <div className="bg-primary/10 p-1 rounded-sm">
+            <Monitor className="h-3 w-3 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-base truncate">{connection.name}</CardTitle>
-            <CardDescription className="flex items-center gap-2 mt-0.5">
+            <CardTitle className="text-sm truncate">{connection.name}</CardTitle>
+            <CardDescription className="flex items-center gap-1 mt-0">
               <Badge className={getProtocolColor(connection.protocol)} variant="secondary">
-                {connection.protocol?.toUpperCase()}
+                <span className="text-xs">{connection.protocol?.toUpperCase()}</span>
               </Badge>
               <div className="flex items-center gap-1">
-                <div className={`w-1.5 h-1.5 rounded-full ${status.color}`} />
+                <div className={`w-1 h-1 rounded-full ${status.color}`} />
                 <span className="text-xs">{status.label}</span>
               </div>
             </CardDescription>
@@ -84,18 +84,18 @@ export const GuacamoleConnectionCard = ({
         </div>
       </CardHeader>
 
-      <CardContent className="px-4 pb-3">
-        <div className="flex items-center gap-2">
+      <CardContent className="px-3 pb-2">
+        <div className="flex items-center gap-1">
           <Button
             onClick={handleConnect}
             disabled={isConnecting}
             size="sm"
-            className="flex-1"
+            className="flex-1 h-7 text-xs"
           >
             {isConnecting ? (
-              <Power className="h-3 w-3 mr-1.5 animate-spin" />
+              <Power className="h-2.5 w-2.5 mr-1 animate-spin" />
             ) : (
-              <ExternalLink className="h-3 w-3 mr-1.5" />
+              <ExternalLink className="h-2.5 w-2.5 mr-1" />
             )}
             {isConnecting ? 'Conectando...' : 'Conectar'}
           </Button>
@@ -103,18 +103,20 @@ export const GuacamoleConnectionCard = ({
           <Button
             variant="outline"
             size="sm"
+            className="h-7 px-2"
             onClick={() => onEdit(connection)}
           >
-            <Edit className="h-3 w-3" />
+            <Edit className="h-2.5 w-2.5" />
           </Button>
 
           <Button
             variant="outline"
             size="sm"
+            className="h-7 px-2"
             onClick={() => onDelete(connection.identifier)}
             disabled={isDeleting}
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="h-2.5 w-2.5" />
           </Button>
         </div>
       </CardContent>
