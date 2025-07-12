@@ -87,7 +87,11 @@ export function ColumnDialog({ column, onSave }: ColumnDialogProps) {
         </div>
         
         <div className="flex justify-end gap-2">
-          <Button type="submit">
+          <Button 
+            type="submit"
+            disabled={!formData.name.trim()}
+            className="bg-primary hover:bg-primary/90"
+          >
             {column ? "Atualizar" : "Criar"}
           </Button>
         </div>
