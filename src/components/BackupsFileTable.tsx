@@ -32,7 +32,7 @@ const BackupsFileTable: React.FC<BackupsFileTableProps> = ({
   deleteFile
 }) => {
   const [sortBy, setSortBy] = useState<SortOption>('date');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc'); // Padrão: maior data primeiro
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc'); // Padrão: menor data primeiro
   const getStatusBadge = (fileName: string, isDirectory: boolean) => {
     if (isDirectory) {
       return <Badge className="bg-blue-900/20 text-blue-400 border-blue-600">Pasta</Badge>;
@@ -121,7 +121,7 @@ const BackupsFileTable: React.FC<BackupsFileTableProps> = ({
     } else {
       // Nova coluna, usa ordem padrão
       setSortBy(newSortBy);
-      setSortOrder(newSortBy === 'date' ? 'desc' : 'asc'); // Data padrão desc, outros asc
+      setSortOrder(newSortBy === 'date' ? 'asc' : 'asc'); // Data padrão asc (menor para maior)
     }
   };
 
@@ -148,7 +148,7 @@ const BackupsFileTable: React.FC<BackupsFileTableProps> = ({
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-400">Ordenar por:</span>
+              <span className="text-xs text-slate-400">Ordenar por:</span>
               <Select value={sortBy} onValueChange={(value: SortOption) => handleSortChange(value)}>
                 <SelectTrigger className="w-[180px] bg-slate-700 border-slate-600 text-white">
                   <SelectValue />
