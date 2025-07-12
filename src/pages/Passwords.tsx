@@ -16,7 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ServiceDialog } from '@/components/ServiceDialog';
 import { WhatsAppPasswordDialog } from '@/components/WhatsAppPasswordDialog';
-import { Lock, Plus, Eye, EyeOff, Edit, Trash2, Building, Search, Settings, Code, Mail, Server, Database, Cloud, Shield, Monitor, Globe, Filter, FileDown, MessageCircle } from 'lucide-react';
+import { Lock, Plus, Eye, EyeOff, Edit, Trash2, Building, Search, Settings, Code, Mail, Server, Database, Cloud, Shield, Monitor, Globe, Filter, FileDown, MessageCircle, Copy } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import type { Tables } from '@/integrations/supabase/types';
 type Password = Tables<'passwords'>;
@@ -365,11 +365,23 @@ const Passwords = () => {
                     <span className="font-mono text-sm text-white">
                       {showPassword[item.id] ? item.password : '••••••••'}
                     </span>
-                    <Button variant="ghost" size="sm" onClick={() => togglePasswordVisibility(item.id)} className="h-7 w-7 p-0 text-white hover:bg-slate-700">
-                      {showPassword[item.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => togglePasswordVisibility(item.id)} 
+                      className="h-7 w-7 p-0 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+                      title={showPassword[item.id] ? "Ocultar senha" : "Mostrar senha"}
+                    >
+                      {showPassword[item.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleCopyPassword(item.password || '')} className="h-7 w-7 p-0 text-white hover:bg-slate-700">
-                      📋
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleCopyPassword(item.password || '')} 
+                      className="h-7 w-7 p-0 bg-green-600 border-green-500 text-white hover:bg-green-700"
+                      title="Copiar senha"
+                    >
+                      <Copy className="h-3 w-3" />
                     </Button>
                   </div>
                 </TableCell>
@@ -379,15 +391,33 @@ const Passwords = () => {
                     </Badge>}
                 </TableCell>
                 <TableCell className="py-1">
-                  <div className="flex items-center gap-2">
-                    
-                    <Button variant="outline" size="sm" onClick={() => handleEditPassword(item)} className="h-7 px-2 bg-blue-600 border-blue-500 text-white hover:bg-blue-700">
-                      <Edit className="h-3 w-3 mr-1" />
-                      Editar
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleWhatsAppShare(item)}
+                      className="h-7 w-7 p-0 bg-green-600 border-green-500 text-white hover:bg-green-700"
+                      title="WhatsApp"
+                    >
+                      <MessageCircle className="h-3 w-3" />
                     </Button>
-                    <Button variant="outline" size="sm" className="text-red-400 hover:text-red-300 border-red-600 hover:bg-red-900/20 h-7 px-2" onClick={() => handleDeletePassword(item.id)}>
-                      <Trash2 className="h-3 w-3 mr-1" />
-                      Excluir
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleEditPassword(item)}
+                      className="h-7 w-7 p-0 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+                      title="Editar"
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-7 w-7 p-0 text-red-400 hover:text-red-300 border-red-600 hover:bg-red-900/20"
+                      onClick={() => handleDeletePassword(item.id)}
+                      title="Excluir"
+                    >
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                 </TableCell>
