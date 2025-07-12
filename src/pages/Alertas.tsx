@@ -35,22 +35,35 @@ export default function Alertas() {
   });
 
   const getDeviceStatus = (host: any): DeviceStatus => {
-    // Check if host is available properly
-    // available: "1" = Available, "2" = Unavailable, "0" = Unknown/Unreachable
-    console.log('🔍 Host availability check:', {
+    // Verificar se o host tem problemas de severidade "Desastre" (severity = "5")
+    // Se tiver problemas de Desastre = OFFLINE, caso contrário = ONLINE
+    
+    const hostProblems = problems.filter(problem => 
+      problem.hosts.some(problemHost => problemHost.hostid === host.hostid)
+    );
+    
+    // Verificar se há problemas de severidade "Desastre" (5) ou "Alto" (4)
+    const hasDisasterProblems = hostProblems.some(problem => 
+      problem.severity === '5' // Desastre
+    );
+    
+    console.log('🔍 Host disaster check:', {
       hostid: host.hostid,
       name: host.name,
+      totalProblems: hostProblems.length,
+      hasDisasterProblems,
+      problems: hostProblems.map(p => ({ name: p.name, severity: p.severity })),
       available: host.available,
-      status: host.status,
-      error: host.error
+      status: host.status
     });
     
-    const isAvailable = host.available === '1';
+    // Se tem problemas de Desastre = OFFLINE, caso contrário = ONLINE
+    const status = hasDisasterProblems ? 'offline' : 'online';
     
     return {
       id: host.hostid,
       name: host.name || host.host,
-      status: isAvailable ? 'online' : 'offline',
+      status,
       lastSeen: host.lastaccess ? new Date(parseInt(host.lastaccess) * 1000).toLocaleString('pt-BR') : undefined,
     };
   };
