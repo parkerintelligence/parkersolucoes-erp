@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { BaculaDashboard } from '@/components/BaculaDashboard';
 import { BaculaAnalysisDialog } from '@/components/BaculaAnalysisDialog';
 import { BaculaJobsDialog } from '@/components/BaculaJobsDialog';
+import { BaculaDailyReportTester } from '@/components/BaculaDailyReportTester';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -138,6 +139,9 @@ const Bacula = () => {
 
         {/* Dashboard principal */}
         <BaculaDashboard />
+
+        {/* Testador de Relatório Diário */}
+        <BaculaDailyReportTester />
       </div>
     </div>
   );
