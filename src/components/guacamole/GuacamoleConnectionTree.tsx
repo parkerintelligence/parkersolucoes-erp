@@ -29,118 +29,60 @@ export const GuacamoleConnectionTree = ({
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set()); // Começar todos recolhidos
   const [searchFilter, setSearchFilter] = useState('');
 
+  // Extrair grupo do nome da conexão (texto antes do primeiro hífen)
+  const extractGroupFromConnectionName = (connectionName: string) => {
+    const parts = connectionName.split(' - ');
+    if (parts.length > 1) {
+      return {
+        groupName: parts[0].trim(),
+        connectionDisplayName: parts.slice(1).join(' - ').trim()
+      };
+    }
+    return {
+      groupName: 'Conexões Gerais',
+      connectionDisplayName: connectionName
+    };
+  };
+
   // Organizar conexões por grupo com filtro
   const organizedConnections = () => {
     const groups: Record<string, ConnectionGroup> = {};
-
-    // Primeiro, criar grupos baseados nos dados do Guacamole
-    connectionGroups.forEach(group => {
-      groups[group.identifier] = {
-        identifier: group.identifier,
-        name: group.name || group.identifier,
-        connections: []
-      };
-    });
-
-    // Adicionar grupo ROOT se não existir (grupo padrão do Guacamole)
-    if (!groups['ROOT']) {
-      groups['ROOT'] = {
-        identifier: 'ROOT',
-        name: 'Conexões Principais',
-        connections: []
-      };
-    }
 
     // Filtrar conexões baseado no texto de pesquisa
     const filteredConnections = connections.filter(connection => {
       if (!searchFilter.trim()) return true;
       
       const searchTerm = searchFilter.toLowerCase().trim();
-      const connectionName = connection.name.toLowerCase();
+      const { groupName, connectionDisplayName } = extractGroupFromConnectionName(connection.name);
       
-      return connectionName.includes(searchTerm);
+      return (
+        groupName.toLowerCase().includes(searchTerm) ||
+        connectionDisplayName.toLowerCase().includes(searchTerm) ||
+        connection.name.toLowerCase().includes(searchTerm)
+      );
     });
 
-    // Distribuir conexões pelos grupos corretos
+    // Distribuir conexões pelos grupos baseado no nome
     filteredConnections.forEach(connection => {
-      let assignedGroupId = 'ROOT'; // Grupo padrão
-
-      // Verificar nos grupos de conexão se esta conexão pertence a algum grupo específico
-      connectionGroups.forEach(group => {
-        if (group.childConnections && group.childConnections.includes(connection.identifier)) {
-          assignedGroupId = group.identifier;
-          console.log(`🎯 Connection "${connection.name}" found in group "${group.name}" (${group.identifier})`);
-        }
-      });
-
-      // Se o grupo específico não foi encontrado, verificar nos parâmetros/atributos da conexão
-      if (assignedGroupId === 'ROOT') {
-        const possibleGroupFields = [
-          'parentIdentifier', 'parent-identifier', 'parentGroup', 'parent-group',
-          'groupIdentifier', 'group-identifier', 'connectionGroup', 'connection-group',
-          'group', 'folder', 'category', 'path', 'container'
-        ];
-        
-        const sources = [
-          connection as any,
-          connection.attributes || {},
-          connection.parameters || {},
-          (connection as any).parent || {},
-          (connection as any).group || {}
-        ];
-        
-        // Tentar encontrar o grupo em qualquer um dos campos possíveis
-        for (const source of sources) {
-          if (!source || typeof source !== 'object') continue;
-          
-          for (const field of possibleGroupFields) {
-            if (source[field] && source[field] !== 'ROOT' && groups[source[field]]) {
-              assignedGroupId = source[field];
-              console.log(`🎯 Group found for ${connection.name}: "${assignedGroupId}" in field "${field}"`);
-              break;
-            }
-          }
-          
-          if (assignedGroupId !== 'ROOT') break;
-        }
+      const { groupName } = extractGroupFromConnectionName(connection.name);
+      
+      // Criar grupo se não existir
+      if (!groups[groupName]) {
+        groups[groupName] = {
+          identifier: groupName,
+          name: groupName,
+          connections: []
+        };
       }
 
-      // Se ainda não tem um grupo válido, manter no ROOT
-      if (!groups[assignedGroupId]) {
-        assignedGroupId = 'ROOT';
-      }
-
-      // Debug da atribuição final
-      console.log('🔍 Connection group assignment:', {
-        connectionName: connection.name,
-        connectionIdentifier: connection.identifier,
-        assignedGroup: assignedGroupId,
-        groupName: groups[assignedGroupId]?.name,
-        availableGroups: connectionGroups.map(g => ({ id: g.identifier, name: g.name, childConnections: g.childConnections }))
-      });
-
-      groups[assignedGroupId].connections.push(connection);
+      groups[groupName].connections.push(connection);
     });
 
     // Filtrar grupos também pelo nome do grupo e remover grupos vazios
     const filteredGroups = Object.values(groups).filter(group => {
-      // Sempre manter grupos com conexões
-      if (group.connections.length > 0) {
-        return true;
-      }
-
-      // Se há filtro, verificar se o nome do grupo corresponde
-      if (searchFilter.trim()) {
-        const searchTerm = searchFilter.toLowerCase().trim();
-        const groupName = group.name.toLowerCase();
-        return groupName.includes(searchTerm);
-      }
-
-      // Remover grupos vazios quando não há filtro
-      return false;
+      return group.connections.length > 0;
     });
 
-    // Se não há grupos com conexões e não há filtro, mostrar mensagem apropriada
     console.log('📊 Final groups distribution:', filteredGroups.map(g => ({
       name: g.name,
       id: g.identifier,
@@ -252,7 +194,7 @@ export const GuacamoleConnectionTree = ({
                           <div className="flex items-center gap-2">
                             <Monitor className="h-4 w-4 text-blue-400 flex-shrink-0" />
                             <h4 className="text-sm font-medium text-white truncate flex-1">
-                              {connection.name}
+                              {extractGroupFromConnectionName(connection.name).connectionDisplayName}
                             </h4>
                           </div>
 
