@@ -63,10 +63,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const startSessionTimer = () => {
-    // Limpar timer existente
+    // Limpar qualquer timer existente primeiro
     if (sessionTimer) {
       clearTimeout(sessionTimer);
+      setSessionTimer(null);
     }
+    
+    // Só criar timer se estiver autenticado
+    if (!session || !user) return;
     
     // Criar novo timer para 30 minutos (1800000 ms)
     const timer = setTimeout(async () => {
@@ -81,6 +85,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetSessionTimer = () => {
     // Só resetar se tiver usuário e sessão válidos
     if (session && user) {
+      // Limpar timer existente
+      if (sessionTimer) {
+        clearTimeout(sessionTimer);
+        setSessionTimer(null);
+      }
+      
       console.log('Timer de sessão resetado por atividade do usuário');
       startSessionTimer();
     }
@@ -122,8 +132,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               };
               console.log('Perfil do usuário definido:', typedProfile);
               setUserProfile(typedProfile);
-              // Iniciar timer de sessão apenas após carregar perfil
-              startSessionTimer();
+              // Aguardar estado ser atualizado antes de iniciar timer
+              setTimeout(() => {
+                if (mounted) startSessionTimer();
+              }, 100);
             }
           } else {
             setSession(null);
@@ -168,8 +180,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               };
               console.log('Perfil atualizado:', typedProfile);
               setUserProfile(typedProfile);
-              // Iniciar timer de sessão apenas após carregar perfil
-              startSessionTimer();
+              // Aguardar estado ser atualizado antes de iniciar timer
+              setTimeout(() => {
+                if (mounted) startSessionTimer();
+              }, 100);
             }
           }, 0);
         } else {

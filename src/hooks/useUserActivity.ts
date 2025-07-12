@@ -13,11 +13,14 @@ export const useUserActivity = () => {
     let debounceTimer: NodeJS.Timeout;
     
     const resetTimer = () => {
+      // Só resetar se estiver autenticado
+      if (!isAuthenticated || !session) return;
+      
       // Debounce para evitar chamadas excessivas
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         resetSessionTimer();
-      }, 1000); // 1 segundo de debounce
+      }, 2000); // 2 segundos de debounce para evitar spam
     };
 
     // Adicionar listeners para atividade do usuário
