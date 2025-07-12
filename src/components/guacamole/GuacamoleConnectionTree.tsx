@@ -107,7 +107,7 @@ export const GuacamoleConnectionTree = ({
                 {group.connections.length === 0 ? <div className="ml-6 py-4 text-center text-slate-500 text-sm">
                     Nenhuma conexão neste grupo
                   </div> : group.connections.map(connection => <Card key={connection.identifier} className="ml-6 bg-slate-700 border-slate-600">
-                      <CardContent className="p-3 bg-gray-900 rounded">
+                      <CardContent className="p-3 bg-gray-900 rounded-xl">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <Monitor className="h-4 w-4 text-blue-400 flex-shrink-0" />
@@ -116,12 +116,7 @@ export const GuacamoleConnectionTree = ({
                                 {connection.name}
                               </h4>
                               <div className="flex items-center gap-2 mt-1">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={() => onConnect(connection)}
-                                  className="h-6 px-2 text-xs bg-green-600 hover:bg-green-700 border-green-600 text-white"
-                                >
+                                <Button variant="outline" size="sm" onClick={() => onConnect(connection)} className="h-6 px-2 text-xs bg-green-600 hover:bg-green-700 border-green-600 text-white">
                                   Conectar
                                 </Button>
                                 <Badge variant="outline" className={`text-xs ${getProtocolColor(connection.protocol)}`}>
