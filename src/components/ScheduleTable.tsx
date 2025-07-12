@@ -101,14 +101,14 @@ export const ScheduleTable = ({
     return <Badge className="bg-blue-800 text-blue-100 border-blue-700">Pendente</Badge>;
   };
   const getTypeBadge = (type: string, daysUntil: number) => {
-    // Cores baseadas no status de vencimento
+    // Cores mais suaves baseadas no status de vencimento
     let badgeColor = '';
     if (daysUntil < 0) {
-      // Vencido - vermelho
-      badgeColor = 'bg-red-800 text-red-100 border-red-700';
+      // Vencido - vermelho suave
+      badgeColor = 'bg-red-100 text-red-800 border-red-300';
     } else {
-      // A vencer - verde
-      badgeColor = 'bg-green-800 text-green-100 border-green-700';
+      // A vencer - cinza neutro
+      badgeColor = 'bg-gray-100 text-gray-800 border-gray-300';
     }
     
     return <Badge className={badgeColor}>{type}</Badge>;
@@ -173,7 +173,7 @@ export const ScheduleTable = ({
             const daysUntil = getDaysUntilDue(item.due_date);
             const isUrgent = daysUntil <= 7;
             const isGood = daysUntil > 7;
-            return <TableRow key={item.id} className={`h-12 hover:bg-gray-700 border-gray-700 ${isUrgent ? 'bg-red-900/20 border-l-4 border-l-red-500' : isGood ? 'bg-green-900/20 border-l-4 border-l-green-500' : ''}`}>
+            return <TableRow key={item.id} className={`h-12 hover:bg-gray-700 border-gray-700 ${isUrgent ? 'border-l-2 border-l-red-400' : isGood ? 'border-l-2 border-l-green-400' : ''}`}>
                   <TableCell className="font-medium py-2 text-white">{item.title}</TableCell>
                   <TableCell className="py-2">
                     <div className="flex items-center gap-2">
