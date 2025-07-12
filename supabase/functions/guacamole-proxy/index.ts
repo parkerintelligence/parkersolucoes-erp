@@ -317,6 +317,14 @@ serve(async (req) => {
       case 'history':
         apiPath = `/api/session/data/${dataSource}/history`
         break
+      case 'token-status':
+        // Para verificar status do token, fazemos uma chamada simples às conexões
+        apiPath = `/api/session/data/${dataSource}/connections`
+        break
+      case 'tunnels':
+        // Endpoint para túneis/conexões ativas
+        apiPath = `/api/session/data/${dataSource}/activeConnections`
+        break
       default:
         if (endpoint.startsWith('connections/')) {
           const connectionId = endpoint.split('/')[1]
@@ -337,9 +345,29 @@ serve(async (req) => {
           } else {
             apiPath = `/api/session/data/${dataSource}/users/${encodeURIComponent(username)}`
           }
+        } else if (endpoint.startsWith('tunnels/')) {
+          const connectionId = endpoint.split('/')[1]
+          // Criar túnel para conexão
+          apiPath = `/api/session/tunnels/${encodeURIComponent(connectionId)}`
         } else {
           apiPath = `/api/session/data/${dataSource}/${endpoint}`
         }
+    }
+
+    // Para token-status, apenas retornamos que o token é válido se chegamos até aqui
+    if (endpoint === 'token-status') {
+      return new Response(
+        JSON.stringify({ 
+          isValid: true, 
+          dataSource: dataSource,
+          username: authTokenData.username,
+          expiresIn: Math.max(0, Math.floor((tokenCache.get(integrationId)?.expires || Date.now()) - Date.now()) / 1000)
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
     }
 
     // Construir URL final com token como parâmetro
