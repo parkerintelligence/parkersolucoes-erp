@@ -31,11 +31,11 @@ export const GuacamoleConnectionCard = ({
 
   const getProtocolColor = (protocol: string) => {
     switch (protocol?.toLowerCase()) {
-      case 'rdp': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
-      case 'vnc': return 'bg-green-500/10 text-green-600 border-green-500/20';
-      case 'ssh': return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
-      case 'telnet': return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
-      default: return 'bg-muted text-muted-foreground border-border';
+      case 'rdp': return 'bg-blue-400/20 text-blue-300 border-blue-400/30';
+      case 'vnc': return 'bg-green-400/20 text-green-300 border-green-400/30';
+      case 'ssh': return 'bg-purple-400/20 text-purple-300 border-purple-400/30';
+      case 'telnet': return 'bg-orange-400/20 text-orange-300 border-orange-400/30';
+      default: return 'bg-slate-600/20 text-slate-400 border-slate-600/30';
     }
   };
 
@@ -63,39 +63,39 @@ export const GuacamoleConnectionCard = ({
   const status = getConnectionStatus();
 
   return (
-    <Card className="bg-card border-border hover:shadow-sm hover:border-primary/20 transition-all">
-      <CardHeader className="pb-1 px-3 pt-2">
-        <div className="flex items-center gap-2">
-          <div className="bg-primary/10 p-1 rounded-sm">
-            <Monitor className="h-3 w-3 text-primary" />
+    <Card className="bg-slate-800 border-slate-700 hover:shadow-lg hover:border-blue-500/40 transition-all h-[90px]">
+      <CardHeader className="pb-1 px-2 pt-2">
+        <div className="flex items-center gap-1">
+          <div className="bg-blue-500/10 p-1 rounded-sm">
+            <Monitor className="h-2.5 w-2.5 text-blue-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-sm truncate">{connection.name}</CardTitle>
+            <CardTitle className="text-xs truncate text-white">{connection.name}</CardTitle>
             <CardDescription className="flex items-center gap-1 mt-0">
               <Badge className={getProtocolColor(connection.protocol)} variant="secondary">
-                <span className="text-xs">{connection.protocol?.toUpperCase()}</span>
+                <span className="text-[10px]">{connection.protocol?.toUpperCase()}</span>
               </Badge>
               <div className="flex items-center gap-1">
                 <div className={`w-1 h-1 rounded-full ${status.color}`} />
-                <span className="text-xs">{status.label}</span>
+                <span className="text-[10px] text-slate-400">{status.label}</span>
               </div>
             </CardDescription>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="px-3 pb-2">
+      <CardContent className="px-2 pb-2">
         <div className="flex items-center gap-1">
           <Button
             onClick={handleConnect}
             disabled={isConnecting}
             size="sm"
-            className="flex-1 h-7 text-xs"
+            className="flex-1 h-6 text-[10px] bg-blue-600 hover:bg-blue-700 text-white"
           >
             {isConnecting ? (
-              <Power className="h-2.5 w-2.5 mr-1 animate-spin" />
+              <Power className="h-2 w-2 mr-1 animate-spin" />
             ) : (
-              <ExternalLink className="h-2.5 w-2.5 mr-1" />
+              <ExternalLink className="h-2 w-2 mr-1" />
             )}
             {isConnecting ? 'Conectando...' : 'Conectar'}
           </Button>
@@ -103,20 +103,20 @@ export const GuacamoleConnectionCard = ({
           <Button
             variant="outline"
             size="sm"
-            className="h-7 px-2"
+            className="h-6 px-1.5 border-slate-600 text-slate-300 hover:bg-slate-700"
             onClick={() => onEdit(connection)}
           >
-            <Edit className="h-2.5 w-2.5" />
+            <Edit className="h-2 w-2" />
           </Button>
 
           <Button
             variant="outline"
             size="sm"
-            className="h-7 px-2"
+            className="h-6 px-1.5 border-slate-600 text-slate-300 hover:bg-slate-700"
             onClick={() => onDelete(connection.identifier)}
             disabled={isDeleting}
           >
-            <Trash2 className="h-2.5 w-2.5" />
+            <Trash2 className="h-2 w-2" />
           </Button>
         </div>
       </CardContent>
