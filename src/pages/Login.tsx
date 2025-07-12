@@ -94,9 +94,7 @@ const Login = () => {
         {/* Header com Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
-            <div className="relative bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl border border-slate-600/50 shadow-2xl">
-              <img src={companyLogo} alt="Company Logo" className="w-16 h-16 mx-auto rounded-xl shadow-lg object-cover" />
-            </div>
+            
           </div>
           <div className="space-y-2">
             <h1 className="text-4xl lg:text-5xl font-bold text-white mb-3">
