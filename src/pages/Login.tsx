@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Shield, Server, Database, Lock, Eye, EyeOff, Sparkles, Zap } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useSystemSettings } from '@/hooks/useSystemSettings';
 import parkerLogo from '@/assets/parker-logo.jpg';
 
 const Login = () => {
@@ -16,13 +17,18 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { data: settings } = useSystemSettings();
   const navigate = useNavigate();
 
-  // Redirecionar usuários autenticados para o dashboard
+  // Buscar logo e nome da empresa das configurações
+  const companyLogo = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value || parkerLogo;
+  const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Parker Soluções ERP';
+
+  // Redirecionar usuários autenticados para alertas
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
-      console.log('Usuário já autenticado, redirecionando para dashboard');
-      navigate('/links', { replace: true }); // Redirecionar para links ao invés de dashboard
+      console.log('Usuário já autenticado, redirecionando para alertas');
+      navigate('/alertas', { replace: true });
     }
   }, [isAuthenticated, authLoading, navigate]);
 
@@ -32,7 +38,7 @@ const Login = () => {
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-pulse mb-4">
-            <img src={parkerLogo} alt="Parker Logo" className="w-20 h-20 mx-auto rounded-xl shadow-lg" />
+            <img src={companyLogo} alt="Company Logo" className="w-20 h-20 mx-auto rounded-xl shadow-lg" />
           </div>
           <div className="text-white text-lg">Carregando sistema...</div>
         </div>
@@ -88,20 +94,17 @@ const Login = () => {
         {/* Header com Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
-            <div className="relative">
-              <div className="absolute inset-0 bg-slate-700/30 rounded-2xl blur-xl"></div>
-              <div className="relative bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl border border-slate-600/50 shadow-2xl">
-                <img
-                  src={parkerLogo} 
-                  alt="Parker Soluções Logo" 
-                  className="w-16 h-16 mx-auto rounded-xl shadow-lg object-cover"
-                />
-              </div>
+            <div className="relative bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl border border-slate-600/50 shadow-2xl">
+              <img
+                src={companyLogo} 
+                alt="Company Logo" 
+                className="w-16 h-16 mx-auto rounded-xl shadow-lg object-cover"
+              />
             </div>
           </div>
           <div className="space-y-2">
             <h1 className="text-4xl lg:text-5xl font-bold text-white mb-3">
-              Parker Soluções ERP
+              {companyName}
             </h1>
             <p className="text-slate-300 text-lg lg:text-xl max-w-2xl mx-auto">
               Sistema completo de gestão empresarial e infraestrutura de TI
@@ -184,16 +187,6 @@ const Login = () => {
                   )}
                 </Button>
               </form>
-
-              <div className="p-4 bg-slate-700/30 backdrop-blur-sm rounded-lg border border-slate-600/50">
-                <h4 className="text-white font-semibold mb-2 text-center">
-                  Informações de Acesso
-                </h4>
-                <div className="text-sm text-slate-300 text-center">
-                  <p><strong className="text-secondary">Master:</strong> contato@parkersolucoes.com.br</p>
-                  <p className="text-xs opacity-75 mt-1">Para suporte técnico, entre em contato com a administração</p>
-                </div>
-              </div>
             </CardContent>
           </Card>
 
