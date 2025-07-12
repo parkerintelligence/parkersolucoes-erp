@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resetSessionTimer = () => {
     // Só resetar se tiver usuário e sessão válidos
-    if (session && user && sessionTimer) {
+    if (session && user) {
       console.log('Timer de sessão resetado por atividade do usuário');
       startSessionTimer();
     }
@@ -106,10 +106,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (mounted) {
           console.log('Sessão inicial:', session?.user?.email || 'Nenhuma sessão');
           
-          if (session?.user) {
-            setSession(session);
-            setUser(session.user);
-            startSessionTimer(); // Iniciar timer de sessão
+        if (session?.user) {
+          setSession(session);
+          setUser(session.user);
+          // Timer será iniciado após o perfil ser carregado
             
             // Buscar perfil do usuário
             const profile = await fetchUserProfile(session.user.id);
@@ -122,6 +122,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               };
               console.log('Perfil do usuário definido:', typedProfile);
               setUserProfile(typedProfile);
+              // Iniciar timer de sessão apenas após carregar perfil
+              startSessionTimer();
             }
           } else {
             setSession(null);
@@ -151,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           setSession(session);
           setUser(session.user);
-          startSessionTimer(); // Iniciar timer de sessão
+          // Timer será iniciado após o perfil ser carregado
           
           // Buscar perfil do usuário
           setTimeout(async () => {
@@ -166,6 +168,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               };
               console.log('Perfil atualizado:', typedProfile);
               setUserProfile(typedProfile);
+              // Iniciar timer de sessão apenas após carregar perfil
+              startSessionTimer();
             }
           }, 0);
         } else {
