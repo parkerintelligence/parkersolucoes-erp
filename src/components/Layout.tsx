@@ -29,11 +29,11 @@ export const Layout = ({ children }: LayoutProps) => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full bg-primary">
         <AppSidebar />
         <SidebarInset className="flex-1 min-w-0 flex flex-col">
           <TopHeader />
-          <main className="flex-1 overflow-auto bg-background">
+          <main className="flex-1 overflow-auto bg-primary">
             <div className="container-responsive py-4 sm:py-6 lg:py-8">
               {children}
             </div>

@@ -61,20 +61,20 @@ export function AppSidebar() {
 
   return (
     <Sidebar 
-      className="border-r border-sidebar-border bg-sidebar-background" 
+      className="border-r border-primary-foreground/20 bg-primary" 
       collapsible="icon"
     >
-      <SidebarHeader className="p-4 border-b border-sidebar-border bg-sidebar-background">
+      <SidebarHeader className="p-4 border-b border-primary-foreground/20 bg-primary">
         <div className="flex items-center justify-center">
-          <div className="bg-sidebar-accent p-2 rounded-lg shadow-sm">
-            <Shield className="h-6 w-6 text-sidebar-accent-foreground" />
+          <div className="bg-secondary p-2 rounded-lg shadow-sm">
+            <Shield className="h-6 w-6 text-secondary-foreground" />
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-sidebar-background">
+      <SidebarContent className="bg-primary">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground font-medium">
+          <SidebarGroupLabel className="text-white font-medium">
             {!isCollapsed && "Menu Principal"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -87,8 +87,8 @@ export function AppSidebar() {
                       className={({ isActive }) => 
                         `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all ${
                           isActive 
-                            ? 'bg-sidebar-accent text-sidebar-accent-foreground' 
-                            : 'text-sidebar-foreground hover:bg-sidebar-accent/10 hover:text-sidebar-accent-foreground'
+                            ? 'bg-secondary text-secondary-foreground' 
+                            : 'text-white hover:bg-primary-foreground/10 hover:text-white'
                         }`
                       }
                     >
