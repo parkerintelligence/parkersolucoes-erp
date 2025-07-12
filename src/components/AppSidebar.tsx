@@ -61,39 +61,39 @@ export function AppSidebar() {
 
   return (
     <Sidebar 
-      className="border-r border-primary-foreground/20 bg-primary" 
+      className="border-r border-primary-foreground/20 bg-primary w-16 sm:w-64 lg:w-72" 
       collapsible="icon"
     >
-      <SidebarHeader className="p-4 border-b border-primary-foreground/20 bg-primary">
+      <SidebarHeader className="p-2 sm:p-4 border-b border-primary-foreground/20 bg-primary">
         <div className="flex items-center justify-center">
-          <div className="bg-secondary p-2 rounded-lg shadow-sm">
-            <Shield className="h-6 w-6 text-secondary-foreground" />
+          <div className="bg-secondary p-1 sm:p-2 rounded-lg shadow-sm">
+            <Shield className="h-4 w-4 sm:h-6 sm:w-6 text-secondary-foreground" />
           </div>
         </div>
       </SidebarHeader>
 
       <SidebarContent className="bg-primary">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-white font-medium">
-            {!isCollapsed && "Menu Principal"}
+          <SidebarGroupLabel className="text-white font-medium text-xs sm:text-sm px-2 sm:px-0">
+            {!isCollapsed && <span className="hidden sm:inline">Menu Principal</span>}
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
+            <SidebarMenu className="space-y-1 px-1 sm:px-0">
               {filteredMainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink 
                       to={item.url} 
                       className={({ isActive }) => 
-                        `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all ${
+                        `flex items-center gap-2 sm:gap-3 rounded-lg px-2 sm:px-3 py-2 text-xs sm:text-sm transition-all text-white hover:text-white ${
                           isActive 
-                            ? 'bg-secondary text-secondary-foreground' 
-                            : 'text-white hover:bg-primary-foreground/10 hover:text-white'
+                            ? 'bg-secondary text-secondary-foreground font-medium' 
+                            : 'hover:bg-primary-foreground/10'
                         }`
                       }
                     >
-                      <item.icon className="h-4 w-4 flex-shrink-0" />
-                      {!isCollapsed && <span>{item.title}</span>}
+                      <item.icon className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                      {!isCollapsed && <span className="hidden sm:inline truncate">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
