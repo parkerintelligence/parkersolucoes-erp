@@ -101,8 +101,43 @@ export const ScheduleTable = ({
     return <Badge className="bg-blue-800 text-blue-100 border-blue-700">Pendente</Badge>;
   };
   const getTypeBadge = (type: string) => {
-    // Badge neutro sem cores baseadas no status
-    return <Badge className="bg-gray-100 text-gray-800 border-gray-300">{type}</Badge>;
+    // Gerar cor de fundo suave baseada no tipo
+    const typeColors = {
+      'Backup': 'bg-blue-50 text-blue-800 border-blue-200',
+      'Manutenção': 'bg-green-50 text-green-800 border-green-200',
+      'Atualização': 'bg-purple-50 text-purple-800 border-purple-200',
+      'Renovação': 'bg-orange-50 text-orange-800 border-orange-200',
+      'Instalação': 'bg-cyan-50 text-cyan-800 border-cyan-200',
+      'Configuração': 'bg-indigo-50 text-indigo-800 border-indigo-200',
+      'Monitoramento': 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      'Suporte': 'bg-pink-50 text-pink-800 border-pink-200',
+      'Migração': 'bg-violet-50 text-violet-800 border-violet-200',
+      'Teste': 'bg-amber-50 text-amber-800 border-amber-200'
+    };
+    
+    // Se o tipo não estiver mapeado, gerar uma cor baseada no hash do texto
+    const defaultColor = typeColors[type as keyof typeof typeColors];
+    if (defaultColor) {
+      return <Badge className={defaultColor}>{type}</Badge>;
+    }
+    
+    // Gerar cor automática para tipos não mapeados
+    const hash = type.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+    const colors = [
+      'bg-slate-50 text-slate-800 border-slate-200',
+      'bg-gray-50 text-gray-800 border-gray-200',
+      'bg-zinc-50 text-zinc-800 border-zinc-200',
+      'bg-stone-50 text-stone-800 border-stone-200',
+      'bg-red-50 text-red-800 border-red-200',
+      'bg-yellow-50 text-yellow-800 border-yellow-200',
+      'bg-lime-50 text-lime-800 border-lime-200',
+      'bg-teal-50 text-teal-800 border-teal-200',
+      'bg-sky-50 text-sky-800 border-sky-200',
+      'bg-rose-50 text-rose-800 border-rose-200'
+    ];
+    
+    const colorIndex = hash % colors.length;
+    return <Badge className={colors[colorIndex]}>{type}</Badge>;
   };
 
   const getStatusIcon = (daysUntil: number) => {
@@ -111,7 +146,7 @@ export const ScheduleTable = ({
       return (
         <div className="flex items-center gap-1" title="Vencido">
           <XCircle className="h-5 w-5 text-red-500" />
-          <span className="text-xs text-red-500 font-medium">Vencido</span>
+          <span className="text-xs text-red-500 font-medium whitespace-nowrap">Vencido</span>
         </div>
       );
     }
@@ -120,7 +155,7 @@ export const ScheduleTable = ({
       return (
         <div className="flex items-center gap-1" title="Crítico - vence em menos de 7 dias">
           <AlertTriangle className="h-5 w-5 text-yellow-500" />
-          <span className="text-xs text-yellow-500 font-medium">Crítico</span>
+          <span className="text-xs text-yellow-500 font-medium whitespace-nowrap">Crítico</span>
         </div>
       );
     }
@@ -129,7 +164,7 @@ export const ScheduleTable = ({
       return (
         <div className="flex items-center gap-1" title="Ok - vence em mais de 10 dias">
           <CheckCircle2 className="h-5 w-5 text-green-500" />
-          <span className="text-xs text-green-500 font-medium">A Vencer</span>
+          <span className="text-xs text-green-500 font-medium whitespace-nowrap">A Vencer</span>
         </div>
       );
     }
@@ -137,7 +172,7 @@ export const ScheduleTable = ({
     return (
       <div className="flex items-center gap-1" title="Atenção - vence entre 7-10 dias">
         <Clock className="h-5 w-5 text-yellow-500" />
-        <span className="text-xs text-yellow-500 font-medium">Atenção</span>
+        <span className="text-xs text-yellow-500 font-medium whitespace-nowrap">Atenção</span>
       </div>
     );
   };
@@ -201,11 +236,13 @@ export const ScheduleTable = ({
             {filteredItems.map(item => {
             const daysUntil = getDaysUntilDue(item.due_date);
             return <TableRow key={item.id} className="h-12 hover:bg-gray-700 border-gray-700">
-                  <TableCell className="font-medium py-2 text-white">{item.title}</TableCell>
+                  <TableCell className="font-medium py-2 text-white max-w-xs">
+                    <div className="whitespace-normal break-words">{item.title}</div>
+                  </TableCell>
                   <TableCell className="py-2">
                     <div className="flex items-center gap-2">
-                      <Building className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-300">{item.company}</span>
+                      <Building className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      <span className="text-gray-300 whitespace-normal break-words">{item.company}</span>
                     </div>
                   </TableCell>
                   <TableCell className="py-2">{getTypeBadge(item.type)}</TableCell>
