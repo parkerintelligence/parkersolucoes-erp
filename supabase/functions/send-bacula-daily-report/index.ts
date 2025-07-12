@@ -203,12 +203,15 @@ serve(async (req) => {
         const baculaResponse = await retryWithBackoff(async () => {
           return await supabase.functions.invoke('bacula-proxy', {
             body: {
-              endpoint: 'jobs',
+              endpoint: 'jobs/last24h',
               params: {
-                start_time: startTimeUTC,
-                end_time: endTimeUTC,
-                limit: 1000
+                limit: 1000,
+                order_by: 'starttime',
+                order_direction: 'desc'
               }
+            },
+            headers: {
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
             }
           });
         }, RETRY_CONFIG.maxRetries);
@@ -219,7 +222,11 @@ serve(async (req) => {
 
         baculaData = baculaResponse.data;
         setCache(cacheKey, baculaData);
-        console.log('Dados do Bacula obtidos com sucesso');
+        console.log('✅ Dados do Bacula obtidos com sucesso:', {
+          endpoint: baculaData.endpoint,
+          totalJobs: baculaData.jobs?.length || 0,
+          stats: baculaData.stats
+        });
       } catch (error) {
         console.error('Erro crítico ao acessar Bacula:', error);
         
