@@ -31,15 +31,41 @@ export default function Alertas() {
   const { data: items = [], isLoading: itemsLoading } = useItems(hostIds, {
     search: {
       key_: [
+        // CPU variations - expanded
         'system.cpu.util[,avg1]', 
+        'system.cpu.util[,avg5]',
+        'system.cpu.util[,avg15]',
         'system.cpu.util',
+        'system.cpu.load[,avg1]',
+        'system.cpu.load[percpu,avg1]',
+        'cpu.util',
+        'proc.cpu.util',
+        'perf_counter[\\Processor(_Total)\\% Processor Time]',
+        // Memory variations - expanded
         'vm.memory.size[total]', 
         'vm.memory.size[available]', 
+        'vm.memory.size[used]',
         'vm.memory.utilization',
+        'vm.memory.pused',
+        'memory.size[total]',
+        'memory.size[available]',
+        'memory.utilization',
+        'proc.mem[,,,rss]',
+        // Uptime variations
         'system.uptime', 
+        'system.uptime[s]',
+        'net.if.in[eth0]',
+        'agent.uptime',
+        // Disk variations - expanded
         'vfs.fs.size[/,pused]',
         'vfs.fs.size[/,pfree]',
-        'vfs.fs.size[/,total]'
+        'vfs.fs.size[/,total]',
+        'vfs.fs.size[/,used]',
+        'vfs.fs.size[C:,pused]',
+        'vfs.fs.size[C:,pfree]',
+        'vfs.fs.discovery',
+        'disk.usage.percent',
+        'fs.size.pused'
       ]
     }
   });
@@ -106,9 +132,17 @@ export default function Alertas() {
   const onlineCount = devices.filter(d => d.status === 'online').length;
   const offlineCount = devices.filter(d => d.status === 'offline').length;
 
-  const handleRefresh = () => {
-    refetchHosts();
-    refetchProblems();
+  const handleRefresh = async () => {
+    console.log('🔄 Iniciando refresh manual dos dados Zabbix...');
+    try {
+      await Promise.all([
+        refetchHosts(),
+        refetchProblems()
+      ]);
+      console.log('✅ Refresh concluído com sucesso');
+    } catch (error) {
+      console.error('❌ Erro durante o refresh:', error);
+    }
   };
 
   const getPerformanceData = (hostId: string) => {
@@ -121,7 +155,9 @@ export default function Alertas() {
       item.key_.includes('system.cpu.load') ||
       item.key_.includes('cpu.load') ||
       item.key_.includes('processor.util') ||
-      item.key_.includes('system.cpu.usage')
+      item.key_.includes('system.cpu.usage') ||
+      item.key_.includes('proc.cpu.util') ||
+      item.key_.includes('perf_counter')
     );
     
     // Buscar itens de memória - diferentes variações

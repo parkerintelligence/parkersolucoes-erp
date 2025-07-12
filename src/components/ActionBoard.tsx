@@ -9,12 +9,13 @@ import { useActionPlan, type ActionColumn, type ActionCard, type ActionCardItem 
 
 interface ActionBoardProps {
   boardId: string;
+  boardColor?: string;
   columns: ActionColumn[];
   cards: ActionCard[];
   cardItems: ActionCardItem[];
 }
 
-export function ActionBoard({ boardId, columns, cards, cardItems }: ActionBoardProps) {
+export function ActionBoard({ boardId, boardColor, columns, cards, cardItems }: ActionBoardProps) {
   const [isCreateColumnOpen, setIsCreateColumnOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const { createColumn } = useActionPlan();
@@ -64,7 +65,7 @@ export function ActionBoard({ boardId, columns, cards, cardItems }: ActionBoardP
   };
 
   return (
-    <div className="flex gap-6 overflow-x-auto pb-6 min-h-[600px]">
+    <div className="flex gap-6 overflow-x-auto pb-6 min-h-[600px] p-6 rounded-lg" style={{ backgroundColor: boardColor || '#1e293b' }}>
       {columns.map((column) => (
         <ActionColumnComponent
           key={column.id}

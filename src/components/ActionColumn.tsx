@@ -7,6 +7,7 @@ import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { ActionCardComponent } from "@/components/ActionCard";
 import { ColumnDialog } from "@/components/ColumnDialog";
 import { CardDialog } from "@/components/CardDialog";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useActionPlan, type ActionColumn, type ActionCard, type ActionCardItem } from "@/hooks/useActionPlan";
 
 interface ActionColumnProps {
@@ -50,13 +51,6 @@ export function ActionColumn({ column, cards, cardItems, getItemsForCard }: Acti
   };
 
   const handleDeleteColumn = async () => {
-    if (cards.length > 0) {
-      const confirmMessage = `Esta coluna contém ${cards.length} card(s). Tem certeza que deseja excluir a coluna "${column.name}" e todos os seus cards?`;
-      if (!window.confirm(confirmMessage)) return;
-    } else {
-      if (!window.confirm(`Tem certeza que deseja excluir a coluna "${column.name}"?`)) return;
-    }
-    
     setIsDeleting(true);
     try {
       await deleteColumn(column.id);
@@ -87,15 +81,26 @@ export function ActionColumn({ column, cards, cardItems, getItemsForCard }: Acti
               </DialogTrigger>
               <ColumnDialog column={column} onSave={handleUpdateColumn} />
             </Dialog>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-slate-800"
-              onClick={handleDeleteColumn}
-              disabled={isDeleting}
+            <ConfirmationDialog
+              title="Excluir Coluna"
+              description={
+                cards.length > 0 
+                  ? `Esta coluna contém ${cards.length} card(s). Tem certeza que deseja excluir a coluna "${column.name}" e todos os seus cards? Esta ação não pode ser desfeita.`
+                  : `Tem certeza que deseja excluir a coluna "${column.name}"? Esta ação não pode ser desfeita.`
+              }
+              onConfirm={handleDeleteColumn}
+              confirmText="Excluir"
+              variant="destructive"
             >
-              <Trash2 className="h-3 w-3" />
-            </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-slate-800"
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </ConfirmationDialog>
           </div>
         </div>
         <div className="text-xs text-slate-400">

@@ -145,6 +145,7 @@ export default function ActionPlan() {
       {selectedBoard ? (
         <ActionBoard 
           boardId={selectedBoard}
+          boardColor={selectedBoardData?.color}
           columns={columns}
           cards={cards}
           cardItems={cardItems}
