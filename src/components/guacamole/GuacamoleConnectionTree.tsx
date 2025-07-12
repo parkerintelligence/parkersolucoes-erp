@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -241,7 +242,7 @@ export const GuacamoleConnectionTree = ({
             {expandedGroups.has(group.identifier) && <div className="mt-3">
                 {group.connections.length === 0 ? <div className="ml-6 py-4 text-center text-slate-500 text-sm">
                     Nenhuma conexão neste grupo
-                  </div> : <div className="ml-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                  </div> : <div className="ml-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                     {group.connections.map(connection => <Card key={connection.identifier} className="bg-slate-700 border-slate-600 w-48">
                       <CardContent className="p-2 bg-gray-900 rounded-xl">
                         <div className="space-y-2">
