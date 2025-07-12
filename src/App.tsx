@@ -39,13 +39,21 @@ function App() {
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
               <Route
+                path="/links"
+                element={
+                  <Layout>
+                    <Links />
+                  </Layout>
+                }
+              />
+              <Route
                 path="/dashboard"
                 element={
                   <Layout>
                     <Dashboard />
                   </Layout>
                 }
-              />
+               />
               <Route
                 path="/admin"
                 element={
@@ -85,15 +93,7 @@ function App() {
                     <Annotations />
                   </Layout>
                 }
-              />
-              <Route
-                path="/links"
-                element={
-                  <Layout>
-                    <Links />
-                  </Layout>
-                }
-              />
+               />
               <Route
                 path="/whatsapp"
                 element={

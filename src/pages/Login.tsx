@@ -21,7 +21,7 @@ const Login = () => {
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       console.log('Usuário já autenticado, redirecionando para dashboard');
-      navigate('/dashboard', { replace: true });
+      navigate('/links', { replace: true }); // Redirecionar para links ao invés de dashboard
     }
   }, [isAuthenticated, authLoading, navigate]);
 
