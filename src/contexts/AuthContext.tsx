@@ -93,9 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (sessionTimerRef.current) {
       clearTimeout(sessionTimerRef.current);
       sessionTimerRef.current = null;
-      const timerId = sessionTimerIdRef.current;
       sessionTimerIdRef.current = null;
-      console.log('🔄 Timer de sessão limpo:', timerId);
     }
   }, []);
 
@@ -135,17 +133,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await logout();
     }, 30 * 60 * 1000);
     
-    console.log('🚀 Timer de sessão iniciado/renovado: 30 minutos - ID:', timerId);
+    // Timer iniciado silenciosamente para melhorar performance
   }, [session, user, clearSessionTimer]);
 
   const resetSessionTimer = useCallback(() => {
     // Só resetar se tiver usuário e sessão válidos
     if (!session || !user) {
-      console.log('⚠️ Não pode resetar timer - usuário ou sessão não disponível');
       return;
     }
     
-    console.log('🔄 Timer de sessão resetado por atividade do usuário');
     startSessionTimer();
   }, [session, user, startSessionTimer]);
 

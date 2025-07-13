@@ -14,9 +14,9 @@ export const useUserActivity = () => {
     
     const now = Date.now();
     
-    // Só resetar se passou pelo menos 5 segundos desde a última atividade
+    // Só resetar se passou pelo menos 30 segundos desde a última atividade
     // Isso evita spam de resets desnecessários
-    if (now - lastActivityRef.current < 5000) return;
+    if (now - lastActivityRef.current < 30000) return;
     
     lastActivityRef.current = now;
     
@@ -25,25 +25,20 @@ export const useUserActivity = () => {
       clearTimeout(debounceTimerRef.current);
     }
     
-    // Debounce de 3 segundos para evitar multiple resets
+    // Debounce de 10 segundos para evitar multiple resets
     debounceTimerRef.current = setTimeout(() => {
-      console.log('🎯 Atividade do usuário detectada - resetando timer de sessão');
       resetSessionTimer();
-    }, 3000);
+    }, 10000);
   }, [isAuthenticated, session, resetSessionTimer]);
 
   useEffect(() => {
     // Só ativar se estiver autenticado e tiver sessão
     if (!isAuthenticated || !session) {
-      console.log('⚠️ useUserActivity: Não ativado - usuário não autenticado');
       return;
     }
 
-    console.log('🎯 useUserActivity: Ativado para usuário autenticado');
-
-    // Eventos importantes que indicam atividade real do usuário
-    // Removendo 'mousemove' para evitar spam excessivo
-    const events = ['click', 'keypress', 'scroll', 'touchstart'];
+    // Apenas eventos realmente importantes para considerar atividade
+    const events = ['click', 'keydown'];
     
     // Adicionar listeners para atividade do usuário
     events.forEach(event => {
@@ -52,8 +47,6 @@ export const useUserActivity = () => {
 
     // Cleanup
     return () => {
-      console.log('🧹 useUserActivity: Limpando listeners');
-      
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
         debounceTimerRef.current = null;
