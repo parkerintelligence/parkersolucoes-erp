@@ -19,13 +19,10 @@ const Login = () => {
     isAuthenticated,
     isLoading: authLoading
   } = useAuth();
-  const {
-    data: settings,
-    isLoading: settingsLoading
-  } = useSystemSettings('branding');
+  const { data: settings } = useSystemSettings('branding');
   const navigate = useNavigate();
 
-  // Buscar logo e nome da empresa das configurações
+  // Buscar logo e nome da empresa das configurações com fallbacks seguros
   const companyLogo = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value || parkerLogo;
   const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Parker Soluções ERP';
 

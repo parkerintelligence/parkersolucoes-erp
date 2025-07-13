@@ -149,8 +149,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const initializeAuth = async () => {
       try {
-        console.log('Inicializando autenticação...');
-        
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -162,34 +160,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         if (mounted) {
-          console.log('Sessão inicial:', session?.user?.email || 'Nenhuma sessão');
-          
-        if (session?.user) {
-          setSession(session);
-          setUser(session.user);
+          if (session?.user) {
+            setSession(session);
+            setUser(session.user);
             
-          // Buscar perfil do usuário
-          const profile = await fetchUserProfile(session.user.id);
-          if (profile && mounted) {
-            const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
-            const typedProfile: UserProfile = {
-              id: profile.id,
-              email: profile.email,
-              role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
-            };
-            console.log('Perfil do usuário definido:', typedProfile);
-            setUserProfile(typedProfile);
-            
-            // Iniciar timer apenas uma vez após tudo estar configurado
-            console.log('🎯 Iniciando timer de sessão após inicialização completa');
-            startSessionTimer();
-          }
+            // Buscar perfil do usuário em background
+            try {
+              const profile = await fetchUserProfile(session.user.id);
+              if (profile && mounted) {
+                const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
+                const typedProfile: UserProfile = {
+                  id: profile.id,
+                  email: profile.email,
+                  role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
+                };
+                setUserProfile(typedProfile);
+                startSessionTimer();
+              }
+            } catch (profileError) {
+              console.error('Erro ao buscar perfil:', profileError);
+              // Continuar mesmo se falhar ao buscar perfil
+            }
           } else {
             setSession(null);
             setUser(null);
             setUserProfile(null);
           }
           
+          // Sempre definir loading como false após processar
           setIsLoading(false);
         }
       } catch (error) {
@@ -207,31 +205,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         if (!mounted) return;
         
-        console.log('Estado de autenticação alterado:', event, session?.user?.email || 'Logout');
-        
         if (session?.user && event === 'SIGNED_IN') {
-          console.log('🔄 Novo login detectado');
           setSession(session);
           setUser(session.user);
           
-          // Buscar perfil do usuário
-          const profile = await fetchUserProfile(session.user.id);
-          if (profile && mounted) {
-            const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
-            const typedProfile: UserProfile = {
-              id: profile.id,
-              email: profile.email,
-              role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
-            };
-            console.log('Perfil atualizado:', typedProfile);
-            setUserProfile(typedProfile);
-            
-            // Iniciar timer apenas para novos logins
-            console.log('🎯 Iniciando timer de sessão após novo login');
-            startSessionTimer();
+          // Buscar perfil em background sem bloquear
+          try {
+            const profile = await fetchUserProfile(session.user.id);
+            if (profile && mounted) {
+              const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
+              const typedProfile: UserProfile = {
+                id: profile.id,
+                email: profile.email,
+                role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
+              };
+              setUserProfile(typedProfile);
+              startSessionTimer();
+            }
+          } catch (error) {
+            console.error('Erro ao buscar perfil durante login:', error);
           }
         } else if (event === 'SIGNED_OUT') {
-          console.log('🚪 Logout detectado');
           clearSessionTimer();
           setSession(null);
           setUser(null);
@@ -306,14 +300,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading,
     resetSessionTimer
   };
-
-  console.log('AuthContext Estado:', { 
-    isAuthenticated: !!user && !!session, 
-    isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
-    userEmail: user?.email,
-    userRole: userProfile?.role,
-    isLoading
-  });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

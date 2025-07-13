@@ -19,27 +19,35 @@ export const useSystemSettings = (category?: string) => {
   return useQuery({
     queryKey: ['system-settings', category],
     queryFn: async () => {
-      let query = supabase
-        .from('system_settings')
-        .select('*')
-        .order('setting_key');
-      
-      if (category) {
-        query = query.eq('category', category);
+      try {
+        let query = supabase
+          .from('system_settings')
+          .select('*')
+          .order('setting_key');
+        
+        if (category) {
+          query = query.eq('category', category);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.warn('Erro ao buscar configurações (não bloqueante):', error);
+          return []; // Retornar array vazio em caso de erro
+        }
+        
+        return data as SystemSetting[];
+      } catch (error) {
+        console.warn('Erro ao executar query de configurações:', error);
+        return []; // Fallback gracioso
       }
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Erro ao buscar configurações:', error);
-        throw error;
-      }
-      
-      return data as SystemSetting[];
     },
-    enabled: true, // Sempre habilitado, mas com tratamento de erro gracioso
-    retry: false, // Não tentar novamente se falhar
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    enabled: true,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+    // Configurações adicionais para tornar não-bloqueante
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 };
 
