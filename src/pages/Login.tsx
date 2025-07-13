@@ -20,8 +20,9 @@ const Login = () => {
     isLoading: authLoading
   } = useAuth();
   const {
-    data: settings
-  } = useSystemSettings();
+    data: settings,
+    isLoading: settingsLoading
+  } = useSystemSettings('branding');
   const navigate = useNavigate();
 
   // Buscar logo e nome da empresa das configurações

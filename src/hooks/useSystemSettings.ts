@@ -37,6 +37,9 @@ export const useSystemSettings = (category?: string) => {
       
       return data as SystemSetting[];
     },
+    enabled: true, // Sempre habilitado, mas com tratamento de erro gracioso
+    retry: false, // Não tentar novamente se falhar
+    staleTime: 5 * 60 * 1000, // 5 minutos
   });
 };
 
