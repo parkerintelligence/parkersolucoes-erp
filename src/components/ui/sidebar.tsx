@@ -100,9 +100,11 @@ const SidebarProvider = React.forwardRef<HTMLDivElement, React.ComponentProps<"d
         "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
         ...style
       } as React.CSSProperties} className={cn("group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar", className)} ref={ref} {...props}>
-          <TooltipProvider delayDuration={0}>
-            {children}
-          </TooltipProvider>
+          {React && React.useState ? (
+            <TooltipProvider delayDuration={0}>
+              {children}
+            </TooltipProvider>
+          ) : children}
         </div>
       </SidebarContext.Provider>;
 });
