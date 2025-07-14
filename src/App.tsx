@@ -1,5 +1,5 @@
 
-import * as React from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -30,49 +30,14 @@ import ActionPlan from '@/pages/ActionPlan';
 import Alertas from '@/pages/Alertas';
 import { Layout } from '@/components/Layout';
 
-// Componente para detectar atividade apenas em páginas autenticadas
-function AuthenticatedContent() {
-  const { isAuthenticated } = useAuth();
-  
-  // Só usar o hook de atividade se estiver autenticado
-  if (isAuthenticated) {
-    useUserActivity();
-  }
-  
-  return null;
-}
-
-// Componente interno com proteção de rotas
+// Componente interno para usar o hook de atividade
 function AppContent() {
-  const { isAuthenticated, isLoading } = useAuth();
+  useUserActivity(); // Detectar atividade do usuário e resetar timer
   
-  // Mostrar loading durante inicialização
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
-      <AuthenticatedContent />
       <Routes>
-        {/* Redirecionar root baseado no status de autenticação */}
-        <Route 
-          path="/" 
-          element={
-            isAuthenticated ? (
-              <Navigate to="/alertas" replace />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          } 
-        />
+        <Route path="/" element={<Navigate to="/alertas" replace />} />
         <Route path="/login" element={<Login />} />
         <Route
           path="/alertas"
@@ -268,13 +233,13 @@ const queryClient = new QueryClient();
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
+    <AuthProvider>
+      <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <AppContent />
         </BrowserRouter>
-      </AuthProvider>
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </AuthProvider>
   );
 }
 

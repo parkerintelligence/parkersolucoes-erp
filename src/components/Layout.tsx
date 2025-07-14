@@ -11,9 +11,31 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children }: LayoutProps) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, resetSessionTimer } = useAuth();
 
   console.log('Layout - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
+
+  // Resetar timer de sessão a cada atividade do usuário
+  React.useEffect(() => {
+    const handleUserActivity = () => {
+      if (isAuthenticated) {
+        resetSessionTimer();
+      }
+    };
+
+    // Eventos que indicam atividade do usuário
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    
+    events.forEach(event => {
+      document.addEventListener(event, handleUserActivity, true);
+    });
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, handleUserActivity, true);
+      });
+    };
+  }, [isAuthenticated, resetSessionTimer]);
 
   if (isLoading) {
     return (
