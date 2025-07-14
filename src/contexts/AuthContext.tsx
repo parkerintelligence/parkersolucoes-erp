@@ -18,7 +18,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isMaster: boolean;
   isLoading: boolean;
-  resetSessionTimer: () => void;
 }
 
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
@@ -45,10 +44,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = React.useState<Session | null>(null);
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
-  
-  // Usar useRef para o timer para evitar re-renders desnecessários
-  const sessionTimerRef = React.useRef<NodeJS.Timeout | null>(null);
-  const sessionTimerIdRef = React.useRef<string | null>(null);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -70,97 +65,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Verificar se a sessão ainda é válida no Supabase
-  const validateSession = async (): Promise<boolean> => {
-    try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error || !session) {
-        console.log('🔍 Sessão inválida ou expirada no Supabase');
-        return false;
-      }
-      
-      // Verificar se o token ainda é válido (não expirou)
-      const now = Math.floor(Date.now() / 1000);
-      if (session.expires_at && session.expires_at < now) {
-        console.log('🔍 Token de sessão expirado');
-        return false;
-      }
-      
-      console.log('✅ Sessão válida no Supabase');
-      return true;
-    } catch (error) {
-      console.error('❌ Erro ao validar sessão:', error);
-      return false;
-    }
-  };
-
-  const clearSessionTimer = React.useCallback(() => {
-    if (sessionTimerRef.current) {
-      clearTimeout(sessionTimerRef.current);
-      sessionTimerRef.current = null;
-      sessionTimerIdRef.current = null;
-    }
-  }, []);
-
-  const startSessionTimer = React.useCallback(() => {
-    // Primeiro, limpar qualquer timer existente
-    clearSessionTimer();
-    
-    // Só criar timer se estiver autenticado
-    if (!session || !user) {
-      console.log('⚠️ Não pode criar timer - usuário ou sessão não disponível');
-      return;
-    }
-    
-    // Gerar ID único para este timer
-    const timerId = `timer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    sessionTimerIdRef.current = timerId;
-    
-    // Criar novo timer para 30 minutos (1800000 ms)
-    sessionTimerRef.current = setTimeout(async () => {
-      console.log('⏰ Timer de 30 minutos executado:', timerId);
-      
-      // Verificar se este é ainda o timer ativo
-      if (sessionTimerIdRef.current !== timerId) {
-        console.log('⚠️ Timer desatualizado, ignorando:', timerId);
-        return;
-      }
-      
-      // Verificar se a sessão ainda é válida antes de fazer logout
-      const isValid = await validateSession();
-      if (isValid) {
-        console.log('✅ Sessão ainda válida, renovando timer em vez de logout');
-        startSessionTimer(); // Renovar o timer
-        return;
-      }
-      
-      console.log('❌ Sessão expirada após 30 minutos, fazendo logout...');
-      await logout();
-    }, 30 * 60 * 1000);
-    
-    // Timer iniciado silenciosamente para melhorar performance
-  }, [session, user, clearSessionTimer]);
-
-  const resetSessionTimer = React.useCallback(() => {
-    // Só resetar se tiver usuário e sessão válidos
-    if (!session || !user) {
-      return;
-    }
-    
-    startSessionTimer();
-  }, [session, user, startSessionTimer]);
 
   React.useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
-        // Primeiro, limpar qualquer sessão corrompida
+        // Limpar localStorage corrompido
+        try {
+          localStorage.removeItem('sb-mpvxppgoyadwukkfoccs-auth-token');
+        } catch (e) {
+          console.log('Erro ao limpar localStorage:', e);
+        }
+
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Erro ao obter sessão:', error);
-          // Limpar sessão corrompida
           await supabase.auth.signOut();
           if (mounted) {
             setUser(null);
@@ -173,23 +94,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (mounted) {
           if (session?.user) {
-            // Verificar se o token é válido
-            const now = Math.floor(Date.now() / 1000);
-            if (session.expires_at && session.expires_at < now) {
-              console.log('🔍 Token expirado, fazendo logout');
-              await supabase.auth.signOut();
-              setUser(null);
-              setSession(null);
-              setUserProfile(null);
-              setIsLoading(false);
-              return;
-            }
-            
             setSession(session);
             setUser(session.user);
             
             // Buscar perfil do usuário em background
             setTimeout(async () => {
+              if (!mounted) return;
+              
               try {
                 const profile = await fetchUserProfile(session.user.id);
                 if (profile && mounted) {
@@ -200,7 +111,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
                   };
                   setUserProfile(typedProfile);
-                  startSessionTimer();
                 } else if (mounted) {
                   // Criar perfil padrão se não existir
                   const defaultProfile: UserProfile = {
@@ -209,7 +119,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     role: session.user.email === 'contato@parkersolucoes.com.br' ? 'master' : 'user'
                   };
                   setUserProfile(defaultProfile);
-                  startSessionTimer();
                 }
               } catch (profileError) {
                 console.error('Erro ao buscar perfil:', profileError);
@@ -221,7 +130,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     role: session.user.email === 'contato@parkersolucoes.com.br' ? 'master' : 'user'
                   };
                   setUserProfile(defaultProfile);
-                  startSessionTimer();
                 }
               }
             }, 0);
@@ -231,14 +139,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUserProfile(null);
           }
           
-          // Sempre definir loading como false após processar
           setIsLoading(false);
         }
       } catch (error) {
         console.error('Erro ao inicializar autenticação:', error);
-        // Em caso de erro, limpar tudo e mostrar login
         if (mounted) {
-          await supabase.auth.signOut();
           setUser(null);
           setSession(null);
           setUserProfile(null);
@@ -247,35 +152,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    initializeAuth();
-
-    // Configurar listener de mudanças de autenticação
+    // Configurar listener primeiro
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (!mounted) return;
+        
+        console.log('Auth state changed:', event, !!session);
         
         if (session?.user && event === 'SIGNED_IN') {
           setSession(session);
           setUser(session.user);
           
-          // Buscar perfil em background sem bloquear
-          try {
-            const profile = await fetchUserProfile(session.user.id);
-            if (profile && mounted) {
-              const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
-              const typedProfile: UserProfile = {
-                id: profile.id,
-                email: profile.email,
-                role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
-              };
-              setUserProfile(typedProfile);
-              startSessionTimer();
+          // Buscar perfil em background
+          setTimeout(async () => {
+            if (!mounted) return;
+            
+            try {
+              const profile = await fetchUserProfile(session.user.id);
+              if (profile && mounted) {
+                const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
+                const typedProfile: UserProfile = {
+                  id: profile.id,
+                  email: profile.email,
+                  role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
+                };
+                setUserProfile(typedProfile);
+              } else if (mounted) {
+                const defaultProfile: UserProfile = {
+                  id: session.user.id,
+                  email: session.user.email || '',
+                  role: session.user.email === 'contato@parkersolucoes.com.br' ? 'master' : 'user'
+                };
+                setUserProfile(defaultProfile);
+              }
+            } catch (error) {
+              console.error('Erro ao buscar perfil durante login:', error);
             }
-          } catch (error) {
-            console.error('Erro ao buscar perfil durante login:', error);
-          }
+          }, 0);
         } else if (event === 'SIGNED_OUT') {
-          clearSessionTimer();
           setSession(null);
           setUser(null);
           setUserProfile(null);
@@ -283,12 +197,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
+    // Inicializar depois
+    initializeAuth();
+
+    // Timeout de segurança para evitar loading infinito
+    const safetyTimeout = setTimeout(() => {
+      if (mounted) {
+        console.log('Timeout de segurança ativado - forçando fim do loading');
+        setIsLoading(false);
+      }
+    }, 5000);
+
     return () => {
       mounted = false;
-      clearSessionTimer();
+      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
-  }, [clearSessionTimer, startSessionTimer]);
+  }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -324,9 +249,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('🚪 Fazendo logout...');
       
-      // Limpar timer de sessão
-      clearSessionTimer();
-      
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
@@ -346,8 +268,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     isAuthenticated: !!user && !!session,
     isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
-    isLoading,
-    resetSessionTimer
+    isLoading
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
