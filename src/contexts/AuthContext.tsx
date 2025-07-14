@@ -43,20 +43,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      console.log('Buscando perfil do usuário:', userId);
-      
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Erro ao buscar perfil do usuário:', error);
         return null;
       }
 
-      console.log('Perfil do usuário encontrado:', data);
       return data;
     } catch (error) {
       console.error('Erro ao buscar perfil do usuário:', error);
@@ -165,22 +162,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(session.user);
             
             // Buscar perfil do usuário em background
-            try {
-              const profile = await fetchUserProfile(session.user.id);
-              if (profile && mounted) {
-                const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
-                const typedProfile: UserProfile = {
-                  id: profile.id,
-                  email: profile.email,
-                  role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
-                };
-                setUserProfile(typedProfile);
-                startSessionTimer();
+            setTimeout(async () => {
+              try {
+                const profile = await fetchUserProfile(session.user.id);
+                if (profile && mounted) {
+                  const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
+                  const typedProfile: UserProfile = {
+                    id: profile.id,
+                    email: profile.email,
+                    role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
+                  };
+                  setUserProfile(typedProfile);
+                  startSessionTimer();
+                } else if (mounted) {
+                  // Criar perfil padrão se não existir
+                  const defaultProfile: UserProfile = {
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    role: session.user.email === 'contato@parkersolucoes.com.br' ? 'master' : 'user'
+                  };
+                  setUserProfile(defaultProfile);
+                  startSessionTimer();
+                }
+              } catch (profileError) {
+                console.error('Erro ao buscar perfil:', profileError);
+                // Criar perfil padrão mesmo com erro
+                if (mounted) {
+                  const defaultProfile: UserProfile = {
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    role: session.user.email === 'contato@parkersolucoes.com.br' ? 'master' : 'user'
+                  };
+                  setUserProfile(defaultProfile);
+                  startSessionTimer();
+                }
               }
-            } catch (profileError) {
-              console.error('Erro ao buscar perfil:', profileError);
-              // Continuar mesmo se falhar ao buscar perfil
-            }
+            }, 0);
           } else {
             setSession(null);
             setUser(null);
