@@ -155,11 +155,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const initializeAuth = async () => {
       try {
+        // Primeiro, limpar qualquer sessão corrompida
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Erro ao obter sessão:', error);
+          // Limpar sessão corrompida
+          await supabase.auth.signOut();
           if (mounted) {
+            setUser(null);
+            setSession(null);
+            setUserProfile(null);
             setIsLoading(false);
           }
           return;
@@ -167,6 +173,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (mounted) {
           if (session?.user) {
+            // Verificar se o token é válido
+            const now = Math.floor(Date.now() / 1000);
+            if (session.expires_at && session.expires_at < now) {
+              console.log('🔍 Token expirado, fazendo logout');
+              await supabase.auth.signOut();
+              setUser(null);
+              setSession(null);
+              setUserProfile(null);
+              setIsLoading(false);
+              return;
+            }
+            
             setSession(session);
             setUser(session.user);
             
@@ -218,7 +236,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error) {
         console.error('Erro ao inicializar autenticação:', error);
+        // Em caso de erro, limpar tudo e mostrar login
         if (mounted) {
+          await supabase.auth.signOut();
+          setUser(null);
+          setSession(null);
+          setUserProfile(null);
           setIsLoading(false);
         }
       }
