@@ -95,15 +95,15 @@ const SidebarProvider = React.forwardRef<HTMLDivElement, React.ComponentProps<"d
     toggleSidebar
   }), [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]);
   return <SidebarContext.Provider value={contextValue}>
-        <TooltipProvider delayDuration={0}>
-          <div style={{
+        <div style={{
         "--sidebar-width": SIDEBAR_WIDTH,
         "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
         ...style
       } as React.CSSProperties} className={cn("group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar", className)} ref={ref} {...props}>
+          <TooltipProvider delayDuration={0}>
             {children}
-          </div>
-        </TooltipProvider>
+          </TooltipProvider>
+        </div>
       </SidebarContext.Provider>;
 });
 SidebarProvider.displayName = "SidebarProvider";
