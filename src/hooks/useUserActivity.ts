@@ -1,29 +1,42 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Hook para detectar atividade do usuário e resetar timer de sessão
+// Hook simplificado para detectar atividade do usuário (sem timer de sessão)
 export const useUserActivity = () => {
-  const { resetSessionTimer, isAuthenticated } = useAuth();
+  const { isAuthenticated, session } = useAuth();
+  const lastActivityRef = useRef<number>(0);
+
+  // Função para detectar atividade do usuário
+  const handleUserActivity = useCallback(() => {
+    // Só processar se estiver autenticado
+    if (!isAuthenticated || !session) return;
+    
+    const now = Date.now();
+    lastActivityRef.current = now;
+    
+    // Pode ser usado para analytics ou outras funcionalidades no futuro
+    console.debug('User activity detected');
+  }, [isAuthenticated, session]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    // Só ativar se estiver autenticado e tiver sessão
+    if (!isAuthenticated || !session) {
+      return;
+    }
 
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    // Eventos para detectar atividade
+    const events = ['click', 'keydown'];
     
-    const resetTimer = () => {
-      resetSessionTimer();
-    };
-
     // Adicionar listeners para atividade do usuário
     events.forEach(event => {
-      document.addEventListener(event, resetTimer, true);
+      document.addEventListener(event, handleUserActivity, { passive: true });
     });
 
     // Cleanup
     return () => {
       events.forEach(event => {
-        document.removeEventListener(event, resetTimer, true);
+        document.removeEventListener(event, handleUserActivity);
       });
     };
-  }, [isAuthenticated, resetSessionTimer]);
+  }, [isAuthenticated, session, handleUserActivity]);
 };
