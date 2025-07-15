@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,10 @@ import { toast } from '@/hooks/use-toast';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import parkerLogo from '@/assets/parker-logo.jpg';
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
   const {
     login,
     isAuthenticated,
@@ -30,7 +30,7 @@ const Login = () => {
   const companyName = (!settingsError && settings?.find(s => s.setting_key === 'company_name')?.setting_value) || 'Parker Soluções ERP';
 
   // Redirecionar usuários autenticados para alertas
-  useEffect(() => {
+  React.useEffect(() => {
     if (isAuthenticated && !authLoading) {
       console.log('Usuário já autenticado, redirecionando para alertas');
       navigate('/alertas', {
