@@ -1,13 +1,9 @@
-import * as React from "react"
+
+import React from "react"
 
 const MOBILE_BREAKPOINT = 768
 
 export function useIsMobile() {
-  // Check if React is available before using hooks
-  if (!React || !React.useState) {
-    return false
-  }
-
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
 
   React.useEffect(() => {
