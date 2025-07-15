@@ -37,6 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
+  const [initError, setInitError] = useState<string | null>(null);
   const processedSessionsRef = useRef<Set<string>>(new Set());
 
   const fetchUserProfile = useCallback(async (userId: string) => {
@@ -140,6 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         console.log('🚀 Inicializando autenticação...');
         setIsLoading(true);
+        setInitError(null); // Clear any previous errors
         
         // Limpar localStorage corrompido e session refs
         try {
@@ -157,7 +159,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               return;
             }
             console.log('🔔 Auth listener triggered:', event);
-            handleAuthStateChange(event, session);
+            handleAuthStateChange(event, session).catch(err => {
+              console.error('Erro no handleAuthStateChange:', err);
+            });
           }
         );
         
@@ -204,7 +208,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('✅ Inicialização de auth completa');
         }
       } catch (error) {
-        console.error('❌ Erro ao inicializar autenticação:', error);
+        console.error('❌ Erro crítico ao inicializar autenticação:', error);
         if (mounted) {
           if (retryCount < 3) {
             console.log(`🔄 Retry após erro: ${retryCount + 1}/3`);
@@ -213,18 +217,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (mounted) initializeAuth();
             }, 2000 * (retryCount + 1));
           } else {
+            console.error('❌ Máximo de tentativas excedido, usando modo de erro');
+            setInitError(`Falha na inicialização após 3 tentativas: ${error}`);
             setUser(null);
             setSession(null);
             setUserProfile(null);
             setIsLoading(false);
-            console.error('❌ Máximo de tentativas excedido');
           }
         }
       }
     };
 
-    // Inicializar
-    initializeAuth();
+    // Wrap initialization in try-catch to prevent provider from failing completely
+    try {
+      initializeAuth();
+    } catch (error) {
+      console.error('❌ Erro fatal na inicialização do AuthProvider:', error);
+      setInitError(`Erro fatal: ${error}`);
+      setIsLoading(false);
+    }
 
     // Timeout de segurança mais curto
     const safetyTimeout = setTimeout(() => {
@@ -238,7 +249,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       mounted = false;
       clearTimeout(safetyTimeout);
       if (subscription) {
-        subscription.unsubscribe();
+        try {
+          subscription.unsubscribe();
+        } catch (error) {
+          console.error('Erro ao desinscrever subscription:', error);
+        }
       }
     };
   }, []); // Remover dependência que causa loops
@@ -295,6 +310,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
     isLoading
   }), [user, userProfile, session, login, logout, isLoading]);
+
+  // If there's an initialization error, still provide the context with safe defaults
+  if (initError) {
+    console.error('AuthProvider initialization error:', initError);
+    const errorValue = {
+      user: null,
+      userProfile: null,
+      session: null,
+      login: async () => false,
+      logout: async () => {},
+      isAuthenticated: false,
+      isMaster: false,
+      isLoading: false
+    };
+    return <AuthContext.Provider value={errorValue}>{children}</AuthContext.Provider>;
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
