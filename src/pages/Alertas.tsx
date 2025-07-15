@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -524,7 +525,7 @@ export default function Alertas() {
                                   className="h-2 w-20"
                                   style={{
                                     '--progress-foreground': getProgressColor(perf.cpu)
-                                  } as React.CSSProperties}
+                                   } as CSSProperties}
                                 />
                               </div>
                             </TableCell>
@@ -540,7 +541,7 @@ export default function Alertas() {
                                    className="h-2 w-20"
                                    style={{
                                      '--progress-foreground': getProgressColor(perf.memoryPercent || (perf.memory / 16) * 100)
-                                   } as React.CSSProperties}
+                                    } as CSSProperties}
                                  />
                                </div>
                              </TableCell>
@@ -554,7 +555,7 @@ export default function Alertas() {
                                   className="h-2 w-20"
                                   style={{
                                     '--progress-foreground': getProgressColor(perf.disk)
-                                  } as React.CSSProperties}
+                                  } as CSSProperties}
                                 />
                               </div>
                             </TableCell>

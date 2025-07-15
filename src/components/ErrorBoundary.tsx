@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { Component, ErrorInfo, ReactNode, ComponentType } from 'react';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -6,11 +6,11 @@ interface ErrorBoundaryState {
 }
 
 interface ErrorBoundaryProps {
-  children: React.ReactNode;
-  fallback?: React.ComponentType<{ error?: Error; resetError: () => void }>;
+  children: ReactNode;
+  fallback?: ComponentType<{ error?: Error; resetError: () => void }>;
 }
 
-export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
@@ -20,7 +20,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 

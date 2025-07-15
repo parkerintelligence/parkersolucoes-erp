@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 export const QueryClientTest = () => {

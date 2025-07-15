@@ -1,13 +1,14 @@
 
-import * as React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { TopHeader } from '@/components/TopHeader';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
+import type { ReactNode } from 'react';
+
 interface LayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export const Layout = ({ children }: LayoutProps) => {
