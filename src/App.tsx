@@ -29,6 +29,7 @@ import ReportsDashboard from '@/pages/ReportsDashboard';
 import ActionPlan from '@/pages/ActionPlan';
 import Alertas from '@/pages/Alertas';
 import { Layout } from '@/components/Layout';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Componente para detectar atividade apenas em páginas autenticadas
 function AuthenticatedContent() {
@@ -73,6 +74,7 @@ function AppContent() {
             )
           } 
         />
+        {/* Login page outside Layout but inside QueryClientProvider */}
         <Route path="/login" element={<Login />} />
         <Route
           path="/alertas"
@@ -263,18 +265,28 @@ function AppContent() {
   );
 }
 
-// Create a single QueryClient instance
-const queryClient = new QueryClient();
+// Create a single QueryClient instance with proper defaults
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

@@ -19,12 +19,15 @@ const Login = () => {
     isAuthenticated,
     isLoading: authLoading
   } = useAuth();
-  const { data: settings } = useSystemSettings('branding');
+  
   const navigate = useNavigate();
 
+  // Use system settings with safe fallback
+  const { data: settings, error: settingsError } = useSystemSettings('branding');
+
   // Buscar logo e nome da empresa das configurações com fallbacks seguros
-  const companyLogo = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value || parkerLogo;
-  const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Parker Soluções ERP';
+  const companyLogo = (!settingsError && settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value) || parkerLogo;
+  const companyName = (!settingsError && settings?.find(s => s.setting_key === 'company_name')?.setting_value) || 'Parker Soluções ERP';
 
   // Redirecionar usuários autenticados para alertas
   useEffect(() => {
