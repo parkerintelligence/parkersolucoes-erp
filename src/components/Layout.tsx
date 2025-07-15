@@ -11,14 +11,19 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children }: LayoutProps) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
-  console.log('Layout - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
+  console.log('Layout - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading, 'user:', !!user);
 
+  // Loading state melhorado
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-lg text-gray-600">Carregando sistema...</div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="text-lg text-slate-300">Carregando sistema...</div>
+          <div className="text-sm text-slate-500 mt-2">Inicializando autenticação</div>
+        </div>
       </div>
     );
   }

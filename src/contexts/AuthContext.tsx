@@ -35,9 +35,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = React.useState<Session | null>(null);
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [retryCount, setRetryCount] = React.useState(0);
+  const processedSessionsRef = React.useRef<Set<string>>(new Set());
 
   const fetchUserProfile = React.useCallback(async (userId: string) => {
     try {
+      console.log('🔍 Buscando perfil do usuário:', userId);
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -45,88 +48,134 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .maybeSingle();
 
       if (error) {
-        console.error('Erro ao buscar perfil do usuário:', error);
+        console.error('❌ Erro ao buscar perfil do usuário:', error);
         return null;
       }
 
+      console.log('✅ Perfil encontrado:', data);
       return data;
     } catch (error) {
-      console.error('Erro ao buscar perfil do usuário:', error);
+      console.error('❌ Erro ao buscar perfil do usuário:', error);
       return null;
     }
   }, []);
 
-  const handleAuthStateChange = React.useCallback(async (event: string, session: Session | null) => {
-    console.log('🔄 Auth state changed:', event, !!session);
-    
-    if (session?.user && event === 'SIGNED_IN') {
-      setSession(session);
-      setUser(session.user);
-      
-      // Buscar perfil do usuário
-      try {
-        const profile = await fetchUserProfile(session.user.id);
-        if (profile) {
-          const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
-          const typedProfile: UserProfile = {
-            id: profile.id,
-            email: profile.email,
-            role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
-          };
-          setUserProfile(typedProfile);
-        } else {
-          // Criar perfil padrão se não existir
-          const defaultProfile: UserProfile = {
-            id: session.user.id,
-            email: session.user.email || '',
-            role: session.user.email === 'contato@parkersolucoes.com.br' ? 'master' : 'user'
-          };
-          setUserProfile(defaultProfile);
-        }
-      } catch (error) {
-        console.error('❌ Erro ao buscar perfil:', error);
-        // Criar perfil padrão mesmo com erro
-        const defaultProfile: UserProfile = {
-          id: session.user.id,
-          email: session.user.email || '',
-          role: session.user.email === 'contato@parkersolucoes.com.br' ? 'master' : 'user'
+  const createUserProfile = React.useCallback((user: User): UserProfile => {
+    const isMasterEmail = user.email === 'contato@parkersolucoes.com.br';
+    return {
+      id: user.id,
+      email: user.email || '',
+      role: isMasterEmail ? 'master' : 'user'
+    };
+  }, []);
+
+  const processSession = React.useCallback(async (session: Session | null, skipDuplicateCheck = false) => {
+    if (!session?.user) {
+      console.log('🚫 Nenhuma sessão válida para processar');
+      setSession(null);
+      setUser(null);
+      setUserProfile(null);
+      return;
+    }
+
+    // Evitar processamento duplicado
+    const sessionKey = `${session.user.id}-${session.access_token.substring(0, 10)}`;
+    if (!skipDuplicateCheck && processedSessionsRef.current.has(sessionKey)) {
+      console.log('⚠️ Sessão já processada, ignorando:', sessionKey);
+      return;
+    }
+
+    processedSessionsRef.current.add(sessionKey);
+    console.log('🔄 Processando sessão:', session.user.email, sessionKey);
+
+    // Atualizar estado básico imediatamente
+    setSession(session);
+    setUser(session.user);
+
+    // Buscar perfil do usuário
+    try {
+      const profile = await fetchUserProfile(session.user.id);
+      if (profile) {
+        const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
+        const typedProfile: UserProfile = {
+          id: profile.id,
+          email: profile.email,
+          role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
         };
+        setUserProfile(typedProfile);
+        console.log('✅ Perfil do usuário definido:', typedProfile);
+      } else {
+        // Criar perfil padrão se não existir
+        const defaultProfile = createUserProfile(session.user);
         setUserProfile(defaultProfile);
+        console.log('✅ Perfil padrão criado:', defaultProfile);
       }
+    } catch (error) {
+      console.error('❌ Erro ao buscar perfil, usando padrão:', error);
+      const defaultProfile = createUserProfile(session.user);
+      setUserProfile(defaultProfile);
+    }
+  }, [fetchUserProfile, createUserProfile]);
+
+  const handleAuthStateChange = React.useCallback(async (event: string, session: Session | null) => {
+    console.log('🔄 Auth state change:', event, !!session?.user);
+    
+    if (event === 'SIGNED_IN' && session?.user) {
+      await processSession(session);
     } else if (event === 'SIGNED_OUT') {
+      console.log('🚪 Usuário deslogado');
+      processedSessionsRef.current.clear();
       setSession(null);
       setUser(null);
       setUserProfile(null);
     }
-  }, [fetchUserProfile]);
+  }, [processSession]);
 
   React.useEffect(() => {
     let mounted = true;
+    let subscription: any = null;
 
     const initializeAuth = async () => {
       try {
         console.log('🚀 Inicializando autenticação...');
+        setIsLoading(true);
         
-        // Limpar localStorage corrompido
+        // Limpar localStorage corrompido e session refs
         try {
           localStorage.removeItem('sb-mpvxppgoyadwukkfoccs-auth-token');
+          processedSessionsRef.current.clear();
         } catch (e) {
           console.log('Erro ao limpar localStorage:', e);
         }
 
         // Configurar listener primeiro
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
           (event, session) => {
-            if (!mounted) return;
+            if (!mounted) {
+              console.log('🚫 Componente desmontado, ignorando evento:', event);
+              return;
+            }
+            console.log('🔔 Auth listener triggered:', event);
             handleAuthStateChange(event, session);
           }
         );
+        
+        subscription = authSubscription;
 
-        // Verificar sessão atual
+        // Verificar sessão atual - SEM chamar handleAuthStateChange novamente
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('❌ Erro ao obter sessão:', error);
+          if (retryCount < 3) {
+            console.log(`🔄 Tentativa ${retryCount + 1}/3 de retry...`);
+            setRetryCount(prev => prev + 1);
+            setTimeout(() => {
+              if (mounted) initializeAuth();
+            }, 1000 * (retryCount + 1));
+            return;
+          }
+          
           await supabase.auth.signOut();
           if (mounted) {
             setUser(null);
@@ -134,13 +183,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUserProfile(null);
             setIsLoading(false);
           }
-          return subscription;
+          return;
         }
         
         if (mounted) {
           if (session?.user) {
             console.log('✅ Sessão existente encontrada:', session.user.email);
-            await handleAuthStateChange('SIGNED_IN', session);
+            // Processar sessão diretamente, sem duplicar com o listener
+            await processSession(session, true);
           } else {
             console.log('ℹ️ Nenhuma sessão existente');
             setSession(null);
@@ -149,42 +199,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           
           setIsLoading(false);
+          setRetryCount(0);
+          console.log('✅ Inicialização de auth completa');
         }
-
-        return subscription;
       } catch (error) {
         console.error('❌ Erro ao inicializar autenticação:', error);
         if (mounted) {
-          setUser(null);
-          setSession(null);
-          setUserProfile(null);
-          setIsLoading(false);
+          if (retryCount < 3) {
+            console.log(`🔄 Retry após erro: ${retryCount + 1}/3`);
+            setRetryCount(prev => prev + 1);
+            setTimeout(() => {
+              if (mounted) initializeAuth();
+            }, 2000 * (retryCount + 1));
+          } else {
+            setUser(null);
+            setSession(null);
+            setUserProfile(null);
+            setIsLoading(false);
+            console.error('❌ Máximo de tentativas excedido');
+          }
         }
-        return null;
       }
     };
 
-    // Inicializar e guardar a subscription para cleanup
-    let subscriptionPromise = initializeAuth();
+    // Inicializar
+    initializeAuth();
 
-    // Timeout de segurança para evitar loading infinito
+    // Timeout de segurança mais curto
     const safetyTimeout = setTimeout(() => {
-      if (mounted) {
+      if (mounted && isLoading) {
         console.log('⚠️ Timeout de segurança ativado - forçando fim do loading');
         setIsLoading(false);
       }
-    }, 10000);
+    }, 5000);
 
     return () => {
       mounted = false;
       clearTimeout(safetyTimeout);
-      subscriptionPromise.then(subscription => {
-        if (subscription) {
-          subscription.unsubscribe();
-        }
-      });
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
-  }, [handleAuthStateChange]);
+  }, []); // Remover dependência que causa loops
 
   const login = React.useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
