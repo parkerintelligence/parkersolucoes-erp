@@ -1,5 +1,6 @@
 
-import * as React from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import type { FC, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -20,26 +21,26 @@ interface AuthContextType {
   isLoading: boolean;
 }
 
-const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
-  const context = React.useContext(AuthContext);
+  const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = React.useState<User | null>(null);
-  const [session, setSession] = React.useState<Session | null>(null);
-  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [retryCount, setRetryCount] = React.useState(0);
-  const [initError, setInitError] = React.useState<string | null>(null);
-  const processedSessionsRef = React.useRef<Set<string>>(new Set());
+export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
+  const [initError, setInitError] = useState<string | null>(null);
+  const processedSessionsRef = useRef<Set<string>>(new Set());
 
-  const fetchUserProfile = React.useCallback(async (userId: string) => {
+  const fetchUserProfile = useCallback(async (userId: string) => {
     try {
       console.log('🔍 Buscando perfil do usuário:', userId);
       const { data, error } = await supabase
@@ -61,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const createUserProfile = React.useCallback((user: User): UserProfile => {
+  const createUserProfile = useCallback((user: User): UserProfile => {
     const isMasterEmail = user.email === 'contato@parkersolucoes.com.br';
     return {
       id: user.id,
@@ -70,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const processSession = React.useCallback(async (session: Session | null, skipDuplicateCheck = false) => {
+  const processSession = useCallback(async (session: Session | null, skipDuplicateCheck = false) => {
     if (!session?.user) {
       console.log('🚫 Nenhuma sessão válida para processar');
       setSession(null);
@@ -118,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [fetchUserProfile, createUserProfile]);
 
-  const handleAuthStateChange = React.useCallback(async (event: string, session: Session | null) => {
+  const handleAuthStateChange = useCallback(async (event: string, session: Session | null) => {
     console.log('🔄 Auth state change:', event, !!session?.user);
     
     if (event === 'SIGNED_IN' && session?.user) {
@@ -132,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [processSession]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let mounted = true;
     let subscription: any = null;
 
@@ -257,7 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []); // Remover dependência que causa loops
 
-  const login = React.useCallback(async (email: string, password: string): Promise<boolean> => {
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
       console.log('🔐 Tentando fazer login com:', email);
       
@@ -284,7 +285,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const logout = React.useCallback(async () => {
+  const logout = useCallback(async () => {
     try {
       console.log('🚪 Fazendo logout...');
       
@@ -299,7 +300,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const value = React.useMemo(() => ({
+  const value = useMemo(() => ({
     user,
     userProfile,
     session,
