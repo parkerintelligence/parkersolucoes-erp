@@ -31,6 +31,7 @@ import Alertas from '@/pages/Alertas';
 import { Layout } from '@/components/Layout';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { QueryClientTest } from '@/components/QueryClientTest';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 // Componente para detectar atividade apenas em páginas autenticadas
 function AuthenticatedContent() {
@@ -284,7 +285,9 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <BrowserRouter>
-            <AppContent />
+            <TooltipProvider>
+              <AppContent />
+            </TooltipProvider>
           </BrowserRouter>
         </AuthProvider>
       </QueryClientProvider>
