@@ -13,13 +13,13 @@ export const TopHeader = () => {
     logout,
     isMaster
   } = useAuth();
-  const {
-    data: settings
-  } = useSystemSettings();
+  const { data: settings, error: settingsError } = useSystemSettings();
   const location = useLocation();
   const navigate = useNavigate();
-  const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Sistema de Gestão de TI';
-  const logoUrl = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value;
+  
+  // Use fallbacks if settings fail to load
+  const companyName = (!settingsError && settings?.find(s => s.setting_key === 'company_name')?.setting_value) || 'Sistema de Gestão de TI';
+  const logoUrl = (!settingsError && settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value) || null;
   const handleLogout = async () => {
     await logout();
   };

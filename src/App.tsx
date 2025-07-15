@@ -30,6 +30,7 @@ import ActionPlan from '@/pages/ActionPlan';
 import Alertas from '@/pages/Alertas';
 import { Layout } from '@/components/Layout';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { QueryClientTest } from '@/components/QueryClientTest';
 
 // Componente para detectar atividade apenas em páginas autenticadas
 function AuthenticatedContent() {
@@ -61,6 +62,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-background">
+      <QueryClientTest />
       <AuthenticatedContent />
       <Routes>
         {/* Redirecionar root baseado no status de autenticação */}
