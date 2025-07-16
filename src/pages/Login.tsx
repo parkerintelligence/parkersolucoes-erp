@@ -14,7 +14,7 @@ const Login = () => {
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoginLoading, setIsLoginLoading] = React.useState(false);
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { login, isAuthenticated, isLoading, clearSession } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already authenticated
@@ -51,6 +51,22 @@ const Login = () => {
       });
     } finally {
       setIsLoginLoading(false);
+    }
+  };
+
+  const handleClearSession = async () => {
+    try {
+      await clearSession();
+      toast({
+        title: "Sessão limpa",
+        description: "Todas as sessões foram limpas. Tente fazer login novamente.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao limpar sessão",
+        description: "Ocorreu um erro ao limpar a sessão.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -122,6 +138,14 @@ const Login = () => {
                   Entrar
                 </div>
               )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full mt-2"
+              onClick={handleClearSession}
+            >
+              Limpar Sessão
             </Button>
           </form>
         </CardContent>

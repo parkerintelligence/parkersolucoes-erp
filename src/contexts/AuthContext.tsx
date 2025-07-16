@@ -15,6 +15,7 @@ interface AuthContextType {
   session: Session | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  clearSession: () => Promise<void>;
   isAuthenticated: boolean;
   isMaster: boolean;
   isLoading: boolean;
@@ -130,7 +131,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       console.log('Login successful for:', email);
-      // Loading will be set to false by the auth state change handler
       return true;
     } catch (error) {
       console.error('Unexpected login error:', error);
@@ -143,10 +143,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Logging out...');
       setIsLoading(true);
+      
+      // Clear local state first
+      setUser(null);
+      setSession(null);
+      setUserProfile(null);
+      
+      // Then clear Supabase session
       await supabase.auth.signOut();
+      
       console.log('Logout successful');
     } catch (error) {
       console.error('Logout error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const clearSession = React.useCallback(async () => {
+    try {
+      console.log('Clearing session...');
+      setIsLoading(true);
+      
+      // Clear all auth state
+      setUser(null);
+      setSession(null);
+      setUserProfile(null);
+      
+      // Clear Supabase session
+      await supabase.auth.signOut();
+      
+      // Clear local storage
+      localStorage.clear();
+      
+      console.log('Session cleared');
+    } catch (error) {
+      console.error('Clear session error:', error);
+    } finally {
       setIsLoading(false);
     }
   }, []);
@@ -157,10 +190,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session,
     login,
     logout,
+    clearSession,
     isAuthenticated: !!user && !!session,
     isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
     isLoading
-  }), [user, userProfile, session, login, logout, isLoading]);
+  }), [user, userProfile, session, login, logout, clearSession, isLoading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
