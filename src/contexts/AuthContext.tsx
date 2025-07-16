@@ -36,62 +36,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
 
-  const fetchUserProfile = React.useCallback(async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching user profile:', error);
-        return null;
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      return null;
-    }
-  }, []);
-
-  const createUserProfile = React.useCallback((user: User): UserProfile => {
+  // Create user profile from user data
+  const createUserProfile = (user: User): UserProfile => {
     const isMasterEmail = user.email === 'contato@parkersolucoes.com.br';
     return {
       id: user.id,
       email: user.email || '',
       role: isMasterEmail ? 'master' : 'user'
     };
-  }, []);
+  };
 
-  const handleAuthStateChange = React.useCallback(async (event: string, session: Session | null) => {
+  // Handle auth state changes
+  const handleAuthStateChange = (event: string, session: Session | null) => {
     console.log('Auth state change:', event, !!session?.user);
     
-    if (event === 'SIGNED_IN' && session?.user) {
+    if (session?.user) {
       setSession(session);
       setUser(session.user);
-      
-      // Fetch user profile
-      const profile = await fetchUserProfile(session.user.id);
-      if (profile) {
-        const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
-        const typedProfile: UserProfile = {
-          id: profile.id,
-          email: profile.email,
-          role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
-        };
-        setUserProfile(typedProfile);
-      } else {
-        const defaultProfile = createUserProfile(session.user);
-        setUserProfile(defaultProfile);
-      }
-    } else if (event === 'SIGNED_OUT') {
+      setUserProfile(createUserProfile(session.user));
+    } else {
       setSession(null);
       setUser(null);
       setUserProfile(null);
     }
-  }, [fetchUserProfile, createUserProfile]);
+    
+    setIsLoading(false);
+  };
 
   React.useEffect(() => {
     let mounted = true;
@@ -114,12 +84,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (error) {
           console.error('Error getting session:', error);
-        } else if (session?.user && mounted) {
-          await handleAuthStateChange('SIGNED_IN', session);
-        }
-        
-        if (mounted) {
-          setIsLoading(false);
+        } else if (mounted) {
+          handleAuthStateChange('INITIAL_SESSION', session);
         }
 
         return () => {
@@ -139,11 +105,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       mounted = false;
     };
-  }, [handleAuthStateChange]);
+  }, []);
 
   const login = React.useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
       console.log('Attempting login with:', email);
+      setIsLoading(true);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -152,18 +119,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Login error:', error.message);
+        setIsLoading(false);
         return false;
       }
 
       if (!data.user) {
         console.error('Login failed: no user returned');
+        setIsLoading(false);
         return false;
       }
 
       console.log('Login successful for:', email);
+      // Loading will be set to false by the auth state change handler
       return true;
     } catch (error) {
       console.error('Unexpected login error:', error);
+      setIsLoading(false);
       return false;
     }
   }, []);
@@ -171,10 +142,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = React.useCallback(async () => {
     try {
       console.log('Logging out...');
+      setIsLoading(true);
       await supabase.auth.signOut();
       console.log('Logout successful');
     } catch (error) {
       console.error('Logout error:', error);
+      setIsLoading(false);
     }
   }, []);
 
