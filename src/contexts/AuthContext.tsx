@@ -1,6 +1,5 @@
 
 import * as React from 'react';
-import type { FC, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -31,18 +30,14 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = React.useState<User | null>(null);
   const [session, setSession] = React.useState<Session | null>(null);
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [retryCount, setRetryCount] = React.useState(0);
-  const [initError, setInitError] = React.useState<string | null>(null);
-  const processedSessionsRef = React.useRef<Set<string>>(new Set());
 
   const fetchUserProfile = React.useCallback(async (userId: string) => {
     try {
-      console.log('🔍 Buscando perfil do usuário:', userId);
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -50,14 +45,13 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         .maybeSingle();
 
       if (error) {
-        console.error('❌ Erro ao buscar perfil do usuário:', error);
+        console.error('Error fetching user profile:', error);
         return null;
       }
 
-      console.log('✅ Perfil encontrado:', data);
       return data;
     } catch (error) {
-      console.error('❌ Erro ao buscar perfil do usuário:', error);
+      console.error('Error fetching user profile:', error);
       return null;
     }
   }, []);
@@ -71,31 +65,14 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     };
   }, []);
 
-  const processSession = React.useCallback(async (session: Session | null, skipDuplicateCheck = false) => {
-    if (!session?.user) {
-      console.log('🚫 Nenhuma sessão válida para processar');
-      setSession(null);
-      setUser(null);
-      setUserProfile(null);
-      return;
-    }
-
-    // Evitar processamento duplicado
-    const sessionKey = `${session.user.id}-${session.access_token.substring(0, 10)}`;
-    if (!skipDuplicateCheck && processedSessionsRef.current.has(sessionKey)) {
-      console.log('⚠️ Sessão já processada, ignorando:', sessionKey);
-      return;
-    }
-
-    processedSessionsRef.current.add(sessionKey);
-    console.log('🔄 Processando sessão:', session.user.email, sessionKey);
-
-    // Atualizar estado básico imediatamente
-    setSession(session);
-    setUser(session.user);
-
-    // Buscar perfil do usuário
-    try {
+  const handleAuthStateChange = React.useCallback(async (event: string, session: Session | null) => {
+    console.log('Auth state change:', event, !!session?.user);
+    
+    if (event === 'SIGNED_IN' && session?.user) {
+      setSession(session);
+      setUser(session.user);
+      
+      // Fetch user profile
       const profile = await fetchUserProfile(session.user.id);
       if (profile) {
         const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
@@ -105,162 +82,68 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
           role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
         };
         setUserProfile(typedProfile);
-        console.log('✅ Perfil do usuário definido:', typedProfile);
       } else {
-        // Criar perfil padrão se não existir
         const defaultProfile = createUserProfile(session.user);
         setUserProfile(defaultProfile);
-        console.log('✅ Perfil padrão criado:', defaultProfile);
       }
-    } catch (error) {
-      console.error('❌ Erro ao buscar perfil, usando padrão:', error);
-      const defaultProfile = createUserProfile(session.user);
-      setUserProfile(defaultProfile);
-    }
-  }, [fetchUserProfile, createUserProfile]);
-
-  const handleAuthStateChange = React.useCallback(async (event: string, session: Session | null) => {
-    console.log('🔄 Auth state change:', event, !!session?.user);
-    
-    if (event === 'SIGNED_IN' && session?.user) {
-      await processSession(session);
     } else if (event === 'SIGNED_OUT') {
-      console.log('🚪 Usuário deslogado');
-      processedSessionsRef.current.clear();
       setSession(null);
       setUser(null);
       setUserProfile(null);
     }
-  }, [processSession]);
+  }, [fetchUserProfile, createUserProfile]);
 
   React.useEffect(() => {
     let mounted = true;
-    let subscription: any = null;
 
     const initializeAuth = async () => {
       try {
-        console.log('🚀 Inicializando autenticação...');
-        setIsLoading(true);
-        setInitError(null); // Clear any previous errors
+        console.log('Initializing auth...');
         
-        // Limpar localStorage corrompido e session refs
-        try {
-          localStorage.removeItem('sb-mpvxppgoyadwukkfoccs-auth-token');
-          processedSessionsRef.current.clear();
-        } catch (e) {
-          console.log('Erro ao limpar localStorage:', e);
-        }
-
-        // Configurar listener primeiro
-        const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
+        // Set up auth state listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
           (event, session) => {
-            if (!mounted) {
-              console.log('🚫 Componente desmontado, ignorando evento:', event);
-              return;
+            if (mounted) {
+              handleAuthStateChange(event, session);
             }
-            console.log('🔔 Auth listener triggered:', event);
-            handleAuthStateChange(event, session).catch(err => {
-              console.error('Erro no handleAuthStateChange:', err);
-            });
           }
         );
-        
-        subscription = authSubscription;
 
-        // Verificar sessão atual - SEM chamar handleAuthStateChange novamente
+        // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('❌ Erro ao obter sessão:', error);
-          if (retryCount < 3) {
-            console.log(`🔄 Tentativa ${retryCount + 1}/3 de retry...`);
-            setRetryCount(prev => prev + 1);
-            setTimeout(() => {
-              if (mounted) initializeAuth();
-            }, 1000 * (retryCount + 1));
-            return;
-          }
-          
-          await supabase.auth.signOut();
-          if (mounted) {
-            setUser(null);
-            setSession(null);
-            setUserProfile(null);
-            setIsLoading(false);
-          }
-          return;
+          console.error('Error getting session:', error);
+        } else if (session?.user && mounted) {
+          await handleAuthStateChange('SIGNED_IN', session);
         }
         
         if (mounted) {
-          if (session?.user) {
-            console.log('✅ Sessão existente encontrada:', session.user.email);
-            // Processar sessão diretamente, sem duplicar com o listener
-            await processSession(session, true);
-          } else {
-            console.log('ℹ️ Nenhuma sessão existente');
-            setSession(null);
-            setUser(null);
-            setUserProfile(null);
-          }
-          
           setIsLoading(false);
-          setRetryCount(0);
-          console.log('✅ Inicialização de auth completa');
         }
+
+        return () => {
+          mounted = false;
+          subscription.unsubscribe();
+        };
       } catch (error) {
-        console.error('❌ Erro crítico ao inicializar autenticação:', error);
+        console.error('Error initializing auth:', error);
         if (mounted) {
-          if (retryCount < 3) {
-            console.log(`🔄 Retry após erro: ${retryCount + 1}/3`);
-            setRetryCount(prev => prev + 1);
-            setTimeout(() => {
-              if (mounted) initializeAuth();
-            }, 2000 * (retryCount + 1));
-          } else {
-            console.error('❌ Máximo de tentativas excedido, usando modo de erro');
-            setInitError(`Falha na inicialização após 3 tentativas: ${error}`);
-            setUser(null);
-            setSession(null);
-            setUserProfile(null);
-            setIsLoading(false);
-          }
+          setIsLoading(false);
         }
       }
     };
 
-    // Wrap initialization in try-catch to prevent provider from failing completely
-    try {
-      initializeAuth();
-    } catch (error) {
-      console.error('❌ Erro fatal na inicialização do AuthProvider:', error);
-      setInitError(`Erro fatal: ${error}`);
-      setIsLoading(false);
-    }
-
-    // Timeout de segurança mais curto
-    const safetyTimeout = setTimeout(() => {
-      if (mounted && isLoading) {
-        console.log('⚠️ Timeout de segurança ativado - forçando fim do loading');
-        setIsLoading(false);
-      }
-    }, 5000);
+    initializeAuth();
 
     return () => {
       mounted = false;
-      clearTimeout(safetyTimeout);
-      if (subscription) {
-        try {
-          subscription.unsubscribe();
-        } catch (error) {
-          console.error('Erro ao desinscrever subscription:', error);
-        }
-      }
     };
-  }, []); // Remover dependência que causa loops
+  }, [handleAuthStateChange]);
 
   const login = React.useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
-      console.log('🔐 Tentando fazer login com:', email);
+      console.log('Attempting login with:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -268,35 +151,30 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
       });
 
       if (error) {
-        console.error('❌ Erro no login:', error.message);
+        console.error('Login error:', error.message);
         return false;
       }
 
       if (!data.user) {
-        console.error('❌ Login sem usuário retornado');
+        console.error('Login failed: no user returned');
         return false;
       }
 
-      console.log('✅ Login bem-sucedido para:', email);
+      console.log('Login successful for:', email);
       return true;
     } catch (error) {
-      console.error('❌ Erro inesperado no login:', error);
+      console.error('Unexpected login error:', error);
       return false;
     }
   }, []);
 
   const logout = React.useCallback(async () => {
     try {
-      console.log('🚪 Fazendo logout...');
-      
+      console.log('Logging out...');
       await supabase.auth.signOut();
-      setUser(null);
-      setSession(null);
-      setUserProfile(null);
-      
-      console.log('✅ Logout realizado com sucesso');
+      console.log('Logout successful');
     } catch (error) {
-      console.error('❌ Erro no logout:', error);
+      console.error('Logout error:', error);
     }
   }, []);
 
@@ -310,22 +188,6 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
     isLoading
   }), [user, userProfile, session, login, logout, isLoading]);
-
-  // If there's an initialization error, still provide the context with safe defaults
-  if (initError) {
-    console.error('AuthProvider initialization error:', initError);
-    const errorValue = {
-      user: null,
-      userProfile: null,
-      session: null,
-      login: async () => false,
-      logout: async () => {},
-      isAuthenticated: false,
-      isMaster: false,
-      isLoading: false
-    };
-    return <AuthContext.Provider value={errorValue}>{children}</AuthContext.Provider>;
-  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -2,8 +2,10 @@
 import * as React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { useUserActivity } from '@/hooks/useUserActivity';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { Layout } from '@/components/Layout';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Admin from '@/pages/Admin';
@@ -28,252 +30,13 @@ import Bacula from '@/pages/Bacula';
 import ReportsDashboard from '@/pages/ReportsDashboard';
 import ActionPlan from '@/pages/ActionPlan';
 import Alertas from '@/pages/Alertas';
-import { Layout } from '@/components/Layout';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { QueryClientTest } from '@/components/QueryClientTest';
 
-
-// Componente para detectar atividade apenas em páginas autenticadas
-function AuthenticatedContent() {
-  const { isAuthenticated } = useAuth();
-  
-  // Só usar o hook de atividade se estiver autenticado
-  if (isAuthenticated) {
-    useUserActivity();
-  }
-  
-  return null;
-}
-
-// Componente interno com proteção de rotas
-function AppContent() {
-  const { isAuthenticated, isLoading } = useAuth();
-  
-  // Mostrar loading durante inicialização
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-background">
-      <QueryClientTest />
-      <AuthenticatedContent />
-      <Routes>
-        {/* Redirecionar root baseado no status de autenticação */}
-        <Route 
-          path="/" 
-          element={
-            isAuthenticated ? (
-              <Navigate to="/alertas" replace />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          } 
-        />
-        {/* Login page outside Layout but inside QueryClientProvider */}
-        <Route path="/login" element={<Login />} />
-        <Route
-          path="/alertas"
-          element={
-            <Layout>
-              <Alertas />
-            </Layout>
-          }
-        />
-        <Route
-          path="/links"
-          element={
-            <Layout>
-              <Links />
-            </Layout>
-          }
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <Layout>
-              <Dashboard />
-            </Layout>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <Layout>
-              <Admin />
-            </Layout>
-          }
-        />
-        <Route
-          path="/glpi"
-          element={
-            <Layout>
-              <GLPI />
-            </Layout>
-          }
-        />
-        <Route
-          path="/conexao-remota"
-          element={
-            <Layout>
-              <Guacamole />
-            </Layout>
-          }
-        />
-        <Route
-          path="/backups"
-          element={
-            <Layout>
-              <Backups />
-            </Layout>
-          }
-        />
-        <Route
-          path="/passwords"
-          element={
-            <Layout>
-              <Passwords />
-            </Layout>
-          }
-        />
-        <Route
-          path="/annotations"
-          element={
-            <Layout>
-              <Annotations />
-            </Layout>
-          }
-        />
-        <Route
-          path="/whatsapp"
-          element={
-            <Layout>
-              <WhatsApp />
-            </Layout>
-          }
-        />
-        <Route
-          path="/whatsapp-templates"
-          element={
-            <Layout>
-              <WhatsAppTemplates />
-            </Layout>
-          }
-        />
-        <Route
-          path="/wasabi"
-          element={
-            <Layout>
-              <Wasabi />
-            </Layout>
-          }
-        />
-        <Route
-          path="/schedule"
-          element={
-            <Layout>
-              <Schedule />
-            </Layout>
-          }
-        />
-        <Route
-          path="/automation"
-          element={
-            <Layout>
-              <Automation />
-            </Layout>
-          }
-        />
-        <Route
-          path="/zabbix"
-          element={
-            <Layout>
-              <Zabbix />
-            </Layout>
-          }
-        />
-        <Route
-          path="/services"
-          element={
-            <Layout>
-              <Services />
-            </Layout>
-          }
-        />
-        <Route
-          path="/budgets"
-          element={
-            <Layout>
-              <Budgets />
-            </Layout>
-          }
-        />
-        <Route
-          path="/contracts"
-          element={
-            <Layout>
-              <Contracts />
-            </Layout>
-          }
-        />
-        <Route
-          path="/financial"
-          element={
-            <Layout>
-              <Financial />
-            </Layout>
-          }
-        />
-        <Route
-          path="/companies"
-          element={
-            <Layout>
-              <Companies />
-            </Layout>
-          }
-        />
-        <Route 
-          path="/bacula" 
-          element={
-            <Layout>
-              <Bacula />
-            </Layout>
-          } 
-        />
-        <Route 
-          path="/reports" 
-          element={
-            <Layout>
-              <ReportsDashboard />
-            </Layout>
-          } 
-        />
-        <Route 
-          path="/plano-de-acao" 
-          element={
-            <Layout>
-              <ActionPlan />
-            </Layout>
-          } 
-        />
-      </Routes>
-    </div>
-  );
-}
-
-// Create a single QueryClient instance with proper defaults
+// Create QueryClient instance
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
       refetchOnWindowFocus: false,
     },
   },
@@ -285,7 +48,250 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <BrowserRouter>
-            <AppContent />
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<Login />} />
+              
+              {/* Protected routes */}
+              <Route 
+                path="/" 
+                element={
+                  <ProtectedRoute>
+                    <Navigate to="/alertas" replace />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route
+                path="/alertas"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Alertas />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/links"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Links />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Dashboard />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Admin />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/glpi"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <GLPI />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/conexao-remota"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Guacamole />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/backups"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Backups />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/passwords"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Passwords />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/annotations"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Annotations />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/whatsapp"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <WhatsApp />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/whatsapp-templates"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <WhatsAppTemplates />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/wasabi"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Wasabi />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/schedule"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Schedule />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/automation"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Automation />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/zabbix"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Zabbix />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/services"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Services />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/budgets"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Budgets />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/contracts"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Contracts />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/financial"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Financial />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/companies"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Companies />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/bacula"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Bacula />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ReportsDashboard />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/plano-de-acao"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ActionPlan />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
           </BrowserRouter>
         </AuthProvider>
       </QueryClientProvider>
