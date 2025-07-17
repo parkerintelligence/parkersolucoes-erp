@@ -1,5 +1,5 @@
 
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,15 +10,15 @@ import { Eye, EyeOff, Zap } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const Login = () => {
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const [showPassword, setShowPassword] = React.useState(false);
-  const [isLoginLoading, setIsLoginLoading] = React.useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
   const { login, isAuthenticated, isLoading, clearSession } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already authenticated
-  React.useEffect(() => {
+  useEffect(() => {
     if (isAuthenticated && !isLoading) {
       navigate('/alertas', { replace: true });
     }
