@@ -9,7 +9,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 export const TopHeader = () => {
   const {
     user,
-    userProfile,
     logout,
     isMaster
   } = useAuth();
@@ -82,7 +81,7 @@ export const TopHeader = () => {
               <Button variant="ghost" className="flex items-center gap-1 sm:gap-2 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg touch-target">
                 {isMaster ? <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-secondary" /> : <User className="h-3 w-3 sm:h-4 sm:w-4" />}
                 <span className="hidden sm:inline text-xs sm:text-sm font-medium max-w-20 sm:max-w-32 lg:max-w-none truncate">
-                  {userProfile?.email || user?.email}
+                  {user?.email}
                 </span>
               </Button>
             </DropdownMenuTrigger>
@@ -90,7 +89,7 @@ export const TopHeader = () => {
               <DropdownMenuLabel className="px-4 py-3">
                 <div className="flex flex-col space-y-2">
                   <p className="text-sm font-semibold text-card-foreground">
-                    {userProfile?.email || user?.email}
+                    {user?.email}
                   </p>
                   <p className="text-xs text-muted-foreground flex items-center gap-2">
                     {isMaster ? <>
