@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -27,38 +28,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const getSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user || null);
-      } catch (error) {
-        console.error('Error getting session:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    getSession();
-
+    // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user || null);
         setIsLoading(false);
       }
     );
 
+    // Then check for existing session
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting session:', error);
+        } else {
+          setSession(session);
+          setUser(session?.user || null);
+        }
+      } catch (error) {
+        console.error('Error in getInitialSession:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getInitialSession();
+
     return () => subscription.unsubscribe();
   }, []);
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
-      setUser(null);
-      setSession(null);
+      setIsLoading(true);
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+      } else {
+        setUser(null);
+        setSession(null);
+      }
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Error in logout:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 

@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +15,15 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/alertas', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,10 +61,8 @@ const Login = () => {
           description: "Redirecionando para o dashboard...",
         });
         
-        // Redirect to dashboard
-        setTimeout(() => {
-          window.location.href = '/alertas';
-        }, 1000);
+        // Navigate using React Router instead of window.location
+        navigate('/alertas', { replace: true });
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -68,6 +78,7 @@ const Login = () => {
 
   const handleClearSession = async () => {
     try {
+      setIsLoading(true);
       await supabase.auth.signOut();
       localStorage.clear();
       sessionStorage.clear();
@@ -77,10 +88,9 @@ const Login = () => {
         description: "Todas as sessões foram limpas com sucesso.",
       });
       
-      // Reload the page to ensure clean state
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // Reset form
+      setEmail('');
+      setPassword('');
     } catch (error) {
       console.error('Error clearing session:', error);
       toast({
@@ -88,6 +98,8 @@ const Login = () => {
         description: "Ocorreu um erro ao limpar a sessão.",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 

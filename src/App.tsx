@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -34,8 +35,8 @@ import Admin from '@/pages/Admin';
 import NotFound from '@/pages/NotFound';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Layout } from '@/components/Layout';
-import { supabase } from '@/integrations/supabase/client';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,84 +47,60 @@ const queryClient = new QueryClient({
   },
 });
 
-import { useAuth } from '@/contexts/AuthContext';
-
-// Protected Route Component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-};
-
 function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-          <BrowserRouter>
-            <div className="min-h-screen bg-background">
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <Outlet />
-                      </Layout>
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route index element={<Navigate to="/alertas" replace />} />
-                  <Route path="dashboard" element={<Dashboard />} />
-                  <Route path="companies" element={<Companies />} />
-                  <Route path="passwords" element={<Passwords />} />
-                  <Route path="annotations" element={<Annotations />} />
-                  <Route path="contracts" element={<Contracts />} />
-                  <Route path="budgets" element={<Budgets />} />
-                  <Route path="services" element={<Services />} />
-                  <Route path="documents" element={<Documents />} />
-                  <Route path="links" element={<Links />} />
-                  <Route path="schedule" element={<Schedule />} />
-                  <Route path="wasabi" element={<Wasabi />} />
-                  <Route path="monitoring" element={<Monitoring />} />
-                  <Route path="backups" element={<Backups />} />
-                  <Route path="bacula" element={<Bacula />} />
-                  <Route path="zabbix" element={<Zabbix />} />
-                  <Route path="whatsapp" element={<WhatsApp />} />
-                  <Route path="whatsapp-chats" element={<WhatsAppChats />} />
-                  <Route path="whatsapp-templates" element={<WhatsAppTemplates />} />
-                  <Route path="guacamole" element={<Guacamole />} />
-                  <Route path="unifi" element={<UniFi />} />
-                  <Route path="glpi" element={<GLPI />} />
-                  <Route path="alertas" element={<Alertas />} />
-                  <Route path="financial" element={<Financial />} />
-                  <Route path="reports" element={<ReportsDashboard />} />
-                  <Route path="action-plan" element={<ActionPlan />} />
-                  <Route path="automation" element={<Automation />} />
-                  <Route path="admin" element={<Admin />} />
-                </Route>
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-              <Toaster />
-            </div>
-          </BrowserRouter>
+            <BrowserRouter>
+              <div className="min-h-screen bg-background">
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route
+                    path="/"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <Outlet />
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route index element={<Navigate to="/alertas" replace />} />
+                    <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="companies" element={<Companies />} />
+                    <Route path="passwords" element={<Passwords />} />
+                    <Route path="annotations" element={<Annotations />} />
+                    <Route path="contracts" element={<Contracts />} />
+                    <Route path="budgets" element={<Budgets />} />
+                    <Route path="services" element={<Services />} />
+                    <Route path="documents" element={<Documents />} />
+                    <Route path="links" element={<Links />} />
+                    <Route path="schedule" element={<Schedule />} />
+                    <Route path="wasabi" element={<Wasabi />} />
+                    <Route path="monitoring" element={<Monitoring />} />
+                    <Route path="backups" element={<Backups />} />
+                    <Route path="bacula" element={<Bacula />} />
+                    <Route path="zabbix" element={<Zabbix />} />
+                    <Route path="whatsapp" element={<WhatsApp />} />
+                    <Route path="whatsapp-chats" element={<WhatsAppChats />} />
+                    <Route path="whatsapp-templates" element={<WhatsAppTemplates />} />
+                    <Route path="guacamole" element={<Guacamole />} />
+                    <Route path="unifi" element={<UniFi />} />
+                    <Route path="glpi" element={<GLPI />} />
+                    <Route path="alertas" element={<Alertas />} />
+                    <Route path="financial" element={<Financial />} />
+                    <Route path="reports" element={<ReportsDashboard />} />
+                    <Route path="action-plan" element={<ActionPlan />} />
+                    <Route path="automation" element={<Automation />} />
+                    <Route path="admin" element={<Admin />} />
+                  </Route>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+                <Toaster />
+              </div>
+            </BrowserRouter>
           </AuthProvider>
         </QueryClientProvider>
       </ThemeProvider>
