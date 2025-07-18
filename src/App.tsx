@@ -98,8 +98,8 @@ function App() {
                   </Route>
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-                <Toaster />
               </div>
+              <Toaster />
             </BrowserRouter>
           </AuthProvider>
         </QueryClientProvider>
