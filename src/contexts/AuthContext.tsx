@@ -44,10 +44,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting session:', error);
-        } else {
-          setSession(session);
-          setUser(session?.user || null);
         }
+        setSession(session);
+        setUser(session?.user || null);
       } catch (error) {
         console.error('Error in getInitialSession:', error);
       } finally {
