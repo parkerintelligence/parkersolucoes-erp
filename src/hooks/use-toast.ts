@@ -1,3 +1,4 @@
+// Compatibility layer for old toast API using Sonner
 import { toast as sonnerToast } from 'sonner';
 
 export interface ToastProps {
@@ -19,7 +20,7 @@ function toastFunction(props: ToastProps): void {
   }
 }
 
-// Add methods to the function
+// Add methods to the function for direct Sonner-style calls
 toastFunction.error = (title: string, options?: { description?: string; duration?: number }) => {
   sonnerToast.error(title, options);
 };
@@ -38,7 +39,7 @@ toastFunction.warning = (title: string, options?: { description?: string; durati
 
 export const toast = toastFunction;
 
-// For components that still use useToast hook
+// For components that still use useToast hook - simple compatibility
 export function useToast() {
   return { toast };
 }
