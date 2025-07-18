@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, LogIn, RotateCcw } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -29,10 +29,8 @@ const Login = () => {
     e.preventDefault();
     
     if (!email || !password) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha email e senha.",
-        variant: "destructive"
+      toast.error("Campos obrigatórios", {
+        description: "Por favor, preencha email e senha."
       });
       return;
     }
@@ -47,18 +45,15 @@ const Login = () => {
 
       if (error) {
         console.error('Login error:', error);
-        toast({
-          title: "Erro no login",
-          description: error.message || "Verifique suas credenciais e tente novamente.",
-          variant: "destructive"
+        toast.error("Erro no login", {
+          description: error.message || "Verifique suas credenciais e tente novamente."
         });
         return;
       }
 
       if (data.user) {
-        toast({
-          title: "Login realizado com sucesso!",
-          description: "Redirecionando para o dashboard...",
+        toast.success("Login realizado com sucesso!", {
+          description: "Redirecionando para o dashboard..."
         });
         
         // Navigate using React Router instead of window.location
@@ -66,10 +61,8 @@ const Login = () => {
       }
     } catch (error) {
       console.error('Unexpected error:', error);
-      toast({
-        title: "Erro inesperado",
-        description: "Ocorreu um erro inesperado. Tente novamente.",
-        variant: "destructive"
+      toast.error("Erro inesperado", {
+        description: "Ocorreu um erro inesperado. Tente novamente."
       });
     } finally {
       setIsLoading(false);
@@ -83,9 +76,8 @@ const Login = () => {
       localStorage.clear();
       sessionStorage.clear();
       
-      toast({
-        title: "Sessão limpa",
-        description: "Todas as sessões foram limpas com sucesso.",
+      toast.success("Sessão limpa", {
+        description: "Todas as sessões foram limpas com sucesso."
       });
       
       // Reset form
@@ -93,10 +85,8 @@ const Login = () => {
       setPassword('');
     } catch (error) {
       console.error('Error clearing session:', error);
-      toast({
-        title: "Erro ao limpar sessão",
-        description: "Ocorreu um erro ao limpar a sessão.",
-        variant: "destructive"
+      toast.error("Erro ao limpar sessão", {
+        description: "Ocorreu um erro ao limpar a sessão."
       });
     } finally {
       setIsLoading(false);
