@@ -1,13 +1,10 @@
 // Toast system using Sonner
 import { Toaster as SonnerToaster } from "sonner"
-import { useTheme } from "next-themes"
 
 export function Toaster() {
-  const { theme = "system" } = useTheme()
-
   return (
     <SonnerToaster
-      theme={theme as any}
+      theme="system"
       className="toaster group"
       toastOptions={{
         classNames: {
