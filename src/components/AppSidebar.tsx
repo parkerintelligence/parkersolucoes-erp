@@ -14,7 +14,7 @@ const menuItems = [{
   role: 'user'
 }, {
   title: 'Conexão Remota',
-  url: '/conexao-remota',
+  url: '/guacamole',
   icon: Monitor,
   role: 'user'
 }, {
@@ -24,7 +24,7 @@ const menuItems = [{
   role: 'user'
 }, {
   title: 'Plano de Ação',
-  url: '/plano-de-acao',
+  url: '/action-plan',
   icon: Kanban,
   role: 'user'
 }, {
