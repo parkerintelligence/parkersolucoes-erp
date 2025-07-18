@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Webhook, Plus, Trash2, Edit, MessageSquare, AlertTriangle, CheckCircle, Play, TestTube, RefreshCcw, Settings, Send } from 'lucide-react';
 import { useZabbixWebhooks, ZabbixWebhook, useSendWhatsAppMessage } from '@/hooks/useZabbixWebhooks';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { supabase } from '@/integrations/supabase/client';
 const triggerTypeLabels = {
@@ -40,9 +40,6 @@ export const ZabbixWebhookManagerSimple = () => {
   const {
     data: integrations = []
   } = useIntegrations();
-  const {
-    toast
-  } = useToast();
   const sendWhatsAppMessage = useSendWhatsAppMessage();
   const [isSimulating, setIsSimulating] = useState(false);
 

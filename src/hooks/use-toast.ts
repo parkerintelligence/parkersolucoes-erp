@@ -16,4 +16,7 @@ export function toast({ title, description, variant = 'default' }: ToastProps) {
   }
 }
 
-export { toast as useToast };
+// For components that still use useToast hook
+export function useToast() {
+  return { toast };
+}

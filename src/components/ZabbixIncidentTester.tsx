@@ -10,10 +10,10 @@ import {
   FileText,
   Copy
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 export const ZabbixIncidentTester = () => {
-  const { toast } = useToast();
+  
 
   const webhookUrl = 'https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/zabbix-webhook';
 

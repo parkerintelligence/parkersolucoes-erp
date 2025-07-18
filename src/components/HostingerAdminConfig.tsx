@@ -5,12 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
 import { Server, Plus, Trash2, Settings, RefreshCw } from 'lucide-react';
 
 export const HostingerAdminConfig = () => {
-  const { toast } = useToast();
+  
   const { data: integrations, isLoading } = useIntegrations();
   const createIntegration = useCreateIntegration();
   const updateIntegration = useUpdateIntegration();
