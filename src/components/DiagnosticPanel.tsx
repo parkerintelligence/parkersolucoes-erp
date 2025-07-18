@@ -20,7 +20,7 @@ import {
   Database,
   Loader2
 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export const DiagnosticPanel = () => {
   const { data: integrations = [] } = useIntegrations();
@@ -272,9 +272,8 @@ export const DiagnosticPanel = () => {
               size="sm"
               className="w-full"
               onClick={() => {
-                toast({
-                  title: "✅ Guacamole OK",
-                  description: "Data Source configurado corretamente.",
+                toast.success("✅ Guacamole OK", {
+                  description: "Data Source configurado corretamente."
                 });
               }}
             >
@@ -307,9 +306,8 @@ export const DiagnosticPanel = () => {
               size="sm"
               className="w-full"
               onClick={() => {
-                toast({
-                  title: "ℹ️ GLPI",
-                  description: "Verificar logs da edge function para status dos tickets agendados.",
+                toast.info("ℹ️ GLPI", {
+                  description: "Verificar logs da edge function para status dos tickets agendados."
                 });
               }}
             >

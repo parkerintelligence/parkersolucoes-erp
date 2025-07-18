@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, ExternalLink } from 'lucide-react';
 import { useBaculaJobsRecent } from '@/hooks/useBaculaAPI';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface BaculaJobsByClientProps {
   filteredJobs?: any[];

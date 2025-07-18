@@ -7,7 +7,7 @@ import { RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, ExternalLink, Arro
 import { useBaculaJobsRecent } from '@/hooks/useBaculaAPI';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { GLPITicketConfirmDialog } from '@/components/GLPITicketConfirmDialog';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface BaculaJobsGridProps {
   filteredJobs?: any[];

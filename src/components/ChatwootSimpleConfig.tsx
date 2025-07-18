@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCircle2, AlertCircle, MessageSquare, ExternalLink } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface ChatwootConfig {
   name: string;

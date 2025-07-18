@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { MessageCircle, TestTube, CheckCircle, AlertCircle } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { useChatwootAPI } from '@/hooks/useChatwootAPI';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export const ChatwootConfig = () => {
   const { data: integrations = [] } = useIntegrations();

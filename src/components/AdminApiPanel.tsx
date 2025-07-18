@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Plus, Settings, ExternalLink } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface IntegrationFormData {
   name: string;
@@ -39,10 +39,8 @@ export const AdminApiPanel = () => {
 
   const handleSubmit = async () => {
     if (!formData.name || !formData.base_url) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Preencha pelo menos o nome e a URL base.",
-        variant: "destructive"
+      toast.error("Campos obrigatórios", {
+        description: "Preencha pelo menos o nome e a URL base."
       });
       return;
     }

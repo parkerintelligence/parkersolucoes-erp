@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Wrench, Save, TestTube, AlertCircle, CheckCircle } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 export const GLPIConfig = () => {

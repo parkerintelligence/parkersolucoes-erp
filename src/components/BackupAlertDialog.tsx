@@ -10,7 +10,7 @@ import { ptBR } from 'date-fns/locale';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useSystemSetting } from '@/hooks/useSystemSettings';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface FileInfo {
   name: string;
@@ -70,10 +70,8 @@ export const BackupAlertDialog = ({ open, onOpenChange, files, type }: BackupAle
 
   const handleWhatsAppSend = async () => {
     if (!phoneNumber.trim()) {
-      toast({
-        title: "Número obrigatório",
-        description: "Digite o número do WhatsApp para enviar o alerta.",
-        variant: "destructive",
+      toast.error("Número obrigatório", {
+        description: "Digite o número do WhatsApp para enviar o alerta."
       });
       return;
     }
@@ -81,10 +79,8 @@ export const BackupAlertDialog = ({ open, onOpenChange, files, type }: BackupAle
     const evolutionApiIntegration = integrations?.find(int => int.type === 'evolution_api');
     
     if (!evolutionApiIntegration) {
-      toast({
-        title: "Evolution API não configurada",
-        description: "Configure a Evolution API no painel administrativo.",
-        variant: "destructive",
+      toast.error("Evolution API não configurada", {
+        description: "Configure a Evolution API no painel administrativo."
       });
       return;
     }
@@ -111,18 +107,15 @@ export const BackupAlertDialog = ({ open, onOpenChange, files, type }: BackupAle
         throw new Error('Falha ao enviar mensagem');
       }
 
-      toast({
-        title: "✅ Alerta enviado!",
-        description: `Relatório de backup enviado para ${phoneNumber}`,
+      toast.success("✅ Alerta enviado!", {
+        description: `Relatório de backup enviado para ${phoneNumber}`
       });
       
       onOpenChange(false);
       setPhoneNumber('');
     } catch (error) {
-      toast({
-        title: "❌ Erro ao enviar",
-        description: "Não foi possível enviar o alerta via WhatsApp.",
-        variant: "destructive",
+      toast.error("❌ Erro ao enviar", {
+        description: "Não foi possível enviar o alerta via WhatsApp."
       });
     } finally {
       setIsLoading(false);
@@ -145,17 +138,14 @@ export const BackupAlertDialog = ({ open, onOpenChange, files, type }: BackupAle
       };
 
       await createTicket.mutateAsync(ticketData);
-      toast({
-        title: "✅ Ticket criado!",
-        description: "Chamado de backup criado no GLPI com sucesso.",
+      toast.success("✅ Ticket criado!", {
+        description: "Chamado de backup criado no GLPI com sucesso."
       });
       
       onOpenChange(false);
     } catch (error) {
-      toast({
-        title: "❌ Erro ao criar ticket",
-        description: "Não foi possível criar o chamado no GLPI.",
-        variant: "destructive",
+      toast.error("❌ Erro ao criar ticket", {
+        description: "Não foi possível criar o chamado no GLPI."
       });
     } finally {
       setIsLoading(false);

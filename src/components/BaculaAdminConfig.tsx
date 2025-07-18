@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Database, Plus, Pencil, Trash2, Check, X } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export const BaculaAdminConfig = () => {
   const { data: integrations } = useIntegrations();
