@@ -11,7 +11,7 @@ import { BaculaDashboard } from '@/components/BaculaDashboard';
 import { BaculaAnalysisDialog } from '@/components/BaculaAnalysisDialog';
 import { BaculaJobsDialog } from '@/components/BaculaJobsDialog';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 const Bacula = () => {
   const {
     baculaIntegration,

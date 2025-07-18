@@ -10,7 +10,7 @@ import { ptBR } from 'date-fns/locale';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useSystemSetting } from '@/hooks/useSystemSettings';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 interface FileInfo {
   name: string;

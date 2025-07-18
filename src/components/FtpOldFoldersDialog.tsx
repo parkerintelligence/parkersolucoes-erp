@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, Folder, AlertTriangle, ExternalLink } from 'lucide-react';
 import { RealFtpFile } from '@/services/realFtpService';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 interface FtpOldFoldersDialogProps {
   files: RealFtpFile[];
 }

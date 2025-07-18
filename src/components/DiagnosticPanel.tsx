@@ -20,7 +20,7 @@ import {
   Database,
   Loader2
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 export const DiagnosticPanel = () => {
   const { data: integrations = [] } = useIntegrations();

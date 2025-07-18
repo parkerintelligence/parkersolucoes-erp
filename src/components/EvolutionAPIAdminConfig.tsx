@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { Loader2, MessageCircle, AlertTriangle, CheckCircle, Wifi, WifiOff } from 'lucide-react';
 import { EvolutionApiService } from '@/utils/evolutionApiService';
 
