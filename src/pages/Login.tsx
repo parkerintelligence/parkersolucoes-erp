@@ -1,8 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,14 +15,6 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
-
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/alertas', { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,8 +47,10 @@ const Login = () => {
           description: "Redirecionando para o dashboard..."
         });
         
-        // Navigate using React Router instead of window.location
-        navigate('/alertas', { replace: true });
+        // Redirect after successful login
+        setTimeout(() => {
+          navigate('/alertas', { replace: true });
+        }, 1000);
       }
     } catch (error) {
       console.error('Unexpected error:', error);

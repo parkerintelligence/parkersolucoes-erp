@@ -37,6 +37,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Layout } from '@/components/Layout';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { LoginRedirect } from '@/components/LoginRedirect';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,7 +57,14 @@ function App() {
             <BrowserRouter>
               <div className="min-h-screen bg-background">
                 <Routes>
-                  <Route path="/login" element={<Login />} />
+                  <Route 
+                    path="/login" 
+                    element={
+                      <LoginRedirect>
+                        <Login />
+                      </LoginRedirect>
+                    } 
+                  />
                   <Route
                     path="/"
                     element={
