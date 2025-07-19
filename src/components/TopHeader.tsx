@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Shield, Settings, DollarSign } from 'lucide-react';
@@ -9,7 +8,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 export const TopHeader = () => {
-  const { user, logout, isMaster } = useAuth();
+  const isMaster = true; // Removido sistema de auth
   const { data: settings, error: settingsError } = useSystemSettings();
   const navigate = useNavigate();
   
@@ -18,12 +17,8 @@ export const TopHeader = () => {
   const logoUrl = (!settingsError && settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value) || null;
 
   const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/login', { replace: true });
-    } catch (error) {
-      console.error('Error during logout:', error);
-    }
+    // Sistema de auth removido - não há mais logout
+    console.log('Logout não disponível - sistema de auth removido');
   };
 
   const handleFinancialAccess = () => {
@@ -66,7 +61,7 @@ export const TopHeader = () => {
                   <User className="h-3 w-3 sm:h-4 sm:w-4" />
                 )}
                 <span className="hidden sm:inline text-xs sm:text-sm font-medium max-w-20 sm:max-w-32 lg:max-w-none truncate">
-                  {user?.email}
+                  Sistema Parker
                 </span>
               </Button>
             </DropdownMenuTrigger>
@@ -74,7 +69,7 @@ export const TopHeader = () => {
               <DropdownMenuLabel className="px-4 py-3">
                 <div className="flex flex-col space-y-2">
                   <p className="text-sm font-semibold text-card-foreground">
-                    {user?.email}
+                    Sistema Parker
                   </p>
                   <p className="text-xs text-muted-foreground flex items-center gap-2">
                     {isMaster ? (

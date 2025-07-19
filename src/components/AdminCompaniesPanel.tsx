@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +12,6 @@ import { format } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 export const AdminCompaniesPanel = () => {
-  const { user, isMaster } = useAuth();
   const { data: companies = [], isLoading } = useCompanies();
   const createCompany = useCreateCompany();
   const updateCompany = useUpdateCompany();
@@ -30,7 +28,7 @@ export const AdminCompaniesPanel = () => {
     contact: ''
   });
 
-  console.log('AdminCompaniesPanel - User:', user?.email, 'Is Master:', isMaster);
+  // Sistema de auth removido
 
   const handleSave = () => {
     if (!formData.name) return;

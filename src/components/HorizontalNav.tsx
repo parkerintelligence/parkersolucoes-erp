@@ -1,6 +1,5 @@
 
 import { NavLink, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard,
   Settings,
@@ -56,7 +55,7 @@ const adminItems = [
 ];
 
 export const HorizontalNav = () => {
-  const { isMaster } = useAuth();
+  const isMaster = true; // Removido sistema de auth
   const location = useLocation();
   const currentPath = location.pathname;
 

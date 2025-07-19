@@ -1,9 +1,8 @@
 
 import * as React from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 
 export const useUserActivity = () => {
-  const { isAuthenticated } = useAuth();
+  const isAuthenticated = true; // Auth removido
   const lastActivityRef = React.useRef<number>(0);
   const throttleTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 

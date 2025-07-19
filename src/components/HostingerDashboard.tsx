@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+
 import { MasterPasswordDialog } from '@/components/MasterPasswordDialog';
 import { useHostingerIntegrations, useHostingerVPS, useHostingerVPSMetrics, useHostingerActions } from '@/hooks/useHostingerAPI';
 import { 
@@ -27,8 +27,7 @@ import {
 } from 'lucide-react';
 
 export const HostingerDashboard = () => {
-  
-  const { isMaster } = useAuth();
+  const isMaster = true; // Removido sistema de auth
   const { data: integrations, isLoading: integrationsLoading } = useHostingerIntegrations();
   const { restartVPS, createSnapshot } = useHostingerActions();
   
