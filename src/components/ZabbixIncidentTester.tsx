@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,10 +10,10 @@ import {
   FileText,
   Copy
 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 export const ZabbixIncidentTester = () => {
-  
+  const { toast } = useToast();
 
   const webhookUrl = 'https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/zabbix-webhook';
 

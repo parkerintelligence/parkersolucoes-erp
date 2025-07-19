@@ -1,102 +1,235 @@
 
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from '@/components/ui/toaster';
-import { ThemeProvider } from 'next-themes';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
-import Companies from '@/pages/Companies';
+import Admin from '@/pages/Admin';
+import GLPI from '@/pages/GLPI';
+import Guacamole from '@/pages/Guacamole';
+import Backups from '@/pages/Backups';
 import Passwords from '@/pages/Passwords';
 import Annotations from '@/pages/Annotations';
-import Contracts from '@/pages/Contracts';
-import Budgets from '@/pages/Budgets';
-import Services from '@/pages/Services';
-import Documents from '@/pages/Documents';
 import Links from '@/pages/Links';
-import Schedule from '@/pages/Schedule';
-import Wasabi from '@/pages/Wasabi';
-import Monitoring from '@/pages/Monitoring';
-import Backups from '@/pages/Backups';
-import Bacula from '@/pages/Bacula';
-import Zabbix from '@/pages/Zabbix';
 import WhatsApp from '@/pages/WhatsApp';
-import WhatsAppChats from '@/pages/WhatsAppChats';
 import WhatsAppTemplates from '@/pages/WhatsAppTemplates';
-import Guacamole from '@/pages/Guacamole';
-import UniFi from '@/pages/UniFi';
-import GLPI from '@/pages/GLPI';
-import Alertas from '@/pages/Alertas';
+import Wasabi from '@/pages/Wasabi';
+import Schedule from '@/pages/Schedule';
+import Automation from '@/pages/Automation';
+import Zabbix from '@/pages/Zabbix';
+import Services from '@/pages/Services';
+import Budgets from '@/pages/Budgets';
+import Contracts from '@/pages/Contracts';
 import Financial from '@/pages/Financial';
+import Companies from '@/pages/Companies';
+import Bacula from '@/pages/Bacula';
 import ReportsDashboard from '@/pages/ReportsDashboard';
 import ActionPlan from '@/pages/ActionPlan';
-import Automation from '@/pages/Automation';
-import Admin from '@/pages/Admin';
-import NotFound from '@/pages/NotFound';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import Alertas from '@/pages/Alertas';
 import { Layout } from '@/components/Layout';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+// Create a single QueryClient instance
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <ErrorBoundary>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <div className="min-h-screen bg-background">
-              <Routes>
-                <Route
-                  path="/"
-                  element={
-                    <Layout>
-                      <Outlet />
-                    </Layout>
-                  }
-                >
-                  <Route index element={<Navigate to="/alertas" replace />} />
-                  <Route path="dashboard" element={<Dashboard />} />
-                  <Route path="companies" element={<Companies />} />
-                  <Route path="passwords" element={<Passwords />} />
-                  <Route path="annotations" element={<Annotations />} />
-                  <Route path="contracts" element={<Contracts />} />
-                  <Route path="budgets" element={<Budgets />} />
-                  <Route path="services" element={<Services />} />
-                  <Route path="documents" element={<Documents />} />
-                  <Route path="links" element={<Links />} />
-                  <Route path="schedule" element={<Schedule />} />
-                  <Route path="wasabi" element={<Wasabi />} />
-                  <Route path="monitoring" element={<Monitoring />} />
-                  <Route path="backups" element={<Backups />} />
-                  <Route path="bacula" element={<Bacula />} />
-                  <Route path="zabbix" element={<Zabbix />} />
-                  <Route path="whatsapp" element={<WhatsApp />} />
-                  <Route path="whatsapp-chats" element={<WhatsAppChats />} />
-                  <Route path="whatsapp-templates" element={<WhatsAppTemplates />} />
-                  <Route path="guacamole" element={<Guacamole />} />
-                  <Route path="unifi" element={<UniFi />} />
-                  <Route path="glpi" element={<GLPI />} />
-                  <Route path="alertas" element={<Alertas />} />
-                  <Route path="financial" element={<Financial />} />
-                  <Route path="reports" element={<ReportsDashboard />} />
-                  <Route path="action-plan" element={<ActionPlan />} />
-                  <Route path="automation" element={<Automation />} />
-                  <Route path="admin" element={<Admin />} />
-                </Route>
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-              <Toaster />
-            </div>
-          </BrowserRouter>
-        </QueryClientProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+    <AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <div className="min-h-screen bg-background">
+            <Routes>
+              <Route path="/" element={<Login />} />
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/alertas"
+                element={
+                  <Layout>
+                    <Alertas />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/links"
+                element={
+                  <Layout>
+                    <Links />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <Layout>
+                    <Dashboard />
+                  </Layout>
+                }
+               />
+              <Route
+                path="/admin"
+                element={
+                  <Layout>
+                    <Admin />
+                  </Layout>
+                }
+              />
+               <Route
+                 path="/glpi"
+                 element={
+                   <Layout>
+                     <GLPI />
+                   </Layout>
+                 }
+               />
+               <Route
+                 path="/conexao-remota"
+                 element={
+                   <Layout>
+                     <Guacamole />
+                   </Layout>
+                 }
+               />
+               <Route
+                 path="/backups"
+                element={
+                  <Layout>
+                    <Backups />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/passwords"
+                element={
+                  <Layout>
+                    <Passwords />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/annotations"
+                element={
+                  <Layout>
+                    <Annotations />
+                  </Layout>
+                }
+               />
+              <Route
+                path="/whatsapp"
+                element={
+                  <Layout>
+                    <WhatsApp />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/whatsapp-templates"
+                element={
+                  <Layout>
+                    <WhatsAppTemplates />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/wasabi"
+                element={
+                  <Layout>
+                    <Wasabi />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/schedule"
+                element={
+                  <Layout>
+                    <Schedule />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/automation"
+                element={
+                  <Layout>
+                    <Automation />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/zabbix"
+                element={
+                  <Layout>
+                    <Zabbix />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/services"
+                element={
+                  <Layout>
+                    <Services />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/budgets"
+                element={
+                  <Layout>
+                    <Budgets />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/contracts"
+                element={
+                  <Layout>
+                    <Contracts />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/financial"
+                element={
+                  <Layout>
+                    <Financial />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/companies"
+                element={
+                  <Layout>
+                    <Companies />
+                  </Layout>
+                }
+              />
+              <Route 
+                path="/bacula" 
+                element={
+                  <Layout>
+                    <Bacula />
+                  </Layout>
+                } 
+              />
+              <Route 
+                path="/reports" 
+                element={
+                  <Layout>
+                    <ReportsDashboard />
+                  </Layout>
+                } 
+              />
+              <Route 
+                path="/plano-de-acao" 
+                element={
+                  <Layout>
+                    <ActionPlan />
+                  </Layout>
+                } 
+              />
+            </Routes>
+          </div>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </AuthProvider>
   );
 }
 

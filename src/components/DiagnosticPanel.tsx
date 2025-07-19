@@ -272,8 +272,9 @@ export const DiagnosticPanel = () => {
               size="sm"
               className="w-full"
               onClick={() => {
-                toast.success("✅ Guacamole OK", {
-                  description: "Data Source configurado corretamente."
+                toast({
+                  title: "✅ Guacamole OK",
+                  description: "Data Source configurado corretamente.",
                 });
               }}
             >
@@ -306,8 +307,9 @@ export const DiagnosticPanel = () => {
               size="sm"
               className="w-full"
               onClick={() => {
-                toast.info("ℹ️ GLPI", {
-                  description: "Verificar logs da edge function para status dos tickets agendados."
+                toast({
+                  title: "ℹ️ GLPI",
+                  description: "Verificar logs da edge function para status dos tickets agendados.",
                 });
               }}
             >

@@ -39,8 +39,10 @@ export const AdminApiPanel = () => {
 
   const handleSubmit = async () => {
     if (!formData.name || !formData.base_url) {
-      toast.error("Campos obrigatórios", {
-        description: "Preencha pelo menos o nome e a URL base."
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha pelo menos o nome e a URL base.",
+        variant: "destructive"
       });
       return;
     }

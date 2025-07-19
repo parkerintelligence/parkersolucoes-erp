@@ -559,185 +559,115 @@ export const useGLPIExpanded = () => {
 
   const tickets = useQuery({
     queryKey: ['glpi-tickets'],
-    queryFn: async () => {
+    queryFn: () => {
       console.log('🎫 Buscando tickets GLPI...');
-      // Tentar inicializar sessão se não existir
-      if (!glpiIntegration?.webhook_url && glpiIntegration?.api_token) {
-        console.log('🔄 Session token ausente, inicializando automaticamente...');
-        await initializeSession();
-      }
       return makeGLPIRequest('Ticket?range=0-100&expand_dropdowns=true');
     },
-    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
+    enabled: isEnabled,
     refetchInterval: 30000,
     retry: 1,
   });
 
   const problems = useQuery({
     queryKey: ['glpi-problems'],
-    queryFn: async () => {
-      if (!glpiIntegration?.webhook_url && glpiIntegration?.api_token) {
-        await initializeSession();
-      }
-      return makeGLPIRequest('Problem?range=0-50&expand_dropdowns=true');
-    },
-    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
+    queryFn: () => makeGLPIRequest('Problem?range=0-50&expand_dropdowns=true'),
+    enabled: isEnabled,
     refetchInterval: 60000,
     retry: 1,
   });
 
   const changes = useQuery({
     queryKey: ['glpi-changes'],
-    queryFn: async () => {
-      if (!glpiIntegration?.webhook_url && glpiIntegration?.api_token) {
-        await initializeSession();
-      }
-      return makeGLPIRequest('Change?range=0-50&expand_dropdowns=true');
-    },
-    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
+    queryFn: () => makeGLPIRequest('Change?range=0-50&expand_dropdowns=true'),
+    enabled: isEnabled,
     refetchInterval: 60000,
     retry: 1,
   });
 
   const computers = useQuery({
     queryKey: ['glpi-computers'],
-    queryFn: async () => {
-      if (!glpiIntegration?.webhook_url && glpiIntegration?.api_token) {
-        await initializeSession();
-      }
-      return makeGLPIRequest('Computer?range=0-100&expand_dropdowns=true');
-    },
-    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
+    queryFn: () => makeGLPIRequest('Computer?range=0-100&expand_dropdowns=true'),
+    enabled: isEnabled,
     refetchInterval: 300000,
     retry: 1,
   });
 
   const monitors = useQuery({
     queryKey: ['glpi-monitors'],
-    queryFn: async () => {
-      if (!glpiIntegration?.webhook_url && glpiIntegration?.api_token) {
-        await initializeSession();
-      }
-      return makeGLPIRequest('Monitor?range=0-100&expand_dropdowns=true');
-    },
-    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
+    queryFn: () => makeGLPIRequest('Monitor?range=0-100&expand_dropdowns=true'),
+    enabled: isEnabled,
     refetchInterval: 300000,
     retry: 1,
   });
 
   const printers = useQuery({
     queryKey: ['glpi-printers'],
-    queryFn: async () => {
-      if (!glpiIntegration?.webhook_url && glpiIntegration?.api_token) {
-        await initializeSession();
-      }
-      return makeGLPIRequest('Printer?range=0-100&expand_dropdowns=true');
-    },
-    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
+    queryFn: () => makeGLPIRequest('Printer?range=0-100&expand_dropdowns=true'),
+    enabled: isEnabled,
     refetchInterval: 300000,
     retry: 1,
   });
 
   const networkEquipment = useQuery({
     queryKey: ['glpi-network-equipment'],
-    queryFn: async () => {
-      if (!glpiIntegration?.webhook_url && glpiIntegration?.api_token) {
-        await initializeSession();
-      }
-      return makeGLPIRequest('NetworkEquipment?range=0-100&expand_dropdowns=true');
-    },
-    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
+    queryFn: () => makeGLPIRequest('NetworkEquipment?range=0-100&expand_dropdowns=true'),
+    enabled: isEnabled,
     refetchInterval: 300000,
     retry: 1,
   });
 
   const software = useQuery({
     queryKey: ['glpi-software'],
-    queryFn: async () => {
-      if (!glpiIntegration?.webhook_url && glpiIntegration?.api_token) {
-        await initializeSession();
-      }
-      return makeGLPIRequest('Software?range=0-100&expand_dropdowns=true');
-    },
-    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
+    queryFn: () => makeGLPIRequest('Software?range=0-100&expand_dropdowns=true'),
+    enabled: isEnabled,
     refetchInterval: 300000,
     retry: 1,
   });
 
   const suppliers = useQuery({
     queryKey: ['glpi-suppliers'],
-    queryFn: async () => {
-      if (!glpiIntegration?.webhook_url && glpiIntegration?.api_token) {
-        await initializeSession();
-      }
-      return makeGLPIRequest('Supplier?range=0-50&expand_dropdowns=true');
-    },
-    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
+    queryFn: () => makeGLPIRequest('Supplier?range=0-50&expand_dropdowns=true'),
+    enabled: isEnabled,
     refetchInterval: 300000,
     retry: 1,
   });
 
   const contracts = useQuery({
     queryKey: ['glpi-contracts'],
-    queryFn: async () => {
-      if (!glpiIntegration?.webhook_url && glpiIntegration?.api_token) {
-        await initializeSession();
-      }
-      return makeGLPIRequest('Contract?range=0-50&expand_dropdowns=true');
-    },
-    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
+    queryFn: () => makeGLPIRequest('Contract?range=0-50&expand_dropdowns=true'),
+    enabled: isEnabled,
     refetchInterval: 300000,
     retry: 1,
   });
 
   const users = useQuery({
     queryKey: ['glpi-users'],
-    queryFn: async () => {
-      if (!glpiIntegration?.webhook_url && glpiIntegration?.api_token) {
-        await initializeSession();
-      }
-      return makeGLPIRequest('User?range=0-100&expand_dropdowns=true');
-    },
-    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
+    queryFn: () => makeGLPIRequest('User?range=0-100&expand_dropdowns=true'),
+    enabled: isEnabled,
     refetchInterval: 300000,
     retry: 1,
   });
 
   const entities = useQuery({
     queryKey: ['glpi-entities'],
-    queryFn: async () => {
-      if (!glpiIntegration?.webhook_url && glpiIntegration?.api_token) {
-        await initializeSession();
-      }
-      return makeGLPIRequest('Entity?range=0-50&expand_dropdowns=true');
-    },
-    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
+    queryFn: () => makeGLPIRequest('Entity?range=0-50&expand_dropdowns=true'),
+    enabled: isEnabled,
     refetchInterval: 300000,
     retry: 1,
   });
 
   const locations = useQuery({
     queryKey: ['glpi-locations'],
-    queryFn: async () => {
-      if (!glpiIntegration?.webhook_url && glpiIntegration?.api_token) {
-        await initializeSession();
-      }
-      return makeGLPIRequest('Location?range=0-100&expand_dropdowns=true');
-    },
-    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
+    queryFn: () => makeGLPIRequest('Location?range=0-100&expand_dropdowns=true'),
+    enabled: isEnabled,
     refetchInterval: 300000,
     retry: 1,
   });
 
   const groups = useQuery({
     queryKey: ['glpi-groups'],
-    queryFn: async () => {
-      if (!glpiIntegration?.webhook_url && glpiIntegration?.api_token) {
-        await initializeSession();
-      }
-      return makeGLPIRequest('Group?range=0-50&expand_dropdowns=true');
-    },
-    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
+    queryFn: () => makeGLPIRequest('Group?range=0-50&expand_dropdowns=true'),
+    enabled: isEnabled,
     refetchInterval: 300000,
     retry: 1,
   });

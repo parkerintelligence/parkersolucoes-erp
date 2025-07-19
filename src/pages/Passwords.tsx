@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { usePasswords, useCreatePassword, useUpdatePassword, useDeletePassword } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
-
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +31,9 @@ const Passwords = () => {
   const {
     data: companies = []
   } = useCompanies();
-  const isMaster = true; // Removido sistema de auth
+  const {
+    isMaster
+  } = useAuth();
   const createPassword = useCreatePassword();
   const updatePassword = useUpdatePassword();
   const deletePassword = useDeletePassword();

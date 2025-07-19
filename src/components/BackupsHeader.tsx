@@ -1,5 +1,5 @@
 
-import * as React from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';

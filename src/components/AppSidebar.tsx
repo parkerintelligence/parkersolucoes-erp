@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar } from '@/components/ui/sidebar';
 const menuItems = [{
@@ -13,7 +14,7 @@ const menuItems = [{
   role: 'user'
 }, {
   title: 'Conexão Remota',
-  url: '/guacamole',
+  url: '/conexao-remota',
   icon: Monitor,
   role: 'user'
 }, {
@@ -23,7 +24,7 @@ const menuItems = [{
   role: 'user'
 }, {
   title: 'Plano de Ação',
-  url: '/action-plan',
+  url: '/plano-de-acao',
   icon: Kanban,
   role: 'user'
 }, {
@@ -81,7 +82,9 @@ export function AppSidebar() {
   const {
     state
   } = useSidebar();
-  const isMaster = true; // Removido sistema de auth
+  const {
+    isMaster
+  } = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
   const isActive = (path: string) => currentPath === path;

@@ -70,8 +70,10 @@ export const BackupAlertDialog = ({ open, onOpenChange, files, type }: BackupAle
 
   const handleWhatsAppSend = async () => {
     if (!phoneNumber.trim()) {
-      toast.error("Número obrigatório", {
-        description: "Digite o número do WhatsApp para enviar o alerta."
+      toast({
+        title: "Número obrigatório",
+        description: "Digite o número do WhatsApp para enviar o alerta.",
+        variant: "destructive",
       });
       return;
     }
@@ -79,8 +81,10 @@ export const BackupAlertDialog = ({ open, onOpenChange, files, type }: BackupAle
     const evolutionApiIntegration = integrations?.find(int => int.type === 'evolution_api');
     
     if (!evolutionApiIntegration) {
-      toast.error("Evolution API não configurada", {
-        description: "Configure a Evolution API no painel administrativo."
+      toast({
+        title: "Evolution API não configurada",
+        description: "Configure a Evolution API no painel administrativo.",
+        variant: "destructive",
       });
       return;
     }
@@ -107,15 +111,18 @@ export const BackupAlertDialog = ({ open, onOpenChange, files, type }: BackupAle
         throw new Error('Falha ao enviar mensagem');
       }
 
-      toast.success("✅ Alerta enviado!", {
-        description: `Relatório de backup enviado para ${phoneNumber}`
+      toast({
+        title: "✅ Alerta enviado!",
+        description: `Relatório de backup enviado para ${phoneNumber}`,
       });
       
       onOpenChange(false);
       setPhoneNumber('');
     } catch (error) {
-      toast.error("❌ Erro ao enviar", {
-        description: "Não foi possível enviar o alerta via WhatsApp."
+      toast({
+        title: "❌ Erro ao enviar",
+        description: "Não foi possível enviar o alerta via WhatsApp.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -138,14 +145,17 @@ export const BackupAlertDialog = ({ open, onOpenChange, files, type }: BackupAle
       };
 
       await createTicket.mutateAsync(ticketData);
-      toast.success("✅ Ticket criado!", {
-        description: "Chamado de backup criado no GLPI com sucesso."
+      toast({
+        title: "✅ Ticket criado!",
+        description: "Chamado de backup criado no GLPI com sucesso.",
       });
       
       onOpenChange(false);
     } catch (error) {
-      toast.error("❌ Erro ao criar ticket", {
-        description: "Não foi possível criar o chamado no GLPI."
+      toast({
+        title: "❌ Erro ao criar ticket",
+        description: "Não foi possível criar o chamado no GLPI.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);

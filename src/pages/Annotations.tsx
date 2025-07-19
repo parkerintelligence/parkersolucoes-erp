@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useAnnotations, useCreateAnnotation, useUpdateAnnotation, useDeleteAnnotation } from '@/hooks/useAnnotations';
 import { useCompanies } from '@/hooks/useCompanies';
-
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +32,7 @@ type AnnotationWithCompany = Annotation & { company?: string };
 const Annotations = () => {
   const { data: annotations = [], isLoading } = useAnnotations();
   const { data: companies = [] } = useCompanies();
-  const isMaster = true; // Removido sistema de auth
+  const { isMaster } = useAuth();
   const createAnnotation = useCreateAnnotation();
   const updateAnnotation = useUpdateAnnotation();
   const deleteAnnotation = useDeleteAnnotation();
