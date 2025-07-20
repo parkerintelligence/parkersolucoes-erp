@@ -34,8 +34,8 @@ const queryClient = new QueryClient();
 
 function App() {
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
         <BrowserRouter>
           <div className="min-h-screen bg-background">
             <Routes>
@@ -277,8 +277,8 @@ function App() {
             </Routes>
           </div>
         </BrowserRouter>
-      </QueryClientProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 
