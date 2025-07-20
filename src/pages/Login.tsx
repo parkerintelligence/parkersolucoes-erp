@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,14 +15,20 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Redirecionar usuários autenticados para alertas
+  // Obter a rota de onde o usuário veio (se houver)
+  const from = (location.state as any)?.from?.pathname || '/alertas';
+
+  console.log('Login - isAuthenticated:', isAuthenticated, 'authLoading:', authLoading, 'from:', from);
+
+  // Redirecionar usuários autenticados
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
-      console.log('Usuário já autenticado, redirecionando para alertas');
-      navigate('/alertas', { replace: true });
+      console.log('Usuário já autenticado, redirecionando para:', from);
+      navigate(from, { replace: true });
     }
-  }, [isAuthenticated, authLoading, navigate]);
+  }, [isAuthenticated, authLoading, navigate, from]);
 
   // Tela de carregamento durante inicialização
   if (authLoading) {
@@ -41,14 +46,26 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha email e senha.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
+      console.log('Tentando fazer login com:', email);
       const success = await login(email, password);
+      
       if (success) {
         toast({
           title: "Login realizado com sucesso!",
-          description: "Redirecionando para alertas...",
+          description: `Redirecionando para ${from}...`,
         });
         // O redirecionamento será feito pelo useEffect
       } else {
@@ -59,6 +76,7 @@ const Login = () => {
         });
       }
     } catch (error) {
+      console.error('Erro no login:', error);
       toast({
         title: "Erro no login",
         description: "Ocorreu um erro inesperado. Tente novamente.",
@@ -102,6 +120,7 @@ const Login = () => {
                     className="bg-white/20 border-blue-300/30 text-white placeholder:text-blue-200"
                     placeholder="Digite seu email"
                     required
+                    autoComplete="email"
                   />
                 </div>
                 <div className="space-y-2">
@@ -115,6 +134,7 @@ const Login = () => {
                       className="bg-white/20 border-blue-300/30 text-white placeholder:text-blue-200 pr-10"
                       placeholder="Digite sua senha"
                       required
+                      autoComplete="current-password"
                     />
                     <Button
                       type="button"

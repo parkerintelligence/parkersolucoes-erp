@@ -1,8 +1,8 @@
 
-import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Admin from '@/pages/Admin';
@@ -39,190 +39,239 @@ function App() {
         <BrowserRouter>
           <div className="min-h-screen bg-background">
             <Routes>
-              <Route path="/" element={<Login />} />
+              {/* Rotas públicas */}
               <Route path="/login" element={<Login />} />
+              <Route path="/" element={<Navigate to="/alertas" replace />} />
+              
+              {/* Rotas protegidas */}
               <Route
                 path="/alertas"
                 element={
-                  <Layout>
-                    <Alertas />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Alertas />
+                    </Layout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/links"
                 element={
-                  <Layout>
-                    <Links />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Links />
+                    </Layout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/dashboard"
                 element={
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Dashboard />
+                    </Layout>
+                  </ProtectedRoute>
                 }
                />
               <Route
                 path="/admin"
                 element={
-                  <Layout>
-                    <Admin />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Admin />
+                    </Layout>
+                  </ProtectedRoute>
                 }
               />
                <Route
                  path="/glpi"
                  element={
-                   <Layout>
-                     <GLPI />
-                   </Layout>
+                   <ProtectedRoute>
+                     <Layout>
+                       <GLPI />
+                     </Layout>
+                   </ProtectedRoute>
                  }
                />
                <Route
                  path="/conexao-remota"
                  element={
-                   <Layout>
-                     <Guacamole />
-                   </Layout>
+                   <ProtectedRoute>
+                     <Layout>
+                       <Guacamole />
+                     </Layout>
+                   </ProtectedRoute>
                  }
                />
                <Route
                  path="/backups"
                 element={
-                  <Layout>
-                    <Backups />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Backups />
+                    </Layout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/passwords"
                 element={
-                  <Layout>
-                    <Passwords />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Passwords />
+                    </Layout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/annotations"
                 element={
-                  <Layout>
-                    <Annotations />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Annotations />
+                    </Layout>
+                  </ProtectedRoute>
                 }
                />
               <Route
                 path="/whatsapp"
                 element={
-                  <Layout>
-                    <WhatsApp />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <WhatsApp />
+                    </Layout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/whatsapp-templates"
                 element={
-                  <Layout>
-                    <WhatsAppTemplates />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <WhatsAppTemplates />
+                    </Layout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/wasabi"
                 element={
-                  <Layout>
-                    <Wasabi />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Wasabi />
+                    </Layout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/schedule"
                 element={
-                  <Layout>
-                    <Schedule />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Schedule />
+                    </Layout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/automation"
                 element={
-                  <Layout>
-                    <Automation />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Automation />
+                    </Layout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/zabbix"
                 element={
-                  <Layout>
-                    <Zabbix />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Zabbix />
+                    </Layout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/services"
                 element={
-                  <Layout>
-                    <Services />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Services />
+                    </Layout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/budgets"
                 element={
-                  <Layout>
-                    <Budgets />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Budgets />
+                    </Layout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/contracts"
                 element={
-                  <Layout>
-                    <Contracts />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Contracts />
+                    </Layout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/financial"
                 element={
-                  <Layout>
-                    <Financial />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Financial />
+                    </Layout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/companies"
                 element={
-                  <Layout>
-                    <Companies />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Companies />
+                    </Layout>
+                  </ProtectedRoute>
                 }
               />
               <Route 
                 path="/bacula" 
                 element={
-                  <Layout>
-                    <Bacula />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <Bacula />
+                    </Layout>
+                  </ProtectedRoute>
                 } 
               />
               <Route 
                 path="/reports" 
                 element={
-                  <Layout>
-                    <ReportsDashboard />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <ReportsDashboard />
+                    </Layout>
+                  </ProtectedRoute>
                 } 
               />
               <Route 
                 path="/plano-de-acao" 
                 element={
-                  <Layout>
-                    <ActionPlan />
-                  </Layout>
+                  <ProtectedRoute>
+                    <Layout>
+                      <ActionPlan />
+                    </Layout>
+                  </ProtectedRoute>
                 } 
               />
             </Routes>

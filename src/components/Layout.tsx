@@ -1,22 +1,21 @@
 
-import React from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
 import { TopHeader } from '@/components/TopHeader';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
 interface LayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export const Layout = ({ children }: LayoutProps) => {
-  const { isAuthenticated, isLoading, resetSessionTimer } = useAuth();
+  const { isAuthenticated, resetSessionTimer } = useAuth();
 
-  console.log('Layout - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
+  console.log('Layout - isAuthenticated:', isAuthenticated);
 
   // Resetar timer de sessão a cada atividade do usuário
-  React.useEffect(() => {
+  useEffect(() => {
     const handleUserActivity = () => {
       if (isAuthenticated) {
         resetSessionTimer();
@@ -36,19 +35,6 @@ export const Layout = ({ children }: LayoutProps) => {
       });
     };
   }, [isAuthenticated, resetSessionTimer]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-lg text-gray-600">Carregando sistema...</div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    console.log('Usuário não autenticado, redirecionando para login');
-    return <Navigate to="/login" replace />;
-  }
 
   return (
     <SidebarProvider>
