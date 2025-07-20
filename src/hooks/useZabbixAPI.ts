@@ -95,7 +95,7 @@ export const useZabbixAPI = () => {
         const result = await makeZabbixProxyRequest(
           'host.get',
           {
-            output: ['hostid', 'host', 'name', 'status', 'available', 'error', 'disable_until', 'flags', 'lastaccess'],
+            output: ['hostid', 'host', 'name', 'status', 'available', 'error', 'disable_until', 'flags'],
             selectGroups: ['groupid', 'name'],
             selectInterfaces: ['interfaceid', 'ip', 'dns', 'port', 'type', 'main', 'available', 'error'],
             filter: {
@@ -107,24 +107,7 @@ export const useZabbixAPI = () => {
         );
 
         console.log('Hosts found:', result?.length || 0);
-        console.log('Sample host with availability data:', result?.[0]);
-        
-        // Log detalhado dos campos de disponibilidade
-        if (result && result.length > 0) {
-          console.log('=== HOST AVAILABILITY DETAILS ===');
-          result.forEach((host: any, index: number) => {
-            if (index < 3) { // Log apenas os primeiros 3 hosts para não poluir o console
-              console.log(`Host ${index + 1}:`, {
-                name: host.name,
-                hostid: host.hostid,
-                status: host.status, // 0 = enabled, 1 = disabled
-                available: host.available, // 0 = unknown, 1 = available, 2 = unreachable
-                error: host.error,
-                lastaccess: host.lastaccess
-              });
-            }
-          });
-        }
+        console.log('Sample host data:', result?.[0]);
         
         return result as ZabbixHost[];
       },

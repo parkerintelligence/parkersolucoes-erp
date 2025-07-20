@@ -31,52 +31,23 @@ export default function Alertas() {
   const { data: items = [], isLoading: itemsLoading } = useItems(hostIds, {
     search: {
       key_: [
-        // CPU variations - expanded
         'system.cpu.util[,avg1]', 
-        'system.cpu.util[,avg5]',
-        'system.cpu.util[,avg15]',
         'system.cpu.util',
-        'system.cpu.load[,avg1]',
-        'system.cpu.load[percpu,avg1]',
-        'cpu.util',
-        'proc.cpu.util',
-        'perf_counter[\\Processor(_Total)\\% Processor Time]',
-        // Memory variations - expanded
         'vm.memory.size[total]', 
         'vm.memory.size[available]', 
-        'vm.memory.size[used]',
         'vm.memory.utilization',
-        'vm.memory.pused',
-        'memory.size[total]',
-        'memory.size[available]',
-        'memory.utilization',
-        'proc.mem[,,,rss]',
-        // Uptime variations
         'system.uptime', 
-        'system.uptime[s]',
-        'net.if.in[eth0]',
-        'agent.uptime',
-        // Disk variations - expanded
         'vfs.fs.size[/,pused]',
         'vfs.fs.size[/,pfree]',
-        'vfs.fs.size[/,total]',
-        'vfs.fs.size[/,used]',
-        'vfs.fs.size[C:,pused]',
-        'vfs.fs.size[C:,pfree]',
-        'vfs.fs.discovery',
-        'disk.usage.percent',
-        'fs.size.pused'
+        'vfs.fs.size[/,total]'
       ]
     }
   });
 
   const getDeviceStatus = (host: any): DeviceStatus => {
-    // CORRIGIDO: Incluir verificação do campo 'available' do Zabbix
-    // Um host será OFFLINE se:
-    // 1. Tem problemas de severidade "Desastre" (severity = "5") OU
-    // 2. Está inativo (status = "1" = disabled) OU  
-    // 3. Está indisponível (available = "2" = unreachable ou "0" = unknown)
-    // Caso contrário será ONLINE
+    // Verificar se o host tem problemas de severidade "Desastre" (severity = "5")
+    // OU se o host está marcado como inativo (status = "1")
+    // Se tiver problemas de Desastre OU estiver inativo = OFFLINE, caso contrário = ONLINE
     
     const hostProblems = problems.filter(problem => 
       problem.hosts.some(problemHost => problemHost.hostid === host.hostid)
@@ -90,34 +61,19 @@ export default function Alertas() {
     // Verificar se o host está inativo (status = "1" = disabled)
     const isHostInactive = host.status === '1';
     
-    // NOVO: Verificar disponibilidade do host
-    // available: "0" = unknown, "1" = available, "2" = unreachable
-    const isHostUnavailable = host.available === '2' || host.available === '0';
-    
-    // Determinar tipo de problema offline
-    let offlineReason = '';
-    if (hasDisasterProblems) offlineReason += 'Problemas críticos ';
-    if (isHostInactive) offlineReason += 'Host desabilitado ';
-    if (isHostUnavailable) {
-      offlineReason += host.available === '2' ? 'Host inalcançável ' : 'Status desconhecido ';
-    }
-    
-    console.log('🔍 Host status check (CORRIGIDO):', {
+    console.log('🔍 Host status check:', {
       hostid: host.hostid,
       name: host.name,
       hostStatus: host.status,
-      available: host.available,
       isHostInactive,
-      isHostUnavailable,
       totalProblems: hostProblems.length,
       hasDisasterProblems,
-      offlineReason: offlineReason.trim() || 'N/A',
       problems: hostProblems.map(p => ({ name: p.name, severity: p.severity })),
-      finalStatus: (hasDisasterProblems || isHostInactive || isHostUnavailable) ? 'OFFLINE' : 'ONLINE'
+      available: host.available
     });
     
-    // CORRIGIDO: Incluir verificação de disponibilidade
-    const status = (hasDisasterProblems || isHostInactive || isHostUnavailable) ? 'offline' : 'online';
+    // Se tem problemas de Desastre OU host inativo = OFFLINE, caso contrário = ONLINE
+    const status = (hasDisasterProblems || isHostInactive) ? 'offline' : 'online';
     
     return {
       id: host.hostid,
@@ -132,32 +88,18 @@ export default function Alertas() {
   const onlineCount = devices.filter(d => d.status === 'online').length;
   const offlineCount = devices.filter(d => d.status === 'offline').length;
 
-  const handleRefresh = async () => {
-    console.log('🔄 Iniciando refresh manual dos dados Zabbix...');
-    try {
-      await Promise.all([
-        refetchHosts(),
-        refetchProblems()
-      ]);
-      console.log('✅ Refresh concluído com sucesso');
-    } catch (error) {
-      console.error('❌ Erro durante o refresh:', error);
-    }
+  const handleRefresh = () => {
+    refetchHosts();
+    refetchProblems();
   };
 
   const getPerformanceData = (hostId: string) => {
     const hostItems = items.filter(item => item.hostid === hostId);
     
-    // Buscar diferentes variações dos itens de CPU - EXPANDIDO
+    // Buscar diferentes variações dos itens de CPU
     const cpuItem = hostItems.find(item => 
       item.key_.includes('system.cpu.util') || 
-      item.key_.includes('cpu.util') ||
-      item.key_.includes('system.cpu.load') ||
-      item.key_.includes('cpu.load') ||
-      item.key_.includes('processor.util') ||
-      item.key_.includes('system.cpu.usage') ||
-      item.key_.includes('proc.cpu.util') ||
-      item.key_.includes('perf_counter')
+      item.key_.includes('cpu.util')
     );
     
     // Buscar itens de memória - diferentes variações
@@ -357,51 +299,27 @@ export default function Alertas() {
         </TabsList>
         
         <TabsContent value="status" className="space-y-4 mt-6">
-          {/* Cards menores e mais compactos para melhor visualização */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
-            {devices.map((device) => {
-              const host = hosts.find(h => h.hostid === device.id);
-              const availabilityText = host?.available === '2' ? 'Inalcançável' : 
-                                     host?.available === '0' ? 'Desconhecido' : 
-                                     host?.available === '1' ? 'Disponível' : 'N/A';
-              
-              return (
-                <Card 
-                  key={device.id} 
-                  className={cn(
-                    "transition-all duration-200 hover:shadow-md min-h-[100px] hover:scale-105",
-                    getStatusColor(device.status)
-                  )}
-                  title={`${device.name}\nStatus: ${device.status.toUpperCase()}\nDisponibilidade: ${availabilityText}`}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex flex-col items-center space-y-2">
-                      {getStatusIcon(device.status)}
-                      <h3 
-                        className="font-medium text-xs text-center text-white leading-tight break-words max-w-full"
-                        style={{ 
-                          wordBreak: 'break-word', 
-                          overflowWrap: 'break-word',
-                          fontSize: '0.75rem',
-                          lineHeight: '1.2'
-                        }}
-                      >
-                        {device.name}
-                      </h3>
-                      <div className="flex flex-col items-center space-y-1">
-                        {getStatusBadge(device.status)}
-                        {host?.available === '2' && (
-                          <div className="text-xs text-red-300 font-medium">Inalcançável</div>
-                        )}
-                        {host?.available === '0' && (
-                          <div className="text-xs text-yellow-300 font-medium">Desconhecido</div>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+          {/* Devices Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-3">
+            {devices.map((device) => (
+              <Card 
+                key={device.id} 
+                className={cn(
+                  "transition-all duration-200 hover:shadow-md",
+                  getStatusColor(device.status)
+                )}
+              >
+                <CardContent className="p-3">
+                  <div className="flex flex-col items-center space-y-2">
+                    {getStatusIcon(device.status)}
+                    <h3 className="font-medium text-xs text-center text-white truncate w-full" title={device.name}>
+                      {device.name}
+                    </h3>
+                    {getStatusBadge(device.status)}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </TabsContent>
         
@@ -409,90 +327,88 @@ export default function Alertas() {
           {/* Performance Table */}
           <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="hover:bg-slate-700/50">
-                      <TableHead className="text-slate-300 font-semibold min-w-[200px]">Servidor</TableHead>
-                      <TableHead className="text-slate-300 font-semibold min-w-[120px]">CPU %</TableHead>
-                      <TableHead className="text-slate-300 font-semibold min-w-[140px]">Memória GB</TableHead>
-                      <TableHead className="text-slate-300 font-semibold min-w-[120px]">Disco %</TableHead>
-                      <TableHead className="text-slate-300 font-semibold min-w-[120px]">Tempo Ligado</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {devices
-                      .filter(device => device.status === 'online')
-                      .map((device) => {
-                        const perf = getPerformanceData(device.id);
-                        
-                        const getProgressColor = (value: number) => {
-                          if (value > 80) return 'hsl(0 70% 50%)'; // Vermelho
-                          if (value > 60) return 'hsl(45 100% 50%)'; // Amarelo
-                          return 'hsl(142 70% 45%)'; // Verde
-                        };
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-slate-700/50">
+                    <TableHead className="text-slate-300 font-semibold">Servidor</TableHead>
+                    <TableHead className="text-slate-300 font-semibold">CPU %</TableHead>
+                    <TableHead className="text-slate-300 font-semibold">Memória GB</TableHead>
+                    <TableHead className="text-slate-300 font-semibold">Disco %</TableHead>
+                    <TableHead className="text-slate-300 font-semibold">Tempo Ligado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {devices
+                    .filter(device => device.status === 'online')
+                    .map((device) => {
+                      const perf = getPerformanceData(device.id);
+                      
+                      const getProgressColor = (value: number) => {
+                        if (value > 80) return 'hsl(0 70% 50%)'; // Vermelho
+                        if (value > 60) return 'hsl(45 100% 50%)'; // Amarelo
+                        return 'hsl(142 70% 45%)'; // Verde
+                      };
 
-                        return (
-                          <TableRow key={device.id} className="hover:bg-slate-700/30">
-                            <TableCell className="text-white font-medium">
-                              <div className="flex items-center gap-2">
-                                <Server className="h-4 w-4 text-green-300 flex-shrink-0" />
-                                <span className="break-words">{device.name}</span>
+                      return (
+                        <TableRow key={device.id} className="hover:bg-slate-700/30">
+                          <TableCell className="text-white font-medium">
+                            <div className="flex items-center gap-2">
+                              <Server className="h-4 w-4 text-green-300" />
+                              {device.name}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-white text-sm">{perf.cpu.toFixed(1)}%</span>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-white text-sm">{perf.cpu.toFixed(1)}%</span>
-                                </div>
-                                <Progress 
-                                  value={perf.cpu} 
-                                  className="h-2 w-20"
-                                  style={{
-                                    '--progress-foreground': getProgressColor(perf.cpu)
-                                  } as React.CSSProperties}
-                                />
-                              </div>
-                            </TableCell>
-                             <TableCell>
-                               <div className="space-y-1">
-                                 <div className="flex items-center justify-between">
-                                   <span className="text-white text-sm">
-                                     {perf.memory.toFixed(1)} GB ({perf.memoryPercent?.toFixed(1) || '0'}%)
-                                   </span>
-                                 </div>
-                                 <Progress 
-                                   value={perf.memoryPercent || Math.min((perf.memory / 16) * 100, 100)} 
-                                   className="h-2 w-20"
-                                   style={{
-                                     '--progress-foreground': getProgressColor(perf.memoryPercent || (perf.memory / 16) * 100)
-                                   } as React.CSSProperties}
-                                 />
+                              <Progress 
+                                value={perf.cpu} 
+                                className="h-2 w-20"
+                                style={{
+                                  '--progress-foreground': getProgressColor(perf.cpu)
+                                } as React.CSSProperties}
+                              />
+                            </div>
+                          </TableCell>
+                           <TableCell>
+                             <div className="space-y-1">
+                               <div className="flex items-center justify-between">
+                                 <span className="text-white text-sm">
+                                   {perf.memory.toFixed(1)} GB ({perf.memoryPercent?.toFixed(1) || '0'}%)
+                                 </span>
                                </div>
-                             </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-white text-sm">{perf.disk.toFixed(1)}%</span>
-                                </div>
-                                <Progress 
-                                  value={perf.disk} 
-                                  className="h-2 w-20"
-                                  style={{
-                                    '--progress-foreground': getProgressColor(perf.disk)
-                                  } as React.CSSProperties}
-                                />
+                               <Progress 
+                                 value={perf.memoryPercent || Math.min((perf.memory / 16) * 100, 100)} 
+                                 className="h-2 w-20"
+                                 style={{
+                                   '--progress-foreground': getProgressColor(perf.memoryPercent || (perf.memory / 16) * 100)
+                                 } as React.CSSProperties}
+                               />
+                             </div>
+                           </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-white text-sm">{perf.disk.toFixed(1)}%</span>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <span className="text-white text-sm">{formatUptime(perf.uptime)}</span>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                  </TableBody>
-                </Table>
-              </div>
+                              <Progress 
+                                value={perf.disk} 
+                                className="h-2 w-20"
+                                style={{
+                                  '--progress-foreground': getProgressColor(perf.disk)
+                                } as React.CSSProperties}
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-white text-sm">{formatUptime(perf.uptime)}</span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                </TableBody>
+              </Table>
               
               {devices.filter(device => device.status === 'online').length === 0 && (
                 <div className="flex items-center justify-center py-12">
