@@ -1,5 +1,5 @@
 
-import { ReactNode, useEffect } from 'react';
+import React, { ReactNode, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { TopHeader } from '@/components/TopHeader';
 import { AppSidebar } from '@/components/AppSidebar';
