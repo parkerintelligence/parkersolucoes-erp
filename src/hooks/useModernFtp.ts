@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useIntegrations } from './useIntegrations';
 import { ModernFtpService, ModernFtpFile } from '@/services/modernFtpService';
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 export const useModernFtp = () => {
   const queryClient = useQueryClient();
