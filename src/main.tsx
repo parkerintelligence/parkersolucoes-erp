@@ -1,24 +1,14 @@
 
 import React from 'react'
-import ReactDOM from 'react-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import App from './App.tsx'
-import './index.css'
+import { createRoot } from 'react-dom/client'
+import TestComponent from './test-component'
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-      refetchOnWindowFocus: false,
-    },
-  },
-})
+const container = document.getElementById('root')
+if (!container) throw new Error('Failed to find the root element')
+const root = createRoot(container)
 
-ReactDOM.render(
+root.render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </React.StrictMode>,
-  document.getElementById('root')
+    <TestComponent />
+  </React.StrictMode>
 )
