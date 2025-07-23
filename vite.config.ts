@@ -14,17 +14,8 @@ export default defineConfig({
     port: 8080,
   },
   build: {
-    target: 'es2020',
     rollupOptions: {
-      output: {
-        manualChunks: undefined,
-      },
+      external: [],
     },
   },
-  define: {
-    global: 'globalThis',
-  },
-  esbuild: {
-    logOverride: { 'this-is-undefined-in-esm': 'silent' }
-  }
 })
