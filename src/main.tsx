@@ -1,10 +1,10 @@
+
 import React from 'react'
-import { createRoot } from 'react-dom/client'
+import ReactDOM from 'react-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App.tsx'
 import './index.css'
 
-// Create a single QueryClient instance
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -14,13 +14,11 @@ const queryClient = new QueryClient({
   },
 })
 
-const container = document.getElementById("root")!
-const root = createRoot(container)
-
-root.render(
+ReactDOM.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <App />
     </QueryClientProvider>
-  </React.StrictMode>
-);
+  </React.StrictMode>,
+  document.getElementById('root')
+)
