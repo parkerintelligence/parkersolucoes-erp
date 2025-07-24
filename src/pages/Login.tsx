@@ -1,69 +1,45 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Shield, Server, Database, Lock, Eye, EyeOff } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
-  const navigate = useNavigate();
+  const { user, signIn, signUp, loading } = useAuth();
 
-  // Redirecionar usuários autenticados para o dashboard
-  useEffect(() => {
-    if (isAuthenticated && !authLoading) {
-      console.log('Usuário já autenticado, redirecionando para dashboard');
-      navigate('/links', { replace: true }); // Redirecionar para links ao invés de dashboard
-    }
-  }, [isAuthenticated, authLoading, navigate]);
+  // Redirect if already authenticated
+  if (!loading && user) {
+    return <Navigate to="/" replace />;
+  }
 
-  // Tela de carregamento durante inicialização
-  if (authLoading) {
+  // Show loading spinner while checking auth state
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 flex items-center justify-center">
-        <div className="text-white text-lg">Carregando sistema...</div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  // Se já estiver autenticado, não renderizar nada (está redirecionando)
-  if (isAuthenticated) {
-    return null;
-  }
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
-      const success = await login(email, password);
-      if (success) {
-        toast({
-          title: "Login realizado com sucesso!",
-          description: "Redirecionando para o dashboard...",
-        });
-        // O redirecionamento será feito pelo useEffect
+      if (isSignUp) {
+        await signUp(email, password);
       } else {
-        toast({
-          title: "Erro no login",
-          description: "Email ou senha incorretos. Verifique suas credenciais.",
-          variant: "destructive",
-        });
+        await signIn(email, password);
       }
-    } catch (error) {
-      toast({
-        title: "Erro no login",
-        description: "Ocorreu um erro inesperado. Tente novamente.",
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +67,7 @@ const Login = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleLogin} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-white">Email</Label>
                   <Input
