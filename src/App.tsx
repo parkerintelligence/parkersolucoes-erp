@@ -44,6 +44,7 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  console.log('App component is loading successfully');
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <QueryClientProvider client={queryClient}>
