@@ -10,7 +10,9 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react({
-      jsxRuntime: 'automatic'
+      jsxRuntime: 'automatic',
+      fastRefresh: true,
+      include: ["**/*.tsx", "**/*.ts", "**/*.jsx", "**/*.js"]
     }),
     mode === 'development' && componentTagger(),
   ].filter(Boolean),
