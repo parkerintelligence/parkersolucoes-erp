@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
@@ -177,16 +177,11 @@ export const useActionPlan = () => {
     }
   };
 
-  const createColumn = async (data: Omit<ActionColumnInsert, 'user_id'>) => {
+  const createColumn = async (data: ActionColumnInsert) => {
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        throw new Error('Usuário não autenticado');
-      }
-
       const { error } = await supabase
         .from('action_columns')
-        .insert({ ...data, user_id: user.id });
+        .insert(data);
 
       if (error) throw error;
       await fetchData();

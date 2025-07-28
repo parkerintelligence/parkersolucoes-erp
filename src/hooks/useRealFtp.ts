@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useIntegrations } from './useIntegrations';
 import { RealFtpService, RealFtpFile } from '@/services/realFtpService';
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 export const useRealFtp = () => {
   const queryClient = useQueryClient();

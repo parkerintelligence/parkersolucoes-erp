@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { GuacamoleLogEntry } from '@/components/guacamole/GuacamoleLogs';
 
 export const useGuacamoleLogs = () => {

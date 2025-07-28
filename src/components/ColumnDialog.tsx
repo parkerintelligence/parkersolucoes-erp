@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,11 +87,7 @@ export function ColumnDialog({ column, onSave }: ColumnDialogProps) {
         </div>
         
         <div className="flex justify-end gap-2">
-          <Button 
-            type="submit"
-            disabled={!formData.name.trim()}
-            className="bg-primary hover:bg-primary/90"
-          >
+          <Button type="submit">
             {column ? "Atualizar" : "Criar"}
           </Button>
         </div>

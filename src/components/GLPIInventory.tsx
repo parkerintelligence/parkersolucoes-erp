@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { GLPIInventoryFilters } from './GLPIInventoryFilters';
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 
 export const GLPIInventory = () => {
   const { computers, monitors, printers, networkEquipment, entities } = useGLPIExpanded();

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Plus, Settings, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,8 +72,8 @@ export default function ActionPlan() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Plano de Ação</h1>
-          <p className="text-white">Gerencie suas tarefas e projetos de forma visual</p>
+          <h1 className="text-3xl font-bold text-foreground">Plano de Ação</h1>
+          <p className="text-muted-foreground">Gerencie suas tarefas e projetos de forma visual</p>
         </div>
         
         <Dialog open={isCreateBoardOpen} onOpenChange={setIsCreateBoardOpen}>
