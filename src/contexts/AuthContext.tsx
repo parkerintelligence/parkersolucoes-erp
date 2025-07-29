@@ -31,11 +31,16 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Test useState first
+  console.log('AuthProvider: Initializing state...');
+  
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionTimer, setSessionTimer] = useState<NodeJS.Timeout | null>(null);
+
+  console.log('AuthProvider: State initialized successfully');
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -61,12 +66,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const startSessionTimer = () => {
-    // Limpar timer existente
     if (sessionTimer) {
       clearTimeout(sessionTimer);
     }
     
-    // Criar novo timer para 30 minutos (1800000 ms)
     const timer = setTimeout(async () => {
       console.log('Sessão expirada após 30 minutos, fazendo logout...');
       await logout();
@@ -107,9 +110,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (session?.user) {
             setSession(session);
             setUser(session.user);
-            startSessionTimer(); // Iniciar timer de sessão
+            startSessionTimer();
             
-            // Buscar perfil do usuário
             const profile = await fetchUserProfile(session.user.id);
             if (profile && mounted) {
               const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
@@ -139,7 +141,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
-    // Configurar listener de mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
@@ -149,9 +150,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           setSession(session);
           setUser(session.user);
-          startSessionTimer(); // Iniciar timer de sessão
+          startSessionTimer();
           
-          // Buscar perfil do usuário
           setTimeout(async () => {
             if (!mounted) return;
             const profile = await fetchUserProfile(session.user.id);
