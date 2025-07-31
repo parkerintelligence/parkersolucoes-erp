@@ -3,9 +3,11 @@ import Login from '@/pages/Login'
 
 function App() {
   return (
-    <Routes>
-      <Route path="*" element={<Login />} />
-    </Routes>
+    <div className="min-h-screen">
+      <Routes>
+        <Route path="*" element={<Login />} />
+      </Routes>
+    </div>
   )
 }
 

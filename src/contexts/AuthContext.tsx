@@ -1,4 +1,4 @@
-// Stub mínimo sem hooks para evitar conflitos React
+// Minimal stub without React hooks to avoid conflicts
 export const useAuth = () => ({
   user: null,
   session: null,
