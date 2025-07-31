@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/SimpleAuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Loader2, Shield, Activity, AlertTriangle } from 'lucide-react'
 
 const Login = () => {
-  const { login, isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -36,7 +36,8 @@ const Login = () => {
     setIsSubmitting(true)
 
     try {
-      await login(email, password)
+      // Simular login por enquanto
+      console.log('Login attempt:', email, password)
     } catch (error) {
       console.error('Login error:', error)
     } finally {
