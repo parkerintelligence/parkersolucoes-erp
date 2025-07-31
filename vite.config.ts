@@ -20,9 +20,16 @@ export default defineConfig(({ mode }) => ({
   },
   
   optimizeDeps: {
-    force: true,
-    include: ['react', 'react-dom', 'react/jsx-runtime'],
-    exclude: []
+    include: [
+      'react', 
+      'react-dom', 
+      'react/jsx-runtime',
+      '@supabase/supabase-js',
+      '@tanstack/react-query'
+    ],
+    esbuildOptions: {
+      target: 'es2020'
+    }
   },
   
   esbuild: {
