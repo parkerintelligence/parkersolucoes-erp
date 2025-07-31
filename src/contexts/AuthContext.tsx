@@ -1,5 +1,5 @@
-// Static auth context - no React hooks to avoid conflicts
-const staticAuth = {
+// Static auth hook - não usa React Context para evitar erros
+export const useAuth = () => ({
   user: null,
   session: null,
   userProfile: null,
@@ -9,8 +9,7 @@ const staticAuth = {
   login: async () => ({ error: null }),
   logout: async () => {},
   resetSessionTimer: () => {},
-}
+})
 
-export const useAuth = () => staticAuth
-
-export const AuthProvider = ({ children }: { children: any }) => children
+// Função simples que apenas retorna children
+export const AuthProvider = (props: { children: any }) => props.children

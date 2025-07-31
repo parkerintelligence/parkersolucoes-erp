@@ -20,7 +20,9 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     force: true,
+    exclude: ['@/contexts/AuthContext'],
   },
+  clearScreen: false,
   build: {
     rollupOptions: {
       external: [],
