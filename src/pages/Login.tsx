@@ -17,12 +17,18 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
-  const { data: settings } = useSystemSettings();
+  
+  // Safe system settings hook with error boundary
+  const { data: settings, isLoading: settingsLoading, error: settingsError } = useSystemSettings();
   const navigate = useNavigate();
 
-  // Buscar logo e nome da empresa das configurações
-  const companyLogo = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value || parkerLogo;
-  const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Parker Soluções ERP';
+  // Buscar logo e nome da empresa das configurações com fallback seguro
+  const companyLogo = (!settingsLoading && !settingsError && settings) 
+    ? settings.find(s => s.setting_key === 'company_logo_url')?.setting_value || parkerLogo
+    : parkerLogo;
+  const companyName = (!settingsLoading && !settingsError && settings)
+    ? settings.find(s => s.setting_key === 'company_name')?.setting_value || 'Parker Soluções ERP'
+    : 'Parker Soluções ERP';
 
   // Redirecionar usuários autenticados para alertas
   useEffect(() => {
@@ -33,7 +39,7 @@ const Login = () => {
   }, [isAuthenticated, authLoading, navigate]);
 
   // Tela de carregamento durante inicialização
-  if (authLoading) {
+  if (authLoading || settingsLoading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
