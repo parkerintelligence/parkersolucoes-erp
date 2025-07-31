@@ -27,6 +27,7 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     include: ["react", "react-dom"],
     force: true,
+    exclude: []
   },
   esbuild: {
     target: "es2020",
@@ -34,14 +35,24 @@ export default defineConfig(({ mode }) => ({
   },
   define: {
     global: 'globalThis',
+    'process.env.NODE_ENV': JSON.stringify(mode)
   },
   build: {
     target: "es2020",
+    commonjsOptions: {
+      include: [/node_modules/],
+    },
     rollupOptions: {
+      external: [],
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-        },
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor';
+            }
+            return 'vendor';
+          }
+        }
       },
     },
   },
