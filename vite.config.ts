@@ -19,5 +19,18 @@ export default defineConfig(({ mode }) => ({
     },
   },
   
+  optimizeDeps: {
+    force: true,
+    include: ['react', 'react-dom']
+  },
+  
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
+  },
+  
   clearScreen: false,
 }));

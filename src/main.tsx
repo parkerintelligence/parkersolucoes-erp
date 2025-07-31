@@ -8,8 +8,11 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import App from './App';
 import './index.css';
 
-// Garantir que React está disponível globalmente
-window.React = React;
+// Garantir que React está disponível globalmente - CRÍTICO para funcionamento
+if (typeof window !== 'undefined') {
+  window.React = React;
+  console.log('React inicializado:', !!React, !!React.useState);
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,18 +23,24 @@ const queryClient = new QueryClient({
   },
 });
 
-const root = ReactDOM.createRoot(document.getElementById('root')!);
-
-root.render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <App />
-          <Toaster />
-          <TooltipToaster />
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
-  </React.StrictMode>
-);
+// Verificar se React está funcionando antes de renderizar
+if (!React || !React.useState) {
+  console.error('React não está disponível! Recarregando...');
+  window.location.reload();
+} else {
+  const root = ReactDOM.createRoot(document.getElementById('root')!);
+  
+  root.render(
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthProvider>
+            <App />
+            <Toaster />
+            <TooltipToaster />
+          </AuthProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </React.StrictMode>
+  );
+}
