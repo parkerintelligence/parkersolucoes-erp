@@ -1,154 +1,255 @@
-// Contexto de autenticação com Supabase
-import React, { createContext, useContext, useEffect, useState } from 'react'
-import { User, Session } from '@supabase/supabase-js'
-import { supabase } from '@/integrations/supabase/client'
 
-interface Profile {
-  id: string
-  email: string
-  role: string
-  created_at?: string
-  updated_at?: string
+import * as React from 'react';
+const { createContext, useContext, useState, useEffect } = React;
+import { supabase } from '@/integrations/supabase/client';
+import { User, Session } from '@supabase/supabase-js';
+
+interface UserProfile {
+  id: string;
+  email: string;
+  role: 'user' | 'master';
 }
 
 interface AuthContextType {
-  user: User | null
-  session: Session | null
-  userProfile: Profile | null
-  isLoading: boolean
-  isAuthenticated: boolean
-  isMaster: boolean
-  login: (email: string, password: string) => Promise<{ error: any }>
-  signup: (email: string, password: string) => Promise<{ error: any }>
-  logout: () => Promise<void>
-  resetSessionTimer: () => void
+  user: User | null;
+  userProfile: UserProfile | null;
+  session: Session | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  isAuthenticated: boolean;
+  isMaster: boolean;
+  isLoading: boolean;
+  resetSessionTimer: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context
-}
+  return context;
+};
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
-  const [userProfile, setUserProfile] = useState<Profile | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [sessionTimer, setSessionTimer] = useState<NodeJS.Timeout | null>(null);
+
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      console.log('Buscando perfil do usuário:', userId);
+      
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Erro ao buscar perfil do usuário:', error);
+        return null;
+      }
+
+      console.log('Perfil do usuário encontrado:', data);
+      return data;
+    } catch (error) {
+      console.error('Erro ao buscar perfil do usuário:', error);
+      return null;
+    }
+  };
+
+  const startSessionTimer = () => {
+    // Limpar timer existente
+    if (sessionTimer) {
+      clearTimeout(sessionTimer);
+    }
+    
+    // Criar novo timer para 30 minutos (1800000 ms)
+    const timer = setTimeout(async () => {
+      console.log('Sessão expirada após 30 minutos, fazendo logout...');
+      await logout();
+    }, 30 * 60 * 1000);
+    
+    setSessionTimer(timer);
+    console.log('Timer de sessão iniciado: 30 minutos');
+  };
+
+  const resetSessionTimer = () => {
+    if (sessionTimer) {
+      clearTimeout(sessionTimer);
+      startSessionTimer();
+      console.log('Timer de sessão resetado');
+    }
+  };
 
   useEffect(() => {
-    let mounted = true
+    let mounted = true;
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return
+    const initializeAuth = async () => {
+      try {
+        console.log('Inicializando autenticação...');
         
-        setSession(session)
-        setUser(session?.user ?? null)
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (session?.user) {
-          // Fetch user profile after setting session
-          setTimeout(async () => {
-            if (!mounted) return
-            try {
-              const { data: profile } = await supabase
-                .from('user_profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single()
-              
-              if (mounted) {
-                setUserProfile(profile)
-              }
-            } catch (error) {
-              console.error('Error fetching profile:', error)
-            }
-          }, 0)
-        } else {
+        if (error) {
+          console.error('Erro ao obter sessão:', error);
           if (mounted) {
-            setUserProfile(null)
+            setIsLoading(false);
           }
+          return;
         }
         
         if (mounted) {
-          setIsLoading(false)
+          console.log('Sessão inicial:', session?.user?.email || 'Nenhuma sessão');
+          
+          if (session?.user) {
+            setSession(session);
+            setUser(session.user);
+            startSessionTimer(); // Iniciar timer de sessão
+            
+            // Buscar perfil do usuário
+            const profile = await fetchUserProfile(session.user.id);
+            if (profile && mounted) {
+              const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
+              const typedProfile: UserProfile = {
+                id: profile.id,
+                email: profile.email,
+                role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
+              };
+              console.log('Perfil do usuário definido:', typedProfile);
+              setUserProfile(typedProfile);
+            }
+          } else {
+            setSession(null);
+            setUser(null);
+            setUserProfile(null);
+          }
+          
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Erro ao inicializar autenticação:', error);
+        if (mounted) {
+          setIsLoading(false);
         }
       }
-    )
+    };
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (mounted) {
-        setSession(session)
-        setUser(session?.user ?? null)
-        if (!session) {
-          setIsLoading(false)
+    initializeAuth();
+
+    // Configurar listener de mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
+        
+        console.log('Estado de autenticação alterado:', event, session?.user?.email || 'Logout');
+        
+        if (session?.user) {
+          setSession(session);
+          setUser(session.user);
+          startSessionTimer(); // Iniciar timer de sessão
+          
+          // Buscar perfil do usuário
+          setTimeout(async () => {
+            if (!mounted) return;
+            const profile = await fetchUserProfile(session.user.id);
+            if (profile && mounted) {
+              const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
+              const typedProfile: UserProfile = {
+                id: profile.id,
+                email: profile.email,
+                role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
+              };
+              console.log('Perfil atualizado:', typedProfile);
+              setUserProfile(typedProfile);
+            }
+          }, 0);
+        } else {
+          if (sessionTimer) {
+            clearTimeout(sessionTimer);
+            setSessionTimer(null);
+          }
+          setSession(null);
+          setUser(null);
+          setUserProfile(null);
         }
       }
-    })
+    );
 
     return () => {
-      mounted = false
-      subscription.unsubscribe()
-    }
-  }, [])
-
-  const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    return { error }
-  }
-
-  const signup = async (email: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/`
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl
+      mounted = false;
+      if (sessionTimer) {
+        clearTimeout(sessionTimer);
       }
-    })
-    return { error }
-  }
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      console.log('Tentando fazer login com:', email);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Erro no login:', error);
+        return false;
+      }
+
+      console.log('Login bem-sucedido para:', email);
+      return !!data.user;
+    } catch (error) {
+      console.error('Erro no login:', error);
+      return false;
+    }
+  };
 
   const logout = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    setSession(null)
-    setUserProfile(null)
-  }
+    try {
+      console.log('Fazendo logout...');
+      
+      if (sessionTimer) {
+        clearTimeout(sessionTimer);
+        setSessionTimer(null);
+      }
+      
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      setUserProfile(null);
+      
+      console.log('Logout realizado com sucesso');
+    } catch (error) {
+      console.error('Erro no logout:', error);
+    }
+  };
 
-  const resetSessionTimer = () => {
-    // Session timer functionality if needed
-  }
-
-  const isAuthenticated = !!session
-  const isMaster = userProfile?.role === 'master'
-
-  const value: AuthContextType = {
+  const value = {
     user,
-    session,
     userProfile,
-    isLoading,
-    isAuthenticated,
-    isMaster,
+    session,
     login,
-    signup,
     logout,
-    resetSessionTimer,
-  }
+    isAuthenticated: !!user && !!session,
+    isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
+    isLoading,
+    resetSessionTimer
+  };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
+  console.log('AuthContext Estado:', { 
+    isAuthenticated: !!user && !!session, 
+    isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
+    userEmail: user?.email,
+    userRole: userProfile?.role,
+    isLoading
+  });
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};

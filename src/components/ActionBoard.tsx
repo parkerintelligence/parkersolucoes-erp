@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
@@ -9,51 +8,22 @@ import { useActionPlan, type ActionColumn, type ActionCard, type ActionCardItem 
 
 interface ActionBoardProps {
   boardId: string;
-  boardColor?: string;
   columns: ActionColumn[];
   cards: ActionCard[];
   cardItems: ActionCardItem[];
 }
 
-export function ActionBoard({ boardId, boardColor, columns, cards, cardItems }: ActionBoardProps) {
+export function ActionBoard({ boardId, columns, cards, cardItems }: ActionBoardProps) {
   const [isCreateColumnOpen, setIsCreateColumnOpen] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
   const { createColumn } = useActionPlan();
 
   const handleCreateColumn = async (data: any) => {
-    if (isCreating) return; // Prevent double creation
-    
-    try {
-      setIsCreating(true);
-      
-      // Check for duplicate names
-      const existingColumn = columns.find(col => 
-        col.name.toLowerCase().trim() === data.name.toLowerCase().trim()
-      );
-      
-      if (existingColumn) {
-        throw new Error(`Já existe uma coluna com o nome "${data.name}"`);
-      }
-      
-      console.log('🎯 Creating column with data:', {
-        ...data,
-        board_id: boardId,
-        position: columns.length,
-      });
-      
-      await createColumn({
-        ...data,
-        board_id: boardId,
-        position: columns.length,
-      });
-      
-      setIsCreateColumnOpen(false);
-    } catch (error: any) {
-      console.error('❌ Error creating column:', error);
-      // The error toast will be shown by the hook
-    } finally {
-      setIsCreating(false);
-    }
+    await createColumn({
+      ...data,
+      board_id: boardId,
+      position: columns.length,
+    });
+    setIsCreateColumnOpen(false);
   };
 
   const getCardsForColumn = (columnId: string) => {
@@ -65,7 +35,7 @@ export function ActionBoard({ boardId, boardColor, columns, cards, cardItems }: 
   };
 
   return (
-    <div className="flex gap-6 overflow-x-auto pb-6 min-h-[600px] p-6 rounded-lg" style={{ backgroundColor: boardColor || '#1e293b' }}>
+    <div className="flex gap-6 overflow-x-auto pb-6">
       {columns.map((column) => (
         <ActionColumnComponent
           key={column.id}
@@ -82,11 +52,10 @@ export function ActionBoard({ boardId, boardColor, columns, cards, cardItems }: 
           <DialogTrigger asChild>
             <Button 
               variant="outline" 
-              className="h-12 w-64 border-dashed border-2 border-slate-600 bg-slate-900 text-white hover:bg-slate-800 hover:border-slate-500"
-              disabled={isCreating}
+              className="h-12 w-64 border-dashed border-2 hover:border-primary"
             >
               <Plus className="h-4 w-4 mr-2" />
-              {isCreating ? "Criando..." : "Adicionar Coluna"}
+              Adicionar Coluna
             </Button>
           </DialogTrigger>
           <ColumnDialog onSave={handleCreateColumn} />
