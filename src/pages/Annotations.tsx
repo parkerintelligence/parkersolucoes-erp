@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useAnnotations, useCreateAnnotation, useUpdateAnnotation, useDeleteAnnotation } from '@/hooks/useAnnotations';
 import { useCompanies } from '@/hooks/useCompanies';
-import { useAuth } from '@/contexts/StaticAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
