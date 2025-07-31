@@ -1,4 +1,4 @@
-// Static auth hook - não usa React Context para evitar erros
+// New static auth context to avoid Vite cache issues
 export const useAuth = () => ({
   user: null,
   session: null,
@@ -11,5 +11,4 @@ export const useAuth = () => ({
   resetSessionTimer: () => {},
 })
 
-// Função simples que apenas retorna children
 export const AuthProvider = (props: { children: any }) => props.children

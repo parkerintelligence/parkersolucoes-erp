@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     force: true,
-    exclude: ['@/contexts/AuthContext'],
+    exclude: ['@/contexts/AuthContext', '@/contexts/StaticAuth'],
   },
   clearScreen: false,
   build: {
