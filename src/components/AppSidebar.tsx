@@ -37,13 +37,40 @@ import {
 
 const menuItems = [
   {
-    title: 'Principal',
+    title: 'Monitoramento',
     items: [
-      { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+      { title: 'Alertas Zabbix', url: '/alertas', icon: Shield },
+      { title: 'Dashboard Grafana', url: '/monitoring', icon: Monitor },
+      { title: 'Backups Bacula', url: '/bacula', icon: HardDrive },
+      { title: 'Rede UniFi', url: '/unifi', icon: Wifi },
     ]
   },
   {
-    title: 'Gestão',
+    title: 'Gestão de TI',
+    items: [
+      { title: 'GLPI - Chamados', url: '/glpi', icon: Database },
+      { title: 'Acesso Remoto', url: '/guacamole', icon: Server },
+      { title: 'Configurações Zabbix', url: '/zabbix', icon: Settings },
+    ]
+  },
+  {
+    title: 'Comunicação',
+    items: [
+      { title: 'WhatsApp', url: '/whatsapp', icon: MessageSquare },
+      { title: 'Conversas', url: '/whatsapp-chats', icon: Users },
+      { title: 'Templates', url: '/whatsapp-templates', icon: FileText },
+    ]
+  },
+  {
+    title: 'Arquivos',
+    items: [
+      { title: 'Wasabi Storage', url: '/wasabi', icon: Cloud },
+      { title: 'Documentos', url: '/documentos', icon: FolderOpen },
+      { title: 'Links', url: '/links', icon: Link },
+    ]
+  },
+  {
+    title: 'Gestão de Negócios',
     items: [
       { title: 'Empresas', url: '/empresas', icon: Building2 },
       { title: 'Serviços', url: '/servicos', icon: Wrench },
@@ -53,15 +80,31 @@ const menuItems = [
   {
     title: 'Financeiro',
     items: [
-      { title: 'Orçamentos', url: '/orcamentos', icon: DollarSign },
+      { title: 'Dashboard', url: '/financeiro', icon: DollarSign },
+      { title: 'Orçamentos', url: '/orcamentos', icon: FileText },
       { title: 'Contratos', url: '/contratos', icon: FileText },
     ]
   },
   {
     title: 'Organização',
     items: [
+      { title: 'Plano de Ação', url: '/acao', icon: Trello },
       { title: 'Agenda', url: '/agenda', icon: Calendar },
       { title: 'Anotações', url: '/anotacoes', icon: StickyNote },
+    ]
+  },
+  {
+    title: 'Automação',
+    items: [
+      { title: 'Relatórios', url: '/relatorios', icon: FileText },
+      { title: 'Configurações', url: '/automacao', icon: Settings },
+    ]
+  },
+  {
+    title: 'Sistema',
+    items: [
+      { title: 'Administração', url: '/admin', icon: Settings },
+      { title: 'Dashboard Geral', url: '/dashboard', icon: LayoutDashboard },
     ]
   }
 ]
