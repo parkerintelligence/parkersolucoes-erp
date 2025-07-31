@@ -1,9 +1,10 @@
 
 import { useState } from "react";
 import { Plus, Settings, Trash2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ActionBoard } from "@/components/ActionBoard";
 import { BoardDialog } from "@/components/BoardDialog";
@@ -28,23 +29,15 @@ export default function ActionPlan() {
   } = useActionPlan();
 
   const handleCreateBoard = async (data: any) => {
-    try {
-      await createBoard(data);
-      setIsCreateBoardOpen(false);
-    } catch (error) {
-      console.error('Error creating board:', error);
-    }
+    await createBoard(data);
+    setIsCreateBoardOpen(false);
   };
 
   const handleUpdateBoard = async (data: any) => {
     if (editingBoard) {
-      try {
-        await updateBoard(editingBoard.id, data);
-        setIsEditBoardOpen(false);
-        setEditingBoard(null);
-      } catch (error) {
-        console.error('Error updating board:', error);
-      }
+      await updateBoard(editingBoard.id, data);
+      setIsEditBoardOpen(false);
+      setEditingBoard(null);
     }
   };
 
@@ -54,12 +47,7 @@ export default function ActionPlan() {
   };
 
   const handleDeleteBoard = async (boardId: string) => {
-    const boardToDelete = boards.find(b => b.id === boardId);
-    const confirmMessage = `Tem certeza que deseja excluir o quadro "${boardToDelete?.name}"? Esta ação não pode ser desfeita.`;
-    
-    if (!window.confirm(confirmMessage)) return;
-    
-    try {
+    if (window.confirm("Tem certeza que deseja excluir este quadro?")) {
       await deleteBoard(boardId);
       if (selectedBoard === boardId && boards.length > 1) {
         const remainingBoards = boards.filter(b => b.id !== boardId);
@@ -67,8 +55,6 @@ export default function ActionPlan() {
           setSelectedBoard(remainingBoards[0].id);
         }
       }
-    } catch (error) {
-      console.error('Error deleting board:', error);
     }
   };
 
@@ -93,7 +79,7 @@ export default function ActionPlan() {
         
         <Dialog open={isCreateBoardOpen} onOpenChange={setIsCreateBoardOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-slate-900 hover:bg-slate-800 text-white">
+            <Button>
               <Plus className="h-4 w-4 mr-2" />
               Novo Quadro
             </Button>
@@ -106,12 +92,12 @@ export default function ActionPlan() {
       {boards.length > 0 && (
         <div className="flex items-center gap-4">
           <Select value={selectedBoard || ""} onValueChange={setSelectedBoard}>
-            <SelectTrigger className="w-64 bg-slate-900 border-slate-700 text-white">
+            <SelectTrigger className="w-64">
               <SelectValue placeholder="Selecione um quadro" />
             </SelectTrigger>
-            <SelectContent className="bg-slate-900 border-slate-700">
+            <SelectContent>
               {boards.map((board) => (
-                <SelectItem key={board.id} value={board.id} className="text-white hover:bg-slate-800">
+                <SelectItem key={board.id} value={board.id}>
                   {board.name}
                 </SelectItem>
               ))}
@@ -124,7 +110,6 @@ export default function ActionPlan() {
                 variant="outline" 
                 size="sm"
                 onClick={() => handleEditBoard(selectedBoardData)}
-                className="bg-slate-900 border-slate-700 text-white hover:bg-slate-800"
               >
                 <Settings className="h-4 w-4" />
               </Button>
@@ -132,7 +117,6 @@ export default function ActionPlan() {
                 variant="outline" 
                 size="sm"
                 onClick={() => handleDeleteBoard(selectedBoardData.id)}
-                className="bg-red-900 border-red-700 text-white hover:bg-red-800"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -145,21 +129,20 @@ export default function ActionPlan() {
       {selectedBoard ? (
         <ActionBoard 
           boardId={selectedBoard}
-          boardColor={selectedBoardData?.color}
           columns={columns}
           cards={cards}
           cardItems={cardItems}
         />
       ) : boards.length === 0 ? (
-        <Card className="p-12 text-center bg-slate-900 border-slate-700">
+        <Card className="p-12 text-center">
           <CardContent>
-            <h3 className="text-lg font-medium mb-2 text-white">Nenhum quadro encontrado</h3>
-            <p className="text-slate-400 mb-4">
+            <h3 className="text-lg font-medium mb-2">Nenhum quadro encontrado</h3>
+            <p className="text-muted-foreground mb-4">
               Crie seu primeiro quadro para começar a organizar suas tarefas
             </p>
             <Dialog open={isCreateBoardOpen} onOpenChange={setIsCreateBoardOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-slate-800 hover:bg-slate-700 text-white">
+                <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   Criar Primeiro Quadro
                 </Button>
