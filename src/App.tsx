@@ -1,17 +1,23 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { TestComponent } from '@/components/TestComponent';
 
 function App() {
-  console.log('App: React object:', React);
+  console.log('=== APP.TSX INICIANDO ===');
+  console.log('React funcionando:', !!React);
+  console.log('React.useState funcionando:', !!React.useState);
   
-  const [count, setCount] = React.useState(0);
+  const [appState] = React.useState('funcionando');
+  console.log('useState do App funcionou:', appState);
   
   return (
-    <div style={{ padding: '20px', textAlign: 'center' }}>
-      <h1>Teste Simples: {count}</h1>
-      <button onClick={() => setCount(count + 1)}>
-        Clique aqui
-      </button>
-    </div>
+    <BrowserRouter>
+      <div className="min-h-screen p-4">
+        <Routes>
+          <Route path="*" element={<TestComponent />} />
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
 }
 
