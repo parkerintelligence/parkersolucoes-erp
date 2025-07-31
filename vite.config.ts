@@ -7,17 +7,29 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    force: true,
   },
   plugins: [
     react(),
     mode === 'development' && componentTagger(),
   ].filter(Boolean),
+  optimizeDeps: {
+    force: true,
+    exclude: ['react', 'react-dom'],
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  esbuild: {
-    logOverride: { 'this-is-undefined-in-esm': 'silent' }
+  define: {
+    __CACHE_BUST__: Date.now(),
   },
 }));
