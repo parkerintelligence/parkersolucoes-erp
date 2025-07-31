@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import Dashboard from '@/pages/Dashboard';
 import Admin from '@/pages/Admin';
@@ -28,22 +28,7 @@ import Alertas from '@/pages/Alertas';
 export const AuthenticatedApp: React.FC = () => {
   return (
     <Routes>
-      <Route
-        path="/alertas"
-        element={
-          <Layout>
-            <Alertas />
-          </Layout>
-        }
-      />
-      <Route
-        path="/links"
-        element={
-          <Layout>
-            <Links />
-          </Layout>
-        }
-      />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route
         path="/dashboard"
         element={
@@ -100,6 +85,14 @@ export const AuthenticatedApp: React.FC = () => {
           </Layout>
         }
        />
+      <Route
+        path="/links"
+        element={
+          <Layout>
+            <Links />
+          </Layout>
+        }
+      />
       <Route
         path="/whatsapp"
         element={
@@ -211,6 +204,14 @@ export const AuthenticatedApp: React.FC = () => {
             <ActionPlan />
           </Layout>
         } 
+      />
+      <Route
+        path="/alertas"
+        element={
+          <Layout>
+            <Alertas />
+          </Layout>
+        }
       />
     </Routes>
   );

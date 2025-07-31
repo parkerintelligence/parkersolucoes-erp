@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, LogIn } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -37,17 +37,20 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-white/10 backdrop-blur-lg border-white/20 text-white">
-        <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold text-white">Sistema Parker</CardTitle>
+      <Card className="w-full max-w-md bg-white/10 backdrop-blur-lg border-white/20 text-white shadow-2xl">
+        <CardHeader className="space-y-1 text-center pb-8">
+          <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4">
+            <LogIn className="w-8 h-8 text-white" />
+          </div>
+          <CardTitle className="text-3xl font-bold text-white">Sistema Parker</CardTitle>
           <CardDescription className="text-blue-100">
             Entre com suas credenciais para acessar o sistema
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-white">Email</Label>
+              <Label htmlFor="email" className="text-white font-medium">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -55,11 +58,11 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-white/10 border-white/20 text-white placeholder-white/60 focus:border-white/40"
+                className="bg-white/10 border-white/20 text-white placeholder-white/60 focus:border-white/40 focus:ring-white/20"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-white">Senha</Label>
+              <Label htmlFor="password" className="text-white font-medium">Senha</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -68,7 +71,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="bg-white/10 border-white/20 text-white placeholder-white/60 focus:border-white/40 pr-10"
+                  className="bg-white/10 border-white/20 text-white placeholder-white/60 focus:border-white/40 focus:ring-white/20 pr-10"
                 />
                 <Button
                   type="button"
@@ -83,12 +86,23 @@ export default function Login() {
             </div>
             <Button
               type="submit"
-              disabled={isLoading}
-              className="w-full bg-white/20 hover:bg-white/30 text-white border-white/20"
+              disabled={isLoading || !email || !password}
+              className="w-full bg-white/20 hover:bg-white/30 text-white border-white/20 font-medium py-3 mt-6 transition-all duration-200"
             >
-              {isLoading ? 'Entrando...' : 'Entrar'}
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Entrando...
+                </div>
+              ) : (
+                'Entrar no Sistema'
+              )}
             </Button>
           </form>
+          
+          <div className="text-center text-sm text-white/60">
+            Sistema de Gestão Integrada - Parker IT
+          </div>
         </CardContent>
       </Card>
     </div>
