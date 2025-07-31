@@ -1,17 +1,19 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
-import './index.css';
 
-console.log('main.tsx: Starting app initialization');
-console.log('React in main:', React);
+console.log('=== MAIN.TSX INICIANDO ===');
+console.log('React está disponível:', !!React);
+console.log('React.useState está disponível:', !!React.useState);
 
-const rootElement = document.getElementById('root');
-console.log('Root element found:', !!rootElement);
+const root = document.getElementById('root');
+console.log('Elemento root encontrado:', !!root);
 
-if (rootElement) {
-  const root = createRoot(rootElement);
-  root.render(<App />);
+if (root) {
+  const reactRoot = createRoot(root);
+  console.log('Root criado com sucesso');
+  reactRoot.render(React.createElement(App));
+  console.log('App renderizado');
 } else {
-  console.error('Root element not found!');
+  console.error('ERRO: Elemento root não encontrado!');
 }

@@ -1,18 +1,17 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { TestComponent } from '@/components/TestComponent';
 
 function App() {
-  console.log('App: Starting render');
+  console.log('App: React object:', React);
+  
+  const [count, setCount] = React.useState(0);
   
   return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-background">
-        <Routes>
-          <Route path="*" element={<TestComponent />} />
-        </Routes>
-      </div>
-    </BrowserRouter>
+    <div style={{ padding: '20px', textAlign: 'center' }}>
+      <h1>Teste Simples: {count}</h1>
+      <button onClick={() => setCount(count + 1)}>
+        Clique aqui
+      </button>
+    </div>
   );
 }
 
