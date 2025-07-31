@@ -28,10 +28,7 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     include: ["react", "react-dom"],
     force: true,
-    exclude: [],
-    esbuildOptions: {
-      target: "es2020"
-    }
+    exclude: []
   },
   esbuild: {
     target: "es2020",
@@ -49,10 +46,8 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       external: [],
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-        }
-      },
+        format: 'es'
+      }
     },
   },
 }));
