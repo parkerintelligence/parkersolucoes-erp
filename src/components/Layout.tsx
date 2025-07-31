@@ -4,6 +4,7 @@ import { Navigate } from 'react-router-dom'
 import { TopHeader } from '@/components/TopHeader'
 import { AppSidebar } from '@/components/AppSidebar'
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
+import { Toaster } from '@/components/ui/toaster'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -58,6 +59,7 @@ export const Layout = ({ children }: LayoutProps) => {
           </main>
         </SidebarInset>
       </div>
+      <Toaster />
     </SidebarProvider>
   )
 }
