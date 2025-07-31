@@ -20,16 +20,8 @@ export default defineConfig(({ mode }) => ({
   },
   
   optimizeDeps: {
-    include: [
-      'react', 
-      'react-dom', 
-      'react/jsx-runtime',
-      '@supabase/supabase-js',
-      '@tanstack/react-query'
-    ],
-    esbuildOptions: {
-      target: 'es2020'
-    }
+    include: ['react', 'react-dom'],
+    force: true
   },
   
   esbuild: {
@@ -39,12 +31,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'router': ['react-router-dom'],
-          'query': ['@tanstack/react-query'],
-          'supabase': ['@supabase/supabase-js']
-        }
+        manualChunks: undefined
       }
     }
   },
