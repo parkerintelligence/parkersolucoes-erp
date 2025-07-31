@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -27,8 +26,6 @@ export const useActionPlan = () => {
     try {
       setIsLoading(true);
       
-      console.log('🔄 Fetching action plan data...');
-      
       // Fetch boards
       const { data: boardsData, error: boardsError } = await supabase
         .from('action_boards')
@@ -36,7 +33,6 @@ export const useActionPlan = () => {
         .order('created_at', { ascending: false });
 
       if (boardsError) throw boardsError;
-      console.log('📋 Boards fetched:', boardsData?.length || 0);
       setBoards(boardsData || []);
 
       // Set first board as selected if none selected
@@ -55,7 +51,6 @@ export const useActionPlan = () => {
           .order('position');
 
         if (columnsError) throw columnsError;
-        console.log('📊 Columns fetched:', columnsData?.length || 0);
         setColumns(columnsData || []);
 
         // Fetch cards for columns
@@ -69,7 +64,6 @@ export const useActionPlan = () => {
             .order('position');
 
           if (cardsError) throw cardsError;
-          console.log('🃏 Cards fetched:', cardsData?.length || 0);
           setCards((cardsData || []) as ActionCard[]);
 
           // Fetch card items
@@ -83,18 +77,11 @@ export const useActionPlan = () => {
               .order('position');
 
             if (itemsError) throw itemsError;
-            console.log('📝 Card items fetched:', itemsData?.length || 0);
             setCardItems(itemsData || []);
-          } else {
-            setCardItems([]);
           }
-        } else {
-          setCards([]);
-          setCardItems([]);
         }
       }
     } catch (error: any) {
-      console.error('❌ Error fetching data:', error);
       toast({
         title: "Erro ao carregar dados",
         description: error.message,
@@ -109,18 +96,11 @@ export const useActionPlan = () => {
     fetchData();
   }, [selectedBoard]);
 
-  const createBoard = async (data: Omit<ActionBoardInsert, 'user_id'>) => {
+  const createBoard = async (data: ActionBoardInsert) => {
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      console.log('🎯 Creating board:', data);
-      
       const { data: boardData, error } = await supabase
         .from('action_boards')
-        .insert({ ...data, user_id: user.id })
+        .insert(data)
         .select()
         .single();
 
@@ -135,7 +115,6 @@ export const useActionPlan = () => {
       
       return boardData;
     } catch (error: any) {
-      console.error('❌ Error creating board:', error);
       toast({
         title: "Erro ao criar quadro",
         description: error.message,
@@ -147,7 +126,6 @@ export const useActionPlan = () => {
 
   const updateBoard = async (id: string, data: Partial<ActionBoard>) => {
     try {
-      console.log('🎯 Updating board:', id, data);
       const { error } = await supabase
         .from('action_boards')
         .update(data)
@@ -161,7 +139,6 @@ export const useActionPlan = () => {
         description: "Quadro atualizado com sucesso!",
       });
     } catch (error: any) {
-      console.error('❌ Error updating board:', error);
       toast({
         title: "Erro ao atualizar quadro",
         description: error.message,
@@ -173,7 +150,6 @@ export const useActionPlan = () => {
 
   const deleteBoard = async (id: string) => {
     try {
-      console.log('🗑️ Deleting board:', id);
       const { error } = await supabase
         .from('action_boards')
         .delete()
@@ -187,7 +163,6 @@ export const useActionPlan = () => {
         description: "Quadro excluído com sucesso!",
       });
     } catch (error: any) {
-      console.error('❌ Error deleting board:', error);
       toast({
         title: "Erro ao excluir quadro",
         description: error.message,
@@ -197,18 +172,11 @@ export const useActionPlan = () => {
     }
   };
 
-  const createColumn = async (data: Omit<ActionColumnInsert, 'user_id'>) => {
+  const createColumn = async (data: ActionColumnInsert) => {
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      console.log('🎯 Creating column:', data);
-      
       const { error } = await supabase
         .from('action_columns')
-        .insert({ ...data, user_id: user.id });
+        .insert(data);
 
       if (error) throw error;
       await fetchData();
@@ -218,7 +186,6 @@ export const useActionPlan = () => {
         description: "Coluna criada com sucesso!",
       });
     } catch (error: any) {
-      console.error('❌ Error creating column:', error);
       toast({
         title: "Erro ao criar coluna",
         description: error.message,
@@ -230,7 +197,6 @@ export const useActionPlan = () => {
 
   const updateColumn = async (id: string, data: Partial<ActionColumn>) => {
     try {
-      console.log('🎯 Updating column:', id, data);
       const { error } = await supabase
         .from('action_columns')
         .update(data)
@@ -238,13 +204,7 @@ export const useActionPlan = () => {
 
       if (error) throw error;
       await fetchData();
-      
-      toast({
-        title: "Coluna atualizada",
-        description: "Coluna atualizada com sucesso!",
-      });
     } catch (error: any) {
-      console.error('❌ Error updating column:', error);
       toast({
         title: "Erro ao atualizar coluna",
         description: error.message,
@@ -256,30 +216,6 @@ export const useActionPlan = () => {
 
   const deleteColumn = async (id: string) => {
     try {
-      console.log('🗑️ Deleting column:', id);
-      // Delete all cards in the column first
-      const cardsInColumn = cards.filter(card => card.column_id === id);
-      if (cardsInColumn.length > 0) {
-        const cardIds = cardsInColumn.map(card => card.id);
-        
-        // Delete all card items first
-        const { error: itemsError } = await supabase
-          .from('action_card_items')
-          .delete()
-          .in('card_id', cardIds);
-          
-        if (itemsError) throw itemsError;
-        
-        // Then delete the cards
-        const { error: cardsError } = await supabase
-          .from('action_cards')
-          .delete()
-          .eq('column_id', id);
-          
-        if (cardsError) throw cardsError;
-      }
-      
-      // Finally delete the column
       const { error } = await supabase
         .from('action_columns')
         .delete()
@@ -290,10 +226,9 @@ export const useActionPlan = () => {
       
       toast({
         title: "Coluna excluída",
-        description: "Coluna e todos os seus cards foram excluídos com sucesso!",
+        description: "Coluna excluída com sucesso!",
       });
     } catch (error: any) {
-      console.error('❌ Error deleting column:', error);
       toast({
         title: "Erro ao excluir coluna",
         description: error.message,
@@ -303,29 +238,11 @@ export const useActionPlan = () => {
     }
   };
 
-  const createCard = async (data: Omit<ActionCardInsert, 'user_id'>) => {
+  const createCard = async (data: ActionCardInsert) => {
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      console.log('🎯 Creating card with data:', data);
-      
-      const cardData = {
-        title: data.title,
-        description: data.description || null,
-        column_id: data.column_id,
-        position: data.position || 0,
-        priority: data.priority || 'medium',
-        color: data.color || '#f8fafc',
-        due_date: data.due_date || null,
-        user_id: user.id,
-      };
-
       const { error } = await supabase
         .from('action_cards')
-        .insert(cardData);
+        .insert(data);
 
       if (error) throw error;
       await fetchData();
@@ -335,7 +252,6 @@ export const useActionPlan = () => {
         description: "Card criado com sucesso!",
       });
     } catch (error: any) {
-      console.error('❌ Error creating card:', error);
       toast({
         title: "Erro ao criar card",
         description: error.message,
@@ -347,7 +263,6 @@ export const useActionPlan = () => {
 
   const updateCard = async (id: string, data: Partial<ActionCard>) => {
     try {
-      console.log('🎯 Updating card:', id, data);
       const { error } = await supabase
         .from('action_cards')
         .update(data)
@@ -356,7 +271,6 @@ export const useActionPlan = () => {
       if (error) throw error;
       await fetchData();
     } catch (error: any) {
-      console.error('❌ Error updating card:', error);
       toast({
         title: "Erro ao atualizar card",
         description: error.message,
@@ -368,16 +282,6 @@ export const useActionPlan = () => {
 
   const deleteCard = async (id: string) => {
     try {
-      console.log('🗑️ Deleting card:', id);
-      // Delete all card items first
-      const { error: itemsError } = await supabase
-        .from('action_card_items')
-        .delete()
-        .eq('card_id', id);
-        
-      if (itemsError) throw itemsError;
-      
-      // Then delete the card
       const { error } = await supabase
         .from('action_cards')
         .delete()
@@ -391,7 +295,6 @@ export const useActionPlan = () => {
         description: "Card excluído com sucesso!",
       });
     } catch (error: any) {
-      console.error('❌ Error deleting card:', error);
       toast({
         title: "Erro ao excluir card",
         description: error.message,
@@ -403,7 +306,6 @@ export const useActionPlan = () => {
 
   const createCardItem = async (data: ActionCardItemInsert) => {
     try {
-      console.log('🎯 Creating card item:', data);
       const { error } = await supabase
         .from('action_card_items')
         .insert(data);
@@ -411,7 +313,6 @@ export const useActionPlan = () => {
       if (error) throw error;
       await fetchData();
     } catch (error: any) {
-      console.error('❌ Error creating card item:', error);
       toast({
         title: "Erro ao criar item",
         description: error.message,
@@ -423,7 +324,6 @@ export const useActionPlan = () => {
 
   const updateCardItem = async (id: string, data: Partial<ActionCardItem>) => {
     try {
-      console.log('🎯 Updating card item:', id, data);
       const { error } = await supabase
         .from('action_card_items')
         .update(data)
@@ -432,7 +332,6 @@ export const useActionPlan = () => {
       if (error) throw error;
       await fetchData();
     } catch (error: any) {
-      console.error('❌ Error updating card item:', error);
       toast({
         title: "Erro ao atualizar item",
         description: error.message,
@@ -444,7 +343,6 @@ export const useActionPlan = () => {
 
   const deleteCardItem = async (id: string) => {
     try {
-      console.log('🗑️ Deleting card item:', id);
       const { error } = await supabase
         .from('action_card_items')
         .delete()
@@ -453,7 +351,6 @@ export const useActionPlan = () => {
       if (error) throw error;
       await fetchData();
     } catch (error: any) {
-      console.error('❌ Error deleting card item:', error);
       toast({
         title: "Erro ao excluir item",
         description: error.message,
