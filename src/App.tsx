@@ -1,55 +1,54 @@
 
-import React, { Suspense } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { QueryClientWrapper } from '@/components/QueryClientWrapper';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Toaster } from '@/components/ui/toaster';
 
-// Lazy load components to prevent initialization issues
-const Login = React.lazy(() => import('@/pages/Login'));
-const Dashboard = React.lazy(() => import('@/pages/Dashboard'));
-const Admin = React.lazy(() => import('@/pages/Admin'));
-const GLPI = React.lazy(() => import('@/pages/GLPI'));
-const Guacamole = React.lazy(() => import('@/pages/Guacamole'));
-const Backups = React.lazy(() => import('@/pages/Backups'));
-const Passwords = React.lazy(() => import('@/pages/Passwords'));
-const Annotations = React.lazy(() => import('@/pages/Annotations'));
-const Links = React.lazy(() => import('@/pages/Links'));
-const WhatsApp = React.lazy(() => import('@/pages/WhatsApp'));
-const WhatsAppTemplates = React.lazy(() => import('@/pages/WhatsAppTemplates'));
-const Wasabi = React.lazy(() => import('@/pages/Wasabi'));
-const Schedule = React.lazy(() => import('@/pages/Schedule'));
-const Automation = React.lazy(() => import('@/pages/Automation'));
-const Zabbix = React.lazy(() => import('@/pages/Zabbix'));
-const Services = React.lazy(() => import('@/pages/Services'));
-const Budgets = React.lazy(() => import('@/pages/Budgets'));
-const Contracts = React.lazy(() => import('@/pages/Contracts'));
-const Financial = React.lazy(() => import('@/pages/Financial'));
-const Companies = React.lazy(() => import('@/pages/Companies'));
-const Bacula = React.lazy(() => import('@/pages/Bacula'));
-const ReportsDashboard = React.lazy(() => import('@/pages/ReportsDashboard'));
-const ActionPlan = React.lazy(() => import('@/pages/ActionPlan'));
-const Alertas = React.lazy(() => import('@/pages/Alertas'));
-// Import Layout normally since it's used as a wrapper
+// Import components normally to avoid lazy loading issues
+import Login from '@/pages/Login';
+import Dashboard from '@/pages/Dashboard';
+import Admin from '@/pages/Admin';
+import GLPI from '@/pages/GLPI';
+import Guacamole from '@/pages/Guacamole';
+import Backups from '@/pages/Backups';
+import Passwords from '@/pages/Passwords';
+import Annotations from '@/pages/Annotations';
+import Links from '@/pages/Links';
+import WhatsApp from '@/pages/WhatsApp';
+import WhatsAppTemplates from '@/pages/WhatsAppTemplates';
+import Wasabi from '@/pages/Wasabi';
+import Schedule from '@/pages/Schedule';
+import Automation from '@/pages/Automation';
+import Zabbix from '@/pages/Zabbix';
+import Services from '@/pages/Services';
+import Budgets from '@/pages/Budgets';
+import Contracts from '@/pages/Contracts';
+import Financial from '@/pages/Financial';
+import Companies from '@/pages/Companies';
+import Bacula from '@/pages/Bacula';
+import ReportsDashboard from '@/pages/ReportsDashboard';
+import ActionPlan from '@/pages/ActionPlan';
+import Alertas from '@/pages/Alertas';
 import { Layout } from '@/components/Layout';
 
-// Loading component
-const PageLoading = () => (
-  <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-    <div className="text-white text-lg">Carregando...</div>
-  </div>
-);
+// Create QueryClient instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
   return (
-    <ErrorBoundary>
-      <QueryClientWrapper>
-        <AuthProvider>
-          <BrowserRouter>
-            <div className="min-h-screen bg-slate-900">
-              <Suspense fallback={<PageLoading />}>
-                <Routes>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <BrowserRouter>
+          <div className="min-h-screen bg-slate-900">
+            <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
               <Route
@@ -236,14 +235,12 @@ function App() {
                   </Layout>
                 } 
               />
-                </Routes>
-              </Suspense>
-              <Toaster />
-            </div>
-          </BrowserRouter>
-        </AuthProvider>
-      </QueryClientWrapper>
-    </ErrorBoundary>
+            </Routes>
+            <Toaster />
+          </div>
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 
