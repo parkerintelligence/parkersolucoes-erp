@@ -44,7 +44,7 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      const success = await login(email, password);
+      const success = false; // Temporário
       if (success) {
         toast({
           title: "Login realizado com sucesso!",
