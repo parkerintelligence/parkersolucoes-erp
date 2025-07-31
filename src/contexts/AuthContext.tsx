@@ -1,324 +1,154 @@
+// Contexto de autenticação com Supabase
+import React, { createContext, useContext, useEffect, useState } from 'react'
+import { User, Session } from '@supabase/supabase-js'
+import { supabase } from '@/integrations/supabase/client'
 
-import * as React from 'react';
-const { createContext, useContext, useState, useEffect, useRef, useCallback } = React;
-import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
-
-interface UserProfile {
-  id: string;
-  email: string;
-  role: 'user' | 'master';
+interface Profile {
+  id: string
+  email: string
+  role: string
+  created_at?: string
+  updated_at?: string
 }
 
 interface AuthContextType {
-  user: User | null;
-  userProfile: UserProfile | null;
-  session: Session | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => Promise<void>;
-  isAuthenticated: boolean;
-  isMaster: boolean;
-  isLoading: boolean;
-  resetSessionTimer: () => void;
+  user: User | null
+  session: Session | null
+  userProfile: Profile | null
+  isLoading: boolean
+  isAuthenticated: boolean
+  isMaster: boolean
+  login: (email: string, password: string) => Promise<{ error: any }>
+  signup: (email: string, password: string) => Promise<{ error: any }>
+  logout: () => Promise<void>
+  resetSessionTimer: () => void
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
+  const context = useContext(AuthContext)
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth must be used within an AuthProvider')
   }
-  return context;
-};
+  return context
+}
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // Usar useRef para o timer para evitar re-renders desnecessários
-  const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const sessionTimerIdRef = useRef<string | null>(null);
-
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      console.log('Buscando perfil do usuário:', userId);
-      
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Erro ao buscar perfil do usuário:', error);
-        return null;
-      }
-
-      console.log('Perfil do usuário encontrado:', data);
-      return data;
-    } catch (error) {
-      console.error('Erro ao buscar perfil do usuário:', error);
-      return null;
-    }
-  };
-
-  // Verificar se a sessão ainda é válida no Supabase
-  const validateSession = async (): Promise<boolean> => {
-    try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error || !session) {
-        console.log('🔍 Sessão inválida ou expirada no Supabase');
-        return false;
-      }
-      
-      // Verificar se o token ainda é válido (não expirou)
-      const now = Math.floor(Date.now() / 1000);
-      if (session.expires_at && session.expires_at < now) {
-        console.log('🔍 Token de sessão expirado');
-        return false;
-      }
-      
-      console.log('✅ Sessão válida no Supabase');
-      return true;
-    } catch (error) {
-      console.error('❌ Erro ao validar sessão:', error);
-      return false;
-    }
-  };
-
-  const clearSessionTimer = useCallback(() => {
-    if (sessionTimerRef.current) {
-      clearTimeout(sessionTimerRef.current);
-      sessionTimerRef.current = null;
-      const timerId = sessionTimerIdRef.current;
-      sessionTimerIdRef.current = null;
-      console.log('🔄 Timer de sessão limpo:', timerId);
-    }
-  }, []);
-
-  const startSessionTimer = useCallback(() => {
-    // Primeiro, limpar qualquer timer existente
-    clearSessionTimer();
-    
-    // Só criar timer se estiver autenticado
-    if (!session || !user) {
-      console.log('⚠️ Não pode criar timer - usuário ou sessão não disponível');
-      return;
-    }
-    
-    // Gerar ID único para este timer
-    const timerId = `timer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    sessionTimerIdRef.current = timerId;
-    
-    // Criar novo timer para 30 minutos (1800000 ms)
-    sessionTimerRef.current = setTimeout(async () => {
-      console.log('⏰ Timer de 30 minutos executado:', timerId);
-      
-      // Verificar se este é ainda o timer ativo
-      if (sessionTimerIdRef.current !== timerId) {
-        console.log('⚠️ Timer desatualizado, ignorando:', timerId);
-        return;
-      }
-      
-      // Verificar se a sessão ainda é válida antes de fazer logout
-      const isValid = await validateSession();
-      if (isValid) {
-        console.log('✅ Sessão ainda válida, renovando timer em vez de logout');
-        startSessionTimer(); // Renovar o timer
-        return;
-      }
-      
-      console.log('❌ Sessão expirada após 30 minutos, fazendo logout...');
-      await logout();
-    }, 30 * 60 * 1000);
-    
-    console.log('🚀 Timer de sessão iniciado/renovado: 30 minutos - ID:', timerId);
-  }, [session, user, clearSessionTimer]);
-
-  const resetSessionTimer = useCallback(() => {
-    // Só resetar se tiver usuário e sessão válidos
-    if (!session || !user) {
-      console.log('⚠️ Não pode resetar timer - usuário ou sessão não disponível');
-      return;
-    }
-    
-    console.log('🔄 Timer de sessão resetado por atividade do usuário');
-    startSessionTimer();
-  }, [session, user, startSessionTimer]);
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [userProfile, setUserProfile] = useState<Profile | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    let mounted = true;
+    let mounted = true
 
-    const initializeAuth = async () => {
-      try {
-        console.log('Inicializando autenticação...');
-        
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Erro ao obter sessão:', error);
-          if (mounted) {
-            setIsLoading(false);
-          }
-          return;
-        }
-        
-        if (mounted) {
-          console.log('Sessão inicial:', session?.user?.email || 'Nenhuma sessão');
-          
-        if (session?.user) {
-          setSession(session);
-          setUser(session.user);
-            
-          // Buscar perfil do usuário
-          const profile = await fetchUserProfile(session.user.id);
-          if (profile && mounted) {
-            const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
-            const typedProfile: UserProfile = {
-              id: profile.id,
-              email: profile.email,
-              role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
-            };
-            console.log('Perfil do usuário definido:', typedProfile);
-            setUserProfile(typedProfile);
-            
-            // Iniciar timer apenas uma vez após tudo estar configurado
-            console.log('🎯 Iniciando timer de sessão após inicialização completa');
-            startSessionTimer();
-          }
-          } else {
-            setSession(null);
-            setUser(null);
-            setUserProfile(null);
-          }
-          
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error('Erro ao inicializar autenticação:', error);
-        if (mounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    initializeAuth();
-
-    // Configurar listener de mudanças de autenticação
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted) return;
+        if (!mounted) return
         
-        console.log('Estado de autenticação alterado:', event, session?.user?.email || 'Logout');
+        setSession(session)
+        setUser(session?.user ?? null)
         
-        if (session?.user && event === 'SIGNED_IN') {
-          console.log('🔄 Novo login detectado');
-          setSession(session);
-          setUser(session.user);
-          
-          // Buscar perfil do usuário
-          const profile = await fetchUserProfile(session.user.id);
-          if (profile && mounted) {
-            const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
-            const typedProfile: UserProfile = {
-              id: profile.id,
-              email: profile.email,
-              role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
-            };
-            console.log('Perfil atualizado:', typedProfile);
-            setUserProfile(typedProfile);
-            
-            // Iniciar timer apenas para novos logins
-            console.log('🎯 Iniciando timer de sessão após novo login');
-            startSessionTimer();
+        if (session?.user) {
+          // Fetch user profile after setting session
+          setTimeout(async () => {
+            if (!mounted) return
+            try {
+              const { data: profile } = await supabase
+                .from('user_profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single()
+              
+              if (mounted) {
+                setUserProfile(profile)
+              }
+            } catch (error) {
+              console.error('Error fetching profile:', error)
+            }
+          }, 0)
+        } else {
+          if (mounted) {
+            setUserProfile(null)
           }
-        } else if (event === 'SIGNED_OUT') {
-          console.log('🚪 Logout detectado');
-          clearSessionTimer();
-          setSession(null);
-          setUser(null);
-          setUserProfile(null);
+        }
+        
+        if (mounted) {
+          setIsLoading(false)
         }
       }
-    );
+    )
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (mounted) {
+        setSession(session)
+        setUser(session?.user ?? null)
+        if (!session) {
+          setIsLoading(false)
+        }
+      }
+    })
 
     return () => {
-      mounted = false;
-      clearSessionTimer();
-      subscription.unsubscribe();
-    };
-  }, [clearSessionTimer, startSessionTimer]);
-
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      console.log('🔐 Tentando fazer login com:', email);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        console.error('❌ Erro no login:', error.message);
-        return false;
-      }
-
-      if (!data.user) {
-        console.error('❌ Login sem usuário retornado');
-        return false;
-      }
-
-      console.log('✅ Login bem-sucedido para:', email);
-      console.log('👤 Usuário:', data.user.id);
-      console.log('🔑 Sessão:', !!data.session);
-      
-      return true;
-    } catch (error) {
-      console.error('❌ Erro inesperado no login:', error);
-      return false;
+      mounted = false
+      subscription.unsubscribe()
     }
-  };
+  }, [])
+
+  const login = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    return { error }
+  }
+
+  const signup = async (email: string, password: string) => {
+    const redirectUrl = `${window.location.origin}/`
+    
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl
+      }
+    })
+    return { error }
+  }
 
   const logout = async () => {
-    try {
-      console.log('🚪 Fazendo logout...');
-      
-      // Limpar timer de sessão
-      clearSessionTimer();
-      
-      await supabase.auth.signOut();
-      setUser(null);
-      setSession(null);
-      setUserProfile(null);
-      
-      console.log('✅ Logout realizado com sucesso');
-    } catch (error) {
-      console.error('❌ Erro no logout:', error);
-    }
-  };
+    await supabase.auth.signOut()
+    setUser(null)
+    setSession(null)
+    setUserProfile(null)
+  }
 
-  const value = {
+  const resetSessionTimer = () => {
+    // Session timer functionality if needed
+  }
+
+  const isAuthenticated = !!session
+  const isMaster = userProfile?.role === 'master'
+
+  const value: AuthContextType = {
     user,
-    userProfile,
     session,
-    login,
-    logout,
-    isAuthenticated: !!user && !!session,
-    isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
+    userProfile,
     isLoading,
-    resetSessionTimer
-  };
+    isAuthenticated,
+    isMaster,
+    login,
+    signup,
+    logout,
+    resetSessionTimer,
+  }
 
-  console.log('AuthContext Estado:', { 
-    isAuthenticated: !!user && !!session, 
-    isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
-    userEmail: user?.email,
-    userRole: userProfile?.role,
-    isLoading
-  });
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
