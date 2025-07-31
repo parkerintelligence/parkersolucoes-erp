@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,19 +10,14 @@ import { Shield, Server, Database, Lock, Eye, EyeOff, Sparkles, Zap } from 'luci
 import { toast } from '@/hooks/use-toast';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import parkerLogo from '@/assets/parker-logo.jpg';
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const {
-    login,
-    isAuthenticated,
-    isLoading: authLoading
-  } = useAuth();
-  const {
-    data: settings
-  } = useSystemSettings();
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { data: settings } = useSystemSettings();
   const navigate = useNavigate();
 
   // Buscar logo e nome da empresa das configurações
@@ -32,57 +28,61 @@ const Login = () => {
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       console.log('Usuário já autenticado, redirecionando para alertas');
-      navigate('/alertas', {
-        replace: true
-      });
+      navigate('/alertas', { replace: true });
     }
   }, [isAuthenticated, authLoading, navigate]);
 
   // Tela de carregamento durante inicialização
   if (authLoading) {
-    return <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-pulse mb-4">
             <img src={companyLogo} alt="Company Logo" className="w-20 h-20 mx-auto rounded-xl shadow-lg" />
           </div>
           <div className="text-white text-lg">Carregando sistema...</div>
         </div>
-      </div>;
+      </div>
+    );
   }
 
   // Se já estiver autenticado, não renderizar nada (está redirecionando)
   if (isAuthenticated) {
     return null;
   }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    
     try {
       const success = await login(email, password);
       if (success) {
         toast({
           title: "Login realizado com sucesso!",
-          description: "Redirecionando para o dashboard..."
+          description: "Redirecionando para o dashboard...",
         });
         // O redirecionamento será feito pelo useEffect
       } else {
         toast({
           title: "Erro no login",
           description: "Email ou senha incorretos. Verifique suas credenciais.",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Erro no login",
         description: "Ocorreu um erro inesperado. Tente novamente.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
-  return <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+
+  return (
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-slate-700/20 rounded-full blur-3xl"></div>
@@ -95,7 +95,11 @@ const Login = () => {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
             <div className="relative bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl border border-slate-600/50 shadow-2xl">
-              <img src={companyLogo} alt="Company Logo" className="w-16 h-16 mx-auto rounded-xl shadow-lg object-cover" />
+              <img
+                src={companyLogo} 
+                alt="Company Logo" 
+                className="w-16 h-16 mx-auto rounded-xl shadow-lg object-cover"
+              />
             </div>
           </div>
           <div className="space-y-2">
@@ -130,27 +134,57 @@ const Login = () => {
                   <Label htmlFor="email" className="text-white text-sm font-medium">
                     Email
                   </Label>
-                  <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 h-12 rounded-lg backdrop-blur-sm" placeholder="Digite seu email" required />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 h-12 rounded-lg backdrop-blur-sm"
+                    placeholder="Digite seu email"
+                    required
+                  />
                 </div>
                 <div className="space-y-3">
                   <Label htmlFor="password" className="text-white text-sm font-medium">
                     Senha
                   </Label>
                   <div className="relative">
-                    <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 h-12 rounded-lg backdrop-blur-sm pr-12" placeholder="Digite sua senha" required />
-                    <Button type="button" variant="ghost" size="sm" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white hover:bg-transparent h-auto p-1" onClick={() => setShowPassword(!showPassword)}>
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 h-12 rounded-lg backdrop-blur-sm pr-12"
+                      placeholder="Digite sua senha"
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white hover:bg-transparent h-auto p-1"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
                 </div>
-                <Button type="submit" className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground h-12 rounded-lg font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105" disabled={isLoading}>
-                  {isLoading ? <div className="flex items-center gap-2">
+                <Button 
+                  type="submit" 
+                  className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground h-12 rounded-lg font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-secondary-foreground/30 border-t-secondary-foreground rounded-full animate-spin"></div>
                       Autenticando...
-                    </div> : <div className="flex items-center gap-2">
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
                       <Zap className="h-4 w-4" />
                       Entrar no Sistema
-                    </div>}
+                    </div>
+                  )}
                 </Button>
               </form>
             </CardContent>
@@ -197,10 +231,41 @@ const Login = () => {
               </Card>
             </div>
 
-            
+            <Card className="bg-slate-800/30 backdrop-blur-sm border-slate-600/50">
+              <CardContent className="p-6">
+                <h3 className="text-white font-bold text-xl mb-4 flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-secondary" />
+                  Recursos da Plataforma
+                </h3>
+                <ul className="text-slate-300 space-y-3">
+                  <li className="flex items-center">
+                    <div className="w-2 h-2 bg-secondary rounded-full mr-3 animate-pulse"></div>
+                    Dashboard unificado com status de todos os sistemas
+                  </li>
+                  <li className="flex items-center">
+                    <div className="w-2 h-2 bg-secondary rounded-full mr-3 animate-pulse"></div>
+                    Integração completa com GLPI e Zabbix
+                  </li>
+                  <li className="flex items-center">
+                    <div className="w-2 h-2 bg-secondary rounded-full mr-3 animate-pulse"></div>
+                    Monitoramento automático de backups FTP
+                  </li>
+                  <li className="flex items-center">
+                    <div className="w-2 h-2 bg-secondary rounded-full mr-3 animate-pulse"></div>
+                    Gerenciador seguro de senhas e acessos
+                  </li>
+                  <li className="flex items-center">
+                    <div className="w-2 h-2 bg-secondary rounded-full mr-3 animate-pulse"></div>
+                    Planos de ação e gestão de tarefas
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default Login;

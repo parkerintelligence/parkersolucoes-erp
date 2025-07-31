@@ -75,16 +75,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, 30 * 60 * 1000);
     
     setSessionTimer(timer);
-    console.log('Timer de sessão iniciado/renovado: 30 minutos');
+    console.log('Timer de sessão iniciado: 30 minutos');
   };
 
   const resetSessionTimer = () => {
-    if (session && user) {
-      if (sessionTimer) {
-        clearTimeout(sessionTimer);
-      }
+    if (sessionTimer) {
+      clearTimeout(sessionTimer);
       startSessionTimer();
-      console.log('Timer de sessão resetado por atividade do usuário');
+      console.log('Timer de sessão resetado');
     }
   };
 
