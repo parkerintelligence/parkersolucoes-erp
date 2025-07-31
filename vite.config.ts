@@ -18,6 +18,9 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    force: true,
+  },
   build: {
     rollupOptions: {
       external: [],
@@ -25,8 +28,5 @@ export default defineConfig(({ mode }) => ({
         manualChunks: undefined,
       },
     },
-  },
-  esbuild: {
-    logOverride: { 'this-is-undefined-in-esm': 'silent' }
   },
 }));
