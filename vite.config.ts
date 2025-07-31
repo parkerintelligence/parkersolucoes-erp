@@ -30,10 +30,8 @@ export default defineConfig(({ mode }) => ({
     force: true,
     exclude: [],
     esbuildOptions: {
-      define: {
-        global: 'globalThis',
-      },
-    },
+      target: "es2020"
+    }
   },
   esbuild: {
     target: "es2020",
