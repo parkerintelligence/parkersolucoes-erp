@@ -29,12 +29,41 @@ import { toast } from '@/hooks/use-toast';
 export const LinksTreeView = () => {
   const { data: passwords = [] } = usePasswords();
   const { data: companies = [] } = useCompanies();
-  const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
-  const [expandedServices, setExpandedServices] = useState<Set<string>>(new Set());
-  const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
-
+  
   // Filtrar apenas senhas que têm gera_link = true
   const links = passwords.filter(password => password.gera_link);
+  
+  // Organizar dados em árvore para obter IDs para expansão inicial
+  const organizeLinksTree = () => {
+    const tree: { [companyId: string]: { [service: string]: any[] } } = {};
+    
+    links.forEach(link => {
+      const companyId = link.company_id || 'no-company';
+      const service = link.service || 'Sem categoria';
+      
+      if (!tree[companyId]) {
+        tree[companyId] = {};
+      }
+      if (!tree[companyId][service]) {
+        tree[companyId][service] = [];
+      }
+      tree[companyId][service].push(link);
+    });
+    
+    return tree;
+  };
+
+  const linksTree = organizeLinksTree();
+  
+  // Inicializar com todas as empresas e serviços expandidos
+  const allCompanyIds = Object.keys(linksTree);
+  const allServiceKeys = Object.entries(linksTree).flatMap(([companyId, services]) =>
+    Object.keys(services).map(serviceName => `${companyId}-${serviceName}`)
+  );
+  
+  const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set(allCompanyIds));
+  const [expandedServices, setExpandedServices] = useState<Set<string>>(new Set(allServiceKeys));
+  const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set()); // Senhas ocultas por padrão
 
   const getServiceIcon = (service: string) => {
     const iconMap = {
@@ -110,27 +139,6 @@ export const LinksTreeView = () => {
     }
   };
 
-  // Organizar dados em árvore: Company -> Service -> Links
-  const organizeLinksTree = () => {
-    const tree: { [companyId: string]: { [service: string]: any[] } } = {};
-    
-    links.forEach(link => {
-      const companyId = link.company_id || 'no-company';
-      const service = link.service || 'Sem categoria';
-      
-      if (!tree[companyId]) {
-        tree[companyId] = {};
-      }
-      if (!tree[companyId][service]) {
-        tree[companyId][service] = [];
-      }
-      tree[companyId][service].push(link);
-    });
-    
-    return tree;
-  };
-
-  const linksTree = organizeLinksTree();
 
   if (links.length === 0) {
     return (

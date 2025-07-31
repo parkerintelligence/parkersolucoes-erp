@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -15,12 +16,13 @@ export function ColumnDialog({ column, onSave }: ColumnDialogProps) {
     name: "",
     color: "#64748b",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (column) {
       setFormData({
         name: column.name,
-        color: column.color,
+        color: column.color || "#64748b",
       });
     } else {
       setFormData({
@@ -30,9 +32,18 @@ export function ColumnDialog({ column, onSave }: ColumnDialogProps) {
     }
   }, [column]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    if (!formData.name.trim()) return;
+    
+    setIsSubmitting(true);
+    try {
+      await onSave(formData);
+    } catch (error) {
+      console.error('Error saving column:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const colorOptions = [
@@ -63,6 +74,7 @@ export function ColumnDialog({ column, onSave }: ColumnDialogProps) {
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="Nome da coluna"
             required
+            disabled={isSubmitting}
           />
         </div>
         
@@ -81,14 +93,19 @@ export function ColumnDialog({ column, onSave }: ColumnDialogProps) {
                 style={{ backgroundColor: color.value }}
                 onClick={() => setFormData({ ...formData, color: color.value })}
                 title={color.label}
+                disabled={isSubmitting}
               />
             ))}
           </div>
         </div>
         
         <div className="flex justify-end gap-2">
-          <Button type="submit">
-            {column ? "Atualizar" : "Criar"}
+          <Button 
+            type="submit"
+            disabled={!formData.name.trim() || isSubmitting}
+            className="bg-slate-900 hover:bg-slate-800 text-white"
+          >
+            {isSubmitting ? "Salvando..." : (column ? "Atualizar" : "Criar")}
           </Button>
         </div>
       </form>
