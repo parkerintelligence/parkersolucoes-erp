@@ -12,6 +12,10 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === 'development' && componentTagger(),
   ].filter(Boolean),
+  optimizeDeps: {
+    exclude: ['react', 'react-dom'],
+    force: true,
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

@@ -3,6 +3,13 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
+// Debug React availability
+console.log('React hooks available:', { 
+  useState: typeof useState, 
+  useEffect: typeof useEffect,
+  React: typeof React 
+});
+
 interface AuthContextType {
   isAuthenticated: boolean;
   isMaster: boolean;
