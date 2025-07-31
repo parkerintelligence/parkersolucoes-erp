@@ -35,246 +35,202 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <div className="min-h-screen bg-background">
-          <Routes>
-            <Route path="/test" element={<TestComponent />} />
-            <Route path="/" element={<AuthProvider><Login /></AuthProvider>} />
-            <Route path="/login" element={<AuthProvider><Login /></AuthProvider>} />
+      <AuthProvider>
+        <BrowserRouter>
+          <div className="min-h-screen bg-background">
+            <Routes>
+              <Route path="/test" element={<TestComponent />} />
+              <Route path="/" element={<Login />} />
+              <Route path="/login" element={<Login />} />
               <Route
                 path="/alertas"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Alertas />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Alertas />
+                  </Layout>
                 }
               />
               <Route
                 path="/links"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Links />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Links />
+                  </Layout>
                 }
               />
               <Route
                 path="/dashboard"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Dashboard />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Dashboard />
+                  </Layout>
                 }
                />
               <Route
                 path="/admin"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Admin />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Admin />
+                  </Layout>
                 }
               />
                <Route
                  path="/glpi"
                  element={
-                   <AuthProvider>
-                     <Layout>
-                       <GLPI />
-                     </Layout>
-                   </AuthProvider>
+                   <Layout>
+                     <GLPI />
+                   </Layout>
                  }
                />
                <Route
                  path="/conexao-remota"
                  element={
-                   <AuthProvider>
-                     <Layout>
-                       <Guacamole />
-                     </Layout>
-                   </AuthProvider>
+                   <Layout>
+                     <Guacamole />
+                   </Layout>
                  }
                />
                <Route
                  path="/backups"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Backups />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Backups />
+                  </Layout>
                 }
               />
               <Route
                 path="/passwords"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Passwords />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Passwords />
+                  </Layout>
                 }
               />
               <Route
                 path="/annotations"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Annotations />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Annotations />
+                  </Layout>
                 }
                />
               <Route
                 path="/whatsapp"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <WhatsApp />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <WhatsApp />
+                  </Layout>
                 }
               />
               <Route
                 path="/whatsapp-templates"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <WhatsAppTemplates />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <WhatsAppTemplates />
+                  </Layout>
                 }
               />
               <Route
                 path="/wasabi"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Wasabi />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Wasabi />
+                  </Layout>
                 }
               />
               <Route
                 path="/schedule"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Schedule />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Schedule />
+                  </Layout>
                 }
               />
               <Route
                 path="/automation"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Automation />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Automation />
+                  </Layout>
                 }
               />
               <Route
                 path="/zabbix"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Zabbix />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Zabbix />
+                  </Layout>
                 }
               />
               <Route
                 path="/services"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Services />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Services />
+                  </Layout>
                 }
               />
               <Route
                 path="/budgets"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Budgets />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Budgets />
+                  </Layout>
                 }
               />
               <Route
                 path="/contracts"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Contracts />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Contracts />
+                  </Layout>
                 }
               />
               <Route
                 path="/financial"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Financial />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Financial />
+                  </Layout>
                 }
               />
               <Route
                 path="/companies"
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Companies />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Companies />
+                  </Layout>
                 }
               />
               <Route 
                 path="/bacula" 
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <Bacula />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <Bacula />
+                  </Layout>
                 } 
               />
               <Route 
                 path="/reports" 
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <ReportsDashboard />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <ReportsDashboard />
+                  </Layout>
                 } 
               />
               <Route 
                 path="/plano-de-acao" 
                 element={
-                  <AuthProvider>
-                    <Layout>
-                      <ActionPlan />
-                    </Layout>
-                  </AuthProvider>
+                  <Layout>
+                    <ActionPlan />
+                  </Layout>
                 } 
               />
             </Routes>
           </div>
         </BrowserRouter>
-      </QueryClientProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 
