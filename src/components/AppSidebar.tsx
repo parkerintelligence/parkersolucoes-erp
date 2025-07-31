@@ -49,6 +49,20 @@ const menuItems = [
       { title: 'Serviços', url: '/servicos', icon: Wrench },
       { title: 'Cofre de Senhas', url: '/senhas', icon: Lock },
     ]
+  },
+  {
+    title: 'Financeiro',
+    items: [
+      { title: 'Orçamentos', url: '/orcamentos', icon: DollarSign },
+      { title: 'Contratos', url: '/contratos', icon: FileText },
+    ]
+  },
+  {
+    title: 'Organização',
+    items: [
+      { title: 'Agenda', url: '/agenda', icon: Calendar },
+      { title: 'Anotações', url: '/anotacoes', icon: StickyNote },
+    ]
   }
 ]
 
