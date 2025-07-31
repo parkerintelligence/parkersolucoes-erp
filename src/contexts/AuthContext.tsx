@@ -1,4 +1,4 @@
-import React from 'react'
+import * as React from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
@@ -21,18 +21,9 @@ interface AuthContextType {
   resetSessionTimer: () => void
 }
 
-// Verificação de segurança para React
-if (typeof React === 'undefined') {
-  throw new Error('React não está disponível. Verifique as importações.')
-}
-
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined)
 
 export const useAuth = () => {
-  if (typeof React === 'undefined' || !React.useContext) {
-    throw new Error('React hooks não estão disponíveis')
-  }
-  
   const context = React.useContext(AuthContext)
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider')
@@ -40,21 +31,13 @@ export const useAuth = () => {
   return context
 }
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Verificação adicional de segurança
-  if (typeof React === 'undefined' || !React.useState) {
-    console.error('React não está disponível no AuthProvider')
-    return <div>Erro: React não carregado corretamente</div>
-  }
-
-  console.log('AuthProvider iniciando - React disponível:', !!React.useState)
-
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = React.useState<User | null>(null)
   const [session, setSession] = React.useState<Session | null>(null)
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
 
-  const fetchUserProfile = React.useCallback(async (userId: string) => {
+  const fetchUserProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('user_profiles')
@@ -71,14 +54,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Error fetching user profile:', error)
     }
-  }, [])
+  }
 
-  const resetSessionTimer = React.useCallback(() => {
+  const resetSessionTimer = () => {
     // Session timer logic can be implemented here if needed
-  }, [])
+  }
 
   React.useEffect(() => {
-    console.log('AuthProvider useEffect iniciando')
     let mounted = true
 
     // Get initial session
@@ -113,7 +95,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         if (!mounted) return
 
-        console.log('Auth state changed:', event, !!session)
         setSession(session)
         setUser(session?.user ?? null)
         
@@ -133,9 +114,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       mounted = false
       subscription.unsubscribe()
     }
-  }, [fetchUserProfile])
+  }, [])
 
-  const login = React.useCallback(async (email: string, password: string) => {
+  const login = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -161,9 +142,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Login error:', error)
       return { error }
     }
-  }, [])
+  }
 
-  const logout = React.useCallback(async () => {
+  const logout = async () => {
     try {
       const { error } = await supabase.auth.signOut()
       
@@ -188,12 +169,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Logout error:', error)
     }
-  }, [])
+  }
 
   const isAuthenticated = !!user && !!session
   const isMaster = userProfile?.role === 'master'
 
-  const value: AuthContextType = React.useMemo(() => ({
+  const value: AuthContextType = {
     user,
     session,
     userProfile,
@@ -203,11 +184,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     logout,
     resetSessionTimer,
-  }), [user, session, userProfile, isAuthenticated, isMaster, isLoading, login, logout, resetSessionTimer])
+  }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return React.createElement(AuthContext.Provider, { value }, children)
 }

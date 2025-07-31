@@ -17,25 +17,6 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "react": path.resolve(__dirname, "./node_modules/react"),
-      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
-    },
-    dedupe: ["react", "react-dom"],
-  },
-  optimizeDeps: {
-    include: ["react", "react-dom", "react/jsx-runtime"],
-    exclude: ["react", "react-dom"],
-    force: true,
-  },
-  define: {
-    'process.env.NODE_ENV': JSON.stringify(mode === 'development' ? 'development' : 'production'),
-  },
-  build: {
-    rollupOptions: {
-      external: [],
-      output: {
-        manualChunks: undefined,
-      },
     },
   },
 }));

@@ -1,12 +1,9 @@
-import React from 'react'
+import * as React from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './App'
-
-// Verificação de segurança do React
-console.log('React disponível em main.tsx:', !!React, 'useState:', !!React.useState)
 
 // Create a new QueryClient instance
 const queryClient = new QueryClient({
@@ -24,11 +21,13 @@ if (!container) throw new Error('Root element not found')
 const root = createRoot(container)
 
 root.render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </QueryClientProvider>
-  </React.StrictMode>
+  React.createElement(
+    QueryClientProvider,
+    { client: queryClient },
+    React.createElement(
+      BrowserRouter,
+      null,
+      React.createElement(App)
+    )
+  )
 )
