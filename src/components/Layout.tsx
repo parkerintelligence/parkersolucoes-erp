@@ -59,7 +59,7 @@ export const Layout = ({ children }: LayoutProps) => {
           </main>
         </SidebarInset>
       </div>
-      <Toaster />
+      {isAuthenticated && !isLoading && <Toaster />}
     </SidebarProvider>
   )
 }
