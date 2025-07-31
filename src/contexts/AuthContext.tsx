@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+
+import * as React from 'react';
+const { createContext, useContext, useState, useEffect } = React;
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -39,6 +41,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('Buscando perfil do usuário:', userId);
+      
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -50,6 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
+      console.log('Perfil do usuário encontrado:', data);
       return data;
     } catch (error) {
       console.error('Erro ao buscar perfil do usuário:', error);
@@ -58,22 +63,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const startSessionTimer = () => {
+    // Limpar timer existente
     if (sessionTimer) {
       clearTimeout(sessionTimer);
     }
     
+    // Criar novo timer para 30 minutos (1800000 ms)
     const timer = setTimeout(async () => {
       console.log('Sessão expirada após 30 minutos, fazendo logout...');
       await logout();
     }, 30 * 60 * 1000);
     
     setSessionTimer(timer);
+    console.log('Timer de sessão iniciado/renovado: 30 minutos');
   };
 
   const resetSessionTimer = () => {
-    if (sessionTimer) {
-      clearTimeout(sessionTimer);
+    if (session && user) {
+      if (sessionTimer) {
+        clearTimeout(sessionTimer);
+      }
       startSessionTimer();
+      console.log('Timer de sessão resetado por atividade do usuário');
     }
   };
 
@@ -82,6 +93,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const initializeAuth = async () => {
       try {
+        console.log('Inicializando autenticação...');
+        
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -93,11 +106,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         if (mounted) {
+          console.log('Sessão inicial:', session?.user?.email || 'Nenhuma sessão');
+          
           if (session?.user) {
             setSession(session);
             setUser(session.user);
-            startSessionTimer();
+            startSessionTimer(); // Iniciar timer de sessão
             
+            // Buscar perfil do usuário
             const profile = await fetchUserProfile(session.user.id);
             if (profile && mounted) {
               const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
@@ -106,6 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 email: profile.email,
                 role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
               };
+              console.log('Perfil do usuário definido:', typedProfile);
               setUserProfile(typedProfile);
             }
           } else {
@@ -126,15 +143,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
+    // Configurar listener de mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
         
+        console.log('Estado de autenticação alterado:', event, session?.user?.email || 'Logout');
+        
         if (session?.user) {
           setSession(session);
           setUser(session.user);
-          startSessionTimer();
+          startSessionTimer(); // Iniciar timer de sessão
           
+          // Buscar perfil do usuário
           setTimeout(async () => {
             if (!mounted) return;
             const profile = await fetchUserProfile(session.user.id);
@@ -145,6 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 email: profile.email,
                 role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
               };
+              console.log('Perfil atualizado:', typedProfile);
               setUserProfile(typedProfile);
             }
           }, 0);
@@ -171,6 +193,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log('Tentando fazer login com:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -181,6 +205,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
+      console.log('Login bem-sucedido para:', email);
       return !!data.user;
     } catch (error) {
       console.error('Erro no login:', error);
@@ -190,6 +215,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      console.log('Fazendo logout...');
+      
       if (sessionTimer) {
         clearTimeout(sessionTimer);
         setSessionTimer(null);
@@ -199,6 +226,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setSession(null);
       setUserProfile(null);
+      
+      console.log('Logout realizado com sucesso');
     } catch (error) {
       console.error('Erro no logout:', error);
     }
@@ -215,6 +244,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading,
     resetSessionTimer
   };
+
+  console.log('AuthContext Estado:', { 
+    isAuthenticated: !!user && !!session, 
+    isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
+    userEmail: user?.email,
+    userRole: userProfile?.role,
+    isLoading
+  });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

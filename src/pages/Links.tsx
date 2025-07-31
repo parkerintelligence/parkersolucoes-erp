@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePasswords } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useLinksExport } from '@/hooks/useLinksExport';
@@ -29,6 +29,17 @@ const Links = () => {
 
   // Filtrar apenas senhas que têm gera_link = true
   const links = passwords.filter(password => password.gera_link);
+
+  // Expandir todos os cards por padrão
+  useEffect(() => {
+    if (links.length > 0) {
+      const initialVisibility = links.reduce((acc, link) => {
+        acc[link.id] = true; // Todos expandidos por padrão
+        return acc;
+      }, {} as Record<string, boolean>);
+      setVisibleCards(initialVisibility);
+    }
+  }, [links]);
 
   // Obter serviços únicos
   const uniqueServices = [...new Set(links.map(link => link.service).filter(Boolean))];

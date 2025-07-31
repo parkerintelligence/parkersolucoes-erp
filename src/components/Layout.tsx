@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -11,6 +12,8 @@ interface LayoutProps {
 
 export const Layout = ({ children }: LayoutProps) => {
   const { isAuthenticated, isLoading, resetSessionTimer } = useAuth();
+
+  console.log('Layout - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
 
   // Resetar timer de sessão a cada atividade do usuário
   React.useEffect(() => {
@@ -43,6 +46,7 @@ export const Layout = ({ children }: LayoutProps) => {
   }
 
   if (!isAuthenticated) {
+    console.log('Usuário não autenticado, redirecionando para login');
     return <Navigate to="/login" replace />;
   }
 
