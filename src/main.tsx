@@ -11,8 +11,25 @@ import './index.css';
 
 // Garantir que React está disponível globalmente - CRÍTICO para funcionamento
 if (typeof window !== 'undefined') {
-  window.React = React;
-  console.log('React inicializado:', !!React, !!React.useState);
+  // Forçar React como disponível globalmente
+  (window as any).React = React;
+  
+  // Verificação mais robusta
+  const reactReady = React && React.useState && React.useEffect && React.createContext;
+  console.log('React inicializado:', {
+    reactExists: !!React,
+    hasUseState: !!React?.useState,
+    hasUseEffect: !!React?.useEffect,
+    ready: reactReady
+  });
+  
+  // Se React não está completamente pronto, tentar novamente
+  if (!reactReady) {
+    console.error('React não está completamente carregado, tentando novamente...');
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  }
 }
 
 const queryClient = new QueryClient({

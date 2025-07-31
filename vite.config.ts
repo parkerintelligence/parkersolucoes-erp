@@ -21,7 +21,12 @@ export default defineConfig(({ mode }) => ({
   
   optimizeDeps: {
     force: true,
-    include: ['react', 'react-dom']
+    include: ['react', 'react-dom', 'react/jsx-runtime'],
+    exclude: []
+  },
+  
+  esbuild: {
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }
   },
   
   build: {

@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useSafeState, useSafeEffect, isReactReady } from '@/hooks/useSafeReact';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -22,12 +23,22 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Verificar se React está pronto antes de usar hooks
+  if (!isReactReady()) {
+    console.warn('React hooks não estão prontos, renderizando fallback');
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 flex items-center justify-center">
+        <div className="text-white text-lg">Inicializando autenticação...</div>
+      </div>
+    );
+  }
 
-  useEffect(() => {
+  const [user, setUser] = useSafeState<User | null>(null);
+  const [session, setSession] = useSafeState<Session | null>(null);
+  const [userProfile, setUserProfile] = useSafeState<any>(null);
+  const [isLoading, setIsLoading] = useSafeState(true);
+
+  useSafeEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
