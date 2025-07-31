@@ -31,7 +31,8 @@ import {
   HardDrive,
   FolderOpen,
   Cloud,
-  Settings
+  Settings,
+  Lock
 } from 'lucide-react'
 
 const menuItems = [
@@ -39,6 +40,14 @@ const menuItems = [
     title: 'Principal',
     items: [
       { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+    ]
+  },
+  {
+    title: 'Gestão',
+    items: [
+      { title: 'Empresas', url: '/empresas', icon: Building2 },
+      { title: 'Serviços', url: '/servicos', icon: Wrench },
+      { title: 'Cofre de Senhas', url: '/senhas', icon: Lock },
     ]
   }
 ]
