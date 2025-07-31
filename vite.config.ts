@@ -23,11 +23,17 @@ export default defineConfig(({ mode }) => ({
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
     dedupe: ["react", "react-dom"],
+    conditions: ['development', 'browser'],
   },
   optimizeDeps: {
     include: ["react", "react-dom"],
     force: true,
-    exclude: []
+    exclude: [],
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
   },
   esbuild: {
     target: "es2020",

@@ -1,11 +1,14 @@
 
 
+import * as React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { AuthenticatedApp } from '@/components/AuthenticatedApp';
 import Login from '@/pages/Login';
+
+console.log('App.tsx - React:', React);
 
 // Create a single QueryClient instance
 const queryClient = new QueryClient();

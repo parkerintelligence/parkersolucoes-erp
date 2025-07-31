@@ -1,7 +1,19 @@
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import * as React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
+
+const { createContext, useContext, useState, useEffect } = React;
+
+// Debug React availability
+console.log('AuthContext - React:', React);
+console.log('AuthContext - useState:', useState);
+console.log('AuthContext - createContext:', createContext);
+
+if (!React || !useState || !createContext || !useContext || !useEffect) {
+  console.error('React hooks não disponíveis:', { React, useState, createContext, useContext, useEffect });
+  throw new Error('React hooks não estão disponíveis');
+}
 
 interface UserProfile {
   id: string;
