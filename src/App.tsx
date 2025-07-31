@@ -30,21 +30,14 @@ import ActionPlan from '@/pages/ActionPlan';
 import Alertas from '@/pages/Alertas';
 import { Layout } from '@/components/Layout';
 
-// Componente para detectar atividade apenas em páginas autenticadas
-function AuthenticatedContent() {
-  const { isAuthenticated } = useAuth();
+// Componente interno com proteção de rotas
+function AppContent() {
+  const { isAuthenticated, isLoading } = useAuth();
   
   // Só usar o hook de atividade se estiver autenticado
   if (isAuthenticated) {
     useUserActivity();
   }
-  
-  return null;
-}
-
-// Componente interno com proteção de rotas
-function AppContent() {
-  const { isAuthenticated, isLoading } = useAuth();
   
   // Mostrar loading durante inicialização
   if (isLoading) {
@@ -60,7 +53,6 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AuthenticatedContent />
       <Routes>
         {/* Redirecionar root baseado no status de autenticação */}
         <Route 
