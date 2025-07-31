@@ -1,8 +1,7 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { TestComponent } from '@/components/TestComponent';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Admin from '@/pages/Admin';
@@ -39,8 +38,7 @@ function App() {
         <BrowserRouter>
           <div className="min-h-screen bg-background">
             <Routes>
-              <Route path="/test" element={<TestComponent />} />
-              <Route path="/" element={<Login />} />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/login" element={<Login />} />
               <Route
                 path="/alertas"
