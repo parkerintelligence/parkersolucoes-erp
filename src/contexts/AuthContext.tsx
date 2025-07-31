@@ -1,5 +1,5 @@
-// Minimal stub without React hooks to avoid conflicts
-export const useAuth = () => ({
+// Static auth context - no React hooks to avoid conflicts
+const staticAuth = {
   user: null,
   session: null,
   userProfile: null,
@@ -9,8 +9,8 @@ export const useAuth = () => ({
   login: async () => ({ error: null }),
   logout: async () => {},
   resetSessionTimer: () => {},
-})
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  return <>{children}</>
 }
+
+export const useAuth = () => staticAuth
+
+export const AuthProvider = ({ children }: { children: any }) => children
