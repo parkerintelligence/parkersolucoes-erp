@@ -1,5 +1,5 @@
 
-import React from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
@@ -22,10 +22,10 @@ interface AuthContextType {
   resetSessionTimer: () => void
 }
 
-const AuthContext = React.createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const useAuth = () => {
-  const context = React.useContext(AuthContext)
+  const context = useContext(AuthContext)
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider')
   }
@@ -33,10 +33,10 @@ export const useAuth = () => {
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = React.useState<User | null>(null)
-  const [session, setSession] = React.useState<Session | null>(null)
-  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null)
-  const [isLoading, setIsLoading] = React.useState(true)
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -61,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Session timer logic can be implemented here if needed
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
     let mounted = true
 
     // Get initial session
