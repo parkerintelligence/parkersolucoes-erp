@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { CardDialog } from "@/components/CardDialog";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useActionPlan, type ActionCard, type ActionCardItem } from "@/hooks/useActionPlan";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -35,9 +36,7 @@ export function ActionCardComponent({ card, items }: ActionCardProps) {
   };
 
   const handleDeleteCard = async () => {
-    if (window.confirm("Tem certeza que deseja excluir este card?")) {
-      await deleteCard(card.id);
-    }
+    await deleteCard(card.id);
   };
 
   const handleToggleItem = async (item: ActionCardItem) => {
@@ -100,14 +99,21 @@ export function ActionCardComponent({ card, items }: ActionCardProps) {
               </DialogTrigger>
               <CardDialog card={card} onSave={handleUpdateCard} />
             </Dialog>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-              onClick={handleDeleteCard}
+            <ConfirmationDialog
+              title="Excluir Card"
+              description={`Tem certeza que deseja excluir o card "${card.title}"? Esta ação não pode ser desfeita.`}
+              onConfirm={handleDeleteCard}
+              confirmText="Excluir"
+              variant="destructive"
             >
-              <Trash2 className="h-3 w-3" />
-            </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </ConfirmationDialog>
           </div>
         </div>
         
