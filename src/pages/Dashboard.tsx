@@ -1,174 +1,123 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { HostingerDashboard } from '@/components/HostingerDashboard';
-import { BaculaDashboard } from '@/components/BaculaDashboard';
-import { BarChart3, Users, DollarSign, FileText, Calendar, TrendingUp, Server, Archive, Activity, Database, Shield } from 'lucide-react';
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Shield, Users, Calendar, FileText, Server, Database } from 'lucide-react'
 const Dashboard = () => {
-  const stats = [{
-    title: "Empresas Ativas",
-    value: "24",
-    change: "+2 esta semana",
-    changeType: "positive",
-    icon: <Users className="h-6 w-6 text-blue-400" />
-  }, {
-    title: "Contratos Ativos",
-    value: "18",
-    change: "+1 este mês",
-    changeType: "positive",
-    icon: <FileText className="h-6 w-6 text-green-400" />
-  }, {
-    title: "Receita Mensal",
-    value: "R$ 45.280",
-    change: "+12% vs mês anterior",
-    changeType: "positive",
-    icon: <DollarSign className="h-6 w-6 text-yellow-400" />
-  }, {
-    title: "Agenda Hoje",
-    value: "7",
-    change: "3 críticos",
-    changeType: "warning",
-    icon: <Calendar className="h-6 w-6 text-purple-400" />
-  }];
-  return <div className="min-h-screen bg-slate-900 text-white p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-white">Análise de VPS</h1>
-            <p className="text-slate-400 mt-2">Visão geral da infraestrutura e operações</p>
-          </div>
-          <Badge variant="outline" className="text-green-400 border-green-600 bg-green-900/20">
-            Sistema Online
-          </Badge>
+  const stats = [
+    {
+      title: 'Total de Empresas',
+      value: '12',
+      icon: Users,
+      description: 'Empresas cadastradas'
+    },
+    {
+      title: 'Serviços Ativos',
+      value: '45',
+      icon: Server,
+      description: 'Serviços em funcionamento'
+    },
+    {
+      title: 'Agendamentos',
+      value: '8',
+      icon: Calendar,
+      description: 'Tarefas programadas'
+    },
+    {
+      title: 'Relatórios',
+      value: '23',
+      icon: FileText,
+      description: 'Relatórios gerados'
+    }
+  ]
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center space-x-3">
+        <Shield className="h-8 w-8 text-secondary" />
+        <div>
+          <h1 className="text-3xl font-bold gradient-text">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Visão geral do Sistema Parker
+          </p>
         </div>
-
-        {/* Stats Cards */}
-        
-
-        {/* Quick Actions */}
-        
-
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="infrastructure" className="space-y-6">
-          
-
-          <TabsContent value="infrastructure" className="space-y-6">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <Server className="h-5 w-5 text-blue-400" />
-                  Hostinger VPS - Infraestrutura Principal
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Monitoramento em tempo real dos servidores virtuais privados
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <HostingerDashboard />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="monitoring" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-slate-800 border-slate-700">
-                <CardContent className="p-8 text-center">
-                  <div className="bg-green-900/50 p-4 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                    <Activity className="h-10 w-10 text-green-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-white mb-2">Sistema Zabbix</h3>
-                  <p className="text-slate-400 mb-4">
-                    Monitoramento avançado de infraestrutura, alertas inteligentes e métricas em tempo real.
-                  </p>
-                  <Button className="bg-green-600 hover:bg-green-700 text-white">
-                    Acessar Zabbix
-                  </Button>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-slate-800 border-slate-700">
-                <CardContent className="p-8 text-center">
-                  <div className="bg-blue-900/50 p-4 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                    <BarChart3 className="h-10 w-10 text-blue-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-white mb-2">Grafana Dashboards</h3>
-                  <p className="text-slate-400 mb-4">
-                    Visualização avançada de dados, gráficos customizáveis e relatórios executivos.
-                  </p>
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                    Ver Dashboards
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="backups" className="space-y-6">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <Database className="h-5 w-5 text-purple-400" />
-                  Sistema Bacula - Gestão de Backups Empresarial
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Controle centralizado de backups automatizados com verificação de integridade
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <BaculaDashboard />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="analytics" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <BarChart3 className="h-5 w-5 text-orange-400" />
-                    Métricas Operacionais
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-8 text-center">
-                  <div className="bg-orange-900/50 p-4 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                    <BarChart3 className="h-10 w-10 text-orange-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Relatórios Executivos</h3>
-                  <p className="text-slate-400 mb-4">
-                    Métricas de performance, KPIs operacionais e análises preditivas.
-                  </p>
-                  <Button className="bg-orange-600 hover:bg-orange-700 text-white">
-                    Gerar Relatórios
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <TrendingUp className="h-5 w-5 text-cyan-400" />
-                    Central de Alertas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-8 text-center">
-                  <div className="bg-cyan-900/50 p-4 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                    <TrendingUp className="h-10 w-10 text-cyan-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Notificações Inteligentes</h3>
-                  <p className="text-slate-400 mb-4">
-                    Sistema de alertas proativos com integração WhatsApp e email.
-                  </p>
-                  <Button className="bg-cyan-600 hover:bg-cyan-700 text-white">
-                    Configurar Alertas
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
       </div>
-    </div>;
-};
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, index) => (
+          <Card key={index} className="card-hover">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {stat.title}
+              </CardTitle>
+              <stat.icon className="h-5 w-5 text-secondary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">{stat.value}</div>
+              <p className="text-xs text-muted-foreground">{stat.description}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Database className="h-5 w-5 text-secondary" />
+              <span>Atividade Recente</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
+                <div className="h-2 w-2 bg-secondary rounded-full"></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Sistema inicializado</p>
+                  <p className="text-xs text-muted-foreground">Há 2 minutos</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
+                <div className="h-2 w-2 bg-primary rounded-full"></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Base de dados conectada</p>
+                  <p className="text-xs text-muted-foreground">Há 3 minutos</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Server className="h-5 w-5 text-secondary" />
+              <span>Status do Sistema</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Autenticação</span>
+                <span className="text-xs bg-secondary/20 text-secondary px-2 py-1 rounded-full">
+                  Ativo
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Base de Dados</span>
+                <span className="text-xs bg-secondary/20 text-secondary px-2 py-1 rounded-full">
+                  Conectado
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Integrações</span>
+                <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                  Standby
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
 export default Dashboard;

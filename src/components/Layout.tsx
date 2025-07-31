@@ -1,68 +1,63 @@
-
-import React from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
-import { TopHeader } from '@/components/TopHeader';
-import { AppSidebar } from '@/components/AppSidebar';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import React from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import { Navigate } from 'react-router-dom'
+import { TopHeader } from '@/components/TopHeader'
+import { AppSidebar } from '@/components/AppSidebar'
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 
 interface LayoutProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 export const Layout = ({ children }: LayoutProps) => {
-  const { isAuthenticated, isLoading, resetSessionTimer } = useAuth();
+  const { isAuthenticated, isLoading, resetSessionTimer } = useAuth()
 
-  console.log('Layout - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
-
-  // Resetar timer de sessão a cada atividade do usuário
+  // Reset session timer on user activity
   React.useEffect(() => {
     const handleUserActivity = () => {
       if (isAuthenticated) {
-        resetSessionTimer();
+        resetSessionTimer()
       }
-    };
+    }
 
-    // Eventos que indicam atividade do usuário
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click']
     
     events.forEach(event => {
-      document.addEventListener(event, handleUserActivity, true);
-    });
+      document.addEventListener(event, handleUserActivity, true)
+    })
 
     return () => {
       events.forEach(event => {
-        document.removeEventListener(event, handleUserActivity, true);
-      });
-    };
-  }, [isAuthenticated, resetSessionTimer]);
+        document.removeEventListener(event, handleUserActivity, true)
+      })
+    }
+  }, [isAuthenticated, resetSessionTimer])
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-lg text-gray-600">Carregando sistema...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-lg text-muted-foreground">Carregando sistema...</div>
       </div>
-    );
+    )
   }
 
   if (!isAuthenticated) {
-    console.log('Usuário não autenticado, redirecionando para login');
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace />
   }
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-primary">
+      <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        <SidebarInset className="flex-1 min-w-0 flex flex-col transition-all duration-200 md:ml-0">
+        <SidebarInset className="flex-1 min-w-0 flex flex-col">
           <TopHeader />
-          <main className="flex-1 overflow-auto bg-slate-900">
-            <div className="container-responsive py-4 sm:py-6 lg:py-8 bg-slate-900">
+          <main className="flex-1 overflow-auto">
+            <div className="container-responsive py-6">
               {children}
             </div>
           </main>
         </SidebarInset>
       </div>
     </SidebarProvider>
-  );
-};
+  )
+}
