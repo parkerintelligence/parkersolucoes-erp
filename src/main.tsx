@@ -1,6 +1,6 @@
-import './index.css';
+// Main entry - versão básica sem React por enquanto
+console.log('Main.tsx carregando...');
 
-// Versão mais básica possível
 const root = document.getElementById('root');
 if (root) {
   root.innerHTML = `
@@ -9,16 +9,18 @@ if (root) {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
       color: white;
       font-size: 24px;
-      font-family: Arial, sans-serif;
+      font-family: system-ui, -apple-system, sans-serif;
       text-align: center;
     ">
       <div>
-        <h1>Sistema Parker</h1>
-        <p>Resolvendo problema React...</p>
+        <h1 style="font-size: 3rem; margin-bottom: 1rem;">Sistema Parker</h1>
+        <p style="font-size: 1.5rem; opacity: 0.9;">Sistema inicializado com sucesso!</p>
+        <p style="font-size: 1rem; opacity: 0.7; margin-top: 2rem;">Versão de recuperação ativa</p>
       </div>
     </div>
   `;
+  console.log('Interface carregada com sucesso!');
 }
