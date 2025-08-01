@@ -73,7 +73,7 @@ const menuItems = [{
   icon: Database,
   role: 'user'
 }, {
-  title: 'Segurança',
+  title: 'Wazuh',
   url: '/security',
   icon: ShieldCheck,
   role: 'user'
