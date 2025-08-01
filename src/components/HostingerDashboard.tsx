@@ -441,7 +441,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
             {restarting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
           </Button>
           
-          <Button onClick={onSnapshot} variant="outline" size="sm" disabled={snapshotting} className="p-3 bg-slate-700 border-slate-600 hover:bg-slate-600 hover:border-blue-500 hover:text-blue-300" title="Criar Snapshot">
+          <Button onClick={onSnapshot} variant="outline" size="sm" disabled={snapshotting} title="Criar Snapshot" className="p-3 border-slate-600 hover:border-blue-500 text-slate-950 bg-slate-50">
             {snapshotting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
           </Button>
         </div>
