@@ -1,8 +1,10 @@
-
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useIntegrations, useUpdateIntegration } from './useIntegrations';
+import { supabase } from '@/integrations/supabase/client';
+import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
+// Interfaces para as entidades do GLPI
 export interface GLPITicket {
   id: number;
   name: string;
@@ -13,19 +15,32 @@ export interface GLPITicket {
   impact: number;
   users_id_requester: number;
   users_id_assign: number;
+  groups_id_assign: number;
   entities_id: number;
-  date: string;
+  date_creation: string;
   date_mod: string;
+  date: string;
   solvedate?: string;
   closedate?: string;
+  time_to_resolve?: string;
   type: number;
   global_validation: number;
-  itilcategories_id: number;
-  locations_id: number;
-  time_to_resolve?: string;
-  internal_time_to_resolve?: string;
   slas_id_ttr: number;
   slas_id_tto: number;
+  slas_ttr: any;
+  slas_tto: any;
+  requesters: any[];
+  observers: any[];
+  assigns: any[];
+  suppliers: any[];
+  categories_id: number;
+  locations_id: number;
+  validation?: any;
+  satisfaction?: any;
+  followup?: any[];
+  task?: any[];
+  document?: any[];
+  links?: any[];
 }
 
 export interface GLPIComputer {
@@ -39,14 +54,31 @@ export interface GLPIComputer {
   groups_id_tech: number;
   comment: string;
   date_mod: string;
-  date_creation: string;
+  operatingsystems_id: number;
+  operatingsystemversions_id: number;
+  operatingsystemservicepacks_id: number;
+  operatingsystemarchitectures_id: number;
+  operatingsystemkernelversions_id: number;
+  license_id: number;
+  license_number: string;
+  autoupdatesystems_id: number;
   locations_id: number;
+  domains_id: number;
   networks_id: number;
   computermodels_id: number;
   computertypes_id: number;
-  states_id: number;
+  is_template: number;
+  template_name: string;
   manufacturers_id: number;
   is_deleted: number;
+  is_dynamic: number;
+  users_id: number;
+  groups_id: number;
+  states_id: number;
+  ticket_tco: number;
+  uuid: string;
+  date_creation: string;
+  is_recursive: number;
   entities_id: number;
 }
 
@@ -58,13 +90,20 @@ export interface GLPIProblem {
   priority: number;
   urgency: number;
   impact: number;
-  date: string;
-  date_mod: string;
+  users_id_requester: number;
+  users_id_assign: number;
+  groups_id_assign: number;
   entities_id: number;
-  users_id_recipient: number;
-  impactcontent: string;
-  symptomcontent: string;
-  causecontent: string;
+  date_creation: string;
+  date_mod: string;
+  date: string;
+  solvedate?: string;
+  closedate?: string;
+  time_to_resolve?: string;
+  type: number;
+  global_validation: number;
+  slas_id_ttr: number;
+  slas_id_tto: number;
 }
 
 export interface GLPIChange {
@@ -75,30 +114,41 @@ export interface GLPIChange {
   priority: number;
   urgency: number;
   impact: number;
-  date: string;
-  date_mod: string;
+  users_id_requester: number;
+  users_id_assign: number;
+  groups_id_assign: number;
   entities_id: number;
-  users_id_recipient: number;
-  impactcontent: string;
-  rolloutplancontent: string;
-  backoutplancontent: string;
-  checklistcontent: string;
+  date_creation: string;
+  date_mod: string;
+  date: string;
+  solvedate?: string;
+  closedate?: string;
+  time_to_resolve?: string;
+  type: number;
+  global_validation: number;
+  slas_id_ttr: number;
+  slas_id_tto: number;
 }
 
 export interface GLPISupplier {
   id: number;
   name: string;
-  phonenumber: string;
-  fax: string;
-  website: string;
-  email: string;
+  suppliertypes_id: number;
   address: string;
   postcode: string;
   town: string;
   state: string;
   country: string;
+  website: string;
+  phonenumber: string;
   comment: string;
+  email: string;
+  fax: string;
   is_active: number;
+  date_mod: string;
+  entities_id: number;
+  is_recursive: number;
+  date_creation: string;
 }
 
 export interface GLPIContract {
@@ -116,30 +166,38 @@ export interface GLPIContract {
   max_links_allowed: number;
   alert: number;
   entities_id: number;
-  is_deleted: number;
+  is_recursive: number;
+  suppliers_id: number;
+  states_id: number;
   comment: string;
+  date_mod: string;
+  date_creation: string;
 }
 
 export interface GLPISoftware {
   id: number;
   name: string;
   comment: string;
-  locations_id: number;
-  users_id_tech: number;
-  groups_id_tech: number;
+  entities_id: number;
+  is_recursive: number;
+  manufacturers_id: number;
   is_update: number;
   softwares_id: number;
-  manufacturers_id: number;
-  entities_id: number;
-  is_deleted: number;
   is_template: number;
+  template_name: string;
   date_mod: string;
+  users_id_tech: number;
+  groups_id_tech: number;
+  is_deleted: number;
+  is_helpdesk_visible: number;
   date_creation: string;
+  pictures: any[];
 }
 
 export interface GLPIMonitor {
   id: number;
   name: string;
+  comment: string;
   serial: string;
   otherserial: string;
   size: number;
@@ -152,92 +210,218 @@ export interface GLPIMonitor {
   have_hdmi: number;
   have_displayport: number;
   locations_id: number;
+  monitortypes_id: number;
+  monitormodels_id: number;
+  manufacturers_id: number;
+  is_global: number;
+  is_deleted: number;
+  is_template: number;
+  template_name: string;
   users_id_tech: number;
   groups_id_tech: number;
   states_id: number;
-  manufacturers_id: number;
-  is_global: number;
-  entities_id: number;
-  is_deleted: number;
+  contact: string;
+  contact_num: string;
+  users_id: number;
+  groups_id: number;
   date_mod: string;
   date_creation: string;
+  entities_id: number;
+  is_recursive: number;
+  is_dynamic: number;
 }
 
 export interface GLPIPrinter {
   id: number;
   name: string;
+  comment: string;
   serial: string;
   otherserial: string;
+  contact: string;
+  contact_num: string;
+  users_id_tech: number;
+  groups_id_tech: number;
   have_serial: number;
   have_parallel: number;
   have_usb: number;
   have_wifi: number;
   have_ethernet: number;
   locations_id: number;
-  users_id_tech: number;
-  groups_id_tech: number;
-  states_id: number;
+  printertypes_id: number;
+  printermodels_id: number;
   manufacturers_id: number;
   is_global: number;
-  entities_id: number;
   is_deleted: number;
+  is_template: number;
+  template_name: string;
+  init_pages_counter: number;
+  last_pages_counter: number;
+  users_id: number;
+  groups_id: number;
+  states_id: number;
+  ticket_tco: number;
+  is_dynamic: number;
   date_mod: string;
   date_creation: string;
+  entities_id: number;
+  is_recursive: number;
 }
 
 export interface GLPINetworkEquipment {
   id: number;
   name: string;
+  comment: string;
   serial: string;
   otherserial: string;
-  locations_id: number;
+  contact: string;
+  contact_num: string;
   users_id_tech: number;
   groups_id_tech: number;
-  states_id: number;
+  locations_id: number;
+  networkequipmenttypes_id: number;
+  networkequipmentmodels_id: number;
   manufacturers_id: number;
-  is_global: number;
-  entities_id: number;
   is_deleted: number;
-  ram: string;
-  firmware: string;
+  is_template: number;
+  template_name: string;
+  users_id: number;
+  groups_id: number;
+  states_id: number;
+  ticket_tco: number;
+  is_dynamic: number;
+  uuid: string;
   date_mod: string;
   date_creation: string;
+  entities_id: number;
+  is_recursive: number;
+  ram: string;
+  uptime: string;
+  cpu: number;
+  memory: number;
 }
 
 export interface GLPIUser {
   id: number;
   name: string;
-  realname: string;
-  firstname: string;
+  password: string;
+  password2: string;
   email: string;
+  firstname: string;
+  realname: string;
+  nickname: string;
+  registration_number: string;
   phone: string;
+  phone2: string;
   mobile: string;
-  entities_id: number;
-  is_active: number;
-  date_creation: string;
-  date_mod: string;
-  locations_id: number;
+  fax: string;
+  website: string;
+  icq: string;
+  skype: string;
+  jabber: string;
+  yahoo: string;
+  msn: string;
+  aim: string;
+  twitter: string;
+  facebook: string;
+  linkedin: string;
+  youtube: string;
+  instagram: string;
+  picture: string;
+  comment: string;
+  language: string;
   usertitles_id: number;
   usercategories_id: number;
+  date_format: number;
+  number_format: number;
+  names_format: number;
+  csv_delimiter: string;
+  is_active: number;
+  is_deleted: number;
+  entities_id: number;
+  is_recursive: number;
+  last_login: string;
+  date_mod: string;
+  date_creation: string;
+  profiles_id: number;
 }
 
 export interface GLPIEntity {
   id: number;
   name: string;
-  comment: string;
   entities_id: number;
   completename: string;
+  comment: string;
   level: number;
   sons_cache: string;
   ancestors_cache: string;
+  address: string;
+  postcode: string;
+  town: string;
+  state: string;
+  country: string;
+  website: string;
+  phonenumber: string;
+  fax: string;
+  email: string;
+  admin_email: string;
+  admin_email_name: string;
+  admin_reply: string;
+  admin_reply_name: string;
+  notification_subject_tag: string;
+  ldap_dn: string;
+  tag: string;
+  authldaps_id: number;
+  mail_domain: string;
+  entity_ldapfilter: string;
+  mailing_signature: string;
+  cartridges_alert_repeat: number;
+  consumables_alert_repeat: number;
+  use_licenses_alert: number;
+  send_licenses_alert_before_delay: number;
+  use_certificates_alert: number;
+  send_certificates_alert_before_delay: number;
+  use_contracts_alert: number;
+  send_contracts_alert_before_delay: number;
+  use_infocoms_alert: number;
+  send_infocoms_alert_before_delay: number;
+  use_reservations_alert: number;
+  autoclose_delay: number;
+  notclosed_delay: number;
+  calendars_id: number;
+  auto_assign_mode: number;
+  tickettype: number;
+  max_closedate: string;
+  inquest_config: number;
+  inquest_rate: number;
+  inquest_delay: number;
+  inquest_URL: string;
+  autofill_mark: string;
+  autofill_order: string;
+  autofill_buy_date: string;
+  autofill_delivery_date: string;
+  autofill_use_date: string;
+  autofill_warranty_date: string;
+  inquest_duration: number;
+  date_mod: string;
+  date_creation: string;
+  autofill_decommission_date: string;
+  suppliers_id_software: number;
+  display_users_initials: number;
+  contract_alerts: string;
+  cartridge_alerts: string;
+  consumable_alerts: string;
+  use_domains_alert: number;
+  send_domains_alert_close_expiries_delay: number;
+  send_domains_alert_expired_delay: number;
+  transfers_id: number;
 }
 
 export interface GLPILocation {
   id: number;
   name: string;
-  comment: string;
   locations_id: number;
   completename: string;
+  comment: string;
   level: number;
   ancestors_cache: string;
   sons_cache: string;
@@ -250,13 +434,27 @@ export interface GLPILocation {
   room: string;
   latitude: string;
   longitude: string;
+  altitude: string;
+  date_mod: string;
+  date_creation: string;
+  entities_id: number;
+  is_recursive: number;
 }
 
 export interface GLPIGroup {
   id: number;
   name: string;
   comment: string;
-  entities_id: number;
+  ldap_field: string;
+  ldap_value: string;
+  ldap_group_dn: string;
+  date_mod: string;
+  users_id: number;
+  groups_id: number;
+  completename: string;
+  level: number;
+  ancestors_cache: string;
+  sons_cache: string;
   is_requester: number;
   is_watcher: number;
   is_assign: number;
@@ -264,433 +462,317 @@ export interface GLPIGroup {
   is_notify: number;
   is_itemgroup: number;
   is_usergroup: number;
-  date_mod: string;
+  ticket_create: number;
+  ticket_steal: number;
+  id_supervisor: number;
   date_creation: string;
+  entities_id: number;
+  is_recursive: number;
 }
 
-const STATUS_MAP: Record<number, string> = {
+// Mapeamentos de status e prioridade
+export const STATUS_MAP: Record<number, string> = {
   1: 'Novo',
-  2: 'Em Andamento (atribuído)',
-  3: 'Em Andamento (planejado)',
+  2: 'Em Andamento (Atribuído)',
+  3: 'Em Andamento (Planejado)',
   4: 'Pendente',
-  5: 'Resolvido',
+  5: 'Solucionado',
   6: 'Fechado'
 };
 
-const PRIORITY_MAP: Record<number, string> = {
-  1: 'Muito Baixa',
+export const PRIORITY_MAP: Record<number, string> = {
+  1: 'Muito baixa',
   2: 'Baixa',
   3: 'Média',
   4: 'Alta',
-  5: 'Muito Alta',
-  6: 'Crítica'
+  5: 'Muito alta',
+  6: 'Urgente'
 };
 
 export const useGLPIExpanded = () => {
   const { data: integrations } = useIntegrations();
-  const updateIntegration = useUpdateIntegration();
   const queryClient = useQueryClient();
-  
-  const glpiIntegration = integrations?.find(int => int.type === 'glpi');
-  
-  const makeGLPIRequest = async (endpoint: string, options: RequestInit = {}) => {
+
+  // Obter a integração do GLPI
+  const glpiIntegration = integrations?.find(integration => 
+    integration.type === 'glpi' && integration.is_active
+  );
+
+  console.log('📊 GLPI Integration status:', {
+    hasIntegration: !!glpiIntegration,
+    hasAppToken: !!glpiIntegration?.api_token,
+    hasSessionToken: !!glpiIntegration?.webhook_url,
+    isEnabled: !!glpiIntegration?.is_active,
+    baseUrl: glpiIntegration?.base_url || 'não configurado',
+    sessionToken: glpiIntegration?.webhook_url ? 'presente' : 'ausente'
+  });
+
+  // Função para fazer requisições através do proxy
+  const makeGLPIRequest = async (endpoint: string, options?: RequestInit) => {
     if (!glpiIntegration) {
       throw new Error('GLPI não configurado');
     }
 
-    // Validação de pré-requisitos
-    if (!glpiIntegration.api_token) {
-      throw new Error('App Token não configurado. Configure o App Token no GLPI.');
-    }
-
-    if (!glpiIntegration.webhook_url) {
-      throw new Error('Sessão não inicializada. Clique em "Iniciar Sessão" primeiro.');
-    }
-
-    // Corrigir a URL base removendo /apirest.php se existir
-    const baseUrl = glpiIntegration.base_url.replace(/\/$/, '').replace(/\/apirest\.php$/, '');
-    const url = `${baseUrl}/apirest.php/${endpoint}`;
-    
-    console.log(`🔍 Fazendo requisição GLPI: ${endpoint}`, {
-      url,
-      hasAppToken: !!glpiIntegration.api_token,
-      hasSessionToken: !!glpiIntegration.webhook_url,
-      appTokenLength: glpiIntegration.api_token?.length || 0
-    });
-    
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'App-Token': glpiIntegration.api_token,
-        'Session-Token': glpiIntegration.webhook_url,
-        ...options.headers,
-      },
+    console.log('📡 Fazendo requisição GLPI via proxy:', {
+      endpoint,
+      integrationId: glpiIntegration.id,
+      method: options?.method || 'GET'
     });
 
-    console.log(`📋 Resposta GLPI ${endpoint}:`, {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke('glpi-proxy', {
+        body: {
+          integrationId: glpiIntegration.id,
+          endpoint,
+          method: options?.method || 'GET',
+          data: options?.body ? JSON.parse(options.body as string) : undefined
+        }
+      });
 
-    if (!response.ok) {
-      // Capturar mais detalhes do erro
-      let errorMessage = `GLPI API Error: ${response.status} ${response.statusText}`;
-      let errorDetails = '';
-      
-      try {
-        const errorData = await response.json();
-        if (errorData && errorData.message) {
-          errorDetails = errorData.message;
-        } else if (typeof errorData === 'string') {
-          errorDetails = errorData;
-        }
-      } catch (e) {
-        try {
-          errorDetails = await response.text();
-        } catch (textError) {
-          console.log('Não foi possível obter detalhes do erro');
-        }
+      console.log('📨 Resposta do proxy GLPI:', {
+        hasData: !!data,
+        hasError: !!error,
+        endpoint
+      });
+
+      if (error) {
+        console.error('❌ Erro na função Edge:', error);
+        throw new Error(`Erro na comunicação: ${error.message || 'Erro desconhecido'}`);
       }
 
-      // Diagnóstico específico para erros comuns
-      if (response.status === 400) {
-        if (!glpiIntegration.api_token) {
-          throw new Error('Erro 400: App Token não configurado');
-        }
-        if (errorDetails.includes('ERROR_APP_TOKEN_PARAMETERS_MISSING')) {
-          throw new Error('Erro 400: App Token ausente ou inválido');
-        }
-        throw new Error(`Erro 400: Parâmetros inválidos - ${errorDetails || 'Verifique a configuração'}`);
+      if (data?.error) {
+        console.error('❌ Erro da API GLPI:', data.error);
+        throw new Error(data.error);
       }
 
-      if (response.status === 401) {
-        // Se token expirou, tentar renovar
-        console.log('🔄 Session token expirado, tentando renovar...');
-        try {
-          const newToken = await initializeSession();
-          if (newToken) {
-            // Repetir a requisição com o novo token
-            return fetch(url, {
-              ...options,
-              headers: {
-                'Content-Type': 'application/json',
-                'App-Token': glpiIntegration.api_token,
-                'Session-Token': newToken,
-                ...options.headers,
-              },
-            }).then(res => {
-              if (!res.ok) {
-                throw new Error(`GLPI API Error: ${res.status} ${res.statusText}`);
-              }
-              return res.json();
-            });
-          }
-        } catch (renewError) {
-          throw new Error(`Erro 401: Sessão expirada e não foi possível renovar - ${errorDetails}`);
-        }
-      }
-
-      if (response.status === 404) {
-        throw new Error(`Erro 404: Endpoint não encontrado - Verifique se a URL está correta e se a API REST está habilitada`);
-      }
-
-      if (response.status === 500) {
-        throw new Error(`Erro 500: Erro interno do servidor GLPI - ${errorDetails}`);
-      }
-      
-      throw new Error(`${errorMessage}${errorDetails ? ` - ${errorDetails}` : ''}`);
+      return data?.result || data;
+    } catch (error) {
+      console.error('❌ Erro geral na chamada GLPI:', error);
+      throw error;
     }
-
-    return response.json();
   };
 
-  // Função para inicializar sessão e salvar token
+  // Função para inicializar sessão via proxy
   const initializeSession = async (): Promise<string | null> => {
     if (!glpiIntegration) {
       throw new Error('GLPI não configurado');
     }
 
-    // Validação de pré-requisitos
-    if (!glpiIntegration.api_token) {
-      throw new Error('App Token não configurado. Configure o App Token no GLPI primeiro.');
-    }
-
-    if (!glpiIntegration.password && (!glpiIntegration.username || !glpiIntegration.password)) {
-      throw new Error('Credenciais não configuradas. Configure um User Token (campo senha) ou usuário/senha.');
-    }
+    console.log('🚀 Inicializando sessão GLPI via proxy:', {
+      integrationId: glpiIntegration.id,
+      hasAppToken: !!glpiIntegration.api_token,
+      hasCredentials: !!(glpiIntegration.username || glpiIntegration.password)
+    });
 
     try {
-      // Corrigir a URL base removendo /apirest.php se existir
-      const baseUrl = glpiIntegration.base_url.replace(/\/$/, '').replace(/\/apirest\.php$/, '');
-      console.log('🚀 Inicializando sessão GLPI:', {
-        baseUrl,
-        hasAppToken: !!glpiIntegration.api_token,
-        appTokenLength: glpiIntegration.api_token?.length || 0,
-        hasUsername: !!glpiIntegration.username,
-        hasPassword: !!glpiIntegration.password,
-        authMethod: glpiIntegration.password && !glpiIntegration.username ? 'User Token' : 'Basic Auth'
+      const { data, error } = await supabase.functions.invoke('glpi-proxy', {
+        body: {
+          integrationId: glpiIntegration.id,
+          endpoint: 'initSession',
+          method: 'POST'
+        }
       });
 
-      let response: Response;
-      let authHeaders: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'App-Token': glpiIntegration.api_token,
-      };
-
-      // Método 1: Tentar com User Token (recomendado)
-      if (glpiIntegration.password && !glpiIntegration.username) {
-        console.log('🔑 Tentando autenticação com User Token...');
-        authHeaders['Authorization'] = `user_token ${glpiIntegration.password}`;
-        
-        response = await fetch(`${baseUrl}/apirest.php/initSession`, {
-          method: 'POST',
-          headers: authHeaders,
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const sessionToken = data.session_token;
-          console.log('✅ Autenticação com User Token bem-sucedida');
-
-          // Salvar o session token na integração
-          if (sessionToken && glpiIntegration.id) {
-            await updateIntegration.mutateAsync({
-              id: glpiIntegration.id,
-              updates: { webhook_url: sessionToken }
-            });
-            console.log('💾 Session token salvo na integração');
-          }
-
-          return sessionToken;
-        } else {
-          const errorText = await response.text();
-          console.log('❌ Falha na autenticação com User Token:', response.status, errorText);
-          
-          // Diagnóstico específico
-          if (response.status === 400) {
-            throw new Error('User Token inválido ou App Token incorreto. Verifique as configurações.');
-          }
-          if (response.status === 401) {
-            throw new Error('User Token expirado ou inválido. Gere um novo User Token no GLPI.');
-          }
-        }
+      if (error) {
+        console.error('❌ Erro na função Edge:', error);
+        throw new Error(`Erro na comunicação: ${error.message || 'Erro desconhecido'}`);
       }
 
-      // Método 2: Tentar com Basic Auth (fallback)
-      if (glpiIntegration.username && glpiIntegration.password) {
-        console.log('🔑 Tentando autenticação com Basic Auth...');
-        authHeaders['Authorization'] = `Basic ${btoa(`${glpiIntegration.username}:${glpiIntegration.password}`)}`;
-        
-        response = await fetch(`${baseUrl}/apirest.php/initSession`, {
-          method: 'POST',
-          headers: authHeaders,
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const sessionToken = data.session_token;
-          console.log('✅ Autenticação com Basic Auth bem-sucedida');
-
-          // Salvar o session token na integração
-          if (sessionToken && glpiIntegration.id) {
-            await updateIntegration.mutateAsync({
-              id: glpiIntegration.id,
-              updates: { webhook_url: sessionToken }
-            });
-            console.log('💾 Session token salvo na integração');
-          }
-
-          return sessionToken;
-        } else {
-          const errorText = await response.text();
-          console.error('❌ Erro na autenticação Basic Auth:', response.status, errorText);
-          
-          // Diagnóstico específico
-          if (response.status === 400) {
-            throw new Error('Credenciais inválidas ou App Token incorreto. Verifique usuário, senha e App Token.');
-          }
-          if (response.status === 401) {
-            throw new Error('Usuário ou senha incorretos. Verifique as credenciais.');
-          }
-        }
+      if (data?.error) {
+        console.error('❌ Erro da API GLPI:', data.error);
+        throw new Error(data.error);
       }
 
-      throw new Error('Falha na autenticação GLPI. Verifique suas credenciais e certifique-se de que a API REST está habilitada.');
+      const sessionToken = data?.session_token || data?.result?.session_token;
+
+      if (!sessionToken) {
+        throw new Error('Session token não retornado pelo servidor');
+      }
+
+      console.log('✅ Session token obtido com sucesso');
+
+      // Salvar o session token na integração
+      const { error: updateError } = await supabase
+        .from('integrations')
+        .update({ 
+          webhook_url: sessionToken,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', glpiIntegration.id);
+
+      if (updateError) {
+        console.error('❌ Erro ao salvar session token:', updateError);
+        throw new Error('Erro ao salvar session token');
+      }
+
+      console.log('✅ Session token salvo na integração');
+      
+      // Invalidar queries para forçar re-fetch com nova sessão
+      queryClient.invalidateQueries({ queryKey: ['integrations'] });
+      queryClient.invalidateQueries({ queryKey: ['glpi'] });
+
+      return sessionToken;
     } catch (error) {
       console.error('❌ Erro ao inicializar sessão GLPI:', error);
       throw error;
     }
   };
 
-  // Initialize GLPI session
+  // Mutation para inicialização de sessão
   const initSession = useMutation({
     mutationFn: initializeSession,
     onSuccess: (sessionToken) => {
-      console.log('🎉 Sessão GLPI inicializada com sucesso:', sessionToken);
-      toast({
-        title: "✅ Conectado ao GLPI",
-        description: "Sessão inicializada com sucesso!",
-      });
-      // Invalidar todas as queries para recarregar com novo token
-      queryClient.invalidateQueries({ queryKey: ['glpi-'] });
+      if (sessionToken) {
+        toast({
+          title: "Sessão GLPI iniciada!",
+          description: "Conectado com sucesso ao GLPI.",
+        });
+      }
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('❌ Erro ao inicializar sessão GLPI:', error);
       toast({
-        title: "❌ Erro de conexão",
+        title: "Erro ao conectar com GLPI",
         description: error.message,
         variant: "destructive"
       });
     },
   });
 
-  // Verificar se temos uma sessão válida
-  const hasValidSession = !!glpiIntegration?.webhook_url;
-  const isEnabled = !!glpiIntegration && hasValidSession && !!glpiIntegration.api_token;
+  // Auto-inicializar sessão se não houver token
+  React.useEffect(() => {
+    if (glpiIntegration && glpiIntegration.api_token && !glpiIntegration.webhook_url && !initSession.isPending) {
+      console.log('🔄 Auto-inicializando sessão GLPI...');
+      initSession.mutate();
+    }
+  }, [glpiIntegration, initSession]);
 
-  console.log('📊 GLPI Integration status:', {
-    hasIntegration: !!glpiIntegration,
-    hasAppToken: !!glpiIntegration?.api_token,
-    hasSessionToken: hasValidSession,
-    isEnabled,
-    baseUrl: glpiIntegration?.base_url,
-    sessionToken: glpiIntegration?.webhook_url ? 'presente' : 'ausente'
-  });
-
+  // Queries para buscar dados
   const tickets = useQuery({
-    queryKey: ['glpi-tickets'],
-    queryFn: () => {
-      console.log('🎫 Buscando tickets GLPI...');
-      return makeGLPIRequest('Ticket?range=0-100&expand_dropdowns=true');
+    queryKey: ['glpi', 'tickets', glpiIntegration?.id],
+    queryFn: () => makeGLPIRequest('tickets'),
+    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    staleTime: 30000,
+    retry: (failureCount, error) => {
+      // Não tentar novamente em caso de erros de configuração
+      if (error.message.includes('não configurado') || 
+          error.message.includes('Credenciais inválidas') ||
+          error.message.includes('App Token')) {
+        return false;
+      }
+      return failureCount < 2;
     },
-    enabled: isEnabled,
-    refetchInterval: 30000,
-    retry: 1,
   });
 
   const problems = useQuery({
-    queryKey: ['glpi-problems'],
-    queryFn: () => makeGLPIRequest('Problem?range=0-50&expand_dropdowns=true'),
-    enabled: isEnabled,
-    refetchInterval: 60000,
-    retry: 1,
+    queryKey: ['glpi', 'problems', glpiIntegration?.id],
+    queryFn: () => makeGLPIRequest('problems'),
+    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    staleTime: 30000,
   });
 
   const changes = useQuery({
-    queryKey: ['glpi-changes'],
-    queryFn: () => makeGLPIRequest('Change?range=0-50&expand_dropdowns=true'),
-    enabled: isEnabled,
-    refetchInterval: 60000,
-    retry: 1,
+    queryKey: ['glpi', 'changes', glpiIntegration?.id],
+    queryFn: () => makeGLPIRequest('changes'),
+    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    staleTime: 30000,
   });
 
   const computers = useQuery({
-    queryKey: ['glpi-computers'],
-    queryFn: () => makeGLPIRequest('Computer?range=0-100&expand_dropdowns=true'),
-    enabled: isEnabled,
-    refetchInterval: 300000,
-    retry: 1,
+    queryKey: ['glpi', 'computers', glpiIntegration?.id],
+    queryFn: () => makeGLPIRequest('computers'),
+    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    staleTime: 60000,
   });
 
   const monitors = useQuery({
-    queryKey: ['glpi-monitors'],
-    queryFn: () => makeGLPIRequest('Monitor?range=0-100&expand_dropdowns=true'),
-    enabled: isEnabled,
-    refetchInterval: 300000,
-    retry: 1,
+    queryKey: ['glpi', 'monitors', glpiIntegration?.id],
+    queryFn: () => makeGLPIRequest('Monitor'),
+    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    staleTime: 60000,
   });
 
   const printers = useQuery({
-    queryKey: ['glpi-printers'],
-    queryFn: () => makeGLPIRequest('Printer?range=0-100&expand_dropdowns=true'),
-    enabled: isEnabled,
-    refetchInterval: 300000,
-    retry: 1,
+    queryKey: ['glpi', 'printers', glpiIntegration?.id],
+    queryFn: () => makeGLPIRequest('Printer'),
+    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    staleTime: 60000,
   });
 
-  const networkEquipment = useQuery({
-    queryKey: ['glpi-network-equipment'],
-    queryFn: () => makeGLPIRequest('NetworkEquipment?range=0-100&expand_dropdowns=true'),
-    enabled: isEnabled,
-    refetchInterval: 300000,
-    retry: 1,
+  const networkequipments = useQuery({
+    queryKey: ['glpi', 'networkequipments', glpiIntegration?.id],
+    queryFn: () => makeGLPIRequest('NetworkEquipment'),
+    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    staleTime: 60000,
   });
 
   const software = useQuery({
-    queryKey: ['glpi-software'],
-    queryFn: () => makeGLPIRequest('Software?range=0-100&expand_dropdowns=true'),
-    enabled: isEnabled,
-    refetchInterval: 300000,
-    retry: 1,
+    queryKey: ['glpi', 'software', glpiIntegration?.id],
+    queryFn: () => makeGLPIRequest('Software'),
+    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    staleTime: 60000,
   });
 
   const suppliers = useQuery({
-    queryKey: ['glpi-suppliers'],
-    queryFn: () => makeGLPIRequest('Supplier?range=0-50&expand_dropdowns=true'),
-    enabled: isEnabled,
-    refetchInterval: 300000,
-    retry: 1,
+    queryKey: ['glpi', 'suppliers', glpiIntegration?.id],
+    queryFn: () => makeGLPIRequest('Supplier'),
+    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    staleTime: 60000,
   });
 
   const contracts = useQuery({
-    queryKey: ['glpi-contracts'],
-    queryFn: () => makeGLPIRequest('Contract?range=0-50&expand_dropdowns=true'),
-    enabled: isEnabled,
-    refetchInterval: 300000,
-    retry: 1,
+    queryKey: ['glpi', 'contracts', glpiIntegration?.id],
+    queryFn: () => makeGLPIRequest('Contract'),
+    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    staleTime: 60000,
   });
 
   const users = useQuery({
-    queryKey: ['glpi-users'],
-    queryFn: () => makeGLPIRequest('User?range=0-100&expand_dropdowns=true'),
-    enabled: isEnabled,
-    refetchInterval: 300000,
-    retry: 1,
+    queryKey: ['glpi', 'users', glpiIntegration?.id],
+    queryFn: () => makeGLPIRequest('users'),
+    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    staleTime: 60000,
   });
 
   const entities = useQuery({
-    queryKey: ['glpi-entities'],
-    queryFn: () => makeGLPIRequest('Entity?range=0-50&expand_dropdowns=true'),
-    enabled: isEnabled,
-    refetchInterval: 300000,
-    retry: 1,
+    queryKey: ['glpi', 'entities', glpiIntegration?.id],
+    queryFn: () => makeGLPIRequest('entities'),
+    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    staleTime: 60000,
   });
 
   const locations = useQuery({
-    queryKey: ['glpi-locations'],
-    queryFn: () => makeGLPIRequest('Location?range=0-100&expand_dropdowns=true'),
-    enabled: isEnabled,
-    refetchInterval: 300000,
-    retry: 1,
+    queryKey: ['glpi', 'locations', glpiIntegration?.id],
+    queryFn: () => makeGLPIRequest('locations'),
+    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    staleTime: 60000,
   });
 
   const groups = useQuery({
-    queryKey: ['glpi-groups'],
-    queryFn: () => makeGLPIRequest('Group?range=0-50&expand_dropdowns=true'),
-    enabled: isEnabled,
-    refetchInterval: 300000,
-    retry: 1,
+    queryKey: ['glpi', 'groups', glpiIntegration?.id],
+    queryFn: () => makeGLPIRequest('groups'),
+    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    staleTime: 60000,
   });
 
+  // Mutations para criar, atualizar e deletar tickets
   const createTicket = useMutation({
-    mutationFn: async (ticketData: Partial<GLPITicket>) => {
-      return makeGLPIRequest('Ticket', {
+    mutationFn: (ticketData: Partial<GLPITicket>) => {
+      return makeGLPIRequest('tickets', {
         method: 'POST',
-        body: JSON.stringify({ input: ticketData }),
+        body: JSON.stringify(ticketData),
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['glpi-tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['glpi', 'tickets'] });
       toast({
-        title: "✅ Chamado criado",
-        description: "Chamado criado com sucesso no GLPI!",
+        title: "Ticket criado!",
+        description: "O ticket foi criado com sucesso no GLPI.",
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
-        title: "❌ Erro ao criar chamado",
+        title: "Erro ao criar ticket",
         description: error.message,
         variant: "destructive"
       });
@@ -698,22 +780,22 @@ export const useGLPIExpanded = () => {
   });
 
   const updateTicket = useMutation({
-    mutationFn: async ({ id, updates }: { id: number; updates: Partial<GLPITicket> }) => {
-      return makeGLPIRequest(`Ticket/${id}`, {
+    mutationFn: ({ id, updates }: { id: number; updates: Partial<GLPITicket> }) => {
+      return makeGLPIRequest(`tickets/${id}`, {
         method: 'PUT',
-        body: JSON.stringify({ input: updates }),
+        body: JSON.stringify(updates),
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['glpi-tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['glpi', 'tickets'] });
       toast({
-        title: "✅ Chamado atualizado",
-        description: "Chamado atualizado com sucesso!",
+        title: "Ticket atualizado!",
+        description: "O ticket foi atualizado com sucesso.",
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
-        title: "❌ Erro ao atualizar chamado",
+        title: "Erro ao atualizar ticket",
         description: error.message,
         variant: "destructive"
       });
@@ -721,94 +803,65 @@ export const useGLPIExpanded = () => {
   });
 
   const deleteTicket = useMutation({
-    mutationFn: async (id: number) => {
-      return makeGLPIRequest(`Ticket/${id}`, {
+    mutationFn: (id: number) => {
+      return makeGLPIRequest(`tickets/${id}`, {
         method: 'DELETE',
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['glpi-tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['glpi', 'tickets'] });
       toast({
-        title: "✅ Chamado excluído",
-        description: "Chamado excluído com sucesso!",
+        title: "Ticket deletado!",
+        description: "O ticket foi deletado com sucesso.",
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
-        title: "❌ Erro ao excluir chamado",
+        title: "Erro ao deletar ticket",
         description: error.message,
         variant: "destructive"
       });
     },
   });
 
+  // Helper functions e computed values
   const getStatusText = (status: number) => STATUS_MAP[status] || `Status ${status}`;
   const getPriorityText = (priority: number) => PRIORITY_MAP[priority] || `Prioridade ${priority}`;
+  const hasValidSession = !!glpiIntegration?.webhook_url;
+  const isEnabled = !!glpiIntegration?.is_active;
 
   return {
+    // Dados da integração
     glpiIntegration,
-    initSession,
     hasValidSession,
     isEnabled,
-    tickets: {
-      ...tickets,
-      data: tickets.data || [],
-    },
-    problems: {
-      ...problems,
-      data: problems.data || [],
-    },
-    changes: {
-      ...changes,
-      data: changes.data || [],
-    },
-    computers: {
-      ...computers,
-      data: computers.data || [],
-    },
-    monitors: {
-      ...monitors,
-      data: monitors.data || [],
-    },
-    printers: {
-      ...printers,
-      data: printers.data || [],
-    },
-    networkEquipment: {
-      ...networkEquipment,
-      data: networkEquipment.data || [],
-    },
-    software: {
-      ...software,
-      data: software.data || [],
-    },
-    suppliers: {
-      ...suppliers,
-      data: suppliers.data || [],
-    },
-    contracts: {
-      ...contracts,
-      data: contracts.data || [],
-    },
-    users: {
-      ...users,
-      data: users.data || [],
-    },
-    entities: {
-      ...entities,
-      data: entities.data || [],
-    },
-    locations: {
-      ...locations,
-      data: locations.data || [],
-    },
-    groups: {
-      ...groups,
-      data: groups.data || [],
-    },
+    
+    // Estado da inicialização
+    initSession,
+    
+    // Queries de dados
+    tickets,
+    problems,
+    changes,
+    computers,
+    monitors,
+    printers,
+    networkequipments,
+    networkEquipment: networkequipments, // Alias para compatibilidade
+    software,
+    suppliers,
+    contracts,
+    users,
+    entities,
+    locations,
+    groups,
+    
+    // Mutations
     createTicket,
     updateTicket,
     deleteTicket,
+    
+    // Helper functions
     getStatusText,
     getPriorityText,
   };
