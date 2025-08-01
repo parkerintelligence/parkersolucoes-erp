@@ -19,14 +19,60 @@ import {
   Lock
 } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
+import { useWazuhAPI } from '@/hooks/useWazuhAPI';
 
 const Security = () => {
   const { data: integrations } = useIntegrations();
   const wazuhIntegration = integrations?.find(int => int.type === 'wazuh' && int.is_active);
-  const [isLoading, setIsLoading] = useState(false);
+  
+  const { 
+    useWazuhAgents, 
+    useWazuhAlerts, 
+    useWazuhStats,
+    useWazuhCompliance,
+    useWazuhVulnerabilities,
+    refreshData 
+  } = useWazuhAPI();
 
-  // Mock data para demonstração (seria substituído por dados reais da API)
-  const mockData = {
+  // Fetch real Wazuh data if integration is available
+  const { data: agents, isLoading: agentsLoading } = useWazuhAgents(wazuhIntegration?.id || '');
+  const { data: alerts, isLoading: alertsLoading } = useWazuhAlerts(wazuhIntegration?.id || '');
+  const { data: stats, isLoading: statsLoading } = useWazuhStats(wazuhIntegration?.id || '');
+  const { data: compliance, isLoading: complianceLoading } = useWazuhCompliance(wazuhIntegration?.id || '');
+  const { data: vulnerabilities, isLoading: vulnerabilitiesLoading } = useWazuhVulnerabilities(wazuhIntegration?.id || '');
+
+  const isLoadingData = agentsLoading || alertsLoading || statsLoading || complianceLoading || vulnerabilitiesLoading;
+
+  // Use real data if available, otherwise use mock data
+  const displayData = wazuhIntegration && stats ? {
+    agents: {
+      total: stats.total_agents || 0,
+      active: stats.agents_connected || 0,
+      disconnected: stats.agents_disconnected || 0,
+      never_connected: stats.agents_never_connected || 0
+    },
+    alerts: {
+      critical: stats.critical_alerts || 0,
+      high: stats.high_alerts || 0,
+      medium: stats.medium_alerts || 0,
+      low: stats.low_alerts || 0,
+      total: stats.total_alerts_today || 0
+    },
+    compliance: compliance?.data || {
+      pci_dss: 87,
+      gdpr: 92,
+      hipaa: 78,
+      nist: 85
+    },
+    vulnerabilities: vulnerabilities?.data || {
+      critical: 5,
+      high: 23,
+      medium: 67,
+      low: 134
+    },
+    agentsList: agents?.data?.affected_items || [],
+    alertsList: alerts?.data?.affected_items || []
+  } : {
     agents: {
       total: 45,
       active: 42,
@@ -51,13 +97,23 @@ const Security = () => {
       high: 23,
       medium: 67,
       low: 134
-    }
+    },
+    agentsList: [
+      { id: '001', name: 'web-server-01', ip: '192.168.1.10', os: { name: 'Ubuntu 20.04' }, status: 'active' },
+      { id: '002', name: 'db-server-01', ip: '192.168.1.20', os: { name: 'CentOS 8' }, status: 'active' },
+      { id: '003', name: 'mail-server-01', ip: '192.168.1.30', os: { name: 'Ubuntu 22.04' }, status: 'disconnected' },
+    ],
+    alertsList: [
+      { id: 1, rule: { description: 'SSH Brute Force', level: 10 }, agent: { name: 'web-server-01' }, timestamp: '2024-01-15T10:35:22Z' },
+      { id: 2, rule: { description: 'Web Attack', level: 12 }, agent: { name: 'web-server-01' }, timestamp: '2024-01-15T10:30:15Z' },
+      { id: 3, rule: { description: 'File Integrity', level: 7 }, agent: { name: 'db-server-01' }, timestamp: '2024-01-15T10:25:08Z' },
+    ]
   };
 
   const handleRefresh = async () => {
-    setIsLoading(true);
-    // Aqui seria feita a chamada real para a API do Wazuh
-    setTimeout(() => setIsLoading(false), 2000);
+    if (wazuhIntegration) {
+      refreshData(wazuhIntegration.id);
+    }
   };
 
   if (!wazuhIntegration) {
@@ -100,11 +156,11 @@ const Security = () => {
             </Badge>
             <Button 
               onClick={handleRefresh}
-              disabled={isLoading}
+              disabled={isLoadingData}
               variant="outline"
               className="border-slate-600 text-white hover:bg-slate-800"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingData ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
           </div>
@@ -120,8 +176,8 @@ const Security = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{mockData.agents.active}</div>
-              <p className="text-xs text-slate-400">de {mockData.agents.total} total</p>
+              <div className="text-2xl font-bold text-white">{displayData.agents.active}</div>
+              <p className="text-xs text-slate-400">de {displayData.agents.total} total</p>
             </CardContent>
           </Card>
 
@@ -133,7 +189,7 @@ const Security = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-400">{mockData.alerts.critical}</div>
+              <div className="text-2xl font-bold text-red-400">{displayData.alerts.critical}</div>
               <p className="text-xs text-slate-400">últimas 24h</p>
             </CardContent>
           </Card>
@@ -147,7 +203,7 @@ const Security = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-400">
-                {Math.round((mockData.compliance.pci_dss + mockData.compliance.gdpr + mockData.compliance.hipaa + mockData.compliance.nist) / 4)}%
+                {Math.round((displayData.compliance.pci_dss + displayData.compliance.gdpr + displayData.compliance.hipaa + displayData.compliance.nist) / 4)}%
               </div>
               <p className="text-xs text-slate-400">média geral</p>
             </CardContent>
@@ -161,7 +217,7 @@ const Security = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-400">{mockData.vulnerabilities.critical + mockData.vulnerabilities.high}</div>
+              <div className="text-2xl font-bold text-orange-400">{displayData.vulnerabilities.critical + displayData.vulnerabilities.high}</div>
               <p className="text-xs text-slate-400">críticas e altas</p>
             </CardContent>
           </Card>
@@ -190,15 +246,15 @@ const Security = () => {
                 <CardContent className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-slate-300">Ativos</span>
-                    <Badge variant="default" className="bg-green-600">{mockData.agents.active}</Badge>
+                    <Badge variant="default" className="bg-green-600">{displayData.agents.active}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-300">Desconectados</span>
-                    <Badge variant="destructive">{mockData.agents.disconnected}</Badge>
+                    <Badge variant="destructive">{displayData.agents.disconnected}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-300">Nunca conectaram</span>
-                    <Badge variant="secondary">{mockData.agents.never_connected}</Badge>
+                    <Badge variant="secondary">{displayData.agents.never_connected}</Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -214,19 +270,19 @@ const Security = () => {
                 <CardContent className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-slate-300">Críticos</span>
-                    <Badge variant="destructive">{mockData.alerts.critical}</Badge>
+                    <Badge variant="destructive">{displayData.alerts.critical}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-300">Altos</span>
-                    <Badge className="bg-orange-600">{mockData.alerts.high}</Badge>
+                    <Badge className="bg-orange-600">{displayData.alerts.high}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-300">Médios</span>
-                    <Badge className="bg-yellow-600">{mockData.alerts.medium}</Badge>
+                    <Badge className="bg-yellow-600">{displayData.alerts.medium}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-300">Baixos</span>
-                    <Badge variant="secondary">{mockData.alerts.low}</Badge>
+                    <Badge variant="secondary">{displayData.alerts.low}</Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -243,18 +299,13 @@ const Security = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {/* Mock agents list */}
-                  {[
-                    { id: '001', name: 'web-server-01', ip: '192.168.1.10', os: 'Ubuntu 20.04', status: 'active' },
-                    { id: '002', name: 'db-server-01', ip: '192.168.1.20', os: 'CentOS 8', status: 'active' },
-                    { id: '003', name: 'mail-server-01', ip: '192.168.1.30', os: 'Ubuntu 22.04', status: 'disconnected' },
-                  ].map((agent) => (
+                  {displayData.agentsList.slice(0, 10).map((agent) => (
                     <div key={agent.id} className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className={`w-3 h-3 rounded-full ${agent.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`} />
                         <div>
                           <p className="text-white font-medium">{agent.name}</p>
-                          <p className="text-slate-400 text-sm">{agent.ip} - {agent.os}</p>
+                          <p className="text-slate-400 text-sm">{agent.ip} - {agent.os?.name || 'Unknown OS'}</p>
                         </div>
                       </div>
                       <Badge variant={agent.status === 'active' ? 'default' : 'destructive'}>
@@ -277,31 +328,30 @@ const Security = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {/* Mock alerts list */}
-                  {[
-                    { id: 1, rule: 'SSH Brute Force', agent: 'web-server-01', level: 'high', time: '10:35:22' },
-                    { id: 2, rule: 'Web Attack', agent: 'web-server-01', level: 'critical', time: '10:30:15' },
-                    { id: 3, rule: 'File Integrity', agent: 'db-server-01', level: 'medium', time: '10:25:08' },
-                  ].map((alert) => (
+                  {displayData.alertsList.slice(0, 10).map((alert) => (
                     <div key={alert.id} className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-full ${
-                          alert.level === 'critical' ? 'bg-red-500/20 text-red-400' :
-                          alert.level === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                          alert.rule?.level >= 12 ? 'bg-red-500/20 text-red-400' :
+                          alert.rule?.level >= 7 ? 'bg-orange-500/20 text-orange-400' :
                           'bg-yellow-500/20 text-yellow-400'
                         }`}>
                           <AlertTriangle className="h-4 w-4" />
                         </div>
                         <div>
-                          <p className="text-white font-medium">{alert.rule}</p>
-                          <p className="text-slate-400 text-sm">{alert.agent} - {alert.time}</p>
+                          <p className="text-white font-medium">{alert.rule?.description || 'Unknown Alert'}</p>
+                          <p className="text-slate-400 text-sm">
+                            {alert.agent?.name || 'Unknown Agent'} - {
+                              alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString() : 'Unknown Time'
+                            }
+                          </p>
                         </div>
                       </div>
                       <Badge variant={
-                        alert.level === 'critical' ? 'destructive' :
-                        alert.level === 'high' ? 'default' : 'secondary'
+                        alert.rule?.level >= 12 ? 'destructive' :
+                        alert.rule?.level >= 7 ? 'default' : 'secondary'
                       }>
-                        {alert.level}
+                        {alert.rule?.level >= 12 ? 'critical' : alert.rule?.level >= 7 ? 'high' : 'medium'}
                       </Badge>
                     </div>
                   ))}
@@ -312,36 +362,39 @@ const Security = () => {
 
           <TabsContent value="compliance" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {Object.entries(mockData.compliance).map(([standard, score]) => (
-                <Card key={standard} className="bg-slate-800 border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-white">
-                      {standard.toUpperCase().replace('_', ' ')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold text-white">{score}%</span>
-                      <div className={`p-2 rounded-full ${
-                        score >= 90 ? 'bg-green-500/20 text-green-400' :
-                        score >= 70 ? 'bg-yellow-500/20 text-yellow-400' :
-                        'bg-red-500/20 text-red-400'
-                      }`}>
-                        <Lock className="h-4 w-4" />
+              {Object.entries(displayData.compliance).map(([standard, score]) => {
+                const scoreValue = typeof score === 'number' ? score : 0;
+                return (
+                  <Card key={standard} className="bg-slate-800 border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="text-white">
+                        {standard.toUpperCase().replace('_', ' ')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl font-bold text-white">{scoreValue}%</span>
+                        <div className={`p-2 rounded-full ${
+                          scoreValue >= 90 ? 'bg-green-500/20 text-green-400' :
+                          scoreValue >= 70 ? 'bg-yellow-500/20 text-yellow-400' :
+                          'bg-red-500/20 text-red-400'
+                        }`}>
+                          <Lock className="h-4 w-4" />
+                        </div>
                       </div>
-                    </div>
-                    <div className="w-full bg-slate-600 rounded-full h-2 mt-3">
-                      <div 
-                        className={`h-2 rounded-full ${
-                          score >= 90 ? 'bg-green-500' :
-                          score >= 70 ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}
-                        style={{ width: `${score}%` }}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      <div className="w-full bg-slate-600 rounded-full h-2 mt-3">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            scoreValue >= 90 ? 'bg-green-500' :
+                            scoreValue >= 70 ? 'bg-yellow-500' : 'bg-red-500'
+                          }`}
+                          style={{ width: `${scoreValue}%` }}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </TabsContent>
 
@@ -356,19 +409,19 @@ const Security = () => {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-red-400">{mockData.vulnerabilities.critical}</div>
+                    <div className="text-2xl font-bold text-red-400">{displayData.vulnerabilities.critical}</div>
                     <p className="text-sm text-slate-400">Críticas</p>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-400">{mockData.vulnerabilities.high}</div>
+                    <div className="text-2xl font-bold text-orange-400">{displayData.vulnerabilities.high}</div>
                     <p className="text-sm text-slate-400">Altas</p>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-yellow-400">{mockData.vulnerabilities.medium}</div>
+                    <div className="text-2xl font-bold text-yellow-400">{displayData.vulnerabilities.medium}</div>
                     <p className="text-sm text-slate-400">Médias</p>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-slate-400">{mockData.vulnerabilities.low}</div>
+                    <div className="text-2xl font-bold text-slate-400">{displayData.vulnerabilities.low}</div>
                     <p className="text-sm text-slate-400">Baixas</p>
                   </div>
                 </div>
