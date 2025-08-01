@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar } from '@/components/ui/sidebar';
 const menuItems = [{
   title: 'Alertas',
@@ -71,6 +71,11 @@ const menuItems = [{
   title: 'Bacula',
   url: '/bacula',
   icon: Database,
+  role: 'user'
+}, {
+  title: 'Segurança',
+  url: '/security',
+  icon: ShieldCheck,
   role: 'user'
 }, {
   title: 'Dashboard',

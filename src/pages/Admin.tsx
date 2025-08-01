@@ -9,6 +9,7 @@ import { EvolutionAPIAdminConfig } from "@/components/EvolutionAPIAdminConfig";
 import { WasabiAdminConfig } from "@/components/WasabiAdminConfig";
 import { GrafanaAdminConfig } from "@/components/GrafanaAdminConfig";
 import ZabbixAdminConfig from "@/components/ZabbixAdminConfig";
+import WazuhAdminConfig from "@/components/WazuhAdminConfig";
 import { FtpAdminConfig } from "@/components/FtpAdminConfig";
 import { GLPIConfig } from "@/components/GLPIConfig";
 import GuacamoleAdminConfig from "@/components/GuacamoleAdminConfig";
@@ -65,6 +66,12 @@ const Admin = () => {
       label: "Zabbix",
       icon: <Shield className="h-5 w-5" />,
       component: <ZabbixAdminConfig />
+    },
+    {
+      id: "wazuh",
+      label: "Wazuh",
+      icon: <Shield className="h-5 w-5 text-orange-500" />,
+      component: <WazuhAdminConfig />
     },
     {
       id: "ftp",
