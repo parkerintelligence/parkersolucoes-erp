@@ -96,31 +96,31 @@ serve(async (req) => {
   let cookies = '';
   let authHeaders: Record<string, string> = {};
 
-  // Function to convert local controller endpoints to Universal API endpoints
-  const convertToUniversalEndpoint = (localEndpoint: string): string => {
-    const universalMappings: Record<string, string> = {
-      '/api/self/sites': '/v2/api/site',
-      '/api/s/default/stat/device': '/v2/api/site/default/device',
-      '/api/s/default/stat/sta': '/v2/api/site/default/client',
-      '/api/s/default/stat/alarm': '/v2/api/site/default/alarm',
-      '/api/s/default/stat/health': '/v2/api/site/default/health',
-      '/api/s/default/rest/networkconf': '/v2/api/site/default/setting/network'
+  // Function to convert local controller endpoints to UniFi API v1 endpoints
+  const convertToUniFiAPIEndpoint = (localEndpoint: string): string => {
+    const apiMappings: Record<string, string> = {
+      '/api/self/sites': '/v1/sites',
+      '/api/s/default/stat/device': '/v1/devices',
+      '/api/s/default/stat/sta': '/v1/clients',
+      '/api/s/default/stat/alarm': '/v1/alarms',
+      '/api/s/default/stat/health': '/v1/health',
+      '/api/s/default/rest/networkconf': '/v1/networks'
     };
 
-    return universalMappings[localEndpoint] || localEndpoint;
+    return apiMappings[localEndpoint] || localEndpoint;
   };
 
-  // Check if using Universal API token
+  // Check if using UniFi API token
   if (api_token) {
-    console.log('Using Universal API token authentication');
-    authHeaders['Authorization'] = `Bearer ${api_token}`;
+    console.log('Using UniFi API X-API-KEY authentication');
+    authHeaders['X-API-KEY'] = api_token;
     
-    // Convert endpoint for Universal API
-    const universalEndpoint = convertToUniversalEndpoint(endpoint);
+    // Convert endpoint for UniFi API v1
+    const apiEndpoint = convertToUniFiAPIEndpoint(endpoint);
     
-    // For Universal API, make direct request
-    const apiUrl = `${fullBaseUrl}${universalEndpoint}`;
-    console.log('Making UniFi Universal API request to:', apiUrl);
+    // For UniFi API, make direct request
+    const apiUrl = `${fullBaseUrl}${apiEndpoint}`;
+    console.log('Making UniFi API request to:', apiUrl);
 
       const requestOptions: RequestInit = {
         method: method || 'GET',
@@ -138,10 +138,10 @@ serve(async (req) => {
       const apiResponse = await fetch(apiUrl, requestOptions);
 
       if (!apiResponse.ok) {
-        console.error('UniFi Universal API request failed:', apiResponse.status, apiResponse.statusText);
+        console.error('UniFi API request failed:', apiResponse.status, apiResponse.statusText);
         const errorText = await apiResponse.text();
-        console.error('UniFi Universal API error response:', errorText);
-        throw new Error(`UniFi Universal API request failed: ${apiResponse.statusText}`);
+        console.error('UniFi API error response:', errorText);
+        throw new Error(`UniFi API request failed: ${apiResponse.statusText}`);
       }
 
       // Check if response is JSON before parsing
@@ -153,7 +153,7 @@ serve(async (req) => {
       }
 
       const responseData = await apiResponse.json();
-      console.log('UniFi Universal API response successful, data keys:', Object.keys(responseData || {}));
+      console.log('UniFi API response successful, data keys:', Object.keys(responseData || {}));
 
       return new Response(JSON.stringify(responseData), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
