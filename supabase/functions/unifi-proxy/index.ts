@@ -76,7 +76,8 @@ serve(async (req) => {
       hasUsername: !!username,
       hasPassword: !!password,
       port: port,
-      useSsl: use_ssl
+      useSsl: use_ssl,
+      baseUrl: base_url
     });
     
     if (!username || !password) {

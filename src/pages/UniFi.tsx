@@ -24,6 +24,7 @@ import {
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { UniFiSiteSelector } from '@/components/UniFiSiteSelector';
+import { UniFiConnectionTest } from '@/components/UniFiConnectionTest';
 
 const UniFi = () => {
   const { data: integrations } = useIntegrations();
@@ -125,6 +126,9 @@ const UniFi = () => {
             </Button>
           </div>
         </div>
+
+        {/* Connection Test */}
+        <UniFiConnectionTest integrationId={unifiIntegration.id} />
 
         {/* Site Selector */}
         <UniFiSiteSelector
