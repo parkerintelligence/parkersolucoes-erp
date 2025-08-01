@@ -1,583 +1,178 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
-interface UniFiLoginRequest {
-  action: string;
-  baseUrl: string;
-  username?: string;
-  password?: string;
-  cookies?: string;
-  siteId?: string;
-  deviceMac?: string;
-  clientMac?: string;
-  networkId?: string;
-  networkData?: any;
-  settings?: any;
-  block?: boolean;
-  enable?: boolean;
-  alias?: string;
-  ignoreSsl?: boolean;
-}
-
-class UniFiController {
-  private baseUrl: string;
-  private ignoreSsl: boolean;
-
-  constructor(baseUrl: string, ignoreSsl: boolean = true) {
-    // Remove trailing slashes and normalize URL
-    this.baseUrl = baseUrl.replace(/\/+$/, '');
-    this.ignoreSsl = ignoreSsl;
-    
-    console.log(`UniFi Controller initialized: ${this.baseUrl}, ignoreSsl: ${this.ignoreSsl}`);
-  }
-
-  private async makeRequest(endpoint: string, options: RequestInit = {}, retryWithHttp: boolean = true) {
-    const url = `${this.baseUrl}${endpoint}`;
-    
-    console.log(`Making request to: ${url}`);
-    console.log(`Request options:`, { 
-      method: options.method || 'GET', 
-      hasBody: !!options.body,
-      ignoreSsl: this.ignoreSsl 
-    });
-    
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'User-Agent': 'UniFi-API-Client/1.0',
-          ...options.headers,
-        },
-      });
-
-      clearTimeout(timeoutId);
-      console.log(`Response status: ${response.status} ${response.statusText}`);
-      console.log(`Response headers:`, Object.fromEntries(response.headers.entries()));
-      
-      if (!response.ok) {
-        const text = await response.text();
-        console.log(`Response error body: ${text}`);
-        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${text}`);
-      }
-
-      const contentType = response.headers.get('content-type');
-      let data;
-      
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-        console.log(`Response data:`, data);
-      } else {
-        const text = await response.text();
-        console.log(`Response text:`, text);
-        // Try to parse as JSON anyway
-        try {
-          data = JSON.parse(text);
-        } catch {
-          data = { message: text };
-        }
-      }
-
-      return {
-        success: true,
-        data: data.data || data,
-        meta: data.meta,
-        cookies: response.headers.get('set-cookie'),
-      };
-    } catch (error) {
-      console.error(`Request failed for ${url}:`, error.message);
-      
-      // Enhanced error handling with specific suggestions
-      if (error.name === 'AbortError') {
-        throw new Error(`Request timeout after 15 seconds. Controller may be unreachable or overloaded.`);
-      }
-      
-      if (error.message.includes('certificate') || error.message.includes('SSL') || error.message.includes('TLS')) {
-        const httpsUrl = this.baseUrl.startsWith('https://');
-        if (httpsUrl && retryWithHttp) {
-          console.log('SSL error detected, attempting HTTP fallback...');
-          const httpBaseUrl = this.baseUrl.replace('https://', 'http://').replace(':8443', ':8080');
-          const httpController = new UniFiController(httpBaseUrl, this.ignoreSsl);
-          return await httpController.makeRequest(endpoint, options, false);
-        }
-        throw new Error(`SSL Certificate Error: ${error.message}. Try using HTTP instead of HTTPS for local controllers, or enable "Ignore SSL" option.`);
-      }
-      
-      if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
-        throw new Error(`Network Error: Cannot reach controller at ${this.baseUrl}. Check if the IP address and port are correct.`);
-      }
-      
-      if (error.message.includes('timeout')) {
-        throw new Error(`Connection timeout: Controller at ${this.baseUrl} is not responding. Verify it's online and accessible.`);
-      }
-      
-      throw error;
-    }
-  }
-
-  async pingController() {
-    try {
-      console.log('Starting ping test...');
-      
-      // Try a simple endpoint first
-      const response = await this.makeRequest('/status');
-      return {
-        success: true,
-        details: 'Controller is responding',
-        data: response.data
-      };
-    } catch (error) {
-      console.error('Ping failed:', error.message);
-      return {
-        success: false,
-        details: error.message,
-        suggestion: this.getSuggestionForError(error.message)
-      };
-    }
-  }
-
-  private getSuggestionForError(errorMessage: string): string {
-    if (errorMessage.includes('SSL') || errorMessage.includes('certificate')) {
-      return 'Try using HTTP instead of HTTPS, or enable "Ignore SSL errors" option';
-    }
-    if (errorMessage.includes('timeout') || errorMessage.includes('unreachable')) {
-      return 'Verify controller IP address, port, and network connectivity';
-    }
-    if (errorMessage.includes('8443')) {
-      return 'For local controllers, try port 8080 with HTTP instead of 8443 with HTTPS';
-    }
-    return 'Check controller configuration and network settings';
-  }
-
-  async login(username: string, password: string) {
-    try {
-      console.log(`Attempting login for user: ${username}`);
-      
-      const response = await this.makeRequest('/api/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          username,
-          password,
-          remember: false
-        }),
-      });
-
-      console.log('Login successful');
-      return {
-        success: true,
-        cookies: response.cookies,
-        data: response.data
-      };
-    } catch (error) {
-      console.error('Login failed:', error.message);
-      return {
-        success: false,
-        error: error.message,
-        suggestion: error.message.includes('401') || error.message.includes('403') 
-          ? 'Check username and password' 
-          : this.getSuggestionForError(error.message)
-      };
-    }
-  }
-
-  async testConnection(username: string, password: string) {
-    const tests = [];
-    
-    console.log('=== Starting comprehensive connection test ===');
-    
-    // Test 1: URL Format Validation
-    try {
-      new URL(this.baseUrl);
-      tests.push({
-        name: 'URL Format',
-        success: true,
-        details: 'URL format is valid'
-      });
-    } catch {
-      tests.push({
-        name: 'URL Format',
-        success: false,
-        details: 'Invalid URL format',
-        suggestion: 'Use format: https://controller-ip:8443 or http://controller-ip:8080'
-      });
-      return { timestamp: new Date().toISOString(), tests };
-    }
-
-    // Test 2: Basic connectivity
-    const pingResult = await this.pingController();
-    tests.push({
-      name: 'Controller Connectivity',
-      success: pingResult.success,
-      details: pingResult.details,
-      suggestion: pingResult.suggestion
-    });
-
-    if (!pingResult.success) {
-      return { timestamp: new Date().toISOString(), tests };
-    }
-
-    // Test 3: Authentication
-    const loginResult = await this.login(username, password);
-    tests.push({
-      name: 'Authentication',
-      success: loginResult.success,
-      details: loginResult.success ? 'Authentication successful' : loginResult.error,
-      suggestion: loginResult.suggestion
-    });
-
-    // Test 4: API Access (if authenticated)
-    if (loginResult.success && loginResult.cookies) {
-      try {
-        const sitesResult = await this.makeRequest('/api/self/sites', {
-          headers: {
-            'Cookie': loginResult.cookies
-          }
-        });
-        
-        const siteCount = sitesResult.data?.length || 0;
-        tests.push({
-          name: 'API Access',
-          success: true,
-          details: `Found ${siteCount} sites`,
-          suggestion: siteCount === 0 ? 'No sites found - check user permissions' : undefined
-        });
-      } catch (error) {
-        tests.push({
-          name: 'API Access',
-          success: false,
-          details: error.message,
-          suggestion: 'API access failed - check user permissions and controller version'
-        });
-      }
-    }
-
-    console.log('=== Connection test completed ===');
-    return {
-      timestamp: new Date().toISOString(),
-      tests
-    };
-  }
-
-  async getSites(cookies: string) {
-    return await this.makeRequest('/api/self/sites', {
-      headers: { 'Cookie': cookies }
-    });
-  }
-
-  async getDevices(cookies: string, siteId: string) {
-    return await this.makeRequest(`/api/s/${siteId}/stat/device`, {
-      headers: { 'Cookie': cookies }
-    });
-  }
-
-  async getClients(cookies: string, siteId: string) {
-    return await this.makeRequest(`/api/s/${siteId}/stat/sta`, {
-      headers: { 'Cookie': cookies }
-    });
-  }
-
-  async getSystemInfo(cookies: string, siteId: string) {
-    return await this.makeRequest(`/api/s/${siteId}/stat/sysinfo`, {
-      headers: { 'Cookie': cookies }
-    });
-  }
-
-  async getNetworks(cookies: string, siteId: string) {
-    return await this.makeRequest(`/api/s/${siteId}/rest/wlanconf`, {
-      headers: { 'Cookie': cookies }
-    });
-  }
-
-  async getHealthMetrics(cookies: string, siteId: string) {
-    return await this.makeRequest(`/api/s/${siteId}/stat/health`, {
-      headers: { 'Cookie': cookies }
-    });
-  }
-
-  async getEvents(cookies: string, siteId: string) {
-    return await this.makeRequest(`/api/s/${siteId}/stat/event?_limit=50`, {
-      headers: { 'Cookie': cookies }
-    });
-  }
-
-  async restartDevice(cookies: string, siteId: string, deviceMac: string) {
-    return await this.makeRequest(`/api/s/${siteId}/cmd/devmgr`, {
-      method: 'POST',
-      headers: { 'Cookie': cookies },
-      body: JSON.stringify({
-        cmd: 'restart',
-        mac: deviceMac
-      })
-    });
-  }
-
-  async blockClient(cookies: string, siteId: string, clientMac: string, block: boolean) {
-    return await this.makeRequest(`/api/s/${siteId}/cmd/stamgr`, {
-      method: 'POST',
-      headers: { 'Cookie': cookies },
-      body: JSON.stringify({
-        cmd: block ? 'block-sta' : 'unblock-sta',
-        mac: clientMac
-      })
-    });
-  }
-
-  async locateDevice(cookies: string, siteId: string, deviceMac: string) {
-    return await this.makeRequest(`/api/s/${siteId}/cmd/devmgr`, {
-      method: 'POST',
-      headers: { 'Cookie': cookies },
-      body: JSON.stringify({
-        cmd: 'set-locate',
-        mac: deviceMac
-      })
-    });
-  }
-
-  async setDeviceLED(cookies: string, siteId: string, deviceMac: string, enable: boolean) {
-    return await this.makeRequest(`/api/s/${siteId}/rest/device/${deviceMac}`, {
-      method: 'PUT',
-      headers: { 'Cookie': cookies },
-      body: JSON.stringify({
-        led_override: enable ? 'on' : 'off'
-      })
-    });
-  }
-
-  async createNetwork(cookies: string, siteId: string, networkData: any) {
-    return await this.makeRequest(`/api/s/${siteId}/rest/wlanconf`, {
-      method: 'POST',
-      headers: { 'Cookie': cookies },
-      body: JSON.stringify(networkData)
-    });
-  }
-
-  async updateNetwork(cookies: string, siteId: string, networkId: string, networkData: any) {
-    return await this.makeRequest(`/api/s/${siteId}/rest/wlanconf/${networkId}`, {
-      method: 'PUT',
-      headers: { 'Cookie': cookies },
-      body: JSON.stringify(networkData)
-    });
-  }
-
-  async deleteNetwork(cookies: string, siteId: string, networkId: string) {
-    return await this.makeRequest(`/api/s/${siteId}/rest/wlanconf/${networkId}`, {
-      method: 'DELETE',
-      headers: { 'Cookie': cookies }
-    });
-  }
-}
+console.log("UniFi-proxy function starting...");
 
 serve(async (req) => {
+  console.log(`Received ${req.method} request to unifi-proxy`);
+  
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log("Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { action, baseUrl, ignoreSsl = true, ...params }: UniFiLoginRequest = await req.json();
-    
-    console.log(`=== Processing UniFi Action: ${action} ===`);
-    console.log(`Base URL: ${baseUrl}`);
-    console.log(`Ignore SSL: ${ignoreSsl}`);
-    console.log(`Additional params:`, Object.keys(params));
-    
-    if (!baseUrl) {
-      throw new Error('Base URL is required');
+    console.log("Creating Supabase client...");
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    );
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('No authorization header');
+      throw new Error('Authorization header is required');
     }
 
-    const controller = new UniFiController(baseUrl, ignoreSsl);
+    console.log("Authenticating user...");
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
 
-    switch (action) {
-      case 'pingController':
-        const pingResult = await controller.pingController();
-        return new Response(JSON.stringify(pingResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'testConnection':
-      case 'diagnoseConnection':
-        if (!params.username || !params.password) {
-          throw new Error('Username and password are required for connection test');
-        }
-        const testResult = await controller.testConnection(params.username, params.password);
-        return new Response(JSON.stringify({ success: true, diagnosis: testResult }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'login':
-        if (!params.username || !params.password) {
-          throw new Error('Username and password are required');
-        }
-        const loginResult = await controller.login(params.username, params.password);
-        return new Response(JSON.stringify(loginResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'getSites':
-        if (!params.cookies) {
-          throw new Error('Authentication cookies are required');
-        }
-        const sitesResult = await controller.getSites(params.cookies);
-        return new Response(JSON.stringify(sitesResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'getDevices':
-        if (!params.cookies || !params.siteId) {
-          throw new Error('Authentication cookies and site ID are required');
-        }
-        const devicesResult = await controller.getDevices(params.cookies, params.siteId);
-        return new Response(JSON.stringify(devicesResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'getClients':
-        if (!params.cookies || !params.siteId) {
-          throw new Error('Authentication cookies and site ID are required');
-        }
-        const clientsResult = await controller.getClients(params.cookies, params.siteId);
-        return new Response(JSON.stringify(clientsResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'getSystemInfo':
-        if (!params.cookies || !params.siteId) {
-          throw new Error('Authentication cookies and site ID are required');
-        }
-        const systemInfoResult = await controller.getSystemInfo(params.cookies, params.siteId);
-        return new Response(JSON.stringify(systemInfoResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'getNetworks':
-        if (!params.cookies || !params.siteId) {
-          throw new Error('Authentication cookies and site ID are required');
-        }
-        const networksResult = await controller.getNetworks(params.cookies, params.siteId);
-        return new Response(JSON.stringify(networksResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'getHealthMetrics':
-        if (!params.cookies || !params.siteId) {
-          throw new Error('Authentication cookies and site ID are required');
-        }
-        const healthResult = await controller.getHealthMetrics(params.cookies, params.siteId);
-        return new Response(JSON.stringify(healthResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'getEvents':
-        if (!params.cookies || !params.siteId) {
-          throw new Error('Authentication cookies and site ID are required');
-        }
-        const eventsResult = await controller.getEvents(params.cookies, params.siteId);
-        return new Response(JSON.stringify(eventsResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'restartDevice':
-        if (!params.cookies || !params.siteId || !params.deviceMac) {
-          throw new Error('Authentication cookies, site ID, and device MAC are required');
-        }
-        const restartResult = await controller.restartDevice(params.cookies, params.siteId, params.deviceMac);
-        return new Response(JSON.stringify(restartResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'blockClient':
-        if (!params.cookies || !params.siteId || !params.clientMac || params.block === undefined) {
-          throw new Error('Authentication cookies, site ID, client MAC, and block status are required');
-        }
-        const blockResult = await controller.blockClient(params.cookies, params.siteId, params.clientMac, params.block);
-        return new Response(JSON.stringify(blockResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'locateDevice':
-        if (!params.cookies || !params.siteId || !params.deviceMac) {
-          throw new Error('Authentication cookies, site ID, and device MAC are required');
-        }
-        const locateResult = await controller.locateDevice(params.cookies, params.siteId, params.deviceMac);
-        return new Response(JSON.stringify(locateResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'setDeviceLED':
-        if (!params.cookies || !params.siteId || !params.deviceMac || params.enable === undefined) {
-          throw new Error('Authentication cookies, site ID, device MAC, and enable status are required');
-        }
-        const ledResult = await controller.setDeviceLED(params.cookies, params.siteId, params.deviceMac, params.enable);
-        return new Response(JSON.stringify(ledResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'createNetwork':
-        if (!params.cookies || !params.siteId || !params.networkData) {
-          throw new Error('Authentication cookies, site ID, and network data are required');
-        }
-        const createResult = await controller.createNetwork(params.cookies, params.siteId, params.networkData);
-        return new Response(JSON.stringify(createResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'updateNetwork':
-        if (!params.cookies || !params.siteId || !params.networkId || !params.networkData) {
-          throw new Error('Authentication cookies, site ID, network ID, and network data are required');
-        }
-        const updateResult = await controller.updateNetwork(params.cookies, params.siteId, params.networkId, params.networkData);
-        return new Response(JSON.stringify(updateResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      case 'deleteNetwork':
-        if (!params.cookies || !params.siteId || !params.networkId) {
-          throw new Error('Authentication cookies, site ID, and network ID are required');
-        }
-        const deleteResult = await controller.deleteNetwork(params.cookies, params.siteId, params.networkId);
-        return new Response(JSON.stringify(deleteResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      default:
-        throw new Error(`Unknown action: ${action}`);
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      throw new Error('Unauthorized');
     }
+
+    console.log(`User authenticated: ${user.id}`);
+
+    const requestBody = await req.json();
+    const { method, endpoint, integrationId, data: postData } = requestBody;
+
+    console.log('UniFi proxy request:', { method, endpoint, integrationId, userId: user.id });
+
+    // Get UniFi integration configuration
+    console.log("Fetching UniFi integration...");
+    const { data: integration, error: integrationError } = await supabaseClient
+      .from('integrations')
+      .select('*')
+      .eq('id', integrationId)
+      .eq('user_id', user.id)
+      .eq('type', 'unifi')
+      .single();
+
+    if (integrationError || !integration) {
+      console.error('Integration not found:', integrationError);
+      throw new Error('UniFi integration not found');
+    }
+
+    console.log("Integration found:", { id: integration.id, name: integration.name, is_active: integration.is_active });
+
+    if (!integration.is_active) {
+      throw new Error('UniFi integration is not active');
+    }
+
+    const { base_url, username, password, port, use_ssl } = integration;
+    
+    if (!base_url || !username || !password) {
+      console.error('Missing integration config:', { base_url: !!base_url, username: !!username, password: !!password });
+      throw new Error('UniFi integration is not properly configured');
+    }
+
+    // Build the full URL
+    const protocol = use_ssl ? 'https' : 'http';
+    const fullBaseUrl = `${protocol}://${base_url.replace(/^https?:\/\//, '')}${port ? `:${port}` : ''}`;
+    
+    console.log(`Making UniFi request to: ${fullBaseUrl}${endpoint}`);
+
+    // Create cookie jar for session management
+    let cookies = '';
+
+    // First, login to UniFi controller
+    console.log('Logging into UniFi controller...');
+    const loginResponse = await fetch(`${fullBaseUrl}/api/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        username: username,
+        password: password,
+        remember: false
+      }),
+    });
+
+    if (!loginResponse.ok) {
+      console.error('UniFi login failed:', loginResponse.status, loginResponse.statusText);
+      const errorText = await loginResponse.text();
+      console.error('UniFi login error response:', errorText);
+      throw new Error(`UniFi authentication failed: ${loginResponse.statusText}`);
+    }
+
+    // Extract cookies from login response
+    const setCookieHeaders = loginResponse.headers.get('set-cookie');
+    if (setCookieHeaders) {
+      cookies = setCookieHeaders.split(',').map(cookie => cookie.split(';')[0]).join('; ');
+      console.log('Login successful, cookies extracted');
+    } else {
+      console.log('Login successful, no cookies found');
+    }
+
+    // Make the actual API request
+    const apiUrl = `${fullBaseUrl}${endpoint}`;
+    console.log('Making UniFi API request to:', apiUrl);
+
+    const requestOptions: RequestInit = {
+      method: method || 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...(cookies && { 'Cookie': cookies })
+      },
+    };
+
+    if (postData && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+      requestOptions.body = JSON.stringify(postData);
+    }
+
+    const apiResponse = await fetch(apiUrl, requestOptions);
+
+    if (!apiResponse.ok) {
+      console.error('UniFi API request failed:', apiResponse.status, apiResponse.statusText);
+      const errorText = await apiResponse.text();
+      console.error('UniFi API error response:', errorText);
+      throw new Error(`UniFi API request failed: ${apiResponse.statusText}`);
+    }
+
+    const responseData = await apiResponse.json();
+    console.log('UniFi API response successful, data keys:', Object.keys(responseData));
+
+    // Logout after request (optional, depends on API design)
+    try {
+      await fetch(`${fullBaseUrl}/api/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(cookies && { 'Cookie': cookies })
+        },
+      });
+      console.log('Logged out from UniFi controller');
+    } catch (logoutError) {
+      console.warn('Failed to logout from UniFi controller:', logoutError);
+    }
+
+    return new Response(JSON.stringify(responseData), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
   } catch (error) {
-    console.error('=== Error processing request ===', error);
-    
-    let errorType = 'unknown_error';
-    let suggestion = 'Check controller configuration and try again';
-    
-    if (error.message.includes('certificate') || error.message.includes('SSL')) {
-      errorType = 'ssl_error';
-      suggestion = 'Try using HTTP instead of HTTPS, or enable "Ignore SSL errors" option';
-    } else if (error.message.includes('timeout') || error.message.includes('unreachable')) {
-      errorType = 'network_error';
-      suggestion = 'Check if controller IP and port are correct and controller is online';
-    } else if (error.message.includes('credentials') || error.message.includes('authentication') || error.message.includes('401')) {
-      errorType = 'auth_error';
-      suggestion = 'Verify username and password are correct';
-    }
-
+    console.error('Error in unifi-proxy function:', error);
     return new Response(
-      JSON.stringify({
-        error: 'Connection failed',
-        details: error.message,
-        type: errorType,
-        suggestion
+      JSON.stringify({ 
+        error: error.message,
+        details: 'Check the edge function logs for more details'
       }),
       {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
