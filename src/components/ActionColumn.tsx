@@ -41,25 +41,25 @@ export function ActionColumn({ column, cards, cardItems, getItemsForCard }: Acti
   };
 
   return (
-    <Card className="w-80 flex-shrink-0 bg-background/60 backdrop-blur border shadow-sm hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3 border-b border-l-4" style={{ borderLeftColor: column.color }}>
+    <Card className="w-80 flex-shrink-0 bg-slate-800/90 backdrop-blur border-slate-600 shadow-sm hover:shadow-md transition-shadow">
+      <CardHeader className="pb-3 border-b border-slate-600 border-l-4" style={{ borderLeftColor: column.color }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div 
               className="w-3 h-3 rounded-full" 
               style={{ backgroundColor: column.color }}
             />
-            <CardTitle className="text-sm font-semibold">
+            <CardTitle className="text-sm font-semibold text-white">
               {column.name}
             </CardTitle>
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+            <span className="text-xs text-slate-300 bg-slate-700 px-2 py-1 rounded-full">
               {cards.length}
             </span>
           </div>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <Dialog open={isEditColumnOpen} onOpenChange={setIsEditColumnOpen}>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-muted">
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-slate-700 text-slate-300 hover:text-white">
                   <Settings className="h-3 w-3" />
                 </Button>
               </DialogTrigger>
@@ -68,7 +68,7 @@ export function ActionColumn({ column, cards, cardItems, getItemsForCard }: Acti
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="h-7 w-7 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/20"
               onClick={handleDeleteColumn}
             >
               <Trash2 className="h-3 w-3" />
@@ -90,7 +90,7 @@ export function ActionColumn({ column, cards, cardItems, getItemsForCard }: Acti
           <DialogTrigger asChild>
             <Button 
               variant="ghost" 
-              className="w-full border-dashed border-2 border-muted-foreground/25 h-10 hover:border-primary/50 hover:bg-primary/5 transition-colors"
+              className="w-full border-dashed border-2 border-slate-600/50 h-10 hover:border-blue-500/50 hover:bg-slate-700/50 transition-colors text-slate-300 hover:text-white"
             >
               <Plus className="h-4 w-4 mr-2" />
               Adicionar Card
