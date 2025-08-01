@@ -44,6 +44,7 @@ export default defineConfig(({ mode }) => ({
       'prop-types',
       'react-smooth',
       'fast-equals',
+      'eventemitter3',
     ],
     exclude: ['lovable-tagger'],
     force: true,
@@ -57,7 +58,7 @@ export default defineConfig(({ mode }) => ({
     emptyOutDir: true,
     sourcemap: false,
     commonjsOptions: {
-      include: [/react/, /react-dom/, /supabase/, /lodash/, /recharts/, /prop-types/, /react-smooth/, /fast-equals/],
+      include: [/react/, /react-dom/, /supabase/, /lodash/, /recharts/, /prop-types/, /react-smooth/, /fast-equals/, /eventemitter3/],
       transformMixedEsModules: true,
       defaultIsModuleExports: 'auto',
       esmExternals: true,
