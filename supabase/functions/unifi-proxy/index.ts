@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
-console.log("UniFi-proxy function starting...");
+console.log("UniFi Site Manager API proxy function starting...");
 
 serve(async (req) => {
   console.log(`Received ${req.method} request to unifi-proxy`);
@@ -46,7 +46,7 @@ serve(async (req) => {
     const requestBody = await req.json();
     const { method, endpoint, integrationId, data: postData } = requestBody;
 
-    console.log('UniFi proxy request:', { method, endpoint, integrationId, userId: user.id });
+    console.log('UniFi Site Manager API request:', { method, endpoint, integrationId, userId: user.id });
 
     // Get UniFi integration configuration
     console.log("Fetching UniFi integration...");
@@ -69,202 +69,32 @@ serve(async (req) => {
       throw new Error('UniFi integration is not active');
     }
 
-    const { base_url, username, password, port, use_ssl } = integration;
+    const { api_token } = integration;
     
     console.log("Integration config:", { 
-      hasBaseUrl: !!base_url,
-      hasUsername: !!username,
-      hasPassword: !!password,
-      port: port,
-      useSsl: use_ssl,
-      baseUrl: base_url
+      hasApiToken: !!api_token
     });
     
-    if (!username || !password) {
-      console.error('Missing username or password for local controller');
-      throw new Error('UniFi local controller requires username and password');
+    if (!api_token) {
+      console.error('Missing API token for UniFi Site Manager API');
+      throw new Error('UniFi Site Manager API requires an API token. Get yours at https://account.ui.com/api');
     }
 
-    if (!base_url) {
-      console.error('Missing base_url for local controller');
-      throw new Error('UniFi controller base URL is required');
-    }
+    // Use official UniFi Site Manager API
+    const baseApiUrl = 'https://api.ui.com';
+    console.log('Using UniFi Site Manager API:', baseApiUrl);
+    console.log('API endpoint:', endpoint);
 
-    // Normalize base URL - remove trailing slash
-    const normalizedBaseUrl = base_url.replace(/\/$/, '');
-    
-    // Build full base URL
-    let fullBaseUrl;
-    if (!normalizedBaseUrl.startsWith('http')) {
-      const protocol = use_ssl ? 'https' : 'http';
-      const defaultPort = use_ssl ? 8443 : 8080;
-      const finalPort = port || defaultPort;
-      fullBaseUrl = `${protocol}://${normalizedBaseUrl}:${finalPort}`;
-    } else {
-      // Remove port from URL if it's already included and add it separately
-      const urlWithoutPort = normalizedBaseUrl.replace(/:8443$|:8080$/, '');
-      const finalPort = port || (use_ssl ? 8443 : 8080);
-      fullBaseUrl = `${urlWithoutPort}:${finalPort}`;
-    }
-
-    console.log('Final controller URL:', fullBaseUrl);
-
-    // Convert Site Manager endpoints to local controller format
-    let localEndpoint = endpoint;
-    
-    // Convert `/v1/hosts` to local controller sites endpoint
-    if (endpoint === '/v1/hosts') {
-      localEndpoint = '/api/self/sites';
-    }
-    // Convert `/v1/hosts/{hostId}/devices` to local controller format
-    else if (endpoint.match(/^\/v1\/hosts\/[^\/]+\/devices$/)) {
-      const siteId = endpoint.split('/')[3];
-      localEndpoint = `/api/s/${siteId}/stat/device`;
-    }
-    // Convert `/v1/hosts/{hostId}/clients` to local controller format
-    else if (endpoint.match(/^\/v1\/hosts\/[^\/]+\/clients$/)) {
-      const siteId = endpoint.split('/')[3];
-      localEndpoint = `/api/s/${siteId}/stat/sta`;
-    }
-    // Convert `/v1/hosts/{hostId}/networks` to local controller format
-    else if (endpoint.match(/^\/v1\/hosts\/[^\/]+\/networks$/)) {
-      const siteId = endpoint.split('/')[3];
-      localEndpoint = `/api/s/${siteId}/rest/networkconf`;
-    }
-    // Convert `/v1/hosts/{hostId}/alarms` to local controller format
-    else if (endpoint.match(/^\/v1\/hosts\/[^\/]+\/alarms$/)) {
-      const siteId = endpoint.split('/')[3];
-      localEndpoint = `/api/s/${siteId}/stat/alarm`;
-    }
-    // Convert `/v1/hosts/{hostId}/health` to local controller format
-    else if (endpoint.match(/^\/v1\/hosts\/[^\/]+\/health$/)) {
-      const siteId = endpoint.split('/')[3];
-      localEndpoint = `/api/s/${siteId}/stat/health`;
-    }
-
-    console.log('Converted endpoint for local controller:', localEndpoint);
-
-    // Try different approaches for connection
-    let loginResponse: Response;
-    let finalUrl = fullBaseUrl;
-    
-    // First try: Original URL
-    console.log('Logging into local UniFi controller...');
-    let loginUrl = `${fullBaseUrl}/api/login`;
-    console.log('Login URL (attempt 1):', loginUrl);
-    
-    try {
-      loginResponse = await fetch(loginUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          username: username,
-          password: password,
-          remember: false
-        }),
-      });
-      
-      if (!loginResponse.ok) {
-        throw new Error(`HTTP ${loginResponse.status}`);
-      }
-      
-      console.log('Login successful with original URL');
-    } catch (firstAttemptError) {
-      console.log('First attempt failed:', firstAttemptError.message);
-      
-      // Second try: Force HTTP if HTTPS failed
-      if (fullBaseUrl.startsWith('https://')) {
-        finalUrl = fullBaseUrl.replace('https://', 'http://').replace(':8443', ':8080');
-        loginUrl = `${finalUrl}/api/login`;
-        console.log('Login URL (attempt 2 - HTTP):', loginUrl);
-        
-        try {
-          loginResponse = await fetch(loginUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: JSON.stringify({
-              username: username,
-              password: password,
-              remember: false
-            }),
-          });
-          
-          if (!loginResponse.ok) {
-            throw new Error(`HTTP ${loginResponse.status}`);
-          }
-          
-          console.log('Login successful with HTTP URL');
-        } catch (secondAttemptError) {
-          console.error('Second attempt also failed:', secondAttemptError.message);
-          
-          // Third try: Just the hostname without port
-          const hostname = base_url.replace(/^https?:\/\//, '').replace(/:.*$/, '');
-          finalUrl = `http://${hostname}:8080`;
-          loginUrl = `${finalUrl}/api/login`;
-          console.log('Login URL (attempt 3 - simple HTTP):', loginUrl);
-          
-          try {
-            loginResponse = await fetch(loginUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-              },
-              body: JSON.stringify({
-                username: username,
-                password: password,
-                remember: false
-              }),
-            });
-            
-            if (!loginResponse.ok) {
-              throw new Error(`HTTP ${loginResponse.status}`);
-            }
-            
-            console.log('Login successful with simple HTTP URL');
-          } catch (thirdAttemptError) {
-            console.error('All login attempts failed. Last error:', thirdAttemptError.message);
-            const errorText = await loginResponse?.text() || 'No response';
-            throw new Error(`All UniFi controller connection attempts failed. Final response: ${errorText}`);
-          }
-        }
-      } else {
-        const errorText = await loginResponse?.text() || 'No response';
-        throw new Error(`UniFi controller connection failed: ${firstAttemptError.message}. Response: ${errorText}`);
-      }
-    }
-
-    // Extract cookies
-    let cookies = '';
-    const setCookieHeader = loginResponse.headers.get('set-cookie');
-    if (setCookieHeader) {
-      // Parse cookies more carefully
-      const cookieParts = setCookieHeader.split(',');
-      cookies = cookieParts
-        .map(cookie => cookie.trim().split(';')[0])
-        .filter(cookie => cookie.includes('='))
-        .join('; ');
-      console.log('Local controller login successful, cookies extracted:', cookies.substring(0, 50) + '...');
-    } else {
-      console.warn('No cookies received from login response');
-    }
-
-    // Make API request using the working URL
-    const apiUrl = `${finalUrl}${localEndpoint}`;
-    console.log('Making local controller API request to:', apiUrl);
+    // Make API request to UniFi Site Manager
+    const apiUrl = `${baseApiUrl}${endpoint}`;
+    console.log('Making Site Manager API request to:', apiUrl);
 
     const requestOptions: RequestInit = {
       method: method || 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        ...(cookies && { 'Cookie': cookies })
+        'X-API-KEY': api_token
       },
     };
 
@@ -272,36 +102,36 @@ serve(async (req) => {
       requestOptions.body = JSON.stringify(postData);
     }
 
-    console.log('Request options:', { ...requestOptions, headers: { ...requestOptions.headers, Cookie: cookies ? '[REDACTED]' : 'none' } });
+    console.log('Request options:', { 
+      method: requestOptions.method, 
+      url: apiUrl,
+      hasApiKey: !!api_token,
+      hasBody: !!requestOptions.body 
+    });
 
     const apiResponse = await fetch(apiUrl, requestOptions);
 
     if (!apiResponse.ok) {
       const errorText = await apiResponse.text();
-      console.error('Local controller API request failed:', apiResponse.status, errorText);
-      throw new Error(`Local controller API request failed: ${apiResponse.status} - ${errorText}`);
+      console.error('Site Manager API request failed:', apiResponse.status, errorText);
+      
+      if (apiResponse.status === 401) {
+        throw new Error('API token inválido ou expirado. Verifique suas credenciais na conta UniFi.');
+      } else if (apiResponse.status === 403) {
+        throw new Error('Acesso negado. Verifique as permissões do seu token API.');
+      } else if (apiResponse.status === 404) {
+        throw new Error('Endpoint não encontrado. Verifique se o site/host existe.');
+      }
+      
+      throw new Error(`Site Manager API request failed: ${apiResponse.status} - ${errorText}`);
     }
 
     const responseData = await apiResponse.json();
-    console.log('Local controller API successful, response structure:', {
+    console.log('Site Manager API successful, response structure:', {
       hasData: !!responseData,
       dataKeys: responseData ? Object.keys(responseData) : [],
       dataLength: Array.isArray(responseData?.data) ? responseData.data.length : 'not array'
     });
-
-    // Logout
-    try {
-      await fetch(`${finalUrl}/api/logout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(cookies && { 'Cookie': cookies })
-        },
-      });
-      console.log('Logged out from local controller');
-    } catch (logoutError) {
-      console.warn('Failed to logout from local controller:', logoutError);
-    }
 
     return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
