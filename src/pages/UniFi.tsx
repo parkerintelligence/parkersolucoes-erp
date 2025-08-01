@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
+import { UniFiHostSelector } from '@/components/UniFiHostSelector';
 import { UniFiSiteSelector } from '@/components/UniFiSiteSelector';
 import { UniFiConnectionTest } from '@/components/UniFiConnectionTest';
 import { UniFiDebugPanel } from '@/components/UniFiDebugPanel';
@@ -31,9 +32,11 @@ const UniFi = () => {
   const { data: integrations } = useIntegrations();
   const unifiIntegration = integrations?.find(int => int.type === 'unifi' && int.is_active);
   
+  const [selectedHost, setSelectedHost] = useState<string>('');
   const [selectedSite, setSelectedSite] = useState<string>('');
   
   const { 
+    useUniFiHosts,
     useUniFiSites,
     useUniFiDevices, 
     useUniFiClients, 
@@ -46,12 +49,20 @@ const UniFi = () => {
   } = useUniFiAPI();
 
   // Fetch data if integration is available
-  const { data: sites, isLoading: sitesLoading, error: sitesError } = useUniFiSites(unifiIntegration?.id || '');
-  const { data: devices, isLoading: devicesLoading } = useUniFiDevices(unifiIntegration?.id || '', selectedSite || 'default');
-  const { data: clients, isLoading: clientsLoading } = useUniFiClients(unifiIntegration?.id || '', selectedSite || 'default');
-  const { data: networks, isLoading: networksLoading } = useUniFiNetworks(unifiIntegration?.id || '', selectedSite || 'default');
-  const { data: alarms, isLoading: alarmsLoading } = useUniFiAlarms(unifiIntegration?.id || '', selectedSite || 'default');
-  const { data: stats, isLoading: statsLoading } = useUniFiStats(unifiIntegration?.id || '', selectedSite || 'default');
+  const { data: hosts, isLoading: hostsLoading, error: hostsError } = useUniFiHosts(unifiIntegration?.id || '');
+  const { data: sites, isLoading: sitesLoading, error: sitesError } = useUniFiSites(unifiIntegration?.id || '', selectedHost);
+  const { data: devices, isLoading: devicesLoading } = useUniFiDevices(unifiIntegration?.id || '', selectedHost, selectedSite);
+  const { data: clients, isLoading: clientsLoading } = useUniFiClients(unifiIntegration?.id || '', selectedHost, selectedSite);
+  const { data: networks, isLoading: networksLoading } = useUniFiNetworks(unifiIntegration?.id || '', selectedHost, selectedSite);
+  const { data: alarms, isLoading: alarmsLoading } = useUniFiAlarms(unifiIntegration?.id || '', selectedHost, selectedSite);
+  const { data: stats, isLoading: statsLoading } = useUniFiStats(unifiIntegration?.id || '', selectedHost, selectedSite);
+
+  // Auto-select first host when hosts are loaded
+  useEffect(() => {
+    if (hosts?.data && hosts.data.length > 0 && !selectedHost) {
+      setSelectedHost(hosts.data[0].id);
+    }
+  }, [hosts?.data, selectedHost]);
 
   // Auto-select first site when sites are loaded
   useEffect(() => {
@@ -60,12 +71,17 @@ const UniFi = () => {
     }
   }, [sites?.data, selectedSite]);
 
-  const isLoadingData = sitesLoading || devicesLoading || clientsLoading || networksLoading || alarmsLoading || statsLoading;
+  const isLoadingData = hostsLoading || sitesLoading || devicesLoading || clientsLoading || networksLoading || alarmsLoading || statsLoading;
 
   const handleRefresh = () => {
     if (unifiIntegration) {
-      refreshData(unifiIntegration.id, selectedSite || 'default');
+      refreshData(unifiIntegration.id, selectedHost, selectedSite);
     }
+  };
+
+  const handleHostChange = (hostId: string) => {
+    setSelectedHost(hostId);
+    setSelectedSite(''); // Reset site selection when host changes
   };
 
   const handleSiteChange = (siteId: string) => {
@@ -94,6 +110,7 @@ const UniFi = () => {
     );
   }
 
+  const hostsList = hosts?.data || [];
   const sitesList = sites?.data || [];
   const devicesList = devices?.data || [];
   const clientsList = clients?.data || [];
@@ -133,18 +150,28 @@ const UniFi = () => {
 
         {/* Debug Panel */}
         <UniFiDebugPanel 
-          sites={sites}
-          sitesLoading={sitesLoading}
-          sitesError={sitesError}
+          sites={hosts}
+          sitesLoading={hostsLoading}
+          sitesError={hostsError}
+        />
+
+        {/* Host Selector */}
+        <UniFiHostSelector
+          hosts={hosts?.data || []}
+          selectedHostId={selectedHost}
+          onHostChange={handleHostChange}
+          loading={hostsLoading}
         />
 
         {/* Site Selector */}
-        <UniFiSiteSelector
-          sites={sites?.data || []}
-          selectedSiteId={selectedSite}
-          onSiteChange={handleSiteChange}
-          loading={sitesLoading}
-        />
+        {selectedHost && (
+          <UniFiSiteSelector
+            sites={sites?.data || []}
+            selectedSiteId={selectedSite}
+            onSiteChange={handleSiteChange}
+            loading={sitesLoading}
+          />
+        )}
 
         {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -239,7 +266,7 @@ const UniFi = () => {
                           variant="outline"
                           onClick={() => restartDevice.mutate({
                             integrationId: unifiIntegration.id,
-                            siteId: selectedSite || 'default',
+                            hostId: selectedHost,
                             deviceId: device.mac
                           })}
                           className="border-slate-600 text-white hover:bg-slate-600"
@@ -286,7 +313,7 @@ const UniFi = () => {
                           variant="outline"
                           onClick={() => toggleClientBlock.mutate({
                             integrationId: unifiIntegration.id,
-                            siteId: selectedSite || 'default',
+                            hostId: selectedHost,
                             clientId: client.mac,
                             block: true
                           })}

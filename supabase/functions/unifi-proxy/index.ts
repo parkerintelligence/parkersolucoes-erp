@@ -130,10 +130,15 @@ serve(async (req) => {
     console.log('Site Manager API successful, response structure:', {
       hasData: !!responseData,
       dataKeys: responseData ? Object.keys(responseData) : [],
-      dataLength: Array.isArray(responseData?.data) ? responseData.data.length : 'not array'
+      dataLength: Array.isArray(responseData?.data) ? responseData.data.length : 'not array',
+      fullResponse: responseData
     });
 
-    return new Response(JSON.stringify(responseData), {
+    // Always return the data property if it exists, otherwise return the full response
+    const finalResponse = responseData?.data ? responseData : { data: responseData };
+    console.log('Final response being sent:', finalResponse);
+
+    return new Response(JSON.stringify(finalResponse), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
