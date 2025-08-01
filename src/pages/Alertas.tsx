@@ -34,8 +34,12 @@ export default function Alertas() {
   });
 
   const getDeviceStatus = (host: any): DeviceStatus => {
-    // Check if host is available (available: "1" = available, "0" = not available)
-    const isAvailable = host.available === '1';
+    // Check if host is available based on interface availability
+    // available: "1" = available, "2" = not available, "0" = unknown
+    // Also check if host status is enabled (status: "0" = enabled, "1" = disabled)
+    const isHostEnabled = host.status === '0';
+    const hasAvailableInterface = host.interfaces?.some((iface: any) => iface.available === '1');
+    const isAvailable = isHostEnabled && hasAvailableInterface;
     
     return {
       id: host.hostid,
