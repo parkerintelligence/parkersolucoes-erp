@@ -45,6 +45,9 @@ export default defineConfig(({ mode }) => ({
       'eventemitter3',
       '@aws-sdk/client-s3',
       'fast-xml-parser',
+      'canvg',
+      'rgbcolor',
+      'raf',
     ],
     exclude: ['lovable-tagger'],
     force: true,
@@ -58,7 +61,7 @@ export default defineConfig(({ mode }) => ({
     emptyOutDir: true,
     sourcemap: false,
     commonjsOptions: {
-      include: [/react/, /react-dom/, /supabase/, /lodash/, /recharts/, /prop-types/, /react-smooth/, /fast-equals/, /eventemitter3/, /@aws-sdk/, /fast-xml-parser/],
+      include: [/react/, /react-dom/, /supabase/, /lodash/, /recharts/, /prop-types/, /react-smooth/, /fast-equals/, /eventemitter3/, /@aws-sdk/, /fast-xml-parser/, /canvg/, /rgbcolor/, /raf/],
       transformMixedEsModules: true,
       defaultIsModuleExports: 'auto',
       esmExternals: true,
@@ -75,6 +78,7 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('recharts')) return 'charts';
           if (id.includes('lodash')) return 'lodash';
           if (id.includes('@aws-sdk')) return 'aws';
+          if (id.includes('canvg') || id.includes('rgbcolor')) return 'canvas';
         },
         format: 'es',
         interop: 'auto',
