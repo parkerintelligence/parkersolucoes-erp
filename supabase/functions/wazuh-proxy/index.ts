@@ -7,13 +7,19 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
+console.log("Wazuh-proxy function starting...");
+
 serve(async (req) => {
+  console.log(`Received ${req.method} request to wazuh-proxy`);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log("Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log("Creating Supabase client...");
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -25,6 +31,7 @@ serve(async (req) => {
       throw new Error('Authorization header is required');
     }
 
+    console.log("Authenticating user...");
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
       authHeader.replace('Bearer ', '')
     );
@@ -34,11 +41,15 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { method, endpoint, integrationId } = await req.json();
+    console.log(`User authenticated: ${user.id}`);
+
+    const requestBody = await req.json();
+    const { method, endpoint, integrationId } = requestBody;
 
     console.log('Wazuh proxy request:', { method, endpoint, integrationId, userId: user.id });
 
     // Get Wazuh integration configuration
+    console.log("Fetching Wazuh integration...");
     const { data: integration, error: integrationError } = await supabaseClient
       .from('integrations')
       .select('*')
@@ -52,6 +63,8 @@ serve(async (req) => {
       throw new Error('Wazuh integration not found');
     }
 
+    console.log("Integration found:", { id: integration.id, name: integration.name, is_active: integration.is_active });
+
     if (!integration.is_active) {
       throw new Error('Wazuh integration is not active');
     }
@@ -59,9 +72,12 @@ serve(async (req) => {
     const { base_url, username, password } = integration;
     
     if (!base_url || !username || !password) {
+      console.error('Missing integration config:', { base_url: !!base_url, username: !!username, password: !!password });
       throw new Error('Wazuh integration is not properly configured');
     }
 
+    console.log(`Authenticating with Wazuh at: ${base_url}`);
+    
     // Authenticate with Wazuh API
     const authResponse = await fetch(`${base_url}/security/user/authenticate`, {
       method: 'GET',
@@ -73,6 +89,8 @@ serve(async (req) => {
 
     if (!authResponse.ok) {
       console.error('Wazuh auth failed:', authResponse.status, authResponse.statusText);
+      const errorText = await authResponse.text();
+      console.error('Wazuh auth error response:', errorText);
       throw new Error(`Wazuh authentication failed: ${authResponse.statusText}`);
     }
 
@@ -80,6 +98,7 @@ serve(async (req) => {
     const token = authData.data?.token;
 
     if (!token) {
+      console.error('No token in auth response:', authData);
       throw new Error('Failed to get Wazuh authentication token');
     }
 
@@ -99,11 +118,13 @@ serve(async (req) => {
 
     if (!apiResponse.ok) {
       console.error('Wazuh API request failed:', apiResponse.status, apiResponse.statusText);
+      const errorText = await apiResponse.text();
+      console.error('Wazuh API error response:', errorText);
       throw new Error(`Wazuh API request failed: ${apiResponse.statusText}`);
     }
 
     const responseData = await apiResponse.json();
-    console.log('Wazuh API response successful');
+    console.log('Wazuh API response successful, data keys:', Object.keys(responseData));
 
     return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
