@@ -36,15 +36,18 @@ export default function Alertas() {
       status: 0 // Only active items
     },
     search: {
-      name: ['CPU', 'Memory', 'Uptime', 'Processador', 'Memória', 'Tempo']
+      key_: ['cpu.util', 'system.cpu', 'perf_counter', 'vm.memory.util', 'vm.memory.size', 'system.uptime']
     }
   });
 
-  // Also try specific key patterns
+  // Also search by name patterns for different Zabbix templates
   const { data: systemItems = [] } = useItems(hostIds, {
     output: ['itemid', 'name', 'key_', 'hostid', 'status', 'value_type', 'units', 'lastvalue', 'lastclock'],
     filter: {
       status: 0
+    },
+    search: {
+      name: ['CPU utilization', 'Memory utilization', 'Available memory', 'Total memory', 'Uptime', 'System uptime']
     }
   });
 
@@ -81,49 +84,81 @@ export default function Alertas() {
     
     const hostName = hosts.find(h => h.hostid === hostId)?.name || hostId;
     
+    // Debug logging
+    console.log(`Performance data for ${hostName} (${hostId}):`, {
+      totalItems: hostItems.length,
+      itemNames: hostItems.map(item => ({ name: item.name, key: item.key_, value: item.lastvalue }))
+    });
+    
+    // Filter out Zabbix server internal metrics if this is not the Zabbix server host
+    const relevantItems = hostItems.filter(item => {
+      const key = item.key_.toLowerCase();
+      const name = item.name?.toLowerCase() || '';
+      
+      // Exclude Zabbix internal process metrics unless it's the Zabbix server
+      const isZabbixInternal = key.includes('zabbix[process,') || key.includes('zabbix[wcache,') || key.includes('zabbix[rcache,');
+      if (isZabbixInternal && hostName !== 'Zabbix server') {
+        return false;
+      }
+      
+      return true;
+    });
+    
     // Look for CPU items with expanded patterns
-    const cpuItem = hostItems.find(item => {
+    const cpuItem = relevantItems.find(item => {
       const key = item.key_.toLowerCase();
       const name = item.name?.toLowerCase() || '';
       return (
+        // Common Zabbix CPU keys
+        key.includes('system.cpu.util') ||
         key.includes('cpu.util') ||
-        key.includes('processor') ||
-        key.includes('system.cpu') ||
-        name.includes('cpu') ||
-        name.includes('processador') ||
+        key.includes('perf_counter[\\processor(_total)\\% processor time]') ||
+        // Name patterns
+        name.includes('cpu utilization') ||
         name.includes('processor time') ||
-        name.includes('processor usage')
+        name.includes('processor usage') ||
+        name.includes('cpu usage') ||
+        (name.includes('cpu') && (name.includes('%') || name.includes('util'))) ||
+        (name.includes('processador') && name.includes('%'))
       );
     });
     
     // Look for memory items with expanded patterns
-    const memoryItem = hostItems.find(item => {
+    const memoryItem = relevantItems.find(item => {
       const key = item.key_.toLowerCase();
       const name = item.name?.toLowerCase() || '';
       return (
-        key.includes('memory.util') ||
-        key.includes('mem.util') ||
+        // Common Zabbix memory keys
         key.includes('vm.memory.util') ||
         key.includes('vm.memory.size[pused]') ||
+        key.includes('perf_counter[\\memory\\% committed bytes in use]') ||
+        // Name patterns
         name.includes('memory utilization') ||
-        name.includes('memória') ||
-        name.includes('memory usage') ||
-        (name.includes('% memory') || name.includes('memory %')) ||
-        (name.includes('committed bytes') && name.includes('use'))
+        name.includes('available memory') ||
+        name.includes('committed bytes in use') ||
+        (name.includes('memory') && (name.includes('%') || name.includes('util'))) ||
+        (name.includes('memória') && name.includes('%'))
       );
     });
     
     // Look for uptime items
-    const uptimeItem = hostItems.find(item => {
+    const uptimeItem = relevantItems.find(item => {
       const key = item.key_.toLowerCase();
       const name = item.name?.toLowerCase() || '';
       return (
-        key.includes('uptime') ||
         key.includes('system.uptime') ||
+        key.includes('agent.uptime') ||
+        name.includes('system uptime') ||
         name.includes('uptime') ||
-        name.includes('tempo ligado') ||
-        name.includes('system up time')
+        name.includes('tempo ligado')
       );
+    });
+    
+    // Debug logging for found items
+    console.log(`Items found for ${hostName}:`, {
+      cpu: cpuItem ? { name: cpuItem.name, key: cpuItem.key_, value: cpuItem.lastvalue } : null,
+      memory: memoryItem ? { name: memoryItem.name, key: memoryItem.key_, value: memoryItem.lastvalue } : null,
+      uptime: uptimeItem ? { name: uptimeItem.name, key: uptimeItem.key_, value: uptimeItem.lastvalue } : null
     });
     
     // Parse and normalize values
@@ -134,15 +169,13 @@ export default function Alertas() {
     if (cpuItem?.lastvalue) {
       const value = parseFloat(cpuItem.lastvalue);
       if (!isNaN(value)) {
-        // Normalize CPU value to percentage (0-100)
-        if (value > 100) {
-          // If value is extremely high, it might be in different units
-          cpuUsage = Math.min(value / 1000000, 100); // Convert from microseconds or similar
-        } else if (value <= 1) {
-          // Convert decimal to percentage
-          cpuUsage = value * 100;
+        // Check if it's Windows perfcounter (often very large numbers)
+        if (cpuItem.key_.includes('perf_counter')) {
+          // Windows perfcounter values are often in different scale
+          cpuUsage = Math.min(Math.max(value, 0), 100);
         } else {
-          cpuUsage = Math.min(value, 100);
+          // Standard CPU utilization
+          cpuUsage = Math.min(Math.max(value, 0), 100);
         }
       }
     }
@@ -150,21 +183,8 @@ export default function Alertas() {
     if (memoryItem?.lastvalue) {
       const value = parseFloat(memoryItem.lastvalue);
       if (!isNaN(value)) {
-        // Normalize memory value to percentage (0-100)
-        if (value > 100) {
-          // If value is in bytes or extremely large, try to normalize
-          if (value > 1000000) {
-            // Likely bytes, try to get a reasonable percentage
-            memoryUsage = Math.min((value % 100), 100);
-          } else {
-            memoryUsage = Math.min(value / 10, 100);
-          }
-        } else if (value <= 1) {
-          // Convert decimal to percentage
-          memoryUsage = value * 100;
-        } else {
-          memoryUsage = Math.min(value, 100);
-        }
+        // Memory is usually already in percentage for vm.memory.util
+        memoryUsage = Math.min(Math.max(value, 0), 100);
       }
     }
     
@@ -175,24 +195,23 @@ export default function Alertas() {
       }
     }
     
-    // Debug logging for problematic values
-    if ((cpuUsage > 100 || memoryUsage > 100) && (cpuItem || memoryItem)) {
-      console.warn(`Abnormal values for ${hostName}:`, {
-        cpu: cpuItem ? { value: cpuItem.lastvalue, normalized: cpuUsage } : null,
-        memory: memoryItem ? { value: memoryItem.lastvalue, normalized: memoryUsage } : null
-      });
-    }
+    // Debug logging for final values
+    console.log(`Final values for ${hostName}:`, {
+      cpu: cpuUsage,
+      memory: memoryUsage,
+      uptime: uptime
+    });
     
     return {
-      cpu: Math.min(Math.max(cpuUsage, 0), 100), // Clamp between 0-100
-      memory: Math.min(Math.max(memoryUsage, 0), 100), // Clamp between 0-100
+      cpu: cpuUsage,
+      memory: memoryUsage,
       uptime: uptime,
       hasData: !!(cpuItem || memoryItem || uptimeItem),
       itemsFound: {
         cpu: !!cpuItem,
         memory: !!memoryItem,
         uptime: !!uptimeItem,
-        total: hostItems.length
+        total: relevantItems.length
       }
     };
   };
