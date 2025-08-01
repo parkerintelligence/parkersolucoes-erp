@@ -8,11 +8,11 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    force: true, // Force dependency pre-bundling
+    force: true,
   },
   plugins: [
     react({
-      // Add SWC configuration for better stability
+      tsDecorators: true,
       plugins: [],
     }),
     mode === 'development' && componentTagger(),
@@ -23,7 +23,6 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    // Force pre-bundling of these dependencies
     include: [
       'react',
       'react-dom',
@@ -31,13 +30,18 @@ export default defineConfig(({ mode }) => ({
       '@tanstack/react-query',
       '@supabase/supabase-js',
     ],
-    force: true, // Force dependency optimization
+    exclude: ['lovable-tagger'],
+    force: true,
   },
   build: {
-    // Clear the dist folder before building
     emptyOutDir: true,
     sourcemap: mode === 'development',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
   },
-  // Clear cache on startup
-  cacheDir: 'node_modules/.vite',
+  // Force clear cache
+  cacheDir: 'node_modules/.vite-temp',
 }));
