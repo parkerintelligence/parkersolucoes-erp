@@ -15,6 +15,7 @@ import { GLPIConfig } from "@/components/GLPIConfig";
 import GuacamoleAdminConfig from "@/components/GuacamoleAdminConfig";
 import { BaculaAdminConfig } from "@/components/BaculaAdminConfig";
 import { HostingerAdminConfig } from "@/components/HostingerAdminConfig";
+import UniFiAdminConfig from "@/components/UniFiAdminConfig";
 import { AdminCompaniesPanel } from "@/components/AdminCompaniesPanel";
 import SystemSettingsPanel from "@/components/SystemSettingsPanel";
 import { BrandingSettingsPanel } from "@/components/BrandingSettingsPanel";
@@ -30,7 +31,8 @@ import {
   Database,
   Server,
   Archive,
-  Activity
+  Activity,
+  Wifi
 } from "lucide-react";
 
 const Admin = () => {
@@ -108,6 +110,12 @@ const Admin = () => {
       label: "BomControle",
       icon: <Activity className="h-5 w-5" />,
       component: <BomControleAdminConfig />
+    },
+    {
+      id: "unifi",
+      label: "UniFi",
+      icon: <Wifi className="h-5 w-5 text-blue-400" />,
+      component: <UniFiAdminConfig />
     }
   ];
 

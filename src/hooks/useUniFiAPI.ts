@@ -2,10 +2,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface UniFiDevice {
+export interface UniFiDevice {
   _id: string;
   mac: string;
   name?: string;
+  alias?: string;
   model: string;
   type: string;
   ip?: string;
@@ -14,9 +15,13 @@ interface UniFiDevice {
   uptime?: number;
   version?: string;
   site_id: string;
+  num_sta?: number;
+  led_override?: string;
+  power_override?: boolean;
+  radio_table?: any[];
 }
 
-interface UniFiClient {
+export interface UniFiClient {
   _id: string;
   mac: string;
   name?: string;
@@ -41,7 +46,7 @@ interface UniFiClient {
   site_id: string;
 }
 
-interface UniFiSite {
+export interface UniFiSite {
   _id: string;
   name: string;
   desc: string;
