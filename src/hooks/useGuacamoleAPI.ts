@@ -531,6 +531,24 @@ export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?
         },
       });
     },
+    useDirectConnect: () => {
+      return useMutation({
+        mutationFn: (connectionId: string) => {
+          onLog?.('info', 'Criando conexão direta', { connectionId });
+          return callGuacamoleAPI(`connect/${connectionId}`, { method: 'POST' });
+        },
+        onSuccess: (data, connectionId) => {
+          onLog?.('response', 'Conexão direta criada com sucesso', { 
+            connectionId, 
+            method: data?.method,
+            hasCredentials: data?.hasCredentials 
+          });
+        },
+        onError: (error: Error, connectionId) => {
+          onLog?.('error', `Erro ao criar conexão direta: ${error.message}`, { connectionId });
+        },
+      });
+    },
     isConfigured,
     integration
   };

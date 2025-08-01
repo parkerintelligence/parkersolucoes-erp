@@ -354,7 +354,7 @@ serve(async (req) => {
           console.log(`=== Creating direct connection for: ${connectionId} ===`)
           
           try {
-            // Verificar se a conexão existe primeiro
+            // Primeiro, verificar se a conexão existe
             const connectionCheckUrl = `${baseUrl}/api/session/data/${dataSource}/connections/${encodeURIComponent(connectionId)}?token=${encodeURIComponent(authTokenData.authToken)}`
             
             const connectionResponse = await fetch(connectionCheckUrl, {
@@ -375,11 +375,90 @@ serve(async (req) => {
             const connectionData = await connectionResponse.json()
             console.log(`Connection verified: ${connectionData.name}`)
             
-            // Criar URL de conexão direta que inclui o token de autenticação
-            // Esta URL bypassa a tela de login do Guacamole
-            const sessionUrl = `${baseUrl}/#/client/${encodeURIComponent(connectionId)}?token=${authTokenData.authToken}&data-source=${dataSource}`
+            // Tentar criar um túnel para conexão direta
+            console.log('=== Attempting to create connection tunnel ===')
+            const tunnelUrl = `${baseUrl}/api/session/tunnels/${encodeURIComponent(connectionId)}?token=${encodeURIComponent(authTokenData.authToken)}`
             
-            console.log(`Direct connection URL created (token masked): ${sessionUrl.replace(authTokenData.authToken, '***MASKED***')}`)
+            try {
+              const tunnelResponse = await fetch(tunnelUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  // Credenciais específicas da conexão se disponíveis
+                  username: connectionData.parameters?.username || '',
+                  password: connectionData.parameters?.password || ''
+                })
+              });
+
+              console.log(`Tunnel creation status: ${tunnelResponse.status}`)
+
+              if (tunnelResponse.ok) {
+                const tunnelData = await tunnelResponse.json()
+                console.log('Tunnel created successfully:', tunnelData)
+                
+                // URL com túnel criado - Guacamole irá conectar automaticamente
+                const sessionUrl = `${baseUrl}/#/client/${encodeURIComponent(connectionId)}?token=${authTokenData.authToken}&data-source=${dataSource}&tunnel=${tunnelData.uuid || 'auto'}`
+                
+                console.log(`Direct connection URL with tunnel created (token masked): ${sessionUrl.replace(authTokenData.authToken, '***MASKED***')}`)
+                
+                return new Response(JSON.stringify({
+                  result: {
+                    sessionUrl,
+                    connectionId,
+                    connectionName: connectionData.name,
+                    protocol: connectionData.protocol,
+                    tunnelId: tunnelData.uuid,
+                    success: true,
+                    method: 'tunnel'
+                  }
+                }), {
+                  status: 200,
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                });
+              }
+            } catch (tunnelError) {
+              console.log('Tunnel creation failed, trying alternative methods:', tunnelError.message)
+            }
+            
+            // Método alternativo 1: URL com credenciais incorporadas se disponíveis
+            console.log('=== Trying connection with embedded credentials ===')
+            const params = new URLSearchParams()
+            params.set('token', authTokenData.authToken)
+            params.set('data-source', dataSource)
+            
+            // Adicionar credenciais específicas da conexão se disponíveis
+            if (connectionData.parameters?.username) {
+              params.set('username', connectionData.parameters.username)
+            }
+            if (connectionData.parameters?.password) {
+              params.set('password', connectionData.parameters.password)
+            }
+            
+            const sessionUrl = `${baseUrl}/#/client/${encodeURIComponent(connectionId)}?${params.toString()}`
+            
+            console.log(`Direct connection URL with credentials created (masked): ${sessionUrl.replace(authTokenData.authToken, '***MASKED***').replace(connectionData.parameters?.password || '', '***MASKED***')}`)
+            
+            // Método alternativo 2: Tentar pre-autenticar usando a sessão ativa
+            console.log('=== Pre-authenticating session ===')
+            try {
+              const preAuthUrl = `${baseUrl}/api/session/data/${dataSource}/connections/${encodeURIComponent(connectionId)}/parameters?token=${encodeURIComponent(authTokenData.authToken)}`
+              
+              const preAuthResponse = await fetch(preAuthUrl, {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                }
+              });
+              
+              if (preAuthResponse.ok) {
+                const preAuthData = await preAuthResponse.json()
+                console.log('Pre-auth successful, connection parameters loaded')
+              }
+            } catch (preAuthError) {
+              console.log('Pre-auth failed, continuing with basic URL:', preAuthError.message)
+            }
             
             return new Response(JSON.stringify({
               result: {
@@ -387,19 +466,33 @@ serve(async (req) => {
                 connectionId,
                 connectionName: connectionData.name,
                 protocol: connectionData.protocol,
-                success: true
+                success: true,
+                method: 'direct',
+                hasCredentials: !!(connectionData.parameters?.username && connectionData.parameters?.password)
               }
             }), {
               status: 200,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
+            
           } catch (error) {
             console.error('Erro ao criar conexão direta:', error);
+            
+            // Fallback final: URL básica sem credenciais
+            console.log('=== Using fallback URL ===')
+            const fallbackUrl = `${baseUrl}/#/client/${encodeURIComponent(connectionId)}`
+            
             return new Response(JSON.stringify({
-              error: 'Erro ao criar conexão direta',
-              details: error.message
+              result: {
+                sessionUrl: fallbackUrl,
+                connectionId,
+                connectionName: 'Unknown Connection',
+                success: true,
+                method: 'fallback',
+                warning: 'Conexão criada mas pode necessitar autenticação manual'
+              }
             }), {
-              status: 500,
+              status: 200,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
           }

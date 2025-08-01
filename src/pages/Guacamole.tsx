@@ -123,57 +123,129 @@ const Guacamole = () => {
       });
       return;
     }
+    
+    // Log da tentativa de conexão
+    logInfo('Iniciando conexão direta ao Guacamole', {
+      connectionId: connection.identifier,
+      connectionName: connection.name,
+      protocol: connection.protocol
+    });
+
     try {
-      // Criar URL de conexão direta com autenticação automática
-      const {
-        data: sessionData,
-        error
-      } = await supabase.functions.invoke('guacamole-proxy', {
+      // Tentar criar conexão direta com autenticação automática
+      const { data: sessionData, error } = await supabase.functions.invoke('guacamole-proxy', {
         body: {
           integrationId: integration.id,
           endpoint: `connect/${connection.identifier}`,
           method: 'POST'
         }
       });
-      if (error || !sessionData?.sessionUrl) {
-        console.error('Erro ao criar sessão:', error);
 
-        // Fallback: URL direta simples
+      if (error) {
+        console.error('Erro na função Edge:', error);
+        throw new Error(error.message || 'Erro na comunicação com o servidor');
+      }
+
+      if (!sessionData?.result) {
+        throw new Error('Resposta inválida do servidor');
+      }
+
+      const result = sessionData.result;
+      
+      // Log do método de conexão utilizado
+      logInfo('Resposta da conexão recebida', {
+        connectionId: result.connectionId,
+        connectionName: result.connectionName,
+        method: result.method,
+        hasCredentials: result.hasCredentials,
+        warning: result.warning
+      });
+
+      // Verificar se a conexão foi bem-sucedida
+      if (!result.success || !result.sessionUrl) {
+        throw new Error(result.warning || 'URL de sessão não fornecida');
+      }
+
+      // Abrir em nova aba com base no método de conexão
+      window.open(result.sessionUrl, '_blank', 'noopener,noreferrer');
+
+      // Mostrar toast informativo baseado no método
+      let toastMessage = '';
+      let toastDescription = '';
+      
+      switch (result.method) {
+        case 'tunnel':
+          toastMessage = 'Conectado com túnel!';
+          toastDescription = `Conexão "${connection.name}" aberta com túnel direto. Autenticação automática ativa.`;
+          break;
+        case 'direct':
+          toastMessage = result.hasCredentials ? 'Conectado com credenciais!' : 'Conectando...';
+          toastDescription = result.hasCredentials 
+            ? `Conexão "${connection.name}" aberta com credenciais incorporadas.`
+            : `Conexão "${connection.name}" aberta. Pode ser necessário inserir credenciais.`;
+          break;
+        case 'fallback':
+          toastMessage = 'Conectando (modo básico)';
+          toastDescription = `Conexão "${connection.name}" aberta. Autenticação manual pode ser necessária.`;
+          break;
+        default:
+          toastMessage = 'Conectando...';
+          toastDescription = `Abrindo conexão "${connection.name}".`;
+      }
+
+      toast({
+        title: toastMessage,
+        description: toastDescription
+      });
+
+      // Se houver warning, mostrar como segundo toast
+      if (result.warning) {
+        setTimeout(() => {
+          toast({
+            title: "Atenção",
+            description: result.warning,
+            variant: "default"
+          });
+        }, 2000);
+      }
+
+    } catch (error) {
+      console.error('Erro ao conectar:', error);
+      
+      logError('Falha na conexão direta', '', {
+        connectionId: connection.identifier,
+        connectionName: connection.name,
+        error: error.message
+      });
+
+      // Fallback final: URL básica do Guacamole
+      try {
         const baseUrl = integration.base_url.replace(/\/$/, '');
         const fallbackUrl = `${baseUrl}/#/client/${encodeURIComponent(connection.identifier)}`;
-        logInfo('Usando URL de fallback para conexão', {
+        
+        logInfo('Usando URL de fallback de emergência', {
           connectionId: connection.identifier,
           connectionName: connection.name,
           url: fallbackUrl
         });
+        
         window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+        
         toast({
-          title: "Conectando...",
-          description: `Abrindo conexão "${connection.name}" (modo básico).`
+          title: "Conectando (modo de emergência)",
+          description: `Abrindo "${connection.name}" com autenticação manual necessária.`,
+          variant: "default"
         });
-        return;
+        
+      } catch (fallbackError) {
+        console.error('Erro no fallback de emergência:', fallbackError);
+        
+        toast({
+          title: "Erro na conexão",
+          description: `Não foi possível conectar a "${connection.name}". Verifique a configuração do Guacamole.`,
+          variant: "destructive"
+        });
       }
-
-      // Usar URL de sessão direta se disponível
-      logInfo('Abrindo conexão do Guacamole com sessão direta', {
-        connectionId: connection.identifier,
-        connectionName: connection.name,
-        hasSessionUrl: !!sessionData.sessionUrl
-      });
-
-      // Abrir em nova aba com sessão autenticada
-      window.open(sessionData.sessionUrl, '_blank', 'noopener,noreferrer');
-      toast({
-        title: "Conectando...",
-        description: `Abrindo conexão "${connection.name}" com acesso direto.`
-      });
-    } catch (error) {
-      console.error('Erro ao conectar:', error);
-      toast({
-        title: "Erro na conexão",
-        description: "Não foi possível estabelecer a conexão. Tente novamente.",
-        variant: "destructive"
-      });
     }
   };
   const handleCreateConnection = async (connectionData: Partial<GuacamoleConnection>) => {
