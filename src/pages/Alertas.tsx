@@ -287,26 +287,35 @@ export default function Alertas() {
         
         <TabsContent value="status" className="space-y-4">
           {/* Devices Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-3">
-            {devices.map((device) => (
-              <Card 
-                key={device.id} 
-                className={cn(
-                  "transition-all duration-200 hover:shadow-md",
-                  getStatusColor(device.status)
-                )}
-              >
-                <CardContent className="p-3">
-                  <div className="flex flex-col items-center space-y-2">
-                    {getStatusIcon(device.status)}
-                    <h3 className="font-medium text-xs text-center text-white truncate w-full" title={device.name}>
-                      {device.name}
-                    </h3>
-                    {getStatusBadge(device.status)}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            {devices.map((device) => {
+              const perf = device.status === 'online' ? getPerformanceData(device.id) : null;
+              return (
+                <Card 
+                  key={device.id} 
+                  className={cn(
+                    "transition-all duration-200 hover:shadow-md",
+                    getStatusColor(device.status)
+                  )}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex flex-col items-center space-y-3">
+                      {getStatusIcon(device.status)}
+                      <h3 className="font-medium text-xs text-center text-white break-words w-full" title={device.name}>
+                        {device.name}
+                      </h3>
+                      {getStatusBadge(device.status)}
+                      {device.status === 'online' && perf?.itemsFound?.uptime && (
+                        <div className="flex items-center gap-1 text-xs text-slate-400">
+                          <Clock className="h-3 w-3" />
+                          <span>{formatUptime(perf.uptime)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </TabsContent>
         
