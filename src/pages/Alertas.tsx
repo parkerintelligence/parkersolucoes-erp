@@ -91,45 +91,77 @@ export default function Alertas() {
       units: item.units
     })));
     
-    // Look for CPU items with expanded patterns
+    // Look for CPU items with proper prioritization
     const cpuItem = hostItems.find(item => {
       const key = item.key_.toLowerCase();
       const name = item.name?.toLowerCase() || '';
-      return (
-        // Zabbix standard keys
-        key.includes('system.cpu.util') ||
-        key.includes('cpu.util') ||
-        key === 'system.cpu.load[percpu,avg1]' ||
-        key === 'system.cpu.load[percpu,avg5]' ||
-        key === 'system.cpu.load[percpu,avg15]' ||
-        // Windows performance counters
-        key.includes('perf_counter') && (key.includes('processor') || key.includes('cpu')) ||
-        // Name-based search (more inclusive)
-        name.includes('cpu') && (name.includes('%') || name.includes('utilization') || name.includes('usage')) ||
-        name.includes('processador') ||
-        name.includes('processor time') ||
-        name === 'cpu utilization' ||
-        name === 'cpu usage'
-      );
+      
+      // High priority items first
+      if (key.includes('system.cpu.util') || 
+          key.includes('cpu.util') ||
+          key === 'system.cpu.load[percpu,avg1]' ||
+          name === 'cpu utilization' ||
+          name === 'cpu usage') {
+        return true;
+      }
+      
+      // Windows performance counters - be more specific
+      if (key.includes('perf_counter')) {
+        // Exclude problematic DPC and specific cache-related counters
+        if (key.includes('dpc') || key.includes('cache') || key.includes('interrupt')) {
+          return false;
+        }
+        // Look for processor time or processor usage
+        if ((key.includes('processor') || key.includes('cpu')) && 
+            (key.includes('time') || key.includes('%'))) {
+          return true;
+        }
+      }
+      
+      // Name-based search (more restrictive)
+      if (name.includes('cpu') && 
+          (name.includes('%') || name.includes('utilization') || name.includes('usage')) &&
+          !name.includes('dpc') && !name.includes('cache')) {
+        return true;
+      }
+      
+      return false;
     });
     
-    // Look for memory items with expanded patterns  
+    // Look for memory items with proper prioritization
     const memoryItem = hostItems.find(item => {
       const key = item.key_.toLowerCase();
       const name = item.name?.toLowerCase() || '';
-      return (
-        // Zabbix standard keys
-        key.includes('vm.memory.util') ||
-        key.includes('vm.memory.size[pused]') ||
-        key.includes('vm.memory.size[pavailable]') ||
-        // Windows performance counters
-        key.includes('perf_counter') && key.includes('memory') ||
-        // Name-based search
-        name.includes('memory') && (name.includes('%') || name.includes('utilization') || name.includes('usage')) ||
-        name.includes('memória') ||
-        name === 'memory utilization' ||
-        name === 'available memory'
-      );
+      
+      // High priority items first
+      if (key.includes('vm.memory.util') ||
+          key.includes('vm.memory.size[pused]') ||
+          key.includes('vm.memory.size[pavailable]') ||
+          name === 'memory utilization' ||
+          name === 'available memory') {
+        return true;
+      }
+      
+      // Windows performance counters - be more specific
+      if (key.includes('perf_counter') && key.includes('memory')) {
+        // Exclude cache and other non-memory usage items
+        if (key.includes('cache') || key.includes('pool') || key.includes('page')) {
+          return false;
+        }
+        // Look for committed bytes, available bytes, etc.
+        if (key.includes('committed') || key.includes('available') || key.includes('%')) {
+          return true;
+        }
+      }
+      
+      // Name-based search (more restrictive)
+      if (name.includes('memory') && 
+          (name.includes('%') || name.includes('utilization') || name.includes('usage')) &&
+          !name.includes('cache') && !name.includes('pool')) {
+        return true;
+      }
+      
+      return false;
     });
     
     // Look for uptime items
