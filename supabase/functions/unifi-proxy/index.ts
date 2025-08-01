@@ -96,54 +96,14 @@ serve(async (req) => {
   let cookies = '';
   let authHeaders: Record<string, string> = {};
 
-  // Function to convert local controller endpoints to UniFi Site Manager API v2 endpoints
-  const convertToSiteManagerAPIEndpoint = (localEndpoint: string, siteId?: string): string => {
-    const apiMappings: Record<string, string> = {
-      '/api/self/sites': '/v2/api/site',
-      '/api/s/default/stat/device': `/v2/api/site/${siteId || 'default'}/device`,
-      '/api/s/default/stat/sta': `/v2/api/site/${siteId || 'default'}/client`,
-      '/api/s/default/stat/alarm': `/v2/api/site/${siteId || 'default'}/alarm`,
-      '/api/s/default/stat/health': `/v2/api/site/${siteId || 'default'}/health`,
-      '/api/s/default/rest/networkconf': `/v2/api/site/${siteId || 'default'}/network`
-    };
-
-    // Handle dynamic site endpoints
-    const dynamicPattern = /^\/api\/s\/([^\/]+)\/(.+)$/;
-    const match = localEndpoint.match(dynamicPattern);
-    if (match) {
-      const [, site, path] = match;
-      const pathMappings: Record<string, string> = {
-        'stat/device': 'device',
-        'stat/sta': 'client',
-        'stat/alarm': 'alarm',
-        'stat/health': 'health',
-        'rest/networkconf': 'network',
-        'cmd/devmgr': 'cmd/device',
-        'cmd/stamgr': 'cmd/client'
-      };
-      
-      const apiPath = pathMappings[path] || path;
-      return `/v2/api/site/${site}/${apiPath}`;
-    }
-
-    return apiMappings[localEndpoint] || localEndpoint;
-  };
-
   // Check if using UniFi Site Manager API token
   if (api_token) {
     console.log('Using UniFi Site Manager API X-API-KEY authentication');
     authHeaders['X-API-KEY'] = api_token;
     authHeaders['Accept'] = 'application/json';
     
-    // Extract site ID from endpoint if needed
-    const siteMatch = endpoint.match(/\/api\/s\/([^\/]+)\//);
-    const siteId = siteMatch ? siteMatch[1] : 'default';
-    
-    // Convert endpoint for UniFi Site Manager API v2
-    const apiEndpoint = convertToSiteManagerAPIEndpoint(endpoint, siteId);
-    
-    // For Site Manager API, make direct request
-    const apiUrl = `${fullBaseUrl}${apiEndpoint}`;
+    // For Site Manager API v2, use endpoint directly without conversion
+    const apiUrl = `${fullBaseUrl}${endpoint}`;
     console.log('Making UniFi Site Manager API request to:', apiUrl);
 
       const requestOptions: RequestInit = {
@@ -162,33 +122,45 @@ serve(async (req) => {
       const apiResponse = await fetch(apiUrl, requestOptions);
 
       if (!apiResponse.ok) {
-        console.error('UniFi API request failed:', apiResponse.status, apiResponse.statusText);
+        console.error('UniFi Site Manager API request failed:', apiResponse.status, apiResponse.statusText);
         const errorText = await apiResponse.text();
-        console.error('UniFi API error response:', errorText);
-        throw new Error(`UniFi API request failed: ${apiResponse.statusText}`);
+        console.error('UniFi Site Manager API error response:', errorText);
+        
+        // Return error in expected format
+        return new Response(JSON.stringify({ 
+          error: `UniFi Site Manager API request failed: ${apiResponse.status} ${apiResponse.statusText}`,
+          details: errorText,
+          endpoint: apiUrl
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
       // Check if response is JSON before parsing
       const contentType = apiResponse.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const responseText = await apiResponse.text();
-        console.error('UniFi API returned non-JSON response:', responseText.substring(0, 200));
-        throw new Error('UniFi API returned invalid response format');
+        console.error('UniFi Site Manager API returned non-JSON response:', responseText.substring(0, 200));
+        
+        return new Response(JSON.stringify({ 
+          error: 'UniFi Site Manager API returned invalid response format',
+          details: responseText.substring(0, 500),
+          endpoint: apiUrl
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
       const responseData = await apiResponse.json();
       console.log('UniFi Site Manager API response successful, data keys:', Object.keys(responseData || {}));
+      console.log('UniFi Site Manager API response sample:', JSON.stringify(responseData).substring(0, 500));
 
-      // Check if response has the expected Site Manager API structure
-      if (responseData && typeof responseData === 'object') {
-        // Site Manager API returns data in a consistent structure
-        return new Response(JSON.stringify(responseData), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      } else {
-        console.error('Unexpected response structure from Site Manager API:', responseData);
-        throw new Error('Invalid response structure from UniFi Site Manager API');
-      }
+      // Site Manager API returns data in a consistent structure
+      return new Response(JSON.stringify(responseData), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Legacy local controller authentication with session cookies
