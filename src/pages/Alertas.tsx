@@ -185,10 +185,56 @@ export default function Alertas() {
     
     if (memoryItem?.lastvalue !== undefined && memoryItem.lastvalue !== null && memoryItem.lastvalue !== '') {
       let value = parseFloat(memoryItem.lastvalue);
-      console.log(`[DEBUG] Memory raw value for ${hostName}:`, value, 'from item:', memoryItem.name);
+      console.log(`[DEBUG] Memory raw value for ${hostName}:`, value, 'from item:', memoryItem.name, 'key:', memoryItem.key_);
       
       if (!isNaN(value)) {
-        // Memory values should be in percentage
+        const key = memoryItem.key_.toLowerCase();
+        const name = memoryItem.name?.toLowerCase() || '';
+        
+        // Check if this is available memory (needs to be inverted)
+        const isAvailableMemory = key.includes('pavailable') || 
+                                 key.includes('available') || 
+                                 name.includes('available') ||
+                                 name.includes('free');
+        
+        // Check if value is in bytes (large values)
+        if (value > 100) {
+          console.log(`[DEBUG] Large memory value detected (likely bytes): ${value}`);
+          
+          // For byte values, we need total memory to calculate percentage
+          // Try to find total memory item for this host
+          const totalMemoryKey = key.replace('[pavailable]', '[total]').replace('[pused]', '[total]');
+          const totalMemoryItem = performanceItems.find(item => 
+            item.hostid === memoryItem.hostid && 
+            item.key_.toLowerCase() === totalMemoryKey
+          );
+          
+          if (totalMemoryItem && totalMemoryItem.lastvalue) {
+            const totalMem = parseFloat(totalMemoryItem.lastvalue);
+            if (!isNaN(totalMem) && totalMem > 0) {
+              let usedMem = value;
+              if (isAvailableMemory) {
+                usedMem = totalMem - value; // Calculate used = total - available
+              }
+              value = Math.min(100, Math.max(0, (usedMem / totalMem) * 100));
+              console.log(`[DEBUG] Calculated memory percentage: ${usedMem}/${totalMem} = ${value.toFixed(1)}%`);
+            } else {
+              // Without total memory, cap large values
+              console.log(`[DEBUG] No valid total memory found, capping large value`);
+              value = 0;
+            }
+          } else {
+            // Fallback: assume very large values are incorrect
+            console.log(`[DEBUG] No total memory reference found, assuming large value is error`);
+            value = 0;
+          }
+        } else if (isAvailableMemory && value <= 100) {
+          // For available memory percentages, invert to get used memory
+          value = 100 - value;
+          console.log(`[DEBUG] Inverted available memory: ${100 - (100 - value)}% available → ${value}% used`);
+        }
+        
+        // Ensure value is within valid range
         memoryUsage = Math.min(Math.max(value, 0), 100);
         console.log(`[DEBUG] Memory final value for ${hostName}:`, memoryUsage);
       }
