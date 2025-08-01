@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => ({
       "react": path.resolve(__dirname, "./node_modules/react"),
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
+    dedupe: ['react', 'react-dom'],
   },
   optimizeDeps: {
     include: [
@@ -43,17 +44,17 @@ export default defineConfig(({ mode }) => ({
   build: {
     emptyOutDir: true,
     sourcemap: mode === 'development',
+    commonjsOptions: {
+      include: [/react/, /react-dom/],
+    },
     rollupOptions: {
-      external: ['react', 'react-dom'],
       output: {
-        manualChunks: undefined,
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM',
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
         },
       },
     },
   },
   // Force clear cache
-  cacheDir: 'node_modules/.vite-temp',
+  cacheDir: 'node_modules/.vite-clear',
 }));

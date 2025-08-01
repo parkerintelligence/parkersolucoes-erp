@@ -3,6 +3,9 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
+// Debug log to verify React instance
+console.log('AuthContext React instance:', React.version, React);
+
 interface UserProfile {
   id: string;
   email: string;
@@ -32,14 +35,16 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  console.log('AuthProvider rendering, React hooks available:', !!React.useState);
+  
+  const [user, setUser] = React.useState<User | null>(null);
+  const [session, setSession] = React.useState<Session | null>(null);
+  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
   
   // Usar useRef para o timer para evitar re-renders desnecessários
-  const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const sessionTimerIdRef = useRef<string | null>(null);
+  const sessionTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const sessionTimerIdRef = React.useRef<string | null>(null);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -88,7 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const clearSessionTimer = useCallback(() => {
+  const clearSessionTimer = React.useCallback(() => {
     if (sessionTimerRef.current) {
       clearTimeout(sessionTimerRef.current);
       sessionTimerRef.current = null;
@@ -96,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const startSessionTimer = useCallback(() => {
+  const startSessionTimer = React.useCallback(() => {
     // Primeiro, limpar qualquer timer existente
     clearSessionTimer();
     
@@ -135,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Timer iniciado silenciosamente para melhorar performance
   }, [session, user, clearSessionTimer]);
 
-  const resetSessionTimer = useCallback(() => {
+  const resetSessionTimer = React.useCallback(() => {
     // Só resetar se tiver usuário e sessão válidos
     if (!session || !user) {
       return;
@@ -144,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     startSessionTimer();
   }, [session, user, startSessionTimer]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
