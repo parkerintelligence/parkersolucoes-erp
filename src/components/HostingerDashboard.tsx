@@ -7,46 +7,36 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { MasterPasswordDialog } from '@/components/MasterPasswordDialog';
 import { useHostingerIntegrations, useHostingerVPS, useHostingerVPSMetrics, useHostingerActions } from '@/hooks/useHostingerAPI';
-import { 
-  Server, 
-  Cpu, 
-  HardDrive, 
-  Wifi, 
-  Camera, 
-  RotateCcw, 
-  MapPin, 
-  Calendar, 
-  Activity, 
-  Zap, 
-  RefreshCw, 
-  AlertCircle, 
-  Clock,
-  Gauge,
-  Network,
-  BarChart3
-} from 'lucide-react';
-
+import { Server, Cpu, HardDrive, Wifi, Camera, RotateCcw, MapPin, Calendar, Activity, Zap, RefreshCw, AlertCircle, Clock, Gauge, Network, BarChart3 } from 'lucide-react';
 export const HostingerDashboard = () => {
-  const { toast } = useToast();
-  const { isMaster } = useAuth();
-  const { data: integrations, isLoading: integrationsLoading } = useHostingerIntegrations();
-  const { restartVPS, createSnapshot } = useHostingerActions();
-  
+  const {
+    toast
+  } = useToast();
+  const {
+    isMaster
+  } = useAuth();
+  const {
+    data: integrations,
+    isLoading: integrationsLoading
+  } = useHostingerIntegrations();
+  const {
+    restartVPS,
+    createSnapshot
+  } = useHostingerActions();
   const [selectedIntegration, setSelectedIntegration] = useState<string>('');
   const [showMasterPasswordDialog, setShowMasterPasswordDialog] = useState(false);
   const [pendingRestartVpsId, setPendingRestartVpsId] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  
-  const { data: vpsList, isLoading: vpsLoading, refetch: refetchVPS } = useHostingerVPS(
-    selectedIntegration || integrations?.[0]?.id
-  );
-
+  const {
+    data: vpsList,
+    isLoading: vpsLoading,
+    refetch: refetchVPS
+  } = useHostingerVPS(selectedIntegration || integrations?.[0]?.id);
   React.useEffect(() => {
     if (integrations && integrations.length > 0 && !selectedIntegration) {
       setSelectedIntegration(integrations[0].id);
     }
   }, [integrations, selectedIntegration]);
-
   const formatBytes = (bytes: number) => {
     if (!bytes) return '0 B';
     const k = 1024;
@@ -54,7 +44,6 @@ export const HostingerDashboard = () => {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
-
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'running':
@@ -69,7 +58,6 @@ export const HostingerDashboard = () => {
         return 'bg-slate-500/20 text-slate-300 border-slate-500/40';
     }
   };
-
   const getStatusIcon = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'running':
@@ -84,7 +72,6 @@ export const HostingerDashboard = () => {
         return <Clock className="h-3 w-3" />;
     }
   };
-
   const handleRestart = (vpsId: string) => {
     if (!isMaster) {
       toast({
@@ -97,10 +84,8 @@ export const HostingerDashboard = () => {
     setPendingRestartVpsId(vpsId);
     setShowMasterPasswordDialog(true);
   };
-
   const handleMasterPasswordSuccess = async () => {
     if (!pendingRestartVpsId) return;
-    
     try {
       await restartVPS.mutateAsync({
         integrationId: selectedIntegration,
@@ -111,7 +96,6 @@ export const HostingerDashboard = () => {
       setPendingRestartVpsId(null);
     }
   };
-
   const handleRefresh = () => {
     refetchVPS();
     setLastRefresh(new Date());
@@ -120,13 +104,9 @@ export const HostingerDashboard = () => {
       description: "Dashboard atualizado com sucesso"
     });
   };
-
   const handleSnapshot = async (vpsId: string, vpsName: any) => {
-    const safeName = typeof vpsName === 'object' 
-      ? vpsName?.hostname || vpsName?.name || vpsName?.id || vpsId 
-      : vpsName || vpsId;
+    const safeName = typeof vpsName === 'object' ? vpsName?.hostname || vpsName?.name || vpsName?.id || vpsId : vpsName || vpsId;
     const snapshotName = `${safeName}_${new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')}`;
-    
     await createSnapshot.mutateAsync({
       integrationId: selectedIntegration,
       vpsId,
@@ -134,19 +114,14 @@ export const HostingerDashboard = () => {
     });
     setTimeout(() => refetchVPS(), 2000);
   };
-
   if (integrationsLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
+    return <div className="flex items-center justify-center p-8">
         <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
         <span className="ml-2 text-slate-400">Carregando integrações...</span>
-      </div>
-    );
+      </div>;
   }
-
   if (!integrations || integrations.length === 0) {
-    return (
-      <Card className="bg-slate-800 border-slate-700">
+    return <Card className="bg-slate-800 border-slate-700">
         <CardContent className="p-8 text-center">
           <Server className="h-16 w-16 mx-auto mb-4 text-slate-400" />
           <h3 className="text-lg font-semibold text-white mb-2">Nenhuma Integração Hostinger</h3>
@@ -154,12 +129,9 @@ export const HostingerDashboard = () => {
             Configure uma integração Hostinger no painel administrativo para visualizar seus VPS.
           </p>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Header com Estatísticas Resumidas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card className="bg-slate-800 border-slate-700">
@@ -219,12 +191,7 @@ export const HostingerDashboard = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <Button 
-                  onClick={handleRefresh} 
-                  variant="outline" 
-                  size="sm"
-                  className="bg-slate-700 border-slate-600 hover:bg-slate-600"
-                >
+                <Button onClick={handleRefresh} variant="outline" size="sm" className="bg-slate-700 border-slate-600 hover:bg-slate-600">
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Atualizar
                 </Button>
@@ -239,13 +206,10 @@ export const HostingerDashboard = () => {
 
       {/* Lista de VPS */}
       <div className="grid gap-6">
-        {vpsLoading ? (
-          <div className="flex items-center justify-center p-8">
+        {vpsLoading ? <div className="flex items-center justify-center p-8">
             <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
             <span className="ml-2 text-slate-400">Carregando VPS...</span>
-          </div>
-        ) : !vpsList || vpsList.length === 0 ? (
-          <Card className="bg-slate-800 border-slate-700">
+          </div> : !vpsList || vpsList.length === 0 ? <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-8 text-center">
               <AlertCircle className="h-16 w-16 mx-auto mb-4 text-slate-400" />
               <h3 className="text-lg font-semibold text-white mb-2">Nenhum VPS Encontrado</h3>
@@ -253,36 +217,15 @@ export const HostingerDashboard = () => {
                 Não foi possível encontrar VPS nesta integração ou houve um erro na conexão.
               </p>
             </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {vpsList.map((vps: any) => (
-              <VPSCard
-                key={vps.id}
-                vps={vps}
-                integrationId={selectedIntegration}
-                onRestart={() => handleRestart(vps.id)}
-                onSnapshot={() => handleSnapshot(vps.id, vps.hostname || vps.name)}
-                restarting={restartVPS.isPending}
-                snapshotting={createSnapshot.isPending}
-              />
-            ))}
-          </div>
-        )}
+          </Card> : <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {vpsList.map((vps: any) => <VPSCard key={vps.id} vps={vps} integrationId={selectedIntegration} onRestart={() => handleRestart(vps.id)} onSnapshot={() => handleSnapshot(vps.id, vps.hostname || vps.name)} restarting={restartVPS.isPending} snapshotting={createSnapshot.isPending} />)}
+          </div>}
       </div>
 
       {/* Dialog de Senha Master */}
-      <MasterPasswordDialog
-        open={showMasterPasswordDialog}
-        onOpenChange={setShowMasterPasswordDialog}
-        onSuccess={handleMasterPasswordSuccess}
-        title="Autorização para Reiniciar VPS"
-        description="Esta ação irá reiniciar o servidor virtual. Para continuar, confirme sua senha master:"
-      />
-    </div>
-  );
+      <MasterPasswordDialog open={showMasterPasswordDialog} onOpenChange={setShowMasterPasswordDialog} onSuccess={handleMasterPasswordSuccess} title="Autorização para Reiniciar VPS" description="Esta ação irá reiniciar o servidor virtual. Para continuar, confirme sua senha master:" />
+    </div>;
 };
-
 interface VPSCardProps {
   vps: any;
   integrationId: string;
@@ -291,7 +234,6 @@ interface VPSCardProps {
   restarting: boolean;
   snapshotting: boolean;
 }
-
 const VPSCard: React.FC<VPSCardProps> = ({
   vps,
   integrationId,
@@ -316,13 +258,12 @@ const VPSCard: React.FC<VPSCardProps> = ({
     }
     return value !== undefined && value !== null ? value : fallback;
   };
-
   const getVpsStatus = (vps: any) => {
     return vps.state || vps.status || 'unknown';
   };
-
-  const { data: metrics } = useHostingerVPSMetrics(integrationId, vps.id, safeValue(vps.ipv4));
-
+  const {
+    data: metrics
+  } = useHostingerVPSMetrics(integrationId, vps.id, safeValue(vps.ipv4));
   const formatMemory = (mb: number) => {
     if (!mb) return '0 MB';
     if (mb >= 1024) {
@@ -330,7 +271,6 @@ const VPSCard: React.FC<VPSCardProps> = ({
     }
     return `${mb} MB`;
   };
-
   const formatDisk = (gb: number) => {
     if (!gb) return '0 GB';
     if (gb >= 1024) {
@@ -338,7 +278,6 @@ const VPSCard: React.FC<VPSCardProps> = ({
     }
     return `${gb} GB`;
   };
-
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'running':
@@ -353,7 +292,6 @@ const VPSCard: React.FC<VPSCardProps> = ({
         return 'bg-slate-500/20 text-slate-300 border-slate-500/40';
     }
   };
-
   const getStatusIcon = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'running':
@@ -368,15 +306,12 @@ const VPSCard: React.FC<VPSCardProps> = ({
         return <Clock className="h-3 w-3" />;
     }
   };
-
   const getUsageColor = (usage: number) => {
     if (usage >= 85) return 'text-red-300';
     if (usage >= 70) return 'text-orange-300';
     return 'text-blue-300';
   };
-
-  return (
-    <Card className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-all hover-scale">
+  return <Card className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-all hover-scale">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-white text-lg flex items-center gap-2 min-w-0">
@@ -447,8 +382,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
         </div>
 
         {/* Métricas de Performance */}
-        {metrics && (
-          <div className="space-y-3 pt-2 border-t border-slate-600">
+        {metrics && <div className="space-y-3 pt-2 border-t border-slate-600">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-medium text-slate-300 flex items-center gap-2">
                 <Gauge className="h-4 w-4 text-blue-400" />
@@ -458,16 +392,8 @@ const VPSCard: React.FC<VPSCardProps> = ({
                 </span>
               </h4>
               <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full animate-pulse ${
-                  metrics.isReal ? 'bg-blue-400' : 'bg-orange-400'
-                }`} />
-                <Badge 
-                  variant="outline" 
-                  className={metrics.isReal 
-                    ? "bg-blue-500/20 text-blue-300 border-blue-500/40 text-xs" 
-                    : "bg-orange-500/20 text-orange-300 border-orange-500/40 text-xs"
-                  }
-                >
+                <div className={`w-2 h-2 rounded-full animate-pulse ${metrics.isReal ? 'bg-blue-400' : 'bg-orange-400'}`} />
+                <Badge variant="outline" className={metrics.isReal ? "bg-blue-500/20 text-blue-300 border-blue-500/40 text-xs" : "bg-orange-500/20 text-orange-300 border-orange-500/40 text-xs"}>
                   {metrics.isReal ? 'Real' : 'Sim'}
                 </Badge>
               </div>
@@ -507,42 +433,18 @@ const VPSCard: React.FC<VPSCardProps> = ({
                 <Progress value={metrics.disk_usage} className="h-2" />
               </div>
             </div>
-          </div>
-        )}
+          </div>}
 
         {/* Ações */}
         <div className="flex gap-2 pt-2">
-          <Button
-            onClick={onRestart}
-            variant="outline"
-            size="sm"
-            disabled={restarting}
-            className="p-3 bg-slate-700 border-slate-600 hover:bg-slate-600 hover:border-red-500 hover:text-red-300"
-            title="Reiniciar VPS"
-          >
-            {restarting ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <RotateCcw className="h-4 w-4" />
-            )}
+          <Button onClick={onRestart} variant="outline" size="sm" disabled={restarting} title="Reiniciar VPS" className="p-3 border-slate-600 hover:border-red-500 hover:text-red-300 bg-slate-50">
+            {restarting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
           </Button>
           
-          <Button
-            onClick={onSnapshot}
-            variant="outline"
-            size="sm"
-            disabled={snapshotting}
-            className="p-3 bg-slate-700 border-slate-600 hover:bg-slate-600 hover:border-blue-500 hover:text-blue-300"
-            title="Criar Snapshot"
-          >
-            {snapshotting ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <Camera className="h-4 w-4" />
-            )}
+          <Button onClick={onSnapshot} variant="outline" size="sm" disabled={snapshotting} className="p-3 bg-slate-700 border-slate-600 hover:bg-slate-600 hover:border-blue-500 hover:text-blue-300" title="Criar Snapshot">
+            {snapshotting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
           </Button>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
