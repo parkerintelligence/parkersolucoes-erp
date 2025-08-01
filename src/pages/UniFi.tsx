@@ -25,6 +25,7 @@ import { useIntegrations } from '@/hooks/useIntegrations';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { UniFiSiteSelector } from '@/components/UniFiSiteSelector';
 import { UniFiConnectionTest } from '@/components/UniFiConnectionTest';
+import { UniFiDebugPanel } from '@/components/UniFiDebugPanel';
 
 const UniFi = () => {
   const { data: integrations } = useIntegrations();
@@ -45,7 +46,7 @@ const UniFi = () => {
   } = useUniFiAPI();
 
   // Fetch data if integration is available
-  const { data: sites, isLoading: sitesLoading } = useUniFiSites(unifiIntegration?.id || '');
+  const { data: sites, isLoading: sitesLoading, error: sitesError } = useUniFiSites(unifiIntegration?.id || '');
   const { data: devices, isLoading: devicesLoading } = useUniFiDevices(unifiIntegration?.id || '', selectedSite || 'default');
   const { data: clients, isLoading: clientsLoading } = useUniFiClients(unifiIntegration?.id || '', selectedSite || 'default');
   const { data: networks, isLoading: networksLoading } = useUniFiNetworks(unifiIntegration?.id || '', selectedSite || 'default');
@@ -129,6 +130,13 @@ const UniFi = () => {
 
         {/* Connection Test */}
         <UniFiConnectionTest integrationId={unifiIntegration.id} />
+
+        {/* Debug Panel */}
+        <UniFiDebugPanel 
+          sites={sites}
+          sitesLoading={sitesLoading}
+          sitesError={sitesError}
+        />
 
         {/* Site Selector */}
         <UniFiSiteSelector

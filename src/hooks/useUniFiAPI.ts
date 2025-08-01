@@ -96,11 +96,14 @@ export const useUniFiAPI = () => {
       },
     });
 
+    console.log('UniFi API Response:', { response, error, hasData: !!response, hasError: !!error });
+
     if (error) {
       console.error('UniFi request error:', error);
       throw new Error(`UniFi API error: ${error.message}`);
     }
 
+    console.log('Returning response:', response);
     return response;
   };
 
