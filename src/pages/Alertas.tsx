@@ -27,9 +27,23 @@ export default function Alertas() {
   });
 
   const hostIds = hosts.map(host => host.hostid);
-  const { data: items = [], isLoading: itemsLoading } = useItems(hostIds, {
+  
+  // Query for all performance-related items at once with broader search
+  const { data: performanceItems = [], isLoading: itemsLoading } = useItems(hostIds, {
+    output: ['itemid', 'name', 'key_', 'hostid', 'status', 'value_type', 'units', 'lastvalue', 'lastclock'],
+    filter: {
+      status: 0 // Only active items
+    },
     search: {
-      key_: ['system.cpu.util', 'vm.memory.util', 'system.uptime', 'vfs.fs.size']
+      name: ['CPU', 'Memory', 'Uptime', 'Processador', 'Memória', 'Tempo']
+    }
+  });
+
+  // Also try specific key patterns
+  const { data: systemItems = [] } = useItems(hostIds, {
+    output: ['itemid', 'name', 'key_', 'hostid', 'status', 'value_type', 'units', 'lastvalue', 'lastclock'],
+    filter: {
+      status: 0
     }
   });
 
@@ -60,20 +74,103 @@ export default function Alertas() {
   };
 
   const getPerformanceData = (hostId: string) => {
-    const hostItems = items.filter(item => item.hostid === hostId);
+    // Combine all items for this host
+    const allItems = [...performanceItems, ...systemItems];
+    const hostItems = allItems.filter(item => item.hostid === hostId);
     
-    const cpuItem = hostItems.find(item => item.key_.includes('system.cpu.util'));
-    const memoryItem = hostItems.find(item => item.key_.includes('vm.memory.util'));
-    const uptimeItem = hostItems.find(item => item.key_.includes('system.uptime'));
+    const hostName = hosts.find(h => h.hostid === hostId)?.name || hostId;
+    console.log(`Performance data for host ${hostId} (${hostName}):`, hostItems);
     
-    const cpuUsage = cpuItem?.lastvalue ? parseFloat(cpuItem.lastvalue) : 0;
-    const memoryUsage = memoryItem?.lastvalue ? parseFloat(memoryItem.lastvalue) : 0;
-    const uptime = uptimeItem?.lastvalue ? parseInt(uptimeItem.lastvalue) : 0;
+    // Log all available items to understand what we have
+    if (hostItems.length > 0) {
+      console.log('Available items for', hostName, ':', hostItems.map(item => ({
+        name: item.name,
+        key: item.key_,
+        lastvalue: item.lastvalue,
+        units: item.units
+      })));
+    }
+    
+    // Look for CPU items - more flexible search
+    const cpuItem = hostItems.find(item => {
+      const key = item.key_.toLowerCase();
+      const name = item.name?.toLowerCase() || '';
+      return (
+        key.includes('cpu.util') ||
+        key.includes('processor') ||
+        name.includes('cpu') ||
+        name.includes('processador') ||
+        name.includes('processor time')
+      );
+    });
+    
+    // Look for memory items - more flexible search  
+    const memoryItem = hostItems.find(item => {
+      const key = item.key_.toLowerCase();
+      const name = item.name?.toLowerCase() || '';
+      return (
+        key.includes('memory.util') ||
+        key.includes('mem.util') ||
+        key.includes('vm.memory') ||
+        name.includes('memory') ||
+        name.includes('memória') ||
+        name.includes('memoria') ||
+        name.includes('% memory') ||
+        (name.includes('committed bytes') && name.includes('use'))
+      );
+    });
+    
+    // Look for uptime items - more flexible search
+    const uptimeItem = hostItems.find(item => {
+      const key = item.key_.toLowerCase();
+      const name = item.name?.toLowerCase() || '';
+      return (
+        key.includes('uptime') ||
+        key.includes('system.uptime') ||
+        name.includes('uptime') ||
+        name.includes('tempo ligado') ||
+        name.includes('system up time')
+      );
+    });
+    
+    console.log(`Host ${hostName} - Found items:`, {
+      cpu: cpuItem ? { name: cpuItem.name, key: cpuItem.key_, value: cpuItem.lastvalue } : null,
+      memory: memoryItem ? { name: memoryItem.name, key: memoryItem.key_, value: memoryItem.lastvalue } : null,
+      uptime: uptimeItem ? { name: uptimeItem.name, key: uptimeItem.key_, value: uptimeItem.lastvalue } : null
+    });
+    
+    // Parse values with better error handling
+    let cpuUsage = 0;
+    let memoryUsage = 0;
+    let uptime = 0;
+    
+    if (cpuItem?.lastvalue) {
+      const value = parseFloat(cpuItem.lastvalue);
+      // Some CPU values might be in decimals (0.xx), convert to percentage
+      cpuUsage = value > 1 ? value : value * 100;
+    }
+    
+    if (memoryItem?.lastvalue) {
+      const value = parseFloat(memoryItem.lastvalue);
+      // Memory is usually already in percentage
+      memoryUsage = value > 1 ? value : value * 100;
+    }
+    
+    if (uptimeItem?.lastvalue) {
+      uptime = parseInt(uptimeItem.lastvalue);
+    }
     
     return {
       cpu: cpuUsage,
       memory: memoryUsage,
       uptime: uptime,
+      hasData: !!(cpuItem || memoryItem || uptimeItem),
+      itemsFound: {
+        cpu: !!cpuItem,
+        memory: !!memoryItem,
+        uptime: !!uptimeItem,
+        total: hostItems.length
+      }
     };
   };
 
@@ -205,54 +302,82 @@ export default function Alertas() {
                         {device.name}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* CPU Usage */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Cpu className="h-4 w-4 text-blue-400" />
-                            <span className="text-sm text-slate-300">CPU</span>
-                          </div>
-                          <span className="text-sm font-medium text-white">{perf.cpu.toFixed(1)}%</span>
-                        </div>
-                        <Progress 
-                          value={perf.cpu} 
-                          className="h-2"
-                          style={{
-                            '--progress-foreground': perf.cpu > 80 ? 'hsl(0 70% 50%)' : perf.cpu > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
-                          } as React.CSSProperties}
-                        />
-                      </div>
+                     <CardContent className="space-y-4">
+                       {/* Data availability indicator */}
+                       {!perf.hasData && (
+                         <div className="text-center py-4">
+                           <AlertTriangle className="h-8 w-8 mx-auto text-yellow-500 mb-2" />
+                           <p className="text-sm text-muted-foreground">Dados de performance não disponíveis</p>
+                           <p className="text-xs text-muted-foreground mt-1">
+                             Items encontrados: {perf.itemsFound?.total || 0}
+                           </p>
+                         </div>
+                       )}
 
-                      {/* Memory Usage */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <HardDrive className="h-4 w-4 text-purple-400" />
-                            <span className="text-sm text-slate-300">Memória</span>
-                          </div>
-                          <span className="text-sm font-medium text-white">{perf.memory.toFixed(1)}%</span>
-                        </div>
-                        <Progress 
-                          value={perf.memory} 
-                          className="h-2"
-                          style={{
-                            '--progress-foreground': perf.memory > 80 ? 'hsl(0 70% 50%)' : perf.memory > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
-                          } as React.CSSProperties}
-                        />
-                      </div>
+                       {perf.hasData && (
+                         <>
+                           {/* CPU Usage */}
+                           <div className="space-y-2">
+                             <div className="flex items-center justify-between">
+                               <div className="flex items-center gap-2">
+                                 <Cpu className={cn("h-4 w-4", perf.itemsFound?.cpu ? "text-blue-400" : "text-gray-500")} />
+                                 <span className="text-sm text-slate-300">CPU</span>
+                                 {!perf.itemsFound?.cpu && <span className="text-xs text-red-400">N/A</span>}
+                               </div>
+                               <span className="text-sm font-medium text-white">
+                                 {perf.itemsFound?.cpu ? `${perf.cpu.toFixed(1)}%` : '--'}
+                               </span>
+                             </div>
+                             {perf.itemsFound?.cpu && (
+                               <Progress 
+                                 value={perf.cpu} 
+                                 className="h-2"
+                                 style={{
+                                   '--progress-foreground': perf.cpu > 80 ? 'hsl(0 70% 50%)' : perf.cpu > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
+                                 } as React.CSSProperties}
+                               />
+                             )}
+                           </div>
 
-                      {/* Uptime */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-green-400" />
-                            <span className="text-sm text-slate-300">Tempo Ligado</span>
-                          </div>
-                          <span className="text-sm font-medium text-white">{formatUptime(perf.uptime)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
+                           {/* Memory Usage */}
+                           <div className="space-y-2">
+                             <div className="flex items-center justify-between">
+                               <div className="flex items-center gap-2">
+                                 <HardDrive className={cn("h-4 w-4", perf.itemsFound?.memory ? "text-purple-400" : "text-gray-500")} />
+                                 <span className="text-sm text-slate-300">Memória</span>
+                                 {!perf.itemsFound?.memory && <span className="text-xs text-red-400">N/A</span>}
+                               </div>
+                               <span className="text-sm font-medium text-white">
+                                 {perf.itemsFound?.memory ? `${perf.memory.toFixed(1)}%` : '--'}
+                               </span>
+                             </div>
+                             {perf.itemsFound?.memory && (
+                               <Progress 
+                                 value={perf.memory} 
+                                 className="h-2"
+                                 style={{
+                                   '--progress-foreground': perf.memory > 80 ? 'hsl(0 70% 50%)' : perf.memory > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
+                                 } as React.CSSProperties}
+                               />
+                             )}
+                           </div>
+
+                           {/* Uptime */}
+                           <div className="space-y-2">
+                             <div className="flex items-center justify-between">
+                               <div className="flex items-center gap-2">
+                                 <Clock className={cn("h-4 w-4", perf.itemsFound?.uptime ? "text-green-400" : "text-gray-500")} />
+                                 <span className="text-sm text-slate-300">Tempo Ligado</span>
+                                 {!perf.itemsFound?.uptime && <span className="text-xs text-red-400">N/A</span>}
+                               </div>
+                               <span className="text-sm font-medium text-white">
+                                 {perf.itemsFound?.uptime ? formatUptime(perf.uptime) : '--'}
+                               </span>
+                             </div>
+                           </div>
+                         </>
+                       )}
+                     </CardContent>
                   </Card>
                 );
               })}
