@@ -261,12 +261,12 @@ export class WasabiService {
 
   private async streamToBlob(stream: ReadableStream): Promise<Blob> {
     const reader = stream.getReader();
-    const chunks: BlobPart[] = [];
+    const chunks: Uint8Array[] = [];
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      chunks.push(new Uint8Array(value));
+      chunks.push(value);
     }
 
     return new Blob(chunks);

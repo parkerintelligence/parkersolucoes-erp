@@ -1,35 +1,258 @@
+
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthGuard } from '@/components/AuthGuard';
-import { AuthenticatedApp } from '@/components/AuthenticatedApp';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { useUserActivity } from '@/hooks/useUserActivity';
 import Login from '@/pages/Login';
-import NotFound from '@/pages/NotFound';
-import { useAuth } from '@/contexts/AuthContext';
+import Dashboard from '@/pages/Dashboard';
+import Admin from '@/pages/Admin';
+import GLPI from '@/pages/GLPI';
+import Guacamole from '@/pages/Guacamole';
+import Backups from '@/pages/Backups';
+import Passwords from '@/pages/Passwords';
+import Annotations from '@/pages/Annotations';
+import Links from '@/pages/Links';
+import WhatsApp from '@/pages/WhatsApp';
+import WhatsAppTemplates from '@/pages/WhatsAppTemplates';
+import Wasabi from '@/pages/Wasabi';
+import Schedule from '@/pages/Schedule';
+import Automation from '@/pages/Automation';
+import Zabbix from '@/pages/Zabbix';
+import Services from '@/pages/Services';
+import Budgets from '@/pages/Budgets';
+import Contracts from '@/pages/Contracts';
+import Financial from '@/pages/Financial';
+import Companies from '@/pages/Companies';
+import Bacula from '@/pages/Bacula';
+import ReportsDashboard from '@/pages/ReportsDashboard';
+import ActionPlan from '@/pages/ActionPlan';
+import Alertas from '@/pages/Alertas';
+import { Layout } from '@/components/Layout';
 
-export default function App() {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 flex items-center justify-center">
-        <div className="text-white text-lg">Carregando sistema...</div>
-      </div>
-    );
+// Componente para detectar atividade apenas em páginas autenticadas
+function AuthenticatedContent() {
+  const { isAuthenticated } = useAuth();
+  
+  // Só usar o hook de atividade se estiver autenticado
+  if (isAuthenticated) {
+    useUserActivity();
   }
+  
+  return null;
+}
 
+// Componente interno para usar o hook de atividade
+function AppContent() {
+  
   return (
-    <Routes>
-      <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
-      <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
-      <Route 
-        path="/*" 
-        element={
-          <AuthGuard>
-            <AuthenticatedApp />
-          </AuthGuard>
-        } 
-      />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <div className="min-h-screen bg-background">
+      <AuthenticatedContent />
+      <Routes>
+        <Route path="/" element={<Navigate to="/alertas" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/alertas"
+          element={
+            <Layout>
+              <Alertas />
+            </Layout>
+          }
+        />
+        <Route
+          path="/links"
+          element={
+            <Layout>
+              <Links />
+            </Layout>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <Layout>
+              <Dashboard />
+            </Layout>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <Layout>
+              <Admin />
+            </Layout>
+          }
+        />
+        <Route
+          path="/glpi"
+          element={
+            <Layout>
+              <GLPI />
+            </Layout>
+          }
+        />
+        <Route
+          path="/conexao-remota"
+          element={
+            <Layout>
+              <Guacamole />
+            </Layout>
+          }
+        />
+        <Route
+          path="/backups"
+          element={
+            <Layout>
+              <Backups />
+            </Layout>
+          }
+        />
+        <Route
+          path="/passwords"
+          element={
+            <Layout>
+              <Passwords />
+            </Layout>
+          }
+        />
+        <Route
+          path="/annotations"
+          element={
+            <Layout>
+              <Annotations />
+            </Layout>
+          }
+        />
+        <Route
+          path="/whatsapp"
+          element={
+            <Layout>
+              <WhatsApp />
+            </Layout>
+          }
+        />
+        <Route
+          path="/whatsapp-templates"
+          element={
+            <Layout>
+              <WhatsAppTemplates />
+            </Layout>
+          }
+        />
+        <Route
+          path="/wasabi"
+          element={
+            <Layout>
+              <Wasabi />
+            </Layout>
+          }
+        />
+        <Route
+          path="/schedule"
+          element={
+            <Layout>
+              <Schedule />
+            </Layout>
+          }
+        />
+        <Route
+          path="/automation"
+          element={
+            <Layout>
+              <Automation />
+            </Layout>
+          }
+        />
+        <Route
+          path="/zabbix"
+          element={
+            <Layout>
+              <Zabbix />
+            </Layout>
+          }
+        />
+        <Route
+          path="/services"
+          element={
+            <Layout>
+              <Services />
+            </Layout>
+          }
+        />
+        <Route
+          path="/budgets"
+          element={
+            <Layout>
+              <Budgets />
+            </Layout>
+          }
+        />
+        <Route
+          path="/contracts"
+          element={
+            <Layout>
+              <Contracts />
+            </Layout>
+          }
+        />
+        <Route
+          path="/financial"
+          element={
+            <Layout>
+              <Financial />
+            </Layout>
+          }
+        />
+        <Route
+          path="/companies"
+          element={
+            <Layout>
+              <Companies />
+            </Layout>
+          }
+        />
+        <Route 
+          path="/bacula" 
+          element={
+            <Layout>
+              <Bacula />
+            </Layout>
+          } 
+        />
+        <Route 
+          path="/reports" 
+          element={
+            <Layout>
+              <ReportsDashboard />
+            </Layout>
+          } 
+        />
+        <Route 
+          path="/plano-de-acao" 
+          element={
+            <Layout>
+              <ActionPlan />
+            </Layout>
+          } 
+        />
+      </Routes>
+    </div>
   );
 }
+
+// Create a single QueryClient instance
+const queryClient = new QueryClient();
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;
