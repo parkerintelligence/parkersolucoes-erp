@@ -1,6 +1,6 @@
-const CACHE_NAME = 'azure-it-control-v1.1';
-const STATIC_CACHE = 'static-cache-v1.1';
-const DYNAMIC_CACHE = 'dynamic-cache-v1.1';
+const CACHE_NAME = 'azure-it-control-v2.0';
+const STATIC_CACHE = 'static-cache-v2.0';
+const DYNAMIC_CACHE = 'dynamic-cache-v2.0';
 
 const urlsToCache = [
   '/',
@@ -29,21 +29,41 @@ self.addEventListener('install', (event) => {
 
 // Activate Service Worker
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating');
+  console.log('Service Worker activating - clearing ALL caches');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
+      console.log('Found caches:', cacheNames);
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
+          console.log('Deleting cache:', cacheName);
+          return caches.delete(cacheName);
         })
       );
     }).then(() => {
+      console.log('All caches cleared');
       return self.clients.claim();
     })
   );
+});
+
+// Clear all caches on message
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CLEAR_ALL_CACHES') {
+    console.log('Clearing all caches on request');
+    event.waitUntil(
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            console.log('Deleting cache:', cacheName);
+            return caches.delete(cacheName);
+          })
+        );
+      }).then(() => {
+        console.log('All caches cleared on request');
+        event.ports[0].postMessage({ success: true });
+      })
+    );
+  }
 });
 
 // Fetch Strategy: Cache First with Network Fallback
