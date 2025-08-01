@@ -79,12 +79,15 @@ serve(async (req) => {
     console.log(`Authenticating with Wazuh at: ${base_url}`);
     
     // Authenticate with Wazuh API
-    const authResponse = await fetch(`${base_url}/security/user/authenticate`, {
-      method: 'GET',
+    const authResponse = await fetch(`${base_url}/user/authenticate`, {
+      method: 'POST',
       headers: {
-        'Authorization': `Basic ${btoa(`${username}:${password}`)}`,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        user: username,
+        password: password
+      })
     });
 
     if (!authResponse.ok) {

@@ -81,22 +81,44 @@ serve(async (req) => {
       throw new Error('UniFi integration needs either API token or username/password');
     }
 
-    // Build the full URL
-    const protocol = use_ssl ? 'https' : 'http';
-    const fullBaseUrl = `${protocol}://${base_url.replace(/^https?:\/\//, '')}${port ? `:${port}` : ''}`;
+    // Build the full URL - for Universal API, don't modify the base URL
+    let fullBaseUrl = base_url;
+    if (!base_url.startsWith('http')) {
+      const protocol = use_ssl ? 'https' : 'http';
+      fullBaseUrl = `${protocol}://${base_url}${port ? `:${port}` : ''}`;
+    }
     
     console.log(`Making UniFi request to: ${fullBaseUrl}${endpoint}`);
 
     let cookies = '';
     let authHeaders: Record<string, string> = {};
 
+    // Function to convert local controller endpoints to Universal API endpoints
+    const convertToUniversalEndpoint = (localEndpoint: string): string => {
+      const universalMappings: Record<string, string> = {
+        '/api/self/sites': '/v2/api/site',
+        '/api/s/default/stat/device': '/v2/api/site/{siteId}/device',
+        '/api/s/default/stat/sta': '/v2/api/site/{siteId}/client',
+        '/api/s/default/stat/alarm': '/v2/api/site/{siteId}/alarm',
+        '/api/s/default/stat/health': '/v2/api/site/{siteId}/health',
+        '/api/s/default/rest/networkconf': '/v2/api/site/{siteId}/setting/network'
+      };
+
+      // For Universal API, replace {siteId} with 'default' or actual site ID
+      return universalMappings[localEndpoint] || localEndpoint;
+    };
+
     // Check if using Universal API token
     if (api_token) {
       console.log('Using Universal API token authentication');
       authHeaders['Authorization'] = `Bearer ${api_token}`;
       
+      // Convert endpoint for Universal API
+      const universalEndpoint = convertToUniversalEndpoint(endpoint);
+      const finalEndpoint = universalEndpoint.replace('{siteId}', 'default');
+      
       // For Universal API, make direct request
-      const apiUrl = `${fullBaseUrl}${endpoint}`;
+      const apiUrl = `${fullBaseUrl}${finalEndpoint}`;
       console.log('Making UniFi Universal API request to:', apiUrl);
 
       const requestOptions: RequestInit = {
