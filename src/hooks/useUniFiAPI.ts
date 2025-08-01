@@ -104,66 +104,66 @@ export const useUniFiAPI = () => {
     return response;
   };
 
-  // Sites - primeiro buscar sites reais
+  // Sites - usar endpoint correto da Site Manager API
   const useUniFiSites = (integrationId: string) => {
     return useQuery({
       queryKey: ['unifi-sites', integrationId],
-      queryFn: () => makeUniFiRequest('/v2/api/site', 'GET', integrationId),
+      queryFn: () => makeUniFiRequest('/v2/api/sites', 'GET', integrationId),
       enabled: !!integrationId,
       staleTime: 60000, // 1 minute
       retry: 2,
     });
   };
 
-  // Devices - usar site ID real ou default
+  // Devices - usar endpoint correto da Site Manager API
   const useUniFiDevices = (integrationId: string, siteId: string = 'default') => {
     return useQuery({
       queryKey: ['unifi-devices', integrationId, siteId],
-      queryFn: () => makeUniFiRequest(`/v2/api/site/${siteId}/device`, 'GET', integrationId),
+      queryFn: () => makeUniFiRequest(`/v2/api/sites/${siteId}/devices`, 'GET', integrationId),
       enabled: !!integrationId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
   };
 
-  // Clients - usar site ID real
+  // Clients - usar endpoint correto da Site Manager API
   const useUniFiClients = (integrationId: string, siteId: string = 'default') => {
     return useQuery({
       queryKey: ['unifi-clients', integrationId, siteId],
-      queryFn: () => makeUniFiRequest(`/v2/api/site/${siteId}/client`, 'GET', integrationId),
+      queryFn: () => makeUniFiRequest(`/v2/api/sites/${siteId}/clients`, 'GET', integrationId),
       enabled: !!integrationId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
   };
 
-  // Networks - usar site ID real
+  // Networks - usar endpoint correto da Site Manager API
   const useUniFiNetworks = (integrationId: string, siteId: string = 'default') => {
     return useQuery({
       queryKey: ['unifi-networks', integrationId, siteId],
-      queryFn: () => makeUniFiRequest(`/v2/api/site/${siteId}/network`, 'GET', integrationId),
+      queryFn: () => makeUniFiRequest(`/v2/api/sites/${siteId}/networks`, 'GET', integrationId),
       enabled: !!integrationId && !!siteId,
       staleTime: 60000, // 1 minute
       retry: 2,
     });
   };
 
-  // Alarms - usar site ID real
+  // Alarms - usar endpoint correto da Site Manager API
   const useUniFiAlarms = (integrationId: string, siteId: string = 'default') => {
     return useQuery({
       queryKey: ['unifi-alarms', integrationId, siteId],
-      queryFn: () => makeUniFiRequest(`/v2/api/site/${siteId}/alarm`, 'GET', integrationId),
+      queryFn: () => makeUniFiRequest(`/v2/api/sites/${siteId}/alarms`, 'GET', integrationId),
       enabled: !!integrationId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
   };
 
-  // Health metrics - usar site ID real
+  // Health - usar endpoint correto da Site Manager API
   const useUniFiHealth = (integrationId: string, siteId: string = 'default') => {
     return useQuery({
       queryKey: ['unifi-health', integrationId, siteId],
-      queryFn: () => makeUniFiRequest(`/v2/api/site/${siteId}/health`, 'GET', integrationId),
+      queryFn: () => makeUniFiRequest(`/v2/api/sites/${siteId}/health`, 'GET', integrationId),
       enabled: !!integrationId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
@@ -176,9 +176,9 @@ export const useUniFiAPI = () => {
       queryKey: ['unifi-stats', integrationId, siteId],
       queryFn: async () => {
         const [devicesResponse, clientsResponse, healthResponse] = await Promise.all([
-          makeUniFiRequest(`/v2/api/site/${siteId}/device`, 'GET', integrationId),
-          makeUniFiRequest(`/v2/api/site/${siteId}/client`, 'GET', integrationId),
-          makeUniFiRequest(`/v2/api/site/${siteId}/health`, 'GET', integrationId),
+          makeUniFiRequest(`/v2/api/sites/${siteId}/devices`, 'GET', integrationId),
+          makeUniFiRequest(`/v2/api/sites/${siteId}/clients`, 'GET', integrationId),
+          makeUniFiRequest(`/v2/api/sites/${siteId}/health`, 'GET', integrationId),
         ]);
 
         const devices = devicesResponse?.data || [];
@@ -207,7 +207,7 @@ export const useUniFiAPI = () => {
   // Device operations
   const restartDevice = useMutation({
     mutationFn: async ({ integrationId, siteId, deviceId }: { integrationId: string, siteId: string, deviceId: string }) => {
-      return makeUniFiRequest(`/v2/api/site/${siteId}/cmd/device`, 'POST', integrationId, {
+      return makeUniFiRequest(`/v2/api/sites/${siteId}/cmd/device`, 'POST', integrationId, {
         cmd: 'restart',
         mac: deviceId
       });
@@ -232,7 +232,7 @@ export const useUniFiAPI = () => {
   // Block/Unblock client
   const toggleClientBlock = useMutation({
     mutationFn: async ({ integrationId, siteId, clientId, block }: { integrationId: string, siteId: string, clientId: string, block: boolean }) => {
-      return makeUniFiRequest(`/v2/api/site/${siteId}/cmd/client`, 'POST', integrationId, {
+      return makeUniFiRequest(`/v2/api/sites/${siteId}/cmd/client`, 'POST', integrationId, {
         cmd: block ? 'block-sta' : 'unblock-sta',
         mac: clientId
       });
@@ -257,7 +257,7 @@ export const useUniFiAPI = () => {
   // Test connection
   const testUniFiConnection = useMutation({
     mutationFn: async (integrationId: string) => {
-      return makeUniFiRequest('/v2/api/site', 'GET', integrationId);
+      return makeUniFiRequest('/v2/api/sites', 'GET', integrationId);
     },
     onSuccess: () => {
       toast({
