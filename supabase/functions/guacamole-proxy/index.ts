@@ -351,41 +351,52 @@ serve(async (req) => {
           apiPath = `/api/session/tunnels/${encodeURIComponent(connectionId)}`
         } else if (endpoint.startsWith('connect/')) {
           const connectionId = endpoint.split('/')[1]
-          // Endpoint especial para criar sessão de conexão direta
+          console.log(`=== Creating direct connection for: ${connectionId} ===`)
+          
           try {
-            // Primeiro criar um tunnel
-            const tunnelResponse = await fetch(`${baseUrl}/api/session/tunnels/${encodeURIComponent(connectionId)}`, {
-              method: 'POST',
+            // Verificar se a conexão existe primeiro
+            const connectionCheckUrl = `${baseUrl}/api/session/data/${dataSource}/connections/${encodeURIComponent(connectionId)}?token=${encodeURIComponent(authTokenData.authToken)}`
+            
+            const connectionResponse = await fetch(connectionCheckUrl, {
+              method: 'GET',
               headers: {
-                'Authorization': `Bearer ${authTokenData.authToken}`,
                 'Content-Type': 'application/json',
               }
             });
 
-            if (!tunnelResponse.ok) {
-              throw new Error(`Erro ao criar túnel: ${tunnelResponse.status}`);
+            console.log(`Connection check status: ${connectionResponse.status}`)
+
+            if (!connectionResponse.ok) {
+              const errorText = await connectionResponse.text()
+              console.error(`Erro ao verificar conexão:`, errorText)
+              throw new Error(`Conexão não encontrada: ${connectionResponse.status}`)
             }
 
-            const tunnelData = await tunnelResponse.json();
+            const connectionData = await connectionResponse.json()
+            console.log(`Connection verified: ${connectionData.name}`)
             
-            // Construir URL de sessão direta
-            const sessionUrl = `${baseUrl}/#/client/${encodeURIComponent(connectionId)}?token=${authTokenData.authToken}`;
+            // Criar URL de conexão direta que inclui o token de autenticação
+            // Esta URL bypassa a tela de login do Guacamole
+            const sessionUrl = `${baseUrl}/#/client/${encodeURIComponent(connectionId)}?token=${authTokenData.authToken}&data-source=${dataSource}`
+            
+            console.log(`Direct connection URL created (token masked): ${sessionUrl.replace(authTokenData.authToken, '***MASKED***')}`)
             
             return new Response(JSON.stringify({
               result: {
                 sessionUrl,
-                tunnelData,
                 connectionId,
-                authToken: authTokenData.authToken
+                connectionName: connectionData.name,
+                protocol: connectionData.protocol,
+                success: true
               }
             }), {
               status: 200,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
           } catch (error) {
-            console.error('Erro ao criar sessão de conexão:', error);
+            console.error('Erro ao criar conexão direta:', error);
             return new Response(JSON.stringify({
-              error: 'Erro ao criar sessão de conexão',
+              error: 'Erro ao criar conexão direta',
               details: error.message
             }), {
               status: 500,
