@@ -36,6 +36,11 @@ export default defineConfig(({ mode }) => ({
       '@supabase/storage-js',
       '@supabase/realtime-js',
       '@supabase/gotrue-js',
+      'recharts',
+      'lodash',
+      'lodash/isString',
+      'lodash/isNaN',
+      'lodash/get',
     ],
     exclude: ['lovable-tagger'],
     force: true,
@@ -47,10 +52,11 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     emptyOutDir: true,
-    sourcemap: mode === 'development',
+    sourcemap: false,
     commonjsOptions: {
-      include: [/react/, /react-dom/, /supabase/],
+      include: [/react/, /react-dom/, /supabase/, /lodash/, /recharts/],
       transformMixedEsModules: true,
+      defaultIsModuleExports: 'auto',
     },
     rollupOptions: {
       external: [],
@@ -58,8 +64,11 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           'react-vendor': ['react', 'react-dom'],
           'supabase-vendor': ['@supabase/supabase-js'],
+          'charts-vendor': ['recharts'],
+          'lodash-vendor': ['lodash'],
         },
         format: 'es',
+        interop: 'auto',
       },
     },
   },
