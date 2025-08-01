@@ -19,6 +19,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isMaster: boolean;
   isLoading: boolean;
+  resetSessionTimer: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,6 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sessionTimer, setSessionTimer] = useState<NodeJS.Timeout | null>(null);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -57,6 +59,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Erro ao buscar perfil do usuário:', error);
       return null;
+    }
+  };
+
+  const startSessionTimer = () => {
+    // Limpar timer existente
+    if (sessionTimer) {
+      clearTimeout(sessionTimer);
+    }
+    
+    // Criar novo timer para 30 minutos (1800000 ms)
+    const timer = setTimeout(async () => {
+      console.log('Sessão expirada após 30 minutos, fazendo logout...');
+      await logout();
+    }, 30 * 60 * 1000);
+    
+    setSessionTimer(timer);
+    console.log('Timer de sessão iniciado: 30 minutos');
+  };
+
+  const resetSessionTimer = () => {
+    if (sessionTimer) {
+      clearTimeout(sessionTimer);
+      startSessionTimer();
+      console.log('Timer de sessão resetado');
     }
   };
 
@@ -83,6 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (session?.user) {
             setSession(session);
             setUser(session.user);
+            startSessionTimer(); // Iniciar timer de sessão
             
             // Buscar perfil do usuário
             const profile = await fetchUserProfile(session.user.id);
@@ -124,6 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           setSession(session);
           setUser(session.user);
+          startSessionTimer(); // Iniciar timer de sessão
           
           // Buscar perfil do usuário
           setTimeout(async () => {
@@ -141,6 +169,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }, 0);
         } else {
+          if (sessionTimer) {
+            clearTimeout(sessionTimer);
+            setSessionTimer(null);
+          }
           setSession(null);
           setUser(null);
           setUserProfile(null);
@@ -150,6 +182,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
+      if (sessionTimer) {
+        clearTimeout(sessionTimer);
+      }
       subscription.unsubscribe();
     };
   }, []);
@@ -180,6 +215,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Fazendo logout...');
       
+      if (sessionTimer) {
+        clearTimeout(sessionTimer);
+        setSessionTimer(null);
+      }
+      
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
@@ -199,7 +239,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     isAuthenticated: !!user && !!session,
     isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
-    isLoading
+    isLoading,
+    resetSessionTimer
   };
 
   console.log('AuthContext Estado:', { 

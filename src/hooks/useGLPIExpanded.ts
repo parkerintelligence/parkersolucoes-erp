@@ -718,6 +718,28 @@ export const useGLPIExpanded = () => {
     },
   });
 
+  const deleteTicket = useMutation({
+    mutationFn: async (id: number) => {
+      return makeGLPIRequest(`Ticket/${id}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['glpi-tickets'] });
+      toast({
+        title: "✅ Chamado excluído",
+        description: "Chamado excluído com sucesso!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "❌ Erro ao excluir chamado",
+        description: error.message,
+        variant: "destructive"
+      });
+    },
+  });
+
   const getStatusText = (status: number) => STATUS_MAP[status] || `Status ${status}`;
   const getPriorityText = (priority: number) => PRIORITY_MAP[priority] || `Prioridade ${priority}`;
 
@@ -784,6 +806,7 @@ export const useGLPIExpanded = () => {
     },
     createTicket,
     updateTicket,
+    deleteTicket,
     getStatusText,
     getPriorityText,
   };

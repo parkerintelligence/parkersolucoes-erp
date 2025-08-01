@@ -1,0 +1,62 @@
+{
+  "name": "Parker Soluções ERP",
+  "short_name": "Parker ERP",
+  "description": "Sistema completo de gestão empresarial e infraestrutura de TI",
+  "theme_color": "#1f2937",
+  "background_color": "#111827",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "scope": "/",
+  "start_url": "/?utm_source=pwa",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512", 
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png", 
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Acessar dashboard principal",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icon-192.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Bacula",
+      "short_name": "Bacula",
+      "description": "Monitoramento Bacula",
+      "url": "/bacula",
+      "icons": [{ "src": "/icon-192.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "GLPI",
+      "short_name": "GLPI",
+      "description": "Sistema GLPI",
+      "url": "/glpi",
+      "icons": [{ "src": "/icon-192.png", "sizes": "96x96" }]
+    }
+  ]
+}

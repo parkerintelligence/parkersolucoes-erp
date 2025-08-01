@@ -6,12 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { MasterPasswordDialog } from '@/components/MasterPasswordDialog';
-import { 
-  useHostingerIntegrations, 
-  useHostingerVPS, 
-  useHostingerVPSMetrics, 
-  useHostingerActions 
-} from '@/hooks/useHostingerAPI';
+import { useHostingerIntegrations, useHostingerVPS, useHostingerVPSMetrics, useHostingerActions } from '@/hooks/useHostingerAPI';
 import { 
   Server, 
   Cpu, 
@@ -19,13 +14,16 @@ import {
   Wifi, 
   Camera, 
   RotateCcw, 
-  MapPin,
-  Calendar,
-  Activity,
-  Zap,
-  RefreshCw,
-  AlertCircle,
-  Clock
+  MapPin, 
+  Calendar, 
+  Activity, 
+  Zap, 
+  RefreshCw, 
+  AlertCircle, 
+  Clock,
+  Gauge,
+  Network,
+  BarChart3
 } from 'lucide-react';
 
 export const HostingerDashboard = () => {
@@ -33,11 +31,12 @@ export const HostingerDashboard = () => {
   const { isMaster } = useAuth();
   const { data: integrations, isLoading: integrationsLoading } = useHostingerIntegrations();
   const { restartVPS, createSnapshot } = useHostingerActions();
+  
   const [selectedIntegration, setSelectedIntegration] = useState<string>('');
   const [showMasterPasswordDialog, setShowMasterPasswordDialog] = useState(false);
   const [pendingRestartVpsId, setPendingRestartVpsId] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-
+  
   const { data: vpsList, isLoading: vpsLoading, refetch: refetchVPS } = useHostingerVPS(
     selectedIntegration || integrations?.[0]?.id
   );
@@ -60,12 +59,12 @@ export const HostingerDashboard = () => {
     switch (status?.toLowerCase()) {
       case 'running':
       case 'active':
-        return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+        return 'bg-blue-500/20 text-blue-300 border-blue-500/40';
       case 'stopped':
       case 'inactive':
         return 'bg-red-500/20 text-red-300 border-red-500/40';
       case 'restarting':
-        return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40';
+        return 'bg-orange-500/20 text-orange-300 border-orange-500/40';
       default:
         return 'bg-slate-500/20 text-slate-300 border-slate-500/40';
     }
@@ -75,14 +74,14 @@ export const HostingerDashboard = () => {
     switch (status?.toLowerCase()) {
       case 'running':
       case 'active':
-        return '🟢';
+        return <Activity className="h-3 w-3" />;
       case 'stopped':
       case 'inactive':
-        return '🔴';
+        return <AlertCircle className="h-3 w-3" />;
       case 'restarting':
-        return '🟡';
+        return <RefreshCw className="h-3 w-3 animate-spin" />;
       default:
-        return '⚪';
+        return <Clock className="h-3 w-3" />;
     }
   };
 
@@ -91,11 +90,10 @@ export const HostingerDashboard = () => {
       toast({
         title: "Acesso Negado",
         description: "Apenas usuários master podem reiniciar VPS",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-    
     setPendingRestartVpsId(vpsId);
     setShowMasterPasswordDialog(true);
   };
@@ -119,13 +117,16 @@ export const HostingerDashboard = () => {
     setLastRefresh(new Date());
     toast({
       title: "Dados Atualizados",
-      description: "Dashboard atualizado com sucesso",
+      description: "Dashboard atualizado com sucesso"
     });
   };
 
   const handleSnapshot = async (vpsId: string, vpsName: any) => {
-    const safeName = typeof vpsName === 'object' ? (vpsName?.hostname || vpsName?.name || vpsName?.id || vpsId) : (vpsName || vpsId);
+    const safeName = typeof vpsName === 'object' 
+      ? vpsName?.hostname || vpsName?.name || vpsName?.id || vpsId 
+      : vpsName || vpsId;
     const snapshotName = `${safeName}_${new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')}`;
+    
     await createSnapshot.mutateAsync({
       integrationId: selectedIntegration,
       vpsId,
@@ -159,64 +160,63 @@ export const HostingerDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header com Botão Atualizar */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Server className="h-5 w-5 text-orange-500" />
-                Dashboard Hostinger VPS
-              </CardTitle>
-              <p className="text-slate-400 text-sm mt-1">
-                Gerencie seus servidores virtuais Hostinger
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-xs text-slate-400 flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Última atualização: {lastRefresh.toLocaleTimeString()}
-              </div>
-              <Button
-                onClick={handleRefresh}
-                variant="outline"
-                size="sm"
-                className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Atualizar
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-
-      {/* Seletor de Integração */}
-      {integrations.length > 1 && (
+      {/* Header com Estatísticas Resumidas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white">Selecionar Integração</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2 flex-wrap">
-              {integrations.map((integration) => (
-                <Button
-                  key={integration.id}
-                  variant={selectedIntegration === integration.id ? "default" : "outline"}
-                  onClick={() => setSelectedIntegration(integration.id)}
-                  className={selectedIntegration === integration.id 
-                    ? "bg-orange-600 hover:bg-orange-700" 
-                    : "bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-                  }
-                >
-                  <Server className="h-4 w-4 mr-2" />
-                  {integration.name}
-                </Button>
-              ))}
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-500/20 rounded-lg">
+                  <Server className="h-5 w-5 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">Total VPS</p>
+                  <p className="text-2xl font-bold text-white">{vpsList?.length || 0}</p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
-      )}
+
+        <Card className="bg-slate-800 border-slate-700">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-500/20 rounded-lg">
+                  <Activity className="h-5 w-5 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">Ativos</p>
+                  <p className="text-2xl font-bold text-white">
+                    {vpsList?.filter((vps: any) => vps.state === 'running' || vps.status === 'active').length || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-slate-800 border-slate-700">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Button 
+                  onClick={handleRefresh} 
+                  variant="outline" 
+                  size="sm"
+                  className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Atualizar
+                </Button>
+              </div>
+              <span className="text-xs text-slate-400">
+                {lastRefresh.toLocaleTimeString()}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Lista de VPS */}
       <div className="grid gap-6">
@@ -236,7 +236,7 @@ export const HostingerDashboard = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {vpsList.map((vps: any) => (
               <VPSCard
                 key={vps.id}
@@ -273,18 +273,16 @@ interface VPSCardProps {
   snapshotting: boolean;
 }
 
-const VPSCard: React.FC<VPSCardProps> = ({ 
-  vps, 
-  integrationId, 
-  onRestart, 
-  onSnapshot, 
-  restarting, 
-  snapshotting 
+const VPSCard: React.FC<VPSCardProps> = ({
+  vps,
+  integrationId,
+  onRestart,
+  onSnapshot,
+  restarting,
+  snapshotting
 }) => {
-  // Função para extrair valores de forma segura de objetos ou strings
   const safeValue = (value: any, fallback: any = 'N/A') => {
     if (typeof value === 'object' && value !== null) {
-      // Se for um array (como ipv4), retorna o primeiro elemento
       if (Array.isArray(value) && value.length > 0) {
         const firstItem = value[0];
         if (typeof firstItem === 'object' && firstItem.address) {
@@ -292,26 +290,19 @@ const VPSCard: React.FC<VPSCardProps> = ({
         }
         return firstItem;
       }
-      // Se for um objeto com address (como IPv4/IPv6)
       if (value.address) return value.address;
-      // Se for um objeto com name
       if (value.name) return value.name;
-      // Se for um objeto com id
       if (value.id) return value.id;
-      // Se for um objeto sem propriedades conhecidas, retorna o fallback
       return fallback;
     }
     return value !== undefined && value !== null ? value : fallback;
   };
 
-  // Função específica para obter o status do VPS
   const getVpsStatus = (vps: any) => {
-    // Tentar diferentes campos de status
     return vps.state || vps.status || 'unknown';
   };
 
   const { data: metrics } = useHostingerVPSMetrics(integrationId, vps.id, safeValue(vps.ipv4));
-
 
   const formatMemory = (mb: number) => {
     if (!mb) return '0 MB';
@@ -329,162 +320,110 @@ const VPSCard: React.FC<VPSCardProps> = ({
     return `${gb} GB`;
   };
 
-  const formatUptime = (seconds: number) => {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    
-    if (days > 0) return `${days}d ${hours}h`;
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes}m`;
-  };
-
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'running':
       case 'active':
-        return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+        return 'bg-blue-500/20 text-blue-300 border-blue-500/40';
       case 'stopped':
       case 'inactive':
         return 'bg-red-500/20 text-red-300 border-red-500/40';
       case 'restarting':
-        return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40';
+        return 'bg-orange-500/20 text-orange-300 border-orange-500/40';
       default:
         return 'bg-slate-500/20 text-slate-300 border-slate-500/40';
     }
   };
 
-  const getUsageColor = (usage: number) => {
-    if (usage >= 85) return 'text-red-300';
-    if (usage >= 70) return 'text-yellow-300';
-    return 'text-white';
+  const getStatusIcon = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'running':
+      case 'active':
+        return <Activity className="h-3 w-3" />;
+      case 'stopped':
+      case 'inactive':
+        return <AlertCircle className="h-3 w-3" />;
+      case 'restarting':
+        return <RefreshCw className="h-3 w-3 animate-spin" />;
+      default:
+        return <Clock className="h-3 w-3" />;
+    }
   };
 
-
-  const formatNetworkSpeed = (bytes: number) => {
-    if (!bytes) return '0 B/s';
-    const k = 1024;
-    const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  const getUsageColor = (usage: number) => {
+    if (usage >= 85) return 'text-red-300';
+    if (usage >= 70) return 'text-orange-300';
+    return 'text-blue-300';
   };
 
   return (
-    <Card className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-all">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-white text-sm md:text-base flex items-center gap-2 truncate min-w-0 flex-1">
-            <Server className="h-4 w-4 text-orange-500 flex-shrink-0" />
-            <span className="truncate">
+    <Card className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-all hover-scale">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-white text-lg flex items-center gap-2 min-w-0">
+            <Server className="h-5 w-5 text-blue-400 flex-shrink-0" />
+            <span className="truncate flex-1 min-w-0">
               {safeValue(vps.hostname) || safeValue(vps.name) || safeValue(vps.id)}
             </span>
           </CardTitle>
-          <Badge variant="outline" className={`${getStatusColor(getVpsStatus(vps))} text-xs flex-shrink-0`}>
+          <Badge variant="outline" className={`${getStatusColor(getVpsStatus(vps))} flex items-center gap-1`}>
+            {getStatusIcon(getVpsStatus(vps))}
             {getVpsStatus(vps)}
           </Badge>
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-4">
-        {/* Badge de Dados Reais */}
-        <div className="flex justify-between items-center">
-          <Badge variant="outline" className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40 text-xs">
-            🟢 Dados Reais da API
-          </Badge>
-          <span className="text-xs text-slate-400">
-            Atualizado: {new Date(vps.realData?.last_updated || new Date()).toLocaleTimeString()}
-          </span>
-        </div>
-
-        {/* Informações Básicas - Dados Reais */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
+      <CardContent className="space-y-6">
+        {/* Informações Principais */}
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Wifi className="h-4 w-4 text-emerald-400" />
-              <span className="text-slate-400">IP Principal:</span>
+            <div className="flex items-center gap-2 text-slate-400">
+              <Wifi className="h-4 w-4 text-blue-400" />
+              <span className="text-sm">IP Principal</span>
             </div>
-            <p className="text-white font-mono text-xs">
-              {safeValue(vps.ipv4)}
-            </p>
-            {vps.ipv6 && (
-              <p className="text-slate-300 font-mono text-xs">
-                IPv6: {safeValue(vps.ipv6)}
-              </p>
-            )}
+            <p className="text-white font-mono text-sm">{safeValue(vps.ipv4)}</p>
           </div>
           
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-emerald-400" />
-              <span className="text-slate-400">Localização:</span>
+            <div className="flex items-center gap-2 text-slate-400">
+              <MapPin className="h-4 w-4 text-blue-400" />
+              <span className="text-sm">Localização</span>
             </div>
-            <p className="text-white">{safeValue(vps.region)}</p>
-            {vps.datacenter && (
-              <p className="text-slate-300 text-xs">
-                DC: {safeValue(vps.datacenter)}
-              </p>
-            )}
+            <p className="text-white text-sm">{safeValue(vps.region)}</p>
           </div>
         </div>
 
-        {/* Sistema Operacional e Plano */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-emerald-400" />
-              <span className="text-slate-400">Sistema:</span>
-            </div>
-            <p className="text-white">{safeValue(vps.os)}</p>
-            {vps.template && (
-              <p className="text-slate-300 text-xs">
-                Template: {safeValue(vps.template)}
-              </p>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-emerald-400" />
-              <span className="text-slate-400">Plano:</span>
-            </div>
-            <p className="text-white">{safeValue(vps.plan)}</p>
-            {vps.created_at && (
-              <p className="text-slate-300 text-xs">
-                Criado: {new Date(vps.created_at).toLocaleDateString()}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Especificações de Hardware - Dados Reais */}
+        {/* Especificações */}
         <div className="space-y-3 pt-2 border-t border-slate-600">
-          <div className="text-sm font-medium text-slate-300 flex items-center gap-2">
-            <Server className="h-4 w-4 text-emerald-400" />
-            Especificações de Hardware
-          </div>
+          <h4 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-blue-400" />
+            Especificações
+          </h4>
           
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Cpu className="h-4 w-4 text-emerald-400" />
-              <span className="text-slate-400">CPU:</span>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="space-y-1">
+              <div className="p-2 bg-blue-500/20 rounded-lg">
+                <Cpu className="h-4 w-4 text-blue-400 mx-auto" />
+              </div>
+              <p className="text-xs text-slate-400">CPU</p>
+              <p className="text-white font-semibold">{safeValue(vps.cpus || vps.cpu, '0')}</p>
             </div>
-            <span className="text-white font-medium">{safeValue(vps.cpus || vps.cpu, '0')} cores</span>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-emerald-400" />
-              <span className="text-slate-400">RAM:</span>
+            
+            <div className="space-y-1">
+              <div className="p-2 bg-blue-500/20 rounded-lg">
+                <Zap className="h-4 w-4 text-blue-400 mx-auto" />
+              </div>
+              <p className="text-xs text-slate-400">RAM</p>
+              <p className="text-white font-semibold">{formatMemory(safeValue(vps.memory, 0))}</p>
             </div>
-            <span className="text-white font-medium">{formatMemory(safeValue(vps.memory, 0))}</span>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <HardDrive className="h-4 w-4 text-emerald-400" />
-              <span className="text-slate-400">Disco:</span>
+            
+            <div className="space-y-1">
+              <div className="p-2 bg-blue-500/20 rounded-lg">
+                <HardDrive className="h-4 w-4 text-blue-400 mx-auto" />
+              </div>
+              <p className="text-xs text-slate-400">Disco</p>
+              <p className="text-white font-semibold">{formatDisk(safeValue(vps.disk, 0))}</p>
             </div>
-            <span className="text-white font-medium">{formatDisk(safeValue(vps.disk, 0))}</span>
           </div>
         </div>
 
@@ -492,187 +431,88 @@ const VPSCard: React.FC<VPSCardProps> = ({
         {metrics && (
           <div className="space-y-3 pt-2 border-t border-slate-600">
             <div className="flex items-center justify-between">
-              <div className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                Métricas de Performance
-              </div>
-              <div className="flex items-center gap-2">
-                {metrics.isReal ? (
-                  <Badge variant="outline" className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40 text-xs">
-                    🟢 Tempo Real
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-xs">
-                    🟡 Simulado
-                  </Badge>
-                )}
-                <span className="text-xs text-slate-400">
-                  {new Date(metrics.lastUpdated).toLocaleTimeString()}
-                </span>
-              </div>
+              <h4 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                <Gauge className="h-4 w-4 text-blue-400" />
+                Performance
+              </h4>
+              <Badge 
+                variant="outline" 
+                className={metrics.isReal 
+                  ? "bg-blue-500/20 text-blue-300 border-blue-500/40" 
+                  : "bg-orange-500/20 text-orange-300 border-orange-500/40"
+                }
+              >
+                {metrics.isReal ? 'Tempo Real' : 'Simulado'}
+              </Badge>
             </div>
             
-            {!metrics.isReal && metrics.note && (
-              <p className="text-xs text-amber-300 bg-amber-500/10 p-2 rounded border border-amber-500/20">
-                ⚠️ {metrics.note}
-              </p>
-            )}
-            
-            {/* CPU Usage */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <div className="flex items-center gap-1">
-                  <Activity className="h-3 w-3 text-blue-400" />
-                  <span className="text-slate-400">CPU</span>
-                </div>
-                <span className={`font-mono ${getUsageColor(metrics.cpu_usage)}`}>
-                  {Math.round(metrics.cpu_usage)}%
-                </span>
-              </div>
-              <Progress 
-                value={metrics.cpu_usage} 
-                className="h-2"
-              />
-            </div>
-            
-            {/* Memory Usage */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <div className="flex items-center gap-1">
-                  <Zap className="h-3 w-3 text-green-400" />
-                  <span className="text-slate-400">Memória</span>
-                </div>
-                <span className={`font-mono ${getUsageColor(metrics.memory_usage)}`}>
-                  {Math.round(metrics.memory_usage)}%
-                </span>
-              </div>
-              <Progress 
-                value={metrics.memory_usage} 
-                className="h-2"
-              />
-            </div>
-            
-            {/* Disk Usage */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <div className="flex items-center gap-1">
-                  <HardDrive className="h-3 w-3 text-purple-400" />
-                  <span className="text-slate-400">Disco</span>
-                </div>
-                <span className={`font-mono ${getUsageColor(metrics.disk_usage)}`}>
-                  {Math.round(metrics.disk_usage)}%
-                </span>
-              </div>
-              <Progress 
-                value={metrics.disk_usage} 
-                className="h-2"
-              />
-            </div>
-
-            {/* Network Activity */}
-            {(metrics.network_in !== undefined || metrics.network_out !== undefined) && (
+            <div className="space-y-3">
+              {/* CPU Usage */}
               <div className="space-y-2">
-                <div className="flex items-center gap-1 text-xs text-slate-400">
-                  <Wifi className="h-3 w-3" />
-                  <span>Rede</span>
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400">CPU</span>
+                  <span className={`font-mono ${getUsageColor(metrics.cpu_usage)}`}>
+                    {Math.round(metrics.cpu_usage)}%
+                  </span>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">↓ In:</span>
-                    <span className="text-green-300 font-mono">
-                      {formatNetworkSpeed(metrics.network_in)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">↑ Out:</span>
-                    <span className="text-blue-300 font-mono">
-                      {formatNetworkSpeed(metrics.network_out)}
-                    </span>
-                  </div>
-                </div>
+                <Progress value={metrics.cpu_usage} className="h-2" />
               </div>
-            )}
-
-            {/* System Metrics */}
-            {(metrics.uptime !== undefined || metrics.load_average !== undefined || metrics.processes !== undefined) && (
-              <div className="space-y-2 pt-2 border-t border-slate-600">
-                <div className="flex items-center gap-1 text-xs text-slate-400">
-                  <Activity className="h-3 w-3" />
-                  <span>Sistema</span>
+              
+              {/* Memory Usage */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400">Memória</span>
+                  <span className={`font-mono ${getUsageColor(metrics.memory_usage)}`}>
+                    {Math.round(metrics.memory_usage)}%
+                  </span>
                 </div>
-                <div className="space-y-1 text-xs">
-                  {metrics.uptime !== undefined && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Uptime:</span>
-                      <span className="text-white font-mono">{formatUptime(metrics.uptime)}</span>
-                    </div>
-                  )}
-                  {metrics.load_average !== undefined && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Load:</span>
-                      <span className="text-white font-mono">{metrics.load_average.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {metrics.processes !== undefined && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Processos:</span>
-                      <span className="text-white font-mono">{metrics.processes}</span>
-                    </div>
-                  )}
-                </div>
+                <Progress value={metrics.memory_usage} className="h-2" />
               </div>
-            )}
-
-            {/* Status da Fonte de Dados */}
-            <div className="pt-2 border-t border-slate-600">
-              <div className="text-xs">
-                {metrics.isReal ? (
-                  <div className="flex items-center gap-2 text-emerald-300">
-                    <span className="w-2 h-2 bg-emerald-400 rounded-full"></span>
-                    Dados obtidos da API Hostinger em tempo real
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-amber-300">
-                    <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
-                    Dados simulados - Configure agente de monitoramento para dados reais
-                  </div>
-                )}
+              
+              {/* Disk Usage */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400">Disco</span>
+                  <span className={`font-mono ${getUsageColor(metrics.disk_usage)}`}>
+                    {Math.round(metrics.disk_usage)}%
+                  </span>
+                </div>
+                <Progress value={metrics.disk_usage} className="h-2" />
               </div>
             </div>
           </div>
         )}
 
-
-        {/* Ações - Ícones Discretos */}
-        <div className="flex justify-end gap-2 pt-4">
+        {/* Ações */}
+        <div className="flex gap-2 pt-2">
           <Button
-            size="sm"
-            variant="ghost"
-            onClick={onSnapshot}
-            disabled={snapshotting || getVpsStatus(vps)?.toLowerCase() !== 'running'}
-            className="h-8 w-8 p-0 bg-gray-900 hover:bg-gray-800 text-white border-none"
-            title="Criar Snapshot"
-          >
-            {snapshotting ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <Camera className="h-4 w-4" />
-            )}
-          </Button>
-          
-          <Button
-            size="sm"
-            variant="ghost"
             onClick={onRestart}
-            disabled={restarting || getVpsStatus(vps)?.toLowerCase() !== 'running'}
-            className="h-8 w-8 p-0 bg-gray-900 hover:bg-gray-800 text-white border-none"
-            title="Reiniciar VPS"
+            variant="outline"
+            size="sm"
+            disabled={restarting}
+            className="flex-1 bg-slate-700 border-slate-600 hover:bg-slate-600"
           >
             {restarting ? (
               <RefreshCw className="h-4 w-4 animate-spin" />
             ) : (
               <RotateCcw className="h-4 w-4" />
             )}
+            <span className="ml-2">Reiniciar</span>
+          </Button>
+          
+          <Button
+            onClick={onSnapshot}
+            variant="outline"
+            size="sm"
+            disabled={snapshotting}
+            className="flex-1 bg-slate-700 border-slate-600 hover:bg-slate-600"
+          >
+            {snapshotting ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : (
+              <Camera className="h-4 w-4" />
+            )}
+            <span className="ml-2">Snapshot</span>
           </Button>
         </div>
       </CardContent>

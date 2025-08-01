@@ -107,7 +107,7 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
         <TabsTrigger value="pending" className="text-slate-300 data-[state=active]:bg-slate-700">
           {getStatusIcon('pending')}
           Pendente
-          <Badge className="ml-2 bg-gray-900/20 text-gray-400">
+          <Badge className="ml-2 bg-slate-900/20 text-gray-400">
             {getStatusCount('C') + getStatusCount('c')}
           </Badge>
         </TabsTrigger>

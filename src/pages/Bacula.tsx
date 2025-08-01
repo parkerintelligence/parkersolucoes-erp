@@ -1,21 +1,27 @@
-
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Database, Settings, AlertCircle } from 'lucide-react';
+import { Database, Settings, AlertCircle, Send, TestTube } from 'lucide-react';
 import { useBaculaAPI, useBaculaJobsAll } from '@/hooks/useBaculaAPI';
 import { useBaculaJobsData } from '@/hooks/useBaculaJobsData';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { BaculaDashboard } from '@/components/BaculaDashboard';
 import { BaculaAnalysisDialog } from '@/components/BaculaAnalysisDialog';
 import { BaculaJobsDialog } from '@/components/BaculaJobsDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
 const Bacula = () => {
   const {
     baculaIntegration,
     isEnabled
   } = useBaculaAPI();
+
+  // Estados para o teste de automação
+  const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
+  const [testPhoneNumber, setTestPhoneNumber] = useState('');
+  const [isTestingAutomation, setIsTestingAutomation] = useState(false);
 
   // Estados para filtros - 7 dias por padrão para consistência
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,16 +41,51 @@ const Bacula = () => {
     clientStats,
     recentJobs
   } = useBaculaJobsData(jobsData, searchTerm, statusFilter, dateFilter);
-  
   const handleResetFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
     setDateFilter('7days'); // Reset para 7 dias
   };
+  const handleTestAutomation = async () => {
+    if (!testPhoneNumber.trim()) {
+      toast.error('Por favor, informe um número de telefone para o teste');
+      return;
+    }
+    setIsTestingAutomation(true);
+    try {
+      toast.info('Iniciando teste da automação do Bacula...');
 
+      // Chamar a função de teste que enviará dados reais do dia atual
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('test-bacula-report', {
+        body: {
+          phone_number: testPhoneNumber,
+          run_diagnostic: true,
+          send_report: true
+        }
+      });
+      if (error) {
+        throw error;
+      }
+      console.log('Resultado do teste:', data);
+      if (data.success) {
+        toast.success(`Teste concluído com sucesso! ${data.summary.successful_steps}/${data.summary.total_steps} passos executados.`);
+      } else {
+        toast.warning(`Teste parcial: ${data.summary.successful_steps}/${data.summary.total_steps} passos executados. Verifique os logs.`);
+      }
+      setIsTestDialogOpen(false);
+      setTestPhoneNumber('');
+    } catch (error) {
+      console.error('Erro no teste:', error);
+      toast.error(`Erro no teste: ${error.message}`);
+    } finally {
+      setIsTestingAutomation(false);
+    }
+  };
   if (!baculaIntegration) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-white p-6">
+    return <div className="min-h-screen bg-slate-900 text-white p-6">
         <div className="space-y-6">
           <div className="flex items-center gap-2 mb-6">
             <Database className="h-6 w-6 text-blue-400" />
@@ -75,12 +116,9 @@ const Bacula = () => {
             </CardContent>
           </Card>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-slate-900 text-white">
+  return <div className="min-h-screen bg-slate-900 text-white">
       <div className="space-y-6 p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -94,6 +132,34 @@ const Bacula = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Dialog open={isTestDialogOpen} onOpenChange={setIsTestDialogOpen}>
+              <DialogTrigger asChild>
+                
+              </DialogTrigger>
+              <DialogContent className="bg-slate-800 border-slate-700">
+                <DialogHeader>
+                  <DialogTitle className="text-white">Teste da Automação Bacula</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <p className="text-slate-300 text-sm">
+                    Este teste irá enviar um relatório com dados reais dos jobs do Bacula do dia atual.
+                  </p>
+                  <div>
+                    <Label htmlFor="phone" className="text-slate-300">Número do WhatsApp (com código do país)</Label>
+                    <Input id="phone" value={testPhoneNumber} onChange={e => setTestPhoneNumber(e.target.value)} placeholder="Ex: 5511999999999" className="bg-slate-700 border-slate-600 text-white" />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setIsTestDialogOpen(false)} className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleTestAutomation} disabled={isTestingAutomation} className="bg-green-600 hover:bg-green-700 text-white">
+                      <Send className="mr-2 h-4 w-4" />
+                      {isTestingAutomation ? 'Testando...' : 'Enviar Teste'}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
             <BaculaJobsDialog />
             <BaculaAnalysisDialog jobs={allJobs} />
           </div>
@@ -138,9 +204,8 @@ const Bacula = () => {
 
         {/* Dashboard principal */}
         <BaculaDashboard />
-      </div>
-    </div>
-  );
-};
 
+      </div>
+    </div>;
+};
 export default Bacula;

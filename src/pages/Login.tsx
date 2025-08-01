@@ -21,7 +21,7 @@ const Login = () => {
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       console.log('Usuário já autenticado, redirecionando para dashboard');
-      navigate('/dashboard', { replace: true });
+      navigate('/links', { replace: true }); // Redirecionar para links ao invés de dashboard
     }
   }, [isAuthenticated, authLoading, navigate]);
 
@@ -78,8 +78,8 @@ const Login = () => {
               <Shield className="h-12 w-12 text-white" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-3">Sistema de Gestão de TI</h1>
-          <p className="text-blue-200 text-lg">Plataforma completa para gerenciamento de infraestrutura tecnológica</p>
+          <h1 className="text-4xl font-bold text-white mb-3">Parker Soluções ERP</h1>
+          <p className="text-blue-200 text-lg">Sistema completo de gestão empresarial e infraestrutura de TI</p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8 items-center">

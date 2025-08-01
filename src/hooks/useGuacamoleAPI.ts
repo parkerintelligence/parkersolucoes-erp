@@ -24,6 +24,26 @@ export interface GuacamoleSession {
   connectionName: string;
   protocol: string;
   startTime: string;
+  remoteHost?: string;
+  tunnel?: any;
+}
+
+export interface GuacamoleConnectionGroup {
+  identifier: string;
+  name: string;
+  type: string;
+  childConnections: string[];
+  childConnectionGroups: string[];
+  attributes: Record<string, any>;
+}
+
+export interface GuacamoleConnectionHistory {
+  connectionIdentifier: string;
+  connectionName: string;
+  username: string;
+  startDate: string;
+  endDate?: string;
+  duration?: number;
 }
 
 export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?: any) => void) => {
@@ -31,38 +51,12 @@ export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?
   const queryClient = useQueryClient();
 
   const integration = integrations?.find(i => i.type === 'guacamole' && i.is_active);
-  
-  // Normalizar URL base para incluir /guacamole se necessário
-  const normalizeBaseUrl = (url: string): string => {
-    let normalizedUrl = url.trim().replace(/\/+$/, ''); // Remove trailing slashes
-    if (!normalizedUrl.endsWith('/guacamole')) {
-      normalizedUrl += '/guacamole';
-    }
-    return normalizedUrl;
-  };
-
   const isConfigured = Boolean(
     integration?.base_url && 
     integration?.username && 
     integration?.password
   );
 
-  // Log de debug melhorado
-  if (onLog) {
-    onLog('info', 'Hook useGuacamoleAPI inicializado', {
-      integrationFound: !!integration,
-      isConfigured,
-      integrationDetails: integration ? {
-        id: integration.id,
-        name: integration.name,
-        base_url: integration.base_url,
-        normalizedUrl: integration.base_url ? normalizeBaseUrl(integration.base_url) : null,
-        username: integration.username,
-        dataSource: integration.directory || 'postgresql',
-        is_active: integration.is_active
-      } : null
-    });
-  }
 
   const callGuacamoleAPI = async (endpoint: string, options: any = {}) => {
     if (!integration) {
@@ -71,13 +65,11 @@ export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?
       throw new Error(error);
     }
 
-    const normalizedBaseUrl = normalizeBaseUrl(integration.base_url);
     const dataSource = integration.directory || 'postgresql';
     
     onLog?.('request', `Chamando API do Guacamole: ${endpoint}`, {
       integrationId: integration.id,
-      baseUrl: normalizedBaseUrl,
-      originalUrl: integration.base_url,
+      baseUrl: integration.base_url,
       dataSource,
       endpoint,
       options
@@ -160,17 +152,43 @@ export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?
         }
         
         if (typeof result === 'object' && result !== null) {
-          const connections = Object.keys(result).map(key => ({
-            identifier: key,
-            name: result[key]?.name || key,
-            protocol: result[key]?.protocol || 'unknown',
-            parameters: result[key]?.parameters || {},
-            attributes: result[key]?.attributes || {},
-            activeConnections: result[key]?.activeConnections || 0
-          }));
+          const connections = Object.keys(result).map(key => {
+            const connectionData = result[key];
+            return {
+              identifier: key,
+              name: connectionData?.name || key,
+              protocol: connectionData?.protocol || 'unknown',
+              parameters: connectionData?.parameters || {},
+              attributes: connectionData?.attributes || {},
+              activeConnections: connectionData?.activeConnections || 0
+            };
+          });
+          
+          // Buscar sessões ativas para atualizar status das conexões
+          try {
+            const sessionsResult = await callGuacamoleAPI('sessions');
+            const activeSessions = Array.isArray(sessionsResult) ? sessionsResult : 
+              (typeof sessionsResult === 'object' && sessionsResult !== null) ? Object.values(sessionsResult) : [];
+            
+            // Contar sessões ativas por conexão
+            const sessionCounts = {};
+            activeSessions.forEach(session => {
+              if (session?.connectionIdentifier) {
+                sessionCounts[session.connectionIdentifier] = (sessionCounts[session.connectionIdentifier] || 0) + 1;
+              }
+            });
+            
+            // Atualizar contadores de sessões ativas
+            connections.forEach(connection => {
+              connection.activeConnections = sessionCounts[connection.identifier] || 0;
+            });
+            
+          } catch (sessionError) {
+            onLog?.('warning', 'Erro ao buscar sessões ativas para atualizar status', { error: sessionError.message });
+          }
           
           onLog?.('response', `${connections.length} conexões processadas (formato objeto)`, {
-            connections: connections.map(c => ({ id: c.identifier, name: c.name, protocol: c.protocol }))
+            connections: connections.map(c => ({ id: c.identifier, name: c.name, protocol: c.protocol, active: c.activeConnections }))
           });
           
           return connections;
@@ -267,7 +285,9 @@ export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?
             username: result[sessionId]?.username || 'unknown',
             connectionName: result[sessionId]?.connectionName || 'unknown',
             protocol: result[sessionId]?.protocol || 'unknown',
-            startTime: result[sessionId]?.startTime || new Date().toISOString()
+            startTime: result[sessionId]?.startTime || new Date().toISOString(),
+            remoteHost: result[sessionId]?.remoteHost,
+            tunnel: result[sessionId]?.tunnel
           }));
           
           onLog?.('response', `${sessions.length} sessões processadas (formato objeto)`);
@@ -298,10 +318,117 @@ export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?
     });
   };
 
+  const useConnectionGroups = () => {
+    return useQuery({
+      queryKey: ['guacamole', 'connectionGroups', integration?.id],
+      queryFn: async () => {
+        onLog?.('info', 'Iniciando busca de grupos de conexão');
+        const result = await callGuacamoleAPI('connectionGroups');
+        
+        if (Array.isArray(result)) {
+          return result;
+        }
+        
+        if (typeof result === 'object' && result !== null) {
+          const groups = Object.keys(result).map(groupId => ({
+            identifier: groupId,
+            name: result[groupId]?.name || groupId,
+            type: result[groupId]?.type || 'organizational',
+            childConnections: result[groupId]?.childConnections || [],
+            childConnectionGroups: result[groupId]?.childConnectionGroups || [],
+            attributes: result[groupId]?.attributes || {}
+          }));
+          
+          onLog?.('response', `${groups.length} grupos processados`);
+          return groups;
+        }
+        
+        return [];
+      },
+      enabled: isConfigured,
+      staleTime: 60000,
+      retry: (failureCount, error) => {
+        if (error.message.includes('Configuração incompleta') || 
+            error.message.includes('Credenciais inválidas') ||
+            error.message.includes('ERRO DE PERMISSÕES')) {
+          return false;
+        }
+        return failureCount < 2;
+      },
+    });
+  };
+
+  const useConnectionHistory = () => {
+    return useQuery({
+      queryKey: ['guacamole', 'history', integration?.id],
+      queryFn: async () => {
+        onLog?.('info', 'Iniciando busca de histórico de conexões');
+        const result = await callGuacamoleAPI('history');
+        
+        if (Array.isArray(result)) {
+          return result;
+        }
+        
+        if (typeof result === 'object' && result !== null) {
+          const history = Object.keys(result).map(recordId => ({
+            connectionIdentifier: result[recordId]?.connectionIdentifier || 'unknown',
+            connectionName: result[recordId]?.connectionName || 'unknown',
+            username: result[recordId]?.username || 'unknown',
+            startDate: result[recordId]?.startDate || new Date().toISOString(),
+            endDate: result[recordId]?.endDate,
+            duration: result[recordId]?.duration
+          }));
+          
+          onLog?.('response', `${history.length} registros de histórico processados`);
+          return history;
+        }
+        
+        return [];
+      },
+      enabled: isConfigured,
+      staleTime: 120000, // 2 minutos
+      retry: (failureCount, error) => {
+        if (error.message.includes('Configuração incompleta') || 
+            error.message.includes('Credenciais inválidas') ||
+            error.message.includes('ERRO DE PERMISSÕES')) {
+          return false;
+        }
+        return failureCount < 2;
+      },
+    });
+  };
+
+  const useTestConnection = () => {
+    return useMutation({
+      mutationFn: async (connectionId: string) => {
+        onLog?.('info', 'Testando conectividade da conexão', { connectionId });
+        return callGuacamoleAPI(`connections/${connectionId}/test`, { method: 'GET' });
+      },
+      onSuccess: (data, connectionId) => {
+        onLog?.('response', 'Teste de conexão bem-sucedido', { connectionId });
+        toast({
+          title: "Teste bem-sucedido!",
+          description: "A conexão está funcionando corretamente.",
+        });
+      },
+      onError: (error: Error, connectionId) => {
+        onLog?.('error', `Erro no teste de conexão: ${error.message}`, { connectionId });
+        toast({
+          title: "Teste falhou",
+          description: error.message,
+          variant: "destructive"
+        });
+      },
+    });
+  };
+
   return {
     useConnections,
     useUsers,
     useActiveSessions,
+    useConnectionGroups,
+    useConnectionHistory,
+    useTestConnection,
     useCreateConnection: () => {
       return useMutation({
         mutationFn: (connectionData: Partial<GuacamoleConnection>) => {

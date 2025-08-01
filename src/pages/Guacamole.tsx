@@ -1,54 +1,43 @@
-
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { 
-  Monitor, 
-  Users, 
-  Activity, 
-  Plus,
-  RefreshCcw, 
-  Power,
-  AlertTriangle,
-  CheckCircle,
-  Settings,
-  ExternalLink,
-  Grid,
-  List,
-  FileText
-} from 'lucide-react';
+import { Monitor, Users, Activity, Plus, RefreshCcw, Power, AlertTriangle, Settings, ExternalLink, Grid, List, FileText, FolderOpen } from 'lucide-react';
 import { useGuacamoleAPI, GuacamoleConnection } from '@/hooks/useGuacamoleAPI';
 import { useGuacamoleLogs } from '@/hooks/useGuacamoleLogs';
 import { GuacamoleConnectionCard } from '@/components/guacamole/GuacamoleConnectionCard';
-import { GuacamoleTokenStatus } from '@/components/guacamole/GuacamoleTokenStatus';
+import { GuacamoleStatusPopover } from '@/components/guacamole/GuacamoleStatusPopover';
+import { GuacamoleConnectionTree } from '@/components/guacamole/GuacamoleConnectionTree';
 import { GuacamoleConnectionDialog } from '@/components/guacamole/GuacamoleConnectionDialog';
 import { GuacamoleLogs } from '@/components/guacamole/GuacamoleLogs';
 import { GuacamoleConnectionTest } from '@/components/guacamole/GuacamoleConnectionTest';
 import { toast } from '@/hooks/use-toast';
-
+import { supabase } from '@/integrations/supabase/client';
 const Guacamole = () => {
-  const { 
-    logs, 
-    clearLogs, 
-    logRequest, 
-    logResponse, 
-    logError, 
-    logInfo 
+  const {
+    logs,
+    clearLogs,
+    logRequest,
+    logResponse,
+    logError,
+    logInfo
   } = useGuacamoleLogs();
-
-  const { 
-    useConnections, 
-    useUsers, 
+  const {
+    useConnections,
+    useUsers,
     useActiveSessions,
+    useConnectionGroups,
+    useConnectionHistory,
+    useTestConnection,
     useCreateConnection,
     useUpdateConnection,
     useDeleteConnection,
     useDisconnectSession,
     isConfigured,
-    integration 
+    integration
   } = useGuacamoleAPI((type, message, options) => {
     // Integrar logs do hook com o sistema de logs
     if (type === 'request') {
@@ -61,562 +50,557 @@ const Guacamole = () => {
       logInfo(message, options);
     }
   });
-
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [connectionDialog, setConnectionDialog] = useState<{
     open: boolean;
     connection?: GuacamoleConnection | null;
-  }>({ open: false });
-  const [expandedConnections, setExpandedConnections] = useState<Set<string>>(new Set());
+  }>({
+    open: false
+  });
 
   // Carregar dados do Guacamole
-  const { data: connections = [], isLoading: connectionsLoading, refetch: refetchConnections, error: connectionsError } = useConnections();
-  const { data: users = [], isLoading: usersLoading, refetch: refetchUsers, error: usersError } = useUsers();
-  const { data: sessions = [], isLoading: sessionsLoading, refetch: refetchSessions, error: sessionsError } = useActiveSessions();
-
+  const {
+    data: connections = [],
+    isLoading: connectionsLoading,
+    refetch: refetchConnections,
+    error: connectionsError
+  } = useConnections();
+  const {
+    data: users = [],
+    isLoading: usersLoading,
+    refetch: refetchUsers,
+    error: usersError
+  } = useUsers();
+  const {
+    data: activeSessions = [],
+    isLoading: sessionsLoading,
+    refetch: refetchSessions,
+    error: sessionsError
+  } = useActiveSessions();
+  const {
+    data: connectionGroups = [],
+    refetch: refetchGroups
+  } = useConnectionGroups();
+  const {
+    data: connectionHistory = [],
+    refetch: refetchHistory
+  } = useConnectionHistory();
   const createConnectionMutation = useCreateConnection();
   const updateConnectionMutation = useUpdateConnection();
   const deleteConnectionMutation = useDeleteConnection();
   const disconnectSessionMutation = useDisconnectSession();
-
+  const testConnectionMutation = useTestConnection();
   const handleRefreshAll = async () => {
     setRefreshing(true);
     logInfo('Iniciando atualização manual de todos os dados');
-    
     try {
-      await Promise.all([
-        refetchConnections(),
-        refetchUsers(),
-        refetchSessions()
-      ]);
-      
+      await Promise.all([refetchConnections(), refetchUsers(), refetchSessions(), refetchGroups(), refetchHistory()]);
       logInfo('Atualização manual concluída com sucesso');
       toast({
         title: "Dados atualizados",
-        description: "Informações do Guacamole foram atualizadas com sucesso.",
+        description: "Informações do Guacamole foram atualizadas com sucesso."
       });
     } catch (error) {
-      logError('Erro durante atualização manual', '', { error: error.message });
+      logError('Erro durante atualização manual', '', {
+        error: error.message
+      });
       toast({
         title: "Erro ao atualizar",
         description: "Não foi possível atualizar os dados do Guacamole.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setRefreshing(false);
     }
   };
-
-  const handleConnectToGuacamole = (connection: GuacamoleConnection) => {
+  const handleConnectToGuacamole = async (connection: GuacamoleConnection) => {
     if (!integration?.base_url) {
       toast({
         title: "Erro de configuração",
         description: "URL base do Guacamole não configurada.",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
+    try {
+      // Criar URL de conexão direta com autenticação automática
+      const {
+        data: sessionData,
+        error
+      } = await supabase.functions.invoke('guacamole-proxy', {
+        body: {
+          integrationId: integration.id,
+          endpoint: `connect/${connection.identifier}`,
+          method: 'POST'
+        }
+      });
+      if (error || !sessionData?.sessionUrl) {
+        console.error('Erro ao criar sessão:', error);
 
-    // Construir URL de conexão direta
-    const guacamoleUrl = `${integration.base_url}/#/client/${encodeURIComponent(connection.identifier)}`;
-    
-    logInfo('Abrindo conexão do Guacamole', {
-      connectionId: connection.identifier,
-      connectionName: connection.name,
-      url: guacamoleUrl
-    });
-    
-    // Abrir em nova aba
-    window.open(guacamoleUrl, '_blank', 'noopener,noreferrer');
-    
-    toast({
-      title: "Conectando...",
-      description: `Abrindo conexão "${connection.name}" em nova aba.`,
-    });
+        // Fallback: URL direta simples
+        const baseUrl = integration.base_url.replace(/\/$/, '');
+        const fallbackUrl = `${baseUrl}/#/client/${encodeURIComponent(connection.identifier)}`;
+        logInfo('Usando URL de fallback para conexão', {
+          connectionId: connection.identifier,
+          connectionName: connection.name,
+          url: fallbackUrl
+        });
+        window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+        toast({
+          title: "Conectando...",
+          description: `Abrindo conexão "${connection.name}" (modo básico).`
+        });
+        return;
+      }
+
+      // Usar URL de sessão direta se disponível
+      logInfo('Abrindo conexão do Guacamole com sessão direta', {
+        connectionId: connection.identifier,
+        connectionName: connection.name,
+        hasSessionUrl: !!sessionData.sessionUrl
+      });
+
+      // Abrir em nova aba com sessão autenticada
+      window.open(sessionData.sessionUrl, '_blank', 'noopener,noreferrer');
+      toast({
+        title: "Conectando...",
+        description: `Abrindo conexão "${connection.name}" com acesso direto.`
+      });
+    } catch (error) {
+      console.error('Erro ao conectar:', error);
+      toast({
+        title: "Erro na conexão",
+        description: "Não foi possível estabelecer a conexão. Tente novamente.",
+        variant: "destructive"
+      });
+    }
   };
-
   const handleCreateConnection = async (connectionData: Partial<GuacamoleConnection>) => {
     try {
       await createConnectionMutation.mutateAsync(connectionData);
-      setConnectionDialog({ open: false });
+      setConnectionDialog({
+        open: false
+      });
     } catch (error) {
       console.error('Erro ao criar conexão:', error);
     }
   };
-
   const handleUpdateConnection = async (connectionData: Partial<GuacamoleConnection>) => {
-    if (!connectionData.identifier) return;
-    
+    console.log('Atualizando conexão:', connectionData);
+    if (!connectionData.identifier) {
+      toast({
+        title: "Erro",
+        description: "ID da conexão não encontrado",
+        variant: "destructive"
+      });
+      return;
+    }
     try {
       await updateConnectionMutation.mutateAsync({
         identifier: connectionData.identifier,
         updates: connectionData
       });
-      setConnectionDialog({ open: false });
+      setConnectionDialog({
+        open: false,
+        connection: null
+      });
     } catch (error) {
       console.error('Erro ao atualizar conexão:', error);
     }
   };
-
   const handleDeleteConnection = async (identifier: string) => {
     if (!confirm('Tem certeza que deseja remover esta conexão?')) return;
-    
     try {
       await deleteConnectionMutation.mutateAsync(identifier);
     } catch (error) {
       console.error('Erro ao deletar conexão:', error);
     }
   };
-
   const handleDisconnectSession = async (sessionId: string) => {
     if (!confirm('Tem certeza que deseja desconectar esta sessão?')) return;
-    
     try {
       await disconnectSessionMutation.mutateAsync(sessionId);
     } catch (error) {
       console.error('Erro ao desconectar sessão:', error);
     }
   };
-
-  const toggleConnectionDetails = (connectionId: string) => {
-    const newExpanded = new Set(expandedConnections);
-    if (newExpanded.has(connectionId)) {
-      newExpanded.delete(connectionId);
-    } else {
-      newExpanded.add(connectionId);
-    }
-    setExpandedConnections(newExpanded);
-  };
-
   const getProtocolColor = (protocol: string) => {
     switch (protocol?.toLowerCase()) {
-      case 'rdp': return 'bg-blue-100 text-blue-800';
-      case 'vnc': return 'bg-green-100 text-green-800';
-      case 'ssh': return 'bg-purple-100 text-purple-800';
-      case 'telnet': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'rdp':
+        return 'bg-blue-400/20 text-blue-300 border-blue-400/30';
+      case 'vnc':
+        return 'bg-green-400/20 text-green-300 border-green-400/30';
+      case 'ssh':
+        return 'bg-purple-400/20 text-purple-300 border-purple-400/30';
+      case 'telnet':
+        return 'bg-orange-400/20 text-orange-300 border-orange-400/30';
+      default:
+        return 'bg-slate-600/20 text-slate-400 border-slate-600/30';
     }
   };
-
   if (!isConfigured) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="bg-orange-100 p-2 rounded-lg">
-            <Monitor className="h-6 w-6 text-orange-600" />
+    return <div className="min-h-screen bg-slate-900 text-white p-6">
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-500/10 p-2 rounded-lg">
+              <Monitor className="h-6 w-6 text-blue-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Conexão Remota</h1>
+              <p className="text-slate-400">
+                Gerencie conexões remotas e sessões ativas do Guacamole
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Apache Guacamole</h1>
-            <p className="text-muted-foreground">
-              Gerencie conexões remotas e sessões ativas
-            </p>
-          </div>
-        </div>
 
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="p-6 text-center">
-            <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-600" />
-            <h3 className="text-lg font-semibold text-yellow-800 mb-2">Guacamole não configurado</h3>
-            <p className="text-yellow-700 mb-4">
-              Para usar o gerenciamento do Apache Guacamole, configure a integração no painel de administração.
-            </p>
-            <Button variant="outline" onClick={() => window.location.href = '/admin'}>
-              <Settings className="mr-2 h-4 w-4" />
-              Configurar Guacamole
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+          <Card className="bg-slate-800 border-slate-700">
+            <CardContent className="p-6 text-center">
+              <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-amber-400" />
+              <h3 className="text-lg font-semibold text-white mb-2">Guacamole não configurado</h3>
+              <p className="text-slate-400 mb-4">
+                Para usar o gerenciamento do Apache Guacamole, configure a integração no painel de administração.
+              </p>
+              <Button variant="outline" asChild className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                <Link to="/admin">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Configurar Guacamole
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>;
   }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="bg-orange-100 p-2 rounded-lg">
-            <Monitor className="h-6 w-6 text-orange-600" />
+  return <div className="min-h-screen bg-slate-900 text-white p-6">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-500/10 p-2 rounded-lg">
+              <Monitor className="h-6 w-6 text-blue-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Conexão Remota</h1>
+              <p className="text-slate-400">
+                Gerencie conexões remotas e sessões ativas do Guacamole
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Apache Guacamole</h1>
-            <p className="text-muted-foreground">
-              Gerencie conexões remotas e sessões ativas
-            </p>
+          <div className="flex items-center gap-2">
+            <GuacamoleStatusPopover connections={connections} users={users} activeSessions={activeSessions} connectionGroups={connectionGroups} />
+            <Button onClick={handleRefreshAll} disabled={refreshing} variant="outline" className="border-slate-600 text-slate-50 bg-slate-900 hover:bg-slate-800">
+              <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
           </div>
         </div>
-        <Button 
-          onClick={handleRefreshAll} 
-          disabled={refreshing}
-          variant="outline"
-        >
-          <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
-      </div>
 
-      {/* Token Status */}
-      <GuacamoleTokenStatus />
 
-      {/* Error Display */}
-      {(connectionsError || usersError || sessionsError) && (
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="text-red-800 flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              Erros de Comunicação
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-sm">
-              {connectionsError && (
-                <div className="bg-red-100 p-3 rounded border-l-4 border-red-400">
-                  <strong>Erro ao buscar conexões:</strong> {connectionsError.message}
-                </div>
-              )}
-              {usersError && (
-                <div className="bg-red-100 p-3 rounded border-l-4 border-red-400">
-                  <strong>Erro ao buscar usuários:</strong> {usersError.message}
-                </div>
-              )}
-              {sessionsError && (
-                <div className="bg-red-100 p-3 rounded border-l-4 border-red-400">
-                  <strong>Erro ao buscar sessões:</strong> {sessionsError.message}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conexões Totais</CardTitle>
-            <Monitor className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{connections?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Conexões configuradas
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Usuários</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{users?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Usuários cadastrados
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Sessões Ativas</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{sessions?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Conexões em uso
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Status</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="text-sm font-medium text-green-600">Online</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="connections" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="connections">Conexões</TabsTrigger>
-          <TabsTrigger value="sessions">Sessões Ativas</TabsTrigger>
-          <TabsTrigger value="users">Usuários</TabsTrigger>
-          <TabsTrigger value="logs">
-            <FileText className="h-4 w-4 mr-2" />
-            Logs
-          </TabsTrigger>
-          <TabsTrigger value="tests">Testes</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="connections" className="mt-6">
-          <Card>
+        {/* Error Display */}
+        {(connectionsError || usersError || sessionsError) && <Card className="bg-red-900/20 border-red-800/30">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Monitor className="h-5 w-5" />
-                    Conexões Configuradas
-                  </CardTitle>
-                  <CardDescription>
-                    Gerencie e acesse suas conexões do Guacamole
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <div className="flex border rounded-md">
-                    <Button
-                      variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('grid')}
-                    >
-                      <Grid className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant={viewMode === 'list' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('list')}
-                    >
-                      <List className="h-4 w-4" />
+              <CardTitle className="text-red-400 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                Erros de Comunicação
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm">
+                {connectionsError && <div className="bg-red-900/30 p-3 rounded border-l-4 border-red-500">
+                    <strong className="text-red-300">Erro ao buscar conexões:</strong> 
+                    <span className="text-red-400 ml-2">{connectionsError.message}</span>
+                  </div>}
+                {usersError && <div className="bg-red-900/30 p-3 rounded border-l-4 border-red-500">
+                    <strong className="text-red-300">Erro ao buscar usuários:</strong> 
+                    <span className="text-red-400 ml-2">{usersError.message}</span>
+                  </div>}
+                {sessionsError && <div className="bg-red-900/30 p-3 rounded border-l-4 border-red-500">
+                    <strong className="text-red-300">Erro ao buscar sessões:</strong> 
+                    <span className="text-red-400 ml-2">{sessionsError.message}</span>
+                  </div>}
+              </div>
+            </CardContent>
+          </Card>}
+
+
+        {/* Main Content */}
+        <Tabs defaultValue="connections" className="space-y-4">
+          <TabsList className="bg-slate-800 border-slate-700">
+            <TabsTrigger value="connections" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+              Conexões ({connections?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="sessions" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+              Sessões Ativas ({activeSessions?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="users" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+              Usuários ({users?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="history" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+              Histórico
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+              Logs
+            </TabsTrigger>
+            <TabsTrigger value="tests" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+              Testes
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="connections" className="mt-6">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-white">
+                      <Monitor className="h-5 w-5" />
+                      Conexões Configuradas
+                    </CardTitle>
+                    <CardDescription className="text-slate-400">
+                      Gerencie e acesse suas conexões do Guacamole
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="flex border border-slate-600 rounded-md">
+                      <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')} className="bg-slate-700 text-white border-slate-600">
+                        <Grid className="h-4 w-4" />
+                      </Button>
+                      <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('list')} className="bg-slate-700 text-white border-slate-600">
+                        <List className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Button onClick={() => setConnectionDialog({
+                    open: true
+                  })} className="bg-blue-600 hover:bg-blue-700 text-white">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Nova Conexão
                     </Button>
                   </div>
-                  <Button onClick={() => setConnectionDialog({ open: true })}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nova Conexão
-                  </Button>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {connectionsLoading ? (
-                <div className="text-center py-8">
-                  <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4" />
-                  <p>Carregando conexões...</p>
-                </div>
-              ) : !connections || connections.length === 0 ? (
-                <div className="text-center py-8">
-                  <Monitor className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-lg font-medium">Nenhuma conexão encontrada</p>
-                  <p className="text-sm text-muted-foreground mb-4">Configure suas primeiras conexões remotas.</p>
-                  <Button onClick={() => setConnectionDialog({ open: true })}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Criar Primeira Conexão
-                  </Button>
-                </div>
-              ) : viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {connections.map((connection) => (
-                    <GuacamoleConnectionCard
-                      key={connection.identifier}
-                      connection={connection}
-                      onConnect={handleConnectToGuacamole}
-                      onEdit={(conn) => setConnectionDialog({ open: true, connection: conn })}
-                      onDelete={handleDeleteConnection}
-                      onToggleDetails={toggleConnectionDetails}
-                      showDetails={expandedConnections.has(connection.identifier)}
-                      isDeleting={deleteConnectionMutation.isPending}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Protocolo</TableHead>
-                      <TableHead>Host</TableHead>
-                      <TableHead>Conexões Ativas</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {connections.map((connection) => (
-                      <TableRow key={connection.identifier}>
-                        <TableCell className="font-medium">{connection.name}</TableCell>
-                        <TableCell>
-                          <Badge className={getProtocolColor(connection.protocol)}>
-                            {connection.protocol?.toUpperCase()}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {connection.parameters?.hostname || 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={connection.activeConnections > 0 ? 'default' : 'secondary'}>
-                            {connection.activeConnections || 0}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleConnectToGuacamole(connection)}
-                            >
-                              <ExternalLink className="h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                {connectionsLoading ? <div className="text-center py-8">
+                    <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
+                    <p className="text-slate-300">Carregando conexões...</p>
+                  </div> : !connections || connections.length === 0 ? <div className="text-center py-8">
+                    <Monitor className="h-12 w-12 mx-auto mb-4 text-slate-600" />
+                    <p className="text-lg font-medium text-white">Nenhuma conexão encontrada</p>
+                    <p className="text-sm text-slate-400 mb-4">Configure suas primeiras conexões remotas.</p>
+                    <Button onClick={() => setConnectionDialog({
+                  open: true
+                })} className="bg-blue-600 hover:bg-blue-700 text-white">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Criar Primeira Conexão
+                    </Button>
+                  </div> : viewMode === 'grid' ? <GuacamoleConnectionTree connections={connections} connectionGroups={connectionGroups} onConnect={handleConnectToGuacamole} onEdit={conn => setConnectionDialog({
+                open: true,
+                connection: conn
+              })} onDelete={handleDeleteConnection} isDeleting={deleteConnectionMutation.isPending} /> : <div className="bg-slate-800 rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-slate-700">
+                          <TableHead className="text-slate-300">Nome</TableHead>
+                          <TableHead className="text-slate-300">Protocolo</TableHead>
+                          <TableHead className="text-slate-300">Host</TableHead>
+                          <TableHead className="text-slate-300">Conexões Ativas</TableHead>
+                          <TableHead className="text-slate-300">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {connections.map(connection => <TableRow key={connection.identifier} className="border-slate-700">
+                            <TableCell className="font-medium text-white">{connection.name}</TableCell>
+                            <TableCell>
+                              <Badge className={getProtocolColor(connection.protocol)}>
+                                {connection.protocol?.toUpperCase()}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-slate-300">
+                              {connection.parameters?.hostname || 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={connection.activeConnections > 0 ? 'default' : 'secondary'}>
+                                {connection.activeConnections || 0}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={() => handleConnectToGuacamole(connection)} className="bg-blue-600 hover:bg-blue-700">
+                                  <ExternalLink className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>)}
+                      </TableBody>
+                    </Table>
+                  </div>}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="sessions" className="mt-6">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Activity className="h-5 w-5" />
+                  Sessões Ativas
+                </CardTitle>
+                <CardDescription className="text-slate-400">
+                  Sessões atualmente conectadas ao Guacamole
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {sessionsLoading ? <div className="text-center py-8">
+                    <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
+                    <p className="text-slate-300">Carregando sessões...</p>
+                  </div> : !activeSessions || activeSessions.length === 0 ? <div className="text-center py-8 text-slate-400">
+                    <Activity className="h-12 w-12 mx-auto mb-4" />
+                    <p className="text-lg font-medium text-white">Nenhuma sessão ativa</p>
+                    <p className="text-sm">Todas as conexões estão desconectadas.</p>
+                  </div> : <Table>
+                    <TableHeader>
+                      <TableRow className="border-slate-700">
+                        <TableHead className="text-slate-300">Usuário</TableHead>
+                        <TableHead className="text-slate-300">Conexão</TableHead>
+                        <TableHead className="text-slate-300">Protocolo</TableHead>
+                        <TableHead className="text-slate-300">Início</TableHead>
+                        <TableHead className="text-slate-300">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {activeSessions.map((session, index) => <TableRow key={index} className="border-slate-700">
+                          <TableCell className="font-medium text-white">{session.username || 'N/A'}</TableCell>
+                          <TableCell className="text-slate-300">{session.connectionName || 'N/A'}</TableCell>
+                          <TableCell>
+                            <Badge className={getProtocolColor(session.protocol)}>
+                              {session.protocol?.toUpperCase() || 'N/A'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-slate-300">
+                            {session.startTime ? new Date(session.startTime).toLocaleString('pt-BR') : 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            <Button size="sm" variant="outline" onClick={() => handleDisconnectSession(session.id)} disabled={disconnectSessionMutation.isPending} className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                              <Power className="h-4 w-4" />
                             </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                          </TableCell>
+                        </TableRow>)}
+                    </TableBody>
+                  </Table>}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        <TabsContent value="sessions" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Sessões Ativas
-              </CardTitle>
-              <CardDescription>
-                Sessões atualmente conectadas ao Guacamole
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {sessionsLoading ? (
-                <div className="text-center py-8">
-                  <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4" />
-                  <p>Carregando sessões...</p>
-                </div>
-              ) : !sessions || sessions.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Activity className="h-12 w-12 mx-auto mb-4" />
-                  <p className="text-lg font-medium">Nenhuma sessão ativa</p>
-                  <p className="text-sm">Todas as conexões estão desconectadas.</p>
-                </div>
-              ) : (
+          <TabsContent value="users" className="mt-6">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Users className="h-5 w-5" />
+                  Usuários do Sistema
+                </CardTitle>
+                <CardDescription className="text-slate-400">
+                  Lista de usuários cadastrados no Guacamole
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {usersLoading ? <div className="text-center py-8">
+                    <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
+                    <p className="text-slate-300">Carregando usuários...</p>
+                  </div> : <Table>
+                    <TableHeader>
+                      <TableRow className="border-slate-700">
+                        <TableHead className="text-slate-300">Nome de Usuário</TableHead>
+                        <TableHead className="text-slate-300">Última Atividade</TableHead>
+                        <TableHead className="text-slate-300">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users && users.map(user => <TableRow key={user.username} className="border-slate-700">
+                          <TableCell className="font-medium text-white">{user.username}</TableCell>
+                          <TableCell className="text-slate-300">
+                            {user.lastActive ? new Date(user.lastActive).toLocaleString('pt-BR') : 'Nunca'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="default" className="bg-emerald-600 text-white">Ativo</Badge>
+                          </TableCell>
+                        </TableRow>)}
+                    </TableBody>
+                  </Table>}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="history" className="mt-6">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <FileText className="h-5 w-5" />
+                  Histórico de Conexões
+                </CardTitle>
+                <CardDescription className="text-slate-400">
+                  Registro de conexões realizadas no Guacamole
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Usuário</TableHead>
-                      <TableHead>Conexão</TableHead>
-                      <TableHead>Protocolo</TableHead>
-                      <TableHead>Início</TableHead>
-                      <TableHead>Ações</TableHead>
+                    <TableRow className="border-slate-700">
+                      <TableHead className="text-slate-300">Conexão</TableHead>
+                      <TableHead className="text-slate-300">Usuário</TableHead>
+                      <TableHead className="text-slate-300">Início</TableHead>
+                      <TableHead className="text-slate-300">Fim</TableHead>
+                      <TableHead className="text-slate-300">Duração</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sessions.map((session, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">{session.username || 'N/A'}</TableCell>
-                        <TableCell>{session.connectionName || 'N/A'}</TableCell>
-                        <TableCell>
-                          <Badge className={getProtocolColor(session.protocol)}>
-                            {session.protocol?.toUpperCase() || 'N/A'}
-                          </Badge>
+                    {connectionHistory && connectionHistory.length > 0 ? connectionHistory.map((record, index) => <TableRow key={index} className="border-slate-700">
+                          <TableCell className="font-medium text-white">{record.connectionName}</TableCell>
+                          <TableCell className="text-slate-300">{record.username}</TableCell>
+                          <TableCell className="text-slate-300">
+                            {record.startDate ? new Date(record.startDate).toLocaleString('pt-BR') : 'N/A'}
+                          </TableCell>
+                          <TableCell className="text-slate-300">
+                            {record.endDate ? new Date(record.endDate).toLocaleString('pt-BR') : 'Em andamento'}
+                          </TableCell>
+                          <TableCell className="text-slate-300">
+                            {record.duration ? `${Math.round(record.duration / 60)} min` : 'N/A'}
+                          </TableCell>
+                        </TableRow>) : <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-slate-400">
+                          <FileText className="h-12 w-12 mx-auto mb-4" />
+                          <p className="text-lg font-medium text-white">Nenhum registro encontrado</p>
+                          <p className="text-sm">O histórico aparecerá conforme as conexões forem utilizadas.</p>
                         </TableCell>
-                        <TableCell>
-                          {session.startTime ? new Date(session.startTime).toLocaleString('pt-BR') : 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDisconnectSession(session.id)}
-                            disabled={disconnectSessionMutation.isPending}
-                          >
-                            <Power className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                      </TableRow>}
                   </TableBody>
                 </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        <TabsContent value="users" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Usuários do Sistema
-              </CardTitle>
-              <CardDescription>
-                Lista de usuários cadastrados no Guacamole
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {usersLoading ? (
-                <div className="text-center py-8">
-                  <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4" />
-                  <p>Carregando usuários...</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome de Usuário</TableHead>
-                      <TableHead>Última Atividade</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users && users.map((user) => (
-                      <TableRow key={user.username}>
-                        <TableCell className="font-medium">{user.username}</TableCell>
-                        <TableCell>
-                          {user.lastActive ? new Date(user.lastActive).toLocaleString('pt-BR') : 'Nunca'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="default">Ativo</Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+          <TabsContent value="logs" className="mt-6">
+            <GuacamoleLogs logs={logs} onClearLogs={clearLogs} onRefresh={handleRefreshAll} />
+          </TabsContent>
 
-        <TabsContent value="logs" className="mt-6">
-          <GuacamoleLogs 
-            logs={logs}
-            onClearLogs={clearLogs}
-            onRefresh={handleRefreshAll}
-          />
-        </TabsContent>
+          <TabsContent value="tests" className="mt-6">
+            <GuacamoleConnectionTest onLog={(type, message, options) => {
+            if (type === 'request') {
+              logRequest(options?.method || 'GET', options?.url || '', options?.dataSource);
+            } else if (type === 'response') {
+              logResponse(options?.status || 200, message, options?.url, options?.details);
+            } else if (type === 'error') {
+              logError(message, options?.url, options?.details);
+            } else {
+              logInfo(message, options);
+            }
+          }} />
+          </TabsContent>
+        </Tabs>
 
-        <TabsContent value="tests" className="mt-6">
-          <GuacamoleConnectionTest 
-            onLog={(type, message, options) => {
-              if (type === 'request') {
-                logRequest(options?.method || 'GET', options?.url || '', options?.dataSource);
-              } else if (type === 'response') {
-                logResponse(options?.status || 200, message, options?.url, options?.details);
-              } else if (type === 'error') {
-                logError(message, options?.url, options?.details);
-              } else {
-                logInfo(message, options);
-              }
-            }}
-          />
-        </TabsContent>
-      </Tabs>
-
-      {/* Connection Dialog */}
-      <GuacamoleConnectionDialog
-        open={connectionDialog.open}
-        onOpenChange={(open) => setConnectionDialog({ open })}
-        connection={connectionDialog.connection}
-        onSave={connectionDialog.connection ? handleUpdateConnection : handleCreateConnection}
-        isSaving={createConnectionMutation.isPending || updateConnectionMutation.isPending}
-      />
-    </div>
-  );
+        {/* Connection Dialog */}
+        <GuacamoleConnectionDialog open={connectionDialog.open} onOpenChange={open => setConnectionDialog({
+        open,
+        connection: null
+      })} connection={connectionDialog.connection} onSave={connectionDialog.connection ? handleUpdateConnection : handleCreateConnection} isSaving={createConnectionMutation.isPending || updateConnectionMutation.isPending} />
+      </div>
+    </div>;
 };
-
 export default Guacamole;

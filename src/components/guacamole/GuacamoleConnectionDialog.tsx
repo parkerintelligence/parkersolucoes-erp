@@ -37,16 +37,18 @@ export const GuacamoleConnectionDialog = ({
 
   useEffect(() => {
     if (connection) {
+      // Mapear corretamente os dados da conexão para edição
+      const params = connection.parameters || {};
       setFormData({
         name: connection.name || '',
         protocol: connection.protocol || 'rdp',
-        hostname: connection.parameters?.hostname || '',
-        port: connection.parameters?.port || '',
-        username: connection.parameters?.username || '',
-        password: connection.parameters?.password || '',
-        domain: connection.parameters?.domain || '',
-        security: connection.parameters?.security || '',
-        ignoreServerCert: connection.parameters?.['ignore-server-cert'] === 'true'
+        hostname: params.hostname || '',
+        port: params.port || '',
+        username: params.username || '',
+        password: params.password || '',
+        domain: params.domain || '',
+        security: params.security || '',
+        ignoreServerCert: params['ignore-server-cert'] === 'true' || params['ignore-server-cert'] === true
       });
     } else {
       // Reset form for new connection
@@ -107,84 +109,90 @@ export const GuacamoleConnectionDialog = ({
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="name">Nome da Conexão *</Label>
+            <Label htmlFor="name" className="text-white">Nome da Conexão *</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Nome descritivo para a conexão"
+              className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
             />
           </div>
 
           <div>
-            <Label htmlFor="protocol">Protocolo *</Label>
+            <Label htmlFor="protocol" className="text-white">Protocolo *</Label>
             <Select
               value={formData.protocol}
               onValueChange={(value) => setFormData({ ...formData, protocol: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="rdp">RDP (Remote Desktop)</SelectItem>
-                <SelectItem value="vnc">VNC (Virtual Network Computing)</SelectItem>
-                <SelectItem value="ssh">SSH (Secure Shell)</SelectItem>
-                <SelectItem value="telnet">Telnet</SelectItem>
+              <SelectContent className="bg-slate-700 border-slate-600">
+                <SelectItem value="rdp" className="text-white hover:bg-slate-600">RDP (Remote Desktop)</SelectItem>
+                <SelectItem value="vnc" className="text-white hover:bg-slate-600">VNC (Virtual Network Computing)</SelectItem>
+                <SelectItem value="ssh" className="text-white hover:bg-slate-600">SSH (Secure Shell)</SelectItem>
+                <SelectItem value="telnet" className="text-white hover:bg-slate-600">Telnet</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="hostname">Hostname/IP *</Label>
+              <Label htmlFor="hostname" className="text-white">Hostname/IP *</Label>
               <Input
                 id="hostname"
                 value={formData.hostname}
                 onChange={(e) => setFormData({ ...formData, hostname: e.target.value })}
                 placeholder="192.168.1.100"
+                className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
               />
             </div>
             <div>
-              <Label htmlFor="port">Porta</Label>
+              <Label htmlFor="port" className="text-white">Porta</Label>
               <Input
                 id="port"
                 value={formData.port}
                 onChange={(e) => setFormData({ ...formData, port: e.target.value })}
                 placeholder={getPortPlaceholder()}
+                className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="username">Usuário</Label>
+              <Label htmlFor="username" className="text-white">Usuário</Label>
               <Input
                 id="username"
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 placeholder="usuario"
+                className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
               />
             </div>
             <div>
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password" className="text-white">Senha</Label>
               <Input
                 id="password"
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="••••••••"
+                className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
               />
             </div>
           </div>
 
           {formData.protocol === 'rdp' && (
             <div>
-              <Label htmlFor="domain">Domínio</Label>
+              <Label htmlFor="domain" className="text-white">Domínio</Label>
               <Input
                 id="domain"
                 value={formData.domain}
                 onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
                 placeholder="DOMAIN"
+                className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
               />
             </div>
           )}
@@ -193,12 +201,14 @@ export const GuacamoleConnectionDialog = ({
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
+              className="border-slate-600 text-white hover:bg-slate-700"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleSave}
               disabled={!formData.name || !formData.hostname || isSaving}
+              className="bg-green-600 hover:bg-green-700"
             >
               {isSaving ? 'Salvando...' : connection ? 'Atualizar' : 'Criar'}
             </Button>

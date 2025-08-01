@@ -16,15 +16,13 @@ import {
   Monitor,
   Users,
   ExternalLink,
-  Webhook,
+  
   Search,
   Filter,
   Clock
 } from 'lucide-react';
 import { useZabbixAPI } from '@/hooks/useZabbixAPI';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
-import { ZabbixWebhookManagerSimple } from '@/components/ZabbixWebhookManagerSimple';
-import { ZabbixIncidentTester } from '@/components/ZabbixIncidentTester';
 import { GLPITicketConfirmDialog } from '@/components/GLPITicketConfirmDialog';
 import ZabbixAnalysisDialog from '@/components/ZabbixAnalysisDialog';
 import { toast } from '@/hooks/use-toast';
@@ -161,12 +159,12 @@ const Zabbix = () => {
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case '5': return 'bg-red-600 text-white'; // Disaster
-      case '4': return 'bg-red-500 text-white'; // High
-      case '3': return 'bg-orange-500 text-white'; // Average
-      case '2': return 'bg-yellow-500 text-black'; // Warning
-      case '1': return 'bg-blue-500 text-white'; // Information
-      default: return 'bg-gray-500 text-white';
+      case '5': return 'bg-red-900/20 border-red-600/30 text-red-400'; // Disaster
+      case '4': return 'bg-red-800/20 border-red-500/30 text-red-300'; // High
+      case '3': return 'bg-orange-900/20 border-orange-600/30 text-orange-400'; // Average
+      case '2': return 'bg-yellow-900/20 border-yellow-600/30 text-yellow-400'; // Warning
+      case '1': return 'bg-blue-900/20 border-blue-600/30 text-blue-400'; // Information
+      default: return 'bg-slate-800 border-slate-700 text-slate-300';
     }
   };
 
@@ -223,7 +221,7 @@ const Zabbix = () => {
     
     // Verificar se o host está habilitado primeiro
     if (host.status !== '0') {
-      return { status: 'disabled', label: 'Desabilitado', color: 'bg-gray-600 text-white' };
+      return { status: 'disabled', label: 'Desabilitado', color: 'bg-slate-800 border-slate-700 text-slate-300' };
     }
     
     // Verificar disponibilidade através das interfaces
@@ -232,25 +230,25 @@ const Zabbix = () => {
       console.log('Main interface:', mainInterface);
       
       if (mainInterface.available === '1') {
-        return { status: 'available', label: 'Disponível', color: 'bg-green-600 text-white' };
+        return { status: 'available', label: 'Disponível', color: 'bg-green-900/20 border-green-600/30 text-green-400' };
       } else if (mainInterface.available === '2') {
-        return { status: 'unavailable', label: 'Indisponível', color: 'bg-red-600 text-white' };
+        return { status: 'unavailable', label: 'Indisponível', color: 'bg-red-900/20 border-red-600/30 text-red-400' };
       } else if (mainInterface.available === '0') {
-        return { status: 'unknown', label: 'Desconhecido', color: 'bg-yellow-600 text-white' };
+        return { status: 'unknown', label: 'Desconhecido', color: 'bg-yellow-900/20 border-yellow-600/30 text-yellow-400' };
       }
     }
     
     // Fallback para o campo available do host (se disponível)
     if (host.available === '1') {
-      return { status: 'available', label: 'Disponível', color: 'bg-green-600 text-white' };
+      return { status: 'available', label: 'Disponível', color: 'bg-green-900/20 border-green-600/30 text-green-400' };
     } else if (host.available === '2') {
-      return { status: 'unavailable', label: 'Indisponível', color: 'bg-red-600 text-white' };
+      return { status: 'unavailable', label: 'Indisponível', color: 'bg-red-900/20 border-red-600/30 text-red-400' };
     } else if (host.available === '0') {
-      return { status: 'unknown', label: 'Desconhecido', color: 'bg-yellow-600 text-white' };
+      return { status: 'unknown', label: 'Desconhecido', color: 'bg-yellow-900/20 border-yellow-600/30 text-yellow-400' };
     }
     
     // Default para unknown se não conseguir determinar
-    return { status: 'unknown', label: 'Desconhecido', color: 'bg-gray-600 text-white' };
+    return { status: 'unknown', label: 'Desconhecido', color: 'bg-slate-800 border-slate-700 text-slate-300' };
   };
 
   // Agrupar hosts por grupo
@@ -322,12 +320,12 @@ const Zabbix = () => {
   const renderHostsTable = (hostsToShow: typeof hosts) => (
     <Table>
       <TableHeader>
-        <TableRow className="border-gray-700 hover:bg-gray-800/50">
-          <TableHead className="text-gray-300">Nome do Host</TableHead>
-          <TableHead className="text-gray-300">IP/DNS</TableHead>
-          <TableHead className="text-gray-300">Porta</TableHead>
-          <TableHead className="text-gray-300">Status</TableHead>
-          <TableHead className="text-gray-300">Disponibilidade</TableHead>
+        <TableRow className="border-slate-700 hover:bg-slate-800/50">
+          <TableHead className="text-slate-300">Nome do Host</TableHead>
+          <TableHead className="text-slate-300">IP/DNS</TableHead>
+          <TableHead className="text-slate-300">Porta</TableHead>
+          <TableHead className="text-slate-300">Status</TableHead>
+          <TableHead className="text-slate-300">Disponibilidade</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -335,16 +333,16 @@ const Zabbix = () => {
           const availability = getHostAvailability(host);
           const mainInterface = host.interfaces?.find(iface => iface.main === '1') || host.interfaces?.[0];
           return (
-            <TableRow key={host.hostid} className="h-8 border-gray-700 hover:bg-gray-800/30">
-              <TableCell className="font-medium py-2 text-gray-200">{host.name}</TableCell>
-              <TableCell className="py-2 text-gray-300">
+            <TableRow key={host.hostid} className="h-8 border-slate-700 hover:bg-slate-800/30">
+              <TableCell className="font-medium py-2 text-slate-200">{host.name}</TableCell>
+              <TableCell className="py-2 text-slate-300">
                 {mainInterface?.ip || mainInterface?.dns || 'N/A'}
               </TableCell>
-              <TableCell className="py-2 text-gray-300">
+              <TableCell className="py-2 text-slate-300">
                 {mainInterface?.port || 'N/A'}
               </TableCell>
               <TableCell className="py-2">
-                <Badge className={host.status === '0' ? 'bg-green-600 text-white' : 'bg-gray-600 text-white'}>
+                <Badge className={host.status === '0' ? 'bg-green-900/20 border-green-600/30 text-green-400' : 'bg-slate-800 border-slate-700 text-slate-300'}>
                   {host.status === '0' ? 'Ativo' : 'Inativo'}
                 </Badge>
               </TableCell>
@@ -362,7 +360,7 @@ const Zabbix = () => {
 
   if (!isConfigured) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white p-6">
+      <div className="min-h-screen bg-slate-900 text-white p-6">
         <Card className="border-yellow-600 bg-yellow-900/20">
           <CardContent className="p-6 text-center">
             <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-400" />
@@ -380,7 +378,7 @@ const Zabbix = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-slate-900 text-white">
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -389,7 +387,7 @@ const Zabbix = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">Gerenciamento Zabbix</h1>
-              <p className="text-gray-400">
+              <p className="text-slate-400">
                 Monitore e gerencie seus hosts e problemas do Zabbix
               </p>
             </div>
@@ -423,24 +421,24 @@ const Zabbix = () => {
         )}
 
         {/* Filtros Compactos */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-4">
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2 min-w-48">
-                <Search className="h-4 w-4 text-gray-400" />
+                <Search className="h-4 w-4 text-slate-400" />
                 <Input
                   placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 h-8 text-sm"
+                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 h-8 text-sm"
                 />
               </div>
               
               <Select value={severityFilter} onValueChange={setSeverityFilter}>
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white h-8 w-40">
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white h-8 w-40">
                   <SelectValue placeholder="Severidade" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700">
+                <SelectContent className="bg-slate-800 border-slate-700">
                   <SelectItem value="all" className="text-white">Todas</SelectItem>
                   <SelectItem value="5" className="text-white">Desastre</SelectItem>
                   <SelectItem value="4" className="text-white">Alta</SelectItem>
@@ -450,7 +448,7 @@ const Zabbix = () => {
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="flex items-center gap-2 text-sm text-slate-400">
                 <Filter className="h-4 w-4" />
                 <span>{filteredProblems.length} problema{filteredProblems.length !== 1 ? 's' : ''} | {hosts.length} host{hosts.length !== 1 ? 's' : ''}</span>
               </div>
@@ -472,23 +470,19 @@ const Zabbix = () => {
         </Card>
 
         <Tabs defaultValue="problems" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
-            <TabsTrigger value="problems" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Problemas</TabsTrigger>
-            <TabsTrigger value="hosts" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Hosts</TabsTrigger>
-            <TabsTrigger value="webhooks" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">
-              <Webhook className="mr-2 h-4 w-4" />
-              Webhooks
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 bg-slate-800 border-slate-700">
+            <TabsTrigger value="problems" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Problemas</TabsTrigger>
+            <TabsTrigger value="hosts" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Hosts</TabsTrigger>
           </TabsList>
 
           <TabsContent value="problems" className="mt-6">
-            <Card className="bg-gray-800 border-gray-700">
+            <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-white">
                   <AlertTriangle className="h-5 w-5" />
                   Problemas Ativos
                 </CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-slate-400">
                   Lista de problemas atualmente ativos no Zabbix
                 </CardDescription>
               </CardHeader>
@@ -508,42 +502,42 @@ const Zabbix = () => {
                   <div className="overflow-x-auto">
                     <Table>
                        <TableHeader>
-                         <TableRow className="border-gray-700 hover:bg-gray-800/50">
+                         <TableRow className="border-slate-700 hover:bg-slate-800/50">
                            <TableHead 
-                             className="text-gray-300 text-xs w-[160px] cursor-pointer hover:text-white"
+                             className="text-slate-300 text-xs w-[160px] cursor-pointer hover:text-white"
                              onClick={() => handleSort('clock')}
                            >
                              <Clock className="inline-block h-3 w-3 mr-1" />
                              Hora {sortField === 'clock' && (sortDirection === 'asc' ? '↑' : '↓')}
                            </TableHead>
                            <TableHead 
-                             className="text-gray-300 text-xs w-[80px] cursor-pointer hover:text-white"
+                             className="text-slate-300 text-xs w-[80px] cursor-pointer hover:text-white"
                              onClick={() => handleSort('severity')}
                            >
                              Severidade {sortField === 'severity' && (sortDirection === 'asc' ? '↑' : '↓')}
                            </TableHead>
-                           <TableHead className="text-gray-300 text-xs w-[60px]">Status</TableHead>
+                           <TableHead className="text-slate-300 text-xs w-[60px]">Status</TableHead>
                            <TableHead 
-                             className="text-gray-300 text-xs cursor-pointer hover:text-white"
+                             className="text-slate-300 text-xs cursor-pointer hover:text-white"
                              onClick={() => handleSort('name')}
                            >
                              Informação {sortField === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
                            </TableHead>
                            <TableHead 
-                             className="text-gray-300 text-xs w-[200px] cursor-pointer hover:text-white"
+                             className="text-slate-300 text-xs w-[200px] cursor-pointer hover:text-white"
                              onClick={() => handleSort('host')}
                            >
                              Host {sortField === 'host' && (sortDirection === 'asc' ? '↑' : '↓')}
                            </TableHead>
-                           <TableHead className="text-gray-300 text-xs w-[80px]">Incidente</TableHead>
-                           <TableHead className="text-gray-300 text-xs w-[100px]">Duração</TableHead>
-                           <TableHead className="text-gray-300 text-xs w-[80px]">Ações</TableHead>
+                           <TableHead className="text-slate-300 text-xs w-[80px]">Incidente</TableHead>
+                           <TableHead className="text-slate-300 text-xs w-[100px]">Duração</TableHead>
+                           <TableHead className="text-slate-300 text-xs w-[80px]">Ações</TableHead>
                          </TableRow>
                        </TableHeader>
                        <TableBody>
                          {filteredProblems.map((problem) => (
-                           <TableRow key={problem.eventid} className="border-gray-700 hover:bg-gray-800/30 text-xs">
-                             <TableCell className="py-1 text-gray-300 font-mono text-xs">
+                           <TableRow key={problem.eventid} className="border-slate-700 hover:bg-slate-800/30 text-xs">
+                             <TableCell className="py-1 text-slate-300 font-mono text-xs">
                                {formatDateTime(problem.clock)}
                              </TableCell>
                              <TableCell className="py-1">
@@ -553,23 +547,23 @@ const Zabbix = () => {
                              </TableCell>
                              <TableCell className="py-1">
                                {problem.acknowledged === '1' ? (
-                                 <Badge className="bg-gray-600 text-white text-xs px-1 py-0">OK</Badge>
+                                 <Badge className="bg-slate-600 border-slate-500 text-slate-200 text-xs px-1 py-0">OK</Badge>
                                ) : (
-                                 <Badge className="bg-red-600 text-white text-xs px-1 py-0">PROBLEMA</Badge>
+                                 <Badge className="bg-red-900/20 border-red-600/30 text-red-400 text-xs px-1 py-0">PROBLEMA</Badge>
                                )}
                              </TableCell>
-                             <TableCell className="py-1 text-gray-200 text-xs max-w-[300px] truncate">
+                             <TableCell className="py-1 text-slate-200 text-xs max-w-[300px] truncate">
                                {problem.name}
                              </TableCell>
-                             <TableCell className="py-1 text-gray-300 text-xs">
+                             <TableCell className="py-1 text-slate-300 text-xs">
                                {problem.hosts?.[0]?.name || 'Host Desconhecido'}
                              </TableCell>
                              <TableCell className="py-1">
-                               <Badge className="bg-red-600 text-white text-xs px-1 py-0">
+                               <Badge className="bg-red-900/20 border-red-600/30 text-red-400 text-xs px-1 py-0">
                                  INCIDENTE
                                </Badge>
                              </TableCell>
-                             <TableCell className="py-1 text-gray-300 text-xs font-mono">
+                             <TableCell className="py-1 text-slate-300 text-xs font-mono">
                                {formatDuration(problem.clock)}
                              </TableCell>
                              <TableCell className="py-1">
@@ -594,13 +588,13 @@ const Zabbix = () => {
           </TabsContent>
 
           <TabsContent value="hosts" className="mt-6">
-            <Card className="bg-gray-800 border-gray-700">
+            <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-white">
                   <Server className="h-5 w-5" />
                   Hosts Monitorados
                 </CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-slate-400">
                   Lista de todos os hosts configurados no Zabbix
                 </CardDescription>
               </CardHeader>
@@ -612,15 +606,15 @@ const Zabbix = () => {
                   </div>
                 ) : (
                   <Tabs defaultValue={Object.keys(groupedHosts)[0] || 'all'} className="w-full">
-                    <TabsList className="grid w-full bg-gray-700 border-gray-600 mb-6" style={{gridTemplateColumns: `repeat(${Object.keys(groupedHosts).length}, minmax(0, 1fr))`}}>
+                    <TabsList className="grid w-full bg-slate-700 border-slate-600 mb-6" style={{gridTemplateColumns: `repeat(${Object.keys(groupedHosts).length}, minmax(0, 1fr))`}}>
                       {Object.keys(groupedHosts).map((groupName) => (
                         <TabsTrigger 
                           key={groupName} 
                           value={groupName}
-                          className="data-[state=active]:bg-gray-600 data-[state=active]:text-white text-sm px-2"
+                          className="data-[state=active]:bg-slate-600 data-[state=active]:text-white text-sm px-2"
                         >
                           {groupName}
-                          <Badge variant="outline" className="ml-2 border-gray-500 text-gray-300">
+                          <Badge variant="outline" className="ml-2 border-slate-500 text-slate-300">
                             {groupedHosts[groupName].length}
                           </Badge>
                         </TabsTrigger>
@@ -630,28 +624,28 @@ const Zabbix = () => {
                     {Object.entries(groupedHosts).map(([groupName, groupHosts]) => (
                       <TabsContent key={groupName} value={groupName}>
                         <Tabs defaultValue="available" className="w-full">
-                          <TabsList className="grid w-full grid-cols-4 bg-gray-700 border-gray-600 mb-4">
-                            <TabsTrigger value="available" className="data-[state=active]:bg-gray-600 data-[state=active]:text-white">
+                          <TabsList className="grid w-full grid-cols-4 bg-slate-700 border-slate-600 mb-4">
+                            <TabsTrigger value="available" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
                               Disponível
-                              <Badge className="ml-2 bg-green-900/20 text-green-400">
+                              <Badge className="ml-2 bg-green-900/20 border-green-600/30 text-green-400">
                                 {groupHosts.filter(h => getHostAvailability(h).status === 'available').length}
                               </Badge>
                             </TabsTrigger>
-                            <TabsTrigger value="unavailable" className="data-[state=active]:bg-gray-600 data-[state=active]:text-white">
+                            <TabsTrigger value="unavailable" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
                               Indisponível
-                              <Badge className="ml-2 bg-red-900/20 text-red-400">
+                              <Badge className="ml-2 bg-red-900/20 border-red-600/30 text-red-400">
                                 {groupHosts.filter(h => getHostAvailability(h).status === 'unavailable').length}
                               </Badge>
                             </TabsTrigger>
-                            <TabsTrigger value="unknown" className="data-[state=active]:bg-gray-600 data-[state=active]:text-white">
+                            <TabsTrigger value="unknown" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
                               Desconhecido
-                              <Badge className="ml-2 bg-yellow-900/20 text-yellow-400">
+                              <Badge className="ml-2 bg-yellow-900/20 border-yellow-600/30 text-yellow-400">
                                 {groupHosts.filter(h => getHostAvailability(h).status === 'unknown').length}
                               </Badge>
                             </TabsTrigger>
-                            <TabsTrigger value="disabled" className="data-[state=active]:bg-gray-600 data-[state=active]:text-white">
+                            <TabsTrigger value="disabled" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
                               Desabilitado
-                              <Badge className="ml-2 bg-gray-900/20 text-gray-400">
+                              <Badge className="ml-2 bg-slate-900/20 border-slate-600/30 text-slate-400">
                                 {groupHosts.filter(h => getHostAvailability(h).status === 'disabled').length}
                               </Badge>
                             </TabsTrigger>
@@ -671,10 +665,6 @@ const Zabbix = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="webhooks" className="mt-6 space-y-6">
-            <ZabbixIncidentTester />
-            <ZabbixWebhookManagerSimple />
-          </TabsContent>
         </Tabs>
 
         <GLPITicketConfirmDialog

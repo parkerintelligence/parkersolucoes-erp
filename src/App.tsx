@@ -7,6 +7,7 @@ import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Admin from '@/pages/Admin';
 import GLPI from '@/pages/GLPI';
+import Guacamole from '@/pages/Guacamole';
 import Backups from '@/pages/Backups';
 import Passwords from '@/pages/Passwords';
 import Annotations from '@/pages/Annotations';
@@ -36,8 +37,16 @@ function App() {
         <BrowserRouter>
           <div className="min-h-screen bg-background">
             <Routes>
+              <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/" element={<Navigate to="/dashboard" />} />
+              <Route
+                path="/links"
+                element={
+                  <Layout>
+                    <Links />
+                  </Layout>
+                }
+              />
               <Route
                 path="/dashboard"
                 element={
@@ -45,7 +54,7 @@ function App() {
                     <Dashboard />
                   </Layout>
                 }
-              />
+               />
               <Route
                 path="/admin"
                 element={
@@ -54,16 +63,24 @@ function App() {
                   </Layout>
                 }
               />
-              <Route
-                path="/glpi"
-                element={
-                  <Layout>
-                    <GLPI />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/backups"
+               <Route
+                 path="/glpi"
+                 element={
+                   <Layout>
+                     <GLPI />
+                   </Layout>
+                 }
+               />
+               <Route
+                 path="/conexao-remota"
+                 element={
+                   <Layout>
+                     <Guacamole />
+                   </Layout>
+                 }
+               />
+               <Route
+                 path="/backups"
                 element={
                   <Layout>
                     <Backups />
@@ -85,15 +102,7 @@ function App() {
                     <Annotations />
                   </Layout>
                 }
-              />
-              <Route
-                path="/links"
-                element={
-                  <Layout>
-                    <Links />
-                  </Layout>
-                }
-              />
+               />
               <Route
                 path="/whatsapp"
                 element={
