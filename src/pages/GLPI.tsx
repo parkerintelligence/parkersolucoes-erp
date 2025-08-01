@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,30 +10,50 @@ import { GLPITicketsGrid } from '@/components/GLPITicketsGrid';
 import { GLPIInventory } from '@/components/GLPIInventory';
 import GLPIScheduledTicketsView from '@/components/GLPIScheduledTicketsView';
 import { GLPIFiltersPanel } from '@/components/GLPIFiltersPanel';
-import { useGLPI } from '@/hooks/useGLPI';
+import { GLPIConnectionStatus } from '@/components/GLPIConnectionStatus';
+import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { toast } from '@/hooks/use-toast';
 
 const GLPI = () => {
   const {
-    glpiIntegration
-  } = useGLPI();
+    glpiIntegration,
+    hasValidSession,
+    isEnabled,
+    tickets,
+    initSession
+  } = useGLPIExpanded();
   const [filters, setFilters] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const isConfigured = !!glpiIntegration;
 
+  // Inicializar sessão automaticamente quando a página carregar
+  useEffect(() => {
+    if (isConfigured && !hasValidSession && !initSession.isPending) {
+      console.log('🔄 Auto-inicializando sessão GLPI...');
+      initSession.mutate();
+    }
+  }, [isConfigured, hasValidSession, initSession]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      // Simulate refresh - in real implementation, this would refresh data
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Primeiro verificar se há sessão válida
+      if (!hasValidSession) {
+        await initSession.mutateAsync();
+      }
+      
+      // Invalida as queries para forçar reload
+      tickets.refetch();
+      
       toast({
         title: "Dados atualizados",
         description: "Informações do GLPI foram atualizadas com sucesso."
       });
     } catch (error) {
+      console.error('Erro ao atualizar dados GLPI:', error);
       toast({
         title: "Erro ao atualizar",
-        description: "Não foi possível atualizar os dados do GLPI.",
+        description: error instanceof Error ? error.message : "Não foi possível atualizar os dados do GLPI.",
         variant: "destructive"
       });
     } finally {
@@ -76,13 +96,9 @@ const GLPI = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-lg">
-              <CheckCircle className="h-5 w-5 text-green-400" />
-              <span className="text-sm text-green-400">Conectado</span>
-            </div>
-          </div>
         </div>
+
+        <GLPIConnectionStatus />
 
         <Tabs defaultValue="tickets" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
@@ -99,7 +115,12 @@ const GLPI = () => {
 
           <TabsContent value="tickets" className="mt-6">
             <div className="space-y-4">
-              <GLPIFiltersPanel onFiltersChange={setFilters} onRefresh={handleRefresh} isLoading={refreshing} totalTickets={0} />
+              <GLPIFiltersPanel 
+                onFiltersChange={setFilters} 
+                onRefresh={handleRefresh} 
+                isLoading={refreshing || tickets.isLoading} 
+                totalTickets={tickets.data?.length || 0} 
+              />
               <GLPITicketsGrid filters={filters} />
             </div>
           </TabsContent>

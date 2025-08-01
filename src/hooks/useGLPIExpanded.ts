@@ -307,7 +307,8 @@ export const useGLPIExpanded = () => {
       throw new Error('Sessão não inicializada. Clique em "Iniciar Sessão" primeiro.');
     }
 
-    const baseUrl = glpiIntegration.base_url.replace(/\/$/, '');
+    // Corrigir a URL base removendo /apirest.php se existir
+    const baseUrl = glpiIntegration.base_url.replace(/\/$/, '').replace(/\/apirest\.php$/, '');
     const url = `${baseUrl}/apirest.php/${endpoint}`;
     
     console.log(`🔍 Fazendo requisição GLPI: ${endpoint}`, {
@@ -416,12 +417,13 @@ export const useGLPIExpanded = () => {
       throw new Error('App Token não configurado. Configure o App Token no GLPI primeiro.');
     }
 
-    if (!glpiIntegration.password) {
-      throw new Error('Credenciais não configuradas. Configure um User Token ou usuário/senha.');
+    if (!glpiIntegration.password && (!glpiIntegration.username || !glpiIntegration.password)) {
+      throw new Error('Credenciais não configuradas. Configure um User Token (campo senha) ou usuário/senha.');
     }
 
     try {
-      const baseUrl = glpiIntegration.base_url.replace(/\/$/, '');
+      // Corrigir a URL base removendo /apirest.php se existir
+      const baseUrl = glpiIntegration.base_url.replace(/\/$/, '').replace(/\/apirest\.php$/, '');
       console.log('🚀 Inicializando sessão GLPI:', {
         baseUrl,
         hasAppToken: !!glpiIntegration.api_token,

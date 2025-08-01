@@ -28,6 +28,9 @@ export const GLPIConnectionStatus = () => {
     if (!hasValidSession) return 'Sessão não iniciada';
     if (tickets.isLoading) return 'Carregando dados...';
     if (tickets.error) return 'Erro na conexão';
+    if (tickets.data && Array.isArray(tickets.data)) {
+      return `Conectado (${tickets.data.length} chamados)`;
+    }
     return 'Conectado';
   };
 
