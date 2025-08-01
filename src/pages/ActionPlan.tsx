@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Plus, Settings, Trash2, MoreHorizontal } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,12 +8,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ActionBoard } from "@/components/ActionBoard";
 import { BoardDialog } from "@/components/BoardDialog";
 import { useActionPlan } from "@/hooks/useActionPlan";
-
 export default function ActionPlan() {
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
   const [isEditBoardOpen, setIsEditBoardOpen] = useState(false);
   const [editingBoard, setEditingBoard] = useState<any>(null);
-
   const {
     boards,
     columns,
@@ -25,14 +22,12 @@ export default function ActionPlan() {
     setSelectedBoard,
     createBoard,
     updateBoard,
-    deleteBoard,
+    deleteBoard
   } = useActionPlan();
-
   const handleCreateBoard = async (data: any) => {
     await createBoard(data);
     setIsCreateBoardOpen(false);
   };
-
   const handleUpdateBoard = async (data: any) => {
     if (editingBoard) {
       await updateBoard(editingBoard.id, data);
@@ -40,12 +35,10 @@ export default function ActionPlan() {
       setEditingBoard(null);
     }
   };
-
   const handleEditBoard = (board: any) => {
     setEditingBoard(board);
     setIsEditBoardOpen(true);
   };
-
   const handleDeleteBoard = async (boardId: string) => {
     if (window.confirm("Tem certeza que deseja excluir este quadro?")) {
       await deleteBoard(boardId);
@@ -57,22 +50,16 @@ export default function ActionPlan() {
       }
     }
   };
-
   const selectedBoardData = boards.find(b => b.id === selectedBoard);
-
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-96">
+    return <div className="flex items-center justify-center h-96">
         <div className="text-muted-foreground">Carregando...</div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-slate-900">
+  return <div className="min-h-screen bg-slate-900">
       {/* Header */}
       <div className="border-b border-slate-700 bg-slate-800/95 backdrop-blur">
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-6 py-4 bg-slate-900">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white">Plano de Ação</h1>
@@ -94,8 +81,7 @@ export default function ActionPlan() {
 
       {/* Content Area */}
       <div className="container mx-auto px-6 py-6">
-        {boards.length === 0 ? (
-          <Card className="p-12 text-center shadow-lg border-dashed bg-slate-800 border-slate-600">
+        {boards.length === 0 ? <Card className="p-12 text-center shadow-lg border-dashed bg-slate-800 border-slate-600">
             <CardContent>
               <div className="mx-auto w-24 h-24 bg-slate-700 rounded-full flex items-center justify-center mb-4">
                 <Plus className="h-8 w-8 text-slate-300" />
@@ -114,19 +100,13 @@ export default function ActionPlan() {
                 <BoardDialog onSave={handleCreateBoard} />
               </Dialog>
             </CardContent>
-          </Card>
-        ) : (
-          <Tabs value={selectedBoard || ""} onValueChange={setSelectedBoard} className="w-full">
+          </Card> : <Tabs value={selectedBoard || ""} onValueChange={setSelectedBoard} className="w-full">
             <div className="flex items-center justify-between mb-6">
               <TabsList className="h-12 p-1 bg-slate-800/60 backdrop-blur border border-slate-600 shadow-sm">
-                {boards.map((board) => {
-                  const columnsCount = columns.filter(col => col.board_id === board.id).length;
-                  return (
-                    <div key={board.id} className="flex items-center group">
-                      <TabsTrigger 
-                        value={board.id}
-                        className="relative px-6 py-2 data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm data-[state=active]:text-white text-slate-300 hover:text-white"
-                      >
+                {boards.map(board => {
+              const columnsCount = columns.filter(col => col.board_id === board.id).length;
+              return <div key={board.id} className="flex items-center group">
+                      <TabsTrigger value={board.id} className="relative px-6 py-2 data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm data-[state=active]:text-white text-slate-300 hover:text-white">
                         <div className="flex flex-col items-center gap-1">
                           <span className="font-medium">{board.name}</span>
                           <span className="text-xs opacity-70">
@@ -135,14 +115,9 @@ export default function ActionPlan() {
                         </div>
                       </TabsTrigger>
                       
-                      {selectedBoard === board.id && (
-                        <DropdownMenu>
+                      {selectedBoard === board.id && <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="ml-2 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-white hover:bg-slate-600"
-                            >
+                            <Button variant="ghost" size="sm" className="ml-2 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-white hover:bg-slate-600">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -151,27 +126,18 @@ export default function ActionPlan() {
                               <Settings className="h-4 w-4 mr-2" />
                               Editar Quadro
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleDeleteBoard(board.id)}
-                              className="text-red-400 hover:bg-slate-700 focus:text-red-400"
-                            >
+                            <DropdownMenuItem onClick={() => handleDeleteBoard(board.id)} className="text-red-400 hover:bg-slate-700 focus:text-red-400">
                               <Trash2 className="h-4 w-4 mr-2" />
                               Excluir Quadro
                             </DropdownMenuItem>
                           </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                    </div>
-                  );
-                })}
+                        </DropdownMenu>}
+                    </div>;
+            })}
                 
                 <Dialog open={isCreateBoardOpen} onOpenChange={setIsCreateBoardOpen}>
                   <DialogTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="ml-2 h-10 px-4 border-dashed border-2 border-slate-600/50 hover:border-blue-500/50 text-slate-300 hover:text-white hover:bg-slate-700"
-                    >
+                    <Button variant="ghost" size="sm" className="ml-2 h-10 px-4 border-dashed border-2 border-slate-600/50 hover:border-blue-500/50 text-slate-300 hover:text-white hover:bg-slate-700">
                       <Plus className="h-4 w-4 mr-2" />
                       Novo
                     </Button>
@@ -181,27 +147,15 @@ export default function ActionPlan() {
               </TabsList>
             </div>
 
-            {boards.map((board) => (
-              <TabsContent key={board.id} value={board.id} className="mt-0">
-                <ActionBoard 
-                  boardId={board.id}
-                  columns={columns}
-                  cards={cards}
-                  cardItems={cardItems}
-                />
-              </TabsContent>
-            ))}
-          </Tabs>
-        )}
+            {boards.map(board => <TabsContent key={board.id} value={board.id} className="mt-0">
+                <ActionBoard boardId={board.id} columns={columns} cards={cards} cardItems={cardItems} />
+              </TabsContent>)}
+          </Tabs>}
       </div>
 
       {/* Edit Board Dialog */}
       <Dialog open={isEditBoardOpen} onOpenChange={setIsEditBoardOpen}>
-        <BoardDialog 
-          board={editingBoard} 
-          onSave={handleUpdateBoard} 
-        />
+        <BoardDialog board={editingBoard} onSave={handleUpdateBoard} />
       </Dialog>
-    </div>
-  );
+    </div>;
 }
