@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,12 +23,13 @@ import {
 } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
+import { UniFiSiteSelector } from '@/components/UniFiSiteSelector';
 
 const UniFi = () => {
   const { data: integrations } = useIntegrations();
   const unifiIntegration = integrations?.find(int => int.type === 'unifi' && int.is_active);
   
-  const [selectedSite, setSelectedSite] = useState('default');
+  const [selectedSite, setSelectedSite] = useState<string>('');
   
   const { 
     useUniFiSites,
@@ -44,18 +45,29 @@ const UniFi = () => {
 
   // Fetch data if integration is available
   const { data: sites, isLoading: sitesLoading } = useUniFiSites(unifiIntegration?.id || '');
-  const { data: devices, isLoading: devicesLoading } = useUniFiDevices(unifiIntegration?.id || '', selectedSite);
-  const { data: clients, isLoading: clientsLoading } = useUniFiClients(unifiIntegration?.id || '', selectedSite);
-  const { data: networks, isLoading: networksLoading } = useUniFiNetworks(unifiIntegration?.id || '', selectedSite);
-  const { data: alarms, isLoading: alarmsLoading } = useUniFiAlarms(unifiIntegration?.id || '', selectedSite);
-  const { data: stats, isLoading: statsLoading } = useUniFiStats(unifiIntegration?.id || '', selectedSite);
+  const { data: devices, isLoading: devicesLoading } = useUniFiDevices(unifiIntegration?.id || '', selectedSite || 'default');
+  const { data: clients, isLoading: clientsLoading } = useUniFiClients(unifiIntegration?.id || '', selectedSite || 'default');
+  const { data: networks, isLoading: networksLoading } = useUniFiNetworks(unifiIntegration?.id || '', selectedSite || 'default');
+  const { data: alarms, isLoading: alarmsLoading } = useUniFiAlarms(unifiIntegration?.id || '', selectedSite || 'default');
+  const { data: stats, isLoading: statsLoading } = useUniFiStats(unifiIntegration?.id || '', selectedSite || 'default');
+
+  // Auto-select first site when sites are loaded
+  useEffect(() => {
+    if (sites?.data && sites.data.length > 0 && !selectedSite) {
+      setSelectedSite(sites.data[0].id);
+    }
+  }, [sites?.data, selectedSite]);
 
   const isLoadingData = sitesLoading || devicesLoading || clientsLoading || networksLoading || alarmsLoading || statsLoading;
 
   const handleRefresh = () => {
     if (unifiIntegration) {
-      refreshData(unifiIntegration.id, selectedSite);
+      refreshData(unifiIntegration.id, selectedSite || 'default');
     }
+  };
+
+  const handleSiteChange = (siteId: string) => {
+    setSelectedSite(siteId);
   };
 
   if (!unifiIntegration) {
@@ -113,6 +125,14 @@ const UniFi = () => {
             </Button>
           </div>
         </div>
+
+        {/* Site Selector */}
+        <UniFiSiteSelector
+          sites={sites?.data || []}
+          selectedSiteId={selectedSite}
+          onSiteChange={handleSiteChange}
+          loading={sitesLoading}
+        />
 
         {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -207,7 +227,7 @@ const UniFi = () => {
                           variant="outline"
                           onClick={() => restartDevice.mutate({
                             integrationId: unifiIntegration.id,
-                            siteId: selectedSite,
+                            siteId: selectedSite || 'default',
                             deviceId: device.mac
                           })}
                           className="border-slate-600 text-white hover:bg-slate-600"
@@ -254,7 +274,7 @@ const UniFi = () => {
                           variant="outline"
                           onClick={() => toggleClientBlock.mutate({
                             integrationId: unifiIntegration.id,
-                            siteId: selectedSite,
+                            siteId: selectedSite || 'default',
                             clientId: client.mac,
                             block: true
                           })}
