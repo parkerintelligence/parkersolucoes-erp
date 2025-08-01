@@ -76,46 +76,33 @@ serve(async (req) => {
       throw new Error('Wazuh integration is not properly configured');
     }
 
-    console.log(`Authenticating with Wazuh at: ${base_url}`);
+    // Clean up base URL - remove any trailing slashes and add port if needed
+    let cleanBaseUrl = base_url.replace(/\/+$/, '');
     
-    // Authenticate with Wazuh API
-    const authResponse = await fetch(`${base_url}/user/authenticate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        user: username,
-        password: password
-      })
-    });
-
-    if (!authResponse.ok) {
-      console.error('Wazuh auth failed:', authResponse.status, authResponse.statusText);
-      const errorText = await authResponse.text();
-      console.error('Wazuh auth error response:', errorText);
-      throw new Error(`Wazuh authentication failed: ${authResponse.statusText}`);
+    // If it's just a domain/IP without port and doesn't have a port specified, add common Wazuh ports
+    if (!cleanBaseUrl.includes(':') && !cleanBaseUrl.includes('://')) {
+      cleanBaseUrl = `https://${cleanBaseUrl}:55000`;
+    } else if (cleanBaseUrl.startsWith('http://') || cleanBaseUrl.startsWith('https://')) {
+      // If protocol is specified but no port, add default Wazuh port
+      if (!cleanBaseUrl.match(/:(\d+)/)) {
+        cleanBaseUrl = cleanBaseUrl + ':55000';
+      }
     }
 
-    const authData = await authResponse.json();
-    const token = authData.data?.token;
-
-    if (!token) {
-      console.error('No token in auth response:', authData);
-      throw new Error('Failed to get Wazuh authentication token');
-    }
-
-    console.log('Wazuh authentication successful');
-
-    // Make the actual API request
-    const apiUrl = `${base_url}${endpoint}`;
-    console.log('Making Wazuh API request to:', apiUrl);
+    console.log(`Making direct Wazuh API request to: ${cleanBaseUrl}${endpoint}`);
+    
+    // Make direct API request with Basic Auth (more common for Wazuh)
+    const apiUrl = `${cleanBaseUrl}${endpoint}`;
+    const basicAuth = btoa(`${username}:${password}`);
+    
+    console.log('Using HTTP Basic Authentication for Wazuh API');
 
     const apiResponse = await fetch(apiUrl, {
       method: method || 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Basic ${basicAuth}`,
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
     });
 
@@ -123,7 +110,59 @@ serve(async (req) => {
       console.error('Wazuh API request failed:', apiResponse.status, apiResponse.statusText);
       const errorText = await apiResponse.text();
       console.error('Wazuh API error response:', errorText);
+      
+      // Try alternative approach with different auth if basic auth fails
+      if (apiResponse.status === 401 || apiResponse.status === 403) {
+        console.log('Basic auth failed, trying token-based authentication...');
+        
+        try {
+          // Try Wazuh's token-based authentication
+          const authResponse = await fetch(`${cleanBaseUrl}/security/user/authenticate`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Basic ${basicAuth}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (authResponse.ok) {
+            const authData = await authResponse.json();
+            const token = authData.data?.token;
+
+            if (token) {
+              console.log('Token authentication successful, retrying API request');
+              const tokenApiResponse = await fetch(apiUrl, {
+                method: method || 'GET',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+                },
+              });
+
+              if (tokenApiResponse.ok) {
+                const responseData = await tokenApiResponse.json();
+                console.log('Wazuh API response successful with token auth, data keys:', Object.keys(responseData));
+                return new Response(JSON.stringify(responseData), {
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+              }
+            }
+          }
+        } catch (tokenError) {
+          console.error('Token authentication also failed:', tokenError);
+        }
+      }
+      
       throw new Error(`Wazuh API request failed: ${apiResponse.statusText}`);
+    }
+
+    // Check if response is JSON
+    const contentType = apiResponse.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const responseText = await apiResponse.text();
+      console.error('Wazuh API returned non-JSON response:', responseText.substring(0, 200));
+      throw new Error('Wazuh API returned invalid response format');
     }
 
     const responseData = await apiResponse.json();
