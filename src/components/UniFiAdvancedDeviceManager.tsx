@@ -43,14 +43,14 @@ export const UniFiAdvancedDeviceManager: React.FC<UniFiAdvancedDeviceManagerProp
   const [upgrading, setUpgrading] = useState(false);
   
   const [deviceSettings, setDeviceSettings] = useState({
-    led_override: device.led_override || 'default',
-    power_override: device.power_override || 'default',
-    channel_2g: device.radio_table?.[0]?.channel?.toString() || 'auto',
-    channel_5g: device.radio_table?.[1]?.channel?.toString() || 'auto',
-    tx_power_2g: device.radio_table?.[0]?.tx_power?.toString() || 'auto',
-    tx_power_5g: device.radio_table?.[1]?.tx_power?.toString() || 'auto',
+    led_override: device.ledOverride || 'default',
+    power_override: 'default', // Removido power_override que não existe na nova interface
+    channel_2g: device.radioTable?.[0]?.channel?.toString() || 'auto',
+    channel_5g: device.radioTable?.[1]?.channel?.toString() || 'auto',
+    tx_power_2g: device.radioTable?.[0]?.tx_power?.toString() || 'auto',
+    tx_power_5g: device.radioTable?.[1]?.tx_power?.toString() || 'auto',
     name: device.name || '',
-    alias: device.alias || ''
+    displayName: device.displayName || ''
   });
 
   const handleLocate = async () => {
@@ -141,12 +141,12 @@ export const UniFiAdvancedDeviceManager: React.FC<UniFiAdvancedDeviceManagerProp
             
             <Button
               size="sm"
-              onClick={() => onSetLED(device.mac, !device.led_override)}
+              onClick={() => onSetLED(device.mac, !device.ledOverride)}
               variant="outline"
               className="border-gray-600 text-gray-200"
             >
               <Lightbulb className="h-4 w-4 mr-2" />
-              {device.led_override ? 'Desligar LED' : 'Ligar LED'}
+              {device.ledOverride ? 'Desligar LED' : 'Ligar LED'}
             </Button>
             
             <Button
@@ -195,10 +195,10 @@ export const UniFiAdvancedDeviceManager: React.FC<UniFiAdvancedDeviceManagerProp
           )}
 
           {/* Radio Information for Access Points */}
-          {device.type === 'uap' && device.radio_table && (
+          {device.type === 'uap' && device.radioTable && (
             <div className="space-y-3">
               <Label className="text-gray-400">Informações dos Rádios</Label>
-              {device.radio_table.map((radio, index) => (
+              {device.radioTable.map((radio, index) => (
                 <div key={index} className="p-3 bg-gray-700/50 rounded-lg">
                   <div className="flex justify-between items-center mb-2">
                     <Badge className="bg-blue-900/20 text-blue-400 border-blue-600">

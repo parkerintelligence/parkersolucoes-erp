@@ -77,7 +77,7 @@ export const UniFiClientManager: React.FC<UniFiClientManagerProps> = ({
   const isClientBlocked = (client: UniFiClient) => {
     // Verificar se o cliente está bloqueado baseado no tempo desde a última conexão
     const now = Date.now() / 1000;
-    const timeSinceLastSeen = now - client.last_seen;
+    const timeSinceLastSeen = now - (client.lastSeen || 0);
     return timeSinceLastSeen > 300; // Considera bloqueado se não visto há mais de 5 minutos
   };
 
@@ -138,18 +138,18 @@ export const UniFiClientManager: React.FC<UniFiClientManagerProps> = ({
                   const blocked = isClientBlocked(client);
                   
                   return (
-                    <TableRow key={client._id} className="border-gray-700 hover:bg-gray-800/30">
+                    <TableRow key={client.id} className="border-gray-700 hover:bg-gray-800/30">
                       <TableCell className="flex items-center gap-2">
-                        {getClientIcon(client.is_wired)}
+                        {getClientIcon(client.isWired || false)}
                         <span className="font-medium text-gray-200">
-                          {client.hostname || 'Cliente Desconhecido'}
+                          {client.hostname || client.name || 'Cliente Desconhecido'}
                         </span>
                       </TableCell>
                       <TableCell className="text-gray-300 font-mono text-sm">{client.ip}</TableCell>
                       <TableCell className="text-gray-300 font-mono text-xs">{client.mac}</TableCell>
                       <TableCell className="text-gray-300">
-                        <Badge className={client.is_wired ? 'bg-green-900/20 text-green-400 border-green-600' : 'bg-blue-900/20 text-blue-400 border-blue-600'}>
-                          {client.is_wired ? 'Cabeada' : 'Wireless'}
+                        <Badge className={client.isWired ? 'bg-green-900/20 text-green-400 border-green-600' : 'bg-blue-900/20 text-blue-400 border-blue-600'}>
+                          {client.isWired ? 'Cabeada' : 'Wireless'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-gray-300">{client.network || 'N/A'}</TableCell>
@@ -164,11 +164,11 @@ export const UniFiClientManager: React.FC<UniFiClientManagerProps> = ({
                         )}
                       </TableCell>
                       <TableCell className="text-gray-300">
-                        {formatLastSeen(client.last_seen)}
+                        {client.lastSeen ? formatLastSeen(client.lastSeen) : '-'}
                       </TableCell>
-                      <TableCell className="text-gray-300">{formatUptime(client.uptime)}</TableCell>
-                      <TableCell className="text-gray-300">{formatBytes(client.rx_bytes)}</TableCell>
-                      <TableCell className="text-gray-300">{formatBytes(client.tx_bytes)}</TableCell>
+                      <TableCell className="text-gray-300">{client.uptime ? formatUptime(client.uptime) : '-'}</TableCell>
+                      <TableCell className="text-gray-300">{client.rxBytes ? formatBytes(client.rxBytes) : '0 B'}</TableCell>
+                      <TableCell className="text-gray-300">{client.txBytes ? formatBytes(client.txBytes) : '0 B'}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           <Button

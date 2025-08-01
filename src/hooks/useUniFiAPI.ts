@@ -3,80 +3,80 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export interface UniFiDevice {
-  _id: string;
+  id: string;
   mac: string;
   name?: string;
-  alias?: string;
+  displayName?: string;
   model: string;
   type: string;
   ip?: string;
-  state: number;
+  status: string;
   adopted: boolean;
   uptime?: number;
   version?: string;
-  site_id: string;
-  num_sta?: number;
-  led_override?: string;
-  power_override?: boolean;
-  radio_table?: any[];
+  siteId: string;
+  connectedClients?: number;
+  ledOverride?: string;
+  outlets?: any[];
+  radioTable?: any[];
 }
 
 export interface UniFiClient {
-  _id: string;
+  id: string;
   mac: string;
   name?: string;
   hostname?: string;
   ip?: string;
   network?: string;
-  network_id?: string;
-  ap_mac?: string;
+  networkId?: string;
+  accessPointMac?: string;
   channel?: number;
   radio?: string;
   signal?: number;
   noise?: number;
   rssi?: number;
-  rx_bytes?: number;
-  tx_bytes?: number;
+  rxBytes?: number;
+  txBytes?: number;
   uptime?: number;
-  last_seen?: number;
-  is_guest?: boolean;
-  is_wired?: boolean;
+  lastSeen?: number;
+  isGuest?: boolean;
+  isWired?: boolean;
   oui?: string;
-  user_id?: string;
-  site_id: string;
+  userId?: string;
+  siteId: string;
 }
 
 export interface UniFiSite {
-  _id: string;
+  id: string;
   name: string;
-  desc: string;
+  description: string;
   role: string;
-  num_new_alarms?: number;
+  newAlarmCount?: number;
   health?: any[];
 }
 
 interface UniFiNetwork {
-  _id: string;
+  id: string;
   name: string;
   purpose: string;
   vlan?: number;
   enabled: boolean;
-  is_guest?: boolean;
+  isGuest?: boolean;
   security: string;
-  wpa_mode?: string;
-  wpa_enc?: string;
-  networkgroup?: string;
-  site_id: string;
+  wpaMode?: string;
+  wpaEncryption?: string;
+  networkGroup?: string;
+  siteId: string;
 }
 
 interface UniFiAlarm {
-  _id: string;
+  id: string;
   time: number;
   datetime: string;
-  msg: string;
+  message: string;
   subsystem: string;
   key: string;
-  site_id: string;
+  siteId: string;
   archived: boolean;
 }
 
@@ -188,11 +188,11 @@ export const useUniFiAPI = () => {
         return {
           total_devices: devices.length,
           adopted_devices: devices.filter((d: UniFiDevice) => d.adopted).length,
-          online_devices: devices.filter((d: UniFiDevice) => d.state === 1).length,
+          online_devices: devices.filter((d: UniFiDevice) => d.status === 'online').length,
           total_clients: clients.length,
-          wireless_clients: clients.filter((c: UniFiClient) => !c.is_wired).length,
-          wired_clients: clients.filter((c: UniFiClient) => c.is_wired).length,
-          guest_clients: clients.filter((c: UniFiClient) => c.is_guest).length,
+          wireless_clients: clients.filter((c: UniFiClient) => !c.isWired).length,
+          wired_clients: clients.filter((c: UniFiClient) => c.isWired).length,
+          guest_clients: clients.filter((c: UniFiClient) => c.isGuest).length,
           health_status: health,
           devices,
           clients

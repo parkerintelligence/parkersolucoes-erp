@@ -48,11 +48,11 @@ export const UniFiDeviceManager: React.FC<UniFiDeviceManagerProps> = ({
     }
   };
 
-  const getStatusBadge = (state: number, adopted: boolean) => {
+  const getStatusBadge = (status: string, adopted: boolean) => {
     if (!adopted) {
       return <Badge className="bg-yellow-900/20 text-yellow-400 border-yellow-600">Não Adotado</Badge>;
     }
-    return state === 1 ? 
+    return status === 'online' ? 
       <Badge className="bg-green-900/20 text-green-400 border-green-600">Online</Badge> :
       <Badge className="bg-red-900/20 text-red-400 border-red-600">Offline</Badge>;
   };
@@ -131,17 +131,17 @@ export const UniFiDeviceManager: React.FC<UniFiDeviceManagerProps> = ({
               </TableHeader>
               <TableBody>
                 {devices.map((device) => (
-                  <TableRow key={device._id} className="border-gray-700 hover:bg-gray-800/30">
+                  <TableRow key={device.id} className="border-gray-700 hover:bg-gray-800/30">
                     <TableCell className="flex items-center gap-2">
                       {getDeviceIcon(device.type)}
-                      <span className="font-medium text-gray-200">{device.name}</span>
+                      <span className="font-medium text-gray-200">{device.displayName || device.name}</span>
                     </TableCell>
                     <TableCell className="text-gray-300">{device.model}</TableCell>
-                    <TableCell>{getStatusBadge(device.state, device.adopted)}</TableCell>
+                    <TableCell>{getStatusBadge(device.status, device.adopted)}</TableCell>
                     <TableCell className="text-gray-300 font-mono text-sm">{device.ip}</TableCell>
                     <TableCell className="text-gray-300">{device.version}</TableCell>
-                    <TableCell className="text-gray-300">{formatUptime(device.uptime)}</TableCell>
-                    <TableCell className="text-gray-300">{device.num_sta}</TableCell>
+                    <TableCell className="text-gray-300">{device.uptime ? formatUptime(device.uptime) : '-'}</TableCell>
+                    <TableCell className="text-gray-300">{device.connectedClients || 0}</TableCell>
                     <TableCell className="text-gray-300">
                       <div className="flex items-center gap-1">
                         <Cpu className="h-3 w-3" />
@@ -166,7 +166,7 @@ export const UniFiDeviceManager: React.FC<UniFiDeviceManagerProps> = ({
                           size="sm"
                           variant="outline"
                           onClick={() => handleRestartDevice(device.mac)}
-                          disabled={restartLoading || device.state !== 1}
+                          disabled={restartLoading || device.status !== 'online'}
                           className="border-gray-600 text-gray-200 hover:bg-gray-700"
                         >
                           <Power className="h-3 w-3" />

@@ -19,7 +19,7 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
   onSiteChange,
   loading = false
 }) => {
-  const selectedSite = sites.find(site => site._id === selectedSiteId);
+  const selectedSite = sites.find(site => site.id === selectedSiteId);
 
   return (
     <Card className="bg-blue-900/30 border-blue-500 shadow-lg">
@@ -42,18 +42,18 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
             <SelectContent className="bg-gray-700 border-gray-600">
               {sites.map((site) => (
                 <SelectItem 
-                  key={site._id} 
-                  value={site._id}
+                  key={site.id} 
+                  value={site.id}
                   className="text-white hover:bg-gray-600"
                 >
                   <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-2">
                       <Server className="h-4 w-4 text-blue-400" />
-                      <span>{site.desc || site.name}</span>
+                      <span>{site.description || site.name}</span>
                     </div>
-                    {site.num_new_alarms > 0 && (
+                    {(site.newAlarmCount || 0) > 0 && (
                       <Badge variant="destructive" className="ml-2">
-                        {site.num_new_alarms} alertas
+                        {site.newAlarmCount} alertas
                       </Badge>
                     )}
                   </div>
@@ -69,11 +69,11 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
                   <div className="flex items-center gap-2 mb-2">
                     <Server className="h-4 w-4 text-blue-400" />
                     <h4 className="text-sm font-medium text-white">
-                      {selectedSite.desc || selectedSite.name}
+                      {selectedSite.description || selectedSite.name}
                     </h4>
                   </div>
                   <div className="space-y-1 text-xs text-gray-300">
-                    <p><strong>Site ID:</strong> {selectedSite._id}</p>
+                    <p><strong>Site ID:</strong> {selectedSite.id}</p>
                     <p><strong>Nome:</strong> {selectedSite.name}</p>
                     <div className="flex items-center gap-1">
                       <Users className="h-3 w-3" />
@@ -81,10 +81,10 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
                     </div>
                   </div>
                 </div>
-                {selectedSite.num_new_alarms > 0 && (
+                {(selectedSite.newAlarmCount || 0) > 0 && (
                   <div className="flex items-center gap-1 text-red-400">
                     <AlertCircle className="h-4 w-4" />
-                    <span className="text-xs">{selectedSite.num_new_alarms} novos alertas</span>
+                    <span className="text-xs">{selectedSite.newAlarmCount} novos alertas</span>
                   </div>
                 )}
               </div>
