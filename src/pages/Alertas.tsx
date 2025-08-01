@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useZabbixAPI } from '@/hooks/useZabbixAPI';
 import { RefreshCw, Wifi, WifiOff, Server, AlertTriangle, Cpu, HardDrive, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -288,100 +289,112 @@ export default function Alertas() {
         </TabsContent>
         
         <TabsContent value="performance" className="space-y-4">
-          {/* Performance Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {devices
-              .filter(device => device.status === 'online')
-              .map((device) => {
-                const perf = getPerformanceData(device.id);
-                return (
-                  <Card key={device.id} className="bg-slate-800 border-slate-700">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg text-white flex items-center gap-2">
-                        <Server className="h-5 w-5" />
-                        {device.name}
-                      </CardTitle>
-                    </CardHeader>
-                     <CardContent className="space-y-4">
-                       {/* Data availability indicator */}
-                       {!perf.hasData && (
-                         <div className="text-center py-4">
-                           <AlertTriangle className="h-8 w-8 mx-auto text-yellow-500 mb-2" />
-                           <p className="text-sm text-muted-foreground">Dados de performance não disponíveis</p>
-                           <p className="text-xs text-muted-foreground mt-1">
-                             Items encontrados: {perf.itemsFound?.total || 0}
-                           </p>
-                         </div>
-                       )}
-
-                       {perf.hasData && (
-                         <>
-                           {/* CPU Usage */}
-                           <div className="space-y-2">
-                             <div className="flex items-center justify-between">
-                               <div className="flex items-center gap-2">
-                                 <Cpu className={cn("h-4 w-4", perf.itemsFound?.cpu ? "text-blue-400" : "text-gray-500")} />
-                                 <span className="text-sm text-slate-300">CPU</span>
-                                 {!perf.itemsFound?.cpu && <span className="text-xs text-red-400">N/A</span>}
-                               </div>
-                               <span className="text-sm font-medium text-white">
-                                 {perf.itemsFound?.cpu ? `${perf.cpu.toFixed(1)}%` : '--'}
-                               </span>
-                             </div>
-                             {perf.itemsFound?.cpu && (
-                               <Progress 
-                                 value={perf.cpu} 
-                                 className="h-2"
-                                 style={{
-                                   '--progress-foreground': perf.cpu > 80 ? 'hsl(0 70% 50%)' : perf.cpu > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
-                                 } as React.CSSProperties}
-                               />
-                             )}
-                           </div>
-
-                           {/* Memory Usage */}
-                           <div className="space-y-2">
-                             <div className="flex items-center justify-between">
-                               <div className="flex items-center gap-2">
-                                 <HardDrive className={cn("h-4 w-4", perf.itemsFound?.memory ? "text-purple-400" : "text-gray-500")} />
-                                 <span className="text-sm text-slate-300">Memória</span>
-                                 {!perf.itemsFound?.memory && <span className="text-xs text-red-400">N/A</span>}
-                               </div>
-                               <span className="text-sm font-medium text-white">
-                                 {perf.itemsFound?.memory ? `${perf.memory.toFixed(1)}%` : '--'}
-                               </span>
-                             </div>
-                             {perf.itemsFound?.memory && (
-                               <Progress 
-                                 value={perf.memory} 
-                                 className="h-2"
-                                 style={{
-                                   '--progress-foreground': perf.memory > 80 ? 'hsl(0 70% 50%)' : perf.memory > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
-                                 } as React.CSSProperties}
-                               />
-                             )}
-                           </div>
-
-                           {/* Uptime */}
-                           <div className="space-y-2">
-                             <div className="flex items-center justify-between">
-                               <div className="flex items-center gap-2">
-                                 <Clock className={cn("h-4 w-4", perf.itemsFound?.uptime ? "text-green-400" : "text-gray-500")} />
-                                 <span className="text-sm text-slate-300">Tempo Ligado</span>
-                                 {!perf.itemsFound?.uptime && <span className="text-xs text-red-400">N/A</span>}
-                               </div>
-                               <span className="text-sm font-medium text-white">
-                                 {perf.itemsFound?.uptime ? formatUptime(perf.uptime) : '--'}
-                               </span>
-                             </div>
-                           </div>
-                         </>
-                       )}
-                     </CardContent>
-                  </Card>
-                );
-              })}
-          </div>
+          {/* Performance Table */}
+          <Card className="bg-slate-800 border-slate-700">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-700 hover:bg-slate-700/50">
+                  <TableHead className="text-slate-300">
+                    <div className="flex items-center gap-2">
+                      <Server className="h-4 w-4" />
+                      Device
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-slate-300">
+                    <div className="flex items-center gap-2">
+                      <Wifi className="h-4 w-4" />
+                      Status
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-slate-300">
+                    <div className="flex items-center gap-2">
+                      <Cpu className="h-4 w-4" />
+                      CPU
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-slate-300">
+                    <div className="flex items-center gap-2">
+                      <HardDrive className="h-4 w-4" />
+                      Memória
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-slate-300">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Uptime
+                    </div>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {devices
+                  .filter(device => device.status === 'online')
+                  .map((device) => {
+                    const perf = getPerformanceData(device.id);
+                    return (
+                      <TableRow key={device.id} className="border-slate-700 hover:bg-slate-700/30">
+                        <TableCell className="font-medium text-white">
+                          <div className="flex items-center gap-2">
+                            <Server className="h-4 w-4 text-blue-400" />
+                            {device.name}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(device.status)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-slate-300">
+                                {perf.itemsFound?.cpu ? `${perf.cpu.toFixed(1)}%` : (
+                                  <span className="text-red-400">N/A</span>
+                                )}
+                              </span>
+                            </div>
+                            {perf.itemsFound?.cpu && (
+                              <Progress 
+                                value={perf.cpu} 
+                                className="h-2 w-24"
+                                style={{
+                                  '--progress-foreground': perf.cpu > 80 ? 'hsl(0 70% 50%)' : perf.cpu > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
+                                } as React.CSSProperties}
+                              />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-slate-300">
+                                {perf.itemsFound?.memory ? `${perf.memory.toFixed(1)}%` : (
+                                  <span className="text-red-400">N/A</span>
+                                )}
+                              </span>
+                            </div>
+                            {perf.itemsFound?.memory && (
+                              <Progress 
+                                value={perf.memory} 
+                                className="h-2 w-24"
+                                style={{
+                                  '--progress-foreground': perf.memory > 80 ? 'hsl(0 70% 50%)' : perf.memory > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
+                                } as React.CSSProperties}
+                              />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-slate-300">
+                            {perf.itemsFound?.uptime ? formatUptime(perf.uptime) : (
+                              <span className="text-red-400">N/A</span>
+                            )}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+              </TableBody>
+            </Table>
+          </Card>
 
           {devices.filter(device => device.status === 'online').length === 0 && (
             <div className="flex items-center justify-center py-12">
