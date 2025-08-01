@@ -83,33 +83,52 @@ export default function Alertas() {
     
     const hostName = hosts.find(h => h.hostid === hostId)?.name || hostId;
     
-    // Look for CPU items with multiple fallback patterns
+    // Debug - log all items for this host
+    console.log(`[DEBUG] All items for ${hostName}:`, hostItems.map(item => ({
+      name: item.name,
+      key: item.key_,
+      value: item.lastvalue,
+      units: item.units
+    })));
+    
+    // Look for CPU items with expanded patterns
     const cpuItem = hostItems.find(item => {
       const key = item.key_.toLowerCase();
       const name = item.name?.toLowerCase() || '';
       return (
+        // Zabbix standard keys
         key.includes('system.cpu.util') ||
         key.includes('cpu.util') ||
-        key.includes('cpu.load') ||
-        key.includes('perf_counter') && key.includes('processor') && key.includes('time') ||
-        name.includes('cpu utilization') ||
-        name.includes('cpu usage') ||
+        key === 'system.cpu.load[percpu,avg1]' ||
+        key === 'system.cpu.load[percpu,avg5]' ||
+        key === 'system.cpu.load[percpu,avg15]' ||
+        // Windows performance counters
+        key.includes('perf_counter') && (key.includes('processor') || key.includes('cpu')) ||
+        // Name-based search (more inclusive)
+        name.includes('cpu') && (name.includes('%') || name.includes('utilization') || name.includes('usage')) ||
+        name.includes('processador') ||
         name.includes('processor time') ||
-        name.includes('processador')
+        name === 'cpu utilization' ||
+        name === 'cpu usage'
       );
     });
     
-    // Look for memory items
+    // Look for memory items with expanded patterns  
     const memoryItem = hostItems.find(item => {
       const key = item.key_.toLowerCase();
       const name = item.name?.toLowerCase() || '';
       return (
+        // Zabbix standard keys
         key.includes('vm.memory.util') ||
-        key.includes('vm.memory.size') && key.includes('pused') ||
-        key.includes('memory.util') ||
-        name.includes('memory utilization') ||
-        name.includes('available memory') ||
-        name.includes('memória')
+        key.includes('vm.memory.size[pused]') ||
+        key.includes('vm.memory.size[pavailable]') ||
+        // Windows performance counters
+        key.includes('perf_counter') && key.includes('memory') ||
+        // Name-based search
+        name.includes('memory') && (name.includes('%') || name.includes('utilization') || name.includes('usage')) ||
+        name.includes('memória') ||
+        name === 'memory utilization' ||
+        name === 'available memory'
       );
     });
     
@@ -119,46 +138,63 @@ export default function Alertas() {
       const name = item.name?.toLowerCase() || '';
       return (
         key.includes('system.uptime') ||
-        key.includes('uptime') ||
+        key.includes('agent.uptime') ||
+        key === 'system.uptime[s]' ||
         name.includes('uptime') ||
-        name.includes('tempo ligado')
+        name.includes('tempo ligado') ||
+        name === 'system uptime'
       );
     });
     
-    // Parse values with auto-detection
+    // Debug - log found items
+    console.log(`[DEBUG] Found items for ${hostName}:`, {
+      cpu: cpuItem ? { name: cpuItem.name, key: cpuItem.key_, value: cpuItem.lastvalue, units: cpuItem.units } : null,
+      memory: memoryItem ? { name: memoryItem.name, key: memoryItem.key_, value: memoryItem.lastvalue, units: memoryItem.units } : null,
+      uptime: uptimeItem ? { name: uptimeItem.name, key: uptimeItem.key_, value: uptimeItem.lastvalue, units: uptimeItem.units } : null
+    });
+    
+    // Parse values with proper validation and conversion
     let cpuUsage = 0;
     let memoryUsage = 0;
     let uptime = 0;
     
-    if (cpuItem?.lastvalue) {
+    if (cpuItem?.lastvalue !== undefined && cpuItem.lastvalue !== null && cpuItem.lastvalue !== '') {
       let value = parseFloat(cpuItem.lastvalue);
+      console.log(`[DEBUG] CPU raw value for ${hostName}:`, value, 'from item:', cpuItem.name);
+      
       if (!isNaN(value)) {
-        // Auto-detect if value needs conversion
-        if (value > 100) {
-          // Might be in different scale, try to normalize
-          if (value > 1000000) value = value / 1000000; // Very large numbers
-          else if (value > 1000) value = value / 1000; // Large numbers
-        }
-        cpuUsage = Math.min(Math.max(value, 0), 100);
-      }
-    }
-    
-    if (memoryItem?.lastvalue) {
-      let value = parseFloat(memoryItem.lastvalue);
-      if (!isNaN(value)) {
-        // Auto-detect memory value type
-        if (value > 100) {
-          // Might be bytes, convert to percentage based on context
-          if (memoryItem.key_.includes('pused') || memoryItem.name?.includes('utilization')) {
-            // Already percentage but in wrong scale
-            value = Math.min(value, 100);
+        // Handle different CPU value formats
+        if (cpuItem.key_.includes('system.cpu.load')) {
+          // CPU load values are typically 0-1 for 100% utilization per core
+          // Convert to percentage
+          cpuUsage = Math.min(Math.max(value * 100, 0), 100);
+        } else if (cpuItem.key_.includes('perf_counter')) {
+          // Windows perfcounter - processor time is typically inverted (idle time)
+          if (cpuItem.name?.toLowerCase().includes('idle')) {
+            cpuUsage = Math.min(Math.max(100 - value, 0), 100);
+          } else {
+            cpuUsage = Math.min(Math.max(value, 0), 100);
           }
+        } else {
+          // Standard CPU utilization (should be 0-100)
+          cpuUsage = Math.min(Math.max(value, 0), 100);
         }
-        memoryUsage = Math.min(Math.max(value, 0), 100);
+        console.log(`[DEBUG] CPU final value for ${hostName}:`, cpuUsage);
       }
     }
     
-    if (uptimeItem?.lastvalue) {
+    if (memoryItem?.lastvalue !== undefined && memoryItem.lastvalue !== null && memoryItem.lastvalue !== '') {
+      let value = parseFloat(memoryItem.lastvalue);
+      console.log(`[DEBUG] Memory raw value for ${hostName}:`, value, 'from item:', memoryItem.name);
+      
+      if (!isNaN(value)) {
+        // Memory values should be in percentage
+        memoryUsage = Math.min(Math.max(value, 0), 100);
+        console.log(`[DEBUG] Memory final value for ${hostName}:`, memoryUsage);
+      }
+    }
+    
+    if (uptimeItem?.lastvalue !== undefined && uptimeItem.lastvalue !== null && uptimeItem.lastvalue !== '') {
       const value = parseInt(uptimeItem.lastvalue);
       if (!isNaN(value)) {
         uptime = value;
