@@ -38,12 +38,26 @@ export default function Alertas() {
   });
 
   const getDeviceStatus = (host: any): DeviceStatus => {
-    // Check if host is available based on interface availability
-    // available: "1" = available, "2" = not available, "0" = unknown
-    // Also check if host status is enabled (status: "0" = enabled, "1" = disabled)
-    const isHostEnabled = host.status === '0';
+    // Análise mais robusta de disponibilidade
+    const isHostEnabled = host.status === '0'; // 0 = enabled, 1 = disabled
+    
+    // Verificar se há interfaces disponíveis
     const hasAvailableInterface = host.interfaces?.some((iface: any) => iface.available === '1');
-    const isAvailable = isHostEnabled && hasAvailableInterface;
+    
+    // Verificar se há problemas ativos relacionados à disponibilidade
+    const hasAvailabilityProblems = problems.some((problem: any) => 
+      problem.hosts?.some((problemHost: any) => problemHost.hostid === host.hostid) &&
+      (problem.name?.toLowerCase().includes('unavailable') || 
+       problem.name?.toLowerCase().includes('unreachable') ||
+       problem.name?.toLowerCase().includes('indisponível') ||
+       problem.severity === '5') // Disaster severity
+    );
+    
+    // Host está online apenas se:
+    // 1. Está habilitado no Zabbix
+    // 2. Tem pelo menos uma interface disponível 
+    // 3. Não tem problemas críticos de disponibilidade ativos
+    const isAvailable = isHostEnabled && hasAvailableInterface && !hasAvailabilityProblems;
     
     return {
       id: host.hostid,
