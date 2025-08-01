@@ -101,18 +101,18 @@ export const ScheduleTable = ({
     return <Badge className="bg-blue-800 text-blue-100 border-blue-700">Pendente</Badge>;
   };
   const getTypeBadge = (type: string) => {
-    // Usar cores escuras seguindo o padrão do sistema
+    // Gerar cor de fundo suave baseada no tipo
     const typeColors = {
-      'Backup': 'bg-blue-800 text-blue-100 border-blue-700',
-      'Manutenção': 'bg-green-800 text-green-100 border-green-700',
-      'Atualização': 'bg-purple-800 text-purple-100 border-purple-700',
-      'Renovação': 'bg-orange-800 text-orange-100 border-orange-700',
-      'Instalação': 'bg-cyan-800 text-cyan-100 border-cyan-700',
-      'Configuração': 'bg-indigo-800 text-indigo-100 border-indigo-700',
-      'Monitoramento': 'bg-emerald-800 text-emerald-100 border-emerald-700',
-      'Suporte': 'bg-pink-800 text-pink-100 border-pink-700',
-      'Migração': 'bg-violet-800 text-violet-100 border-violet-700',
-      'Teste': 'bg-amber-800 text-amber-100 border-amber-700'
+      'Backup': 'bg-blue-50 text-blue-800 border-blue-200',
+      'Manutenção': 'bg-green-50 text-green-800 border-green-200',
+      'Atualização': 'bg-purple-50 text-purple-800 border-purple-200',
+      'Renovação': 'bg-orange-50 text-orange-800 border-orange-200',
+      'Instalação': 'bg-cyan-50 text-cyan-800 border-cyan-200',
+      'Configuração': 'bg-indigo-50 text-indigo-800 border-indigo-200',
+      'Monitoramento': 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      'Suporte': 'bg-pink-50 text-pink-800 border-pink-200',
+      'Migração': 'bg-violet-50 text-violet-800 border-violet-200',
+      'Teste': 'bg-amber-50 text-amber-800 border-amber-200'
     };
     
     // Se o tipo não estiver mapeado, gerar uma cor baseada no hash do texto
@@ -121,19 +121,19 @@ export const ScheduleTable = ({
       return <Badge className={defaultColor}>{type}</Badge>;
     }
     
-    // Gerar cor automática para tipos não mapeados usando cores escuras
+    // Gerar cor automática para tipos não mapeados
     const hash = type.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
     const colors = [
-      'bg-slate-800 text-slate-100 border-slate-700',
-      'bg-gray-800 text-gray-100 border-gray-700',
-      'bg-zinc-800 text-zinc-100 border-zinc-700',
-      'bg-stone-800 text-stone-100 border-stone-700',
-      'bg-red-800 text-red-100 border-red-700',
-      'bg-yellow-800 text-yellow-100 border-yellow-700',
-      'bg-lime-800 text-lime-100 border-lime-700',
-      'bg-teal-800 text-teal-100 border-teal-700',
-      'bg-sky-800 text-sky-100 border-sky-700',
-      'bg-rose-800 text-rose-100 border-rose-700'
+      'bg-slate-50 text-slate-800 border-slate-200',
+      'bg-gray-50 text-gray-800 border-gray-200',
+      'bg-zinc-50 text-zinc-800 border-zinc-200',
+      'bg-stone-50 text-stone-800 border-stone-200',
+      'bg-red-50 text-red-800 border-red-200',
+      'bg-yellow-50 text-yellow-800 border-yellow-200',
+      'bg-lime-50 text-lime-800 border-lime-200',
+      'bg-teal-50 text-teal-800 border-teal-200',
+      'bg-sky-50 text-sky-800 border-sky-200',
+      'bg-rose-50 text-rose-800 border-rose-200'
     ];
     
     const colorIndex = hash % colors.length;
@@ -305,8 +305,8 @@ export const ScheduleTable = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600">Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmCreateTicket} className="bg-blue-800 hover:bg-blue-700 text-white">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCreateTicket} className="bg-blue-600 hover:bg-blue-700">
               Criar Ticket
             </AlertDialogAction>
           </AlertDialogFooter>

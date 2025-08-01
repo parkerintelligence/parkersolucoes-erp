@@ -261,7 +261,7 @@ const UniFi = () => {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white">
+      <div className="min-h-screen bg-gray-900 text-white">
         <div className="space-y-6 p-6">
           <Card className="bg-gray-800 border-gray-700">
             <CardContent className="p-6">
@@ -300,7 +300,7 @@ const UniFi = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen bg-gray-900 text-white">
       <div className="space-y-6 p-6">
         {/* Enhanced Header with Better Status */}
         <div className="flex flex-col md:flex-row justify-between items-start gap-4">

@@ -1,9 +1,0 @@
-{
-  "clearScreen": false,
-  "server": {
-    "force": true
-  },
-  "optimizeDeps": {
-    "force": true
-  }
-}

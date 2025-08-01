@@ -6,7 +6,7 @@ import { HardDrive } from 'lucide-react';
 
 const BackupsEmptyState: React.FC = () => {
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen bg-gray-900 text-white">
       <div className="space-y-6 p-6">
         <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-6">

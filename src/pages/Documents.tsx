@@ -116,14 +116,14 @@ const Documents = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex justify-center items-center">
+      <div className="min-h-screen bg-gray-900 text-white flex justify-center items-center">
         <div className="text-gray-400">Carregando documentos...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen bg-gray-900 text-white">
       <div className="space-y-6 p-6">
         <div className="flex justify-end">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

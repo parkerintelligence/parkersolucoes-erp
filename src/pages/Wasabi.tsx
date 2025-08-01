@@ -103,7 +103,7 @@ const Wasabi = () => {
     return `${selectedBucket}/${currentPath.replace(/\/$/, '')}`;
   };
   if (!isConfigured) {
-    return <div className="min-h-screen bg-slate-900 text-white p-6">
+    return <div className="min-h-screen bg-gray-900 text-white p-6">
         <Card className="border-yellow-600 bg-yellow-900/20">
           <CardContent className="p-6 text-center">
             <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-400" />
@@ -119,7 +119,7 @@ const Wasabi = () => {
         </Card>
       </div>;
   }
-  return <div className="min-h-screen bg-slate-900 text-white">
+  return <div className="min-h-screen bg-gray-900 text-white">
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

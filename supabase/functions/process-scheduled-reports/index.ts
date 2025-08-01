@@ -12,237 +12,42 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-interface GLPITicketData {
-  name: string;
-  content: string;
-  urgency: number;
-  impact: number;
-  priority: number;
-  type: number;
-  category_id?: number;
-  requester_user_id?: number;
-  assign_user_id?: number;
-  assign_group_id?: number;
-  entity_id: number;
-}
-
-const logCronExecution = async (jobName: string, status: string, details: any) => {
-  try {
-    await supabase
-      .from('cron_job_logs')
-      .insert({
-        job_name: jobName,
-        status,
-        details
-      });
-  } catch (error) {
-    console.error('❌ [CRON-LOG] Erro ao salvar log:', error);
-  }
-};
-
-const processGLPITicket = async (ticket: any, currentTime: Date) => {
-  console.log(`🚀 [GLPI-CRON] Processando chamado: ${ticket.name} (${ticket.id})`);
-  
-  try {
-    // Buscar integração GLPI do usuário
-    const { data: glpiIntegration } = await supabase
-      .from('integrations')
-      .select('*')
-      .eq('user_id', ticket.user_id)
-      .eq('type', 'glpi')
-      .eq('is_active', true)
-      .single();
-
-    if (!glpiIntegration) {
-      console.error(`❌ [GLPI-CRON] Integração GLPI não encontrada para usuário ${ticket.user_id}`);
-      return {
-        ticket_id: ticket.id,
-        ticket_name: ticket.name,
-        success: false,
-        error: 'Integração GLPI não configurada'
-      };
-    }
-
-    console.log(`🔐 [GLPI-CRON] Integração GLPI encontrada para usuário ${ticket.user_id}`);
-
-    // Verificar se os tokens necessários estão configurados
-    const appToken = glpiIntegration.api_token;
-    const userToken = glpiIntegration.user_token || glpiIntegration.username;
-    
-    if (!appToken || !userToken) {
-      console.error(`❌ [GLPI-CRON] Tokens GLPI não configurados para usuário ${ticket.user_id}`);
-      return {
-        ticket_id: ticket.id,
-        ticket_name: ticket.name,
-        success: false,
-        error: 'App-Token ou User-Token não configurados na integração GLPI'
-      };
-    }
-
-    // Fazer login no GLPI para obter Session-Token válido
-    const loginResponse = await fetch(`${glpiIntegration.base_url}/apirest.php/initSession`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'App-Token': appToken,
-        'Authorization': `user_token ${userToken}`,
-      }
-    });
-
-    if (!loginResponse.ok) {
-      const loginError = await loginResponse.text();
-      console.error(`❌ [GLPI-CRON] Erro no login GLPI: ${loginResponse.status} - ${loginError}`);
-      throw new Error(`GLPI Login Error: ${loginResponse.status} ${loginResponse.statusText}`);
-    }
-
-    const loginData = await loginResponse.json();
-    const sessionToken = loginData.session_token;
-    console.log(`🔑 [GLPI-CRON] Session token obtido: ${sessionToken?.substring(0, 10)}...`);
-
-    // Preparar dados do chamado
-    const ticketData: GLPITicketData = {
-      name: ticket.title,
-      content: ticket.content,
-      urgency: ticket.urgency,
-      impact: ticket.impact,
-      priority: ticket.priority,
-      type: ticket.type,
-      entity_id: ticket.entity_id,
-      ...(ticket.category_id && { category_id: ticket.category_id }),
-      ...(ticket.requester_user_id && { requester_user_id: ticket.requester_user_id }),
-      ...(ticket.assign_user_id && { assign_user_id: ticket.assign_user_id }),
-      ...(ticket.assign_group_id && { assign_group_id: ticket.assign_group_id }),
-    };
-
-    console.log(`📤 [GLPI-CRON] Enviando chamado para GLPI:`, ticketData);
-
-    // Criar chamado no GLPI usando session token válido
-    const glpiResponse = await fetch(`${glpiIntegration.base_url}/apirest.php/Ticket`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'App-Token': glpiIntegration.api_token || '',
-        'Session-Token': sessionToken,
-      },
-      body: JSON.stringify({ input: ticketData }),
-    });
-
-    if (!glpiResponse.ok) {
-      const errorText = await glpiResponse.text();
-      console.error(`❌ [GLPI-CRON] Erro na API do GLPI: ${glpiResponse.status} - ${errorText}`);
-      throw new Error(`GLPI API Error: ${glpiResponse.status} ${glpiResponse.statusText}`);
-    }
-
-    const glpiResult = await glpiResponse.json();
-    console.log(`✅ [GLPI-CRON] Chamado criado no GLPI:`, glpiResult);
-
-    // Calcular próxima execução
-    const { data: nextExecData, error: nextExecError } = await supabase
-      .rpc('calculate_next_execution', {
-        cron_expr: ticket.cron_expression,
-        from_time: currentTime.toISOString()
-      });
-
-    if (nextExecError) {
-      console.error('❌ [GLPI-CRON] Erro ao calcular próxima execução:', nextExecError);
-    }
-
-    console.log(`⏰ [GLPI-CRON] Próxima execução calculada: ${nextExecData}`);
-
-    // Atualizar registro do agendamento
-    const { error: updateError } = await supabase
-      .from('glpi_scheduled_tickets')
-      .update({
-        last_execution: currentTime.toISOString(),
-        next_execution: nextExecData || null,
-        execution_count: (ticket.execution_count || 0) + 1
-      })
-      .eq('id', ticket.id);
-
-    if (updateError) {
-      console.error('❌ [GLPI-CRON] Erro ao atualizar agendamento:', updateError);
-    }
-
-    // Fazer logout do GLPI para limpar a sessão
-    try {
-      await fetch(`${glpiIntegration.base_url}/apirest.php/killSession`, {
-        method: 'POST',
-        headers: {
-          'App-Token': glpiIntegration.api_token || '',
-          'Session-Token': sessionToken,
-        }
-      });
-      console.log(`🔓 [GLPI-CRON] Logout do GLPI realizado`);
-    } catch (logoutError) {
-      console.warn(`⚠️ [GLPI-CRON] Erro no logout (não crítico):`, logoutError);
-    }
-
-    return {
-      ticket_id: ticket.id,
-      ticket_name: ticket.name,
-      success: true,
-      glpi_ticket_id: glpiResult.id,
-      next_execution: nextExecData
-    };
-
-  } catch (error: any) {
-    console.error(`❌ [GLPI-CRON] Erro ao processar chamado ${ticket.name}:`, error);
-    return {
-      ticket_id: ticket.id,
-      ticket_name: ticket.name,
-      success: false,
-      error: error.message || 'Erro desconhecido'
-    };
-  }
-};
-
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const startTime = Date.now();
-
   try {
     const currentTime = new Date();
-    console.log('🔍 [UNIFIED-CRON] Iniciando processamento unificado de agendamentos...');
-    console.log('🕐 [UNIFIED-CRON] Horário atual (UTC):', currentTime.toISOString());
-    console.log('🕐 [UNIFIED-CRON] Horário atual (Brasília):', currentTime.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
+    console.log('🔍 [CRON] Verificando relatórios agendados...');
+    console.log('🕐 [CRON] Horário atual (UTC):', currentTime.toISOString());
+    console.log('🕐 [CRON] Horário atual (Brasília):', currentTime.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
     
-    // Log da execução do cron
-    await logCronExecution('unified-cron-scheduler', 'started', {
-      timestamp: currentTime.toISOString()
-    });
-
-    // Buscar relatórios que devem ser executados agora
-    const { data: dueReports, error: reportsError } = await supabase
+    // Buscar relatórios que devem ser executados agora ou que já passaram do horário
+    const { data: dueReports, error } = await supabase
       .from('scheduled_reports')
       .select('*')
       .eq('is_active', true)
       .lte('next_execution', currentTime.toISOString());
 
-    if (reportsError) {
-      console.error('❌ [UNIFIED-CRON] Erro ao buscar relatórios:', reportsError);
-      throw new Error(`Erro ao buscar relatórios: ${reportsError.message}`);
+    if (error) {
+      console.error('❌ [CRON] Erro ao buscar relatórios:', error);
+      throw new Error(`Erro ao buscar relatórios: ${error.message}`);
     }
 
-    // Buscar tickets GLPI que devem ser executados agora
-    const { data: dueTickets, error: ticketsError } = await supabase
-      .from('glpi_scheduled_tickets')
-      .select('*')
-      .eq('is_active', true)
-      .lte('next_execution', currentTime.toISOString());
-
-    if (ticketsError) {
-      console.error('❌ [UNIFIED-CRON] Erro ao buscar tickets GLPI:', ticketsError);
-      throw new Error(`Erro ao buscar tickets GLPI: ${ticketsError.message}`);
-    }
-
-    console.log(`📋 [UNIFIED-CRON] Encontrados ${dueReports?.length || 0} relatórios e ${dueTickets?.length || 0} tickets GLPI para executar`);
+    console.log(`📋 [CRON] Encontrados ${dueReports?.length || 0} relatórios para executar`);
     
+    if (dueReports && dueReports.length > 0) {
+      for (const report of dueReports) {
+        console.log(`📄 [CRON] Relatório: ${report.name} (ID: ${report.id})`);
+        console.log(`  - Próxima execução agendada: ${report.next_execution}`);
+        console.log(`  - Telefone: ${report.phone_number}`);
+        console.log(`  - Tipo: ${report.report_type}`);
+      }
+    }
+
     const results = [];
     
-    // Processar relatórios WhatsApp
     for (const report of dueReports || []) {
       console.log(`🚀 [CRON] Processando relatório: ${report.name} (${report.id})`);
       
@@ -325,71 +130,36 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Processar tickets GLPI
-    for (const ticket of dueTickets || []) {
-      const ticketResult = await processGLPITicket(ticket, currentTime);
-      results.push(ticketResult);
-    }
-
     const successCount = results.filter(r => r.success).length;
     const failureCount = results.filter(r => !r.success).length;
-    const reportsCount = dueReports?.length || 0;
-    const ticketsCount = dueTickets?.length || 0;
-    const executionTime = Date.now() - startTime;
 
-    console.log(`📊 [UNIFIED-CRON] Processamento unificado concluído em ${executionTime}ms:`);
-    console.log(`  - Total de relatórios processados: ${reportsCount}`);
-    console.log(`  - Total de tickets GLPI processados: ${ticketsCount}`);
-    console.log(`  - Total geral processado: ${results.length}`);
+    console.log(`📊 [CRON] Processamento concluído:`);
+    console.log(`  - Total de relatórios processados: ${results.length}`);
     console.log(`  - Sucessos: ${successCount}`);
     console.log(`  - Falhas: ${failureCount}`);
 
-    // Log do resultado final
-    await logCronExecution('unified-cron-scheduler', 'completed', {
-      total_processed: results.length,
-      reports_processed: reportsCount,
-      tickets_processed: ticketsCount,
-      successful: successCount,
-      failed: failureCount,
-      execution_time_ms: executionTime,
-      results,
-      timestamp: currentTime.toISOString()
-    });
-
     return new Response(JSON.stringify({ 
       success: true,
-      total_executed: results.length,
-      executed_reports: reportsCount,
-      executed_tickets: ticketsCount,
+      executed_reports: results.length,
       successful: successCount,
       failed: failureCount,
-      execution_time_ms: executionTime,
       results: results,
       timestamp: currentTime.toISOString(),
-      message: `Processados ${results.length} agendamentos (${reportsCount} relatórios, ${ticketsCount} tickets GLPI). ${successCount} sucessos, ${failureCount} falhas.`
+      message: `Processados ${results.length} relatórios. ${successCount} sucessos, ${failureCount} falhas.`
     }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
 
   } catch (error: any) {
-    const executionTime = Date.now() - startTime;
-    console.error("❌ [UNIFIED-CRON] Erro crítico na função unificada:", error);
-    console.error("❌ [UNIFIED-CRON] Stack trace:", error.stack);
-    
-    // Log do erro crítico
-    await logCronExecution('unified-cron-scheduler', 'critical_error', {
-      error: error.message,
-      execution_time_ms: executionTime,
-      timestamp: new Date().toISOString()
-    });
+    console.error("❌ [CRON] Erro crítico na função process-scheduled-reports:", error);
+    console.error("❌ [CRON] Stack trace:", error.stack);
     
     return new Response(JSON.stringify({ 
       success: false,
       error: error.message,
-      execution_time_ms: executionTime,
       timestamp: new Date().toISOString(),
-      message: `Erro crítico no processamento unificado: ${error.message}`
+      message: `Erro crítico: ${error.message}`
     }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },

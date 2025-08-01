@@ -20,7 +20,7 @@ export const BaculaStatusCards = () => {
     if (connectionTest && (connectionTest.output || connectionTest.result || connectionTest.data)) {
       return { status: 'success', label: 'Conectado', color: 'bg-green-900/20 text-green-400 border-green-600' };
     }
-    return { status: 'unknown', label: 'Desconhecido', color: 'bg-slate-900/20 text-gray-400 border-gray-600' };
+    return { status: 'unknown', label: 'Desconhecido', color: 'bg-gray-900/20 text-gray-400 border-gray-600' };
   };
 
   const getRunningJobsCount = () => {

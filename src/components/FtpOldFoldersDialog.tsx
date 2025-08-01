@@ -80,7 +80,7 @@ const FtpOldFoldersDialog: React.FC<FtpOldFoldersDialogProps> = ({
   };
   return <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" className="border-yellow-600 text-yellow-400 bg-slate-900 hover:bg-gray-800">
+        <Button variant="outline" className="border-yellow-600 text-yellow-400 bg-gray-900 hover:bg-gray-800">
           <Clock className="mr-2 h-4 w-4" />
           Pastas Antigas ({oldFolders.length})
         </Button>

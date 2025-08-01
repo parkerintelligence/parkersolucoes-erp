@@ -122,7 +122,7 @@ const Backups = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen bg-gray-900 text-white">
       <div className="space-y-6 p-6">
         <BackupsHeader
           integrationName={ftpIntegration.name}

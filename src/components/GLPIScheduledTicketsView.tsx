@@ -19,7 +19,6 @@ import {
 import { GLPIScheduledTicketForm } from './GLPIScheduledTicketForm';
 import { useGLPI } from '@/hooks/useGLPI';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 const GLPIScheduledTicketsView = () => {
   const { data: scheduledTickets = [], isLoading, refetch } = useGLPIScheduledTickets();
@@ -31,12 +30,12 @@ const GLPIScheduledTicketsView = () => {
   const [editingTicket, setEditingTicket] = useState<GLPIScheduledTicket | null>(null);
 
   const PRIORITY_MAP: Record<number, { label: string; color: string }> = {
-    1: { label: 'Muito Baixa', color: 'bg-gray-800 text-gray-100 border-gray-700' },
-    2: { label: 'Baixa', color: 'bg-blue-800 text-blue-100 border-blue-700' },
-    3: { label: 'Média', color: 'bg-green-800 text-green-100 border-green-700' },
-    4: { label: 'Alta', color: 'bg-yellow-800 text-yellow-100 border-yellow-700' },
-    5: { label: 'Muito Alta', color: 'bg-orange-800 text-orange-100 border-orange-700' },
-    6: { label: 'Crítica', color: 'bg-red-800 text-red-100 border-red-700' },
+    1: { label: 'Muito Baixa', color: 'bg-gray-100 text-gray-800' },
+    2: { label: 'Baixa', color: 'bg-blue-100 text-blue-800' },
+    3: { label: 'Média', color: 'bg-green-100 text-green-800' },
+    4: { label: 'Alta', color: 'bg-yellow-100 text-yellow-800' },
+    5: { label: 'Muito Alta', color: 'bg-orange-100 text-orange-800' },
+    6: { label: 'Crítica', color: 'bg-red-100 text-red-800' },
   };
 
   const formatNextExecution = (datetime: string) => {
@@ -70,23 +69,13 @@ const GLPIScheduledTicketsView = () => {
     }
   };
 
-  const handleDeleteTicket = async (ticketId: string) => {
+  const handleDeleteTicket = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este agendamento?')) {
       try {
-        console.log('🗑️ [GLPI-DELETE] Deletando agendamento:', ticketId);
-        await deleteTicket.mutateAsync(ticketId);
-        toast({
-          title: "Agendamento excluído!",
-          description: "O agendamento foi removido com sucesso.",
-        });
+        await deleteTicket.mutateAsync(id);
         refetch();
       } catch (error) {
-        console.error('❌ [GLPI-DELETE] Erro ao deletar:', error);
-        toast({
-          title: "Erro ao deletar",
-          description: "Não foi possível deletar o agendamento",
-          variant: "destructive"
-        });
+        console.error('Erro ao excluir agendamento:', error);
       }
     }
   };
@@ -106,63 +95,10 @@ const GLPIScheduledTicketsView = () => {
     setEditingTicket(null);
     refetch();
   };
-  const handleTestCron = async () => {
-    try {
-      console.log('🧪 [GLPI-TEST] Iniciando teste manual do agendamento...');
-      
-      const { data, error } = await supabase.functions.invoke('process-glpi-scheduled-tickets', {
-        body: { 
-          debug: true, 
-          manual_test: true,
-          time: new Date().toISOString()
-        }
-      });
-      
-      if (error) {
-        console.error('❌ [GLPI-TEST] Erro na função:', error);
-        toast({
-          title: "Erro na função",
-          description: error.message || "Erro ao executar função de teste",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      console.log('📋 [GLPI-TEST] Resultado:', data);
-      
-      if (data?.success) {
-        toast({
-          title: "Teste executado com sucesso!",
-          description: `${data.executed_tickets} chamados processados. ${data.successful} sucessos, ${data.failed} falhas.`,
-        });
-        
-        // Mostrar detalhes dos resultados se houver falhas
-        if (data.failed > 0 && data.results) {
-          const failedTickets = data.results.filter((r: any) => !r.success);
-          console.warn('⚠️ [GLPI-TEST] Chamados com falha:', failedTickets);
-        }
-      } else {
-        toast({
-          title: "Erro no teste",
-          description: data?.message || "Falha na execução do teste",
-          variant: "destructive"
-        });
-      }
-      
-      refetch();
-    } catch (error) {
-      console.error('❌ [GLPI-TEST] Erro ao testar agendamento:', error);
-      toast({
-        title: "Erro na comunicação",
-        description: "Erro ao executar teste manual",
-        variant: "destructive"
-      });
-    }
-  };
 
   if (!glpiIntegration) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white p-6">
+      <div className="min-h-screen bg-gray-900 text-white p-6">
         <Card className="border-yellow-600 bg-yellow-900/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
@@ -193,7 +129,7 @@ const GLPIScheduledTicketsView = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white">
+      <div className="min-h-screen bg-gray-900 text-white">
         <div className="flex justify-center items-center h-96">
           <div className="text-gray-400">Carregando agendamentos...</div>
         </div>
@@ -202,7 +138,7 @@ const GLPIScheduledTicketsView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-6">
+    <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
@@ -212,41 +148,30 @@ const GLPIScheduledTicketsView = () => {
             </p>
           </div>
           
-          <div className="flex gap-2">
-            <Button 
-              onClick={handleTestCron}
-              variant="outline"
-              className="bg-purple-600 border-purple-500 text-white hover:bg-purple-700"
-            >
-              <Play className="mr-2 h-4 w-4" />
-              Testar Agendamentos
-            </Button>
-            
-            <Button onClick={handleCreateNew} className="bg-orange-600 hover:bg-orange-700 text-white">
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Agendamento
-            </Button>
-          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={handleCreateNew} className="bg-orange-600 hover:bg-orange-700 text-white">
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Agendamento
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700">
+              <DialogHeader>
+                <DialogTitle className="text-white">
+                  {editingTicket ? 'Editar Agendamento' : 'Novo Agendamento de Chamado'}
+                </DialogTitle>
+                <DialogDescription className="text-gray-400">
+                  Configure um agendamento automático para criação de chamados no GLPI
+                </DialogDescription>
+              </DialogHeader>
+              <GLPIScheduledTicketForm
+                editingTicket={editingTicket}
+                onSave={handleSave}
+                onCancel={() => setIsDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
         </div>
-
-        {/* Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700">
-            <DialogHeader>
-              <DialogTitle className="text-white">
-                {editingTicket ? 'Editar Agendamento' : 'Novo Agendamento de Chamado'}
-              </DialogTitle>
-              <DialogDescription className="text-gray-400">
-                Configure um agendamento automático para criação de chamados no GLPI
-              </DialogDescription>
-            </DialogHeader>
-            <GLPIScheduledTicketForm
-              editingTicket={editingTicket}
-              onSave={handleSave}
-              onCancel={() => setIsDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -285,28 +210,6 @@ const GLPIScheduledTicketsView = () => {
                     {scheduledTickets.reduce((sum, t) => sum + t.execution_count, 0)}
                   </p>
                   <p className="text-sm text-gray-400">Total de Execuções</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-blue-500" />
-                <div>
-                  <p className="text-sm font-bold text-white">
-                    {scheduledTickets
-                      .filter(t => t.is_active && t.next_execution)
-                      .sort((a, b) => new Date(a.next_execution!).getTime() - new Date(b.next_execution!).getTime())[0]
-                      ? `${formatNextExecution(scheduledTickets
-                          .filter(t => t.is_active && t.next_execution)
-                          .sort((a, b) => new Date(a.next_execution!).getTime() - new Date(b.next_execution!).getTime())[0]
-                          .next_execution || '')}`
-                      : 'N/A'
-                    }
-                  </p>
-                  <p className="text-sm text-gray-400">Próximo Agendamento</p>
                 </div>
               </div>
             </CardContent>

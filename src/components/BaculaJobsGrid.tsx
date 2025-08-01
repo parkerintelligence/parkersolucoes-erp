@@ -146,11 +146,11 @@ export const BaculaJobsGrid: React.FC<BaculaJobsGridProps> = ({
       case 'R':
         return <Badge className="bg-blue-900/30 text-blue-400 border-blue-600">Executando</Badge>;
       case 'C':
-        return <Badge className="bg-slate-900/30 text-gray-400 border-gray-600">Criado</Badge>;
+        return <Badge className="bg-gray-900/30 text-gray-400 border-gray-600">Criado</Badge>;
       case 'c':
         return <Badge className="bg-yellow-900/30 text-yellow-400 border-yellow-600">Aguardando</Badge>;
       default:
-        return <Badge className="bg-slate-900/30 text-gray-400 border-gray-600">{status}</Badge>;
+        return <Badge className="bg-gray-900/30 text-gray-400 border-gray-600">{status}</Badge>;
     }
   };
 
@@ -181,7 +181,7 @@ export const BaculaJobsGrid: React.FC<BaculaJobsGridProps> = ({
       case 'D':
         return <Badge className="bg-orange-900/30 text-orange-400 border-orange-600">Diferencial</Badge>;
       default:
-        return <Badge className="bg-slate-900/30 text-gray-400 border-gray-600">{level || 'N/A'}</Badge>;
+        return <Badge className="bg-gray-900/30 text-gray-400 border-gray-600">{level || 'N/A'}</Badge>;
     }
   };
 

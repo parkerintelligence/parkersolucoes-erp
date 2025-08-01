@@ -83,17 +83,17 @@ export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           placeholder="Ex: Renovação Certificado SSL"
-          className="bg-slate-900 border-gray-700 text-white placeholder:text-gray-400"
+          className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-400"
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="schedule_type_id" className="text-gray-300">Tipo *</Label>
         <Select value={formData.schedule_type_id} onValueChange={(value) => setFormData({ ...formData, schedule_type_id: value })}>
-          <SelectTrigger className="bg-slate-900 border-gray-700 text-white">
+          <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
             <SelectValue placeholder="Selecione o tipo" />
           </SelectTrigger>
-          <SelectContent className="bg-slate-900 border-gray-700">
+          <SelectContent className="bg-gray-900 border-gray-700">
             {scheduleTypes.map((type) => (
               <SelectItem key={type.id} value={type.id} className="text-white hover:bg-gray-800">
                 <div className="flex items-center gap-2">
@@ -112,10 +112,10 @@ export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
       <div className="space-y-2">
         <Label htmlFor="company" className="text-gray-300">Empresa *</Label>
         <Select value={formData.company_id} onValueChange={handleCompanyChange}>
-          <SelectTrigger className="bg-slate-900 border-gray-700 text-white">
+          <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
             <SelectValue placeholder="Selecione a empresa" />
           </SelectTrigger>
-          <SelectContent className="bg-slate-900 border-gray-700">
+          <SelectContent className="bg-gray-900 border-gray-700">
             {companies.map((company) => (
               <SelectItem key={company.id} value={company.id} className="text-white hover:bg-gray-800">
                 {company.name}
@@ -132,7 +132,7 @@ export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
           type="date"
           value={formData.due_date}
           onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-          className="bg-slate-900 border-gray-700 text-white"
+          className="bg-gray-900 border-gray-700 text-white"
         />
       </div>
 
@@ -144,7 +144,7 @@ export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           placeholder="Detalhes sobre o agendamento..."
           rows={3}
-          className="bg-slate-900 border-gray-700 text-white placeholder:text-gray-400"
+          className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-400"
         />
       </div>
 

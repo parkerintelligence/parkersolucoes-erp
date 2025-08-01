@@ -229,12 +229,12 @@ export const ScheduledReportsTable = ({
                       size="sm"
                       onClick={() => onToggleActive(report)}
                       title={report.is_active ? 'Desativar' : 'Ativar'}
-                      className="h-7 w-7 p-0 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+                      className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
                     >
                       {report.is_active ? (
-                        <Pause className="h-3 w-3" />
+                        <Pause className="h-4 w-4" />
                       ) : (
-                        <Play className="h-3 w-3" />
+                        <Play className="h-4 w-4" />
                       )}
                     </Button>
                     <Button
@@ -247,27 +247,27 @@ export const ScheduledReportsTable = ({
                         !templateInfo.isActive ? 'Template inativo' :
                         'Testar envio'
                       }
-                      className="h-7 w-7 p-0 bg-green-600 border-green-500 text-white hover:bg-green-700 disabled:opacity-50 disabled:bg-gray-600"
+                      className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 disabled:opacity-50 disabled:bg-gray-600"
                     >
-                      <TestTube className="h-3 w-3" />
+                      <TestTube className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => onEdit(report)}
                       title="Editar"
-                      className="h-7 w-7 p-0 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+                      className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
                     >
-                      <Edit className="h-3 w-3" />
+                      <Edit className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => onDelete(report.id)}
-                      className="h-7 w-7 p-0 text-red-400 hover:text-red-300 border-red-600 hover:bg-red-900/20"
+                      className="bg-red-600 hover:bg-red-700 text-white border-red-600"
                       title="Excluir"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </TableCell>

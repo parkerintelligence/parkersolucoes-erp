@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { TopHeader } from '@/components/TopHeader';
@@ -11,31 +10,9 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children }: LayoutProps) => {
-  const { isAuthenticated, isLoading, resetSessionTimer } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   console.log('Layout - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
-
-  // Resetar timer de sessão a cada atividade do usuário
-  React.useEffect(() => {
-    const handleUserActivity = () => {
-      if (isAuthenticated) {
-        resetSessionTimer();
-      }
-    };
-
-    // Eventos que indicam atividade do usuário
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    
-    events.forEach(event => {
-      document.addEventListener(event, handleUserActivity, true);
-    });
-
-    return () => {
-      events.forEach(event => {
-        document.removeEventListener(event, handleUserActivity, true);
-      });
-    };
-  }, [isAuthenticated, resetSessionTimer]);
 
   if (isLoading) {
     return (
@@ -47,17 +24,17 @@ export const Layout = ({ children }: LayoutProps) => {
 
   if (!isAuthenticated) {
     console.log('Usuário não autenticado, redirecionando para login');
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-primary">
+      <div className="min-h-screen flex w-full bg-gray-900">
         <AppSidebar />
-        <SidebarInset className="flex-1 min-w-0 flex flex-col transition-all duration-200 md:ml-0">
+        <SidebarInset className="flex-1 min-w-0">
           <TopHeader />
-          <main className="flex-1 overflow-auto bg-slate-900">
-            <div className="container-responsive py-4 sm:py-6 lg:py-8 bg-slate-900">
+          <main className="flex-1 overflow-auto p-4 md:p-6 bg-gray-900">
+            <div className="w-full max-w-7xl mx-auto">
               {children}
             </div>
           </main>

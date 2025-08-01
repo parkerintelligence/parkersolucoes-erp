@@ -37,7 +37,7 @@ const Schedule = () => {
       </div>;
   }
 
-  return <div className="min-h-screen bg-slate-900 text-white">
+  return <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto p-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Agenda</h1>
@@ -64,11 +64,11 @@ const Schedule = () => {
 
           <TabsContent value="schedule" className="space-y-6">
             <div className="flex justify-end gap-2">
-              <Button onClick={() => setShowTypeDialog(true)} variant="outline" className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600">
+              <Button onClick={() => setShowTypeDialog(true)} variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white">
                 <Settings className="mr-2 h-4 w-4" />
                 Gerenciar Sistemas/Serviços
               </Button>
-              <Button onClick={() => setShowScheduleDialog(true)} className="bg-blue-800 hover:bg-blue-700 text-white">
+              <Button onClick={() => setShowScheduleDialog(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
                 <Plus className="mr-2 h-4 w-4" />
                 Novo Agendamento
               </Button>

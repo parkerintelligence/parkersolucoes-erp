@@ -19,7 +19,7 @@ const Monitoring = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen bg-gray-900 text-white">
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
           <div>
