@@ -1,10 +1,9 @@
-
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
-// Debug log to verify React instance
-console.log('AuthContext React instance:', React.version, React);
+// Debug: Verificar instância do React
+console.log('🔍 AuthContext React version:', React.version, React);
 
 interface UserProfile {
   id: string;
@@ -34,24 +33,58 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  console.log('AuthProvider rendering, React version:', React.version);
-  console.log('React hooks available:', {
-    useState: !!React.useState,
-    useEffect: !!React.useEffect,
-    useRef: !!React.useRef,
-    useCallback: !!React.useCallback
-  });
+// Componente com fallback para erro de hooks
+const AuthProviderInternal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  console.log('🔍 AuthProviderInternal rendering, React available:', !!React);
   
-  // Use React namespace explicitly to ensure same instance
-  const [user, setUser] = React.useState<User | null>(null);
-  const [session, setSession] = React.useState<Session | null>(null);
-  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
+  // Tentar usar hooks do React de forma segura
+  let user, setUser, session, setSession, userProfile, setUserProfile, isLoading, setIsLoading;
+  let sessionTimerRef, sessionTimerIdRef;
   
-  // Usar useRef para o timer para evitar re-renders desnecessários
-  const sessionTimerRef = React.useRef<NodeJS.Timeout | null>(null);
-  const sessionTimerIdRef = React.useRef<string | null>(null);
+  try {
+    [user, setUser] = React.useState<User | null>(null);
+    [session, setSession] = React.useState<Session | null>(null);
+    [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
+    [isLoading, setIsLoading] = React.useState(true);
+    
+    sessionTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+    sessionTimerIdRef = React.useRef<string | null>(null);
+    
+    console.log('✅ Hooks inicializados com sucesso');
+  } catch (error) {
+    console.error('❌ Erro ao inicializar hooks:', error);
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        padding: '20px',
+        textAlign: 'center',
+        fontFamily: 'system-ui'
+      }}>
+        <div>
+          <h1 style={{ color: '#dc2626', marginBottom: '16px' }}>Erro de Inicialização</h1>
+          <p style={{ color: '#6b7280', marginBottom: '20px' }}>
+            Problemas na inicialização do React. Tentando recarregar...
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              background: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            Recarregar Página
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -76,7 +109,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Verificar se a sessão ainda é válida no Supabase
   const validateSession = async (): Promise<boolean> => {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
@@ -85,7 +117,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
       
-      // Verificar se o token ainda é válido (não expirou)
       const now = Math.floor(Date.now() / 1000);
       if (session.expires_at && session.expires_at < now) {
         console.log('🔍 Token de sessão expirado');
@@ -109,50 +140,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const startSessionTimer = React.useCallback(() => {
-    // Primeiro, limpar qualquer timer existente
     clearSessionTimer();
     
-    // Só criar timer se estiver autenticado
     if (!session || !user) {
       console.log('⚠️ Não pode criar timer - usuário ou sessão não disponível');
       return;
     }
     
-    // Gerar ID único para este timer
     const timerId = `timer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     sessionTimerIdRef.current = timerId;
     
-    // Criar novo timer para 30 minutos (1800000 ms)
     sessionTimerRef.current = setTimeout(async () => {
       console.log('⏰ Timer de 30 minutos executado:', timerId);
       
-      // Verificar se este é ainda o timer ativo
       if (sessionTimerIdRef.current !== timerId) {
         console.log('⚠️ Timer desatualizado, ignorando:', timerId);
         return;
       }
       
-      // Verificar se a sessão ainda é válida antes de fazer logout
       const isValid = await validateSession();
       if (isValid) {
         console.log('✅ Sessão ainda válida, renovando timer em vez de logout');
-        startSessionTimer(); // Renovar o timer
+        startSessionTimer();
         return;
       }
       
       console.log('❌ Sessão expirada após 30 minutos, fazendo logout...');
       await logout();
     }, 30 * 60 * 1000);
-    
-    // Timer iniciado silenciosamente para melhorar performance
   }, [session, user, clearSessionTimer]);
 
   const resetSessionTimer = React.useCallback(() => {
-    // Só resetar se tiver usuário e sessão válidos
     if (!session || !user) {
       return;
     }
-    
     startSessionTimer();
   }, [session, user, startSessionTimer]);
 
@@ -176,26 +197,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (mounted) {
           console.log('Sessão inicial:', session?.user?.email || 'Nenhuma sessão');
           
-        if (session?.user) {
-          setSession(session);
-          setUser(session.user);
+          if (session?.user) {
+            setSession(session);
+            setUser(session.user);
             
-          // Buscar perfil do usuário
-          const profile = await fetchUserProfile(session.user.id);
-          if (profile && mounted) {
-            const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
-            const typedProfile: UserProfile = {
-              id: profile.id,
-              email: profile.email,
-              role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
-            };
-            console.log('Perfil do usuário definido:', typedProfile);
-            setUserProfile(typedProfile);
-            
-            // Iniciar timer apenas uma vez após tudo estar configurado
-            console.log('🎯 Iniciando timer de sessão após inicialização completa');
-            startSessionTimer();
-          }
+            const profile = await fetchUserProfile(session.user.id);
+            if (profile && mounted) {
+              const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
+              const typedProfile: UserProfile = {
+                id: profile.id,
+                email: profile.email,
+                role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
+              };
+              console.log('Perfil do usuário definido:', typedProfile);
+              setUserProfile(typedProfile);
+              
+              console.log('🎯 Iniciando timer de sessão após inicialização completa');
+              startSessionTimer();
+            }
           } else {
             setSession(null);
             setUser(null);
@@ -214,7 +233,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
-    // Configurar listener de mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
@@ -226,7 +244,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(session);
           setUser(session.user);
           
-          // Buscar perfil do usuário
           const profile = await fetchUserProfile(session.user.id);
           if (profile && mounted) {
             const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
@@ -238,7 +255,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log('Perfil atualizado:', typedProfile);
             setUserProfile(typedProfile);
             
-            // Iniciar timer apenas para novos logins
             console.log('🎯 Iniciando timer de sessão após novo login');
             startSessionTimer();
           }
@@ -279,9 +295,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       console.log('✅ Login bem-sucedido para:', email);
-      console.log('👤 Usuário:', data.user.id);
-      console.log('🔑 Sessão:', !!data.session);
-      
       return true;
     } catch (error) {
       console.error('❌ Erro inesperado no login:', error);
@@ -293,7 +306,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('🚪 Fazendo logout...');
       
-      // Limpar timer de sessão
       clearSessionTimer();
       
       await supabase.auth.signOut();
@@ -319,13 +331,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resetSessionTimer
   };
 
-  console.log('AuthContext Estado:', { 
-    isAuthenticated: !!user && !!session, 
-    isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
-    userEmail: user?.email,
-    userRole: userProfile?.role,
-    isLoading
-  });
-
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Wrapper com error boundary interno
+  try {
+    return <AuthProviderInternal>{children}</AuthProviderInternal>;
+  } catch (error) {
+    console.error('❌ Erro crítico no AuthProvider:', error);
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        padding: '20px',
+        textAlign: 'center'
+      }}>
+        <div>
+          <h1>Erro na Autenticação</h1>
+          <p>Não foi possível inicializar o sistema de autenticação.</p>
+          <button onClick={() => window.location.reload()}>
+            Recarregar Página
+          </button>
+        </div>
+      </div>
+    );
+  }
 };
