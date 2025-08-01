@@ -34,9 +34,11 @@ export function ActionBoard({ boardId, columns, cards, cardItems }: ActionBoardP
     return cardItems.filter(item => item.card_id === cardId);
   };
 
+  const boardColumns = columns.filter(col => col.board_id === boardId);
+
   return (
-    <div className="flex gap-6 overflow-x-auto pb-6">
-      {columns.map((column) => (
+    <div className="flex gap-6 overflow-x-auto pb-6 min-h-[600px]">
+      {boardColumns.map((column) => (
         <ActionColumnComponent
           key={column.id}
           column={column}
@@ -52,7 +54,7 @@ export function ActionBoard({ boardId, columns, cards, cardItems }: ActionBoardP
           <DialogTrigger asChild>
             <Button 
               variant="outline" 
-              className="h-12 w-64 border-dashed border-2 hover:border-primary"
+              className="h-12 w-72 border-dashed border-2 border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5 transition-colors shadow-sm"
             >
               <Plus className="h-4 w-4 mr-2" />
               Adicionar Coluna
