@@ -131,12 +131,32 @@ serve(async (req) => {
       hasData: !!responseData,
       dataKeys: responseData ? Object.keys(responseData) : [],
       dataLength: Array.isArray(responseData?.data) ? responseData.data.length : 'not array',
-      fullResponse: responseData
+      fullResponse: JSON.stringify(responseData, null, 2)
     });
 
-    // Always return the data property if it exists, otherwise return the full response
-    const finalResponse = responseData?.data ? responseData : { data: responseData };
-    console.log('Final response being sent:', finalResponse);
+    // Se é o endpoint de hosts, vamos ver se a estrutura está correta
+    if (endpoint === '/v1/hosts') {
+      console.log('Hosts endpoint - detailed analysis:', {
+        isArray: Array.isArray(responseData),
+        hasDataProperty: !!responseData?.data,
+        directDataLength: Array.isArray(responseData) ? responseData.length : 'not array',
+        dataPropertyLength: Array.isArray(responseData?.data) ? responseData.data.length : 'not array',
+        firstItem: responseData?.[0] || responseData?.data?.[0],
+        responseDataStructure: responseData
+      });
+    }
+
+    // For hosts endpoint, the data might be directly in the root array
+    let finalResponse;
+    if (endpoint === '/v1/hosts' && Array.isArray(responseData)) {
+      finalResponse = { data: responseData };
+    } else if (responseData?.data) {
+      finalResponse = responseData;
+    } else {
+      finalResponse = { data: responseData };
+    }
+    
+    console.log('Final response being sent:', JSON.stringify(finalResponse, null, 2));
 
     return new Response(JSON.stringify(finalResponse), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
