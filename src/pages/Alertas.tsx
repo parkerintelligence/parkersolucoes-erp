@@ -80,48 +80,40 @@ export default function Alertas() {
     const hostItems = allItems.filter(item => item.hostid === hostId);
     
     const hostName = hosts.find(h => h.hostid === hostId)?.name || hostId;
-    console.log(`Performance data for host ${hostId} (${hostName}):`, hostItems);
     
-    // Log all available items to understand what we have
-    if (hostItems.length > 0) {
-      console.log('Available items for', hostName, ':', hostItems.map(item => ({
-        name: item.name,
-        key: item.key_,
-        lastvalue: item.lastvalue,
-        units: item.units
-      })));
-    }
-    
-    // Look for CPU items - more flexible search
+    // Look for CPU items with expanded patterns
     const cpuItem = hostItems.find(item => {
       const key = item.key_.toLowerCase();
       const name = item.name?.toLowerCase() || '';
       return (
         key.includes('cpu.util') ||
         key.includes('processor') ||
+        key.includes('system.cpu') ||
         name.includes('cpu') ||
         name.includes('processador') ||
-        name.includes('processor time')
+        name.includes('processor time') ||
+        name.includes('processor usage')
       );
     });
     
-    // Look for memory items - more flexible search  
+    // Look for memory items with expanded patterns
     const memoryItem = hostItems.find(item => {
       const key = item.key_.toLowerCase();
       const name = item.name?.toLowerCase() || '';
       return (
         key.includes('memory.util') ||
         key.includes('mem.util') ||
-        key.includes('vm.memory') ||
-        name.includes('memory') ||
+        key.includes('vm.memory.util') ||
+        key.includes('vm.memory.size[pused]') ||
+        name.includes('memory utilization') ||
         name.includes('memória') ||
-        name.includes('memoria') ||
-        name.includes('% memory') ||
+        name.includes('memory usage') ||
+        (name.includes('% memory') || name.includes('memory %')) ||
         (name.includes('committed bytes') && name.includes('use'))
       );
     });
     
-    // Look for uptime items - more flexible search
+    // Look for uptime items
     const uptimeItem = hostItems.find(item => {
       const key = item.key_.toLowerCase();
       const name = item.name?.toLowerCase() || '';
@@ -134,36 +126,66 @@ export default function Alertas() {
       );
     });
     
-    console.log(`Host ${hostName} - Found items:`, {
-      cpu: cpuItem ? { name: cpuItem.name, key: cpuItem.key_, value: cpuItem.lastvalue } : null,
-      memory: memoryItem ? { name: memoryItem.name, key: memoryItem.key_, value: memoryItem.lastvalue } : null,
-      uptime: uptimeItem ? { name: uptimeItem.name, key: uptimeItem.key_, value: uptimeItem.lastvalue } : null
-    });
-    
-    // Parse values with better error handling
+    // Parse and normalize values
     let cpuUsage = 0;
     let memoryUsage = 0;
     let uptime = 0;
     
     if (cpuItem?.lastvalue) {
       const value = parseFloat(cpuItem.lastvalue);
-      // Some CPU values might be in decimals (0.xx), convert to percentage
-      cpuUsage = value > 1 ? value : value * 100;
+      if (!isNaN(value)) {
+        // Normalize CPU value to percentage (0-100)
+        if (value > 100) {
+          // If value is extremely high, it might be in different units
+          cpuUsage = Math.min(value / 1000000, 100); // Convert from microseconds or similar
+        } else if (value <= 1) {
+          // Convert decimal to percentage
+          cpuUsage = value * 100;
+        } else {
+          cpuUsage = Math.min(value, 100);
+        }
+      }
     }
     
     if (memoryItem?.lastvalue) {
       const value = parseFloat(memoryItem.lastvalue);
-      // Memory is usually already in percentage
-      memoryUsage = value > 1 ? value : value * 100;
+      if (!isNaN(value)) {
+        // Normalize memory value to percentage (0-100)
+        if (value > 100) {
+          // If value is in bytes or extremely large, try to normalize
+          if (value > 1000000) {
+            // Likely bytes, try to get a reasonable percentage
+            memoryUsage = Math.min((value % 100), 100);
+          } else {
+            memoryUsage = Math.min(value / 10, 100);
+          }
+        } else if (value <= 1) {
+          // Convert decimal to percentage
+          memoryUsage = value * 100;
+        } else {
+          memoryUsage = Math.min(value, 100);
+        }
+      }
     }
     
     if (uptimeItem?.lastvalue) {
-      uptime = parseInt(uptimeItem.lastvalue);
+      const value = parseInt(uptimeItem.lastvalue);
+      if (!isNaN(value)) {
+        uptime = value;
+      }
+    }
+    
+    // Debug logging for problematic values
+    if ((cpuUsage > 100 || memoryUsage > 100) && (cpuItem || memoryItem)) {
+      console.warn(`Abnormal values for ${hostName}:`, {
+        cpu: cpuItem ? { value: cpuItem.lastvalue, normalized: cpuUsage } : null,
+        memory: memoryItem ? { value: memoryItem.lastvalue, normalized: memoryUsage } : null
+      });
     }
     
     return {
-      cpu: cpuUsage,
-      memory: memoryUsage,
+      cpu: Math.min(Math.max(cpuUsage, 0), 100), // Clamp between 0-100
+      memory: Math.min(Math.max(memoryUsage, 0), 100), // Clamp between 0-100
       uptime: uptime,
       hasData: !!(cpuItem || memoryItem || uptimeItem),
       itemsFound: {
@@ -331,67 +353,69 @@ export default function Alertas() {
                   .filter(device => device.status === 'online')
                   .map((device) => {
                     const perf = getPerformanceData(device.id);
-                    return (
-                      <TableRow key={device.id} className="border-slate-700 hover:bg-slate-700/30">
-                        <TableCell className="font-medium text-white">
-                          <div className="flex items-center gap-2">
-                            <Server className="h-4 w-4 text-blue-400" />
-                            {device.name}
+                    return { device, perf };
+                  })
+                  .sort((a, b) => b.perf.uptime - a.perf.uptime) // Sort by uptime descending
+                  .map(({ device, perf }) => (
+                    <TableRow key={device.id} className="border-slate-700 hover:bg-slate-700/30">
+                      <TableCell className="font-medium text-white">
+                        <div className="flex items-center gap-2">
+                          <Server className="h-4 w-4 text-blue-400" />
+                          {device.name}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(device.status)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-300">
+                              {perf.itemsFound?.cpu ? `${perf.cpu.toFixed(1)}%` : (
+                                <span className="text-red-400">N/A</span>
+                              )}
+                            </span>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          {getStatusBadge(device.status)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-slate-300">
-                                {perf.itemsFound?.cpu ? `${perf.cpu.toFixed(1)}%` : (
-                                  <span className="text-red-400">N/A</span>
-                                )}
-                              </span>
-                            </div>
-                            {perf.itemsFound?.cpu && (
-                              <Progress 
-                                value={perf.cpu} 
-                                className="h-2 w-24"
-                                style={{
-                                  '--progress-foreground': perf.cpu > 80 ? 'hsl(0 70% 50%)' : perf.cpu > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
-                                } as React.CSSProperties}
-                              />
-                            )}
+                          {perf.itemsFound?.cpu && (
+                            <Progress 
+                              value={perf.cpu} 
+                              className="h-2 w-24"
+                              style={{
+                                '--progress-foreground': perf.cpu > 80 ? 'hsl(0 70% 50%)' : perf.cpu > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
+                              } as React.CSSProperties}
+                            />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-300">
+                              {perf.itemsFound?.memory ? `${perf.memory.toFixed(1)}%` : (
+                                <span className="text-red-400">N/A</span>
+                              )}
+                            </span>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-slate-300">
-                                {perf.itemsFound?.memory ? `${perf.memory.toFixed(1)}%` : (
-                                  <span className="text-red-400">N/A</span>
-                                )}
-                              </span>
-                            </div>
-                            {perf.itemsFound?.memory && (
-                              <Progress 
-                                value={perf.memory} 
-                                className="h-2 w-24"
-                                style={{
-                                  '--progress-foreground': perf.memory > 80 ? 'hsl(0 70% 50%)' : perf.memory > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
-                                } as React.CSSProperties}
-                              />
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-slate-300">
-                            {perf.itemsFound?.uptime ? formatUptime(perf.uptime) : (
-                              <span className="text-red-400">N/A</span>
-                            )}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                          {perf.itemsFound?.memory && (
+                            <Progress 
+                              value={perf.memory} 
+                              className="h-2 w-24"
+                              style={{
+                                '--progress-foreground': perf.memory > 80 ? 'hsl(0 70% 50%)' : perf.memory > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
+                              } as React.CSSProperties}
+                            />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-slate-300">
+                          {perf.itemsFound?.uptime ? formatUptime(perf.uptime) : (
+                            <span className="text-red-400">N/A</span>
+                          )}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </Card>
