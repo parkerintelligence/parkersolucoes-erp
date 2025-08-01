@@ -36,6 +36,7 @@ const UniFiAdminConfig = () => {
   const [formData, setFormData] = useState({
     name: '',
     base_url: '',
+    api_token: '',
     username: '',
     password: '',
     port: 8443,
@@ -49,6 +50,7 @@ const UniFiAdminConfig = () => {
     setFormData({
       name: '',
       base_url: '',
+      api_token: '',
       username: '',
       password: '',
       port: 8443,
@@ -67,6 +69,7 @@ const UniFiAdminConfig = () => {
         type: 'unifi',
         name: formData.name,
         base_url: formData.base_url,
+        api_token: formData.api_token,
         username: formData.username,
         password: formData.password,
         port: formData.port,
@@ -106,6 +109,7 @@ const UniFiAdminConfig = () => {
     setFormData({
       name: integration.name,
       base_url: integration.base_url,
+      api_token: integration.api_token || '',
       username: integration.username,
       password: integration.password,
       port: integration.port || 8443,
@@ -177,7 +181,8 @@ const UniFiAdminConfig = () => {
             <div>
               <CardTitle className="text-white">Integração UniFi</CardTitle>
               <CardDescription className="text-slate-400">
-                Configure as conexões com UniFi Controllers para gerenciamento de rede
+                Configure as conexões com UniFi Controllers para gerenciamento de rede.
+                Use a API Universal da UniFi ou credenciais de administrador local.
               </CardDescription>
             </div>
           </div>
@@ -279,7 +284,36 @@ const UniFiAdminConfig = () => {
                         className="bg-slate-700 border-slate-600 text-white"
                       />
                     </div>
-                  </div>
+                   </div>
+
+                   <div>
+                     <Label htmlFor="api_token" className="text-white">Token de Acesso da API</Label>
+                     <Input
+                       id="api_token"
+                       type="password"
+                       value={formData.api_token}
+                       onChange={(e) => setFormData({ ...formData, api_token: e.target.value })}
+                       placeholder="Token da API Universal UniFi"
+                       className="bg-slate-700 border-slate-600 text-white"
+                     />
+                      <p className="text-xs text-slate-400 mt-1">
+                        Token da API Universal UniFi. Se fornecido, será usado ao invés de usuário/senha.
+                        <br />
+                        <a href="https://account.ui.com/api" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                          Obtenha seu token na conta UniFi
+                        </a>
+                      </p>
+                   </div>
+
+                   <Alert className="border-blue-500 bg-blue-500/10 mb-4">
+                     <Wifi className="h-4 w-4" />
+                     <AlertDescription className="text-white">
+                       <strong>Opções de Autenticação:</strong><br />
+                       • <strong>API Universal:</strong> Use apenas o Token de Acesso (recomendado)<br />
+                       • <strong>Credenciais Locais:</strong> Use Usuário e Senha do controller local<br />
+                       Se ambos forem fornecidos, o token terá prioridade.
+                     </AlertDescription>
+                   </Alert>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -288,9 +322,8 @@ const UniFiAdminConfig = () => {
                         id="username"
                         value={formData.username}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                        placeholder="admin"
-                        required
-                        className="bg-slate-700 border-slate-600 text-white"
+                         placeholder="admin"
+                         className="bg-slate-700 border-slate-600 text-white"
                       />
                     </div>
                     <div>
@@ -300,9 +333,8 @@ const UniFiAdminConfig = () => {
                         type="password"
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        placeholder="••••••••"
-                        required
-                        className="bg-slate-700 border-slate-600 text-white"
+                         placeholder="••••••••"
+                         className="bg-slate-700 border-slate-600 text-white"
                       />
                     </div>
                   </div>

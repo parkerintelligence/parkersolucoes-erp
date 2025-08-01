@@ -69,11 +69,16 @@ serve(async (req) => {
       throw new Error('UniFi integration is not active');
     }
 
-    const { base_url, username, password, port, use_ssl } = integration;
+    const { base_url, username, password, port, use_ssl, api_token } = integration;
     
-    if (!base_url || !username || !password) {
-      console.error('Missing integration config:', { base_url: !!base_url, username: !!username, password: !!password });
-      throw new Error('UniFi integration is not properly configured');
+    console.log("Integration auth config:", { 
+      hasToken: !!api_token, 
+      hasCredentials: !!(username && password) 
+    });
+    
+    if (!api_token && (!username || !password)) {
+      console.error('Missing integration config - need either token or credentials');
+      throw new Error('UniFi integration needs either API token or username/password');
     }
 
     // Build the full URL
@@ -82,9 +87,51 @@ serve(async (req) => {
     
     console.log(`Making UniFi request to: ${fullBaseUrl}${endpoint}`);
 
-    // Create cookie jar for session management
     let cookies = '';
+    let authHeaders: Record<string, string> = {};
 
+    // Check if using Universal API token
+    if (api_token) {
+      console.log('Using Universal API token authentication');
+      authHeaders['Authorization'] = `Bearer ${api_token}`;
+      
+      // For Universal API, make direct request
+      const apiUrl = `${fullBaseUrl}${endpoint}`;
+      console.log('Making UniFi Universal API request to:', apiUrl);
+
+      const requestOptions: RequestInit = {
+        method: method || 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...authHeaders
+        },
+      };
+
+      if (postData && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+        requestOptions.body = JSON.stringify(postData);
+      }
+
+      const apiResponse = await fetch(apiUrl, requestOptions);
+
+      if (!apiResponse.ok) {
+        console.error('UniFi Universal API request failed:', apiResponse.status, apiResponse.statusText);
+        const errorText = await apiResponse.text();
+        console.error('UniFi Universal API error response:', errorText);
+        throw new Error(`UniFi Universal API request failed: ${apiResponse.statusText}`);
+      }
+
+      const responseData = await apiResponse.json();
+      console.log('UniFi Universal API response successful');
+
+      return new Response(JSON.stringify(responseData), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Legacy local controller authentication with session cookies
+    console.log('Using local controller authentication with username/password');
+    
     // First, login to UniFi controller
     console.log('Logging into UniFi controller...');
     const loginResponse = await fetch(`${fullBaseUrl}/api/login`, {
