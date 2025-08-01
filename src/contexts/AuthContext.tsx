@@ -35,8 +35,15 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  console.log('AuthProvider rendering, React hooks available:', !!React.useState);
+  console.log('AuthProvider rendering, React version:', React.version);
+  console.log('React hooks available:', {
+    useState: !!React.useState,
+    useEffect: !!React.useEffect,
+    useRef: !!React.useRef,
+    useCallback: !!React.useCallback
+  });
   
+  // Use React namespace explicitly to ensure same instance
   const [user, setUser] = React.useState<User | null>(null);
   const [session, setSession] = React.useState<Session | null>(null);
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);

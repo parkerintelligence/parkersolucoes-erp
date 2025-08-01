@@ -20,8 +20,6 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "react": path.resolve(__dirname, "./node_modules/react"),
-      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
     dedupe: ['react', 'react-dom'],
   },
@@ -66,20 +64,23 @@ export default defineConfig(({ mode }) => ({
       esmExternals: true,
     },
     rollupOptions: {
-      external: [],
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'supabase-vendor': ['@supabase/supabase-js'],
-          'charts-vendor': ['recharts'],
-          'lodash-vendor': ['lodash'],
-          'aws-vendor': ['@aws-sdk/client-s3'],
+        manualChunks: (id) => {
+          // Force React and React-DOM into a single chunk
+          if (id.includes('react') || id.includes('React')) {
+            return 'react-single';
+          }
+          // Keep other vendor dependencies separate
+          if (id.includes('@supabase')) return 'supabase';
+          if (id.includes('recharts')) return 'charts';
+          if (id.includes('lodash')) return 'lodash';
+          if (id.includes('@aws-sdk')) return 'aws';
         },
         format: 'es',
         interop: 'auto',
       },
     },
   },
-  // Force clear cache
-  cacheDir: 'node_modules/.vite-clear',
+  // Force clear cache with unique directory
+  cacheDir: 'node_modules/.vite-react-fix',
 }));
