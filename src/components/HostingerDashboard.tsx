@@ -161,7 +161,7 @@ export const HostingerDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Header com Estatísticas Resumidas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -182,13 +182,32 @@ export const HostingerDashboard = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-500/20 rounded-lg">
-                  <Activity className="h-5 w-5 text-blue-400" />
+                <div className="p-2 bg-green-500/20 rounded-lg">
+                  <Activity className="h-5 w-5 text-green-400" />
                 </div>
                 <div>
                   <p className="text-sm text-slate-400">Ativos</p>
                   <p className="text-2xl font-bold text-white">
                     {vpsList?.filter((vps: any) => vps.state === 'running' || vps.status === 'active').length || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-slate-800 border-slate-700">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-orange-500/20 rounded-lg">
+                  <Gauge className="h-5 w-5 text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">Monitoramento</p>
+                  <p className="text-lg font-bold text-white flex items-center gap-2">
+                    <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse" />
+                    Tempo Real
                   </p>
                 </div>
               </div>
@@ -434,16 +453,24 @@ const VPSCard: React.FC<VPSCardProps> = ({
               <h4 className="text-sm font-medium text-slate-300 flex items-center gap-2">
                 <Gauge className="h-4 w-4 text-blue-400" />
                 Performance
+                <span className="text-xs text-slate-500">
+                  ({metrics.isReal ? 'Real-time' : 'Live Simulation'})
+                </span>
               </h4>
-              <Badge 
-                variant="outline" 
-                className={metrics.isReal 
-                  ? "bg-blue-500/20 text-blue-300 border-blue-500/40" 
-                  : "bg-orange-500/20 text-orange-300 border-orange-500/40"
-                }
-              >
-                {metrics.isReal ? 'Tempo Real' : 'Simulado'}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full animate-pulse ${
+                  metrics.isReal ? 'bg-blue-400' : 'bg-orange-400'
+                }`} />
+                <Badge 
+                  variant="outline" 
+                  className={metrics.isReal 
+                    ? "bg-blue-500/20 text-blue-300 border-blue-500/40 text-xs" 
+                    : "bg-orange-500/20 text-orange-300 border-orange-500/40 text-xs"
+                  }
+                >
+                  {metrics.isReal ? 'Real' : 'Sim'}
+                </Badge>
+              </div>
             </div>
             
             <div className="space-y-3">
@@ -490,14 +517,14 @@ const VPSCard: React.FC<VPSCardProps> = ({
             variant="outline"
             size="sm"
             disabled={restarting}
-            className="flex-1 bg-slate-700 border-slate-600 hover:bg-slate-600"
+            className="p-3 bg-slate-700 border-slate-600 hover:bg-slate-600 hover:border-red-500 hover:text-red-300"
+            title="Reiniciar VPS"
           >
             {restarting ? (
               <RefreshCw className="h-4 w-4 animate-spin" />
             ) : (
               <RotateCcw className="h-4 w-4" />
             )}
-            <span className="ml-2">Reiniciar</span>
           </Button>
           
           <Button
@@ -505,14 +532,14 @@ const VPSCard: React.FC<VPSCardProps> = ({
             variant="outline"
             size="sm"
             disabled={snapshotting}
-            className="flex-1 bg-slate-700 border-slate-600 hover:bg-slate-600"
+            className="p-3 bg-slate-700 border-slate-600 hover:bg-slate-600 hover:border-blue-500 hover:text-blue-300"
+            title="Criar Snapshot"
           >
             {snapshotting ? (
               <RefreshCw className="h-4 w-4 animate-spin" />
             ) : (
               <Camera className="h-4 w-4" />
             )}
-            <span className="ml-2">Snapshot</span>
           </Button>
         </div>
       </CardContent>

@@ -122,7 +122,7 @@ const useHostingerVPS = (integrationId?: string) => {
       return enrichedVpsList;
     },
     enabled: !!integrationId,
-    refetchInterval: 30000, // Atualizar a cada 30 segundos
+    refetchInterval: 10000, // Atualizar a cada 10 segundos para dados mais em tempo real
     retry: 1, // Tentar apenas 1 vez para evitar spam de erros
   });
 };
@@ -143,7 +143,7 @@ const useHostingerVPSDetails = (integrationId: string, vpsId: string) => {
       return data?.data;
     },
     enabled: !!integrationId && !!vpsId,
-    refetchInterval: 15000, // Atualizar a cada 15 segundos para dados detalhados
+    refetchInterval: 8000, // Atualizar a cada 8 segundos para dados detalhados
   });
 };
 
@@ -212,7 +212,7 @@ const useHostingerVPSMetrics = (integrationId: string, vpsId: string, vpsIP?: st
       return simulatedMetrics;
     },
     enabled: !!integrationId && !!vpsId,
-    refetchInterval: realMetrics ? 15000 : 30000, // Mais frequente se temos dados reais
+    refetchInterval: realMetrics ? 5000 : 10000, // Mais frequente para dados em tempo real
     retry: 1,
   });
 };

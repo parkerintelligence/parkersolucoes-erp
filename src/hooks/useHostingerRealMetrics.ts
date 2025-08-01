@@ -133,9 +133,9 @@ export const useHostingerRealMetrics = ({ integrationId, vpsId, vpsIP, enabled =
       return null;
     },
     enabled: enabled && !!integrationId && !!vpsId,
-    refetchInterval: 30000, // Tentar a cada 30 segundos
+    refetchInterval: 15000, // Tentar a cada 15 segundos para tempo real
     retry: 1,
-    staleTime: 10000, // Considerar dados frescos por 10 segundos
+    staleTime: 5000, // Considerar dados frescos por 5 segundos
   });
 };
 
