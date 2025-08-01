@@ -41,6 +41,9 @@ export default defineConfig(({ mode }) => ({
       'lodash/isString',
       'lodash/isNaN',
       'lodash/get',
+      'prop-types',
+      'react-smooth',
+      'fast-equals',
     ],
     exclude: ['lovable-tagger'],
     force: true,
@@ -54,9 +57,10 @@ export default defineConfig(({ mode }) => ({
     emptyOutDir: true,
     sourcemap: false,
     commonjsOptions: {
-      include: [/react/, /react-dom/, /supabase/, /lodash/, /recharts/],
+      include: [/react/, /react-dom/, /supabase/, /lodash/, /recharts/, /prop-types/, /react-smooth/, /fast-equals/],
       transformMixedEsModules: true,
       defaultIsModuleExports: 'auto',
+      esmExternals: true,
     },
     rollupOptions: {
       external: [],
