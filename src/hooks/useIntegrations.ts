@@ -51,22 +51,22 @@ export const useCreateIntegration = () => {
 
   return useMutation({
     mutationFn: async (integration: Omit<Integration, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-      console.log('🚀 Iniciando criação de integração:', integration);
+      console.log('🚀 [useCreateIntegration] Iniciando criação de integração:', integration);
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.error('❌ Usuário não autenticado');
+        console.error('❌ [useCreateIntegration] Usuário não autenticado');
         throw new Error('User not authenticated');
       }
 
-      console.log('✅ Usuário autenticado:', user.id);
+      console.log('✅ [useCreateIntegration] Usuário autenticado:', user.id);
 
       const integrationWithUser = {
         ...integration,
         user_id: user.id
       };
 
-      console.log('📝 Dados completos para inserção:', integrationWithUser);
+      console.log('📝 [useCreateIntegration] Dados completos para inserção:', integrationWithUser);
 
       const { data, error } = await supabase
         .from('integrations')
@@ -75,22 +75,22 @@ export const useCreateIntegration = () => {
         .single();
 
       if (error) {
-        console.error('❌ Erro na inserção no banco:', error);
-        console.error('❌ Código do erro:', error.code);
-        console.error('❌ Detalhes do erro:', error.details);
-        console.error('❌ Hint do erro:', error.hint);
+        console.error('❌ [useCreateIntegration] Erro na inserção no banco:', error);
+        console.error('❌ [useCreateIntegration] Código do erro:', error.code);
+        console.error('❌ [useCreateIntegration] Detalhes do erro:', error.details);
+        console.error('❌ [useCreateIntegration] Hint do erro:', error.hint);
         throw error;
       }
 
-      console.log('✅ Integração criada com sucesso:', data);
+      console.log('✅ [useCreateIntegration] Integração criada com sucesso:', data);
       return data;
     },
     onSuccess: (data) => {
-      console.log('🎉 Sucesso na criação, invalidando cache...');
+      console.log('🎉 [useCreateIntegration] Sucesso na criação, invalidando cache...');
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
     },
     onError: (error) => {
-      console.error('💥 Erro final no hook:', error);
+      console.error('💥 [useCreateIntegration] Erro final no hook:', error);
     },
   });
 };
@@ -100,6 +100,8 @@ export const useUpdateIntegration = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Integration> }) => {
+      console.log('🚀 [useUpdateIntegration] Iniciando atualização:', { id, updates });
+      
       const { data, error } = await supabase
         .from('integrations')
         .update(updates)
@@ -108,13 +110,17 @@ export const useUpdateIntegration = () => {
         .single();
 
       if (error) {
-        console.error('Error updating integration:', error);
+        console.error('❌ [useUpdateIntegration] Erro na atualização:', error);
+        console.error('❌ [useUpdateIntegration] Código do erro:', error.code);
+        console.error('❌ [useUpdateIntegration] Detalhes do erro:', error.details);
         throw error;
       }
 
+      console.log('✅ [useUpdateIntegration] Integração atualizada com sucesso:', data);
       return data;
     },
     onSuccess: () => {
+      console.log('🎉 [useUpdateIntegration] Sucesso na atualização, invalidando cache...');
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
       toast({
         title: "Integração atualizada!",
@@ -122,7 +128,7 @@ export const useUpdateIntegration = () => {
       });
     },
     onError: (error) => {
-      console.error('Error updating integration:', error);
+      console.error('💥 [useUpdateIntegration] Erro final no hook:', error);
       toast({
         title: "Erro ao atualizar integração",
         description: "Ocorreu um erro ao atualizar a integração.",

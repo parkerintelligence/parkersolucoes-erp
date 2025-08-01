@@ -36,8 +36,26 @@ const WazuhAdminConfig = () => {
     is_active: wazuhIntegration?.is_active ?? true,
   });
 
+  // Atualizar formData quando wazuhIntegration mudar
+  React.useEffect(() => {
+    if (wazuhIntegration) {
+      console.log('🔄 [WazuhAdminConfig] Atualizando formData com integração existente:', wazuhIntegration);
+      setFormData({
+        name: wazuhIntegration.name || 'Wazuh Principal',
+        base_url: wazuhIntegration.base_url || '',
+        username: wazuhIntegration.username || '',
+        password: wazuhIntegration.password || '',
+        api_token: wazuhIntegration.api_token || '',
+        is_active: wazuhIntegration.is_active ?? true,
+      });
+    }
+  }, [wazuhIntegration]);
+
   const handleSave = async () => {
+    console.log('🚀 Iniciando salvamento Wazuh:', formData);
+    
     if (!formData.base_url) {
+      console.error('❌ URL é obrigatória');
       toast({
         title: "Erro de validação",
         description: "A URL do Wazuh é obrigatória.",
@@ -47,6 +65,7 @@ const WazuhAdminConfig = () => {
     }
 
     if (!formData.username || !formData.password) {
+      console.error('❌ Usuário e senha são obrigatórios');
       toast({
         title: "Erro de validação", 
         description: "Usuário e senha são obrigatórios para acessar a API do Wazuh.",
@@ -56,6 +75,7 @@ const WazuhAdminConfig = () => {
     }
 
     setIsLoading(true);
+    console.log('✅ Validação passou, iniciando salvamento...');
 
     try {
       const integrationData = {
@@ -67,13 +87,20 @@ const WazuhAdminConfig = () => {
         is_active: formData.is_active,
       };
 
+      console.log('📝 Dados para salvamento:', integrationData);
+      console.log('🔍 Integração existente?', !!wazuhIntegration);
+
       if (wazuhIntegration) {
+        console.log('🔄 Atualizando integração existente...');
         await updateIntegration.mutateAsync({
           id: wazuhIntegration.id,
           updates: integrationData
         });
+        console.log('✅ Integração atualizada com sucesso');
       } else {
-        await createIntegration.mutateAsync(integrationData);
+        console.log('➕ Criando nova integração...');
+        const result = await createIntegration.mutateAsync(integrationData);
+        console.log('✅ Integração criada com sucesso:', result);
       }
 
       toast({
@@ -81,9 +108,12 @@ const WazuhAdminConfig = () => {
         description: "As configurações do Wazuh foram salvas com sucesso.",
       });
 
+      console.log('🔄 Fazendo refetch dos dados...');
       refetch();
     } catch (error) {
-      console.error('Erro ao salvar configuração:', error);
+      console.error('💥 Erro ao salvar configuração:', error);
+      console.error('💥 Detalhes do erro:', error.message);
+      console.error('💥 Stack trace:', error.stack);
       toast({
         title: "Erro ao salvar",
         description: "Ocorreu um erro ao salvar as configurações do Wazuh.",
@@ -91,6 +121,7 @@ const WazuhAdminConfig = () => {
       });
     } finally {
       setIsLoading(false);
+      console.log('🏁 Processo de salvamento finalizado');
     }
   };
 
