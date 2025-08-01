@@ -28,6 +28,7 @@ import ReportsDashboard from '@/pages/ReportsDashboard';
 import ActionPlan from '@/pages/ActionPlan';
 import Alertas from '@/pages/Alertas';
 import Security from '@/pages/Security';
+import UniFi from '@/pages/UniFi';
 import { Layout } from '@/components/Layout';
 
 // Create a single QueryClient instance
@@ -231,6 +232,14 @@ function App() {
                 element={
                   <Layout>
                     <Security />
+                  </Layout>
+                } 
+              />
+              <Route 
+                path="/unifi" 
+                element={
+                  <Layout>
+                    <UniFi />
                   </Layout>
                 } 
               />
