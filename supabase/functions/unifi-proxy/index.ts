@@ -100,7 +100,10 @@ serve(async (req) => {
       const finalPort = port || defaultPort;
       fullBaseUrl = `${protocol}://${normalizedBaseUrl}:${finalPort}`;
     } else {
-      fullBaseUrl = normalizedBaseUrl;
+      // Remove port from URL if it's already included and add it separately
+      const urlWithoutPort = normalizedBaseUrl.replace(/:8443$|:8080$/, '');
+      const finalPort = port || (use_ssl ? 8443 : 8080);
+      fullBaseUrl = `${urlWithoutPort}:${finalPort}`;
     }
 
     console.log('Final controller URL:', fullBaseUrl);
@@ -140,28 +143,100 @@ serve(async (req) => {
 
     console.log('Converted endpoint for local controller:', localEndpoint);
 
-    // Login to controller
-    console.log('Logging into local UniFi controller...');
-    const loginUrl = `${fullBaseUrl}/api/login`;
-    console.log('Login URL:', loginUrl);
+    // Try different approaches for connection
+    let loginResponse: Response;
+    let finalUrl = fullBaseUrl;
     
-    const loginResponse = await fetch(loginUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        username: username,
-        password: password,
-        remember: false
-      }),
-    });
-
-    if (!loginResponse.ok) {
-      const errorText = await loginResponse.text();
-      console.error('Local controller login failed:', loginResponse.status, errorText);
-      throw new Error(`Local controller authentication failed: ${loginResponse.status} - ${errorText}`);
+    // First try: Original URL
+    console.log('Logging into local UniFi controller...');
+    let loginUrl = `${fullBaseUrl}/api/login`;
+    console.log('Login URL (attempt 1):', loginUrl);
+    
+    try {
+      loginResponse = await fetch(loginUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username,
+          password: password,
+          remember: false
+        }),
+      });
+      
+      if (!loginResponse.ok) {
+        throw new Error(`HTTP ${loginResponse.status}`);
+      }
+      
+      console.log('Login successful with original URL');
+    } catch (firstAttemptError) {
+      console.log('First attempt failed:', firstAttemptError.message);
+      
+      // Second try: Force HTTP if HTTPS failed
+      if (fullBaseUrl.startsWith('https://')) {
+        finalUrl = fullBaseUrl.replace('https://', 'http://').replace(':8443', ':8080');
+        loginUrl = `${finalUrl}/api/login`;
+        console.log('Login URL (attempt 2 - HTTP):', loginUrl);
+        
+        try {
+          loginResponse = await fetch(loginUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+              username: username,
+              password: password,
+              remember: false
+            }),
+          });
+          
+          if (!loginResponse.ok) {
+            throw new Error(`HTTP ${loginResponse.status}`);
+          }
+          
+          console.log('Login successful with HTTP URL');
+        } catch (secondAttemptError) {
+          console.error('Second attempt also failed:', secondAttemptError.message);
+          
+          // Third try: Just the hostname without port
+          const hostname = base_url.replace(/^https?:\/\//, '').replace(/:.*$/, '');
+          finalUrl = `http://${hostname}:8080`;
+          loginUrl = `${finalUrl}/api/login`;
+          console.log('Login URL (attempt 3 - simple HTTP):', loginUrl);
+          
+          try {
+            loginResponse = await fetch(loginUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+              },
+              body: JSON.stringify({
+                username: username,
+                password: password,
+                remember: false
+              }),
+            });
+            
+            if (!loginResponse.ok) {
+              throw new Error(`HTTP ${loginResponse.status}`);
+            }
+            
+            console.log('Login successful with simple HTTP URL');
+          } catch (thirdAttemptError) {
+            console.error('All login attempts failed. Last error:', thirdAttemptError.message);
+            const errorText = await loginResponse?.text() || 'No response';
+            throw new Error(`All UniFi controller connection attempts failed. Final response: ${errorText}`);
+          }
+        }
+      } else {
+        const errorText = await loginResponse?.text() || 'No response';
+        throw new Error(`UniFi controller connection failed: ${firstAttemptError.message}. Response: ${errorText}`);
+      }
     }
 
     // Extract cookies
@@ -179,8 +254,8 @@ serve(async (req) => {
       console.warn('No cookies received from login response');
     }
 
-    // Make API request
-    const apiUrl = `${fullBaseUrl}${localEndpoint}`;
+    // Make API request using the working URL
+    const apiUrl = `${finalUrl}${localEndpoint}`;
     console.log('Making local controller API request to:', apiUrl);
 
     const requestOptions: RequestInit = {
@@ -215,7 +290,7 @@ serve(async (req) => {
 
     // Logout
     try {
-      await fetch(`${fullBaseUrl}/api/logout`, {
+      await fetch(`${finalUrl}/api/logout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
