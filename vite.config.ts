@@ -32,6 +32,10 @@ export default defineConfig(({ mode }) => ({
       'react-router-dom',
       '@tanstack/react-query',
       '@supabase/supabase-js',
+      '@supabase/postgrest-js',
+      '@supabase/storage-js',
+      '@supabase/realtime-js',
+      '@supabase/gotrue-js',
     ],
     exclude: ['lovable-tagger'],
     force: true,
@@ -45,13 +49,17 @@ export default defineConfig(({ mode }) => ({
     emptyOutDir: true,
     sourcemap: mode === 'development',
     commonjsOptions: {
-      include: [/react/, /react-dom/],
+      include: [/react/, /react-dom/, /supabase/],
+      transformMixedEsModules: true,
     },
     rollupOptions: {
+      external: [],
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom'],
+          'supabase-vendor': ['@supabase/supabase-js'],
         },
+        format: 'es',
       },
     },
   },
