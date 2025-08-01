@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FolderOpen, Folder, Monitor, ChevronDown, ChevronRight, ExternalLink, Edit, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { FolderOpen, Folder, Monitor, ChevronDown, ChevronRight, ExternalLink, Edit, Trash2, Search, Expand, Minimize2 } from 'lucide-react';
 import { GuacamoleConnection } from '@/hooks/useGuacamoleAPI';
 interface GuacamoleConnectionTreeProps {
   connections: GuacamoleConnection[];
@@ -25,43 +26,71 @@ export const GuacamoleConnectionTree = ({
   onDelete,
   isDeleting
 }: GuacamoleConnectionTreeProps) => {
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['general']));
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set()); // Começar todos recolhidos
+  const [searchFilter, setSearchFilter] = useState('');
 
-  // Organizar conexões por grupo
+  // Extrair grupo do nome da conexão (texto antes do primeiro hífen)
+  const extractGroupFromConnectionName = (connectionName: string) => {
+    const parts = connectionName.split(' - ');
+    if (parts.length > 1) {
+      return {
+        groupName: parts[0].trim(),
+        connectionDisplayName: parts.slice(1).join(' - ').trim()
+      };
+    }
+    return {
+      groupName: 'Conexões Gerais',
+      connectionDisplayName: connectionName
+    };
+  };
+
+  // Organizar conexões por grupo com filtro
   const organizedConnections = () => {
     const groups: Record<string, ConnectionGroup> = {};
 
-    // Primeiro, criar grupos baseados nos dados do Guacamole
-    connectionGroups.forEach(group => {
-      groups[group.identifier] = {
-        identifier: group.identifier,
-        name: group.name || group.identifier,
-        connections: []
-      };
+    // Filtrar conexões baseado no texto de pesquisa
+    const filteredConnections = connections.filter(connection => {
+      if (!searchFilter.trim()) return true;
+      
+      const searchTerm = searchFilter.toLowerCase().trim();
+      const { groupName, connectionDisplayName } = extractGroupFromConnectionName(connection.name);
+      
+      return (
+        groupName.toLowerCase().includes(searchTerm) ||
+        connectionDisplayName.toLowerCase().includes(searchTerm) ||
+        connection.name.toLowerCase().includes(searchTerm)
+      );
     });
 
-    // Grupo padrão para conexões sem grupo específico
-    groups['general'] = {
-      identifier: 'general',
-      name: 'Grupo de Conexão Geral',
-      connections: []
-    };
-
-    // Distribuir conexões pelos grupos
-    connections.forEach(connection => {
-      const groupId = (connection as any).parentIdentifier || 'general';
-      if (!groups[groupId]) {
-        groups[groupId] = {
-          identifier: groupId,
-          name: `Grupo ${groupId}`,
+    // Distribuir conexões pelos grupos baseado no nome
+    filteredConnections.forEach(connection => {
+      const { groupName } = extractGroupFromConnectionName(connection.name);
+      
+      // Criar grupo se não existir
+      if (!groups[groupName]) {
+        groups[groupName] = {
+          identifier: groupName,
+          name: groupName,
           connections: []
         };
       }
-      groups[groupId].connections.push(connection);
+
+      groups[groupName].connections.push(connection);
     });
 
-    // Remover grupos vazios (exceto o geral)
-    return Object.values(groups).filter(group => group.connections.length > 0 || group.identifier === 'general');
+    // Filtrar grupos também pelo nome do grupo e remover grupos vazios
+    const filteredGroups = Object.values(groups).filter(group => {
+      return group.connections.length > 0;
+    });
+
+    console.log('📊 Final groups distribution:', filteredGroups.map(g => ({
+      name: g.name,
+      id: g.identifier,
+      connectionCount: g.connections.length,
+      connections: g.connections.map(c => c.name)
+    })));
+
+    return filteredGroups;
   };
   const toggleGroup = (groupId: string) => {
     const newExpanded = new Set(expandedGroups);
@@ -85,11 +114,62 @@ export const GuacamoleConnectionTree = ({
     // Lógica simplificada para status da conexão
     return connection.activeConnections > 0 ? 'Conectado' : 'Disponível';
   };
+
   const getStatusColor = (status: string) => {
-    return status === 'Conectado' ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400';
+    return status === 'Conectado' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400';
   };
+
+  // Funções para expandir/recolher todos os grupos
+  const expandAll = () => {
+    const allGroupIds = organizedConnections().map(group => group.identifier);
+    setExpandedGroups(new Set(allGroupIds));
+  };
+
+  const collapseAll = () => {
+    setExpandedGroups(new Set());
+  };
+
   const groups = organizedConnections();
-  return <div className="space-y-2">
+  return <div className="space-y-4">
+      {/* Controles superiores */}
+      <div className="flex gap-4">
+        {/* Campo de filtro/pesquisa */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            type="text"
+            placeholder="Pesquisar por grupo ou nome da conexão..."
+            value={searchFilter}
+            onChange={(e) => setSearchFilter(e.target.value)}
+            className="pl-10 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+          />
+        </div>
+        
+        {/* Botões de expandir/recolher */}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={expandAll}
+            className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+          >
+            <Expand className="h-4 w-4 mr-2" />
+            Expandir Todos
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={collapseAll}
+            className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+          >
+            <Minimize2 className="h-4 w-4 mr-2" />
+            Recolher Todos
+          </Button>
+        </div>
+      </div>
+
+      {/* Lista de grupos e conexões */}
+      <div className="space-y-2">
       {groups.map(group => <Card key={group.identifier} className="bg-slate-800 border-slate-700">
           <div className="p-3">
             <Button variant="ghost" className="w-full justify-start p-0 h-auto hover:bg-slate-700" onClick={() => toggleGroup(group.identifier)}>
@@ -103,53 +183,57 @@ export const GuacamoleConnectionTree = ({
               </div>
             </Button>
 
-            {expandedGroups.has(group.identifier) && <div className="mt-3 space-y-2">
+            {expandedGroups.has(group.identifier) && <div className="mt-3">
                 {group.connections.length === 0 ? <div className="ml-6 py-4 text-center text-slate-500 text-sm">
                     Nenhuma conexão neste grupo
-                  </div> : group.connections.map(connection => <Card key={connection.identifier} className="ml-6 bg-slate-700 border-slate-600">
-                      <CardContent className="p-3 bg-gray-900 rounded">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                  </div> : <div className="ml-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+                    {group.connections.map(connection => <Card key={connection.identifier} className="bg-slate-700 border-slate-600 min-w-0">
+                      <CardContent className="p-3 bg-gray-900 rounded-xl">
+                        <div className="space-y-2">
+                          {/* Header com ícone e nome */}
+                          <div className="flex items-center gap-2">
                             <Monitor className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-medium text-white truncate">
-                                {connection.name}
-                              </h4>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={() => onConnect(connection)}
-                                  className="h-6 px-2 text-xs bg-green-600 hover:bg-green-700 border-green-600 text-white"
-                                >
-                                  Conectar
-                                </Button>
-                                <Badge variant="outline" className={`text-xs ${getProtocolColor(connection.protocol)}`}>
-                                  {connection.protocol.toUpperCase()}
-                                </Badge>
-                                <Badge variant="secondary" className={`text-xs ${getStatusColor(getConnectionStatus(connection))}`}>
-                                  {getConnectionStatus(connection)}
-                                </Badge>
-                              </div>
-                            </div>
+                            <h4 className="text-sm font-medium text-white truncate flex-1">
+                              {extractGroupFromConnectionName(connection.name).connectionDisplayName}
+                            </h4>
                           </div>
 
-                          <div className="flex items-center gap-1 bg-slate-50">
-                            <Button variant="ghost" size="sm" onClick={() => onConnect(connection)} className="h-7 w-7 p-0 hover:bg-slate-600">
-                              <ExternalLink className="h-3 w-3" />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => onEdit(connection)} className="h-7 w-7 p-0 hover:bg-slate-600">
+                          {/* Botões de ação */}
+                          <div className="flex items-center gap-1 justify-end">
+                            <Button variant="ghost" size="sm" onClick={() => onEdit(connection)} className="h-6 w-6 p-0 text-slate-300 hover:bg-slate-600 hover:text-white">
                               <Edit className="h-3 w-3" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => onDelete(connection.identifier)} disabled={isDeleting} className="h-7 w-7 p-0 hover:bg-red-600">
+                            <Button variant="ghost" size="sm" onClick={() => onDelete(connection.identifier)} disabled={isDeleting} className="h-6 w-6 p-0 text-slate-300 hover:bg-red-600 hover:text-white">
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
+
+                          {/* Status e protocolo */}
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <Badge variant="outline" className={`text-xs ${getProtocolColor(connection.protocol)}`}>
+                              {connection.protocol.toUpperCase()}
+                            </Badge>
+                            <Badge variant="secondary" className={`text-xs ${getStatusColor(getConnectionStatus(connection))}`}>
+                              {getConnectionStatus(connection)}
+                            </Badge>
+                          </div>
+
+                          {/* Botão conectar */}
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => onConnect(connection)} 
+                            className="w-full h-6 text-xs bg-green-600 hover:bg-green-700 border-green-600 text-white"
+                          >
+                            Conectar
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>)}
+                  </div>}
               </div>}
           </div>
         </Card>)}
+      </div>
     </div>;
 };

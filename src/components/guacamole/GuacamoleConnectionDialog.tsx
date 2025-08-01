@@ -36,21 +36,99 @@ export const GuacamoleConnectionDialog = ({
   });
 
   useEffect(() => {
-    if (connection) {
+    if (connection && open) {
+      console.log('🔍 DEBUG: Carregando dados da conexão para edição:', {
+        connectionFull: connection,
+        connectionName: connection.name,
+        connectionProtocol: connection.protocol,
+        connectionIdentifier: connection.identifier,
+        parameters: connection.parameters,
+        attributes: connection.attributes,
+        parametersKeys: connection.parameters ? Object.keys(connection.parameters) : [],
+        attributesKeys: connection.attributes ? Object.keys(connection.attributes) : []
+      });
+      
       // Mapear corretamente os dados da conexão para edição
       const params = connection.parameters || {};
+      const attributes = connection.attributes || {};
+      
+      // Lista completa de possíveis campos para hostname
+      const possibleHostnameFields = [
+        'hostname', 'host', 'guacd-hostname', 'server', 'address', 'ip',
+        'remote-host', 'target-host', 'destination-host'
+      ];
+      
+      // Lista completa de possíveis campos para port
+      const possiblePortFields = [
+        'port', 'guacd-port', 'server-port', 'remote-port', 'target-port',
+        'destination-port', 'service-port'
+      ];
+      
+      // Lista completa de possíveis campos para username
+      const possibleUsernameFields = [
+        'username', 'user', 'login', 'account', 'userid', 'user-id',
+        'login-name', 'user-name'
+      ];
+      
+      // Lista completa de possíveis campos para password
+      const possiblePasswordFields = [
+        'password', 'passwd', 'pass', 'pwd', 'secret', 'key',
+        'login-password', 'user-password'
+      ];
+      
+      // Lista completa de possíveis campos para domain
+      const possibleDomainFields = [
+        'domain', 'domain-name', 'workstation', 'domain-controller',
+        'windows-domain', 'ad-domain', 'kerberos-domain'
+      ];
+      
+      // Função helper para buscar valor em múltiplos campos
+      const findValue = (fields: string[], sources: Record<string, any>[] = [params, attributes]) => {
+        for (const source of sources) {
+          if (!source) continue;
+          for (const field of fields) {
+            if (source[field] !== undefined && source[field] !== null && source[field] !== '') {
+              console.log(`🎯 Found value for ${fields[0]}: "${source[field]}" in field "${field}"`);
+              return source[field];
+            }
+          }
+        }
+        console.log(`❌ No value found for ${fields[0]} in any field`);
+        return '';
+      };
+      
+      const hostname = findValue(possibleHostnameFields);
+      const port = findValue(possiblePortFields);
+      const username = findValue(possibleUsernameFields);
+      const password = findValue(possiblePasswordFields);
+      const domain = findValue(possibleDomainFields);
+      const security = params.security || params['security-mode'] || params['rdp-security'] || '';
+      const ignoreServerCert = ['true', true, '1', 1].includes(
+        params['ignore-server-cert'] || params['ignore-cert'] || params['ignore-certificate']
+      );
+      
+      console.log('🎯 Valores mapeados:', {
+        hostname,
+        port: port?.toString() || '',
+        username,
+        password: password ? '***masked***' : '',
+        domain,
+        security,
+        ignoreServerCert
+      });
+      
       setFormData({
         name: connection.name || '',
         protocol: connection.protocol || 'rdp',
-        hostname: params.hostname || '',
-        port: params.port || '',
-        username: params.username || '',
-        password: params.password || '',
-        domain: params.domain || '',
-        security: params.security || '',
-        ignoreServerCert: params['ignore-server-cert'] === 'true' || params['ignore-server-cert'] === true
+        hostname: hostname?.toString() || '',
+        port: port?.toString() || '',
+        username: username?.toString() || '',
+        password: password?.toString() || '',
+        domain: domain?.toString() || '',
+        security: security?.toString() || '',
+        ignoreServerCert: Boolean(ignoreServerCert)
       });
-    } else {
+    } else if (open) {
       // Reset form for new connection
       setFormData({
         name: '',
