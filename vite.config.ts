@@ -20,6 +20,8 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "react": path.resolve(__dirname, "./node_modules/react"),
+      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
   },
   optimizeDeps: {
@@ -32,13 +34,23 @@ export default defineConfig(({ mode }) => ({
     ],
     exclude: ['lovable-tagger'],
     force: true,
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
   },
   build: {
     emptyOutDir: true,
     sourcemap: mode === 'development',
     rollupOptions: {
+      external: ['react', 'react-dom'],
       output: {
         manualChunks: undefined,
+        globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM',
+        },
       },
     },
   },
