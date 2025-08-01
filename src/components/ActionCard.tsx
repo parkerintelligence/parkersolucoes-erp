@@ -88,7 +88,7 @@ export function ActionCardComponent({ card, items }: ActionCardProps) {
 
   return (
     <Card className="w-full border-l-4 bg-slate-700/90 border-slate-500" style={{ borderLeftColor: card.color }}>
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-1 pt-2 px-3">
         <div className="flex items-start justify-between">
           <h4 className="font-medium text-sm leading-tight text-white">{card.title}</h4>
           <div className="flex gap-1">
@@ -116,7 +116,7 @@ export function ActionCardComponent({ card, items }: ActionCardProps) {
         )}
       </CardHeader>
       
-      <CardContent className="pt-0 space-y-2">
+      <CardContent className="pt-0 px-3 pb-2 space-y-1">
         {/* Priority and Due Date */}
         <div className="flex items-center gap-2 flex-wrap">
           <Badge 
