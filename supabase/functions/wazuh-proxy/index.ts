@@ -144,8 +144,72 @@ serve(async (req) => {
   }
 });
 
+// Function to test basic connectivity before attempting full connection
+async function testBasicConnectivity(baseUrl: string): Promise<{ success: boolean; error?: string; details?: string }> {
+  try {
+    const url = new URL(baseUrl);
+    console.log(`🧪 Testing basic connectivity to ${url.hostname}:${url.port || (url.protocol === 'https:' ? '443' : '80')}`);
+    
+    // Test with minimal timeout for quick connectivity check
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout for basic test
+    
+    const response = await fetch(`${baseUrl}/`, {
+      method: 'HEAD', // Use HEAD for minimal data transfer
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+    
+    return {
+      success: true,
+      details: `Basic connectivity OK: ${response.status} ${response.statusText}`
+    };
+    
+  } catch (error) {
+    console.log(`❌ Basic connectivity failed: ${error.message}`);
+    
+    if (error.name === 'AbortError') {
+      return {
+        success: false,
+        error: 'Connection timeout',
+        details: 'Server did not respond within 3 seconds'
+      };
+    }
+    
+    if (error.message.includes('certificate')) {
+      return {
+        success: false,
+        error: 'SSL Certificate error',
+        details: 'SSL certificate is invalid or self-signed'
+      };
+    }
+    
+    if (error.message.includes('ECONNREFUSED') || error.message.includes('network')) {
+      return {
+        success: false,
+        error: 'Connection refused',
+        details: 'Server is not accessible or firewall is blocking the connection'
+      };
+    }
+    
+    return {
+      success: false,
+      error: 'Network error',
+      details: error.message
+    };
+  }
+}
+
 // Function to attempt connection to a specific Wazuh URL
 async function attemptWazuhConnection(baseUrl: string, endpoint: string, username: string, password: string, method?: string) {
+  // First test basic connectivity
+  const connectivityTest = await testBasicConnectivity(baseUrl);
+  if (!connectivityTest.success) {
+    console.log(`⚠️ Basic connectivity failed for ${baseUrl}: ${connectivityTest.error}`);
+    throw new Error(`${connectivityTest.error}: ${connectivityTest.details}`);
+  }
+  
   // Normalize endpoint for Wazuh API v4+
   let normalizedEndpoint = endpoint;
   
@@ -169,12 +233,12 @@ async function attemptWazuhConnection(baseUrl: string, endpoint: string, usernam
   const apiUrl = `${baseUrl}${normalizedEndpoint}`;
   const basicAuth = btoa(`${username}:${password}`);
   
-  console.log(`🔄 Attempting Wazuh connection to: ${apiUrl}`);
+  console.log(`🔄 Attempting Wazuh API call to: ${apiUrl}`);
   console.log(`🔑 Using endpoint mapping: ${endpoint} -> ${normalizedEndpoint}`);
   
-  // Create AbortController for timeout
+  // Create AbortController for timeout - reduced timeout after basic connectivity test
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout per attempt
+  const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 second timeout per attempt
 
   try {
     const apiResponse = await fetch(apiUrl, {

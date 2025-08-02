@@ -16,14 +16,21 @@ import {
   RefreshCw,
   Eye,
   Bug,
-  Lock
+  Lock,
+  Wifi,
+  WifiOff,
+  TestTube
 } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useWazuhAPI } from '@/hooks/useWazuhAPI';
+import { validateWazuhConnection } from '@/hooks/useWazuhValidation';
+import { toast } from '@/hooks/use-toast';
 
 const Security = () => {
   const { data: integrations } = useIntegrations();
   const wazuhIntegration = integrations?.find(int => int.type === 'wazuh' && int.is_active);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionTestResult, setConnectionTestResult] = useState<any>(null);
   
   const { 
     useWazuhAgents, 
@@ -106,6 +113,52 @@ const Security = () => {
     }
   };
 
+  const handleTestConnection = async () => {
+    if (!wazuhIntegration) return;
+    
+    setIsTestingConnection(true);
+    setConnectionTestResult(null);
+    
+    try {
+      const result = await validateWazuhConnection(
+        wazuhIntegration.base_url,
+        wazuhIntegration.username,
+        wazuhIntegration.password,
+        wazuhIntegration.id
+      );
+      
+      setConnectionTestResult(result);
+      
+      if (result.isValid) {
+        toast({
+          title: "✅ Conexão bem-sucedida!",
+          description: "A conexão com o Wazuh foi estabelecida corretamente.",
+        });
+      } else {
+        toast({
+          title: "❌ Falha na conexão",
+          description: `${result.error}: ${result.details || ''}`,
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      const errorResult = {
+        isValid: false,
+        error: 'Erro de rede',
+        details: error.message || 'Falha ao testar a conexão'
+      };
+      setConnectionTestResult(errorResult);
+      
+      toast({
+        title: "❌ Erro no teste",
+        description: error.message || 'Falha ao testar a conexão',
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+
   if (!wazuhIntegration) {
     return (
       <div className="min-h-screen bg-slate-900 p-4">
@@ -152,7 +205,29 @@ const Security = () => {
                   </Badge>
                 )}
               </div>
+              {/* Connection Status */}
+              {connectionTestResult && (
+                <div className="flex items-center gap-1">
+                  {connectionTestResult.isValid ? (
+                    <Wifi className="h-3 w-3 text-green-400" />
+                  ) : (
+                    <WifiOff className="h-3 w-3 text-red-400" />
+                  )}
+                  <span className="text-xs text-slate-400">
+                    {connectionTestResult.isValid ? 'Conectado' : 'Desconectado'}
+                  </span>
+                </div>
+              )}
             </div>
+            <Button 
+              onClick={handleTestConnection}
+              disabled={isTestingConnection}
+              variant="outline"
+              className="border-slate-600 text-white hover:bg-slate-800"
+            >
+              <TestTube className={`h-4 w-4 mr-2 ${isTestingConnection ? 'animate-spin' : ''}`} />
+              Testar Conexão
+            </Button>
             <Button 
               onClick={handleRefresh}
               disabled={isLoadingData}
@@ -172,6 +247,21 @@ const Security = () => {
             </Button>
           </div>
         </div>
+
+        {/* Connection Status Alert */}
+        {connectionTestResult && !connectionTestResult.isValid && (
+          <Alert className="border-red-500 bg-red-500/10">
+            <WifiOff className="h-4 w-4" />
+            <AlertDescription className="text-white">
+              <strong>Falha na conexão:</strong> {connectionTestResult.error}
+              {connectionTestResult.details && (
+                <span className="block text-sm text-red-200 mt-1">
+                  {connectionTestResult.details}
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
