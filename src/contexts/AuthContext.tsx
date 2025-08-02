@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useContext, createContext } from 'react';
+import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -21,23 +20,23 @@ interface AuthContextType {
   resetSessionTimer: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
+  const context = React.useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [sessionTimer, setSessionTimer] = useState<NodeJS.Timeout | null>(null);
-  const [isReady, setIsReady] = useState(false);
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = React.useState<User | null>(null);
+  const [session, setSession] = React.useState<Session | null>(null);
+  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [sessionTimer, setSessionTimer] = React.useState<NodeJS.Timeout | null>(null);
+  const [isReady, setIsReady] = React.useState(false);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -62,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const startSessionTimer = () => {
+  const startSessionTimer = React.useCallback(() => {
     // Limpar timer existente
     if (sessionTimer) {
       clearTimeout(sessionTimer);
@@ -76,17 +75,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setSessionTimer(timer);
     console.log('Timer de sessão iniciado: 30 minutos');
-  };
+  }, [sessionTimer]);
 
-  const resetSessionTimer = () => {
+  const resetSessionTimer = React.useCallback(() => {
     if (sessionTimer) {
       clearTimeout(sessionTimer);
       startSessionTimer();
       console.log('Timer de sessão resetado');
     }
-  };
+  }, [sessionTimer, startSessionTimer]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     let mounted = true;
     let initTimeout: NodeJS.Timeout;
 
