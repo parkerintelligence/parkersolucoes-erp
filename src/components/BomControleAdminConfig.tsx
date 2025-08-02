@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ export const BomControleAdminConfig = () => {
   
   const bomControleIntegration = integrations?.find(integration => integration.type === 'bomcontrole');
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = React.useState({
     name: bomControleIntegration?.name || 'Bom Controle',
     base_url: bomControleIntegration?.base_url || '',
     api_token: bomControleIntegration?.api_token || '',

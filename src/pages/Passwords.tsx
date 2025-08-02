@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import * as React from 'react';
 import { usePasswords, useCreatePassword, useUpdatePassword, useDeletePassword } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,21 +37,21 @@ const Passwords = () => {
   const createPassword = useCreatePassword();
   const updatePassword = useUpdatePassword();
   const deletePassword = useDeletePassword();
-  const [showPassword, setShowPassword] = useState<{
+  const [showPassword, setShowPassword] = React.useState<{
     [key: string]: boolean;
   }>({});
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
-  const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = useState(false);
-  const [editingPassword, setEditingPassword] = useState<Password | null>(null);
-  const [whatsAppPassword, setWhatsAppPassword] = useState<PasswordWithCompany | null>(null);
-  const [editingService, setEditingService] = useState<any | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCompany, setSelectedCompany] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
-  const [activeServiceTab, setActiveServiceTab] = useState('all');
-  const [availableServices, setAvailableServices] = useState([{
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+  const [isServiceDialogOpen, setIsServiceDialogOpen] = React.useState(false);
+  const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = React.useState(false);
+  const [editingPassword, setEditingPassword] = React.useState<Password | null>(null);
+  const [whatsAppPassword, setWhatsAppPassword] = React.useState<PasswordWithCompany | null>(null);
+  const [editingService, setEditingService] = React.useState<any | null>(null);
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [selectedCompany, setSelectedCompany] = React.useState('');
+  const [selectedStatus, setSelectedStatus] = React.useState('');
+  const [activeServiceTab, setActiveServiceTab] = React.useState('all');
+  const [availableServices, setAvailableServices] = React.useState([{
     name: 'Sistema',
     icon: 'code',
     color: 'blue',
@@ -92,7 +92,7 @@ const Passwords = () => {
     color: 'gray',
     description: ''
   }]);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = React.useState({
     name: '',
     company_id: '',
     url: '',
