@@ -1,20 +1,48 @@
-import React from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
 import Alertas from './Alertas';
 
 export default function SafeAlertas() {
-  // Check if query client is available before rendering Alertas
-  try {
-    useQueryClient();
-    return <Alertas />;
-  } catch (error) {
-    console.log('SafeAlertas: QueryClient not available yet, showing loading...');
+  const [isReady, setIsReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Delay to ensure React and QueryClient are fully initialized
+    const timer = setTimeout(() => {
+      try {
+        // Test if React hooks are working
+        if (typeof React !== 'undefined' && React.useState) {
+          setIsReady(true);
+        } else {
+          setError('React not properly initialized');
+        }
+      } catch (err) {
+        setError('Failed to initialize: ' + (err as Error).message);
+      }
+    }, 100); // Small delay to ensure everything is loaded
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (error) {
     return (
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white">Alertas Zabbix</h1>
-            <p className="text-muted-foreground">Carregando sistema...</p>
+            <p className="text-red-400">Erro ao carregar: {error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isReady) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Alertas Zabbix</h1>
+            <p className="text-muted-foreground">Inicializando sistema...</p>
           </div>
         </div>
         
@@ -36,4 +64,6 @@ export default function SafeAlertas() {
       </div>
     );
   }
+
+  return <Alertas />;
 }
