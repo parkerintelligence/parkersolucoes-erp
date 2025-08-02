@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle, XCircle, AlertTriangle, Server, Wifi } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { 
+  TestTube, 
+  CheckCircle, 
+  XCircle, 
+  Activity, 
+  AlertTriangle,
+  Network,
+  Shield,
+  Zap,
+  Globe
+} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UniFiConnectionDiagnosticProps {
   integrationId: string;
@@ -13,286 +22,270 @@ interface UniFiConnectionDiagnosticProps {
 
 interface DiagnosticResult {
   test: string;
-  status: 'success' | 'error' | 'warning';
+  status: 'success' | 'error' | 'warning' | 'running';
   message: string;
-  details?: any;
+  details?: string;
   duration?: number;
-  troubleshooting?: string;
+  troubleshooting?: string[];
 }
 
 const UniFiConnectionDiagnostic: React.FC<UniFiConnectionDiagnosticProps> = ({ integrationId }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<DiagnosticResult[]>([]);
-  const { toast } = useToast();
 
   const runDiagnostics = async () => {
     setIsRunning(true);
     setResults([]);
-    
-    const testResults: DiagnosticResult[] = [];
 
-    try {
-      // Test 1: Teste de Sites (endpoint principal)
-      const testsToRun = [
-        {
-          name: "Teste de Sites",
-          endpoint: "/api/self/sites",
-          description: "Verifica acesso aos sites da controladora"
-        },
-        {
-          name: "Teste de Autenticação", 
-          endpoint: "/api/self",
-          description: "Verifica informações do usuário autenticado"
-        }
-      ];
+    const diagnosticTests = [
+      {
+        name: 'Conectividade Básica',
+        endpoint: '/api/self/sites',
+        description: 'Teste de acesso básico à API'
+      },
+      {
+        name: 'Teste com SSL Ignorado',
+        endpoint: '/api/self/sites',
+        description: 'Teste de acesso ignorando certificados SSL',
+        ignoreSSL: true
+      },
+      {
+        name: 'Listar Sites',
+        endpoint: '/api/self/sites',
+        description: 'Verificar se consegue listar sites'
+      },
+      {
+        name: 'Status de Saúde',
+        endpoint: '/api/stat/health',
+        description: 'Verificar status de saúde do sistema'
+      }
+    ];
 
-      for (const test of testsToRun) {
-        const startTime = Date.now();
-        
-        testResults.push({
-          test: test.name,
-          status: 'warning',
-          message: `Executando ${test.name.toLowerCase()}...`,
-          duration: 0
-        });
-        setResults([...testResults]);
+    for (const test of diagnosticTests) {
+      const startTime = Date.now();
+      
+      setResults(prev => [...prev, {
+        test: test.name,
+        status: 'running',
+        message: `Executando ${test.description}...`,
+      }]);
 
-        try {
-          console.log(`=== EXECUTANDO ${test.name} ===`);
-          console.log(`Endpoint: ${test.endpoint}`);
-          console.log(`Integration ID: ${integrationId}`);
-
-          const { data, error } = await supabase.functions.invoke('unifi-proxy', {
-            body: {
-              method: 'GET',
-              endpoint: test.endpoint,
-              integrationId: integrationId
-            }
-          });
-
-          const duration = Date.now() - startTime;
-          
-          // Remove o resultado "em progresso"
-          testResults.pop();
-
-          console.log(`=== RESULTADO ${test.name} ===`);
-          console.log('Error:', error);
-          console.log('Data:', data);
-
-          if (error) {
-            console.error(`Edge Function Error for ${test.name}:`, error);
-            
-            // Analisar diferentes tipos de erro
-            let troubleshooting = '';
-            let errorMsg = error.message || 'Erro desconhecido';
-            
-            if (errorMsg.includes('Edge Function returned a non-2xx status code')) {
-              troubleshooting = 'A edge function retornou erro. Verifique os logs da função para mais detalhes sobre problemas de conectividade ou autenticação.';
-            } else if (errorMsg.includes('network')) {
-              troubleshooting = 'Problema de rede. Verifique conectividade com a controladora.';
-            } else if (errorMsg.includes('timeout')) {
-              troubleshooting = 'Timeout na conexão. A controladora pode estar lenta ou inacessível.';
-            }
-
-            testResults.push({
-              test: test.name,
-              status: 'error',
-              message: `Falhou: ${errorMsg}`,
-              details: error,
-              duration,
-              troubleshooting
-            });
-          } else if (data?.error) {
-            console.error(`Controller Error for ${test.name}:`, data.error);
-            
-            let troubleshooting = '';
-            const controllerError = data.error;
-            
-            if (controllerError.includes('Authentication failed') || controllerError.includes('Credenciais')) {
-              troubleshooting = 'Problema de autenticação. Verifique: 1) Usuário e senha corretos; 2) Usuário tem permissões de admin; 3) Controladora está acessível.';
-            } else if (controllerError.includes('Conexão falhou') || controllerError.includes('SSL') || controllerError.includes('TLS')) {
-              troubleshooting = 'Problema de conectividade SSL/TLS. Tente: 1) Aceitar certificado no navegador; 2) Verificar se URL está correta; 3) Testar HTTP em vez de HTTPS.';
-            } else if (controllerError.includes('network') || controllerError.includes('timeout')) {
-              troubleshooting = 'Problema de rede. Verifique: 1) Controladora está online; 2) Porta 8443 está aberta; 3) Firewall permite acesso.';
-            }
-
-            testResults.push({
-              test: test.name,
-              status: 'error',
-              message: `Erro da Controladora: ${controllerError}`,
-              details: data,
-              duration,
-              troubleshooting
-            });
-          } else {
-            console.log(`Success for ${test.name}:`, data);
-            
-            testResults.push({
-              test: test.name,
-              status: 'success',
-              message: `✅ Sucesso - ${test.description}`,
-              details: data,
-              duration
-            });
+      try {
+        const { data: response, error } = await supabase.functions.invoke('unifi-proxy', {
+          body: {
+            method: 'GET',
+            endpoint: test.endpoint,
+            integrationId,
+            ignore_ssl: test.ignoreSSL
           }
-        } catch (testError: any) {
-          console.error(`Unexpected error for ${test.name}:`, testError);
+        });
+
+        const duration = Date.now() - startTime;
+
+        if (error) {
+          const troubleshooting = generateTroubleshooting(error);
           
-          const duration = Date.now() - startTime;
-          testResults.pop(); // Remove resultado "em progresso"
-          
-          testResults.push({
-            test: test.name,
-            status: 'error',
-            message: `Erro inesperado: ${testError.message}`,
-            details: testError,
-            duration,
-            troubleshooting: 'Erro inesperado no teste. Verifique configuração da integração e tente novamente.'
-          });
+          setResults(prev => prev.map(r => 
+            r.test === test.name ? {
+              ...r,
+              status: 'error' as const,
+              message: `Falhou: ${error.message}`,
+              details: error.details || JSON.stringify(error),
+              duration,
+              troubleshooting
+            } : r
+          ));
+        } else {
+          setResults(prev => prev.map(r => 
+            r.test === test.name ? {
+              ...r,
+              status: 'success' as const,
+              message: `Sucesso (${duration}ms)`,
+              details: `Resposta recebida: ${response ? 'dados válidos' : 'sem dados'}`,
+              duration
+            } : r
+          ));
         }
-
-        setResults([...testResults]);
+      } catch (err) {
+        const duration = Date.now() - startTime;
+        const error = err as Error;
         
-        // Pequena pausa entre testes
-        await new Promise(resolve => setTimeout(resolve, 500));
+        setResults(prev => prev.map(r => 
+          r.test === test.name ? {
+            ...r,
+            status: 'error' as const,
+            message: `Erro: ${error.message}`,
+            details: error.stack || 'Erro desconhecido',
+            duration,
+            troubleshooting: ['Verifique a conectividade de rede', 'Confirme as credenciais', 'Teste acesso manual via navegador']
+          } : r
+        ));
       }
-
-      // Mostrar resumo
-      const successCount = testResults.filter(r => r.status === 'success').length;
-      const errorCount = testResults.filter(r => r.status === 'error').length;
-      
-      if (errorCount === 0) {
-        toast({
-          title: "✅ Diagnóstico Concluído",
-          description: `Todos os ${successCount} testes passaram com sucesso!`,
-        });
-      } else {
-        toast({
-          title: "⚠️ Problemas Detectados",
-          description: `${errorCount} teste(s) falharam de ${testResults.length} total`,
-          variant: "destructive",
-        });
-      }
-
-    } catch (error: any) {
-      console.error('Critical diagnostic error:', error);
-      testResults.push({
-        test: "Diagnóstico Geral",
-        status: 'error',
-        message: `Erro crítico: ${error.message}`,
-        details: error,
-        duration: 0,
-        troubleshooting: 'Erro crítico no sistema de diagnóstico. Verifique configuração e tente novamente.'
-      });
-      setResults(testResults);
-      
-      toast({
-        title: "❌ Erro no Diagnóstico",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsRunning(false);
     }
+
+    setIsRunning(false);
+  };
+
+  const generateTroubleshooting = (error: any): string[] => {
+    const suggestions = [];
+    const errorMsg = error.message?.toLowerCase() || '';
+    
+    if (errorMsg.includes('ssl') || errorMsg.includes('certificate') || errorMsg.includes('tls')) {
+      suggestions.push('Problema de certificado SSL detectado');
+      suggestions.push('Tente ativar "Ignorar certificados SSL inválidos" nas configurações');
+      suggestions.push('Acesse a controladora pelo navegador e aceite o certificado');
+    }
+    
+    if (errorMsg.includes('connection') || errorMsg.includes('network')) {
+      suggestions.push('Problema de conectividade de rede');
+      suggestions.push('Verifique se a controladora está acessível na rede');
+      suggestions.push('Confirme se a URL e porta estão corretas');
+    }
+    
+    if (errorMsg.includes('401') || errorMsg.includes('unauthorized') || errorMsg.includes('credentials')) {
+      suggestions.push('Problema de autenticação');
+      suggestions.push('Verifique se o usuário e senha estão corretos');
+      suggestions.push('Confirme se o usuário tem permissões de administrador');
+    }
+    
+    if (errorMsg.includes('404') || errorMsg.includes('not found')) {
+      suggestions.push('Endpoint não encontrado');
+      suggestions.push('Verifique se a URL da controladora está correta');
+      suggestions.push('Confirme se a controladora está rodando na porta especificada');
+    }
+
+    if (suggestions.length === 0) {
+      suggestions.push('Erro desconhecido - verifique logs para mais detalhes');
+    }
+
+    return suggestions;
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'success': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'error': return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'warning': return <Loader2 className="h-4 w-4 text-yellow-500 animate-spin" />;
-      default: return null;
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'error':
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      case 'warning':
+        return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+      case 'running':
+        return <Activity className="h-4 w-4 text-blue-500 animate-spin" />;
+      default:
+        return <Globe className="h-4 w-4 text-gray-500" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'success': return 'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800';
-      case 'error': return 'bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800';
-      case 'warning': return 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950 dark:border-yellow-800';
-      default: return 'bg-gray-50 border-gray-200 dark:bg-gray-950 dark:border-gray-800';
+      case 'success':
+        return 'border-green-500 bg-green-50 dark:bg-green-950';
+      case 'error':
+        return 'border-red-500 bg-red-50 dark:bg-red-950';
+      case 'warning':
+        return 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950';
+      case 'running':
+        return 'border-blue-500 bg-blue-50 dark:bg-blue-950';
+      default:
+        return 'border-gray-500 bg-gray-50 dark:bg-gray-950';
     }
   };
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card>
       <CardHeader>
-        <div className="flex items-center gap-3">
-          <Server className="h-6 w-6 text-blue-400" />
+        <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-white flex items-center gap-2">
-              Diagnóstico Avançado UniFi
+            <CardTitle className="flex items-center gap-2">
+              <TestTube className="h-5 w-5" />
+              Diagnóstico de Conexão
             </CardTitle>
-            <CardDescription className="text-slate-400">
-              Execute um diagnóstico detalhado da conexão com sua controladora local
+            <CardDescription>
+              Execute testes de conectividade para diagnosticar problemas
             </CardDescription>
           </div>
+          <Button 
+            onClick={runDiagnostics} 
+            disabled={isRunning}
+            variant="outline"
+          >
+            {isRunning ? (
+              <>
+                <Activity className="h-4 w-4 mr-2 animate-spin" />
+                Executando...
+              </>
+            ) : (
+              <>
+                <TestTube className="h-4 w-4 mr-2" />
+                Executar Diagnóstico
+              </>
+            )}
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Button 
-          onClick={runDiagnostics} 
-          disabled={isRunning}
-          className="w-full bg-blue-600 hover:bg-blue-700"
-        >
-          {isRunning ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Executando Diagnósticos...
-            </>
-          ) : (
-            <>
-              <Wifi className="mr-2 h-4 w-4" />
-              Executar Diagnóstico Completo
-            </>
-          )}
-        </Button>
-
-        {results.length > 0 && (
-          <div className="space-y-3">
-            <h3 className="font-medium text-white">Resultados do Diagnóstico:</h3>
-            {results.map((result, index) => (
-              <Alert key={index} className={`${getStatusColor(result.status)} border-slate-600`}>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-2">
-                    {getStatusIcon(result.status)}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-white">{result.test}</span>
-                        {result.duration !== undefined && result.duration > 0 && (
-                          <Badge variant="outline" className="text-xs">
-                            {result.duration}ms
-                          </Badge>
-                        )}
-                      </div>
-                      <AlertDescription className="mt-1 text-slate-300">
-                        {result.message}
-                      </AlertDescription>
-                      
-                      {result.troubleshooting && (
-                        <div className="mt-2 p-2 bg-yellow-900/20 border border-yellow-800/30 rounded text-yellow-300 text-sm">
-                          <strong>💡 Dicas de solução:</strong>
-                          <div className="mt-1">{result.troubleshooting}</div>
-                        </div>
-                      )}
-                      
-                      {result.details && (
-                        <details className="mt-2">
-                          <summary className="cursor-pointer text-sm text-slate-400 hover:text-slate-200">
-                            🔍 Ver detalhes técnicos
-                          </summary>
-                          <pre className="mt-2 text-xs bg-slate-900 text-slate-300 p-2 rounded border border-slate-600 overflow-auto max-h-32">
-                            {JSON.stringify(result.details, null, 2)}
-                          </pre>
-                        </details>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Alert>
-            ))}
-          </div>
+        {results.length === 0 && !isRunning && (
+          <Alert>
+            <Network className="h-4 w-4" />
+            <AlertDescription>
+              Clique em "Executar Diagnóstico" para testar a conectividade com a controladora UniFi.
+            </AlertDescription>
+          </Alert>
         )}
+
+        {results.map((result, index) => (
+          <Alert key={index} className={getStatusColor(result.status)}>
+            <div className="flex items-start gap-3">
+              {getStatusIcon(result.status)}
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">{result.test}</h4>
+                  <Badge variant="outline" className="ml-2">
+                    {result.status === 'running' ? 'Executando' : 
+                     result.status === 'success' ? 'Sucesso' :
+                     result.status === 'error' ? 'Erro' : 'Aviso'}
+                  </Badge>
+                </div>
+                
+                <p className="text-sm">{result.message}</p>
+                
+                {result.duration && (
+                  <p className="text-xs text-muted-foreground">
+                    Tempo de resposta: {result.duration}ms
+                  </p>
+                )}
+                
+                {result.troubleshooting && result.troubleshooting.length > 0 && (
+                  <div className="mt-3 p-3 bg-muted rounded-lg">
+                    <h5 className="text-sm font-medium mb-2 flex items-center gap-1">
+                      <Shield className="h-3 w-3" />
+                      Solução de problemas:
+                    </h5>
+                    <ul className="text-xs space-y-1">
+                      {result.troubleshooting.map((tip, i) => (
+                        <li key={i} className="flex items-start gap-1">
+                          <span className="text-muted-foreground">•</span>
+                          <span>{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {result.details && (
+                  <details className="mt-2">
+                    <summary className="text-xs cursor-pointer text-muted-foreground hover:text-foreground">
+                      Detalhes técnicos
+                    </summary>
+                    <pre className="text-xs mt-1 p-2 bg-muted rounded overflow-auto max-h-32">
+                      {result.details}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            </div>
+          </Alert>
+        ))}
       </CardContent>
     </Card>
   );

@@ -114,7 +114,7 @@ const UniFi = () => {
         password: unifiIntegration.password || '',
         port: unifiIntegration.port || 8443,
         use_ssl: unifiIntegration.use_ssl ?? true,
-        ignore_ssl: false, // Default value since property might not exist
+        ignore_ssl: (unifiIntegration as any).ignore_ssl ?? false,
         is_active: unifiIntegration.is_active ?? true
       });
     }

@@ -115,8 +115,8 @@ export const useUniFiAPI = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const makeUniFiRequest = async (endpoint: string, method: string = 'GET', integrationId: string, data?: any) => {
-    console.log('Making UniFi request:', { endpoint, method, integrationId, data });
+  const makeUniFiRequest = async (endpoint: string, method: string = 'GET', integrationId: string, data?: any, ignoreSsl?: boolean) => {
+    console.log('Making UniFi request:', { endpoint, method, integrationId, data, ignoreSsl });
     
     try {
       const { data: response, error } = await supabase.functions.invoke('unifi-proxy', {
@@ -125,6 +125,7 @@ export const useUniFiAPI = () => {
           endpoint,
           integrationId,
           data,
+          ignore_ssl: ignoreSsl,
         },
       });
 

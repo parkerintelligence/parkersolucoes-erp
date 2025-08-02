@@ -64,7 +64,7 @@ serve(async (req) => {
     console.log(`User authenticated: ${user.id}`);
 
     const requestBody = await req.json();
-    const { method, endpoint, integrationId, data: postData } = requestBody;
+    const { method, endpoint, integrationId, data: postData, ignore_ssl = false } = requestBody;
 
     console.log('UniFi Local Controller API request:', { method, endpoint, integrationId, userId: user.id });
 
@@ -90,7 +90,7 @@ serve(async (req) => {
     }
 
     // Check if this is a local controller integration (has username/password) or Site Manager API (has api_token)
-    const { base_url, username, password, api_token, use_ssl = true } = integration;
+    const { base_url, username, password, api_token, use_ssl = true, ignore_ssl = false } = integration;
     
     const isLocalController = !!(username && password && base_url && !base_url.includes('api.ui.com'));
     const isSiteManagerAPI = !!(api_token && (!base_url || base_url.includes('api.ui.com')));
@@ -131,6 +131,7 @@ serve(async (req) => {
       console.log('Username provided:', !!username);
       console.log('Password provided:', !!password);
       console.log('Use SSL configured:', use_ssl);
+      console.log('Ignore SSL configured:', ignore_ssl || requestBody.ignore_ssl);
       
       // Enhanced connection diagnostics
       const connectionDetails = {
@@ -148,7 +149,10 @@ serve(async (req) => {
       let usedHttpFallback = false;
       let connectionMethod = '';
       
-      const fetchOptions = {
+      // Determine if we should ignore SSL certificates
+      const shouldIgnoreSSL = ignore_ssl || requestBody.ignore_ssl;
+      
+      const fetchOptions: any = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -161,6 +165,14 @@ serve(async (req) => {
           remember: true
         })
       };
+
+      // Add SSL bypass if requested
+      if (shouldIgnoreSSL && loginUrl.startsWith('https://')) {
+        console.log('SSL certificate validation disabled');
+        fetchOptions.agent = {
+          rejectUnauthorized: false
+        };
+      }
       
       console.log('Attempting HTTPS connection...');
       try {
@@ -320,7 +332,7 @@ serve(async (req) => {
       const apiUrl = `${finalBaseUrl}${endpoint}`;
       console.log('Making Controller API request to:', apiUrl);
 
-      const requestOptions: RequestInit = {
+      const requestOptions: any = {
         method: method || 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -328,6 +340,13 @@ serve(async (req) => {
           'Cookie': setCookieHeaders
         },
       };
+
+      // Add SSL bypass for API requests if needed
+      if (shouldIgnoreSSL && apiUrl.startsWith('https://')) {
+        requestOptions.agent = {
+          rejectUnauthorized: false
+        };
+      }
 
       if (postData && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
         requestOptions.body = JSON.stringify(postData);
