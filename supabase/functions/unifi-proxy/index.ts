@@ -124,25 +124,59 @@ serve(async (req) => {
 
     if (isLocalController) {
       // LOCAL CONTROLLER - Authenticate with username/password
-      const loginUrl = `${baseApiUrl}/api/login`;
+      let loginUrl = `${baseApiUrl}/api/login`;
       console.log('Authenticating with UniFi Controller:', loginUrl);
+      console.log('Credentials check:', { hasUsername: !!username, hasPassword: !!password });
 
-      const loginResponse = await fetch(loginUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          username: username,
-          password: password,
-          remember: true
-        }),
-        // Allow self-signed certificates for local controllers
-        ...(baseApiUrl.includes('https://') && {
-          // In Deno, we can't disable SSL verification, but we can try different approaches
-        })
-      });
+      // Try HTTPS first, then HTTP as fallback
+      let loginResponse: Response;
+      let usedHttpFallback = false;
+      
+      try {
+        loginResponse = await fetch(loginUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            username: username,
+            password: password,
+            remember: true
+          })
+        });
+      } catch (httpsError) {
+        console.error('HTTPS connection failed:', httpsError);
+        
+        // Try HTTP fallback if HTTPS failed
+        if (baseApiUrl.startsWith('https://')) {
+          const httpUrl = baseApiUrl.replace('https://', 'http://');
+          loginUrl = `${httpUrl}/api/login`;
+          console.log('Trying HTTP fallback:', loginUrl);
+          
+          try {
+            loginResponse = await fetch(loginUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+              },
+              body: JSON.stringify({
+                username: username,
+                password: password,
+                remember: true
+              })
+            });
+            usedHttpFallback = true;
+            console.log('HTTP fallback successful');
+          } catch (httpError) {
+            console.error('HTTP fallback also failed:', httpError);
+            throw new Error(`Conexão falhou com HTTPS e HTTP. Verifique URL, porta e conectividade de rede. HTTPS Error: ${httpsError.message}, HTTP Error: ${httpError.message}`);
+          }
+        } else {
+          throw httpsError;
+        }
+      }
 
       if (!loginResponse.ok) {
         const loginError = await loginResponse.text();
@@ -155,7 +189,9 @@ serve(async (req) => {
       console.log('Login successful, got cookies');
 
       // Make API request to UniFi Controller
-      const apiUrl = `${baseApiUrl}${endpoint}`;
+      // Update baseApiUrl if we used HTTP fallback
+      const finalBaseUrl = usedHttpFallback ? baseApiUrl.replace('https://', 'http://') : baseApiUrl;
+      const apiUrl = `${finalBaseUrl}${endpoint}`;
       console.log('Making Controller API request to:', apiUrl);
 
       const requestOptions: RequestInit = {
@@ -317,17 +353,27 @@ serve(async (req) => {
     // Determine appropriate status code based on error type
     let status = 400;
     let errorMessage = 'Erro interno do servidor';
+    let troubleshooting = '';
     
     if (error instanceof Error) {
       if (error.message.includes('Unauthorized') || error.message.includes('Authentication failed')) {
         status = 401;
         errorMessage = 'Falha na autenticação. Verifique se você está logado.';
-      } else if (error.message.includes('Credenciais inválidas')) {
+      } else if (error.message.includes('Credenciais inválidas') || error.message.includes('Check username/password')) {
         status = 400;
         errorMessage = 'Credenciais da Controladora UniFi inválidas.';
+        troubleshooting = 'Verifique: 1) Usuário e senha estão corretos; 2) Usuário tem permissões de administrador; 3) Controladora está acessível.';
       } else if (error.message.includes('Authorization header')) {
         status = 401;
         errorMessage = 'Header de autorização ausente.';
+      } else if (error.message.includes('Conexão falhou com HTTPS e HTTP')) {
+        status = 502;
+        errorMessage = 'Falha na conectividade de rede com a controladora.';
+        troubleshooting = 'Verifique: 1) URL e porta estão corretos; 2) Controladora está online; 3) Firewall permite acesso; 4) Certificados SSL (se HTTPS).';
+      } else if (error.message.includes('sending request for url')) {
+        status = 502;
+        errorMessage = 'Erro de conectividade SSL/TLS ou DNS.';
+        troubleshooting = 'Problemas comuns: 1) Certificado auto-assinado (normal em controladora local); 2) Porta incorreta; 3) URL inacessível; 4) Problema de DNS.';
       } else {
         errorMessage = error.message;
       }
@@ -337,6 +383,7 @@ serve(async (req) => {
       JSON.stringify({ 
         error: errorMessage,
         details: error instanceof Error ? error.message : 'Erro desconhecido',
+        troubleshooting: troubleshooting || 'Verifique a configuração da integração e conectividade de rede.',
         timestamp: new Date().toISOString()
       }),
       {

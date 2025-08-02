@@ -20,38 +20,64 @@ const UniFiConnectionDiagnostic: React.FC<UniFiConnectionDiagnosticProps> = ({ i
     setIsRunning(true);
     setResults([]);
     
-    try {
-      const response = await supabase.functions.invoke('unifi-proxy', {
-        body: {
-          integrationId,
-          endpoint: '/api/self/sites',
-          method: 'GET'
-        }
-      });
+    const tests = [
+      {
+        name: 'Teste de Sites',
+        endpoint: '/api/self/sites',
+        description: 'Verifica acesso aos sites da controladora'
+      },
+      {
+        name: 'Teste de Status',
+        endpoint: '/api/self',
+        description: 'Verifica informações do usuário'
+      }
+    ];
 
-      const result = {
-        test: 'Conexão Local UniFi',
-        status: response.error ? 'error' : 'success',
-        data: response.data,
-        error: response.error
-      };
+    const testResults = [];
+    
+    for (const test of tests) {
+      try {
+        console.log(`Executando teste: ${test.name}`);
+        const response = await supabase.functions.invoke('unifi-proxy', {
+          body: {
+            integrationId,
+            endpoint: test.endpoint,
+            method: 'GET'
+          }
+        });
 
-      setResults([result]);
-      
-      toast({
-        title: result.status === 'success' ? "Conexão bem-sucedida" : "Erro na conexão",
-        description: result.status === 'success' ? "Controladora UniFi conectada!" : result.error?.message || 'Falha na conexão',
-        variant: result.status === 'success' ? "default" : "destructive"
-      });
-      
-    } catch (error) {
-      const result = {
-        test: 'Conexão Local UniFi',
-        status: 'error',
-        error: error instanceof Error ? error.message : 'Erro desconhecido'
-      };
-      setResults([result]);
+        const result = {
+          test: test.name,
+          description: test.description,
+          status: response.error ? 'error' : 'success',
+          data: response.data,
+          error: response.error?.message || response.error
+        };
+
+        testResults.push(result);
+        console.log(`Resultado do teste ${test.name}:`, result);
+      } catch (error) {
+        const result = {
+          test: test.name,
+          description: test.description,
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Erro desconhecido'
+        };
+        testResults.push(result);
+        console.error(`Erro no teste ${test.name}:`, error);
+      }
     }
+    
+    setResults(testResults);
+    
+    const hasSuccess = testResults.some(r => r.status === 'success');
+    const hasError = testResults.some(r => r.status === 'error');
+    
+    toast({
+      title: hasSuccess ? "Alguns testes bem-sucedidos" : "Erro na conexão",
+      description: hasSuccess ? "Controladora UniFi parcialmente conectada!" : "Falha na conexão com a controladora",
+      variant: hasSuccess && !hasError ? "default" : "destructive"
+    });
     
     setIsRunning(false);
   };
@@ -90,18 +116,34 @@ const UniFiConnectionDiagnostic: React.FC<UniFiConnectionDiagnosticProps> = ({ i
 
         {results.map((result, index) => (
           <Alert key={index} className="border-slate-600">
-            <div className="flex items-center gap-2">
-              {result.status === 'success' ? 
-                <CheckCircle className="h-4 w-4 text-green-500" /> : 
-                <XCircle className="h-4 w-4 text-red-500" />
-              }
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {result.status === 'success' ? 
+                  <CheckCircle className="h-4 w-4 text-green-500" /> : 
+                  <XCircle className="h-4 w-4 text-red-500" />
+                }
+                <div>
+                  <div className="font-medium text-white">{result.test}</div>
+                  <div className="text-sm text-slate-400">{result.description}</div>
+                </div>
+              </div>
               <Badge variant={result.status === 'success' ? "default" : "destructive"}>
                 {result.status === 'success' ? 'Sucesso' : 'Erro'}
               </Badge>
             </div>
             {result.error && (
               <AlertDescription className="text-red-400 mt-2">
-                {result.error}
+                <strong>Erro:</strong> {result.error}
+                {result.error.includes('troubleshooting') && (
+                  <div className="mt-2 text-xs text-yellow-400">
+                    <strong>Dicas:</strong> {result.error.split('troubleshooting: ')[1]}
+                  </div>
+                )}
+              </AlertDescription>
+            )}
+            {result.status === 'success' && result.data && (
+              <AlertDescription className="text-green-400 mt-2">
+                <strong>Sucesso:</strong> Dados recebidos da controladora
               </AlertDescription>
             )}
           </Alert>

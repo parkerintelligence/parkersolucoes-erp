@@ -66,11 +66,13 @@ const UniFiAdminConfig = () => {
     e.preventDefault();
     
     try {
+      // For local controller, only include relevant fields
       const integrationData = {
         type: 'unifi',
         name: formData.name,
         base_url: formData.base_url,
-        api_token: formData.api_token,
+        // Only include api_token if it's provided (for Site Manager API)
+        ...(formData.api_token && { api_token: formData.api_token }),
         username: formData.username,
         password: formData.password,
         port: formData.port,
