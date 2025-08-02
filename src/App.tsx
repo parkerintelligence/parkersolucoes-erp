@@ -36,8 +36,9 @@ const queryClient = new QueryClient();
 
 function App() {
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClient}>
+    <React.StrictMode>
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <div className="min-h-screen bg-background">
             <Routes>
@@ -248,6 +249,7 @@ function App() {
         </BrowserRouter>
       </QueryClientProvider>
     </AuthProvider>
+    </React.StrictMode>
   );
 }
 
