@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,7 +30,7 @@ export const GLPIScheduledTicketForm = ({ editingTicket, onSave, onCancel }: GLP
   const createTicket = useCreateGLPIScheduledTicket();
   const updateTicket = useUpdateGLPIScheduledTicket();
 
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     name: editingTicket?.name || '',
     title: editingTicket?.title || '',
     content: editingTicket?.content || '',

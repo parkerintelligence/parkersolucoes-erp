@@ -1,5 +1,5 @@
 
-import * as React from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,9 +17,9 @@ interface FtpFileManagerProps {
 
 export const FtpFileManager = ({ className }: FtpFileManagerProps) => {
   const { files, isLoadingFiles, ftpIntegration, downloadFile, deleteFile, refetchFiles } = useFtp();
-  const [currentPath, setCurrentPath] = React.useState('/');
-  const [selectedFiles, setSelectedFiles] = React.useState<string[]>([]);
-  const [viewMode, setViewMode] = React.useState<'list' | 'grid'>('list');
+  const [currentPath, setCurrentPath] = useState('/');
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';

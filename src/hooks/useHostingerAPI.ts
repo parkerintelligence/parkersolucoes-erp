@@ -148,14 +148,13 @@ const useHostingerVPSDetails = (integrationId: string, vpsId: string) => {
 };
 
 const useHostingerVPSMetrics = (integrationId: string, vpsId: string, vpsIP?: string) => {
-  // Temporarily disable real metrics to fix React context issue
-  const realMetrics = null;
-  // const { data: realMetrics } = useHostingerRealMetrics({
-  //   integrationId,
-  //   vpsId,
-  //   vpsIP,
-  //   enabled: !!integrationId && !!vpsId
-  // });
+  // Tentar obter métricas reais através de múltiplos métodos
+  const { data: realMetrics } = useHostingerRealMetrics({
+    integrationId,
+    vpsId,
+    vpsIP,
+    enabled: !!integrationId && !!vpsId
+  });
 
   return useQuery({
     queryKey: ['hostinger-vps-metrics', integrationId, vpsId],

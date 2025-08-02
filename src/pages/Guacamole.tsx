@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,9 +50,9 @@ const Guacamole = () => {
       logInfo(message, options);
     }
   });
-  const [refreshing, setRefreshing] = React.useState(false);
-  const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
-  const [connectionDialog, setConnectionDialog] = React.useState<{
+  const [refreshing, setRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [connectionDialog, setConnectionDialog] = useState<{
     open: boolean;
     connection?: GuacamoleConnection | null;
   }>({

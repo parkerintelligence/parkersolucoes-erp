@@ -1,9 +1,11 @@
-import * as React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+// import { useSystemSettings } from '@/hooks/useSystemSettings'; // Temporarily disabled
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Crown, Shield, ChevronRight, Home, PanelLeft, DollarSign, Settings } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+// import { PWAInstallButton } from '@/components/PWAInstallButton'; // Temporarily disabled
 export const TopHeader = () => {
   const {
     user,
@@ -11,21 +13,24 @@ export const TopHeader = () => {
     logout,
     isMaster
   } = useAuth();
+  // Temporarily disable useSystemSettings to fix React context error
+  const settings = null;
+  /*
+  const {
+    data: settings
+  } = useSystemSettings();
+  */
   const location = useLocation();
   const navigate = useNavigate();
   const companyName = 'Sistema de Gestão de TI'; // Hardcoded temporarily
   const logoUrl = null; // Hardcoded temporarily
   const handleLogout = async () => {
-    console.log('TopHeader: Logout iniciado pelo usuário');
     await logout();
   };
-  
   const handleFinancialAccess = () => {
     navigate('/financial');
   };
-  
   const handleAdminAccess = () => {
-    console.log('TopHeader: Navegando para admin - usuário master:', isMaster);
     navigate('/admin');
   };
   const getBreadcrumbTitle = () => {
@@ -72,53 +77,62 @@ export const TopHeader = () => {
 
         {/* Área do Usuário */}
         <div className="flex items-center gap-1 sm:gap-2 md:gap-3 flex-shrink-0">
-          {/* Interface do Usuário Simplificada */}
-          {user && userProfile ? (
-            <div className="flex items-center gap-2">
-              {/* Botão de Admin para Masters */}
-              {isMaster && (
-                <Button 
-                  onClick={handleAdminAccess}
-                  variant="ghost" 
-                  size="sm"
-                  className="flex items-center gap-1 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10 px-2 py-1.5 rounded-lg touch-target"
-                  title="Configurações do Sistema"
-                >
-                  <Settings className="h-4 w-4" />
-                  <span className="hidden md:inline text-sm">Admin</span>
-                </Button>
-              )}
-              
-              {/* Informações do Usuário */}
-              <div className="flex items-center gap-2 text-primary-foreground">
-                {isMaster ? (
-                  <Shield className="h-4 w-4 text-secondary" />
-                ) : (
-                  <User className="h-4 w-4" />
-                )}
-                <span className="hidden sm:inline text-sm font-medium max-w-32 lg:max-w-none truncate">
+          {/* Botão de Instalação PWA - Temporarily disabled */}
+          {/* <PWAInstallButton /> */}
+          
+          {/* Dropdown do Usuário */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center gap-1 sm:gap-2 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg touch-target">
+                {isMaster ? <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-secondary" /> : <User className="h-3 w-3 sm:h-4 sm:w-4" />}
+                <span className="hidden sm:inline text-xs sm:text-sm font-medium max-w-20 sm:max-w-32 lg:max-w-none truncate">
                   {userProfile?.email || user?.email}
                 </span>
-              </div>
-              
-              {/* Botão de Logout */}
-              <Button 
-                onClick={handleLogout}
-                variant="ghost" 
-                size="sm"
-                className="flex items-center gap-1 text-primary-foreground hover:text-red-400 hover:bg-primary-foreground/10 px-2 py-1.5 rounded-lg touch-target"
-                title="Sair do Sistema"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden md:inline text-sm">Sair</span>
               </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-primary-foreground/60">
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline text-sm">Carregando...</span>
-            </div>
-          )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64 bg-card border border-border shadow-xl rounded-xl z-50">
+              <DropdownMenuLabel className="px-4 py-3">
+                <div className="flex flex-col space-y-2">
+                  <p className="text-sm font-semibold text-card-foreground">
+                    {userProfile?.email || user?.email}
+                  </p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-2">
+                    {isMaster ? <>
+                        <Shield className="h-3 w-3 text-secondary" />
+                        Administrador Master
+                      </> : <>
+                        <User className="h-3 w-3" />
+                        Usuário
+                      </>}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              
+              {/* Acesso Financeiro (apenas para master) */}
+              {isMaster && <>
+                  <DropdownMenuItem onClick={handleFinancialAccess} className="cursor-pointer px-4 py-2 hover:bg-accent">
+                    <DollarSign className="mr-2 h-4 w-4" />
+                    <span>Acesso Financeiro</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>}
+
+              {/* Painel de Administração (apenas para master) */}
+              {isMaster && <>
+                  <DropdownMenuItem onClick={handleAdminAccess} className="cursor-pointer px-4 py-2 hover:bg-accent">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Painel de Administração</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>}
+              
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer px-4 py-2">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sair do Sistema</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>;

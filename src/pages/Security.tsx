@@ -16,21 +16,14 @@ import {
   RefreshCw,
   Eye,
   Bug,
-  Lock,
-  Wifi,
-  WifiOff,
-  TestTube
+  Lock
 } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useWazuhAPI } from '@/hooks/useWazuhAPI';
-import { validateWazuhConnection } from '@/hooks/useWazuhValidation';
-import { toast } from '@/hooks/use-toast';
 
 const Security = () => {
   const { data: integrations } = useIntegrations();
   const wazuhIntegration = integrations?.find(int => int.type === 'wazuh' && int.is_active);
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
-  const [connectionTestResult, setConnectionTestResult] = useState<any>(null);
   
   const { 
     useWazuhAgents, 
@@ -50,112 +43,76 @@ const Security = () => {
 
   const isLoadingData = agentsLoading || alertsLoading || statsLoading || complianceLoading || vulnerabilitiesLoading;
 
-  // Check for real data availability
-  const hasRealAgentsData = agents?.data && !agentsLoading;
-  const hasRealAlertsData = alerts?.data && !alertsLoading;
-  const hasRealStatsData = stats && !statsLoading;
-  const hasAnyRealData = hasRealAgentsData || hasRealAlertsData || hasRealStatsData;
-
-  // Use real data if available, otherwise use mock data with enhanced fallback
-  const displayData = {
+  // Use real data if available, otherwise use mock data
+  const displayData = wazuhIntegration && stats ? {
     agents: {
-      total: stats?.total_agents || (hasRealStatsData ? 0 : 45),
-      active: stats?.agents_connected || (hasRealStatsData ? 0 : 42),
-      disconnected: stats?.agents_disconnected || (hasRealStatsData ? 0 : 3),
-      never_connected: stats?.agents_never_connected || (hasRealStatsData ? 0 : 0)
+      total: stats.total_agents || 0,
+      active: stats.agents_connected || 0,
+      disconnected: stats.agents_disconnected || 0,
+      never_connected: stats.agents_never_connected || 0
     },
     alerts: {
-      critical: stats?.critical_alerts || (hasRealStatsData ? 0 : 12),
-      high: stats?.high_alerts || (hasRealStatsData ? 0 : 28),
-      medium: stats?.medium_alerts || (hasRealStatsData ? 0 : 156),
-      low: stats?.low_alerts || (hasRealStatsData ? 0 : 89),
-      total: stats?.total_alerts_today || (hasRealStatsData ? 0 : 285)
+      critical: stats.critical_alerts || 0,
+      high: stats.high_alerts || 0,
+      medium: stats.medium_alerts || 0,
+      low: stats.low_alerts || 0,
+      total: stats.total_alerts_today || 0
     },
     compliance: compliance?.data || {
-      pci_dss: hasRealStatsData ? 0 : 87,
-      gdpr: hasRealStatsData ? 0 : 92,
-      hipaa: hasRealStatsData ? 0 : 78,
-      nist: hasRealStatsData ? 0 : 85
+      pci_dss: 87,
+      gdpr: 92,
+      hipaa: 78,
+      nist: 85
     },
     vulnerabilities: vulnerabilities?.data || {
-      critical: hasRealStatsData ? 0 : 5,
-      high: hasRealStatsData ? 0 : 23,
-      medium: hasRealStatsData ? 0 : 67,
-      low: hasRealStatsData ? 0 : 134
+      critical: 5,
+      high: 23,
+      medium: 67,
+      low: 134
     },
-    agentsList: agents?.data?.affected_items || (hasRealAgentsData ? [] : [
+    agentsList: agents?.data?.affected_items || [],
+    alertsList: alerts?.data?.affected_items || []
+  } : {
+    agents: {
+      total: 45,
+      active: 42,
+      disconnected: 3,
+      never_connected: 0
+    },
+    alerts: {
+      critical: 12,
+      high: 28,
+      medium: 156,
+      low: 89,
+      total: 285
+    },
+    compliance: {
+      pci_dss: 87,
+      gdpr: 92,
+      hipaa: 78,
+      nist: 85
+    },
+    vulnerabilities: {
+      critical: 5,
+      high: 23,
+      medium: 67,
+      low: 134
+    },
+    agentsList: [
       { id: '001', name: 'web-server-01', ip: '192.168.1.10', os: { name: 'Ubuntu 20.04' }, status: 'active' },
       { id: '002', name: 'db-server-01', ip: '192.168.1.20', os: { name: 'CentOS 8' }, status: 'active' },
       { id: '003', name: 'mail-server-01', ip: '192.168.1.30', os: { name: 'Ubuntu 22.04' }, status: 'disconnected' },
-    ]),
-    alertsList: alerts?.data?.affected_items || (hasRealAlertsData ? [] : [
+    ],
+    alertsList: [
       { id: 1, rule: { description: 'SSH Brute Force', level: 10 }, agent: { name: 'web-server-01' }, timestamp: '2024-01-15T10:35:22Z' },
       { id: 2, rule: { description: 'Web Attack', level: 12 }, agent: { name: 'web-server-01' }, timestamp: '2024-01-15T10:30:15Z' },
       { id: 3, rule: { description: 'File Integrity', level: 7 }, agent: { name: 'db-server-01' }, timestamp: '2024-01-15T10:25:08Z' },
-    ])
-  };
-
-  // Status for debugging
-  const connectionStatus = {
-    integration: !!wazuhIntegration,
-    loading: isLoadingData,
-    hasRealData: hasAnyRealData,
-    dataTypes: {
-      agents: hasRealAgentsData ? 'real' : 'mock',
-      alerts: hasRealAlertsData ? 'real' : 'mock', 
-      stats: hasRealStatsData ? 'real' : 'mock'
-    }
+    ]
   };
 
   const handleRefresh = async () => {
     if (wazuhIntegration) {
       refreshData(wazuhIntegration.id);
-    }
-  };
-
-  const handleTestConnection = async () => {
-    if (!wazuhIntegration) return;
-    
-    setIsTestingConnection(true);
-    setConnectionTestResult(null);
-    
-    try {
-      const result = await validateWazuhConnection(
-        wazuhIntegration.base_url,
-        wazuhIntegration.username,
-        wazuhIntegration.password,
-        wazuhIntegration.id
-      );
-      
-      setConnectionTestResult(result);
-      
-      if (result.isValid) {
-        toast({
-          title: "✅ Conexão bem-sucedida!",
-          description: "A conexão com o Wazuh foi estabelecida corretamente.",
-        });
-      } else {
-        toast({
-          title: "❌ Falha na conexão",
-          description: `${result.error}: ${result.details || ''}`,
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      const errorResult = {
-        isValid: false,
-        error: 'Erro de rede',
-        details: error.message || 'Falha ao testar a conexão'
-      };
-      setConnectionTestResult(errorResult);
-      
-      toast({
-        title: "❌ Erro no teste",
-        description: error.message || 'Falha ao testar a conexão',
-        variant: "destructive",
-      });
-    } finally {
-      setIsTestingConnection(false);
     }
   };
 
@@ -194,40 +151,9 @@ const Security = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className={`${hasAnyRealData ? 'text-green-400 border-green-400' : isLoadingData ? 'text-yellow-400 border-yellow-400' : 'text-orange-400 border-orange-400'}`}>
-                  {isLoadingData ? 'Carregando...' : hasAnyRealData ? 'Dados Reais' : 'Dados Mock'}
-                </Badge>
-                {wazuhIntegration && (
-                  <Badge variant="secondary" className="text-xs">
-                    {connectionStatus.dataTypes.agents === 'real' ? 'A' : 'a'}{connectionStatus.dataTypes.alerts === 'real' ? 'L' : 'l'}{connectionStatus.dataTypes.stats === 'real' ? 'S' : 's'}
-                  </Badge>
-                )}
-              </div>
-              {/* Connection Status */}
-              {connectionTestResult && (
-                <div className="flex items-center gap-1">
-                  {connectionTestResult.isValid ? (
-                    <Wifi className="h-3 w-3 text-green-400" />
-                  ) : (
-                    <WifiOff className="h-3 w-3 text-red-400" />
-                  )}
-                  <span className="text-xs text-slate-400">
-                    {connectionTestResult.isValid ? 'Conectado' : 'Desconectado'}
-                  </span>
-                </div>
-              )}
-            </div>
-            <Button 
-              onClick={handleTestConnection}
-              disabled={isTestingConnection}
-              variant="outline"
-              className="border-slate-600 text-white hover:bg-slate-800"
-            >
-              <TestTube className={`h-4 w-4 mr-2 ${isTestingConnection ? 'animate-spin' : ''}`} />
-              Testar Conexão
-            </Button>
+            <Badge variant="outline" className={`${wazuhIntegration && !isLoadingData ? 'text-green-400 border-green-400' : 'text-orange-400 border-orange-400'}`}>
+              {wazuhIntegration && !isLoadingData ? 'Dados Reais' : 'Dados Mock'}
+            </Badge>
             <Button 
               onClick={handleRefresh}
               disabled={isLoadingData}
@@ -237,31 +163,8 @@ const Security = () => {
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingData ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
-            <Button 
-              variant="outline"
-              className="border-slate-600 text-white hover:bg-slate-800"
-              onClick={() => window.location.href = '/admin'}
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              Debug
-            </Button>
           </div>
         </div>
-
-        {/* Connection Status Alert */}
-        {connectionTestResult && !connectionTestResult.isValid && (
-          <Alert className="border-red-500 bg-red-500/10">
-            <WifiOff className="h-4 w-4" />
-            <AlertDescription className="text-white">
-              <strong>Falha na conexão:</strong> {connectionTestResult.error}
-              {connectionTestResult.details && (
-                <span className="block text-sm text-red-200 mt-1">
-                  {connectionTestResult.details}
-                </span>
-              )}
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

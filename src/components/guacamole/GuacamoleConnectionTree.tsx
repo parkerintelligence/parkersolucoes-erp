@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,8 +26,8 @@ export const GuacamoleConnectionTree = ({
   onDelete,
   isDeleting
 }: GuacamoleConnectionTreeProps) => {
-  const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set()); // Começar todos recolhidos
-  const [searchFilter, setSearchFilter] = React.useState('');
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set()); // Começar todos recolhidos
+  const [searchFilter, setSearchFilter] = useState('');
 
   // Extrair grupo do nome da conexão (texto antes do primeiro hífen)
   const extractGroupFromConnectionName = (connectionName: string) => {

@@ -25,14 +25,11 @@ const Login = () => {
     }
   }, [isAuthenticated, authLoading, navigate]);
 
-  // Tela de carregamento com timeout de segurança
+  // Tela de carregamento durante inicialização
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-white text-lg mb-4">Carregando sistema...</div>
-          <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
-        </div>
+        <div className="text-white text-lg">Carregando sistema...</div>
       </div>
     );
   }

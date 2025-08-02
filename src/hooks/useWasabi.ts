@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useIntegrations } from './useIntegrations';
@@ -10,8 +10,8 @@ export const useWasabi = () => {
   const wasabiIntegrations = integrations?.filter(int => int.type === 'wasabi' && int.is_active) || [];
   const activeWasabiIntegration = wasabiIntegrations[0];
   
-  const [selectedBucket, setSelectedBucket] = React.useState<string>('');
-  const [currentPath, setCurrentPath] = React.useState<string>('');
+  const [selectedBucket, setSelectedBucket] = useState<string>('');
+  const [currentPath, setCurrentPath] = useState<string>('');
 
   console.log('Integrações Wasabi ativas encontradas:', wasabiIntegrations.length);
 

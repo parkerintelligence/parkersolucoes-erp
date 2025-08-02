@@ -31,20 +31,7 @@ export const useSystemSettings = (category?: string) => {
       const { data, error } = await query;
       
       if (error) {
-        console.error('Erro ao buscar configurações do sistema:', error);
-        console.error('Detalhes do erro:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        });
-        
-        // Se for erro de RLS ou permissão, retornar array vazio em vez de quebrar a aplicação
-        if (error.code === 'PGRST301' || error.message?.includes('permission') || error.message?.includes('policy')) {
-          console.warn('Erro de permissão detectado, retornando configurações vazias');
-          return [];
-        }
-        
+        console.error('Erro ao buscar configurações:', error);
         throw error;
       }
       

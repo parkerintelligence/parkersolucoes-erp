@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -46,7 +46,7 @@ interface DailySchedulePanelProps {
 }
 
 const DailySchedulePanel = ({ schedules, companies, onEdit }: DailySchedulePanelProps) => {
-  const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const getCompanyName = (clientId: string | null) => {
     if (!clientId) return 'N/A';
@@ -181,7 +181,7 @@ interface WeeklyViewProps {
 }
 
 const WeeklyView = ({ schedules, companies, onEdit, onDelete }: WeeklyViewProps) => {
-  const [currentWeek, setCurrentWeek] = React.useState(new Date());
+  const [currentWeek, setCurrentWeek] = useState(new Date());
 
   const getCompanyName = (clientId: string | null) => {
     if (!clientId) return 'N/A';
@@ -317,7 +317,7 @@ interface MonthlyViewProps {
 }
 
 const MonthlyView = ({ schedules, companies, onEdit }: MonthlyViewProps) => {
-  const [currentMonth, setCurrentMonth] = React.useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const getCompanyName = (clientId: string | null) => {
     if (!clientId) return 'N/A';
@@ -476,10 +476,10 @@ export const ScheduleCalendarView = () => {
   const { data: companies = [] } = useCompanies();
   const deleteSchedule = useDeleteRecurringSchedule();
   
-  const [showDialog, setShowDialog] = React.useState(false);
-  const [showServicesDialog, setShowServicesDialog] = React.useState(false);
-  const [editingSchedule, setEditingSchedule] = React.useState<RecurringSchedule | null>(null);
-  const [activeView, setActiveView] = React.useState<'week' | 'month' | 'list'>('week');
+  const [showDialog, setShowDialog] = useState(false);
+  const [showServicesDialog, setShowServicesDialog] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<RecurringSchedule | null>(null);
+  const [activeView, setActiveView] = useState<'week' | 'month' | 'list'>('week');
 
   const getCompanyName = (clientId: string | null) => {
     if (!clientId) return 'N/A';

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,8 +31,8 @@ const BackupsFileTable: React.FC<BackupsFileTableProps> = ({
   downloadFile,
   deleteFile
 }) => {
-  const [sortBy, setSortBy] = React.useState<SortOption>('date');
-  const [sortOrder, setSortOrder] = React.useState<SortOrder>('asc'); // Padrão: menor data primeiro
+  const [sortBy, setSortBy] = useState<SortOption>('date');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc'); // Padrão: menor data primeiro
   const getStatusBadge = (fileName: string, isDirectory: boolean) => {
     if (isDirectory) {
       return <Badge className="bg-blue-900/20 text-blue-400 border-blue-600">Pasta</Badge>;

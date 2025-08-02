@@ -1,5 +1,5 @@
 
-import * as React from 'react';
+import React, { useState } from 'react';
 import { useRealFtp } from '@/hooks/useRealFtp';
 import { toast } from '@/hooks/use-toast';
 import BackupsEmptyState from '@/components/BackupsEmptyState';
@@ -23,9 +23,9 @@ const Backups = () => {
     directories
   } = useRealFtp();
   
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [uploadingFile, setUploadingFile] = React.useState<File | null>(null);
-  const [hostAvailability, setHostAvailability] = React.useState<'checking' | 'available' | 'unavailable'>('checking');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState<File | null>(null);
+  const [hostAvailability, setHostAvailability] = useState<'checking' | 'available' | 'unavailable'>('checking');
 
   // Incluir tanto arquivos quanto pastas na seção "Arquivos de Backup"
   const backupFilesAndFolders = ftpFiles;
