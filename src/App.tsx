@@ -36,7 +36,8 @@ const queryClient = new QueryClient();
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <QueryClientProvider client={queryClient}>
       <BrowserRouter>
           <div className="min-h-screen bg-background">
             <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-lg text-gray-600">Carregando sistema...</div></div>}>
@@ -248,6 +249,7 @@ function App() {
           </div>
         </BrowserRouter>
       </QueryClientProvider>
+    </AuthProvider>
   );
 }
 
