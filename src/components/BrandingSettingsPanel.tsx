@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +10,9 @@ import { Upload, Image as ImageIcon, X } from 'lucide-react';
 
 export const BrandingSettingsPanel = () => {
   const { data: settings, refetch } = useSystemSettings();
-  const [uploading, setUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = React.useState(false);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Sistema de Gestão de TI';
   const logoUrl = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value || '';
