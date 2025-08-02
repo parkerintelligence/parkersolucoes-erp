@@ -116,28 +116,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let mounted = true;
     
-    // Set up auth state listener
+    console.log('AuthContext: Initializing authentication...');
+    
+    // Set up auth state listener - CRITICAL: No async calls here
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (!mounted) return;
         
-        console.log('Auth state change:', event, !!session);
+        console.log('Auth state change:', event, !!session, session?.user?.id);
+        
+        // Only synchronous state updates here
         setSession(session);
         setUser(session?.user ?? null);
+        setIsLoading(false); // CRITICAL: Always set loading to false here
         
+        // Defer profile fetching to avoid conflicts
         if (session?.user) {
-          const profile = await fetchUserProfile(session.user.id);
-          if (mounted) {
-            setUserProfile(profile);
-          }
+          setTimeout(() => {
+            if (mounted) {
+              fetchUserProfile(session.user.id).then(profile => {
+                if (mounted) {
+                  setUserProfile(profile);
+                }
+              }).catch(error => {
+                console.error('Error fetching profile after auth change:', error);
+              });
+            }
+          }, 0);
         } else {
-          if (mounted) {
-            setUserProfile(null);
-          }
-        }
-        
-        if (mounted) {
-          setIsLoading(false);
+          setUserProfile(null);
         }
       }
     );
@@ -145,11 +152,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Check for existing session
     const initializeAuth = async () => {
       try {
+        console.log('AuthContext: Checking for existing session...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (!mounted) return;
         
-        console.log('Initial session check:', !!session, error);
+        console.log('Initial session check:', !!session, error?.message);
         
         if (error) {
           console.error('Session error:', error);
@@ -157,22 +165,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
         
+        // Set initial state
         setSession(session);
         setUser(session?.user ?? null);
+        setIsLoading(false); // CRITICAL: Always set loading to false
         
+        // Fetch profile separately
         if (session?.user) {
-          const profile = await fetchUserProfile(session.user.id);
-          if (mounted) {
-            setUserProfile(profile);
+          try {
+            const profile = await fetchUserProfile(session.user.id);
+            if (mounted) {
+              setUserProfile(profile);
+            }
+          } catch (profileError) {
+            console.error('Error fetching initial profile:', profileError);
+            // Don't block authentication for profile errors
           }
         } else {
-          if (mounted) {
-            setUserProfile(null);
-          }
-        }
-        
-        if (mounted) {
-          setIsLoading(false);
+          setUserProfile(null);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -184,15 +194,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     initializeAuth();
 
-    // Safety timeout
+    // More aggressive safety timeout
     const timeout = setTimeout(() => {
       if (mounted) {
-        console.log('Auth timeout - forcing loading to false');
+        console.log('Auth timeout - forcing loading to false (emergency fallback)');
         setIsLoading(false);
       }
-    }, 5000);
+    }, 2000); // Reduced from 5000 to 2000
 
     return () => {
+      console.log('AuthContext: Cleaning up...');
       mounted = false;
       subscription.unsubscribe();
       clearTimeout(timeout);
