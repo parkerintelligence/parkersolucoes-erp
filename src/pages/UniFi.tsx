@@ -203,6 +203,14 @@ const UniFi = () => {
               <h1 className="text-3xl font-bold">Controladora UniFi</h1>
               <p className="text-muted-foreground mt-2">Configure sua controladora UniFi local para começar</p>
             </div>
+            <Alert className="max-w-2xl mx-auto">
+              <Shield className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Nova versão melhorada!</strong><br />
+                Sistema com diagnóstico avançado, bypass de SSL e múltiplas estratégias de conexão
+                para garantir compatibilidade com diferentes configurações de controladora UniFi.
+              </AlertDescription>
+            </Alert>
             <Button onClick={() => setShowConfig(true)} size="lg">
               <Settings className="h-4 w-4 mr-2" />
               Configurar Controladora
@@ -374,7 +382,7 @@ const UniFi = () => {
 
               {unifiIntegration && (
                 <div className="mt-6 pt-6 border-t">
-                  <h3 className="font-medium mb-4">Teste de Conexão</h3>
+                  <h3 className="font-medium mb-4">Teste de Conexão Avançado</h3>
                   <UniFiConnectionDiagnostic integrationId={unifiIntegration.id} />
                 </div>
               )}

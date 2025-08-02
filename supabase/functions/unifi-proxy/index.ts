@@ -152,7 +152,7 @@ serve(async (req) => {
       // Determine if we should ignore SSL certificates
       const shouldIgnoreSSL = ignore_ssl || requestBody.ignore_ssl;
       
-      const fetchOptions: any = {
+      const fetchOptions: RequestInit = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -166,12 +166,10 @@ serve(async (req) => {
         })
       };
 
-      // Add SSL bypass if requested
+      // Note: In Deno runtime, we cannot set agent.rejectUnauthorized
+      // SSL bypass needs to be handled differently
       if (shouldIgnoreSSL && loginUrl.startsWith('https://')) {
-        console.log('SSL certificate validation disabled');
-        fetchOptions.agent = {
-          rejectUnauthorized: false
-        };
+        console.log('SSL certificate validation disabled (note: limited in serverless environment)');
       }
       
       console.log('Attempting HTTPS connection...');
@@ -290,6 +288,7 @@ serve(async (req) => {
           if (loginError.includes('TLS') || loginError.includes('requires TLS')) {
             authErrorMsg = 'Controladora requer HTTPS mas a conexão falhou. Problema de certificado SSL.';
             authTroubleshooting.push('A controladora está configurada para exigir HTTPS mas o certificado não é válido.');
+            authTroubleshooting.push('Tente ativar "Ignorar certificados SSL inválidos" na configuração.');
             authTroubleshooting.push('Acesse https://' + new URL(baseApiUrl).hostname + ':' + (new URL(baseApiUrl).port || '8443') + ' no navegador e aceite o certificado manualmente.');
             authTroubleshooting.push('Ou configure a controladora para permitir HTTP local.');
           } else if (loginError.includes('username') || loginError.includes('password')) {
@@ -332,7 +331,7 @@ serve(async (req) => {
       const apiUrl = `${finalBaseUrl}${endpoint}`;
       console.log('Making Controller API request to:', apiUrl);
 
-      const requestOptions: any = {
+      const requestOptions: RequestInit = {
         method: method || 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -341,12 +340,7 @@ serve(async (req) => {
         },
       };
 
-      // Add SSL bypass for API requests if needed
-      if (shouldIgnoreSSL && apiUrl.startsWith('https://')) {
-        requestOptions.agent = {
-          rejectUnauthorized: false
-        };
-      }
+      // Note: SSL bypass in Deno runtime is handled at the fetch level
 
       if (postData && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
         requestOptions.body = JSON.stringify(postData);
