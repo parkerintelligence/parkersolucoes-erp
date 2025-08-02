@@ -260,8 +260,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Don't render children until the context is ready
   if (!isReady) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-lg text-gray-600">Inicializando sistema...</div>
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-lg text-white">Inicializando sistema...</div>
       </div>
     );
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,17 +22,33 @@ export const SafeDropdownMenu: React.FC<SafeDropdownMenuProps> = ({
   align = 'end'
 }) => {
   const [isReady, setIsReady] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    // Small delay to ensure React context is fully initialized
-    const timer = setTimeout(() => {
-      setIsReady(true);
-    }, 100);
+    // Ensure component is still mounted
+    if (!mountedRef.current) return;
     
-    return () => clearTimeout(timer);
+    // Extended delay to ensure React context is fully initialized
+    const timer = setTimeout(() => {
+      if (mountedRef.current) {
+        setIsReady(true);
+      }
+    }, 200);
+    
+    return () => {
+      clearTimeout(timer);
+    };
   }, []);
 
-  if (!isReady) {
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // Don't render dropdown until ready
+  if (!isReady || hasError) {
     return <>{trigger}</>;
   }
 
@@ -49,6 +65,7 @@ export const SafeDropdownMenu: React.FC<SafeDropdownMenuProps> = ({
     );
   } catch (error) {
     console.error('SafeDropdownMenu error:', error);
+    setHasError(true);
     return <>{trigger}</>;
   }
 };
