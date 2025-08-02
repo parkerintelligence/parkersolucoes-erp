@@ -111,7 +111,26 @@ export const useUniFiAPI = () => {
   const useUniFiHosts = (integrationId: string) => {
     return useQuery({
       queryKey: ['unifi-hosts', integrationId],
-      queryFn: () => makeUniFiRequest('/v1/hosts', 'GET', integrationId),
+      queryFn: async () => {
+        try {
+          const response = await makeUniFiRequest('/v1/hosts', 'GET', integrationId);
+          console.log('Hosts response:', response);
+          
+          // Ensure we always return an array
+          if (response?.data && Array.isArray(response.data)) {
+            return response.data;
+          } else if (Array.isArray(response)) {
+            return response;
+          } else {
+            console.warn('Unexpected hosts response structure:', response);
+            return [];
+          }
+        } catch (error) {
+          console.error('Failed to fetch hosts:', error);
+          // Return empty array instead of throwing to prevent UI crashes
+          return [];
+        }
+      },
       enabled: !!integrationId,
       staleTime: 60000, // 1 minute
       retry: 2,

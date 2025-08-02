@@ -114,13 +114,21 @@ serve(async (req) => {
     if (!apiResponse.ok) {
       const errorText = await apiResponse.text();
       console.error('Site Manager API request failed:', apiResponse.status, errorText);
+      console.error('Request details:', { url: apiUrl, method: requestOptions.method, endpoint });
       
       if (apiResponse.status === 401) {
         throw new Error('API token inválido ou expirado. Verifique suas credenciais na conta UniFi.');
       } else if (apiResponse.status === 403) {
         throw new Error('Acesso negado. Verifique as permissões do seu token API.');
       } else if (apiResponse.status === 404) {
-        throw new Error('Endpoint não encontrado. Verifique se o site/host existe.');
+        // Para 404, retornar uma resposta vazia ao invés de erro para alguns endpoints
+        if (endpoint.includes('/sites') || endpoint.includes('/devices') || endpoint.includes('/clients')) {
+          console.log('404 for data endpoint, returning empty response');
+          return new Response(JSON.stringify({ data: [] }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw new Error('Endpoint não encontrado. Verifique se o site/host existe ou se a API mudou.');
       }
       
       throw new Error(`Site Manager API request failed: ${apiResponse.status} - ${errorText}`);

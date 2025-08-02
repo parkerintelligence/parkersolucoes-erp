@@ -113,9 +113,14 @@ export const UniFiHostSelector: React.FC<UniFiHostSelectorProps> = ({
             <div className="text-center py-6 text-gray-300">
               <Server className="h-10 w-10 mx-auto mb-3 opacity-50" />
               <p className="text-sm font-medium mb-1">Nenhuma controladora encontrada</p>
-              <p className="text-xs">
-                Verifique se o token da API UniFi está correto
+              <p className="text-xs mb-2">
+                Possíveis causas:
               </p>
+              <ul className="text-xs space-y-1">
+                <li>• Token da API UniFi inválido ou expirado</li>
+                <li>• Nenhuma controladora vinculada à conta</li>
+                <li>• API UniFi Site Manager temporariamente indisponível</li>
+              </ul>
             </div>
           )}
 
