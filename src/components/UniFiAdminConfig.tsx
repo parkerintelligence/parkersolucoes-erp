@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const UniFiAdminConfig = () => {
   const { data: integrations } = useIntegrations();
@@ -140,27 +141,27 @@ const UniFiAdminConfig = () => {
   const testConnection = async (integration: any) => {
     setIsTesting(integration.id);
     try {
-      // Teste via edge function usando API Site Manager
-      const response = await fetch('/functions/v1/unifi-proxy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Teste de conexão sem precisar verificar autenticação manualmente
+
+      // Teste via edge function usando controladora local
+      const response = await supabase.functions.invoke('unifi-proxy', {
+        body: {
           integrationId: integration.id,
           endpoint: '/api/self/sites',
           method: 'GET'
-        }),
+        }
       });
 
-      if (response.ok) {
-        toast({
-          title: "Conexão bem-sucedida",
-          description: "Conexão com a Controladora UniFi estabelecida.",
-        });
-      } else {
-        throw new Error('Falha na conexão');
+      const { data, error } = response;
+      
+      if (error) {
+        throw new Error(error.message || 'Falha na conexão');
       }
+
+      toast({
+        title: "Conexão bem-sucedida",
+        description: "Conexão com a Controladora UniFi estabelecida.",
+      });
     } catch (error) {
       toast({
         title: "Erro na conexão",
