@@ -114,36 +114,89 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   React.useEffect(() => {
+    let mounted = true;
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
+        console.log('Auth state change:', event, !!session);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
           const profile = await fetchUserProfile(session.user.id);
-          setUserProfile(profile);
+          if (mounted) {
+            setUserProfile(profile);
+          }
         } else {
-          setUserProfile(null);
+          if (mounted) {
+            setUserProfile(null);
+          }
         }
         
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchUserProfile(session.user.id).then(setUserProfile);
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
+        console.log('Initial session check:', !!session, error);
+        
+        if (error) {
+          console.error('Session error:', error);
+          setIsLoading(false);
+          return;
+        }
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          const profile = await fetchUserProfile(session.user.id);
+          if (mounted) {
+            setUserProfile(profile);
+          }
+        } else {
+          if (mounted) {
+            setUserProfile(null);
+          }
+        }
+        
+        if (mounted) {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
-      
-      setIsLoading(false);
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    initializeAuth();
+
+    // Safety timeout
+    const timeout = setTimeout(() => {
+      if (mounted) {
+        console.log('Auth timeout - forcing loading to false');
+        setIsLoading(false);
+      }
+    }, 5000);
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const value: AuthContextType = {
