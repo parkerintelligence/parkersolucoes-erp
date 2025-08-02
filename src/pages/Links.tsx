@@ -24,7 +24,7 @@ const Links = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
   const [activeServiceTab, setActiveServiceTab] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'tree'>('tree');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'tree'>('grid'); // Temporarily changed from 'tree' to 'grid'
   const [sortBy, setSortBy] = useState('name');
   const [visibleCards, setVisibleCards] = useState<Record<string, boolean>>({});
 
