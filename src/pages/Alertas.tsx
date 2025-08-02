@@ -374,14 +374,14 @@ export default function Alertas() {
         </Card>
       </div>
 
-      {/* Tabs for Status and Performance */}
-      <Tabs defaultValue="status" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="status">Status Server</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-        </TabsList>
+      {/* Temporarily removed Tabs to isolate React context issue */}
+      <div className="w-full">
+        <div className="grid w-full grid-cols-2 mb-6 bg-slate-800 border border-slate-700 rounded-lg p-2">
+          <div className="bg-blue-600 text-white text-center py-2 px-4 rounded">Status Server</div>
+          <div className="text-slate-400 text-center py-2 px-4">Performance</div>
+        </div>
         
-        <TabsContent value="status" className="space-y-4">
+        <div className="space-y-4">
           {/* Devices Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {devices.map((device) => {
@@ -413,131 +413,8 @@ export default function Alertas() {
               );
             })}
           </div>
-        </TabsContent>
-        
-        <TabsContent value="performance" className="space-y-4">
-          {/* Performance Table */}
-          <Card className="bg-slate-800 border-slate-700">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-slate-700 hover:bg-slate-700/50">
-                  <TableHead className="text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <Server className="h-4 w-4" />
-                      Device
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <Wifi className="h-4 w-4" />
-                      Status
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <Cpu className="h-4 w-4" />
-                      CPU
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <HardDrive className="h-4 w-4" />
-                      Memória
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      Uptime
-                    </div>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {devices
-                  .filter(device => device.status === 'online')
-                  .map((device) => {
-                    const perf = getPerformanceData(device.id);
-                    return { device, perf };
-                  })
-                  .sort((a, b) => b.perf.uptime - a.perf.uptime) // Sort by uptime descending
-                  .map(({ device, perf }) => (
-                    <TableRow key={device.id} className="border-slate-700 hover:bg-slate-700/30">
-                      <TableCell className="font-medium text-white">
-                        <div className="flex items-center gap-2">
-                          <Server className="h-4 w-4 text-blue-400" />
-                          {device.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(device.status)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-slate-300">
-                              {perf.itemsFound?.cpu ? `${perf.cpu.toFixed(1)}%` : (
-                                <span className="text-red-400">N/A</span>
-                              )}
-                            </span>
-                          </div>
-                          {perf.itemsFound?.cpu && (
-                            <Progress 
-                              value={perf.cpu} 
-                              className="h-2 w-24"
-                              style={{
-                                '--progress-foreground': perf.cpu > 80 ? 'hsl(0 70% 50%)' : perf.cpu > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
-                              } as React.CSSProperties}
-                            />
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-slate-300">
-                              {perf.itemsFound?.memory ? `${perf.memory.toFixed(1)}%` : (
-                                <span className="text-red-400">N/A</span>
-                              )}
-                            </span>
-                          </div>
-                          {perf.itemsFound?.memory && (
-                            <Progress 
-                              value={perf.memory} 
-                              className="h-2 w-24"
-                              style={{
-                                '--progress-foreground': perf.memory > 80 ? 'hsl(0 70% 50%)' : perf.memory > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
-                              } as React.CSSProperties}
-                            />
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-slate-300">
-                          {perf.itemsFound?.uptime ? formatUptime(perf.uptime) : (
-                            <span className="text-red-400">N/A</span>
-                          )}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </Card>
-
-          {devices.filter(device => device.status === 'online').length === 0 && (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center space-y-4">
-                <Server className="h-12 w-12 mx-auto text-muted-foreground" />
-                <div>
-                  <h3 className="text-lg font-semibold">Nenhum dispositivo online</h3>
-                  <p className="text-muted-foreground">Dados de performance só são exibidos para dispositivos online.</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
 
       {(hostsLoading || problemsLoading) && devices.length === 0 && (
         <div className="flex items-center justify-center py-12">
