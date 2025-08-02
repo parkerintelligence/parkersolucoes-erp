@@ -26,7 +26,7 @@ import {
 import { Button } from '@/components/ui/button';
 
 const menuItems = [
-  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, role: 'user' },
+  { title: 'VPS', url: '/dashboard', icon: LayoutDashboard, role: 'user' },
   { title: 'GLPI', url: '/glpi', icon: Headphones, role: 'user' },
   { title: 'Backups FTP', url: '/backups', icon: HardDrive, role: 'user' },
   { title: 'Senhas', url: '/passwords', icon: Lock, role: 'user' },
