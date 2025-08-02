@@ -76,143 +76,144 @@ serve(async (req) => {
       throw new Error('Wazuh integration is not properly configured');
     }
 
-    // Clean up base URL - remove any trailing slashes and add port if needed
+    // Clean up base URL and try multiple connection methods
     let cleanBaseUrl = base_url.replace(/\/+$/, '');
     
-    // If it's just a domain/IP without port and doesn't have a port specified, add common Wazuh ports
-    if (!cleanBaseUrl.includes(':') && !cleanBaseUrl.includes('://')) {
-      cleanBaseUrl = `https://${cleanBaseUrl}:55000`;
-    } else if (cleanBaseUrl.startsWith('http://') || cleanBaseUrl.startsWith('https://')) {
-      // If protocol is specified but no port, add default Wazuh port
-      if (!cleanBaseUrl.match(/:(\d+)/)) {
-        cleanBaseUrl = cleanBaseUrl + ':55000';
-      }
+    // Normalize URL and detect ports
+    const urlPorts = ['55000', '443', '5601', '9200']; // Common Wazuh/Elastic ports
+    let baseUrls = [];
+    
+    if (!cleanBaseUrl.includes('://')) {
+      cleanBaseUrl = `https://${cleanBaseUrl}`;
+    }
+    
+    // If no port specified, try common ports
+    if (!cleanBaseUrl.match(/:(\d+)/)) {
+      baseUrls = urlPorts.map(port => `${cleanBaseUrl}:${port}`);
+    } else {
+      baseUrls = [cleanBaseUrl];
     }
 
     // Handle diagnostic mode for testing connectivity
     if (diagnostics) {
-      return await handleDiagnostics(cleanBaseUrl, username, password, endpoint);
+      return await handleDiagnostics(baseUrls, username, password, endpoint);
     }
 
-    console.log(`Making direct Wazuh API request to: ${cleanBaseUrl}${endpoint}`);
-    
-    // Make direct API request with Basic Auth (more common for Wazuh)
-    const apiUrl = `${cleanBaseUrl}${endpoint}`;
-    const basicAuth = btoa(`${username}:${password}`);
-    
-    console.log('Using HTTP Basic Authentication for Wazuh API');
-
-    // Create AbortController for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
-    try {
-      const apiResponse = await fetch(apiUrl, {
-        method: method || 'GET',
-        headers: {
-          'Authorization': `Basic ${basicAuth}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'User-Agent': 'Supabase-Wazuh-Proxy/1.0',
-        },
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
+    // Try multiple URLs until one works
+    let lastError = null;
+    for (const baseUrl of baseUrls) {
+      console.log(`Trying Wazuh API request to: ${baseUrl}${endpoint}`);
       
-      console.log(`Wazuh API response status: ${apiResponse.status} ${apiResponse.statusText}`);
+      try {
+        const result = await attemptWazuhConnection(baseUrl, endpoint, username, password, method);
+        if (result) {
+          console.log(`Successfully connected to Wazuh at: ${baseUrl}`);
+          return result;
+        }
+      } catch (error) {
+        console.log(`Failed to connect to ${baseUrl}: ${error.message}`);
+        lastError = error;
+        continue;
+      }
+    }
+    
+    // If all URLs failed, throw the last error
+    throw lastError || new Error('All Wazuh connection attempts failed');
+      
+  } catch (error) {
+    console.error('Error in wazuh-proxy function:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: error.message,
+        details: 'Check the edge function logs for more details'
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+});
 
-      if (!apiResponse.ok) {
-        console.error('Wazuh API request failed:', apiResponse.status, apiResponse.statusText);
-        const errorText = await apiResponse.text();
-        console.error('Wazuh API error response:', errorText);
+// Function to attempt connection to a specific Wazuh URL
+async function attemptWazuhConnection(baseUrl: string, endpoint: string, username: string, password: string, method?: string) {
+  const apiUrl = `${baseUrl}${endpoint}`;
+  const basicAuth = btoa(`${username}:${password}`);
+  
+  // Create AbortController for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout per attempt
+
+  try {
+    const apiResponse = await fetch(apiUrl, {
+      method: method || 'GET',
+      headers: {
+        'Authorization': `Basic ${basicAuth}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'Supabase-Wazuh-Proxy/1.0',
+      },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+    
+    console.log(`Wazuh API response status: ${apiResponse.status} ${apiResponse.statusText}`);
+
+    if (!apiResponse.ok) {
+      // Try token-based authentication if basic auth fails
+      if (apiResponse.status === 401 || apiResponse.status === 403) {
+        console.log('Basic auth failed, trying token-based authentication...');
         
-        // Try alternative approach with different auth if basic auth fails
-        if (apiResponse.status === 401 || apiResponse.status === 403) {
-          console.log('Basic auth failed, trying token-based authentication...');
-          
-          try {
-            // Try Wazuh's token-based authentication
-            const authController = new AbortController();
-            const authTimeoutId = setTimeout(() => authController.abort(), 15000);
+        const authController = new AbortController();
+        const authTimeoutId = setTimeout(() => authController.abort(), 10000);
+        
+        const authResponse = await fetch(`${baseUrl}/security/user/authenticate`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Basic ${basicAuth}`,
+            'Content-Type': 'application/json',
+            'User-Agent': 'Supabase-Wazuh-Proxy/1.0',
+          },
+          signal: authController.signal,
+        });
+
+        clearTimeout(authTimeoutId);
+
+        if (authResponse.ok) {
+          const authData = await authResponse.json();
+          const token = authData.data?.token;
+
+          if (token) {
+            console.log('Token authentication successful, retrying API request');
+            const tokenController = new AbortController();
+            const tokenTimeoutId = setTimeout(() => tokenController.abort(), 15000);
             
-            const authResponse = await fetch(`${cleanBaseUrl}/security/user/authenticate`, {
-              method: 'GET',
+            const tokenApiResponse = await fetch(apiUrl, {
+              method: method || 'GET',
               headers: {
-                'Authorization': `Basic ${basicAuth}`,
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
                 'User-Agent': 'Supabase-Wazuh-Proxy/1.0',
               },
-              signal: authController.signal,
+              signal: tokenController.signal,
             });
 
-            clearTimeout(authTimeoutId);
+            clearTimeout(tokenTimeoutId);
 
-            if (authResponse.ok) {
-              const authData = await authResponse.json();
-              const token = authData.data?.token;
-
-              if (token) {
-                console.log('Token authentication successful, retrying API request');
-                const tokenController = new AbortController();
-                const tokenTimeoutId = setTimeout(() => tokenController.abort(), 30000);
-                
-                const tokenApiResponse = await fetch(apiUrl, {
-                  method: method || 'GET',
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'User-Agent': 'Supabase-Wazuh-Proxy/1.0',
-                  },
-                  signal: tokenController.signal,
-                });
-
-                clearTimeout(tokenTimeoutId);
-
-                if (tokenApiResponse.ok) {
-                  const responseData = await tokenApiResponse.json();
-                  console.log('Wazuh API response successful with token auth, data keys:', Object.keys(responseData));
-                  return new Response(JSON.stringify(responseData), {
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                  });
-                }
-              }
-            }
-          } catch (tokenError) {
-            console.error('Token authentication also failed:', tokenError);
-            
-            // If it's an AbortError, it was a timeout
-            if (tokenError.name === 'AbortError') {
-              console.error('Token authentication timed out');
+            if (tokenApiResponse.ok) {
+              const responseData = await tokenApiResponse.json();
+              console.log('Wazuh API response successful with token auth');
+              return new Response(JSON.stringify(responseData), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              });
             }
           }
         }
-        
-        throw new Error(`Wazuh API request failed: ${apiResponse.status} ${apiResponse.statusText}`);
       }
       
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      
-      // Handle specific fetch errors
-      if (fetchError.name === 'AbortError') {
-        console.error('Request timed out after 30 seconds');
-        throw new Error('Wazuh API request timed out. Please check your network connection and Wazuh server status.');
-      }
-      
-      console.error('Network error during Wazuh API request:', fetchError);
-      
-      // Provide more helpful error messages based on the error type
-      if (fetchError.message.includes('certificate')) {
-        throw new Error('SSL Certificate error. Please ensure your Wazuh server has a valid SSL certificate or configure it to accept self-signed certificates.');
-      }
-      
-      if (fetchError.message.includes('network')) {
-        throw new Error('Network connection error. Please check if the Wazuh server is reachable and the URL is correct.');
-      }
-      
-      throw new Error(`Network error connecting to Wazuh API: ${fetchError.message}`);
+      throw new Error(`HTTP ${apiResponse.status}: ${apiResponse.statusText}`);
     }
 
     // Check if response is JSON
@@ -229,6 +230,26 @@ serve(async (req) => {
     return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+    
+  } catch (fetchError) {
+    clearTimeout(timeoutId);
+    
+    // Handle specific fetch errors
+    if (fetchError.name === 'AbortError') {
+      throw new Error('Request timed out');
+    }
+    
+    // Provide more helpful error messages
+    if (fetchError.message.includes('certificate')) {
+      throw new Error('SSL Certificate error');
+    }
+    
+    if (fetchError.message.includes('network') || fetchError.message.includes('ECONNREFUSED')) {
+      throw new Error('Connection refused - server may be down or unreachable');
+    }
+    
+    throw fetchError;
+  }
 
   } catch (error) {
     console.error('Error in wazuh-proxy function:', error);
@@ -246,78 +267,84 @@ serve(async (req) => {
 });
 
 // Diagnostic function to test Wazuh connectivity
-async function handleDiagnostics(baseUrl: string, username: string, password: string, endpoint?: string) {
+async function handleDiagnostics(baseUrls: string[], username: string, password: string, endpoint?: string) {
   console.log('🔍 Starting Wazuh connectivity diagnostics...');
   
   const diagnosticResults = {
     timestamp: new Date().toISOString(),
-    baseUrl,
+    baseUrls,
     endpoint: endpoint || '/version',
     tests: [] as any[]
   };
 
   const basicAuth = btoa(`${username}:${password}`);
 
-  // Test 1: Basic connectivity test
-  try {
-    console.log('🧪 Test 1: Basic connectivity');
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-    
-    const testUrl = `${baseUrl}/version`;
-    const response = await fetch(testUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Basic ${basicAuth}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'User-Agent': 'Supabase-Wazuh-Proxy-Diagnostics/1.0',
-      },
-      signal: controller.signal,
-    });
+  // Test all provided URLs
+  console.log('🧪 Test 1: Testing all provided URLs');
+  for (let i = 0; i < baseUrls.length; i++) {
+    const baseUrl = baseUrls[i];
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      
+      const testUrl = `${baseUrl}/version`;
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${basicAuth}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'Supabase-Wazuh-Proxy-Diagnostics/1.0',
+        },
+        signal: controller.signal,
+      });
 
-    clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
 
-    diagnosticResults.tests.push({
-      name: 'Basic Connectivity',
-      success: response.ok,
-      status: response.status,
-      statusText: response.statusText,
-      details: `Response status: ${response.status} ${response.statusText}`,
-      responseHeaders: Object.fromEntries(response.headers.entries())
-    });
+      diagnosticResults.tests.push({
+        name: `Connectivity Test ${i + 1}`,
+        url: baseUrl,
+        success: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        details: `${baseUrl} responded with ${response.status} ${response.statusText}`,
+        responseHeaders: Object.fromEntries(response.headers.entries())
+      });
 
-    if (response.ok) {
-      const responseData = await response.json();
-      diagnosticResults.tests[0].responseData = responseData;
+      if (response.ok) {
+        try {
+          const responseData = await response.json();
+          diagnosticResults.tests[diagnosticResults.tests.length - 1].responseData = responseData;
+        } catch (jsonError) {
+          diagnosticResults.tests[diagnosticResults.tests.length - 1].jsonError = 'Failed to parse JSON response';
+        }
+      }
+
+    } catch (error) {
+      console.error(`🚨 Connectivity test failed for ${baseUrl}:`, error);
+      diagnosticResults.tests.push({
+        name: `Connectivity Test ${i + 1}`,
+        url: baseUrl,
+        success: false,
+        error: error.message,
+        errorType: error.name,
+        details: error.name === 'AbortError' ? 'Request timed out after 8 seconds' : error.message
+      });
     }
-
-  } catch (error) {
-    console.error('🚨 Basic connectivity test failed:', error);
-    diagnosticResults.tests.push({
-      name: 'Basic Connectivity',
-      success: false,
-      error: error.message,
-      errorType: error.name,
-      details: error.name === 'AbortError' ? 'Request timed out after 10 seconds' : error.message
-    });
   }
 
-  // Test 2: Alternative ports if main failed
-  if (!diagnosticResults.tests[0]?.success) {
-    console.log('🧪 Test 2: Trying alternative ports');
-    const ports = ['55000', '443', '80'];
-    const baseUrlWithoutPort = baseUrl.replace(/:(\d+)/, '');
-    
-    for (const port of ports) {
-      if (baseUrl.includes(`:${port}`)) continue; // Skip if it's the original port
-      
+  // Test 2: Authentication methods on working URLs
+  console.log('🧪 Test 2: Authentication methods');
+  const workingUrls = diagnosticResults.tests.filter(t => t.success).map(t => t.url);
+  
+  if (workingUrls.length > 0) {
+    for (const workingUrl of workingUrls.slice(0, 2)) { // Test up to 2 working URLs
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
         
-        const altUrl = `${baseUrlWithoutPort}:${port}/version`;
-        const response = await fetch(altUrl, {
+        const authUrl = `${workingUrl}/security/user/authenticate`;
+        const authResponse = await fetch(authUrl, {
           method: 'GET',
           headers: {
             'Authorization': `Basic ${basicAuth}`,
@@ -330,87 +357,70 @@ async function handleDiagnostics(baseUrl: string, username: string, password: st
         clearTimeout(timeoutId);
 
         diagnosticResults.tests.push({
-          name: `Alternative Port ${port}`,
-          success: response.ok,
-          status: response.status,
-          url: altUrl,
-          details: `Tried port ${port}: ${response.status} ${response.statusText}`
+          name: `Token Authentication (${workingUrl})`,
+          url: workingUrl,
+          success: authResponse.ok,
+          status: authResponse.status,
+          details: `Authentication endpoint: ${authResponse.status} ${authResponse.statusText}`
         });
 
-        if (response.ok) break; // Stop if we found a working port
+        if (authResponse.ok) {
+          try {
+            const authData = await authResponse.json();
+            diagnosticResults.tests[diagnosticResults.tests.length - 1].hasToken = !!authData.data?.token;
+          } catch (jsonError) {
+            diagnosticResults.tests[diagnosticResults.tests.length - 1].jsonError = 'Failed to parse auth JSON';
+          }
+        }
 
       } catch (error) {
         diagnosticResults.tests.push({
-          name: `Alternative Port ${port}`,
+          name: `Token Authentication (${workingUrl})`,
+          url: workingUrl,
           success: false,
           error: error.message,
-          url: `${baseUrlWithoutPort}:${port}/version`
+          details: 'Failed to test token authentication'
         });
       }
     }
-  }
-
-  // Test 3: Authentication methods
-  console.log('🧪 Test 3: Authentication methods');
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-    
-    const authUrl = `${baseUrl}/security/user/authenticate`;
-    const authResponse = await fetch(authUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Basic ${basicAuth}`,
-        'Content-Type': 'application/json',
-        'User-Agent': 'Supabase-Wazuh-Proxy-Diagnostics/1.0',
-      },
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    diagnosticResults.tests.push({
-      name: 'Token Authentication',
-      success: authResponse.ok,
-      status: authResponse.status,
-      details: `Authentication endpoint: ${authResponse.status} ${authResponse.statusText}`
-    });
-
-    if (authResponse.ok) {
-      const authData = await authResponse.json();
-      diagnosticResults.tests[diagnosticResults.tests.length - 1].hasToken = !!authData.data?.token;
-    }
-
-  } catch (error) {
+  } else {
     diagnosticResults.tests.push({
       name: 'Token Authentication',
       success: false,
-      error: error.message,
-      details: 'Failed to test token authentication'
+      details: 'No working URLs found to test authentication'
     });
   }
 
-  // Test 4: SSL Certificate validation
-  console.log('🧪 Test 4: SSL Certificate info');
-  if (baseUrl.startsWith('https://')) {
-    try {
-      // Extract hostname for SSL info
-      const url = new URL(baseUrl);
-      diagnosticResults.tests.push({
-        name: 'SSL Certificate',
-        hostname: url.hostname,
-        port: url.port || '443',
-        protocol: url.protocol,
-        details: 'HTTPS connection detected',
-        recommendation: 'If connection fails, check if certificate is self-signed or expired'
-      });
-    } catch (error) {
-      diagnosticResults.tests.push({
-        name: 'SSL Certificate',
-        success: false,
-        error: 'Invalid URL format'
-      });
+  // Test 3: SSL Certificate validation
+  console.log('🧪 Test 3: SSL Certificate info');
+  const httpsUrls = baseUrls.filter(url => url.startsWith('https://'));
+  
+  if (httpsUrls.length > 0) {
+    for (const httpsUrl of httpsUrls.slice(0, 3)) { // Test up to 3 HTTPS URLs
+      try {
+        const url = new URL(httpsUrl);
+        diagnosticResults.tests.push({
+          name: `SSL Certificate (${url.hostname}:${url.port || '443'})`,
+          hostname: url.hostname,
+          port: url.port || '443',
+          protocol: url.protocol,
+          url: httpsUrl,
+          details: 'HTTPS connection detected',
+          recommendation: 'If connection fails, check if certificate is self-signed or expired'
+        });
+      } catch (error) {
+        diagnosticResults.tests.push({
+          name: `SSL Certificate (${httpsUrl})`,
+          success: false,
+          error: 'Invalid URL format'
+        });
+      }
     }
+  } else {
+    diagnosticResults.tests.push({
+      name: 'SSL Certificate',
+      details: 'No HTTPS URLs provided - using HTTP may cause security warnings'
+    });
   }
 
   console.log('🔍 Diagnostics completed:', diagnosticResults);
