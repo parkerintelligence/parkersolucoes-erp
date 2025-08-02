@@ -160,23 +160,15 @@ const Links = () => {
         </div>
       </div>
 
-      {/* Abas por Serviço */}
-      <Tabs value={activeServiceTab} onValueChange={setActiveServiceTab} className="w-full">
-        <TabsList className="grid w-full bg-slate-800 border-slate-700" style={{
-        gridTemplateColumns: `repeat(${uniqueServices.length + 1}, 1fr)`
-      }}>
-          <TabsTrigger value="all" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs">
+      {/* Temporarily commenting out Tabs to isolate React context issue */}
+      <div className="w-full">
+        <div className="grid w-full bg-slate-800 border-slate-700 p-2 rounded-lg mb-4">
+          <div className="bg-blue-600 text-white text-xs px-3 py-1 rounded">
             Todos ({links.length})
-          </TabsTrigger>
-          {uniqueServices.map(service => {
-          const serviceLinks = links.filter(link => link.service === service);
-          return <TabsTrigger key={service} value={service} className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs">
-                {service} ({serviceLinks.length})
-              </TabsTrigger>;
-        })}
-        </TabsList>
+          </div>
+        </div>
 
-        <TabsContent value={activeServiceTab} className="mt-4">
+        <div className="mt-4">
           {/* Grid/Lista/Árvore de Links */}
           {viewMode === 'tree' ? (
             <LinksTreeView />
@@ -294,8 +286,8 @@ const Links = () => {
                 </div>
               </CardContent>
             </Card>}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>;
 };
 export default Links;
