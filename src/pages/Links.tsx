@@ -148,26 +148,15 @@ const Links = () => {
             <Input placeholder="Buscar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-7 h-7 text-xs bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
           </div>
           
-          <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-            <SelectTrigger className="h-7 w-32 text-xs bg-slate-700 border-slate-600 text-white">
-              <SelectValue placeholder="Empresa" />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-700 border-slate-600">
-              <SelectItem value="all" className="text-xs text-white">Todas</SelectItem>
-              {companies.map(company => <SelectItem key={company.id} value={company.id} className="text-xs text-white">{company.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          {/* Temporarily commenting out Select to isolate issue */}
+          <div className="h-7 w-32 text-xs bg-slate-700 border-slate-600 text-white rounded px-2 flex items-center">
+            Empresa: {selectedCompany || 'Todas'}
+          </div>
 
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="h-7 w-28 text-xs bg-slate-700 border-slate-600 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-700 border-slate-600">
-              <SelectItem value="name" className="text-xs text-white">Nome</SelectItem>
-              <SelectItem value="company" className="text-xs text-white">Empresa</SelectItem>
-              <SelectItem value="service" className="text-xs text-white">Serviço</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Temporarily commenting out Select to isolate issue */}
+          <div className="h-7 w-28 text-xs bg-slate-700 border-slate-600 text-white rounded px-2 flex items-center">
+            Sort: {sortBy}
+          </div>
         </div>
       </div>
 
