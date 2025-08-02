@@ -56,7 +56,7 @@ const adminItems = [
 ];
 
 export const HorizontalNav = () => {
-  const { isMaster } = useAuth();
+  const { isMaster, user, isLoading } = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
 
@@ -98,8 +98,8 @@ export const HorizontalNav = () => {
               </NavLink>
             ))}
 
-            {/* Menu Financeiro (Dropdown) */}
-            {filteredFinancialItems.length > 0 && (
+            {/* Menu Financeiro (Dropdown) - Only render when user is loaded */}
+            {!isLoading && user && filteredFinancialItems.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 

@@ -8,10 +8,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ActionBoard } from "@/components/ActionBoard";
 import { BoardDialog } from "@/components/BoardDialog";
 import { useActionPlan } from "@/hooks/useActionPlan";
+import { useAuth } from "@/contexts/AuthContext";
+
 export default function ActionPlan() {
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
   const [isEditBoardOpen, setIsEditBoardOpen] = useState(false);
   const [editingBoard, setEditingBoard] = useState<any>(null);
+  const { user, isLoading: authLoading } = useAuth();
   const {
     boards,
     columns,
@@ -115,7 +118,7 @@ export default function ActionPlan() {
                         </div>
                       </TabsTrigger>
                       
-                      {selectedBoard === board.id && <DropdownMenu>
+                      {!authLoading && user && selectedBoard === board.id && <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm" className="ml-2 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-white hover:bg-slate-600">
                               <MoreHorizontal className="h-4 w-4" />
