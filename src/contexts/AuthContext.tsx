@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -211,5 +211,5 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     resetSessionTimer
   };
 
-  return React.createElement(AuthContext.Provider, { value }, children);
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
