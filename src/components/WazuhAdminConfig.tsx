@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const WazuhAdminConfig = () => {
   const { data: integrations = [], refetch } = useIntegrations();
@@ -139,32 +140,84 @@ const WazuhAdminConfig = () => {
     setTestResult(null);
 
     try {
-      // Teste básico de conectividade com a API do Wazuh
-      const testUrl = `${formData.base_url.replace(/\/$/, '')}/`;
-      const response = await fetch(testUrl, { 
-        method: 'GET',
-        mode: 'no-cors' // Para evitar problemas de CORS no teste
+      // Use a temporary integration for testing if none exists
+      let testIntegrationId = wazuhIntegration?.id;
+      
+      if (!testIntegrationId) {
+        // Create a temporary integration for testing
+        const tempIntegration = await createIntegration.mutateAsync({
+          name: formData.name,
+          type: 'wazuh',
+          base_url: formData.base_url,
+          username: formData.username,
+          password: formData.password,
+          is_active: false, // Keep it inactive during testing
+        });
+        testIntegrationId = tempIntegration.id;
+      }
+
+      // Call the diagnostic function
+      const { data, error } = await supabase.functions.invoke('wazuh-proxy', {
+        body: {
+          integrationId: testIntegrationId,
+          endpoint: '/version',
+          method: 'GET',
+          diagnostics: true
+        }
       });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      console.log('🔍 Diagnostic results:', data);
 
       setTestResult({
-        success: true,
-        message: "Conexão com Wazuh estabelecida com sucesso!"
+        success: data.summary?.hasConnectivity || false,
+        message: data.summary?.hasConnectivity 
+          ? "Conexão com Wazuh estabelecida com sucesso!"
+          : "Falha na conexão com o Wazuh.",
+        diagnostics: data.diagnostics,
+        recommendations: data.summary?.recommendations || []
       });
 
-      toast({
-        title: "Teste bem-sucedido!",
-        description: "A conexão com o Wazuh foi testada com sucesso.",
-      });
+      if (data.summary?.hasConnectivity) {
+        toast({
+          title: "Teste bem-sucedido!",
+          description: `${data.summary.passedTests}/${data.summary.totalTests} testes passaram.`,
+        });
+      } else {
+        toast({
+          title: "Teste falhou",
+          description: "Verifique os detalhes do diagnóstico abaixo.",
+          variant: "destructive",
+        });
+      }
+
+      // Clean up temporary integration if created
+      if (!wazuhIntegration?.id && testIntegrationId) {
+        try {
+          await deleteIntegration.mutateAsync(testIntegrationId);
+        } catch (cleanupError) {
+          console.error('Error cleaning up temp integration:', cleanupError);
+        }
+      }
+
     } catch (error) {
-      console.error('Erro no teste de conexão:', error);
+      console.error('🚨 Erro no teste de conexão:', error);
       setTestResult({
         success: false,
-        message: "Falha na conexão. Verifique URL e credenciais."
+        message: `Erro no teste: ${error.message}`,
+        recommendations: [
+          "Verifique se o servidor Wazuh está rodando",
+          "Confirme se a URL está correta (ex: https://seu-servidor:55000)",
+          "Valide as credenciais de usuário e senha"
+        ]
       });
 
       toast({
-        title: "Teste falhou",
-        description: "Não foi possível conectar com o Wazuh. Verifique as configurações.",
+        title: "Erro no teste",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -286,12 +339,51 @@ const WazuhAdminConfig = () => {
               </div>
 
               {testResult && (
-                <Alert className={testResult.success ? "border-green-500 bg-green-500/10" : "border-red-500 bg-red-500/10"}>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-white">
-                    {testResult.message}
-                  </AlertDescription>
-                </Alert>
+                <div className="space-y-4">
+                  <Alert className={testResult.success ? "border-green-500 bg-green-500/10" : "border-red-500 bg-red-500/10"}>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-white">
+                      {testResult.message}
+                    </AlertDescription>
+                  </Alert>
+
+                  {testResult.diagnostics && (
+                    <Card className="bg-slate-700 border-slate-600">
+                      <CardHeader>
+                        <CardTitle className="text-white text-sm">Diagnóstico Detalhado</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {testResult.diagnostics.tests.map((test: any, index: number) => (
+                          <div key={index} className="flex items-start gap-2 p-2 bg-slate-800 rounded">
+                            {test.success ? (
+                              <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                            ) : (
+                              <XCircle className="h-4 w-4 text-red-500 mt-0.5" />
+                            )}
+                            <div className="flex-1">
+                              <div className="text-white text-sm font-medium">{test.name}</div>
+                              <div className="text-slate-400 text-xs">{test.details || test.error}</div>
+                              {test.status && (
+                                <div className="text-slate-500 text-xs">Status: {test.status}</div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {testResult.recommendations && testResult.recommendations.length > 0 && (
+                          <div className="mt-4 p-3 bg-blue-900/20 border border-blue-600/30 rounded">
+                            <div className="text-blue-300 text-sm font-medium mb-2">Recomendações:</div>
+                            <ul className="space-y-1">
+                              {testResult.recommendations.map((rec: string, index: number) => (
+                                <li key={index} className="text-blue-200 text-xs">{rec}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               )}
 
               <div className="flex gap-3">
