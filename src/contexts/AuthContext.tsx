@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, createContext, useCallback } from 'react';
+import * as React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -20,10 +20,10 @@ interface AuthContextType {
   resetSessionTimer: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
+  const context = React.useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
@@ -31,14 +31,14 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [sessionTimer, setSessionTimer] = useState<NodeJS.Timeout | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const [user, setUser] = React.useState<User | null>(null);
+  const [session, setSession] = React.useState<Session | null>(null);
+  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [sessionTimer, setSessionTimer] = React.useState<NodeJS.Timeout | null>(null);
+  const [isReady, setIsReady] = React.useState(false);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = React.useCallback(async (userId: string) => {
     try {
       console.log('Buscando perfil do usuário:', userId);
       
@@ -59,9 +59,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('Erro ao buscar perfil do usuário:', error);
       return null;
     }
-  };
+  }, []);
 
-  const startSessionTimer = useCallback(() => {
+  const startSessionTimer = React.useCallback(() => {
     // Limpar timer existente
     if (sessionTimer) {
       clearTimeout(sessionTimer);
@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('Timer de sessão iniciado: 30 minutos');
   }, [sessionTimer]);
 
-  const resetSessionTimer = useCallback(() => {
+  const resetSessionTimer = React.useCallback(() => {
     if (sessionTimer) {
       clearTimeout(sessionTimer);
       startSessionTimer();
@@ -85,7 +85,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [sessionTimer, startSessionTimer]);
 
-  useEffect(() => {
+  const logout = React.useCallback(async () => {
+    try {
+      console.log('Fazendo logout...');
+      
+      if (sessionTimer) {
+        clearTimeout(sessionTimer);
+        setSessionTimer(null);
+      }
+      
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      setUserProfile(null);
+      
+      console.log('Logout realizado com sucesso');
+    } catch (error) {
+      console.error('Erro no logout:', error);
+    }
+  }, [sessionTimer]);
+
+  React.useEffect(() => {
     let mounted = true;
     let initTimeout: NodeJS.Timeout;
 
@@ -200,9 +220,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchUserProfile, startSessionTimer, sessionTimer, isLoading]);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = React.useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
       console.log('Tentando fazer login com:', email);
       
@@ -222,29 +242,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('Erro no login:', error);
       return false;
     }
-  };
+  }, []);
 
-  const logout = async () => {
-    try {
-      console.log('Fazendo logout...');
-      
-      if (sessionTimer) {
-        clearTimeout(sessionTimer);
-        setSessionTimer(null);
-      }
-      
-      await supabase.auth.signOut();
-      setUser(null);
-      setSession(null);
-      setUserProfile(null);
-      
-      console.log('Logout realizado com sucesso');
-    } catch (error) {
-      console.error('Erro no logout:', error);
-    }
-  };
-
-  const value = {
+  const value = React.useMemo(() => ({
     user,
     userProfile,
     session,
@@ -254,14 +254,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
     isLoading,
     resetSessionTimer
-  };
+  }), [user, userProfile, session, login, logout, isLoading, resetSessionTimer]);
 
   // Don't render children until the context is ready
   if (!isReady) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-lg text-white">Inicializando sistema...</div>
-      </div>
+    return React.createElement('div', { className: "min-h-screen bg-slate-900 flex items-center justify-center" }, 
+      React.createElement('div', { className: "text-lg text-white" }, "Inicializando sistema...")
     );
   }
 
@@ -273,5 +271,5 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     isLoading
   });
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return React.createElement(AuthContext.Provider, { value }, children);
 };
