@@ -12,20 +12,25 @@ interface AuthContextType {
   resetSessionTimer: () => void;
 }
 
-const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
+// Create context with default values
+const AuthContext = React.createContext<AuthContextType>({
+  user: null,
+  userProfile: null,
+  session: null,
+  login: async () => false,
+  logout: async () => {},
+  isAuthenticated: false,
+  isMaster: false,
+  isLoading: false,
+  resetSessionTimer: () => {}
+});
 
 export const useAuth = () => {
-  const context = React.useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  return React.useContext(AuthContext);
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // Minimal implementation to test React hooks
-  const [isLoading, setIsLoading] = React.useState(false);
-  
+  // Static values - no hooks
   const value: AuthContextType = {
     user: null,
     userProfile: null,
@@ -34,7 +39,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     logout: async () => {},
     isAuthenticated: false,
     isMaster: false,
-    isLoading,
+    isLoading: false,
     resetSessionTimer: () => {}
   };
 
