@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Collapsible,
   CollapsibleContent,
@@ -21,17 +21,33 @@ export const SafeCollapsible: React.FC<SafeCollapsibleProps> = ({
   className
 }) => {
   const [isReady, setIsReady] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    // Small delay to ensure React context is fully initialized
-    const timer = setTimeout(() => {
-      setIsReady(true);
-    }, 100);
+    // Ensure component is still mounted
+    if (!mountedRef.current) return;
     
-    return () => clearTimeout(timer);
+    // Extended delay to ensure React context is fully initialized
+    const timer = setTimeout(() => {
+      if (mountedRef.current) {
+        setIsReady(true);
+      }
+    }, 300);
+    
+    return () => {
+      clearTimeout(timer);
+    };
   }, []);
 
-  if (!isReady) {
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // Don't render collapsible until ready
+  if (!isReady || hasError) {
     return (
       <div className={className}>
         {trigger}
@@ -53,6 +69,7 @@ export const SafeCollapsible: React.FC<SafeCollapsibleProps> = ({
     );
   } catch (error) {
     console.error('SafeCollapsible error:', error);
+    setHasError(true);
     return (
       <div className={className}>
         {trigger}
