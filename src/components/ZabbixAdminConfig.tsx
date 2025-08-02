@@ -189,13 +189,13 @@ const ZabbixAdminConfig = () => {
         )}
       </div>
 
-      <Tabs defaultValue="config" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="config">Configuração</TabsTrigger>
-          <TabsTrigger value="test">Teste de Conexão</TabsTrigger>
-        </TabsList>
+      <SafeTabs defaultValue="config" className="space-y-4">
+        <SafeTabsList>
+          <SafeTabsTrigger value="config">Configuração</SafeTabsTrigger>
+          <SafeTabsTrigger value="test">Teste de Conexão</SafeTabsTrigger>
+        </SafeTabsList>
 
-        <TabsContent value="config" className="space-y-4">
+        <SafeTabsContent value="config" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -311,9 +311,9 @@ const ZabbixAdminConfig = () => {
               {isTesting ? 'Testando...' : 'Testar Conexão'}
             </Button>
           </div>
-        </TabsContent>
+        </SafeTabsContent>
 
-        <TabsContent value="test" className="space-y-4">
+        <SafeTabsContent value="test" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -376,8 +376,8 @@ const ZabbixAdminConfig = () => {
               </Button>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </SafeTabsContent>
+      </SafeTabs>
     </div>
   );
 };

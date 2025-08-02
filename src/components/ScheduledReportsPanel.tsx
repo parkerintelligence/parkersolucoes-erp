@@ -48,7 +48,7 @@ export const ScheduledReportsPanel = () => {
     try {
       await updateReport.mutateAsync({
         id: editingReport.id,
-        ...reportData
+        updates: reportData
       });
       setEditingReport(null);
       setFormOpen(false);
@@ -72,13 +72,13 @@ export const ScheduledReportsPanel = () => {
     }
   };
 
-  const handleToggleActive = async (id: string, isActive: boolean) => {
+  const handleToggleActive = async (report: any) => {
     try {
       await updateReport.mutateAsync({
-        id,
-        is_active: isActive
+        id: report.id,
+        updates: { is_active: !report.is_active }
       });
-      toast.success(`Relatório ${isActive ? 'ativado' : 'desativado'} com sucesso!`);
+      toast.success(`Relatório ${!report.is_active ? 'ativado' : 'desativado'} com sucesso!`);
     } catch (error) {
       toast.error('Erro ao alterar status do relatório');
     }
@@ -182,7 +182,8 @@ export const ScheduledReportsPanel = () => {
               setEditingReport(null);
             }
           }}
-          onSubmit={editingReport ? handleUpdate : handleCreate}
+          onCreate={handleCreate}
+          onUpdate={editingReport ? handleUpdate : undefined}
           initialData={editingReport}
           isLoading={createReport.isPending || updateReport.isPending}
         />

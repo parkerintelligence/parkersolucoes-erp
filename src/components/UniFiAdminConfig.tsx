@@ -191,15 +191,15 @@ const UniFiAdminConfig = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="list" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-slate-700">
-              <TabsTrigger value="list" className="text-white">Integrações Ativas</TabsTrigger>
-              <TabsTrigger value="new" className="text-white" onClick={() => setIsCreating(true)}>
+          <SafeTabs defaultValue="list" className="w-full">
+            <SafeTabsList className="grid w-full grid-cols-2 bg-slate-700">
+              <SafeTabsTrigger value="list" className="text-white">Integrações Ativas</SafeTabsTrigger>
+              <SafeTabsTrigger value="new" className="text-white" onClick={() => setIsCreating(true)}>
                 {isCreating ? (editingIntegration ? 'Editar' : 'Nova') : 'Nova'} Integração
-              </TabsTrigger>
-            </TabsList>
+              </SafeTabsTrigger>
+            </SafeTabsList>
 
-            <TabsContent value="list" className="space-y-4">
+            <SafeTabsContent value="list" className="space-y-4">
               {unifiIntegrations.length === 0 ? (
                 <Alert className="border-blue-500 bg-blue-500/10">
                   <Wifi className="h-4 w-4" />
@@ -259,9 +259,9 @@ const UniFiAdminConfig = () => {
                   ))}
                 </div>
               )}
-            </TabsContent>
+            </SafeTabsContent>
 
-            <TabsContent value="new">
+            <SafeTabsContent value="new">
               {isCreating && (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -385,8 +385,8 @@ const UniFiAdminConfig = () => {
                   </div>
                 </form>
               )}
-            </TabsContent>
-          </Tabs>
+            </SafeTabsContent>
+          </SafeTabs>
         </CardContent>
       </Card>
     </div>

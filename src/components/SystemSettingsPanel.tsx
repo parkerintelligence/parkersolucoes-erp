@@ -227,22 +227,22 @@ const SystemSettingsPanel = () => {
         </Dialog>
       </div>
 
-      <Tabs defaultValue="all" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="all">Todas</TabsTrigger>
+      <SafeTabs defaultValue="all" className="space-y-4">
+        <SafeTabsList>
+          <SafeTabsTrigger value="all">Todas</SafeTabsTrigger>
           {Object.entries(categories).map(([key, category]) => (
             settingsByCategory[key] && (
-              <TabsTrigger key={key} value={key}>
+              <SafeTabsTrigger key={key} value={key}>
                 <div className="flex items-center gap-2">
                   {getCategoryIcon(key)}
                   {category.name}
                 </div>
-              </TabsTrigger>
+              </SafeTabsTrigger>
             )
           ))}
-        </TabsList>
+        </SafeTabsList>
 
-        <TabsContent value="all">
+        <SafeTabsContent value="all">
           <Card>
             <CardHeader>
               <CardTitle>Todas as Configurações</CardTitle>
@@ -307,10 +307,10 @@ const SystemSettingsPanel = () => {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        </SafeTabsContent>
 
         {Object.entries(settingsByCategory).map(([categoryKey, categorySettings]) => (
-          <TabsContent key={categoryKey} value={categoryKey}>
+          <SafeTabsContent key={categoryKey} value={categoryKey}>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -371,9 +371,9 @@ const SystemSettingsPanel = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </SafeTabsContent>
         ))}
-      </Tabs>
+      </SafeTabs>
     </div>
   );
 };

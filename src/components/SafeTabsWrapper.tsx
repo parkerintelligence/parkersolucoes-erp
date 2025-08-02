@@ -19,6 +19,7 @@ interface SafeTabsTriggerProps {
   children: React.ReactNode;
   value: string;
   className?: string;
+  onClick?: () => void;
 }
 
 interface SafeTabsContentProps {
@@ -70,8 +71,8 @@ export const SafeTabsList: React.FC<SafeTabsListProps> = ({ children, className,
   return <TabsList className={className} style={style}>{children}</TabsList>;
 };
 
-export const SafeTabsTrigger: React.FC<SafeTabsTriggerProps> = ({ children, value, className }) => {
-  return <TabsTrigger value={value} className={className}>{children}</TabsTrigger>;
+export const SafeTabsTrigger: React.FC<SafeTabsTriggerProps> = ({ children, value, className, onClick }) => {
+  return <TabsTrigger value={value} className={className} onClick={onClick}>{children}</TabsTrigger>;
 };
 
 export const SafeTabsContent: React.FC<SafeTabsContentProps> = ({ children, value, className }) => {
