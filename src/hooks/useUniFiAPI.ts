@@ -87,24 +87,29 @@ export const useUniFiAPI = () => {
   const makeUniFiRequest = async (endpoint: string, method: string = 'GET', integrationId: string, data?: any) => {
     console.log('Making UniFi request:', { endpoint, method, integrationId, data });
     
-    const { data: response, error } = await supabase.functions.invoke('unifi-proxy', {
-      body: {
-        method,
-        endpoint,
-        integrationId,
-        data,
-      },
-    });
+    try {
+      const { data: response, error } = await supabase.functions.invoke('unifi-proxy', {
+        body: {
+          method,
+          endpoint,
+          integrationId,
+          data,
+        },
+      });
 
-    console.log('UniFi API Response:', { response, error, hasData: !!response, hasError: !!error });
+      console.log('UniFi API Response:', { response, error, hasData: !!response, hasError: !!error });
 
-    if (error) {
-      console.error('UniFi request error:', error);
-      throw new Error(`UniFi API error: ${error.message}`);
+      if (error) {
+        console.error('UniFi request error:', error);
+        throw new Error(`UniFi API error: ${error.message}`);
+      }
+
+      console.log('Returning response:', response);
+      return response;
+    } catch (err) {
+      console.error('Failed to invoke unifi-proxy function:', err);
+      throw new Error(`Erro na conexão com o UniFi: ${err instanceof Error ? err.message : 'Erro desconhecido'}`);
     }
-
-    console.log('Returning response:', response);
-    return response;
   };
 
   // Hosts - buscar controladoras disponíveis
