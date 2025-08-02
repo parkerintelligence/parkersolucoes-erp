@@ -137,12 +137,33 @@ serve(async (req) => {
 
 // Function to attempt connection to a specific Wazuh URL
 async function attemptWazuhConnection(baseUrl: string, endpoint: string, username: string, password: string, method?: string) {
-  const apiUrl = `${baseUrl}${endpoint}`;
+  // Normalize endpoint for Wazuh API v4+
+  let normalizedEndpoint = endpoint;
+  
+  // Map common endpoints to correct Wazuh API paths
+  const endpointMapping: { [key: string]: string } = {
+    '/agents': '/agents?pretty=true',
+    '/agents/summary/status': '/agents/summary/status?pretty=true',
+    '/alerts': '/alerts?pretty=true',
+    '/alerts/summary': '/overview/agents?pretty=true',
+    '/compliance': '/overview/pci?pretty=true',
+    '/vulnerability': '/vulnerability/agents?pretty=true',
+    '/version': '/?pretty=true'
+  };
+  
+  // Check if we need to map the endpoint
+  if (endpointMapping[endpoint]) {
+    normalizedEndpoint = endpointMapping[endpoint];
+  }
+  
+  const apiUrl = `${baseUrl}${normalizedEndpoint}`;
   const basicAuth = btoa(`${username}:${password}`);
+  
+  console.log(`🔄 Attempting Wazuh connection to: ${apiUrl}`);
   
   // Create AbortController for timeout
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout per attempt
+  const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 second timeout per attempt
 
   try {
     const apiResponse = await fetch(apiUrl, {
@@ -158,17 +179,17 @@ async function attemptWazuhConnection(baseUrl: string, endpoint: string, usernam
 
     clearTimeout(timeoutId);
     
-    console.log(`Wazuh API response status: ${apiResponse.status} ${apiResponse.statusText}`);
+    console.log(`✅ Wazuh API response status: ${apiResponse.status} ${apiResponse.statusText} for ${apiUrl}`);
 
     if (!apiResponse.ok) {
       // Try token-based authentication if basic auth fails
       if (apiResponse.status === 401 || apiResponse.status === 403) {
-        console.log('Basic auth failed, trying token-based authentication...');
+        console.log('🔑 Basic auth failed, trying token-based authentication...');
         
         const authController = new AbortController();
-        const authTimeoutId = setTimeout(() => authController.abort(), 10000);
+        const authTimeoutId = setTimeout(() => authController.abort(), 8000);
         
-        const authResponse = await fetch(`${baseUrl}/security/user/authenticate`, {
+        const authResponse = await fetch(`${baseUrl}/security/user/authenticate?pretty=true`, {
           method: 'GET',
           headers: {
             'Authorization': `Basic ${basicAuth}`,
@@ -185,9 +206,9 @@ async function attemptWazuhConnection(baseUrl: string, endpoint: string, usernam
           const token = authData.data?.token;
 
           if (token) {
-            console.log('Token authentication successful, retrying API request');
+            console.log('🎯 Token authentication successful, retrying API request');
             const tokenController = new AbortController();
-            const tokenTimeoutId = setTimeout(() => tokenController.abort(), 15000);
+            const tokenTimeoutId = setTimeout(() => tokenController.abort(), 12000);
             
             const tokenApiResponse = await fetch(apiUrl, {
               method: method || 'GET',
@@ -204,8 +225,12 @@ async function attemptWazuhConnection(baseUrl: string, endpoint: string, usernam
 
             if (tokenApiResponse.ok) {
               const responseData = await tokenApiResponse.json();
-              console.log('Wazuh API response successful with token auth');
-              return new Response(JSON.stringify(responseData), {
+              console.log('✅ Wazuh API response successful with token auth');
+              
+              // Transform response data to standard format
+              const transformedData = transformWazuhResponse(responseData, endpoint);
+              
+              return new Response(JSON.stringify(transformedData), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
               });
             }
@@ -220,19 +245,24 @@ async function attemptWazuhConnection(baseUrl: string, endpoint: string, usernam
     const contentType = apiResponse.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
       const responseText = await apiResponse.text();
-      console.error('Wazuh API returned non-JSON response:', responseText.substring(0, 200));
+      console.error('❌ Wazuh API returned non-JSON response:', responseText.substring(0, 200));
       throw new Error('Wazuh API returned invalid response format');
     }
 
     const responseData = await apiResponse.json();
-    console.log('Wazuh API response successful, data keys:', Object.keys(responseData));
+    console.log('✅ Wazuh API response successful, data structure:', Object.keys(responseData));
+    
+    // Transform response data to standard format
+    const transformedData = transformWazuhResponse(responseData, endpoint);
 
-    return new Response(JSON.stringify(responseData), {
+    return new Response(JSON.stringify(transformedData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
     
   } catch (fetchError) {
     clearTimeout(timeoutId);
+    
+    console.error(`❌ Failed to connect to ${apiUrl}:`, fetchError.message);
     
     // Handle specific fetch errors
     if (fetchError.name === 'AbortError') {
@@ -249,6 +279,49 @@ async function attemptWazuhConnection(baseUrl: string, endpoint: string, usernam
     }
     
     throw fetchError;
+  }
+}
+
+// Transform Wazuh response to consistent format
+function transformWazuhResponse(responseData: any, originalEndpoint: string) {
+  console.log(`🔄 Transforming response for endpoint: ${originalEndpoint}`);
+  
+  if (!responseData) {
+    return { data: null, error: 'Empty response from Wazuh' };
+  }
+
+  // Handle different response structures based on endpoint
+  switch (originalEndpoint) {
+    case '/agents':
+      return {
+        data: {
+          affected_items: responseData.data?.affected_items || [],
+          total_affected_items: responseData.data?.total_affected_items || 0
+        }
+      };
+      
+    case '/agents/summary/status':
+      return {
+        data: responseData.data || {}
+      };
+      
+    case '/alerts':
+    case '/alerts/summary':
+      return {
+        data: {
+          affected_items: responseData.data?.affected_items || [],
+          total_affected_items: responseData.data?.total_affected_items || 0
+        }
+      };
+      
+    case '/compliance':
+    case '/vulnerability':
+      return {
+        data: responseData.data || {}
+      };
+      
+    default:
+      return responseData;
   }
 }
 

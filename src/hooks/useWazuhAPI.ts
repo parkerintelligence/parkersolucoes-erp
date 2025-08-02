@@ -49,22 +49,34 @@ export const useWazuhAPI = () => {
   const queryClient = useQueryClient();
 
   const makeWazuhRequest = async (endpoint: string, method: string = 'GET', integrationId: string) => {
-    console.log('Making Wazuh request:', { endpoint, method, integrationId });
+    console.log('🔄 Making Wazuh request:', { endpoint, method, integrationId });
     
-    const { data, error } = await supabase.functions.invoke('wazuh-proxy', {
-      body: {
-        method,
-        endpoint,
-        integrationId,
-      },
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke('wazuh-proxy', {
+        body: {
+          method,
+          endpoint,
+          integrationId,
+        },
+      });
 
-    if (error) {
-      console.error('Wazuh request error:', error);
-      throw new Error(`Wazuh API error: ${error.message}`);
+      if (error) {
+        console.error('❌ Wazuh request error:', error);
+        throw new Error(`Wazuh API error: ${error.message}`);
+      }
+
+      if (data?.error) {
+        console.error('❌ Wazuh API returned error:', data.error);
+        throw new Error(data.error);
+      }
+
+      console.log('✅ Wazuh request successful:', { endpoint, dataKeys: Object.keys(data || {}) });
+      return data;
+    } catch (fetchError: any) {
+      console.error('❌ Wazuh request failed:', fetchError);
+      // Return null instead of throwing to allow graceful fallback
+      return null;
     }
-
-    return data;
   };
 
   const useWazuhAgents = (integrationId: string) => {
@@ -73,7 +85,10 @@ export const useWazuhAPI = () => {
       queryFn: () => makeWazuhRequest('/agents', 'GET', integrationId),
       enabled: !!integrationId,
       staleTime: 30000, // 30 seconds
-      retry: 2,
+      retry: 1, // Reduced retry count
+      retryDelay: 2000,
+      refetchOnWindowFocus: false,
+      throwOnError: false, // Don't throw errors, return data as null
     });
   };
 
@@ -83,38 +98,54 @@ export const useWazuhAPI = () => {
       queryFn: () => makeWazuhRequest(`/alerts?limit=${limit}&sort=-timestamp`, 'GET', integrationId),
       enabled: !!integrationId,
       staleTime: 30000, // 30 seconds
-      retry: 2,
+      retry: 1, // Reduced retry count
+      retryDelay: 2000,
+      refetchOnWindowFocus: false,
+      throwOnError: false, // Don't throw errors, return data as null
     });
   };
 
   const useWazuhStats = (integrationId: string) => {
     return useQuery({
       queryKey: ['wazuh-stats', integrationId],
-      queryFn: async (): Promise<WazuhStats> => {
-        const [agentsResponse, alertsResponse] = await Promise.all([
-          makeWazuhRequest('/agents/summary/status', 'GET', integrationId),
-          makeWazuhRequest('/alerts/summary', 'GET', integrationId),
-        ]);
+      queryFn: async (): Promise<WazuhStats | null> => {
+        try {
+          const [agentsResponse, alertsResponse] = await Promise.all([
+            makeWazuhRequest('/agents/summary/status', 'GET', integrationId),
+            makeWazuhRequest('/alerts/summary', 'GET', integrationId),
+          ]);
 
-        // Process the responses to create our stats object
-        const agentStats = agentsResponse?.data || {};
-        const alertStats = alertsResponse?.data || {};
+          // If both responses failed, return null
+          if (!agentsResponse && !alertsResponse) {
+            return null;
+          }
 
-        return {
-          total_agents: agentStats.Total || 0,
-          agents_connected: agentStats.Active || 0,
-          agents_disconnected: agentStats.Disconnected || 0,
-          agents_never_connected: agentStats['Never connected'] || 0,
-          total_alerts_today: alertStats.total_today || 0,
-          critical_alerts: alertStats.critical || 0,
-          high_alerts: alertStats.high || 0,
-          medium_alerts: alertStats.medium || 0,
-          low_alerts: alertStats.low || 0,
-        };
+          // Process the responses to create our stats object
+          const agentStats = agentsResponse?.data || {};
+          const alertStats = alertsResponse?.data || {};
+
+          return {
+            total_agents: agentStats.Total || agentStats.total || 0,
+            agents_connected: agentStats.Active || agentStats.active || 0,
+            agents_disconnected: agentStats.Disconnected || agentStats.disconnected || 0,
+            agents_never_connected: agentStats['Never connected'] || agentStats.never_connected || 0,
+            total_alerts_today: alertStats.total_today || 0,
+            critical_alerts: alertStats.critical || 0,
+            high_alerts: alertStats.high || 0,
+            medium_alerts: alertStats.medium || 0,
+            low_alerts: alertStats.low || 0,
+          };
+        } catch (error) {
+          console.error('🚨 Error processing Wazuh stats:', error);
+          return null;
+        }
       },
       enabled: !!integrationId,
       staleTime: 60000, // 1 minute
-      retry: 2,
+      retry: 1, // Reduced retry count
+      retryDelay: 3000,
+      refetchOnWindowFocus: false,
+      throwOnError: false, // Don't throw errors, return data as null
     });
   };
 
@@ -124,7 +155,10 @@ export const useWazuhAPI = () => {
       queryFn: () => makeWazuhRequest('/compliance', 'GET', integrationId),
       enabled: !!integrationId,
       staleTime: 300000, // 5 minutes
-      retry: 2,
+      retry: 1, // Reduced retry count
+      retryDelay: 5000,
+      refetchOnWindowFocus: false,
+      throwOnError: false, // Don't throw errors, return data as null
     });
   };
 
@@ -134,7 +168,10 @@ export const useWazuhAPI = () => {
       queryFn: () => makeWazuhRequest('/vulnerability', 'GET', integrationId),
       enabled: !!integrationId,
       staleTime: 300000, // 5 minutes
-      retry: 2,
+      retry: 1, // Reduced retry count
+      retryDelay: 5000,
+      refetchOnWindowFocus: false,
+      throwOnError: false, // Don't throw errors, return data as null
     });
   };
 

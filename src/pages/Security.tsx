@@ -43,71 +43,61 @@ const Security = () => {
 
   const isLoadingData = agentsLoading || alertsLoading || statsLoading || complianceLoading || vulnerabilitiesLoading;
 
-  // Use real data if available, otherwise use mock data
-  const displayData = wazuhIntegration && stats ? {
+  // Check for real data availability
+  const hasRealAgentsData = agents?.data && !agentsLoading;
+  const hasRealAlertsData = alerts?.data && !alertsLoading;
+  const hasRealStatsData = stats && !statsLoading;
+  const hasAnyRealData = hasRealAgentsData || hasRealAlertsData || hasRealStatsData;
+
+  // Use real data if available, otherwise use mock data with enhanced fallback
+  const displayData = {
     agents: {
-      total: stats.total_agents || 0,
-      active: stats.agents_connected || 0,
-      disconnected: stats.agents_disconnected || 0,
-      never_connected: stats.agents_never_connected || 0
+      total: stats?.total_agents || (hasRealStatsData ? 0 : 45),
+      active: stats?.agents_connected || (hasRealStatsData ? 0 : 42),
+      disconnected: stats?.agents_disconnected || (hasRealStatsData ? 0 : 3),
+      never_connected: stats?.agents_never_connected || (hasRealStatsData ? 0 : 0)
     },
     alerts: {
-      critical: stats.critical_alerts || 0,
-      high: stats.high_alerts || 0,
-      medium: stats.medium_alerts || 0,
-      low: stats.low_alerts || 0,
-      total: stats.total_alerts_today || 0
+      critical: stats?.critical_alerts || (hasRealStatsData ? 0 : 12),
+      high: stats?.high_alerts || (hasRealStatsData ? 0 : 28),
+      medium: stats?.medium_alerts || (hasRealStatsData ? 0 : 156),
+      low: stats?.low_alerts || (hasRealStatsData ? 0 : 89),
+      total: stats?.total_alerts_today || (hasRealStatsData ? 0 : 285)
     },
     compliance: compliance?.data || {
-      pci_dss: 87,
-      gdpr: 92,
-      hipaa: 78,
-      nist: 85
+      pci_dss: hasRealStatsData ? 0 : 87,
+      gdpr: hasRealStatsData ? 0 : 92,
+      hipaa: hasRealStatsData ? 0 : 78,
+      nist: hasRealStatsData ? 0 : 85
     },
     vulnerabilities: vulnerabilities?.data || {
-      critical: 5,
-      high: 23,
-      medium: 67,
-      low: 134
+      critical: hasRealStatsData ? 0 : 5,
+      high: hasRealStatsData ? 0 : 23,
+      medium: hasRealStatsData ? 0 : 67,
+      low: hasRealStatsData ? 0 : 134
     },
-    agentsList: agents?.data?.affected_items || [],
-    alertsList: alerts?.data?.affected_items || []
-  } : {
-    agents: {
-      total: 45,
-      active: 42,
-      disconnected: 3,
-      never_connected: 0
-    },
-    alerts: {
-      critical: 12,
-      high: 28,
-      medium: 156,
-      low: 89,
-      total: 285
-    },
-    compliance: {
-      pci_dss: 87,
-      gdpr: 92,
-      hipaa: 78,
-      nist: 85
-    },
-    vulnerabilities: {
-      critical: 5,
-      high: 23,
-      medium: 67,
-      low: 134
-    },
-    agentsList: [
+    agentsList: agents?.data?.affected_items || (hasRealAgentsData ? [] : [
       { id: '001', name: 'web-server-01', ip: '192.168.1.10', os: { name: 'Ubuntu 20.04' }, status: 'active' },
       { id: '002', name: 'db-server-01', ip: '192.168.1.20', os: { name: 'CentOS 8' }, status: 'active' },
       { id: '003', name: 'mail-server-01', ip: '192.168.1.30', os: { name: 'Ubuntu 22.04' }, status: 'disconnected' },
-    ],
-    alertsList: [
+    ]),
+    alertsList: alerts?.data?.affected_items || (hasRealAlertsData ? [] : [
       { id: 1, rule: { description: 'SSH Brute Force', level: 10 }, agent: { name: 'web-server-01' }, timestamp: '2024-01-15T10:35:22Z' },
       { id: 2, rule: { description: 'Web Attack', level: 12 }, agent: { name: 'web-server-01' }, timestamp: '2024-01-15T10:30:15Z' },
       { id: 3, rule: { description: 'File Integrity', level: 7 }, agent: { name: 'db-server-01' }, timestamp: '2024-01-15T10:25:08Z' },
-    ]
+    ])
+  };
+
+  // Status for debugging
+  const connectionStatus = {
+    integration: !!wazuhIntegration,
+    loading: isLoadingData,
+    hasRealData: hasAnyRealData,
+    dataTypes: {
+      agents: hasRealAgentsData ? 'real' : 'mock',
+      alerts: hasRealAlertsData ? 'real' : 'mock', 
+      stats: hasRealStatsData ? 'real' : 'mock'
+    }
   };
 
   const handleRefresh = async () => {
@@ -151,9 +141,18 @@ const Security = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className={`${wazuhIntegration && !isLoadingData ? 'text-green-400 border-green-400' : 'text-orange-400 border-orange-400'}`}>
-              {wazuhIntegration && !isLoadingData ? 'Dados Reais' : 'Dados Mock'}
-            </Badge>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className={`${hasAnyRealData ? 'text-green-400 border-green-400' : isLoadingData ? 'text-yellow-400 border-yellow-400' : 'text-orange-400 border-orange-400'}`}>
+                  {isLoadingData ? 'Carregando...' : hasAnyRealData ? 'Dados Reais' : 'Dados Mock'}
+                </Badge>
+                {wazuhIntegration && (
+                  <Badge variant="secondary" className="text-xs">
+                    {connectionStatus.dataTypes.agents === 'real' ? 'A' : 'a'}{connectionStatus.dataTypes.alerts === 'real' ? 'L' : 'l'}{connectionStatus.dataTypes.stats === 'real' ? 'S' : 's'}
+                  </Badge>
+                )}
+              </div>
+            </div>
             <Button 
               onClick={handleRefresh}
               disabled={isLoadingData}
@@ -162,6 +161,14 @@ const Security = () => {
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingData ? 'animate-spin' : ''}`} />
               Atualizar
+            </Button>
+            <Button 
+              variant="outline"
+              className="border-slate-600 text-white hover:bg-slate-800"
+              onClick={() => window.location.href = '/admin'}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Debug
             </Button>
           </div>
         </div>
