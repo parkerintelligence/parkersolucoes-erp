@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import * as React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,7 +20,7 @@ export const GLPIFiltersPanel = ({
   isLoading = false,
   totalTickets = 0 
 }: GLPIFiltersPanelProps) => {
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = React.useState({
     search: '',
     status: 'all',
     priority: 'all',

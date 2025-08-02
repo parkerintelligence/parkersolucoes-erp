@@ -1,4 +1,4 @@
-import { useState } from "react";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,9 +11,9 @@ interface UniFiConnectionTestProps {
 }
 
 export const UniFiConnectionTest = ({ integrationId }: UniFiConnectionTestProps) => {
-  const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
-  const [testResults, setTestResults] = useState<any>(null);
-  const [errorDetails, setErrorDetails] = useState<string>('');
+  const [testStatus, setTestStatus] = React.useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [testResults, setTestResults] = React.useState<any>(null);
+  const [errorDetails, setErrorDetails] = React.useState<string>('');
   const { toast } = useToast();
   const { testUniFiConnection } = useUniFiAPI();
 
