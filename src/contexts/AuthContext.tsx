@@ -37,6 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionTimer, setSessionTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -130,11 +131,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           
           setIsLoading(false);
+          setIsReady(true);
         }
       } catch (error) {
         console.error('Erro ao inicializar autenticação:', error);
         if (mounted) {
           setIsLoading(false);
+          setIsReady(true);
         }
       }
     };
@@ -253,6 +256,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading,
     resetSessionTimer
   };
+
+  // Don't render children until the context is ready
+  if (!isReady) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-lg text-gray-600">Inicializando sistema...</div>
+      </div>
+    );
+  }
 
   console.log('AuthContext Estado:', { 
     isAuthenticated: !!user && !!session, 
