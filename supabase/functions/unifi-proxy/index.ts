@@ -278,7 +278,7 @@ serve(async (req) => {
           if (loginError.includes('TLS') || loginError.includes('requires TLS')) {
             authErrorMsg = 'Controladora requer HTTPS mas a conexão falhou. Problema de certificado SSL.';
             authTroubleshooting.push('A controladora está configurada para exigir HTTPS mas o certificado não é válido.');
-            authTroubleshooting.push('Acesse https://' + connectionDetails.hostname + ':' + connectionDetails.port + ' no navegador e aceite o certificado manualmente.');
+            authTroubleshooting.push('Acesse https://' + new URL(baseApiUrl).hostname + ':' + (new URL(baseApiUrl).port || '8443') + ' no navegador e aceite o certificado manualmente.');
             authTroubleshooting.push('Ou configure a controladora para permitir HTTP local.');
           } else if (loginError.includes('username') || loginError.includes('password')) {
             authErrorMsg = 'Credenciais de login inválidas.';
