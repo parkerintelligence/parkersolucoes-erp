@@ -128,6 +128,13 @@ export const HostingerDashboard = () => {
           <p className="text-slate-400 mb-4">
             Configure uma integração Hostinger no painel administrativo para visualizar seus VPS.
           </p>
+          <Button 
+            onClick={() => window.location.href = '/admin'} 
+            variant="outline" 
+            className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+          >
+            Ir para Configurações
+          </Button>
         </CardContent>
       </Card>;
   }

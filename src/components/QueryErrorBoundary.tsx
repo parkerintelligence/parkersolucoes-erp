@@ -33,10 +33,16 @@ export class QueryErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <Alert className="bg-red-900/20 border-red-800 text-red-300">
+        <Alert className="bg-amber-900/20 border-amber-800 text-amber-300">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Erro ao carregar componente. Verifique a conexão e tente novamente.
+          <AlertDescription className="space-y-2">
+            <p>Problema ao carregar dados do servidor. Os dados podem estar temporariamente indisponíveis.</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="text-sm underline hover:no-underline"
+            >
+              Tentar novamente
+            </button>
           </AlertDescription>
         </Alert>
       );
