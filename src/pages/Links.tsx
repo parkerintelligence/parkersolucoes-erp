@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { usePasswords } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useLinksExport } from '@/hooks/useLinksExport';
@@ -11,14 +12,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link, ExternalLink, Search, Building, Globe, Shield, Mail, Server, Database, Cloud, Code, Monitor, Settings, Filter, Grid, List, Copy, Eye, EyeOff, Download, TreePine } from 'lucide-react';
 import { LinksTreeView } from '@/components/LinksTreeView';
 import { toast } from '@/hooks/use-toast';
+
 const Links = () => {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  
+  // Only call hooks if authenticated and not loading
   const {
     data: passwords = [],
     isLoading
   } = usePasswords();
+  
   const {
     data: companies = []
   } = useCompanies();
+  
   const exportToPDF = useLinksExport();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
@@ -108,9 +115,17 @@ const Links = () => {
     });
     await exportToPDF.mutateAsync();
   };
-  if (isLoading) {
+  // Show loading state for auth or data loading
+  if (authLoading || isLoading) {
     return <div className="flex justify-center items-center h-96">
         <div className="text-muted-foreground">Carregando links...</div>
+      </div>;
+  }
+  
+  // Safety check for authentication
+  if (!isAuthenticated) {
+    return <div className="flex justify-center items-center h-96">
+        <div className="text-muted-foreground">Acesso negado</div>
       </div>;
   }
   return <div className="space-y-4 p-4 bg-slate-900 min-h-screen">

@@ -87,6 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
+    let initTimeout: NodeJS.Timeout;
 
     const initializeAuth = async () => {
       try {
@@ -138,6 +139,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
+    // Safety timeout to prevent infinite loading
+    initTimeout = setTimeout(() => {
+      if (mounted && isLoading) {
+        console.warn('Auth initialization timeout reached, forcing loading to false');
+        setIsLoading(false);
+      }
+    }, 10000);
+
     initializeAuth();
 
     // Configurar listener de mudanças de autenticação
@@ -181,6 +190,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
+      if (initTimeout) {
+        clearTimeout(initTimeout);
+      }
       if (sessionTimer) {
         clearTimeout(sessionTimer);
       }
