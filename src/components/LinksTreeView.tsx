@@ -4,7 +4,7 @@ import { useCompanies } from '@/hooks/useCompanies';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { SafeCollapsible } from '@/components/SafeCollapsible';
 import { 
   ChevronDown, 
   ChevronRight, 
@@ -180,8 +180,10 @@ export const LinksTreeView = () => {
             const isCompanyExpanded = expandedCompanies.has(companyId);
             
             return (
-              <Collapsible key={companyId} open={isCompanyExpanded}>
-                <CollapsibleTrigger asChild>
+              <SafeCollapsible 
+                key={companyId} 
+                open={isCompanyExpanded}
+                trigger={
                   <Button
                     variant="ghost"
                     className="w-full justify-start py-1 px-2 h-auto text-left hover:bg-slate-700"
@@ -200,121 +202,121 @@ export const LinksTreeView = () => {
                       </Badge>
                     </div>
                   </Button>
-                </CollapsibleTrigger>
-                
-                <CollapsibleContent className="ml-6 mt-0.5">
-                  <div className="space-y-0.5">
-                    {Object.entries(services).map(([serviceName, serviceLinks]) => {
-                      const serviceKey = `${companyId}-${serviceName}`;
-                      const isServiceExpanded = expandedServices.has(serviceKey);
-                      
-                      return (
-                        <Collapsible key={serviceKey} open={isServiceExpanded}>
-                          <CollapsibleTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-start py-1 px-2 h-auto text-left hover:bg-slate-700"
-                              onClick={() => toggleService(serviceKey)}
-                            >
-                              <div className="flex items-center gap-2 text-slate-300">
-                                {isServiceExpanded ? (
-                                  <ChevronDown className="h-3 w-3" />
-                                ) : (
-                                  <ChevronRight className="h-3 w-3" />
-                                )}
-                                {getServiceIcon(serviceName)}
-                                <span className="text-sm">{serviceName}</span>
-                                <Badge variant="outline" className="bg-slate-600 text-slate-400 text-xs">
-                                  {serviceLinks.length}
-                                </Badge>
-                              </div>
-                            </Button>
-                          </CollapsibleTrigger>
-                          
-                          <CollapsibleContent className="ml-6 mt-0.5">
-                            <div className="space-y-1">
-                              {serviceLinks.map(link => {
-                                const isPasswordVisible = visiblePasswords.has(link.id);
-                                
-                                return (
-                                  <div
-                                    key={link.id}
-                                    className="p-2 bg-slate-700 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors"
-                                  >
-                                    <div className="flex items-center justify-between mb-1">
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                          <h4 className="font-medium text-white text-sm truncate">
-                                            {link.name}
-                                          </h4>
-                                          {link.url && (
-                                            <button
-                                              onClick={() => handleOpenLink(link.url)}
-                                              className="text-blue-400 text-xs hover:text-blue-300 truncate max-w-xs cursor-pointer hover:underline"
-                                              title={link.url}
-                                            >
-                                              {link.url}
-                                            </button>
-                                          )}
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-1 ml-2">
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => togglePasswordVisibility(link.id)}
-                                          className="h-6 w-6 p-0 hover:bg-slate-600"
-                                        >
-                                          {isPasswordVisible ? (
-                                            <EyeOff className="h-3 w-3 text-slate-400" />
-                                          ) : (
-                                            <Eye className="h-3 w-3 text-slate-400" />
-                                          )}
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
+                }
+                className="ml-6 mt-0.5"
+              >
+                <div className="space-y-0.5">
+                  {Object.entries(services).map(([serviceName, serviceLinks]) => {
+                    const serviceKey = `${companyId}-${serviceName}`;
+                    const isServiceExpanded = expandedServices.has(serviceKey);
+                    
+                    return (
+                      <SafeCollapsible 
+                        key={serviceKey} 
+                        open={isServiceExpanded}
+                        trigger={
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start py-1 px-2 h-auto text-left hover:bg-slate-700"
+                            onClick={() => toggleService(serviceKey)}
+                          >
+                            <div className="flex items-center gap-2 text-slate-300">
+                              {isServiceExpanded ? (
+                                <ChevronDown className="h-3 w-3" />
+                              ) : (
+                                <ChevronRight className="h-3 w-3" />
+                              )}
+                              {getServiceIcon(serviceName)}
+                              <span className="text-sm">{serviceName}</span>
+                              <Badge variant="outline" className="bg-slate-600 text-slate-400 text-xs">
+                                {serviceLinks.length}
+                              </Badge>
+                            </div>
+                          </Button>
+                        }
+                        className="ml-6 mt-0.5"
+                      >
+                        <div className="space-y-1">
+                          {serviceLinks.map(link => {
+                            const isPasswordVisible = visiblePasswords.has(link.id);
+                            
+                            return (
+                              <div
+                                key={link.id}
+                                className="p-2 bg-slate-700 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors"
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="font-medium text-white text-sm truncate">
+                                        {link.name}
+                                      </h4>
+                                      {link.url && (
+                                        <button
                                           onClick={() => handleOpenLink(link.url)}
-                                          className="h-6 w-6 p-0 hover:bg-slate-600 text-blue-400"
+                                          className="text-blue-400 text-xs hover:text-blue-300 truncate max-w-xs cursor-pointer hover:underline"
+                                          title={link.url}
                                         >
-                                          <ExternalLink className="h-3 w-3" />
-                                        </Button>
-                                      </div>
+                                          {link.url}
+                                        </button>
+                                      )}
                                     </div>
-                                    
-                                    {isPasswordVisible && (
-                                      <div className="space-y-1 text-xs">
-                                        {link.username && (
-                                          <p className="text-slate-400">
-                                            <span className="text-slate-500">Usuário:</span>{' '}
-                                            <code className="bg-slate-600 px-1 rounded">{link.username}</code>
-                                          </p>
-                                        )}
-                                        {link.password && (
-                                          <p className="text-slate-400">
-                                            <span className="text-slate-500">Senha:</span>{' '}
-                                            <code className="bg-slate-600 px-1 rounded">{link.password}</code>
-                                          </p>
-                                        )}
-                                        {link.notes && (
-                                          <p className="text-slate-400">
-                                            <span className="text-slate-500">Notas:</span>{' '}
-                                            {link.notes}
-                                          </p>
-                                        )}
-                                      </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 ml-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => togglePasswordVisibility(link.id)}
+                                      className="h-6 w-6 p-0 hover:bg-slate-600"
+                                    >
+                                      {isPasswordVisible ? (
+                                        <EyeOff className="h-3 w-3 text-slate-400" />
+                                      ) : (
+                                        <Eye className="h-3 w-3 text-slate-400" />
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleOpenLink(link.url)}
+                                      className="h-6 w-6 p-0 hover:bg-slate-600 text-blue-400"
+                                    >
+                                      <ExternalLink className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                
+                                {isPasswordVisible && (
+                                  <div className="space-y-1 text-xs">
+                                    {link.username && (
+                                      <p className="text-slate-400">
+                                        <span className="text-slate-500">Usuário:</span>{' '}
+                                        <code className="bg-slate-600 px-1 rounded">{link.username}</code>
+                                      </p>
+                                    )}
+                                    {link.password && (
+                                      <p className="text-slate-400">
+                                        <span className="text-slate-500">Senha:</span>{' '}
+                                        <code className="bg-slate-600 px-1 rounded">{link.password}</code>
+                                      </p>
+                                    )}
+                                    {link.notes && (
+                                      <p className="text-slate-400">
+                                        <span className="text-slate-500">Notas:</span>{' '}
+                                        {link.notes}
+                                      </p>
                                     )}
                                   </div>
-                                );
-                              })}
-                            </div>
-                          </CollapsibleContent>
-                        </Collapsible>
-                      );
-                    })}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </SafeCollapsible>
+                    );
+                  })}
+                </div>
+              </SafeCollapsible>
             );
           })}
         </div>
