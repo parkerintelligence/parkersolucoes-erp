@@ -84,6 +84,9 @@ export const useSystemSetting = (settingKey: string, defaultValue?: string) => {
       
       return data as SystemSetting | null;
     },
+    enabled: true, // Query sempre habilitada, mas com tratamento de erro
+    retry: 1, // Reduzir tentativas para evitar loops
+    staleTime: 5 * 60 * 1000, // Cache por 5 minutos
   });
 };
 

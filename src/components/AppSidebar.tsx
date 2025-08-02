@@ -99,7 +99,8 @@ export function AppSidebar() {
     state
   } = useSidebar();
   const {
-    isMaster
+    isMaster,
+    isAuthenticated
   } = useAuth();
   const { data: logoSetting } = useSystemSetting('company_logo_url');
   const location = useLocation();
