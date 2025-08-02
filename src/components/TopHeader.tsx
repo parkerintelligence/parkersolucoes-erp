@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { LogOut, User, Crown, Shield, ChevronRight, Home, PanelLeft, DollarSign, Settings } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 export const TopHeader = () => {
   const {
     user,
@@ -73,72 +72,52 @@ export const TopHeader = () => {
 
         {/* Área do Usuário */}
         <div className="flex items-center gap-1 sm:gap-2 md:gap-3 flex-shrink-0">
-          {/* Dropdown do Usuário */}
+          {/* Interface do Usuário Simplificada */}
           {user && userProfile ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <div className="flex items-center gap-2">
+              {/* Botão de Admin para Masters */}
+              {isMaster && (
                 <Button 
+                  onClick={handleAdminAccess}
                   variant="ghost" 
-                  className="flex items-center gap-1 sm:gap-2 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg touch-target"
+                  size="sm"
+                  className="flex items-center gap-1 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10 px-2 py-1.5 rounded-lg touch-target"
+                  title="Configurações do Sistema"
                 >
-                  {isMaster ? <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-secondary" /> : <User className="h-3 w-3 sm:h-4 sm:w-4" />}
-                  <span className="hidden sm:inline text-xs sm:text-sm font-medium max-w-20 sm:max-w-32 lg:max-w-none truncate">
-                    {userProfile?.email || user?.email}
-                  </span>
-                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 rotate-90" />
+                  <Settings className="h-4 w-4" />
+                  <span className="hidden md:inline text-sm">Admin</span>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                align="end" 
-                className="z-50 w-56 bg-slate-800 border-slate-700 text-white shadow-lg"
-                sideOffset={5}
-              >
-                <DropdownMenuLabel className="text-white">
-                  Minha Conta
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-slate-700" />
-                
-                {isMaster && (
-                  <>
-                    <DropdownMenuItem 
-                      onClick={handleAdminAccess}
-                      className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700"
-                    >
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Configurações do Sistema</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={handleFinancialAccess}
-                      className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700"
-                    >
-                      <DollarSign className="mr-2 h-4 w-4" />
-                      <span>Financeiro</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-slate-700" />
-                  </>
+              )}
+              
+              {/* Informações do Usuário */}
+              <div className="flex items-center gap-2 text-primary-foreground">
+                {isMaster ? (
+                  <Shield className="h-4 w-4 text-secondary" />
+                ) : (
+                  <User className="h-4 w-4" />
                 )}
-                
-                <DropdownMenuItem 
-                  onClick={handleLogout}
-                  className="cursor-pointer text-red-400 hover:bg-slate-700 focus:bg-slate-700 hover:text-red-300"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sair</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <span className="hidden sm:inline text-sm font-medium max-w-32 lg:max-w-none truncate">
+                  {userProfile?.email || user?.email}
+                </span>
+              </div>
+              
+              {/* Botão de Logout */}
+              <Button 
+                onClick={handleLogout}
+                variant="ghost" 
+                size="sm"
+                className="flex items-center gap-1 text-primary-foreground hover:text-red-400 hover:bg-primary-foreground/10 px-2 py-1.5 rounded-lg touch-target"
+                title="Sair do Sistema"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden md:inline text-sm">Sair</span>
+              </Button>
+            </div>
           ) : (
-            <Button 
-              onClick={handleLogout} 
-              variant="ghost" 
-              className="flex items-center gap-1 sm:gap-2 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg touch-target"
-            >
-              <User className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline text-xs sm:text-sm font-medium">
-                Carregando...
-              </span>
-              <LogOut className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
-            </Button>
+            <div className="flex items-center gap-2 text-primary-foreground/60">
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline text-sm">Carregando...</span>
+            </div>
           )}
         </div>
       </div>
