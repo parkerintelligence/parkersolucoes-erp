@@ -250,21 +250,9 @@ async function attemptWazuhConnection(baseUrl: string, endpoint: string, usernam
     
     throw fetchError;
   }
+}
 
-  } catch (error) {
-    console.error('Error in wazuh-proxy function:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        details: 'Check the edge function logs for more details'
-      }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-  }
-});
+// Diagnostic function to test Wazuh connectivity
 
 // Diagnostic function to test Wazuh connectivity
 async function handleDiagnostics(baseUrls: string[], username: string, password: string, endpoint?: string) {
