@@ -149,55 +149,58 @@ export const useUniFiAPI = () => {
       queryKey: ['unifi-hosts', integrationId],
       queryFn: async () => {
         try {
-          const response = await makeUniFiRequest('/v1/hosts', 'GET', integrationId);
-          console.log('Hosts response:', response);
+          const response = await makeUniFiRequest('/api/self/sites', 'GET', integrationId);
+          console.log('Sites response from local controller:', response);
           
-          let hosts = [];
+          let sites = [];
           if (response?.data && Array.isArray(response.data)) {
-            hosts = response.data;
+            sites = response.data;
           } else if (Array.isArray(response)) {
-            hosts = response;
+            sites = response;
           } else {
-            console.warn('Unexpected hosts response structure:', response);
+            console.warn('Unexpected sites response structure:', response);
             return [];
           }
 
-          // Filter and enhance hosts with validation
-          const validHosts = [];
-          for (const host of hosts) {
-            // Check if host is valid and connected
-            const isConnected = host.reportedState?.state === 'connected';
-            const isNotBlocked = !host.isBlocked;
-            const hasHostname = !!host.reportedState?.hostname;
-            const isOwner = host.owner;
+          // For local controller, we create a virtual host representing the controller itself
+          const virtualHost = {
+            id: 'local-controller',
+            hardwareId: 'local-controller',
+            type: 'network-server',
+            ipAddress: 'local',
+            owner: true,
+            isBlocked: false,
+            registrationTime: new Date().toISOString(),
+            lastConnectionStateChange: new Date().toISOString(),
+            latestBackupTime: '',
+            userData: {
+              permissions: {
+                'network.management': ['admin']
+              },
+              status: 'ACTIVE'
+            },
+            reportedState: {
+              controller_uuid: 'local-controller',
+              firmware_version: null,
+              hardware_id: 'local-controller',
+              host_type: 0,
+              hostname: 'Local UniFi Controller',
+              inform_port: 8080,
+              ipAddrs: ['local'],
+              mgmt_port: 8443,
+              name: 'UniFi Network',
+              override_inform_host: false,
+              release_channel: 'release',
+              state: 'connected',
+              version: 'local'
+            },
+            sitesCount: sites.length,
+            isValid: sites.length > 0,
+            sites: sites // Cache sites data for faster loading
+          };
 
-            if (isConnected && isNotBlocked && hasHostname && isOwner) {
-              try {
-                // Try to fetch sites for this host to validate it has data
-                const sitesResponse = await makeUniFiRequest(`/v1/hosts/${host.id}/sites`, 'GET', integrationId);
-                const sites = sitesResponse?.data || [];
-                
-                validHosts.push({
-                  ...host,
-                  sitesCount: sites.length,
-                  isValid: sites.length > 0,
-                  sites: sites // Cache sites data for faster loading
-                });
-              } catch (siteError) {
-                console.warn(`Failed to fetch sites for host ${host.id}:`, siteError);
-                // Still include the host but mark as potentially invalid
-                validHosts.push({
-                  ...host,
-                  sitesCount: 0,
-                  isValid: false,
-                  sites: []
-                });
-              }
-            }
-          }
-
-          console.log('Valid hosts with sites:', validHosts);
-          return validHosts;
+          console.log('Virtual host with sites:', [virtualHost]);
+          return [virtualHost];
         } catch (error) {
           console.error('Failed to fetch hosts:', error);
           return [];
@@ -223,8 +226,8 @@ export const useUniFiAPI = () => {
           return { data: host.sites };
         }
 
-        // Fallback to API call if no cached data
-        return makeUniFiRequest(`/v1/hosts/${hostId}/sites`, 'GET', integrationId);
+        // Fallback to API call if no cached data - use same endpoint as hosts
+        return makeUniFiRequest('/api/self/sites', 'GET', integrationId);
       },
       enabled: !!integrationId && !!hostId,
       staleTime: 60000, // 1 minute
@@ -232,55 +235,70 @@ export const useUniFiAPI = () => {
     });
   };
 
-  // Devices - usar endpoint correto da Site Manager API v1
+  // Devices - usar endpoint correto da Controladora Local
   const useUniFiDevices = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
       queryKey: ['unifi-devices', integrationId, hostId, siteId],
-      queryFn: () => makeUniFiRequest(`/v1/hosts/${hostId}/devices`, 'GET', integrationId),
+      queryFn: () => {
+        const endpoint = siteId ? `/api/s/${siteId}/stat/device` : '/api/stat/device';
+        return makeUniFiRequest(endpoint, 'GET', integrationId);
+      },
       enabled: !!integrationId && !!hostId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
   };
 
-  // Clients - usar endpoint correto da Site Manager API v1
+  // Clients - usar endpoint correto da Controladora Local
   const useUniFiClients = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
       queryKey: ['unifi-clients', integrationId, hostId, siteId],
-      queryFn: () => makeUniFiRequest(`/v1/hosts/${hostId}/clients`, 'GET', integrationId),
+      queryFn: () => {
+        const endpoint = siteId ? `/api/s/${siteId}/stat/sta` : '/api/stat/sta';
+        return makeUniFiRequest(endpoint, 'GET', integrationId);
+      },
       enabled: !!integrationId && !!hostId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
   };
 
-  // Networks - usar endpoint correto da Site Manager API v1
+  // Networks - usar endpoint correto da Controladora Local
   const useUniFiNetworks = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
       queryKey: ['unifi-networks', integrationId, hostId, siteId],
-      queryFn: () => makeUniFiRequest(`/v1/hosts/${hostId}/networks`, 'GET', integrationId),
+      queryFn: () => {
+        const endpoint = siteId ? `/api/s/${siteId}/rest/wlanconf` : '/api/rest/wlanconf';
+        return makeUniFiRequest(endpoint, 'GET', integrationId);
+      },
       enabled: !!integrationId && !!hostId,
       staleTime: 60000, // 1 minute
       retry: 2,
     });
   };
 
-  // Alarms - usar endpoint correto da Site Manager API v1
+  // Alarms - usar endpoint correto da Controladora Local
   const useUniFiAlarms = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
       queryKey: ['unifi-alarms', integrationId, hostId, siteId],
-      queryFn: () => makeUniFiRequest(`/v1/hosts/${hostId}/alarms`, 'GET', integrationId),
+      queryFn: () => {
+        const endpoint = siteId ? `/api/s/${siteId}/stat/alarm` : '/api/stat/alarm';
+        return makeUniFiRequest(endpoint, 'GET', integrationId);
+      },
       enabled: !!integrationId && !!hostId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
   };
 
-  // Health - usar endpoint correto da Site Manager API v1
+  // Health - usar endpoint correto da Controladora Local
   const useUniFiHealth = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
       queryKey: ['unifi-health', integrationId, hostId, siteId],
-      queryFn: () => makeUniFiRequest(`/v1/hosts/${hostId}/health`, 'GET', integrationId),
+      queryFn: () => {
+        const endpoint = siteId ? `/api/s/${siteId}/stat/health` : '/api/stat/health';
+        return makeUniFiRequest(endpoint, 'GET', integrationId);
+      },
       enabled: !!integrationId && !!hostId,
       staleTime: 30000, // 30 seconds
       retry: 2,
@@ -294,10 +312,14 @@ export const useUniFiAPI = () => {
       queryFn: async () => {
         if (!hostId) return null;
         
+        const deviceEndpoint = siteId ? `/api/s/${siteId}/stat/device` : '/api/stat/device';
+        const clientEndpoint = siteId ? `/api/s/${siteId}/stat/sta` : '/api/stat/sta';
+        const healthEndpoint = siteId ? `/api/s/${siteId}/stat/health` : '/api/stat/health';
+        
         const [devicesResponse, clientsResponse, healthResponse] = await Promise.all([
-          makeUniFiRequest(`/v1/hosts/${hostId}/devices`, 'GET', integrationId),
-          makeUniFiRequest(`/v1/hosts/${hostId}/clients`, 'GET', integrationId),
-          makeUniFiRequest(`/v1/hosts/${hostId}/health`, 'GET', integrationId),
+          makeUniFiRequest(deviceEndpoint, 'GET', integrationId),
+          makeUniFiRequest(clientEndpoint, 'GET', integrationId),
+          makeUniFiRequest(healthEndpoint, 'GET', integrationId),
         ]);
 
         const devices = devicesResponse?.data || [];
@@ -325,8 +347,9 @@ export const useUniFiAPI = () => {
 
   // Device operations
   const restartDevice = useMutation({
-    mutationFn: async ({ integrationId, hostId, deviceId }: { integrationId: string, hostId: string, deviceId: string }) => {
-      return makeUniFiRequest(`/v1/hosts/${hostId}/cmd/device`, 'POST', integrationId, {
+    mutationFn: async ({ integrationId, hostId, deviceId, siteId }: { integrationId: string, hostId: string, deviceId: string, siteId?: string }) => {
+      const endpoint = siteId ? `/api/s/${siteId}/cmd/devmgr` : '/api/cmd/devmgr';
+      return makeUniFiRequest(endpoint, 'POST', integrationId, {
         cmd: 'restart',
         mac: deviceId
       });
@@ -350,8 +373,9 @@ export const useUniFiAPI = () => {
 
   // Block/Unblock client
   const toggleClientBlock = useMutation({
-    mutationFn: async ({ integrationId, hostId, clientId, block }: { integrationId: string, hostId: string, clientId: string, block: boolean }) => {
-      return makeUniFiRequest(`/v1/hosts/${hostId}/cmd/client`, 'POST', integrationId, {
+    mutationFn: async ({ integrationId, hostId, clientId, block, siteId }: { integrationId: string, hostId: string, clientId: string, block: boolean, siteId?: string }) => {
+      const endpoint = siteId ? `/api/s/${siteId}/cmd/stamgr` : '/api/cmd/stamgr';
+      return makeUniFiRequest(endpoint, 'POST', integrationId, {
         cmd: block ? 'block-sta' : 'unblock-sta',
         mac: clientId
       });
@@ -376,7 +400,7 @@ export const useUniFiAPI = () => {
   // Test connection
   const testUniFiConnection = useMutation({
     mutationFn: async (integrationId: string) => {
-      return makeUniFiRequest('/v1/hosts', 'GET', integrationId);
+      return makeUniFiRequest('/api/self/sites', 'GET', integrationId);
     },
     onSuccess: () => {
       toast({

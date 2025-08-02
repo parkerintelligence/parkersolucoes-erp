@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
-console.log("UniFi Site Manager API proxy function starting...");
+console.log("UniFi Local Controller API proxy function starting...");
 
 serve(async (req) => {
   console.log(`Received ${req.method} request to unifi-proxy`);
@@ -66,7 +66,7 @@ serve(async (req) => {
     const requestBody = await req.json();
     const { method, endpoint, integrationId, data: postData } = requestBody;
 
-    console.log('UniFi Site Manager API request:', { method, endpoint, integrationId, userId: user.id });
+    console.log('UniFi Local Controller API request:', { method, endpoint, integrationId, userId: user.id });
 
     // Get UniFi integration configuration
     console.log("Fetching UniFi integration...");
@@ -89,32 +89,62 @@ serve(async (req) => {
       throw new Error('UniFi integration is not active');
     }
 
-    const { api_token } = integration;
+    const { base_url, username, password, use_ssl = true } = integration;
     
     console.log("Integration config:", { 
-      hasApiToken: !!api_token
+      hasBaseUrl: !!base_url,
+      hasUsername: !!username,
+      hasPassword: !!password,
+      useSSL: use_ssl
     });
     
-    if (!api_token) {
-      console.error('Missing API token for UniFi Site Manager API');
-      throw new Error('UniFi Site Manager API requires an API token. Get yours at https://account.ui.com/api');
+    if (!base_url || !username || !password) {
+      console.error('Missing required credentials for UniFi Controller');
+      throw new Error('UniFi Controller requires base_url, username, and password');
     }
 
-    // Use official UniFi Site Manager API
-    const baseApiUrl = 'https://api.ui.com';
-    console.log('Using UniFi Site Manager API:', baseApiUrl);
+    // Use local UniFi Controller
+    const baseApiUrl = base_url.replace(/\/+$/, ''); // Remove trailing slashes
+    console.log('Using UniFi Controller:', baseApiUrl);
     console.log('API endpoint:', endpoint);
 
-    // Make API request to UniFi Site Manager
+    // First, authenticate with the UniFi Controller
+    const loginUrl = `${baseApiUrl}/api/login`;
+    console.log('Authenticating with UniFi Controller:', loginUrl);
+
+    const loginResponse = await fetch(loginUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        username: username,
+        password: password,
+        remember: true
+      })
+    });
+
+    if (!loginResponse.ok) {
+      const loginError = await loginResponse.text();
+      console.error('UniFi Controller login failed:', loginResponse.status, loginError);
+      throw new Error(`Authentication failed: ${loginResponse.status} - Check username/password`);
+    }
+
+    // Extract cookies from login response
+    const setCookieHeaders = loginResponse.headers.get('set-cookie') || '';
+    console.log('Login successful, got cookies');
+
+    // Make API request to UniFi Controller
     const apiUrl = `${baseApiUrl}${endpoint}`;
-    console.log('Making Site Manager API request to:', apiUrl);
+    console.log('Making Controller API request to:', apiUrl);
 
     const requestOptions: RequestInit = {
       method: method || 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'X-API-KEY': api_token
+        'Cookie': setCookieHeaders
       },
     };
 
@@ -125,7 +155,7 @@ serve(async (req) => {
     console.log('Request options:', { 
       method: requestOptions.method, 
       url: apiUrl,
-      hasApiKey: !!api_token,
+      hasCookies: !!setCookieHeaders,
       hasBody: !!requestOptions.body 
     });
 
@@ -133,13 +163,13 @@ serve(async (req) => {
 
     if (!apiResponse.ok) {
       const errorText = await apiResponse.text();
-      console.error('Site Manager API request failed:', apiResponse.status, errorText);
+      console.error('UniFi Controller API request failed:', apiResponse.status, errorText);
       console.error('Request details:', { url: apiUrl, method: requestOptions.method, endpoint });
       
       if (apiResponse.status === 401) {
-        throw new Error('API token inválido ou expirado. Verifique suas credenciais na conta UniFi.');
+        throw new Error('Credenciais inválidas ou sessão expirada. Verifique usuário e senha.');
       } else if (apiResponse.status === 403) {
-        throw new Error('Acesso negado. Verifique as permissões do seu token API.');
+        throw new Error('Acesso negado. Verifique as permissões do usuário na controladora.');
       } else if (apiResponse.status === 404) {
         // Para 404, retornar uma resposta vazia ao invés de erro para alguns endpoints
         if (endpoint.includes('/sites') || endpoint.includes('/devices') || endpoint.includes('/clients')) {
@@ -148,39 +178,30 @@ serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
-        throw new Error('Endpoint não encontrado. Verifique se o site/host existe ou se a API mudou.');
+        throw new Error('Endpoint não encontrado. Verifique se o site existe na controladora.');
       }
       
-      throw new Error(`Site Manager API request failed: ${apiResponse.status} - ${errorText}`);
+      throw new Error(`UniFi Controller API request failed: ${apiResponse.status} - ${errorText}`);
     }
 
     const responseData = await apiResponse.json();
-    console.log('Site Manager API successful, response structure:', {
+    console.log('UniFi Controller API successful, response structure:', {
       hasData: !!responseData,
       dataKeys: responseData ? Object.keys(responseData) : [],
       dataLength: Array.isArray(responseData?.data) ? responseData.data.length : 'not array',
       fullResponse: JSON.stringify(responseData, null, 2)
     });
 
-    // Se é o endpoint de hosts, vamos ver se a estrutura está correta
-    if (endpoint === '/v1/hosts') {
-      console.log('Hosts endpoint - detailed analysis:', {
-        isArray: Array.isArray(responseData),
-        hasDataProperty: !!responseData?.data,
-        directDataLength: Array.isArray(responseData) ? responseData.length : 'not array',
-        dataPropertyLength: Array.isArray(responseData?.data) ? responseData.data.length : 'not array',
-        firstItem: responseData?.[0] || responseData?.data?.[0],
-        responseDataStructure: responseData
-      });
-    }
-
-    // For hosts endpoint, the data might be directly in the root array
+    // Transform data structure for consistency with frontend
     let finalResponse;
-    if (endpoint === '/v1/hosts' && Array.isArray(responseData)) {
-      finalResponse = { data: responseData };
-    } else if (responseData?.data) {
+    if (responseData?.data) {
+      // Already in the expected format
       finalResponse = responseData;
+    } else if (Array.isArray(responseData)) {
+      // Wrap array response in data object
+      finalResponse = { data: responseData };
     } else {
+      // Single object response
       finalResponse = { data: responseData };
     }
     
@@ -201,9 +222,9 @@ serve(async (req) => {
       if (error.message.includes('Unauthorized') || error.message.includes('Authentication failed')) {
         status = 401;
         errorMessage = 'Falha na autenticação. Verifique se você está logado.';
-      } else if (error.message.includes('API token inválido')) {
+      } else if (error.message.includes('Credenciais inválidas')) {
         status = 400;
-        errorMessage = 'Token da API UniFi inválido ou expirado.';
+        errorMessage = 'Credenciais da Controladora UniFi inválidas.';
       } else if (error.message.includes('Authorization header')) {
         status = 401;
         errorMessage = 'Header de autorização ausente.';
