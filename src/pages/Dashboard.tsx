@@ -1,9 +1,11 @@
+import React, { Suspense } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HostingerDashboard } from '@/components/HostingerDashboard';
 import { BaculaDashboard } from '@/components/BaculaDashboard';
+import { QueryErrorBoundary } from '@/components/QueryErrorBoundary';
 import { BarChart3, Users, DollarSign, FileText, Calendar, TrendingUp, Server, Archive, Activity, Database, Shield } from 'lucide-react';
 const Dashboard = () => {
   const stats = [{
@@ -66,7 +68,11 @@ const Dashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <HostingerDashboard />
+                <QueryErrorBoundary>
+                  <Suspense fallback={<div className="p-4 text-center text-slate-400">Carregando dashboard...</div>}>
+                    <HostingerDashboard />
+                  </Suspense>
+                </QueryErrorBoundary>
               </CardContent>
             </Card>
           </TabsContent>
