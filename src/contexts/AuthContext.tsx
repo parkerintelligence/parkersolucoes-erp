@@ -87,14 +87,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearTimeout(sessionTimer);
     }
     
-    // Criar novo timer para 60 minutos (3600000 ms)
+    // Criar novo timer para 2 horas (7200000 ms) - mais tempo para evitar logout prematuro
     const timer = setTimeout(async () => {
-      console.log('Sessão expirada após 60 minutos, fazendo logout...');
-      await logout();
-    }, 60 * 60 * 1000);
+      console.log('Sessão expirada após 2 horas, fazendo logout...');
+      console.log('Timer disparado - usuário ativo:', !!user);
+      console.log('Perfil atual:', userProfile);
+      
+      // Verificar se ainda existe sessão ativa antes de fazer logout
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session) {
+          console.log('Sessão ainda válida, mas timer expirou - fazendo logout');
+          await logout();
+        } else {
+          console.log('Sessão já expirou anteriormente');
+        }
+      } catch (error) {
+        console.error('Erro ao verificar sessão:', error);
+        await logout();
+      }
+    }, 2 * 60 * 60 * 1000);
     
     setSessionTimer(timer);
-    console.log('Timer de sessão iniciado: 60 minutos');
+    console.log('Timer de sessão iniciado: 2 horas');
   };
 
   const resetSessionTimer = () => {
@@ -231,11 +246,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      console.log('Fazendo logout...');
+      console.log('=== INICIANDO LOGOUT ===');
+      console.log('Stack trace:', new Error().stack);
+      console.log('Usuário atual:', user?.email);
+      console.log('Perfil atual:', userProfile);
+      console.log('Session timer ativo:', !!sessionTimer);
       
       if (sessionTimer) {
         clearTimeout(sessionTimer);
         setSessionTimer(null);
+        console.log('Session timer limpo');
       }
       
       await supabase.auth.signOut();
@@ -243,7 +263,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(null);
       setUserProfile(null);
       
-      console.log('Logout realizado com sucesso');
+      console.log('=== LOGOUT CONCLUÍDO ===');
     } catch (error) {
       console.error('Erro no logout:', error);
     }

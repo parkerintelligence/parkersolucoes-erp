@@ -1,12 +1,10 @@
 import * as React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-// import { useSystemSettings } from '@/hooks/useSystemSettings'; // Temporarily disabled
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Crown, Shield, ChevronRight, Home, PanelLeft, DollarSign, Settings } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-// import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'; // Temporarily disabled
-// import { PWAInstallButton } from '@/components/PWAInstallButton'; // Temporarily disabled
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 export const TopHeader = () => {
   const {
     user,
@@ -14,24 +12,21 @@ export const TopHeader = () => {
     logout,
     isMaster
   } = useAuth();
-  // Temporarily disable useSystemSettings to fix React context error
-  const settings = null;
-  /*
-  const {
-    data: settings
-  } = useSystemSettings();
-  */
   const location = useLocation();
   const navigate = useNavigate();
   const companyName = 'Sistema de Gestão de TI'; // Hardcoded temporarily
   const logoUrl = null; // Hardcoded temporarily
   const handleLogout = async () => {
+    console.log('TopHeader: Logout iniciado pelo usuário');
     await logout();
   };
+  
   const handleFinancialAccess = () => {
     navigate('/financial');
   };
+  
   const handleAdminAccess = () => {
+    console.log('TopHeader: Navegando para admin - usuário master:', isMaster);
     navigate('/admin');
   };
   const getBreadcrumbTitle = () => {
@@ -78,21 +73,55 @@ export const TopHeader = () => {
 
         {/* Área do Usuário */}
         <div className="flex items-center gap-1 sm:gap-2 md:gap-3 flex-shrink-0">
-          {/* Botão de Instalação PWA - Temporarily disabled */}
-          {/* <PWAInstallButton /> */}
-          
-          {/* Temporary simple logout button to debug React hooks issue */}
-          <Button 
-            onClick={handleLogout} 
-            variant="ghost" 
-            className="flex items-center gap-1 sm:gap-2 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg touch-target"
-          >
-            {isMaster ? <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-secondary" /> : <User className="h-3 w-3 sm:h-4 sm:w-4" />}
-            <span className="hidden sm:inline text-xs sm:text-sm font-medium max-w-20 sm:max-w-32 lg:max-w-none truncate">
-              {userProfile?.email || user?.email}
-            </span>
-            <LogOut className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
-          </Button>
+          {/* Dropdown do Usuário */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className="flex items-center gap-1 sm:gap-2 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg touch-target"
+              >
+                {isMaster ? <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-secondary" /> : <User className="h-3 w-3 sm:h-4 sm:w-4" />}
+                <span className="hidden sm:inline text-xs sm:text-sm font-medium max-w-20 sm:max-w-32 lg:max-w-none truncate">
+                  {userProfile?.email || user?.email}
+                </span>
+                <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 rotate-90" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 bg-slate-800 border-slate-700 text-white">
+              <DropdownMenuLabel className="text-white">
+                Minha Conta
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-slate-700" />
+              
+              {isMaster && (
+                <>
+                  <DropdownMenuItem 
+                    onClick={handleAdminAccess}
+                    className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700"
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Configurações do Sistema</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={handleFinancialAccess}
+                    className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700"
+                  >
+                    <DollarSign className="mr-2 h-4 w-4" />
+                    <span>Financeiro</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-slate-700" />
+                </>
+              )}
+              
+              <DropdownMenuItem 
+                onClick={handleLogout}
+                className="cursor-pointer text-red-400 hover:bg-slate-700 focus:bg-slate-700 hover:text-red-300"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sair</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>;
