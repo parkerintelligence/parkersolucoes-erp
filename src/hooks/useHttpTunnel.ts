@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface TunnelConfig {
   retryAttempts?: number;
@@ -26,10 +26,10 @@ const DEFAULT_CONFIG: TunnelConfig = {
 };
 
 export const useHttpTunnel = (config: TunnelConfig = {}) => {
-  const [isWorkerReady, setIsWorkerReady] = React.useState(false);
+  const [isWorkerReady, setIsWorkerReady] = useState(false);
   const mergedConfig = { ...DEFAULT_CONFIG, ...config };
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Registrar Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/http-tunnel-worker.js')
@@ -44,7 +44,7 @@ export const useHttpTunnel = (config: TunnelConfig = {}) => {
     }
   }, []);
 
-  const makeRequest = React.useCallback(async <T = any>(
+  const makeRequest = useCallback(async <T = any>(
     url: string,
     options: RequestInit = {}
   ): Promise<TunnelResponse<T>> => {
@@ -103,11 +103,11 @@ export const useHttpTunnel = (config: TunnelConfig = {}) => {
     }
   }, [mergedConfig]);
 
-  const get = React.useCallback(<T = any>(url: string, headers?: HeadersInit): Promise<TunnelResponse<T>> => {
+  const get = useCallback(<T = any>(url: string, headers?: HeadersInit): Promise<TunnelResponse<T>> => {
     return makeRequest<T>(url, { method: 'GET', headers });
   }, [makeRequest]);
 
-  const post = React.useCallback(<T = any>(url: string, body?: any, headers?: HeadersInit): Promise<TunnelResponse<T>> => {
+  const post = useCallback(<T = any>(url: string, body?: any, headers?: HeadersInit): Promise<TunnelResponse<T>> => {
     return makeRequest<T>(url, {
       method: 'POST',
       headers,
@@ -115,7 +115,7 @@ export const useHttpTunnel = (config: TunnelConfig = {}) => {
     });
   }, [makeRequest]);
 
-  const put = React.useCallback(<T = any>(url: string, body?: any, headers?: HeadersInit): Promise<TunnelResponse<T>> => {
+  const put = useCallback(<T = any>(url: string, body?: any, headers?: HeadersInit): Promise<TunnelResponse<T>> => {
     return makeRequest<T>(url, {
       method: 'PUT',
       headers,
@@ -123,7 +123,7 @@ export const useHttpTunnel = (config: TunnelConfig = {}) => {
     });
   }, [makeRequest]);
 
-  const del = React.useCallback(<T = any>(url: string, headers?: HeadersInit): Promise<TunnelResponse<T>> => {
+  const del = useCallback(<T = any>(url: string, headers?: HeadersInit): Promise<TunnelResponse<T>> => {
     return makeRequest<T>(url, { method: 'DELETE', headers });
   }, [makeRequest]);
 

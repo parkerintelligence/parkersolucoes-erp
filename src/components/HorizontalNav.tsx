@@ -1,5 +1,4 @@
 
-import * as React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -20,14 +19,10 @@ import {
   Activity,
   BarChart3,
 } from 'lucide-react';
-// Temporarily removed DropdownMenu imports to fix React context issue
-// import {
-//   DropdownMenu,
-//   DropdownMenuContent,
-//   DropdownMenuItem,
-//   DropdownMenuSeparator,
-//   DropdownMenuTrigger,
-// } from '@/components/ui/dropdown-menu';
+import {
+  SafeDropdownMenu,
+  DropdownMenuItem,
+} from '@/components/SafeDropdownMenu';
 import { Button } from '@/components/ui/button';
 
 const menuItems = [
@@ -58,7 +53,7 @@ const adminItems = [
 ];
 
 export const HorizontalNav = () => {
-  const { isMaster } = useAuth();
+  const { isMaster, user, isLoading } = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
 
@@ -100,17 +95,32 @@ export const HorizontalNav = () => {
               </NavLink>
             ))}
 
-            {/* Menu Financeiro (Temporarily simplified to fix React hooks issue) */}
-            {filteredFinancialItems.length > 0 && filteredFinancialItems.map((item) => (
-              <NavLink 
-                key={item.title}
-                to={item.url} 
-                className={getNavClass(isActive(item.url))}
+            {/* Menu Financeiro (Dropdown) - Only render when user is loaded */}
+            {!isLoading && user && filteredFinancialItems.length > 0 && (
+              <SafeDropdownMenu
+                align="start"
+                className="nav-dropdown w-48"
+                trigger={
+                  <Button 
+                    variant="ghost" 
+                    className={`nav-card ${getFinancialActive() ? 'nav-card-active' : ''} flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200`}
+                  >
+                    <Calculator className="h-4 w-4 flex-shrink-0" />
+                    <span className="hidden sm:inline whitespace-nowrap">Financeiro</span>
+                    <ChevronDown className="h-3 w-3 ml-1" />
+                  </Button>
+                }
               >
-                <item.icon className="h-4 w-4 flex-shrink-0" />
-                <span className="hidden sm:inline whitespace-nowrap">{item.title}</span>
-              </NavLink>
-            ))}
+                {filteredFinancialItems.map((item) => (
+                  <DropdownMenuItem key={item.title} asChild>
+                    <NavLink to={item.url} className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-lg hover:bg-secondary/10 transition-colors">
+                      <item.icon className="h-4 w-4" />
+                      {item.title}
+                    </NavLink>
+                  </DropdownMenuItem>
+                ))}
+              </SafeDropdownMenu>
+            )}
           </div>
         </div>
       </div>

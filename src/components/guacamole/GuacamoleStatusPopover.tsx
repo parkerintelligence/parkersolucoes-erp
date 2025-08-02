@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -34,13 +34,13 @@ export const GuacamoleStatusPopover = ({
   connectionGroups 
 }: GuacamoleStatusPopoverProps) => {
   const { data: integrations } = useIntegrations();
-  const [tokenStatus, setTokenStatus] = React.useState<{
+  const [tokenStatus, setTokenStatus] = useState<{
     isValid: boolean;
     expiresAt?: Date;
     timeLeft?: number;
     error?: string;
   } | null>(null);
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const integration = integrations?.find(i => i.type === 'guacamole' && i.is_active);
 
@@ -136,13 +136,13 @@ export const GuacamoleStatusPopover = ({
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (integration) {
       checkTokenStatus();
     }
   }, [integration]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const interval = setInterval(() => {
       if (tokenStatus?.isValid && tokenStatus.expiresAt) {
         const timeLeft = Math.max(0, (tokenStatus.expiresAt.getTime() - Date.now()) / 1000 / 60);

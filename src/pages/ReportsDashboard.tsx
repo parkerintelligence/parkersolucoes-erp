@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
-import { SafeComponentWrapper } from '@/components/SafeComponentWrapper';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useReportsLogs, useReportsMetrics } from '@/hooks/useReportsLogs';
 import { useScheduledReports } from '@/hooks/useScheduledReports';
@@ -147,14 +146,14 @@ const ReportsDashboard = () => {
           </Card>
         </div>
 
-        <SafeTabs defaultValue="overview" className="space-y-6">
-          <SafeTabsList>
-            <SafeTabsTrigger value="overview">Visão Geral</SafeTabsTrigger>
-            <SafeTabsTrigger value="logs">Logs Detalhados</SafeTabsTrigger>
-            <SafeTabsTrigger value="analytics">Analytics</SafeTabsTrigger>
-          </SafeTabsList>
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="logs">Logs Detalhados</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          </TabsList>
 
-          <SafeTabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Gráfico de Tendência */}
               <Card>
@@ -232,9 +231,9 @@ const ReportsDashboard = () => {
                 </CardContent>
               </Card>
             </div>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="logs" className="space-y-6">
+          <TabsContent value="logs" className="space-y-6">
             {/* Filtros */}
             <Card>
               <CardHeader>
@@ -328,9 +327,9 @@ const ReportsDashboard = () => {
                 </div>
               </CardContent>
             </Card>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="analytics" className="space-y-6">
+          <TabsContent value="analytics" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Execuções por Dia</CardTitle>
@@ -353,8 +352,8 @@ const ReportsDashboard = () => {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-          </SafeTabsContent>
-        </SafeTabs>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

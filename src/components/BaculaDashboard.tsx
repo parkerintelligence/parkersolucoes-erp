@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { RefreshCw } from 'lucide-react';
 import { useBaculaJobsAll } from '@/hooks/useBaculaAPI';
@@ -9,10 +9,10 @@ import { BaculaJobsTable } from '@/components/bacula/BaculaJobsTable';
 
 export const BaculaDashboard = () => {
   // Filtros para o dashboard
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState('all');
-  const [dateFilter, setDateFilter] = React.useState('7days');
-  const [groupByDate, setGroupByDate] = React.useState(true); // Default agrupado por data
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('7days');
+  const [groupByDate, setGroupByDate] = useState(true); // Default agrupado por data
 
   const {
     data: jobsData,

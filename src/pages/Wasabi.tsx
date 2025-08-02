@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
-import { SafeComponentWrapper } from '@/components/SafeComponentWrapper';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Cloud, RefreshCcw, AlertTriangle, CheckCircle, Settings, FileText, Folder, Download, Upload, Trash2, Eye, FolderPlus, ArrowLeft, ChevronRight } from 'lucide-react';
 import { useWasabi } from '@/hooks/useWasabi';
@@ -154,17 +153,17 @@ const Wasabi = () => {
           </div>
         </div>
 
-        <SafeTabs defaultValue="storage" className="w-full">
-          <SafeTabsList className="grid w-full grid-cols-2 bg-gray-800 border-gray-700">
-            <SafeTabsTrigger value="storage" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+        <Tabs defaultValue="storage" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 bg-gray-800 border-gray-700">
+            <TabsTrigger value="storage" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               Armazenamento
-            </SafeTabsTrigger>
-            <SafeTabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               Análise de Uso
-            </SafeTabsTrigger>
-          </SafeTabsList>
+            </TabsTrigger>
+          </TabsList>
 
-          <SafeTabsContent value="storage" className="mt-6">
+          <TabsContent value="storage" className="mt-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -247,9 +246,9 @@ const Wasabi = () => {
                 </CardContent>
               </Card>
             </div>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="analytics" className="mt-6">
+          <TabsContent value="analytics" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="bg-gray-800 border-gray-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -288,8 +287,8 @@ const Wasabi = () => {
                 </CardContent>
               </Card>
             </div>
-          </SafeTabsContent>
-        </SafeTabs>
+          </TabsContent>
+        </Tabs>
 
         {/* Dialogs */}
         <WasabiCreateBucketDialog open={createBucketDialogOpen} onOpenChange={setCreateBucketDialogOpen} onCreateBucket={handleCreateBucket} isCreating={createBucket.isPending} />

@@ -1,11 +1,11 @@
 
-import React from 'react';
+import { useState, useCallback } from 'react';
 import { GuacamoleLogEntry } from '@/components/guacamole/GuacamoleLogs';
 
 export const useGuacamoleLogs = () => {
-  const [logs, setLogs] = React.useState<GuacamoleLogEntry[]>([]);
+  const [logs, setLogs] = useState<GuacamoleLogEntry[]>([]);
 
-  const addLog = React.useCallback((
+  const addLog = useCallback((
     type: GuacamoleLogEntry['type'],
     message: string,
     options?: {
@@ -28,11 +28,11 @@ export const useGuacamoleLogs = () => {
     console.log('Guacamole Log:', newLog);
   }, []);
 
-  const clearLogs = React.useCallback(() => {
+  const clearLogs = useCallback(() => {
     setLogs([]);
   }, []);
 
-  const logRequest = React.useCallback((method: string, url: string, dataSource?: string) => {
+  const logRequest = useCallback((method: string, url: string, dataSource?: string) => {
     addLog('request', `Fazendo requisição ${method}`, {
       method,
       url,
@@ -40,7 +40,7 @@ export const useGuacamoleLogs = () => {
     });
   }, [addLog]);
 
-  const logResponse = React.useCallback((status: number, message: string, url?: string, details?: any) => {
+  const logResponse = useCallback((status: number, message: string, url?: string, details?: any) => {
     addLog('response', message, {
       status,
       url,
@@ -48,14 +48,14 @@ export const useGuacamoleLogs = () => {
     });
   }, [addLog]);
 
-  const logError = React.useCallback((message: string, url?: string, details?: any) => {
+  const logError = useCallback((message: string, url?: string, details?: any) => {
     addLog('error', message, {
       url,
       details
     });
   }, [addLog]);
 
-  const logInfo = React.useCallback((message: string, details?: any) => {
+  const logInfo = useCallback((message: string, details?: any) => {
     addLog('info', message, {
       details
     });

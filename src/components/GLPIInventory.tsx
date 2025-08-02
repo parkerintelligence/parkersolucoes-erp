@@ -1,210 +1,117 @@
-import React from 'react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
-  Monitor, 
-  Cpu, 
-  HardDrive, 
-  Wifi, 
-  RefreshCw,
-  Search,
-  Download,
-  Filter
+  Eye, 
+  Monitor,
+  Server,
+  Smartphone,
+  Laptop,
+  Printer,
+  Building2
 } from 'lucide-react';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { GLPIInventoryFilters } from './GLPIInventoryFilters';
-import { toast } from '@/hooks/use-toast';
+import { useState, useMemo } from 'react';
 
-interface InventoryItem {
-  id: string;
-  name: string;
-  type: string;
-  location?: string;
-  status: string;
-  serial?: string;
-  model?: string;
-}
+export const GLPIInventory = () => {
+  const { computers, monitors, printers, networkEquipment, entities } = useGLPIExpanded();
+  const [filters, setFilters] = useState({});
+  const [selectedItem, setSelectedItem] = useState<any>(null);
 
-const GLPIInventory = () => {
-  const { tickets } = useGLPIExpanded();
-  const [filters, setFilters] = React.useState({
-    type: '',
-    location: '',
-    status: '',
-    search: ''
-  });
-  const [showFilters, setShowFilters] = React.useState(false);
+  const getEntityName = (entityId: number) => {
+    const entity = entities.data?.find(e => e.id === entityId);
+    return entity?.name || `Entidade ${entityId}`;
+  };
 
-  const assets = tickets.data?.inventory || [];
+  const allInventoryItems = useMemo(() => {
+    const items: any[] = [];
+    
+    if (computers.data) {
+      computers.data.forEach(item => items.push({ ...item, type: 'computer', icon: Monitor }));
+    }
+    if (monitors.data) {
+      monitors.data.forEach(item => items.push({ ...item, type: 'monitor', icon: Monitor }));
+    }
+    if (printers.data) {
+      printers.data.forEach(item => items.push({ ...item, type: 'printer', icon: Printer }));
+    }
+    if (networkEquipment.data) {
+      networkEquipment.data.forEach(item => items.push({ ...item, type: 'network', icon: Server }));
+    }
+
+    return items;
+  }, [computers.data, monitors.data, printers.data, networkEquipment.data]);
 
   const getTypeIcon = (type: string) => {
-    switch (type.toLowerCase()) {
+    switch (type) {
       case 'computer':
+        return <Laptop className="h-4 w-4" />;
+      case 'monitor':
         return <Monitor className="h-4 w-4" />;
-      case 'processor':
-        return <Cpu className="h-4 w-4" />;
-      case 'storage':
-        return <HardDrive className="h-4 w-4" />;
+      case 'phone':
+        return <Smartphone className="h-4 w-4" />;
+      case 'printer':
+        return <Printer className="h-4 w-4" />;
       case 'network':
-        return <Wifi className="h-4 w-4" />;
+        return <Server className="h-4 w-4" />;
       default:
         return <Monitor className="h-4 w-4" />;
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'inactive':
-        return 'bg-red-100 text-red-800';
-      case 'maintenance':
-        return 'bg-yellow-100 text-yellow-800';
+  const getTypeName = (type: string) => {
+    const typeNames: Record<string, string> = {
+      computer: 'Computador',
+      monitor: 'Monitor',
+      phone: 'Telefone',
+      printer: 'Impressora',
+      network: 'Rede'
+    };
+    return typeNames[type] || type;
+  };
+
+  const getStatusBadge = (status: number) => {
+    switch (status) {
+      case 1:
+        return <Badge className="bg-green-600 text-white">Ativo</Badge>;
+      case 2:
+        return <Badge className="bg-yellow-600 text-white">Em Uso</Badge>;
+      case 3:
+        return <Badge className="bg-red-600 text-white">Inativo</Badge>;
       default:
-        return 'bg-gray-100 text-gray-800';
+        return <Badge className="bg-slate-600 text-white">Status {status}</Badge>;
     }
   };
 
-  const filteredAssets = assets.filter((asset: InventoryItem) => {
-    if (filters.type && asset.type !== filters.type) return false;
-    if (filters.location && asset.location !== filters.location) return false;
-    if (filters.status && asset.status !== filters.status) return false;
-    if (filters.search && !asset.name.toLowerCase().includes(filters.search.toLowerCase())) return false;
-    return true;
-  });
-
-  const handleRefresh = async () => {
-    try {
-      await tickets.refetch();
-      toast({
-        title: "Dados atualizados",
-        description: "Inventário atualizado com sucesso."
-      });
-    } catch (error) {
-      toast({
-        title: "Erro ao atualizar",
-        description: "Não foi possível atualizar o inventário.",
-        variant: "destructive"
-      });
-    }
+  const handleRefresh = () => {
+    computers.refetch();
+    monitors.refetch();
+    printers.refetch();
+    networkEquipment.refetch();
   };
-
-  const handleExport = () => {
-    if (!assets || assets.length === 0) {
-      toast({
-        title: "Nenhum dado para exportar",
-        description: "Não há itens de inventário para exportar.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const csvContent = [
-      ['ID', 'Nome', 'Tipo', 'Localização', 'Status', 'Série', 'Modelo'].join(','),
-      ...assets.map((asset: InventoryItem) => [
-        asset.id,
-        asset.name,
-        asset.type,
-        asset.location || 'N/A',
-        asset.status,
-        asset.serial || 'N/A',
-        asset.model || 'N/A'
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `glpi-inventory-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
-  if (tickets.isLoading) {
-    return (
-      <Card className="bg-gray-800 border-gray-700">
-        <CardContent className="p-6">
-          <div className="flex justify-center items-center h-32">
-            <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
-            <span className="ml-2 text-gray-400">Carregando inventário...</span>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (tickets.error) {
-    return (
-      <Card className="bg-red-900/20 border-red-700">
-        <CardContent className="p-6">
-          <div className="text-center text-red-400">
-            <p>Erro ao carregar inventário: {tickets.error.message}</p>
-            <Button 
-              onClick={handleRefresh}
-              className="mt-4 bg-red-600 hover:bg-red-700"
-            >
-              Tentar novamente
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <div className="space-y-4">
+      <GLPIInventoryFilters
+        onFiltersChange={setFilters}
+        onRefresh={handleRefresh}
+        isLoading={computers.isLoading || monitors.isLoading}
+        totalItems={allInventoryItems.length}
+      />
+
       <Card className="bg-gray-800 border-gray-700">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-white flex items-center gap-2">
-            <Monitor className="h-5 w-5" />
-            Inventário GLPI
+            <Monitor className="h-6 w-6" />
+            Inventário de Ativos GLPI
           </CardTitle>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Filtros
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </div>
         </CardHeader>
-        
-        {showFilters && (
-          <CardContent className="border-t border-gray-700 pt-4">
-            <GLPIInventoryFilters
-              onFiltersChange={setFilters}
-              onRefresh={handleRefresh}
-            />
-          </CardContent>
-        )}
-      </Card>
-
-      <Card className="bg-gray-800 border-gray-700">
         <CardContent>
-          {filteredAssets.length === 0 ? (
+          {allInventoryItems.length === 0 ? (
             <div className="text-center py-8 text-gray-400">
               <Monitor className="h-12 w-12 mx-auto mb-4 text-gray-500" />
               <p className="text-lg font-medium mb-2">Nenhum item encontrado</p>
@@ -214,39 +121,83 @@ const GLPIInventory = () => {
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-700">
-                  <TableHead className="text-gray-300">Tipo</TableHead>
+                  <TableHead className="text-gray-300">ID</TableHead>
                   <TableHead className="text-gray-300">Nome</TableHead>
-                  <TableHead className="text-gray-300">Localização</TableHead>
+                  <TableHead className="text-gray-300">Tipo</TableHead>
+                  <TableHead className="text-gray-300">Entidade</TableHead>
                   <TableHead className="text-gray-300">Status</TableHead>
-                  <TableHead className="text-gray-300">Série</TableHead>
-                  <TableHead className="text-gray-300">Modelo</TableHead>
+                  <TableHead className="text-gray-300">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAssets.map((asset: InventoryItem) => (
-                  <TableRow key={asset.id} className="border-gray-700">
-                    <TableCell className="text-gray-300">
+                {allInventoryItems.map((item) => (
+                  <TableRow key={`${item.type}-${item.id}`} className="border-gray-700">
+                    <TableCell className="text-gray-300 font-mono">
+                      #{item.id}
+                    </TableCell>
+                    <TableCell className="text-white">
                       <div className="flex items-center gap-2">
-                        {getTypeIcon(asset.type)}
-                        {asset.type}
+                        {getTypeIcon(item.type)}
+                        {item.name || 'Sem nome'}
                       </div>
                     </TableCell>
-                    <TableCell className="text-white font-medium">
-                      {asset.name}
-                    </TableCell>
-                    <TableCell className="text-gray-300">
-                      {asset.location || 'N/A'}
-                    </TableCell>
                     <TableCell>
-                      <Badge className={getStatusColor(asset.status)}>
-                        {asset.status}
+                      <Badge variant="outline" className="bg-gray-700 text-gray-200 border-gray-600">
+                        {getTypeName(item.type)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-gray-300 font-mono">
-                      {asset.serial || 'N/A'}
+                    <TableCell>
+                      <Badge variant="outline" className="gap-1 bg-gray-700 text-gray-200 border-gray-600">
+                        <Building2 className="h-3 w-3" />
+                        {getEntityName(item.entities_id)}
+                      </Badge>
                     </TableCell>
-                    <TableCell className="text-gray-300">
-                      {asset.model || 'N/A'}
+                    <TableCell>{getStatusBadge(item.states_id || 1)}</TableCell>
+                    <TableCell>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedItem(item)}
+                            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl bg-gray-800 border-gray-700 text-white">
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-white">
+                              {getTypeIcon(selectedItem?.type)}
+                              {getTypeName(selectedItem?.type)} #{selectedItem?.id}
+                            </DialogTitle>
+                          </DialogHeader>
+                          {selectedItem && (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className="text-sm font-medium text-gray-300">Nome</label>
+                                  <p className="text-gray-400">{selectedItem.name || 'Sem nome'}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-gray-300">Tipo</label>
+                                  <div className="mt-1">
+                                    <Badge variant="outline" className="bg-gray-700 text-gray-200 border-gray-600">
+                                      {getTypeName(selectedItem.type)}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                              {selectedItem.serial && (
+                                <div>
+                                  <label className="text-sm font-medium text-gray-300">Número de Série</label>
+                                  <p className="text-gray-400">{selectedItem.serial}</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </DialogContent>
+                      </Dialog>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -258,5 +209,3 @@ const GLPIInventory = () => {
     </div>
   );
 };
-
-export { GLPIInventory };

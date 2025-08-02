@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
-import { SafeComponentWrapper } from '@/components/SafeComponentWrapper';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -532,15 +531,15 @@ const UniFi = () => {
         </div>
 
         {/* Main Content */}
-        <SafeTabs defaultValue="devices" className="w-full">
-          <SafeTabsList className="grid w-full grid-cols-4">
-            <SafeTabsTrigger value="devices">Dispositivos</SafeTabsTrigger>
-            <SafeTabsTrigger value="clients">Clientes</SafeTabsTrigger>
-            <SafeTabsTrigger value="networks">Redes</SafeTabsTrigger>
-            <SafeTabsTrigger value="alarms">Alarmes</SafeTabsTrigger>
-          </SafeTabsList>
+        <Tabs defaultValue="devices" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="devices">Dispositivos</TabsTrigger>
+            <TabsTrigger value="clients">Clientes</TabsTrigger>
+            <TabsTrigger value="networks">Redes</TabsTrigger>
+            <TabsTrigger value="alarms">Alarmes</TabsTrigger>
+          </TabsList>
 
-          <SafeTabsContent value="devices" className="space-y-4">
+          <TabsContent value="devices" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -590,9 +589,9 @@ const UniFi = () => {
                 )}
               </CardContent>
             </Card>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="clients" className="space-y-4">
+          <TabsContent value="clients" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -657,9 +656,9 @@ const UniFi = () => {
                 )}
               </CardContent>
             </Card>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="networks" className="space-y-4">
+          <TabsContent value="networks" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -702,9 +701,9 @@ const UniFi = () => {
                 )}
               </CardContent>
             </Card>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="alarms" className="space-y-4">
+          <TabsContent value="alarms" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -739,8 +738,8 @@ const UniFi = () => {
                 )}
               </CardContent>
             </Card>
-          </SafeTabsContent>
-        </SafeTabs>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -27,10 +27,10 @@ export const BaculaJobsGrid: React.FC<BaculaJobsGridProps> = ({
   const { data: jobsData, isLoading, error, refetch } = useBaculaJobsRecent();
   const { createTicket } = useGLPIExpanded();
   
-  const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
-  const [selectedJob, setSelectedJob] = React.useState<any>(null);
-  const [sortField, setSortField] = React.useState('name');
-  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [sortField, setSortField] = useState('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Extrair jobs da resposta
   const extractJobs = (data: any) => {

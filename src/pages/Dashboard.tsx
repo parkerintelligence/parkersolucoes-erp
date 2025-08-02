@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HostingerDashboard } from '@/components/HostingerDashboard';
 import { BaculaDashboard } from '@/components/BaculaDashboard';
 import { BarChart3, Users, DollarSign, FileText, Calendar, TrendingUp, Server, Archive, Activity, Database, Shield } from 'lucide-react';
@@ -51,10 +51,10 @@ const Dashboard = () => {
         
 
         {/* Main Content Tabs */}
-        <SafeTabs defaultValue="infrastructure" className="space-y-6">
+        <Tabs defaultValue="infrastructure" className="space-y-6">
           
 
-          <SafeTabsContent value="infrastructure" className="space-y-6">
+          <TabsContent value="infrastructure" className="space-y-6">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-white">
@@ -69,9 +69,9 @@ const Dashboard = () => {
                 <HostingerDashboard />
               </CardContent>
             </Card>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="monitoring" className="space-y-6">
+          <TabsContent value="monitoring" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="bg-slate-800 border-slate-700">
                 <CardContent className="p-8 text-center">
@@ -103,9 +103,9 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
             </div>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="backups" className="space-y-6">
+          <TabsContent value="backups" className="space-y-6">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-white">
@@ -120,9 +120,9 @@ const Dashboard = () => {
                 <BaculaDashboard />
               </CardContent>
             </Card>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="analytics" className="space-y-6">
+          <TabsContent value="analytics" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="bg-slate-800 border-slate-700">
                 <CardHeader>
@@ -166,8 +166,8 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
             </div>
-          </SafeTabsContent>
-        </SafeTabs>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>;
 };

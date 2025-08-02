@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useState } from 'react';
 import { usePasswords, useCreatePassword, useUpdatePassword, useDeletePassword } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,8 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
-import { SafeComponentWrapper } from '@/components/SafeComponentWrapper';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ServiceDialog } from '@/components/ServiceDialog';
 import { WhatsAppPasswordDialog } from '@/components/WhatsAppPasswordDialog';
 import { Lock, Plus, Eye, EyeOff, Edit, Trash2, Building, Search, Settings, Code, Mail, Server, Database, Cloud, Shield, Monitor, Globe, Filter, FileDown, MessageCircle, Copy } from 'lucide-react';
@@ -38,21 +37,21 @@ const Passwords = () => {
   const createPassword = useCreatePassword();
   const updatePassword = useUpdatePassword();
   const deletePassword = useDeletePassword();
-  const [showPassword, setShowPassword] = React.useState<{
+  const [showPassword, setShowPassword] = useState<{
     [key: string]: boolean;
   }>({});
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
-  const [isServiceDialogOpen, setIsServiceDialogOpen] = React.useState(false);
-  const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = React.useState(false);
-  const [editingPassword, setEditingPassword] = React.useState<Password | null>(null);
-  const [whatsAppPassword, setWhatsAppPassword] = React.useState<PasswordWithCompany | null>(null);
-  const [editingService, setEditingService] = React.useState<any | null>(null);
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [selectedCompany, setSelectedCompany] = React.useState('');
-  const [selectedStatus, setSelectedStatus] = React.useState('');
-  const [activeServiceTab, setActiveServiceTab] = React.useState('all');
-  const [availableServices, setAvailableServices] = React.useState([{
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
+  const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = useState(false);
+  const [editingPassword, setEditingPassword] = useState<Password | null>(null);
+  const [whatsAppPassword, setWhatsAppPassword] = useState<PasswordWithCompany | null>(null);
+  const [editingService, setEditingService] = useState<any | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCompany, setSelectedCompany] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [activeServiceTab, setActiveServiceTab] = useState('all');
+  const [availableServices, setAvailableServices] = useState([{
     name: 'Sistema',
     icon: 'code',
     color: 'blue',
@@ -93,7 +92,7 @@ const Passwords = () => {
     color: 'gray',
     description: ''
   }]);
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     name: '',
     company_id: '',
     url: '',
@@ -593,9 +592,9 @@ const Passwords = () => {
         {/* Abas por Tipo de Serviço */}
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-6">
-            <SafeTabs value={activeServiceTab} onValueChange={setActiveServiceTab}>
-              <SafeTabsList className="bg-slate-700 mb-6 h-auto flex-wrap">
-                {getServiceTabs().map(tab => <SafeTabsTrigger key={tab.name} value={tab.name} className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 m-1">
+            <Tabs value={activeServiceTab} onValueChange={setActiveServiceTab}>
+              <TabsList className="bg-slate-700 mb-6 h-auto flex-wrap">
+                {getServiceTabs().map(tab => <TabsTrigger key={tab.name} value={tab.name} className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 m-1">
                     <div className="flex items-center gap-2">
                       {tab.name === 'all' && <Globe className="h-4 w-4" />}
                       {tab.name === 'no_service' && <Settings className="h-4 w-4" />}
@@ -605,13 +604,13 @@ const Passwords = () => {
                         {tab.count}
                       </Badge>
                     </div>
-                  </SafeTabsTrigger>)}
-              </SafeTabsList>
+                  </TabsTrigger>)}
+              </TabsList>
 
-              {getServiceTabs().map(tab => <SafeTabsContent key={tab.name} value={tab.name}>
+              {getServiceTabs().map(tab => <TabsContent key={tab.name} value={tab.name}>
                   {renderPasswordTable(getFilteredPasswordsByService(tab.name))}
-                </SafeTabsContent>)}
-            </SafeTabs>
+                </TabsContent>)}
+            </Tabs>
           </CardContent>
         </Card>
 

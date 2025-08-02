@@ -1,13 +1,13 @@
 
-import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
 export const useGrafanaAuth = () => {
   const { data: integrations = [], isLoading } = useIntegrations();
-  const [isAuthenticating, setIsAuthenticating] = React.useState(false);
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-  const [authError, setAuthError] = React.useState<string | null>(null);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Buscar integração do Grafana ativa
   const grafanaIntegration = integrations.find(integration => 
@@ -137,7 +137,7 @@ export const useGrafanaAuth = () => {
   };
 
   // Tentar autenticar automaticamente quando a integração estiver disponível
-  React.useEffect(() => {
+  useEffect(() => {
     if (grafanaIntegration && !isAuthenticated && !isAuthenticating && !isLoading) {
       console.log('Tentando autenticação automática...');
       authenticateWithGrafana();

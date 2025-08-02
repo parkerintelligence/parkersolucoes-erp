@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
-import { SafeComponentWrapper } from '@/components/SafeComponentWrapper';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Shield, 
@@ -225,16 +224,16 @@ const Security = () => {
         </div>
 
         {/* Main Content */}
-        <SafeTabs defaultValue="dashboard" className="w-full">
-          <SafeTabsList className="grid w-full grid-cols-5 bg-slate-800">
-            <SafeTabsTrigger value="dashboard" className="text-white">Dashboard</SafeTabsTrigger>
-            <SafeTabsTrigger value="agents" className="text-white">Agentes</SafeTabsTrigger>
-            <SafeTabsTrigger value="alerts" className="text-white">Alertas</SafeTabsTrigger>
-            <SafeTabsTrigger value="compliance" className="text-white">Conformidade</SafeTabsTrigger>
-            <SafeTabsTrigger value="vulnerabilities" className="text-white">Vulnerabilidades</SafeTabsTrigger>
-          </SafeTabsList>
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-5 bg-slate-800">
+            <TabsTrigger value="dashboard" className="text-white">Dashboard</TabsTrigger>
+            <TabsTrigger value="agents" className="text-white">Agentes</TabsTrigger>
+            <TabsTrigger value="alerts" className="text-white">Alertas</TabsTrigger>
+            <TabsTrigger value="compliance" className="text-white">Conformidade</TabsTrigger>
+            <TabsTrigger value="vulnerabilities" className="text-white">Vulnerabilidades</TabsTrigger>
+          </TabsList>
 
-          <SafeTabsContent value="dashboard" className="space-y-4">
+          <TabsContent value="dashboard" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Agentes Status */}
               <Card className="bg-slate-800 border-slate-700">
@@ -288,9 +287,9 @@ const Security = () => {
                 </CardContent>
               </Card>
             </div>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="agents" className="space-y-4">
+          <TabsContent value="agents" className="space-y-4">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white">Agentes Wazuh</CardTitle>
@@ -317,9 +316,9 @@ const Security = () => {
                 </div>
               </CardContent>
             </Card>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="alerts" className="space-y-4">
+          <TabsContent value="alerts" className="space-y-4">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white">Alertas Recentes</CardTitle>
@@ -359,9 +358,9 @@ const Security = () => {
                 </div>
               </CardContent>
             </Card>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="compliance" className="space-y-4">
+          <TabsContent value="compliance" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {Object.entries(displayData.compliance).map(([standard, score]) => {
                 const scoreValue = typeof score === 'number' ? score : 0;
@@ -397,9 +396,9 @@ const Security = () => {
                 );
               })}
             </div>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="vulnerabilities" className="space-y-4">
+          <TabsContent value="vulnerabilities" className="space-y-4">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white">Análise de Vulnerabilidades</CardTitle>
@@ -428,8 +427,8 @@ const Security = () => {
                 </div>
               </CardContent>
             </Card>
-          </SafeTabsContent>
-        </SafeTabs>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

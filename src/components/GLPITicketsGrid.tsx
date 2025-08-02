@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,10 +26,10 @@ interface GLPITicketsGridProps {
 
 const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
   const { tickets, getStatusText, getPriorityText, deleteTicket } = useGLPIExpanded();
-  const [selectedTicket, setSelectedTicket] = React.useState<any>(null);
-  const [isViewDialogOpen, setIsViewDialogOpen] = React.useState(false);
-  const [isNewTicketDialogOpen, setIsNewTicketDialogOpen] = React.useState(false);
-  const [ticketToDelete, setTicketToDelete] = React.useState<any>(null);
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isNewTicketDialogOpen, setIsNewTicketDialogOpen] = useState(false);
+  const [ticketToDelete, setTicketToDelete] = useState<any>(null);
 
   const getStatusColor = (status: number) => {
     switch (status) {

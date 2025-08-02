@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useEffect } from "react";
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +11,12 @@ interface ColumnDialogProps {
 }
 
 export function ColumnDialog({ column, onSave }: ColumnDialogProps) {
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     name: "",
     color: "#64748b",
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (column) {
       setFormData({
         name: column.name,

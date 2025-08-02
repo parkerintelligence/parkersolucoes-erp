@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
+import React from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, AlertCircle, XCircle, Clock, RefreshCw } from 'lucide-react';
 interface BaculaStatusTabsProps {
@@ -68,52 +68,52 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
         return <Clock className="h-4 w-4 text-gray-400" />;
     }
   };
-  return <SafeTabs defaultValue="all" className="w-full">
-      <SafeTabsList className="grid w-full grid-cols-6 border-slate-700 bg-blue-950">
-        <SafeTabsTrigger value="all" className="data-[state=active]:bg-slate-700 text-slate-50">
+  return <Tabs defaultValue="all" className="w-full">
+      <TabsList className="grid w-full grid-cols-6 border-slate-700 bg-blue-950">
+        <TabsTrigger value="all" className="data-[state=active]:bg-slate-700 text-slate-50">
           Todos
           <Badge className="ml-2 bg-slate-600 text-white">
             {getJobsByStatus('all').length}
           </Badge>
-        </SafeTabsTrigger>
-        <SafeTabsTrigger value="T" className="text-slate-300 data-[state=active]:bg-slate-700">
+        </TabsTrigger>
+        <TabsTrigger value="T" className="text-slate-300 data-[state=active]:bg-slate-700">
           {getStatusIcon('success')}
           Sucesso
           <Badge className="ml-2 bg-green-900/20 text-green-400">
             {getStatusCount('T') + getStatusCount('W')}
           </Badge>
-        </SafeTabsTrigger>
-        <SafeTabsTrigger value="E" className="text-slate-300 data-[state=active]:bg-slate-700">
+        </TabsTrigger>
+        <TabsTrigger value="E" className="text-slate-300 data-[state=active]:bg-slate-700">
           {getStatusIcon('error')}
           Erro
           <Badge className="ml-2 bg-red-900/20 text-red-400">
             {getStatusCount('E') + getStatusCount('f')}
           </Badge>
-        </SafeTabsTrigger>
-        <SafeTabsTrigger value="R" className="text-slate-300 data-[state=active]:bg-slate-700">
+        </TabsTrigger>
+        <TabsTrigger value="R" className="text-slate-300 data-[state=active]:bg-slate-700">
           {getStatusIcon('running')}
           Executando
           <Badge className="ml-2 bg-blue-900/20 text-blue-400">
             {getStatusCount('R')}
           </Badge>
-        </SafeTabsTrigger>
-        <SafeTabsTrigger value="W" className="text-slate-300 data-[state=active]:bg-slate-700">
+        </TabsTrigger>
+        <TabsTrigger value="W" className="text-slate-300 data-[state=active]:bg-slate-700">
           {getStatusIcon('warning')}
           Aviso
           <Badge className="ml-2 bg-yellow-900/20 text-yellow-400">
             {getStatusCount('W')}
           </Badge>
-        </SafeTabsTrigger>
-        <SafeTabsTrigger value="pending" className="text-slate-300 data-[state=active]:bg-slate-700">
+        </TabsTrigger>
+        <TabsTrigger value="pending" className="text-slate-300 data-[state=active]:bg-slate-700">
           {getStatusIcon('pending')}
           Pendente
           <Badge className="ml-2 bg-slate-900/20 text-gray-400">
             {getStatusCount('C') + getStatusCount('c')}
           </Badge>
-        </SafeTabsTrigger>
-      </SafeTabsList>
+        </TabsTrigger>
+      </TabsList>
       
-      <SafeTabsContent value="all" className="mt-6">
+      <TabsContent value="all" className="mt-6">
         {React.cloneElement(children as React.ReactElement, {
         filteredJobs: getJobsByStatus('all'),
         startDate,
@@ -121,8 +121,8 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
         statusFilter,
         clientFilter
       })}
-      </SafeTabsContent>
-      <SafeTabsContent value="T" className="mt-6">
+      </TabsContent>
+      <TabsContent value="T" className="mt-6">
         {React.cloneElement(children as React.ReactElement, {
         filteredJobs: getJobsByStatus('T').concat(getJobsByStatus('W')),
         startDate,
@@ -130,8 +130,8 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
         statusFilter,
         clientFilter
       })}
-      </SafeTabsContent>
-      <SafeTabsContent value="E" className="mt-6">
+      </TabsContent>
+      <TabsContent value="E" className="mt-6">
         {React.cloneElement(children as React.ReactElement, {
         filteredJobs: getJobsByStatus('E').concat(getJobsByStatus('f')),
         startDate,
@@ -139,8 +139,8 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
         statusFilter,
         clientFilter
       })}
-      </SafeTabsContent>
-      <SafeTabsContent value="R" className="mt-6">
+      </TabsContent>
+      <TabsContent value="R" className="mt-6">
         {React.cloneElement(children as React.ReactElement, {
         filteredJobs: getJobsByStatus('R'),
         startDate,
@@ -148,8 +148,8 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
         statusFilter,
         clientFilter
       })}
-      </SafeTabsContent>
-      <SafeTabsContent value="W" className="mt-6">
+      </TabsContent>
+      <TabsContent value="W" className="mt-6">
         {React.cloneElement(children as React.ReactElement, {
         filteredJobs: getJobsByStatus('W'),
         startDate,
@@ -157,8 +157,8 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
         statusFilter,
         clientFilter
       })}
-      </SafeTabsContent>
-      <SafeTabsContent value="pending" className="mt-6">
+      </TabsContent>
+      <TabsContent value="pending" className="mt-6">
         {React.cloneElement(children as React.ReactElement, {
         filteredJobs: getJobsByStatus('C').concat(getJobsByStatus('c')),
         startDate,
@@ -166,6 +166,6 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
         statusFilter,
         clientFilter
       })}
-      </SafeTabsContent>
-    </SafeTabs>;
+      </TabsContent>
+    </Tabs>;
 };

@@ -1,64 +1,28 @@
+
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Calendar, 
-  Plus, 
-  BarChart3, 
-  FileText,
-  Activity,
-  TrendingUp
-} from 'lucide-react';
-import { ScheduledReportForm } from '@/components/automation/ScheduledReportForm';
-import { ScheduledReportsTable } from '@/components/automation/ScheduledReportsTable';
-import { ReportsStatusPanel } from '@/components/automation/ReportsStatusPanel';
-import { ReportsLogsPanel } from '@/components/automation/ReportsLogsPanel';
-import { AutomationStats } from '@/components/automation/AutomationStats';
-import { 
-  useScheduledReports, 
-  useCreateScheduledReport, 
-  useUpdateScheduledReport, 
-  useDeleteScheduledReport,
-  useTestScheduledReport 
-} from '@/hooks/useScheduledReports';
-import { toast } from 'sonner';
+import { Plus, Calendar, FileText, BarChart3 } from 'lucide-react';
+import { ScheduledReportsTable } from './automation/ScheduledReportsTable';
+import { ScheduledReportForm } from './automation/ScheduledReportForm';
+import { ReportsLogsPanel } from './automation/ReportsLogsPanel';
+import { ReportsStatusPanel } from './automation/ReportsStatusPanel';
+import { AutomationStats } from './automation/AutomationStats';
+import { useToast } from "@/hooks/use-toast"
+import { useScheduledReports, useDeleteScheduledReport, useToggleScheduledReportActive, useTestScheduledReport } from '@/hooks/useScheduledReports';
+import type { ScheduledReport } from '@/hooks/useScheduledReports';
 
 export const ScheduledReportsPanel = () => {
   const [formOpen, setFormOpen] = useState(false);
-  const [editingReport, setEditingReport] = useState<any>(null);
-
-  const { data: reports = [], isLoading } = useScheduledReports();
-  const createReport = useCreateScheduledReport();
-  const updateReport = useUpdateScheduledReport();
+  const [editingReport, setEditingReport] = useState<ScheduledReport | null>(null);
+  const { data: scheduledReports = [], isLoading, error } = useScheduledReports();
   const deleteReport = useDeleteScheduledReport();
+  const toggleActive = useToggleScheduledReportActive();
   const testReport = useTestScheduledReport();
+  const { toast } = useToast();
 
-  const handleCreate = async (reportData: any) => {
-    try {
-      await createReport.mutateAsync(reportData);
-      setFormOpen(false);
-      toast.success('Relatório agendado criado com sucesso!');
-    } catch (error) {
-      toast.error('Erro ao criar relatório agendado');
-    }
-  };
-
-  const handleUpdate = async (reportData: any) => {
-    try {
-      await updateReport.mutateAsync({
-        id: editingReport.id,
-        updates: reportData
-      });
-      setEditingReport(null);
-      setFormOpen(false);
-      toast.success('Relatório agendado atualizado com sucesso!');
-    } catch (error) {
-      toast.error('Erro ao atualizar relatório agendado');
-    }
-  };
-
-  const handleEdit = (report: any) => {
+  const handleEdit = (report: ScheduledReport) => {
     setEditingReport(report);
     setFormOpen(true);
   };
@@ -66,31 +30,45 @@ export const ScheduledReportsPanel = () => {
   const handleDelete = async (id: string) => {
     try {
       await deleteReport.mutateAsync(id);
-      toast.success('Relatório agendado removido com sucesso!');
-    } catch (error) {
-      toast.error('Erro ao remover relatório agendado');
+    } catch (error: any) {
+      toast({
+        title: "Erro ao excluir",
+        description: error.message,
+        variant: "destructive"
+      })
     }
   };
 
-  const handleToggleActive = async (report: any) => {
+  const handleToggleActive = async (report: ScheduledReport) => {
     try {
-      await updateReport.mutateAsync({
-        id: report.id,
-        updates: { is_active: !report.is_active }
-      });
-      toast.success(`Relatório ${!report.is_active ? 'ativado' : 'desativado'} com sucesso!`);
-    } catch (error) {
-      toast.error('Erro ao alterar status do relatório');
+      await toggleActive.mutateAsync({ id: report.id, is_active: report.is_active });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao alterar status",
+        description: error.message,
+        variant: "destructive"
+      })
     }
   };
 
   const handleTestReport = async (reportId: string) => {
     try {
       await testReport.mutateAsync(reportId);
-      toast.success('Teste de relatório enviado! Verifique os logs para mais detalhes.');
-    } catch (error) {
-      toast.error('Erro ao testar relatório');
+      toast({
+        title: "Teste enviado",
+        description: "O relatório de teste foi enviado para o número configurado.",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Erro ao testar",
+        description: error.message,
+        variant: "destructive"
+      })
     }
+  };
+
+  const handleFormSuccess = () => {
+    setEditingReport(null);
   };
 
   return (
@@ -103,27 +81,27 @@ export const ScheduledReportsPanel = () => {
           </p>
         </div>
 
-        <SafeTabs defaultValue="reports" className="space-y-6">
-          <SafeTabsList className="grid w-full grid-cols-4 bg-gray-800 border-gray-700">
-            <SafeTabsTrigger value="reports" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+        <Tabs defaultValue="reports" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 bg-gray-800 border-gray-700">
+            <TabsTrigger value="reports" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
               <Calendar className="h-4 w-4" />
               Agendamentos
-            </SafeTabsTrigger>
-            <SafeTabsTrigger value="status" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+            </TabsTrigger>
+            <TabsTrigger value="status" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
               <BarChart3 className="h-4 w-4" />
               Status & Próximos
-            </SafeTabsTrigger>
-            <SafeTabsTrigger value="logs" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
               <FileText className="h-4 w-4" />
               Logs de Execução
-            </SafeTabsTrigger>
-            <SafeTabsTrigger value="stats" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+            </TabsTrigger>
+            <TabsTrigger value="stats" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
               <BarChart3 className="h-4 w-4" />
               Estatísticas
-            </SafeTabsTrigger>
-          </SafeTabsList>
+            </TabsTrigger>
+          </TabsList>
 
-          <SafeTabsContent value="reports" className="space-y-6">
+          <TabsContent value="reports" className="space-y-6">
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -133,14 +111,13 @@ export const ScheduledReportsPanel = () => {
                   </CardTitle>
                   <Button onClick={() => setFormOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
                     <Plus className="h-4 w-4 mr-2" />
-                    Novo Relatório
+                    Novo Agendamento
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                <ScheduledReportsTable 
-                  reports={reports}
-                  isLoading={isLoading}
+                <ScheduledReportsTable
+                  reports={scheduledReports}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   onToggleActive={handleToggleActive}
@@ -149,17 +126,17 @@ export const ScheduledReportsPanel = () => {
                 />
               </CardContent>
             </Card>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="status">
+          <TabsContent value="status">
             <ReportsStatusPanel />
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="logs">
+          <TabsContent value="logs">
             <ReportsLogsPanel />
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="stats">
+          <TabsContent value="stats">
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-white">
@@ -171,21 +148,14 @@ export const ScheduledReportsPanel = () => {
                 <AutomationStats />
               </CardContent>
             </Card>
-          </SafeTabsContent>
-        </SafeTabs>
+          </TabsContent>
+        </Tabs>
 
         <ScheduledReportForm
           open={formOpen}
-          onOpenChange={(open) => {
-            setFormOpen(open);
-            if (!open) {
-              setEditingReport(null);
-            }
-          }}
-          onCreate={handleCreate}
-          onUpdate={editingReport ? handleUpdate : undefined}
-          initialData={editingReport}
-          isLoading={createReport.isPending || updateReport.isPending}
+          onOpenChange={setFormOpen}
+          editingReport={editingReport}
+          onSuccess={handleFormSuccess}
         />
       </div>
     </div>

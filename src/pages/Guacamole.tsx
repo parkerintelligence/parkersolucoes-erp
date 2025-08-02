@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
-import { SafeComponentWrapper } from '@/components/SafeComponentWrapper';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Monitor, Users, Activity, Plus, RefreshCcw, Power, AlertTriangle, Settings, ExternalLink, Grid, List, FileText, FolderOpen } from 'lucide-react';
@@ -51,9 +50,9 @@ const Guacamole = () => {
       logInfo(message, options);
     }
   });
-  const [refreshing, setRefreshing] = React.useState(false);
-  const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
-  const [connectionDialog, setConnectionDialog] = React.useState<{
+  const [refreshing, setRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [connectionDialog, setConnectionDialog] = useState<{
     open: boolean;
     connection?: GuacamoleConnection | null;
   }>({
@@ -397,26 +396,26 @@ const Guacamole = () => {
 
 
         {/* Main Content */}
-        <SafeTabs defaultValue="connections" className="space-y-4">
-          <SafeTabsList className="bg-slate-800 border-slate-700">
-            <SafeTabsTrigger value="connections" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+        <Tabs defaultValue="connections" className="space-y-4">
+          <TabsList className="bg-slate-800 border-slate-700">
+            <TabsTrigger value="connections" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
               Conexões ({connections?.length || 0})
-            </SafeTabsTrigger>
-            <SafeTabsTrigger value="sessions" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+            </TabsTrigger>
+            <TabsTrigger value="sessions" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
               Sessões Ativas ({activeSessions?.length || 0})
-            </SafeTabsTrigger>
-            <SafeTabsTrigger value="users" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+            </TabsTrigger>
+            <TabsTrigger value="users" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
               Usuários ({users?.length || 0})
-            </SafeTabsTrigger>
-            <SafeTabsTrigger value="history" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+            </TabsTrigger>
+            <TabsTrigger value="history" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
               Histórico
-            </SafeTabsTrigger>
-            <SafeTabsTrigger value="logs" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
               Logs
-            </SafeTabsTrigger>
-          </SafeTabsList>
+            </TabsTrigger>
+          </TabsList>
 
-          <SafeTabsContent value="connections" className="mt-6">
+          <TabsContent value="connections" className="mt-6">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -504,9 +503,9 @@ const Guacamole = () => {
                   </div>}
               </CardContent>
             </Card>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="sessions" className="mt-6">
+          <TabsContent value="sessions" className="mt-6">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-white">
@@ -557,9 +556,9 @@ const Guacamole = () => {
                   </Table>}
               </CardContent>
             </Card>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="users" className="mt-6">
+          <TabsContent value="users" className="mt-6">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-white">
@@ -596,9 +595,9 @@ const Guacamole = () => {
                   </Table>}
               </CardContent>
             </Card>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="history" className="mt-6">
+          <TabsContent value="history" className="mt-6">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-white">
@@ -644,13 +643,13 @@ const Guacamole = () => {
                 </Table>
               </CardContent>
             </Card>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="logs" className="mt-6">
+          <TabsContent value="logs" className="mt-6">
             <GuacamoleLogs logs={logs} onClearLogs={clearLogs} onRefresh={handleRefreshAll} />
-          </SafeTabsContent>
+          </TabsContent>
 
-        </SafeTabs>
+        </Tabs>
 
         {/* Connection Dialog */}
         <GuacamoleConnectionDialog open={connectionDialog.open} onOpenChange={open => setConnectionDialog({

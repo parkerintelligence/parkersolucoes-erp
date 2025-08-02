@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { 
   Monitor, Save, TestTube, CheckCircle, XCircle, 
@@ -189,13 +189,13 @@ const ZabbixAdminConfig = () => {
         )}
       </div>
 
-      <SafeTabs defaultValue="config" className="space-y-4">
-        <SafeTabsList>
-          <SafeTabsTrigger value="config">Configuração</SafeTabsTrigger>
-          <SafeTabsTrigger value="test">Teste de Conexão</SafeTabsTrigger>
-        </SafeTabsList>
+      <Tabs defaultValue="config" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="config">Configuração</TabsTrigger>
+          <TabsTrigger value="test">Teste de Conexão</TabsTrigger>
+        </TabsList>
 
-        <SafeTabsContent value="config" className="space-y-4">
+        <TabsContent value="config" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -311,9 +311,9 @@ const ZabbixAdminConfig = () => {
               {isTesting ? 'Testando...' : 'Testar Conexão'}
             </Button>
           </div>
-        </SafeTabsContent>
+        </TabsContent>
 
-        <SafeTabsContent value="test" className="space-y-4">
+        <TabsContent value="test" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -376,8 +376,8 @@ const ZabbixAdminConfig = () => {
               </Button>
             </CardContent>
           </Card>
-        </SafeTabsContent>
-      </SafeTabs>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

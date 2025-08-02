@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useEffect } from "react";
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ interface CardDialogProps {
 }
 
 export function CardDialog({ card, onSave }: CardDialogProps) {
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     title: "",
     description: "",
     color: "#f8fafc",
@@ -21,7 +21,7 @@ export function CardDialog({ card, onSave }: CardDialogProps) {
     due_date: "",
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (card) {
       setFormData({
         title: card.title,

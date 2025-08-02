@@ -1,5 +1,5 @@
 
-import * as React from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ export const GrafanaAdminConfig = () => {
   
   const grafanaIntegration = integrations?.find(integration => integration.type === 'grafana');
 
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     name: grafanaIntegration?.name || 'Grafana Dashboards',
     base_url: grafanaIntegration?.base_url || '',
     api_token: grafanaIntegration?.api_token || '',

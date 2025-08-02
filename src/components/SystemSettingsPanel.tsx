@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Settings, Plus, Edit, Trash2, Save, Clock, HardDrive, 
   MessageCircle, ExternalLink, Database, Shield 
@@ -227,22 +227,22 @@ const SystemSettingsPanel = () => {
         </Dialog>
       </div>
 
-      <SafeTabs defaultValue="all" className="space-y-4">
-        <SafeTabsList>
-          <SafeTabsTrigger value="all">Todas</SafeTabsTrigger>
+      <Tabs defaultValue="all" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="all">Todas</TabsTrigger>
           {Object.entries(categories).map(([key, category]) => (
             settingsByCategory[key] && (
-              <SafeTabsTrigger key={key} value={key}>
+              <TabsTrigger key={key} value={key}>
                 <div className="flex items-center gap-2">
                   {getCategoryIcon(key)}
                   {category.name}
                 </div>
-              </SafeTabsTrigger>
+              </TabsTrigger>
             )
           ))}
-        </SafeTabsList>
+        </TabsList>
 
-        <SafeTabsContent value="all">
+        <TabsContent value="all">
           <Card>
             <CardHeader>
               <CardTitle>Todas as Configurações</CardTitle>
@@ -307,10 +307,10 @@ const SystemSettingsPanel = () => {
               )}
             </CardContent>
           </Card>
-        </SafeTabsContent>
+        </TabsContent>
 
         {Object.entries(settingsByCategory).map(([categoryKey, categorySettings]) => (
-          <SafeTabsContent key={categoryKey} value={categoryKey}>
+          <TabsContent key={categoryKey} value={categoryKey}>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -371,9 +371,9 @@ const SystemSettingsPanel = () => {
                 )}
               </CardContent>
             </Card>
-          </SafeTabsContent>
+          </TabsContent>
         ))}
-      </SafeTabs>
+      </Tabs>
     </div>
   );
 };

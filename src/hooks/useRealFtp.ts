@@ -1,13 +1,12 @@
-import * as React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useIntegrations } from './useIntegrations';
 import { RealFtpService, RealFtpFile } from '@/services/realFtpService';
-// React import already exists at line 1
+import { useState } from 'react';
 
 export const useRealFtp = () => {
   const queryClient = useQueryClient();
-  const [currentPath, setCurrentPath] = React.useState('/');
+  const [currentPath, setCurrentPath] = useState('/');
   const { data: integrations, isLoading: isLoadingIntegrations } = useIntegrations();
   const ftpIntegrations = integrations?.filter(int => int.type === 'ftp' && int.is_active) || [];
   const activeFtpIntegration = ftpIntegrations[0];

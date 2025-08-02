@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, 
   Edit, 
@@ -147,12 +147,12 @@ export const ScheduleServicesDialog = ({ open, onOpenChange }: ScheduleServicesD
           </DialogDescription>
         </DialogHeader>
 
-        <SafeTabs defaultValue="list" className="w-full">
+        <Tabs defaultValue="list" className="w-full">
           <div className="flex justify-between items-center">
-            <SafeTabsList>
-              <SafeTabsTrigger value="list">Lista</SafeTabsTrigger>
-              <SafeTabsTrigger value="categories">Por Categoria</SafeTabsTrigger>
-            </SafeTabsList>
+            <TabsList>
+              <TabsTrigger value="list">Lista</TabsTrigger>
+              <TabsTrigger value="categories">Por Categoria</TabsTrigger>
+            </TabsList>
             
             <Button onClick={() => setShowForm(true)} className="mb-2">
               <Plus className="mr-2 h-4 w-4" />
@@ -186,7 +186,7 @@ export const ScheduleServicesDialog = ({ open, onOpenChange }: ScheduleServicesD
             </Select>
           </div>
 
-          <SafeTabsContent value="list" className="space-y-4">
+          <TabsContent value="list" className="space-y-4">
             <div className="border rounded-lg max-h-96 overflow-y-auto">
               <Table>
                 <TableHeader>
@@ -246,9 +246,9 @@ export const ScheduleServicesDialog = ({ open, onOpenChange }: ScheduleServicesD
                 </div>
               )}
             </div>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="categories" className="space-y-4">
+          <TabsContent value="categories" className="space-y-4">
             <div className="grid gap-4 max-h-96 overflow-y-auto">
               {Object.entries(servicesByCategory).map(([category, categoryServices]) => {
                 const categoryInfo = getCategoryInfo(category);
@@ -297,8 +297,8 @@ export const ScheduleServicesDialog = ({ open, onOpenChange }: ScheduleServicesD
                 );
               })}
             </div>
-          </SafeTabsContent>
-        </SafeTabs>
+          </TabsContent>
+        </Tabs>
 
         {/* Formulário */}
         <Dialog open={showForm} onOpenChange={(open) => !open && resetForm()}>

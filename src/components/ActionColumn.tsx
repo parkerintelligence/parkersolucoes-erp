@@ -1,4 +1,4 @@
-import React from "react";
+import { useState } from "react";
 import { Plus, Settings, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,8 @@ interface ActionColumnProps {
 }
 
 export function ActionColumn({ column, cards, cardItems, getItemsForCard }: ActionColumnProps) {
-  const [isCreateCardOpen, setIsCreateCardOpen] = React.useState(false);
-  const [isEditColumnOpen, setIsEditColumnOpen] = React.useState(false);
+  const [isCreateCardOpen, setIsCreateCardOpen] = useState(false);
+  const [isEditColumnOpen, setIsEditColumnOpen] = useState(false);
   const { createCard, updateColumn, deleteColumn } = useActionPlan();
 
   const handleCreateCard = async (data: any) => {

@@ -1,10 +1,10 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   TestTube, 
   Send, 
@@ -46,11 +46,11 @@ interface TestResults {
 }
 
 export const BaculaDailyReportTester = () => {
-  const [phoneNumber, setPhoneNumber] = React.useState('5534992284722');
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [testResults, setTestResults] = React.useState<TestResults | null>(null);
-  const [runDiagnostic, setRunDiagnostic] = React.useState(true);
-  const [sendReport, setSendReport] = React.useState(true);
+  const [phoneNumber, setPhoneNumber] = useState('5534992284722');
+  const [isLoading, setIsLoading] = useState(false);
+  const [testResults, setTestResults] = useState<TestResults | null>(null);
+  const [runDiagnostic, setRunDiagnostic] = useState(true);
+  const [sendReport, setSendReport] = useState(true);
 
   const handleTest = async () => {
     if (!phoneNumber.trim()) {
@@ -244,20 +244,20 @@ export const BaculaDailyReportTester = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <SafeTabs defaultValue="summary" className="w-full">
-              <SafeTabsList className="grid w-full grid-cols-3 bg-slate-700 border-slate-600">
-                <SafeTabsTrigger value="summary" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
+            <Tabs defaultValue="summary" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 bg-slate-700 border-slate-600">
+                <TabsTrigger value="summary" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
                   Resumo
-                </SafeTabsTrigger>
-                <SafeTabsTrigger value="steps" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
+                </TabsTrigger>
+                <TabsTrigger value="steps" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
                   Passos Executados
-                </SafeTabsTrigger>
-                <SafeTabsTrigger value="diagnostic" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
+                </TabsTrigger>
+                <TabsTrigger value="diagnostic" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
                   Diagnóstico
-                </SafeTabsTrigger>
-              </SafeTabsList>
+                </TabsTrigger>
+              </TabsList>
 
-              <SafeTabsContent value="summary" className="space-y-4">
+              <TabsContent value="summary" className="space-y-4">
                 {testResults.summary && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <Card className="bg-slate-700 border-slate-600">
@@ -322,9 +322,9 @@ export const BaculaDailyReportTester = () => {
                     </AlertDescription>
                   </Alert>
                 )}
-              </SafeTabsContent>
+              </TabsContent>
 
-              <SafeTabsContent value="steps" className="space-y-3">
+              <TabsContent value="steps" className="space-y-3">
                 {testResults.steps.map((step, index) => (
                   <Card key={index} className="bg-slate-700 border-slate-600">
                     <CardContent className="p-4">
@@ -360,9 +360,9 @@ export const BaculaDailyReportTester = () => {
                     </CardContent>
                   </Card>
                 ))}
-              </SafeTabsContent>
+              </TabsContent>
 
-              <SafeTabsContent value="diagnostic" className="space-y-3">
+              <TabsContent value="diagnostic" className="space-y-3">
                 {testResults.diagnostic ? (
                   <Card className="bg-slate-700 border-slate-600">
                     <CardContent className="p-4">
@@ -380,8 +380,8 @@ export const BaculaDailyReportTester = () => {
                     </AlertDescription>
                   </Alert>
                 )}
-              </SafeTabsContent>
-            </SafeTabs>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       )}

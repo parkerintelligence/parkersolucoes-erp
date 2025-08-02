@@ -1,5 +1,5 @@
 
-import * as React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ const GuacamoleAdminConfig = () => {
   const updateIntegration = useUpdateIntegration();
   const deleteIntegration = useDeleteIntegration();
   
-  const [config, setConfig] = React.useState({
+  const [config, setConfig] = useState({
     base_url: '',
     username: '',
     password: '',
@@ -27,12 +27,12 @@ const GuacamoleAdminConfig = () => {
     is_active: true,
     name: 'Guacamole'
   });
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [isEditing, setIsEditing] = React.useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const guacamoleIntegration = integrations?.find(i => i.type === 'guacamole');
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (guacamoleIntegration) {
       setConfig({
         base_url: guacamoleIntegration.base_url || '',

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ export const FtpAdminConfig = () => {
   
   const ftpIntegration = integrations?.find(integration => integration.type === 'ftp');
 
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     name: ftpIntegration?.name || 'Servidor FTP',
     base_url: ftpIntegration?.base_url || '',
     username: ftpIntegration?.username || '',
