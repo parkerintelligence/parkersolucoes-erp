@@ -20,12 +20,9 @@ import {
   BarChart3,
 } from 'lucide-react';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
+  SafeDropdownMenu,
   DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/components/SafeDropdownMenu';
 import { Button } from '@/components/ui/button';
 
 const menuItems = [
@@ -100,8 +97,10 @@ export const HorizontalNav = () => {
 
             {/* Menu Financeiro (Dropdown) - Only render when user is loaded */}
             {!isLoading && user && filteredFinancialItems.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <SafeDropdownMenu
+                align="start"
+                className="nav-dropdown w-48"
+                trigger={
                   <Button 
                     variant="ghost" 
                     className={`nav-card ${getFinancialActive() ? 'nav-card-active' : ''} flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200`}
@@ -110,18 +109,17 @@ export const HorizontalNav = () => {
                     <span className="hidden sm:inline whitespace-nowrap">Financeiro</span>
                     <ChevronDown className="h-3 w-3 ml-1" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="nav-dropdown w-48">
-                  {filteredFinancialItems.map((item) => (
-                    <DropdownMenuItem key={item.title} asChild>
-                      <NavLink to={item.url} className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-lg hover:bg-secondary/10 transition-colors">
-                        <item.icon className="h-4 w-4" />
-                        {item.title}
-                      </NavLink>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                }
+              >
+                {filteredFinancialItems.map((item) => (
+                  <DropdownMenuItem key={item.title} asChild>
+                    <NavLink to={item.url} className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-lg hover:bg-secondary/10 transition-colors">
+                      <item.icon className="h-4 w-4" />
+                      {item.title}
+                    </NavLink>
+                  </DropdownMenuItem>
+                ))}
+              </SafeDropdownMenu>
             )}
           </div>
         </div>
