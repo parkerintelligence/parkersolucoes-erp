@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { useSystemSettings } from '@/hooks/useSystemSettings';
+// import { useSystemSettings } from '@/hooks/useSystemSettings'; // Temporarily disabled
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Crown, Shield, ChevronRight, Home, PanelLeft, DollarSign, Settings } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -13,13 +13,17 @@ export const TopHeader = () => {
     logout,
     isMaster
   } = useAuth();
+  // Temporarily disable useSystemSettings to fix React context error
+  const settings = null;
+  /*
   const {
     data: settings
   } = useSystemSettings();
+  */
   const location = useLocation();
   const navigate = useNavigate();
-  const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Sistema de Gestão de TI';
-  const logoUrl = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value;
+  const companyName = 'Sistema de Gestão de TI'; // Hardcoded temporarily
+  const logoUrl = null; // Hardcoded temporarily
   const handleLogout = async () => {
     await logout();
   };
