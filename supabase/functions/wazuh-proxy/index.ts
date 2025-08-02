@@ -79,19 +79,28 @@ serve(async (req) => {
     // Clean up base URL and try multiple connection methods
     let cleanBaseUrl = base_url.replace(/\/+$/, '');
     
-    // Normalize URL and detect ports
-    const urlPorts = ['55000', '443', '5601', '9200']; // Common Wazuh/Elastic ports
-    let baseUrls = [];
-    
+    // Normalize URL - ensure protocol is included
     if (!cleanBaseUrl.includes('://')) {
       cleanBaseUrl = `https://${cleanBaseUrl}`;
     }
     
-    // If no port specified, try common ports
-    if (!cleanBaseUrl.match(/:(\d+)/)) {
-      baseUrls = urlPorts.map(port => `${cleanBaseUrl}:${port}`);
-    } else {
-      baseUrls = [cleanBaseUrl];
+    // Parse URL to get components
+    let baseUrls = [];
+    try {
+      const urlObj = new URL(cleanBaseUrl);
+      const baseHost = `${urlObj.protocol}//${urlObj.hostname}`;
+      
+      // If a specific port is provided, use it first
+      if (urlObj.port) {
+        baseUrls.push(cleanBaseUrl);
+      } else {
+        // Try common Wazuh ports in order of likelihood
+        const ports = ['55000', '443', '9200', '5601'];
+        baseUrls = ports.map(port => `${baseHost}:${port}`);
+      }
+    } catch (urlError) {
+      console.error('Invalid URL format:', cleanBaseUrl);
+      throw new Error(`Invalid URL format: ${cleanBaseUrl}`);
     }
 
     // Handle diagnostic mode for testing connectivity
@@ -142,13 +151,14 @@ async function attemptWazuhConnection(baseUrl: string, endpoint: string, usernam
   
   // Map common endpoints to correct Wazuh API paths
   const endpointMapping: { [key: string]: string } = {
-    '/agents': '/agents?pretty=true',
+    '/agents': '/agents?pretty=true&limit=500',
     '/agents/summary/status': '/agents/summary/status?pretty=true',
-    '/alerts': '/alerts?pretty=true',
+    '/alerts': '/alerts?pretty=true&limit=100&sort=-timestamp',
     '/alerts/summary': '/overview/agents?pretty=true',
     '/compliance': '/overview/pci?pretty=true',
-    '/vulnerability': '/vulnerability/agents?pretty=true',
-    '/version': '/?pretty=true'
+    '/vulnerability': '/vulnerability/agents?pretty=true&limit=100',
+    '/version': '/?pretty=true',
+    '//': '/?pretty=true', // For connection tests
   };
   
   // Check if we need to map the endpoint
@@ -160,10 +170,11 @@ async function attemptWazuhConnection(baseUrl: string, endpoint: string, usernam
   const basicAuth = btoa(`${username}:${password}`);
   
   console.log(`🔄 Attempting Wazuh connection to: ${apiUrl}`);
+  console.log(`🔑 Using endpoint mapping: ${endpoint} -> ${normalizedEndpoint}`);
   
   // Create AbortController for timeout
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 second timeout per attempt
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout per attempt
 
   try {
     const apiResponse = await fetch(apiUrl, {
@@ -285,6 +296,7 @@ async function attemptWazuhConnection(baseUrl: string, endpoint: string, usernam
 // Transform Wazuh response to consistent format
 function transformWazuhResponse(responseData: any, originalEndpoint: string) {
   console.log(`🔄 Transforming response for endpoint: ${originalEndpoint}`);
+  console.log(`📊 Response structure:`, JSON.stringify(responseData, null, 2).substring(0, 500));
   
   if (!responseData) {
     return { data: null, error: 'Empty response from Wazuh' };
@@ -295,30 +307,40 @@ function transformWazuhResponse(responseData: any, originalEndpoint: string) {
     case '/agents':
       return {
         data: {
-          affected_items: responseData.data?.affected_items || [],
-          total_affected_items: responseData.data?.total_affected_items || 0
+          affected_items: responseData.data?.affected_items || responseData.affected_items || [],
+          total_affected_items: responseData.data?.total_affected_items || responseData.total_affected_items || 0
         }
       };
       
     case '/agents/summary/status':
       return {
-        data: responseData.data || {}
+        data: responseData.data || responseData || {}
       };
       
     case '/alerts':
-    case '/alerts/summary':
       return {
         data: {
-          affected_items: responseData.data?.affected_items || [],
-          total_affected_items: responseData.data?.total_affected_items || 0
+          affected_items: responseData.data?.affected_items || responseData.affected_items || [],
+          total_affected_items: responseData.data?.total_affected_items || responseData.total_affected_items || 0
         }
+      };
+      
+    case '/alerts/summary':
+      // This might return overview data, transform accordingly
+      return {
+        data: responseData.data || responseData || {}
       };
       
     case '/compliance':
     case '/vulnerability':
       return {
-        data: responseData.data || {}
+        data: responseData.data || responseData || {}
       };
+      
+    case '//':
+    case '/version':
+      // For connection tests and version info
+      return responseData;
       
     default:
       return responseData;

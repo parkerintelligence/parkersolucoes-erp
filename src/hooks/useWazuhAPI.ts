@@ -177,7 +177,7 @@ export const useWazuhAPI = () => {
 
   const testWazuhConnection = useMutation({
     mutationFn: async (integrationId: string) => {
-      return makeWazuhRequest('//', 'GET', integrationId);
+      return makeWazuhRequest('/version', 'GET', integrationId);
     },
     onSuccess: () => {
       toast({

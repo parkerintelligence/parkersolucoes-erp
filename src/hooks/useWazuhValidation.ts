@@ -27,7 +27,7 @@ export const validateWazuhConnection = async (
     // Use the edge function for validation
     const { supabase } = await import('@/integrations/supabase/client');
     
-    console.log('Using wazuh-proxy function for validation...');
+    console.log('🔧 Using wazuh-proxy function for validation...');
     
     const { data, error } = await supabase.functions.invoke('wazuh-proxy', {
       body: {
@@ -37,14 +37,14 @@ export const validateWazuhConnection = async (
       }
     });
 
-    console.log('Wazuh proxy response:', { data, error });
+    console.log('🔍 Wazuh proxy response:', { data, error, hasData: !!data });
 
     if (error) {
-      console.error('Wazuh proxy error:', error);
+      console.error('❌ Wazuh proxy error:', error);
       return {
         isValid: false,
         error: 'Erro na comunicação com o Wazuh',
-        details: error.message || 'Erro desconhecido na comunicação'
+        details: `Edge function error: ${error.message}` || 'Erro desconhecido na comunicação'
       };
     }
 
@@ -57,8 +57,9 @@ export const validateWazuhConnection = async (
       };
     }
 
-    if (data?.data || data?.result) {
-      console.log('Wazuh validation successful');
+    // Check for successful response
+    if (data && (data.data || data.result || data.api_version)) {
+      console.log('✅ Wazuh validation successful');
       return {
         isValid: true
       };
