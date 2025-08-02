@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import * as React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,7 @@ export const GuacamoleConnectionDialog = ({
   onSave,
   isSaving = false
 }: GuacamoleConnectionDialogProps) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = React.useState({
     name: '',
     protocol: 'rdp',
     hostname: '',
@@ -35,7 +35,7 @@ export const GuacamoleConnectionDialog = ({
     ignoreServerCert: false
   });
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (connection && open) {
       console.log('🔍 DEBUG: Carregando dados da conexão para edição:', {
         connectionFull: connection,
