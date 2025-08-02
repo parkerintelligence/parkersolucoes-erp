@@ -13,7 +13,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
+import { SafeComponentWrapper } from '@/components/SafeComponentWrapper';
 import { ServiceDialog } from '@/components/ServiceDialog';
 import { WhatsAppPasswordDialog } from '@/components/WhatsAppPasswordDialog';
 import { Lock, Plus, Eye, EyeOff, Edit, Trash2, Building, Search, Settings, Code, Mail, Server, Database, Cloud, Shield, Monitor, Globe, Filter, FileDown, MessageCircle, Copy } from 'lucide-react';
@@ -592,9 +593,9 @@ const Passwords = () => {
         {/* Abas por Tipo de Serviço */}
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-6">
-            <Tabs value={activeServiceTab} onValueChange={setActiveServiceTab}>
-              <TabsList className="bg-slate-700 mb-6 h-auto flex-wrap">
-                {getServiceTabs().map(tab => <TabsTrigger key={tab.name} value={tab.name} className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 m-1">
+            <SafeTabs value={activeServiceTab} onValueChange={setActiveServiceTab}>
+              <SafeTabsList className="bg-slate-700 mb-6 h-auto flex-wrap">
+                {getServiceTabs().map(tab => <SafeTabsTrigger key={tab.name} value={tab.name} className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 m-1">
                     <div className="flex items-center gap-2">
                       {tab.name === 'all' && <Globe className="h-4 w-4" />}
                       {tab.name === 'no_service' && <Settings className="h-4 w-4" />}
@@ -604,13 +605,13 @@ const Passwords = () => {
                         {tab.count}
                       </Badge>
                     </div>
-                  </TabsTrigger>)}
-              </TabsList>
+                  </SafeTabsTrigger>)}
+              </SafeTabsList>
 
-              {getServiceTabs().map(tab => <TabsContent key={tab.name} value={tab.name}>
+              {getServiceTabs().map(tab => <SafeTabsContent key={tab.name} value={tab.name}>
                   {renderPasswordTable(getFilteredPasswordsByService(tab.name))}
-                </TabsContent>)}
-            </Tabs>
+                </SafeTabsContent>)}
+            </SafeTabs>
           </CardContent>
         </Card>
 

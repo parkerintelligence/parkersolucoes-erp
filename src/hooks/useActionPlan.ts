@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
@@ -14,12 +14,13 @@ export type ActionCardInsert = TablesInsert<"action_cards">;
 export type ActionCardItemInsert = TablesInsert<"action_card_items">;
 
 export const useActionPlan = () => {
-  const [boards, setBoards] = useState<ActionBoard[]>([]);
-  const [columns, setColumns] = useState<ActionColumn[]>([]);
-  const [cards, setCards] = useState<ActionCard[]>([]);
-  const [cardItems, setCardItems] = useState<ActionCardItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
+  // Defensive state initialization to prevent React hook errors
+  const [boards, setBoards] = React.useState<ActionBoard[]>([]);
+  const [columns, setColumns] = React.useState<ActionColumn[]>([]);
+  const [cards, setCards] = React.useState<ActionCard[]>([]);
+  const [cardItems, setCardItems] = React.useState<ActionCardItem[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [selectedBoard, setSelectedBoard] = React.useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchData = async () => {
@@ -92,7 +93,7 @@ export const useActionPlan = () => {
     }
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     fetchData();
   }, [selectedBoard]);
 

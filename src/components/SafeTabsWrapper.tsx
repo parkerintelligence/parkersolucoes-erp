@@ -4,6 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 interface SafeTabsWrapperProps {
   children: React.ReactNode;
   defaultValue?: string;
+  value?: string;
+  onValueChange?: (value: string) => void;
   className?: string;
 }
 
@@ -24,8 +26,14 @@ interface SafeTabsContentProps {
   className?: string;
 }
 
-// Safe wrapper that ensures React context is available
-export const SafeTabs: React.FC<SafeTabsWrapperProps> = ({ children, defaultValue, className }) => {
+// Universal safe wrapper that ensures React context is available
+export const SafeTabs: React.FC<SafeTabsWrapperProps> = ({ 
+  children, 
+  defaultValue, 
+  value, 
+  onValueChange, 
+  className 
+}) => {
   const [isReady, setIsReady] = React.useState(false);
 
   React.useEffect(() => {
@@ -46,7 +54,12 @@ export const SafeTabs: React.FC<SafeTabsWrapperProps> = ({ children, defaultValu
   }
 
   return (
-    <Tabs defaultValue={defaultValue} className={className}>
+    <Tabs 
+      defaultValue={defaultValue} 
+      value={value}
+      onValueChange={onValueChange}
+      className={className}
+    >
       {children}
     </Tabs>
   );

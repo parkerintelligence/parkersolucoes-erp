@@ -14,7 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
+import { SafeComponentWrapper } from '@/components/SafeComponentWrapper';
 import { ServiceDialog } from '@/components/ServiceDialog';
 import { 
   StickyNote, Plus, Edit, Trash2, Building, Search, Settings, 
@@ -582,10 +583,10 @@ const Annotations = () => {
         {/* Abas por Tipo de Serviço */}
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-6">
-            <Tabs value={activeServiceTab} onValueChange={setActiveServiceTab}>
-              <TabsList className="bg-slate-700 mb-6 h-auto flex-wrap">
+            <SafeTabs value={activeServiceTab} onValueChange={setActiveServiceTab}>
+              <SafeTabsList className="bg-slate-700 mb-6 h-auto flex-wrap">
                 {getServiceTabs().map((tab) => (
-                  <TabsTrigger 
+                  <SafeTabsTrigger 
                     key={tab.name} 
                     value={tab.name}
                     className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 m-1"
@@ -599,16 +600,16 @@ const Annotations = () => {
                         {tab.count}
                       </Badge>
                     </div>
-                  </TabsTrigger>
+                  </SafeTabsTrigger>
                 ))}
-              </TabsList>
+              </SafeTabsList>
 
               {getServiceTabs().map((tab) => (
-                <TabsContent key={tab.name} value={tab.name}>
+                <SafeTabsContent key={tab.name} value={tab.name}>
                   {renderAnnotationTable(getFilteredAnnotationsByService(tab.name))}
-                </TabsContent>
+                </SafeTabsContent>
               ))}
-            </Tabs>
+            </SafeTabs>
           </CardContent>
         </Card>
 

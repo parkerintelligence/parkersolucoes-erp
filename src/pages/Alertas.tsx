@@ -2,7 +2,8 @@ import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
+import { SafeComponentWrapper } from '@/components/SafeComponentWrapper';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useZabbixAPI } from '@/hooks/useZabbixAPI';
@@ -17,6 +18,14 @@ interface DeviceStatus {
 }
 
 export default function Alertas() {
+  return (
+    <SafeComponentWrapper>
+      <AlertasContent />
+    </SafeComponentWrapper>
+  );
+}
+
+function AlertasContent() {
   const { useHosts, useProblems, useItems } = useZabbixAPI();
   
   const { data: hosts = [], isLoading: hostsLoading, refetch: refetchHosts } = useHosts({}, {

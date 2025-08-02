@@ -3,12 +3,21 @@ import { Plus, Settings, Trash2, MoreHorizontal } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from "@/components/SafeTabsWrapper";
+import { SafeComponentWrapper } from "@/components/SafeComponentWrapper";
 
 import { ActionBoard } from "@/components/ActionBoard";
 import { BoardDialog } from "@/components/BoardDialog";
 import { useActionPlan } from "@/hooks/useActionPlan";
 export default function ActionPlan() {
+  return (
+    <SafeComponentWrapper>
+      <ActionPlanContent />
+    </SafeComponentWrapper>
+  );
+}
+
+function ActionPlanContent() {
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
   const [isEditBoardOpen, setIsEditBoardOpen] = useState(false);
   const [editingBoard, setEditingBoard] = useState<any>(null);
@@ -100,20 +109,20 @@ export default function ActionPlan() {
                 <BoardDialog onSave={handleCreateBoard} />
               </Dialog>
             </CardContent>
-          </Card> : <Tabs value={selectedBoard || ""} onValueChange={setSelectedBoard} className="w-full">
+          </Card> : <SafeTabs value={selectedBoard || ""} onValueChange={setSelectedBoard} className="w-full">
             <div className="flex items-center justify-between mb-6">
-              <TabsList className="h-12 p-1 bg-slate-800/60 backdrop-blur border border-slate-600 shadow-sm">
+              <SafeTabsList className="h-12 p-1 bg-slate-800/60 backdrop-blur border border-slate-600 shadow-sm">
                 {boards.map(board => {
               const columnsCount = columns.filter(col => col.board_id === board.id).length;
               return <div key={board.id} className="flex items-center group">
-                      <TabsTrigger value={board.id} className="relative px-6 py-2 data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm data-[state=active]:text-white text-slate-300 hover:text-white">
+                      <SafeTabsTrigger value={board.id} className="relative px-6 py-2 data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm data-[state=active]:text-white text-slate-300 hover:text-white">
                         <div className="flex flex-col items-center gap-1">
                           <span className="font-medium">{board.name}</span>
                           <span className="text-xs opacity-70">
                             {columnsCount} {columnsCount === 1 ? 'coluna' : 'colunas'}
                           </span>
                         </div>
-                      </TabsTrigger>
+                      </SafeTabsTrigger>
                       
                       {selectedBoard === board.id && (
                         <Button
@@ -137,13 +146,13 @@ export default function ActionPlan() {
                   </DialogTrigger>
                   <BoardDialog onSave={handleCreateBoard} />
                 </Dialog>
-              </TabsList>
+              </SafeTabsList>
             </div>
 
-            {boards.map(board => <TabsContent key={board.id} value={board.id} className="mt-0">
+            {boards.map(board => <SafeTabsContent key={board.id} value={board.id} className="mt-0">
                 <ActionBoard boardId={board.id} columns={columns} cards={cards} cardItems={cardItems} />
-              </TabsContent>)}
-          </Tabs>}
+              </SafeTabsContent>)}
+          </SafeTabs>}
       </div>
 
       {/* Edit Board Dialog */}

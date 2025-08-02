@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
+import { SafeComponentWrapper } from '@/components/SafeComponentWrapper';
 import { Badge } from '@/components/ui/badge';
 import { Cloud, RefreshCcw, AlertTriangle, CheckCircle, Settings, FileText, Folder, Download, Upload, Trash2, Eye, FolderPlus, ArrowLeft, ChevronRight } from 'lucide-react';
 import { useWasabi } from '@/hooks/useWasabi';

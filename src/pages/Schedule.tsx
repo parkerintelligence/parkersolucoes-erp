@@ -6,7 +6,8 @@ import { ScheduleTypeDialog } from '@/components/ScheduleTypeDialog';
 import { ScheduleCalendarView } from '@/components/ScheduleCalendarView';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
+import { SafeComponentWrapper } from '@/components/SafeComponentWrapper';
 import { Calendar, Plus, Settings, Clock, CalendarDays } from 'lucide-react';
 import { useScheduleItems, useUpdateScheduleItem, useDeleteScheduleItem } from '@/hooks/useScheduleItems';
 
@@ -46,23 +47,23 @@ const Schedule = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="calendar" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-800 border-gray-700">
-            <TabsTrigger value="calendar" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+        <SafeTabs defaultValue="calendar" className="space-y-6">
+          <SafeTabsList className="grid w-full grid-cols-2 bg-gray-800 border-gray-700">
+            <SafeTabsTrigger value="calendar" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
               <CalendarDays className="h-4 w-4" />
               Agendamentos Recorrentes
-            </TabsTrigger>
-            <TabsTrigger value="schedule" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+            </SafeTabsTrigger>
+            <SafeTabsTrigger value="schedule" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
               <Clock className="h-4 w-4" />
               Agenda de Vencimentos
-            </TabsTrigger>
-          </TabsList>
+            </SafeTabsTrigger>
+          </SafeTabsList>
 
-          <TabsContent value="calendar">
+          <SafeTabsContent value="calendar">
             <ScheduleCalendarView />
-          </TabsContent>
+          </SafeTabsContent>
 
-          <TabsContent value="schedule" className="space-y-6">
+          <SafeTabsContent value="schedule" className="space-y-6">
             <div className="flex justify-end gap-2">
               <Button onClick={() => setShowTypeDialog(true)} variant="outline" className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600">
                 <Settings className="mr-2 h-4 w-4" />
@@ -130,8 +131,8 @@ const Schedule = () => {
             {/* Dialogs */}
             <ScheduleDialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog} />
             <ScheduleTypeDialog open={showTypeDialog} onOpenChange={setShowTypeDialog} />
-          </TabsContent>
-        </Tabs>
+          </SafeTabsContent>
+        </SafeTabs>
       </div>
     </div>;
 };
