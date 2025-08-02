@@ -470,13 +470,13 @@ const Zabbix = () => {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="problems" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-slate-800 border-slate-700">
-            <TabsTrigger value="problems" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Problemas</TabsTrigger>
-            <TabsTrigger value="hosts" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Hosts</TabsTrigger>
-          </TabsList>
+        <SafeTabs defaultValue="problems" className="w-full">
+          <SafeTabsList className="grid w-full grid-cols-2 bg-slate-800 border-slate-700">
+            <SafeTabsTrigger value="problems" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Problemas</SafeTabsTrigger>
+            <SafeTabsTrigger value="hosts" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Hosts</SafeTabsTrigger>
+          </SafeTabsList>
 
-          <TabsContent value="problems" className="mt-6">
+          <SafeTabsContent value="problems" className="mt-6">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-white">
@@ -586,9 +586,9 @@ const Zabbix = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </SafeTabsContent>
 
-          <TabsContent value="hosts" className="mt-6">
+          <SafeTabsContent value="hosts" className="mt-6">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-white">
@@ -605,68 +605,68 @@ const Zabbix = () => {
                     <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4 text-gray-400" />
                     <p className="text-gray-400">Carregando hosts...</p>
                   </div>
-                ) : (
-                  <Tabs defaultValue={Object.keys(groupedHosts)[0] || 'all'} className="w-full">
-                    <TabsList className="grid w-full bg-slate-700 border-slate-600 mb-6" style={{gridTemplateColumns: `repeat(${Object.keys(groupedHosts).length}, minmax(0, 1fr))`}}>
-                      {Object.keys(groupedHosts).map((groupName) => (
-                        <TabsTrigger 
-                          key={groupName} 
-                          value={groupName}
-                          className="data-[state=active]:bg-slate-600 data-[state=active]:text-white text-sm px-2"
-                        >
-                          {groupName}
-                          <Badge variant="outline" className="ml-2 border-slate-500 text-slate-300">
-                            {groupedHosts[groupName].length}
-                          </Badge>
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                    
-                    {Object.entries(groupedHosts).map(([groupName, groupHosts]) => (
-                      <TabsContent key={groupName} value={groupName}>
-                        <Tabs defaultValue="available" className="w-full">
-                          <TabsList className="grid w-full grid-cols-4 bg-slate-700 border-slate-600 mb-4">
-                            <TabsTrigger value="available" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
-                              Disponível
-                              <Badge className="ml-2 bg-green-900/20 border-green-600/30 text-green-400">
-                                {groupHosts.filter(h => getHostAvailability(h).status === 'available').length}
-                              </Badge>
-                            </TabsTrigger>
-                            <TabsTrigger value="unavailable" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
-                              Indisponível
-                              <Badge className="ml-2 bg-red-900/20 border-red-600/30 text-red-400">
-                                {groupHosts.filter(h => getHostAvailability(h).status === 'unavailable').length}
-                              </Badge>
-                            </TabsTrigger>
-                            <TabsTrigger value="unknown" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
-                              Desconhecido
-                              <Badge className="ml-2 bg-yellow-900/20 border-yellow-600/30 text-yellow-400">
-                                {groupHosts.filter(h => getHostAvailability(h).status === 'unknown').length}
-                              </Badge>
-                            </TabsTrigger>
-                            <TabsTrigger value="disabled" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
-                              Desabilitado
-                              <Badge className="ml-2 bg-slate-900/20 border-slate-600/30 text-slate-400">
-                                {groupHosts.filter(h => getHostAvailability(h).status === 'disabled').length}
-                              </Badge>
-                            </TabsTrigger>
-                          </TabsList>
+                 ) : (
+                   <SafeTabs defaultValue={Object.keys(groupedHosts)[0] || 'all'} className="w-full">
+                     <SafeTabsList className="grid w-full bg-slate-700 border-slate-600 mb-6" style={{gridTemplateColumns: `repeat(${Object.keys(groupedHosts).length}, minmax(0, 1fr))`}}>
+                       {Object.keys(groupedHosts).map((groupName) => (
+                         <SafeTabsTrigger 
+                           key={groupName} 
+                           value={groupName}
+                           className="data-[state=active]:bg-slate-600 data-[state=active]:text-white text-sm px-2"
+                         >
+                           {groupName}
+                           <Badge variant="outline" className="ml-2 border-slate-500 text-slate-300">
+                             {groupedHosts[groupName].length}
+                           </Badge>
+                         </SafeTabsTrigger>
+                       ))}
+                     </SafeTabsList>
+                     
+                     {Object.entries(groupedHosts).map(([groupName, groupHosts]) => (
+                       <SafeTabsContent key={groupName} value={groupName}>
+                         <SafeTabs defaultValue="available" className="w-full">
+                           <SafeTabsList className="grid w-full grid-cols-4 bg-slate-700 border-slate-600 mb-4">
+                             <SafeTabsTrigger value="available" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
+                               Disponível
+                               <Badge className="ml-2 bg-green-900/20 border-green-600/30 text-green-400">
+                                 {groupHosts.filter(h => getHostAvailability(h).status === 'available').length}
+                               </Badge>
+                             </SafeTabsTrigger>
+                             <SafeTabsTrigger value="unavailable" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
+                               Indisponível
+                               <Badge className="ml-2 bg-red-900/20 border-red-600/30 text-red-400">
+                                 {groupHosts.filter(h => getHostAvailability(h).status === 'unavailable').length}
+                               </Badge>
+                             </SafeTabsTrigger>
+                             <SafeTabsTrigger value="unknown" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
+                               Desconhecido
+                               <Badge className="ml-2 bg-yellow-900/20 border-yellow-600/30 text-yellow-400">
+                                 {groupHosts.filter(h => getHostAvailability(h).status === 'unknown').length}
+                               </Badge>
+                             </SafeTabsTrigger>
+                             <SafeTabsTrigger value="disabled" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
+                               Desabilitado
+                               <Badge className="ml-2 bg-slate-900/20 border-slate-600/30 text-slate-400">
+                                 {groupHosts.filter(h => getHostAvailability(h).status === 'disabled').length}
+                               </Badge>
+                             </SafeTabsTrigger>
+                           </SafeTabsList>
 
-                          {['available', 'unavailable', 'unknown', 'disabled'].map(status => (
-                            <TabsContent key={status} value={status}>
-                              {renderHostsTable(groupHosts.filter(host => getHostAvailability(host).status === status))}
-                            </TabsContent>
-                          ))}
-                        </Tabs>
-                      </TabsContent>
-                    ))}
-                  </Tabs>
+                           {['available', 'unavailable', 'unknown', 'disabled'].map(status => (
+                             <SafeTabsContent key={status} value={status}>
+                               {renderHostsTable(groupHosts.filter(host => getHostAvailability(host).status === status))}
+                             </SafeTabsContent>
+                           ))}
+                         </SafeTabs>
+                       </SafeTabsContent>
+                     ))}
+                   </SafeTabs>
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </SafeTabsContent>
 
-        </Tabs>
+        </SafeTabs>
 
         <GLPITicketConfirmDialog
           open={confirmDialogOpen}

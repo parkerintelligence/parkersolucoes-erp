@@ -12,6 +12,7 @@ interface SafeTabsWrapperProps {
 interface SafeTabsListProps {
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 interface SafeTabsTriggerProps {
@@ -65,8 +66,8 @@ export const SafeTabs: React.FC<SafeTabsWrapperProps> = ({
   );
 };
 
-export const SafeTabsList: React.FC<SafeTabsListProps> = ({ children, className }) => {
-  return <TabsList className={className}>{children}</TabsList>;
+export const SafeTabsList: React.FC<SafeTabsListProps> = ({ children, className, style }) => {
+  return <TabsList className={className} style={style}>{children}</TabsList>;
 };
 
 export const SafeTabsTrigger: React.FC<SafeTabsTriggerProps> = ({ children, value, className }) => {

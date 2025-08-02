@@ -154,17 +154,17 @@ const Wasabi = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="storage" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-800 border-gray-700">
-            <TabsTrigger value="storage" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+        <SafeTabs defaultValue="storage" className="w-full">
+          <SafeTabsList className="grid w-full grid-cols-2 bg-gray-800 border-gray-700">
+            <SafeTabsTrigger value="storage" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               Armazenamento
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            </SafeTabsTrigger>
+            <SafeTabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
               Análise de Uso
-            </TabsTrigger>
-          </TabsList>
+            </SafeTabsTrigger>
+          </SafeTabsList>
 
-          <TabsContent value="storage" className="mt-6">
+          <SafeTabsContent value="storage" className="mt-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -247,9 +247,9 @@ const Wasabi = () => {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
+          </SafeTabsContent>
 
-          <TabsContent value="analytics" className="mt-6">
+          <SafeTabsContent value="analytics" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="bg-gray-800 border-gray-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -288,8 +288,8 @@ const Wasabi = () => {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-        </Tabs>
+          </SafeTabsContent>
+        </SafeTabs>
 
         {/* Dialogs */}
         <WasabiCreateBucketDialog open={createBucketDialogOpen} onOpenChange={setCreateBucketDialogOpen} onCreateBucket={handleCreateBucket} isCreating={createBucket.isPending} />

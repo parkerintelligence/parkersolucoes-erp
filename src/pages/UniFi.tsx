@@ -532,15 +532,15 @@ const UniFi = () => {
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="devices" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="devices">Dispositivos</TabsTrigger>
-            <TabsTrigger value="clients">Clientes</TabsTrigger>
-            <TabsTrigger value="networks">Redes</TabsTrigger>
-            <TabsTrigger value="alarms">Alarmes</TabsTrigger>
-          </TabsList>
+        <SafeTabs defaultValue="devices" className="w-full">
+          <SafeTabsList className="grid w-full grid-cols-4">
+            <SafeTabsTrigger value="devices">Dispositivos</SafeTabsTrigger>
+            <SafeTabsTrigger value="clients">Clientes</SafeTabsTrigger>
+            <SafeTabsTrigger value="networks">Redes</SafeTabsTrigger>
+            <SafeTabsTrigger value="alarms">Alarmes</SafeTabsTrigger>
+          </SafeTabsList>
 
-          <TabsContent value="devices" className="space-y-4">
+          <SafeTabsContent value="devices" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -590,9 +590,9 @@ const UniFi = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </SafeTabsContent>
 
-          <TabsContent value="clients" className="space-y-4">
+          <SafeTabsContent value="clients" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -657,9 +657,9 @@ const UniFi = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </SafeTabsContent>
 
-          <TabsContent value="networks" className="space-y-4">
+          <SafeTabsContent value="networks" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -702,9 +702,9 @@ const UniFi = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </SafeTabsContent>
 
-          <TabsContent value="alarms" className="space-y-4">
+          <SafeTabsContent value="alarms" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -739,8 +739,8 @@ const UniFi = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </SafeTabsContent>
+        </SafeTabs>
       </div>
     </div>
   );
