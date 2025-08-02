@@ -47,18 +47,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('user_profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Erro ao buscar perfil do usuário:', error);
-        return null;
+        // Não forçar logout por erro de RLS - continuar com dados básicos
+        return {
+          id: userId,
+          email: '',
+          role: 'user'
+        };
+      }
+
+      if (!data) {
+        console.log('Perfil não encontrado, usando dados padrão');
+        return {
+          id: userId,
+          email: '',
+          role: 'user'
+        };
       }
 
       console.log('Perfil do usuário encontrado:', data);
       return data;
     } catch (error) {
       console.error('Erro ao buscar perfil do usuário:', error);
-      return null;
+      // Fallback para evitar quebrar a sessão
+      return {
+        id: userId,
+        email: '',
+        role: 'user'
+      };
     }
   };
 
@@ -68,19 +87,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearTimeout(sessionTimer);
     }
     
-    // Criar novo timer para 30 minutos (1800000 ms)
+    // Criar novo timer para 60 minutos (3600000 ms)
     const timer = setTimeout(async () => {
-      console.log('Sessão expirada após 30 minutos, fazendo logout...');
+      console.log('Sessão expirada após 60 minutos, fazendo logout...');
       await logout();
-    }, 30 * 60 * 1000);
+    }, 60 * 60 * 1000);
     
     setSessionTimer(timer);
-    console.log('Timer de sessão iniciado: 30 minutos');
+    console.log('Timer de sessão iniciado: 60 minutos');
   };
 
   const resetSessionTimer = () => {
-    if (sessionTimer) {
-      clearTimeout(sessionTimer);
+    if (user && session) {
+      if (sessionTimer) {
+        clearTimeout(sessionTimer);
+      }
       startSessionTimer();
       console.log('Timer de sessão resetado');
     }
@@ -114,10 +135,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Buscar perfil do usuário
             const profile = await fetchUserProfile(session.user.id);
             if (profile && mounted) {
-              const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
+              const isMasterEmail = session.user.email === 'contato@parkersolucoes.com.br';
               const typedProfile: UserProfile = {
                 id: profile.id,
-                email: profile.email,
+                email: session.user.email || profile.email,
                 role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
               };
               console.log('Perfil do usuário definido:', typedProfile);
@@ -153,21 +174,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(session.user);
           startSessionTimer(); // Iniciar timer de sessão
           
-          // Buscar perfil do usuário
-          setTimeout(async () => {
-            if (!mounted) return;
-            const profile = await fetchUserProfile(session.user.id);
-            if (profile && mounted) {
-              const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
-              const typedProfile: UserProfile = {
-                id: profile.id,
-                email: profile.email,
-                role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
-              };
-              console.log('Perfil atualizado:', typedProfile);
-              setUserProfile(typedProfile);
-            }
-          }, 0);
+          // Buscar perfil do usuário sem setTimeout para evitar race conditions
+          const profile = await fetchUserProfile(session.user.id);
+          if (profile && mounted) {
+            const isMasterEmail = session.user.email === 'contato@parkersolucoes.com.br';
+            const typedProfile: UserProfile = {
+              id: profile.id,
+              email: session.user.email || profile.email,
+              role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
+            };
+            console.log('Perfil atualizado:', typedProfile);
+            setUserProfile(typedProfile);
+          }
         } else {
           if (sessionTimer) {
             clearTimeout(sessionTimer);
