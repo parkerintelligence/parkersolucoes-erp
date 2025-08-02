@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,11 +15,11 @@ export const GLPIConfig = () => {
   const { data: integrations } = useIntegrations();
   const createIntegration = useCreateIntegration();
   const updateIntegration = useUpdateIntegration();
-  const [testing, setTesting] = useState(false);
+  const [testing, setTesting] = React.useState(false);
 
   const glpiIntegration = integrations?.find(i => i.type === 'glpi');
 
-  const [config, setConfig] = useState({
+  const [config, setConfig] = React.useState({
     name: glpiIntegration?.name || 'GLPI Principal',
     base_url: glpiIntegration?.base_url || '',
     api_token: glpiIntegration?.api_token || '',
