@@ -72,14 +72,17 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
                       {selectedSite.description || selectedSite.name}
                     </h4>
                   </div>
-                  <div className="space-y-1 text-xs text-gray-300">
-                    <p><strong>Site ID:</strong> {selectedSite.id}</p>
-                    <p><strong>Nome:</strong> {selectedSite.name}</p>
-                    <div className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      <span><strong>Função:</strong> {selectedSite.role}</span>
-                    </div>
-                  </div>
+                   <div className="space-y-1 text-xs text-gray-300">
+                     <p><strong>Site ID:</strong> {selectedSite.id}</p>
+                     <p><strong>Nome:</strong> {selectedSite.name}</p>
+                     <div className="flex items-center gap-1">
+                       <Users className="h-3 w-3" />
+                       <span><strong>Função:</strong> {selectedSite.role}</span>
+                     </div>
+                     {selectedSite.description && selectedSite.description !== selectedSite.name && (
+                       <p><strong>Descrição:</strong> {selectedSite.description}</p>
+                     )}
+                   </div>
                 </div>
                 {(selectedSite.newAlarmCount || 0) > 0 && (
                   <div className="flex items-center gap-1 text-red-400">

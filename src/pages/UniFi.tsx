@@ -27,6 +27,7 @@ import { UniFiHostSelector } from '@/components/UniFiHostSelector';
 import { UniFiSiteSelector } from '@/components/UniFiSiteSelector';
 import { UniFiConnectionTest } from '@/components/UniFiConnectionTest';
 import { UniFiDebugPanel } from '@/components/UniFiDebugPanel';
+import { UniFiSkeleton } from '@/components/UniFiSkeleton';
 
 const UniFi = () => {
   const { data: integrations } = useIntegrations();
@@ -50,26 +51,36 @@ const UniFi = () => {
 
   // Fetch data if integration is available
   const { data: hosts, isLoading: hostsLoading, error: hostsError } = useUniFiHosts(unifiIntegration?.id || '');
-  const { data: sites, isLoading: sitesLoading, error: sitesError } = useUniFiSites(unifiIntegration?.id || '', selectedHost);
-  const { data: devices, isLoading: devicesLoading } = useUniFiDevices(unifiIntegration?.id || '', selectedHost, selectedSite);
-  const { data: clients, isLoading: clientsLoading } = useUniFiClients(unifiIntegration?.id || '', selectedHost, selectedSite);
-  const { data: networks, isLoading: networksLoading } = useUniFiNetworks(unifiIntegration?.id || '', selectedHost, selectedSite);
-  const { data: alarms, isLoading: alarmsLoading } = useUniFiAlarms(unifiIntegration?.id || '', selectedHost, selectedSite);
+  const { data: sitesData, isLoading: sitesLoading, error: sitesError } = useUniFiSites(unifiIntegration?.id || '', selectedHost);
+  const { data: devicesData, isLoading: devicesLoading } = useUniFiDevices(unifiIntegration?.id || '', selectedHost, selectedSite);
+  const { data: clientsData, isLoading: clientsLoading } = useUniFiClients(unifiIntegration?.id || '', selectedHost, selectedSite);
+  const { data: networksData, isLoading: networksLoading } = useUniFiNetworks(unifiIntegration?.id || '', selectedHost, selectedSite);
+  const { data: alarmsData, isLoading: alarmsLoading } = useUniFiAlarms(unifiIntegration?.id || '', selectedHost, selectedSite);
   const { data: stats, isLoading: statsLoading } = useUniFiStats(unifiIntegration?.id || '', selectedHost, selectedSite);
 
-  // Auto-select first host when hosts are loaded
+  // Extract data safely
+  const hostsList = hosts || [];
+  const sites = sitesData?.data || [];
+  const devices = devicesData?.data || [];
+  const clients = clientsData?.data || [];
+  const networks = networksData?.data || [];
+  const alarms = alarmsData?.data || [];
+
+  // Auto-select first valid host when hosts are loaded
   useEffect(() => {
-    if (hosts?.data && hosts.data.length > 0 && !selectedHost) {
-      setSelectedHost(hosts.data[0].id);
+    if (hostsList.length > 0 && !selectedHost) {
+      // Find first host with sites or just the first one
+      const firstValidHost = hostsList.find((host: any) => host.isValid) || hostsList[0];
+      setSelectedHost(firstValidHost.id);
     }
-  }, [hosts?.data, selectedHost]);
+  }, [hostsList, selectedHost]);
 
   // Auto-select first site when sites are loaded
   useEffect(() => {
-    if (sites?.data && sites.data.length > 0 && !selectedSite) {
-      setSelectedSite(sites.data[0].id);
+    if (sites.length > 0 && !selectedSite) {
+      setSelectedSite(sites[0].id);
     }
-  }, [sites?.data, selectedSite]);
+  }, [sites, selectedSite]);
 
   const isLoadingData = hostsLoading || sitesLoading || devicesLoading || clientsLoading || networksLoading || alarmsLoading || statsLoading;
 
@@ -110,12 +121,11 @@ const UniFi = () => {
     );
   }
 
-  const hostsList = hosts?.data || [];
-  const sitesList = sites?.data || [];
-  const devicesList = devices?.data || [];
-  const clientsList = clients?.data || [];
-  const networksList = networks?.data || [];
-  const alarmsList = alarms?.data || [];
+  // Use the cleaned data
+  const devicesList = devices || [];
+  const clientsList = clients || [];
+  const networksList = networks || [];
+  const alarmsList = alarms || [];
 
   return (
     <div className="min-h-screen bg-slate-900 p-4">
@@ -156,77 +166,89 @@ const UniFi = () => {
         />
 
         {/* Host Selector */}
-        <UniFiHostSelector
-          hosts={hosts?.data || []}
-          selectedHostId={selectedHost}
-          onHostChange={handleHostChange}
-          loading={hostsLoading}
-        />
-
-        {/* Site Selector */}
-        {selectedHost && (
-          <UniFiSiteSelector
-            sites={sites?.data || []}
-            selectedSiteId={selectedSite}
-            onSiteChange={handleSiteChange}
-            loading={sitesLoading}
+        {hostsLoading ? (
+          <UniFiSkeleton type="hosts" />
+        ) : (
+          <UniFiHostSelector
+            hosts={hostsList}
+            selectedHostId={selectedHost}
+            onHostChange={handleHostChange}
+            loading={hostsLoading}
           />
         )}
 
+        {/* Site Selector */}
+        {selectedHost && (
+          sitesLoading ? (
+            <UniFiSkeleton type="sites" />
+          ) : (
+            <UniFiSiteSelector
+              sites={sites}
+              selectedSiteId={selectedSite}
+              onSiteChange={handleSiteChange}
+              loading={sitesLoading}
+            />
+          )
+        )}
+
         {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-sm">Dispositivos Online</CardTitle>
-                <Server className="h-4 w-4 text-green-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{stats?.online_devices || 0}</div>
-              <p className="text-xs text-slate-400">de {stats?.total_devices || 0} total</p>
-            </CardContent>
-          </Card>
+        {statsLoading || (!selectedHost || !selectedSite) ? (
+          <UniFiSkeleton type="overview" />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-white text-sm">Dispositivos Online</CardTitle>
+                  <Server className="h-4 w-4 text-green-400" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-white">{stats?.online_devices || 0}</div>
+                <p className="text-xs text-slate-400">de {stats?.total_devices || 0} total</p>
+              </CardContent>
+            </Card>
 
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-sm">Clientes Conectados</CardTitle>
-                <Users className="h-4 w-4 text-blue-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{stats?.total_clients || 0}</div>
-              <p className="text-xs text-slate-400">{stats?.wireless_clients || 0} WiFi • {stats?.wired_clients || 0} Ethernet</p>
-            </CardContent>
-          </Card>
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-white text-sm">Clientes Conectados</CardTitle>
+                  <Users className="h-4 w-4 text-blue-400" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-white">{stats?.total_clients || 0}</div>
+                <p className="text-xs text-slate-400">{stats?.wireless_clients || 0} WiFi • {stats?.wired_clients || 0} Ethernet</p>
+              </CardContent>
+            </Card>
 
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-sm">Redes Ativas</CardTitle>
-                <Network className="h-4 w-4 text-purple-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{networksList.filter((n: any) => n.enabled).length}</div>
-              <p className="text-xs text-slate-400">de {networksList.length} total</p>
-            </CardContent>
-          </Card>
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-white text-sm">Redes Ativas</CardTitle>
+                  <Network className="h-4 w-4 text-purple-400" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-white">{networksList.filter((n: any) => n.enabled).length}</div>
+                <p className="text-xs text-slate-400">de {networksList.length} total</p>
+              </CardContent>
+            </Card>
 
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-sm">Alarmes Ativos</CardTitle>
-                <AlertTriangle className="h-4 w-4 text-red-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-400">{alarmsList.filter((a: any) => !a.archived).length}</div>
-              <p className="text-xs text-slate-400">não arquivados</p>
-            </CardContent>
-          </Card>
-        </div>
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-white text-sm">Alarmes Ativos</CardTitle>
+                  <AlertTriangle className="h-4 w-4 text-red-400" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-400">{alarmsList.filter((a: any) => !a.archived).length}</div>
+                <p className="text-xs text-slate-400">não arquivados</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Main Content */}
         <Tabs defaultValue="devices" className="w-full">
@@ -238,95 +260,124 @@ const UniFi = () => {
           </TabsList>
 
           <TabsContent value="devices" className="space-y-4">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Server className="h-5 w-5" />
-                  Dispositivos UniFi
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {devicesList.map((device: any) => (
-                    <div key={device._id} className="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${device.state === 1 ? 'bg-green-500' : 'bg-red-500'}`} />
-                        <Router className="h-5 w-5 text-blue-400" />
-                        <div>
-                          <p className="text-white font-medium">{device.name || device.model}</p>
-                          <p className="text-slate-400 text-sm">{device.ip} • {device.model}</p>
+            {devicesLoading ? (
+              <UniFiSkeleton type="devices" count={5} />
+            ) : (
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Server className="h-5 w-5" />
+                    Dispositivos UniFi ({devicesList.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {devicesList.length > 0 ? (
+                    <div className="space-y-3">
+                      {devicesList.map((device: any) => (
+                        <div key={device._id} className="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-3 h-3 rounded-full ${device.state === 1 ? 'bg-green-500' : 'bg-red-500'}`} />
+                            <Router className="h-5 w-5 text-blue-400" />
+                            <div>
+                              <p className="text-white font-medium">{device.name || device.model}</p>
+                              <p className="text-slate-400 text-sm">{device.ip} • {device.model}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={device.state === 1 ? 'default' : 'destructive'}>
+                              {device.state === 1 ? 'Online' : 'Offline'}
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => restartDevice.mutate({
+                                integrationId: unifiIntegration.id,
+                                hostId: selectedHost,
+                                deviceId: device.mac
+                              })}
+                              className="border-slate-600 text-white hover:bg-slate-600"
+                            >
+                              <Power className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={device.state === 1 ? 'default' : 'destructive'}>
-                          {device.state === 1 ? 'Online' : 'Offline'}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => restartDevice.mutate({
-                            integrationId: unifiIntegration.id,
-                            hostId: selectedHost,
-                            deviceId: device.mac
-                          })}
-                          className="border-slate-600 text-white hover:bg-slate-600"
-                        >
-                          <Power className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  ) : (
+                    <div className="text-center py-8 text-slate-400">
+                      <Server className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p>Nenhum dispositivo encontrado</p>
+                      <p className="text-sm">Verifique se há dispositivos configurados no site selecionado</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="clients" className="space-y-4">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Clientes Conectados
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {clientsList.slice(0, 20).map((client: any) => (
-                    <div key={client._id} className="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        {client.is_wired ? (
-                          <Monitor className="h-5 w-5 text-green-400" />
-                        ) : (
-                          <Smartphone className="h-5 w-5 text-blue-400" />
-                        )}
-                        <div>
-                          <p className="text-white font-medium">{client.name || client.hostname || 'Dispositivo'}</p>
-                          <p className="text-slate-400 text-sm">{client.ip} • {client.mac}</p>
+            {clientsLoading ? (
+              <UniFiSkeleton type="clients" count={8} />
+            ) : (
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Clientes Conectados ({clientsList.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {clientsList.length > 0 ? (
+                    <div className="space-y-3">
+                      {clientsList.slice(0, 20).map((client: any) => (
+                        <div key={client._id} className="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            {client.is_wired ? (
+                              <Monitor className="h-5 w-5 text-green-400" />
+                            ) : (
+                              <Smartphone className="h-5 w-5 text-blue-400" />
+                            )}
+                            <div>
+                              <p className="text-white font-medium">{client.name || client.hostname || 'Dispositivo'}</p>
+                              <p className="text-slate-400 text-sm">{client.ip} • {client.mac}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={client.is_wired ? 'default' : 'secondary'}>
+                              {client.is_wired ? 'Ethernet' : 'WiFi'}
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => toggleClientBlock.mutate({
+                                integrationId: unifiIntegration.id,
+                                hostId: selectedHost,
+                                clientId: client.mac,
+                                block: true
+                              })}
+                              className="border-slate-600 text-white hover:bg-slate-600"
+                            >
+                              <Ban className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={client.is_wired ? 'default' : 'secondary'}>
-                          {client.is_wired ? 'Ethernet' : 'WiFi'}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => toggleClientBlock.mutate({
-                            integrationId: unifiIntegration.id,
-                            hostId: selectedHost,
-                            clientId: client.mac,
-                            block: true
-                          })}
-                          className="border-slate-600 text-white hover:bg-slate-600"
-                        >
-                          <Ban className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      ))}
+                      {clientsList.length > 20 && (
+                        <div className="text-center py-4 text-slate-400">
+                          <p className="text-sm">Mostrando 20 de {clientsList.length} clientes</p>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  ) : (
+                    <div className="text-center py-8 text-slate-400">
+                      <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p>Nenhum cliente conectado</p>
+                      <p className="text-sm">Não há dispositivos conectados no site selecionado</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="networks" className="space-y-4">

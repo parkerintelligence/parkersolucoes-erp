@@ -55,6 +55,37 @@ export interface UniFiSite {
   health?: any[];
 }
 
+export interface UniFiHost {
+  id: string;
+  hardwareId: string;
+  type: string;
+  ipAddress: string;
+  owner: boolean;
+  isBlocked: boolean;
+  registrationTime: string;
+  lastConnectionStateChange: string;
+  userData: any;
+  reportedState: {
+    controller_uuid: string;
+    firmware_version?: string;
+    hardware_id: string;
+    host_type: number;
+    hostname: string;
+    inform_port: number;
+    ipAddrs: string[];
+    mgmt_port: number;
+    name: string;
+    override_inform_host: boolean;
+    release_channel: string;
+    state: string;
+    version: string;
+  };
+  // Enhanced properties
+  sitesCount?: number;
+  isValid?: boolean;
+  sites?: UniFiSite[];
+}
+
 interface UniFiNetwork {
   id: string;
   name: string;
@@ -112,7 +143,7 @@ export const useUniFiAPI = () => {
     }
   };
 
-  // Hosts - buscar controladoras disponíveis
+  // Enhanced Hosts - buscar controladoras disponíveis com validação e sites
   const useUniFiHosts = (integrationId: string) => {
     return useQuery({
       queryKey: ['unifi-hosts', integrationId],
@@ -121,32 +152,80 @@ export const useUniFiAPI = () => {
           const response = await makeUniFiRequest('/v1/hosts', 'GET', integrationId);
           console.log('Hosts response:', response);
           
-          // Ensure we always return an array
+          let hosts = [];
           if (response?.data && Array.isArray(response.data)) {
-            return response.data;
+            hosts = response.data;
           } else if (Array.isArray(response)) {
-            return response;
+            hosts = response;
           } else {
             console.warn('Unexpected hosts response structure:', response);
             return [];
           }
+
+          // Filter and enhance hosts with validation
+          const validHosts = [];
+          for (const host of hosts) {
+            // Check if host is valid and connected
+            const isConnected = host.reportedState?.state === 'connected';
+            const isNotBlocked = !host.isBlocked;
+            const hasHostname = !!host.reportedState?.hostname;
+            const isOwner = host.owner;
+
+            if (isConnected && isNotBlocked && hasHostname && isOwner) {
+              try {
+                // Try to fetch sites for this host to validate it has data
+                const sitesResponse = await makeUniFiRequest(`/v1/hosts/${host.id}/sites`, 'GET', integrationId);
+                const sites = sitesResponse?.data || [];
+                
+                validHosts.push({
+                  ...host,
+                  sitesCount: sites.length,
+                  isValid: sites.length > 0,
+                  sites: sites // Cache sites data for faster loading
+                });
+              } catch (siteError) {
+                console.warn(`Failed to fetch sites for host ${host.id}:`, siteError);
+                // Still include the host but mark as potentially invalid
+                validHosts.push({
+                  ...host,
+                  sitesCount: 0,
+                  isValid: false,
+                  sites: []
+                });
+              }
+            }
+          }
+
+          console.log('Valid hosts with sites:', validHosts);
+          return validHosts;
         } catch (error) {
           console.error('Failed to fetch hosts:', error);
-          // Return empty array instead of throwing to prevent UI crashes
           return [];
         }
       },
       enabled: !!integrationId,
-      staleTime: 60000, // 1 minute
+      staleTime: 2 * 60000, // 2 minutes for cached sites data
       retry: 2,
     });
   };
 
-  // Sites - buscar sites de uma controladora específica
+  // Sites - optimized with host cache
   const useUniFiSites = (integrationId: string, hostId?: string) => {
     return useQuery({
       queryKey: ['unifi-sites', integrationId, hostId],
-      queryFn: () => makeUniFiRequest(`/v1/hosts/${hostId}/sites`, 'GET', integrationId),
+      queryFn: async () => {
+        // First try to get cached sites from hosts data
+        const hostData = queryClient.getQueryData(['unifi-hosts', integrationId]) as UniFiHost[];
+        const host = hostData?.find(h => h.id === hostId);
+        
+        if (host?.sites && host.sites.length > 0) {
+          console.log('Using cached sites from host data:', host.sites);
+          return { data: host.sites };
+        }
+
+        // Fallback to API call if no cached data
+        return makeUniFiRequest(`/v1/hosts/${hostId}/sites`, 'GET', integrationId);
+      },
       enabled: !!integrationId && !!hostId,
       staleTime: 60000, // 1 minute
       retry: 2,
