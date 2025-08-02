@@ -74,54 +74,72 @@ export const TopHeader = () => {
         {/* Área do Usuário */}
         <div className="flex items-center gap-1 sm:gap-2 md:gap-3 flex-shrink-0">
           {/* Dropdown do Usuário */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                className="flex items-center gap-1 sm:gap-2 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg touch-target"
+          {user && userProfile ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="flex items-center gap-1 sm:gap-2 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg touch-target"
+                >
+                  {isMaster ? <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-secondary" /> : <User className="h-3 w-3 sm:h-4 sm:w-4" />}
+                  <span className="hidden sm:inline text-xs sm:text-sm font-medium max-w-20 sm:max-w-32 lg:max-w-none truncate">
+                    {userProfile?.email || user?.email}
+                  </span>
+                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 rotate-90" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                align="end" 
+                className="z-50 w-56 bg-slate-800 border-slate-700 text-white shadow-lg"
+                sideOffset={5}
               >
-                {isMaster ? <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-secondary" /> : <User className="h-3 w-3 sm:h-4 sm:w-4" />}
-                <span className="hidden sm:inline text-xs sm:text-sm font-medium max-w-20 sm:max-w-32 lg:max-w-none truncate">
-                  {userProfile?.email || user?.email}
-                </span>
-                <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 rotate-90" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-slate-800 border-slate-700 text-white">
-              <DropdownMenuLabel className="text-white">
-                Minha Conta
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-slate-700" />
-              
-              {isMaster && (
-                <>
-                  <DropdownMenuItem 
-                    onClick={handleAdminAccess}
-                    className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700"
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Configurações do Sistema</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={handleFinancialAccess}
-                    className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700"
-                  >
-                    <DollarSign className="mr-2 h-4 w-4" />
-                    <span>Financeiro</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-slate-700" />
-                </>
-              )}
-              
-              <DropdownMenuItem 
-                onClick={handleLogout}
-                className="cursor-pointer text-red-400 hover:bg-slate-700 focus:bg-slate-700 hover:text-red-300"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Sair</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuLabel className="text-white">
+                  Minha Conta
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-slate-700" />
+                
+                {isMaster && (
+                  <>
+                    <DropdownMenuItem 
+                      onClick={handleAdminAccess}
+                      className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700"
+                    >
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Configurações do Sistema</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={handleFinancialAccess}
+                      className="cursor-pointer hover:bg-slate-700 focus:bg-slate-700"
+                    >
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      <span>Financeiro</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-slate-700" />
+                  </>
+                )}
+                
+                <DropdownMenuItem 
+                  onClick={handleLogout}
+                  className="cursor-pointer text-red-400 hover:bg-slate-700 focus:bg-slate-700 hover:text-red-300"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sair</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button 
+              onClick={handleLogout} 
+              variant="ghost" 
+              className="flex items-center gap-1 sm:gap-2 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg touch-target"
+            >
+              <User className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline text-xs sm:text-sm font-medium">
+                Carregando...
+              </span>
+              <LogOut className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
+            </Button>
+          )}
         </div>
       </div>
     </header>;
