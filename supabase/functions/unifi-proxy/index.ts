@@ -26,6 +26,8 @@ serve(async (req) => {
     );
 
     const authHeader = req.headers.get('Authorization');
+    console.log('Authorization header present:', !!authHeader);
+    
     if (!authHeader) {
       console.error('No authorization header found');
       throw new Error('Authorization header is required');
@@ -33,9 +35,22 @@ serve(async (req) => {
 
     console.log("Authenticating user...");
     const token = authHeader.replace('Bearer ', '');
-    console.log('Token length:', token.length);
+    console.log('Token extracted, length:', token.length);
     
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    // Create a client with the user's token instead of service role
+    const userSupabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
+        },
+      }
+    );
+    
+    const { data: { user }, error: authError } = await userSupabaseClient.auth.getUser();
 
     if (authError || !user) {
       console.error('Authentication failed:', { 
@@ -177,13 +192,34 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in unifi-proxy function:', error);
+    
+    // Determine appropriate status code based on error type
+    let status = 400;
+    let errorMessage = 'Erro interno do servidor';
+    
+    if (error instanceof Error) {
+      if (error.message.includes('Unauthorized') || error.message.includes('Authentication failed')) {
+        status = 401;
+        errorMessage = 'Falha na autenticação. Verifique se você está logado.';
+      } else if (error.message.includes('API token inválido')) {
+        status = 400;
+        errorMessage = 'Token da API UniFi inválido ou expirado.';
+      } else if (error.message.includes('Authorization header')) {
+        status = 401;
+        errorMessage = 'Header de autorização ausente.';
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        details: 'Check the edge function logs for more details'
+        error: errorMessage,
+        details: error instanceof Error ? error.message : 'Erro desconhecido',
+        timestamp: new Date().toISOString()
       }),
       {
-        status: 400,
+        status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
