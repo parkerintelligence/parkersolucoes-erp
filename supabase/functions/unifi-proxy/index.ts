@@ -27,18 +27,23 @@ serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('No authorization header');
+      console.error('No authorization header found');
       throw new Error('Authorization header is required');
     }
 
     console.log("Authenticating user...");
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const token = authHeader.replace('Bearer ', '');
+    console.log('Token length:', token.length);
+    
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
 
     if (authError || !user) {
-      console.error('Auth error:', authError);
-      throw new Error('Unauthorized');
+      console.error('Authentication failed:', { 
+        error: authError?.message, 
+        hasUser: !!user,
+        tokenPresent: !!token 
+      });
+      throw new Error(`Authentication failed: ${authError?.message || 'User not found'}`);
     }
 
     console.log(`User authenticated: ${user.id}`);
