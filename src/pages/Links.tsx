@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useState } from 'react';
 import { usePasswords } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
