@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, createContext } from 'react';
+import * as React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -22,7 +22,7 @@ interface AuthContextType {
   resetSessionTimer: () => void;
 }
 
-const AuthContext = createContext<AuthContextType>({
+const AuthContext = React.createContext<AuthContextType>({
   user: null,
   userProfile: null,
   session: null,
@@ -35,14 +35,14 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const useAuth = () => {
-  return useContext(AuthContext);
+  return React.useContext(AuthContext);
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = React.useState<User | null>(null);
+  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
+  const [session, setSession] = React.useState<Session | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -113,7 +113,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Implementation for session timer reset if needed
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     let mounted = true;
     
     // Set up auth state listener
