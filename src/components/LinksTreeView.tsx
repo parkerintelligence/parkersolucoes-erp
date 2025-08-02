@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import * as React from 'react';
 import { usePasswords } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-// import { SafeCollapsible } from '@/components/SafeCollapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   ChevronDown, 
   ChevronRight, 
@@ -29,9 +29,9 @@ import { toast } from '@/hooks/use-toast';
 export const LinksTreeView = () => {
   const { data: passwords = [] } = usePasswords();
   const { data: companies = [] } = useCompanies();
-  const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
-  const [expandedServices, setExpandedServices] = useState<Set<string>>(new Set());
-  const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+  const [expandedCompanies, setExpandedCompanies] = React.useState<Set<string>>(new Set());
+  const [expandedServices, setExpandedServices] = React.useState<Set<string>>(new Set());
+  const [visiblePasswords, setVisiblePasswords] = React.useState<Set<string>>(new Set());
 
   // Filtrar apenas senhas que têm gera_link = true
   const links = passwords.filter(password => password.gera_link);
@@ -180,133 +180,141 @@ export const LinksTreeView = () => {
             const isCompanyExpanded = expandedCompanies.has(companyId);
             
             return (
-              <div key={companyId}>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start py-1 px-2 h-auto text-left hover:bg-slate-700"
-                  onClick={() => toggleCompany(companyId)}
-                >
-                  <div className="flex items-center gap-2 text-white">
-                    {isCompanyExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    <Building className="h-4 w-4" />
-                    <span className="truncate">{companyName}</span>
-                    <Badge variant="secondary" className="ml-auto">
-                      {Object.values(services).reduce((total, serviceLinks) => total + serviceLinks.length, 0)}
-                    </Badge>
-                  </div>
-                </Button>
+              <Collapsible key={companyId} open={isCompanyExpanded}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start py-1 px-2 h-auto text-left hover:bg-slate-700"
+                    onClick={() => toggleCompany(companyId)}
+                  >
+                    <div className="flex items-center gap-2 text-white">
+                      {isCompanyExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                      <Building className="h-4 w-4 text-blue-400" />
+                      <span className="font-medium">{companyName}</span>
+                      <Badge variant="outline" className="bg-slate-700 text-slate-300 text-xs">
+                        {Object.values(services).flat().length} links
+                      </Badge>
+                    </div>
+                  </Button>
+                </CollapsibleTrigger>
                 
-                 {isCompanyExpanded && (
-                   <div className="ml-6 mt-0.5">
-                     <div className="space-y-0.5">
-                  {Object.entries(services).map(([serviceName, serviceLinks]) => {
-                    const serviceKey = `${companyId}-${serviceName}`;
-                    const isServiceExpanded = expandedServices.has(serviceKey);
-                    
-                    return (
-                      <div key={serviceKey}>
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-start py-1 px-2 h-auto text-left hover:bg-slate-700"
-                          onClick={() => toggleService(serviceKey)}
-                        >
-                          <div className="flex items-center gap-2 text-slate-300">
-                            {isServiceExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                            <Globe className="h-4 w-4" />
-                            <span className="truncate">{serviceName}</span>
-                            <Badge variant="outline" className="ml-auto">
-                              {serviceLinks.length}
-                            </Badge>
-                          </div>
-                        </Button>
-                        
-                        {isServiceExpanded && (
-                          <div className="ml-6 mt-1 space-y-1">
-                            {serviceLinks.map((link) => {
-                              const isHidden = visiblePasswords.has(link.id);
-                              
-                              return (
-                                <div key={link.id} className="p-2 border border-slate-600 rounded-md bg-slate-800/50">
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <h4 className="font-medium text-slate-200 text-sm">
-                                          {link.name}
-                                        </h4>
-                                        {link.url && (
-                                          <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            className="h-6 w-6 p-0"
-                                            onClick={() => window.open(link.url, '_blank')}
-                                          >
-                                            <ExternalLink className="h-3 w-3" />
-                                          </Button>
-                                        )}
-                                      </div>
-                                      
-                                      {link.url && (
-                                        <p className="text-xs text-slate-400 mb-1 break-all">
-                                          {link.url}
-                                        </p>
-                                      )}
-                                      
-                                      {link.username && (
-                                        <p className="text-xs text-slate-300">
-                                          <span className="font-medium">Usuário:</span> {link.username}
-                                        </p>
-                                      )}
-                                      
-                                      {link.password && (
-                                        <p className="text-xs text-slate-300">
-                                          <span className="font-medium">Senha:</span>{' '}
-                                          {isHidden ? '••••••••' : link.password}
-                                        </p>
-                                      )}
-                                      
-                                      {link.email && (
-                                        <div className="flex items-center gap-1 text-xs text-slate-300">
-                                          <Mail className="h-3 w-3" />
-                                          <span>{link.email}</span>
+                <CollapsibleContent className="ml-6 mt-0.5">
+                  <div className="space-y-0.5">
+                    {Object.entries(services).map(([serviceName, serviceLinks]) => {
+                      const serviceKey = `${companyId}-${serviceName}`;
+                      const isServiceExpanded = expandedServices.has(serviceKey);
+                      
+                      return (
+                        <Collapsible key={serviceKey} open={isServiceExpanded}>
+                          <CollapsibleTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              className="w-full justify-start py-1 px-2 h-auto text-left hover:bg-slate-700"
+                              onClick={() => toggleService(serviceKey)}
+                            >
+                              <div className="flex items-center gap-2 text-slate-300">
+                                {isServiceExpanded ? (
+                                  <ChevronDown className="h-3 w-3" />
+                                ) : (
+                                  <ChevronRight className="h-3 w-3" />
+                                )}
+                                {getServiceIcon(serviceName)}
+                                <span className="text-sm">{serviceName}</span>
+                                <Badge variant="outline" className="bg-slate-600 text-slate-400 text-xs">
+                                  {serviceLinks.length}
+                                </Badge>
+                              </div>
+                            </Button>
+                          </CollapsibleTrigger>
+                          
+                          <CollapsibleContent className="ml-6 mt-0.5">
+                            <div className="space-y-1">
+                              {serviceLinks.map(link => {
+                                const isPasswordVisible = visiblePasswords.has(link.id);
+                                
+                                return (
+                                  <div
+                                    key={link.id}
+                                    className="p-2 bg-slate-700 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors"
+                                  >
+                                    <div className="flex items-center justify-between mb-1">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <h4 className="font-medium text-white text-sm truncate">
+                                            {link.name}
+                                          </h4>
+                                          {link.url && (
+                                            <button
+                                              onClick={() => handleOpenLink(link.url)}
+                                              className="text-blue-400 text-xs hover:text-blue-300 truncate max-w-xs cursor-pointer hover:underline"
+                                              title={link.url}
+                                            >
+                                              {link.url}
+                                            </button>
+                                          )}
                                         </div>
-                                      )}
+                                      </div>
+                                      <div className="flex items-center gap-1 ml-2">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => togglePasswordVisibility(link.id)}
+                                          className="h-6 w-6 p-0 hover:bg-slate-600"
+                                        >
+                                          {isPasswordVisible ? (
+                                            <EyeOff className="h-3 w-3 text-slate-400" />
+                                          ) : (
+                                            <Eye className="h-3 w-3 text-slate-400" />
+                                          )}
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleOpenLink(link.url)}
+                                          className="h-6 w-6 p-0 hover:bg-slate-600 text-blue-400"
+                                        >
+                                          <ExternalLink className="h-3 w-3" />
+                                        </Button>
+                                      </div>
                                     </div>
                                     
-                                    {link.password && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 w-6 p-0 ml-2"
-                                        onClick={() => togglePasswordVisibility(link.id)}
-                                      >
-                                        {isHidden ? (
-                                          <Eye className="h-3 w-3" />
-                                        ) : (
-                                          <EyeOff className="h-3 w-3" />
+                                    {isPasswordVisible && (
+                                      <div className="space-y-1 text-xs">
+                                        {link.username && (
+                                          <p className="text-slate-400">
+                                            <span className="text-slate-500">Usuário:</span>{' '}
+                                            <code className="bg-slate-600 px-1 rounded">{link.username}</code>
+                                          </p>
                                         )}
-                                      </Button>
+                                        {link.password && (
+                                          <p className="text-slate-400">
+                                            <span className="text-slate-500">Senha:</span>{' '}
+                                            <code className="bg-slate-600 px-1 rounded">{link.password}</code>
+                                          </p>
+                                        )}
+                                        {link.notes && (
+                                          <p className="text-slate-400">
+                                            <span className="text-slate-500">Notas:</span>{' '}
+                                            {link.notes}
+                                          </p>
+                                        )}
+                                      </div>
                                     )}
                                   </div>
-                                  
-                                  {link.notes && (
-                                    <div className="mt-2 pt-2 border-t border-slate-600">
-                                      <p className="text-xs text-slate-400">
-                                        {link.notes}
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                     })}
-                     </div>
-                   </div>
-                 )}
-               </div>
+                                );
+                              })}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      );
+                    })}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             );
           })}
         </div>

@@ -17,11 +17,11 @@ const Login = () => {
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Redirecionar usuários autenticados para alertas
+  // Redirecionar usuários autenticados para o dashboard
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
-      console.log('Usuário já autenticado, redirecionando para alertas');
-      navigate('/alertas', { replace: true });
+      console.log('Usuário já autenticado, redirecionando para dashboard');
+      navigate('/links', { replace: true }); // Redirecionar para links ao invés de dashboard
     }
   }, [isAuthenticated, authLoading, navigate]);
 
@@ -46,10 +46,9 @@ const Login = () => {
     try {
       const success = await login(email, password);
       if (success) {
-        console.log('Login bem-sucedido, aguardando redirecionamento...');
         toast({
           title: "Login realizado com sucesso!",
-          description: "Redirecionando para alertas...",
+          description: "Redirecionando para o dashboard...",
         });
         // O redirecionamento será feito pelo useEffect
       } else {

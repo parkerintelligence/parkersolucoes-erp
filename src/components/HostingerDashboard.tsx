@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,10 +23,10 @@ export const HostingerDashboard = () => {
     restartVPS,
     createSnapshot
   } = useHostingerActions();
-  const [selectedIntegration, setSelectedIntegration] = useState<string>('');
-  const [showMasterPasswordDialog, setShowMasterPasswordDialog] = useState(false);
-  const [pendingRestartVpsId, setPendingRestartVpsId] = useState<string | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [selectedIntegration, setSelectedIntegration] = React.useState<string>('');
+  const [showMasterPasswordDialog, setShowMasterPasswordDialog] = React.useState(false);
+  const [pendingRestartVpsId, setPendingRestartVpsId] = React.useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date());
   const {
     data: vpsList,
     isLoading: vpsLoading,
@@ -128,13 +128,6 @@ export const HostingerDashboard = () => {
           <p className="text-slate-400 mb-4">
             Configure uma integração Hostinger no painel administrativo para visualizar seus VPS.
           </p>
-          <Button 
-            onClick={() => window.location.href = '/admin'} 
-            variant="outline" 
-            className="bg-slate-700 border-slate-600 hover:bg-slate-600"
-          >
-            Ir para Configurações
-          </Button>
         </CardContent>
       </Card>;
   }

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,7 +23,7 @@ export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
   const { data: scheduleTypes = [] } = useScheduleTypes();
   const { glpiIntegration } = useGLPI();
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = React.useState({
     title: initialData?.title || '',
     schedule_type_id: initialData?.schedule_type_id || '',
     due_date: initialData?.due_date || '',
@@ -32,7 +32,7 @@ export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
     company_id: initialData?.company_id || ''
   });
 
-  const [createGLPITicket, setCreateGLPITicket] = useState(false);
+  const [createGLPITicket, setCreateGLPITicket] = React.useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

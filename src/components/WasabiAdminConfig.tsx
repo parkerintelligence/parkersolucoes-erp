@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ export const WasabiAdminConfig = () => {
   
   const wasabiIntegration = integrations?.find(integration => integration.type === 'wasabi');
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = React.useState({
     name: wasabiIntegration?.name || 'Wasabi Cloud Storage',
     base_url: wasabiIntegration?.base_url || '',
     api_token: wasabiIntegration?.api_token || '',

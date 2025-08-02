@@ -1,5 +1,5 @@
 
-import React from 'react';
+import * as React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Database, CheckCircle, HardDrive, Calendar } from 'lucide-react';
 import { formatFileSize } from '@/utils/ftpUtils';

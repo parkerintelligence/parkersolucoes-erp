@@ -133,13 +133,9 @@ export const useHostingerRealMetrics = ({ integrationId, vpsId, vpsIP, enabled =
       return null;
     },
     enabled: enabled && !!integrationId && !!vpsId,
-    refetchInterval: 30000, // Reduzido para cada 30 segundos
-    retry: false, // Desabilitar retry para evitar loops
-    staleTime: 10000, // Dados frescos por 10 segundos
-    gcTime: 60000, // Cache por 1 minuto
-    refetchOnWindowFocus: false, // Não refetch no foco da janela
-    refetchOnMount: true,
-    throwOnError: false // Não propagar erros para componentes
+    refetchInterval: 15000, // Tentar a cada 15 segundos para tempo real
+    retry: 1,
+    staleTime: 5000, // Considerar dados frescos por 5 segundos
   });
 };
 

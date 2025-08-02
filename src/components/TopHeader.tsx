@@ -1,10 +1,11 @@
+import * as React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 // import { useSystemSettings } from '@/hooks/useSystemSettings'; // Temporarily disabled
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Crown, Shield, ChevronRight, Home, PanelLeft, DollarSign, Settings } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-// Removed duplicate import
+// import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'; // Temporarily disabled
 // import { PWAInstallButton } from '@/components/PWAInstallButton'; // Temporarily disabled
 export const TopHeader = () => {
   const {
@@ -36,7 +37,7 @@ export const TopHeader = () => {
   const getBreadcrumbTitle = () => {
     const path = location.pathname;
     const breadcrumbs: Record<string, string> = {
-      '/dashboard': 'VPS',
+      '/dashboard': 'Dashboard',
       '/glpi': 'GLPI',
       '/backups': 'Backups FTP',
       '/passwords': 'Senhas',
@@ -80,26 +81,18 @@ export const TopHeader = () => {
           {/* Botão de Instalação PWA - Temporarily disabled */}
           {/* <PWAInstallButton /> */}
           
-          {/* Simple button without dropdown for now */}
-          {user ? (
-            <div className="flex items-center gap-2">
-              <span className="hidden sm:inline text-xs sm:text-sm font-medium text-primary-foreground">
-                {userProfile?.email || user?.email}
-              </span>
-              <Button 
-                onClick={handleLogout}
-                variant="ghost" 
-                className="text-primary-foreground hover:bg-primary-foreground/10 px-2 sm:px-3 py-1.5 sm:py-2"
-              >
-                <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
-              </Button>
-            </div>
-          ) : (
-            <Button variant="ghost" className="flex items-center gap-1 sm:gap-2 text-primary-foreground/50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg">
-              <User className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline text-xs sm:text-sm font-medium">Carregando...</span>
-            </Button>
-          )}
+          {/* Temporary simple logout button to debug React hooks issue */}
+          <Button 
+            onClick={handleLogout} 
+            variant="ghost" 
+            className="flex items-center gap-1 sm:gap-2 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg touch-target"
+          >
+            {isMaster ? <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-secondary" /> : <User className="h-3 w-3 sm:h-4 sm:w-4" />}
+            <span className="hidden sm:inline text-xs sm:text-sm font-medium max-w-20 sm:max-w-32 lg:max-w-none truncate">
+              {userProfile?.email || user?.email}
+            </span>
+            <LogOut className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
+          </Button>
         </div>
       </div>
     </header>;

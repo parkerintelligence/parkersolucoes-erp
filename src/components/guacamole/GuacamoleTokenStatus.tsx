@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,13 +18,13 @@ import { toast } from '@/hooks/use-toast';
 
 export const GuacamoleTokenStatus = () => {
   const { data: integrations } = useIntegrations();
-  const [tokenStatus, setTokenStatus] = useState<{
+  const [tokenStatus, setTokenStatus] = React.useState<{
     isValid: boolean;
     expiresAt?: Date;
     timeLeft?: number;
     error?: string;
   } | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   const integration = integrations?.find(i => i.type === 'guacamole' && i.is_active);
 
@@ -123,13 +123,13 @@ export const GuacamoleTokenStatus = () => {
     }
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (integration) {
       checkTokenStatus();
     }
   }, [integration]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     // Atualizar a cada minuto
     const interval = setInterval(() => {
       if (tokenStatus?.isValid && tokenStatus.expiresAt) {

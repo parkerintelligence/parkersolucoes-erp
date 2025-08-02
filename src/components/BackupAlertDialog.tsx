@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import * as React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,8 +30,8 @@ export const BackupAlertDialog = ({ open, onOpenChange, files, type }: BackupAle
   const { data: integrations } = useIntegrations();
   const { createTicket } = useGLPIExpanded();
   const { data: alertHoursSetting } = useSystemSetting('ftp_backup_alert_hours', '48');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [phoneNumber, setPhoneNumber] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(false);
 
   // Obter o valor de horas da configuração
   const alertHours = alertHoursSetting ? parseInt(alertHoursSetting.setting_value) : 48;

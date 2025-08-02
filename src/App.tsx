@@ -1,5 +1,5 @@
 
-import React, { Suspense } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -26,7 +26,7 @@ import Companies from '@/pages/Companies';
 import Bacula from '@/pages/Bacula';
 import ReportsDashboard from '@/pages/ReportsDashboard';
 import ActionPlan from '@/pages/ActionPlan';
-import SafeAlertas from '@/pages/SafeAlertas';
+import Alertas from '@/pages/Alertas';
 import Security from '@/pages/Security';
 import UniFi from '@/pages/UniFi';
 import { Layout } from '@/components/Layout';
@@ -38,17 +38,16 @@ function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+        <BrowserRouter>
           <div className="min-h-screen bg-background">
-            <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-lg text-gray-600">Carregando sistema...</div></div>}>
-              <Routes>
+            <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
               <Route
                 path="/alertas"
                 element={
                   <Layout>
-                    <SafeAlertas />
+                    <Alertas />
                   </Layout>
                 }
               />
@@ -244,8 +243,7 @@ function App() {
                   </Layout>
                 } 
               />
-              </Routes>
-            </Suspense>
+            </Routes>
           </div>
         </BrowserRouter>
       </QueryClientProvider>

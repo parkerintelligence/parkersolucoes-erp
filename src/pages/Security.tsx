@@ -35,14 +35,13 @@ const Security = () => {
   } = useWazuhAPI();
 
   // Fetch real Wazuh data if integration is available
-  const { data: agents, isLoading: agentsLoading, error: agentsError } = useWazuhAgents(wazuhIntegration?.id || '');
-  const { data: alerts, isLoading: alertsLoading, error: alertsError } = useWazuhAlerts(wazuhIntegration?.id || '');
-  const { data: stats, isLoading: statsLoading, error: statsError } = useWazuhStats(wazuhIntegration?.id || '');
-  const { data: compliance, isLoading: complianceLoading, error: complianceError } = useWazuhCompliance(wazuhIntegration?.id || '');
-  const { data: vulnerabilities, isLoading: vulnerabilitiesLoading, error: vulnerabilitiesError } = useWazuhVulnerabilities(wazuhIntegration?.id || '');
+  const { data: agents, isLoading: agentsLoading } = useWazuhAgents(wazuhIntegration?.id || '');
+  const { data: alerts, isLoading: alertsLoading } = useWazuhAlerts(wazuhIntegration?.id || '');
+  const { data: stats, isLoading: statsLoading } = useWazuhStats(wazuhIntegration?.id || '');
+  const { data: compliance, isLoading: complianceLoading } = useWazuhCompliance(wazuhIntegration?.id || '');
+  const { data: vulnerabilities, isLoading: vulnerabilitiesLoading } = useWazuhVulnerabilities(wazuhIntegration?.id || '');
 
   const isLoadingData = agentsLoading || alertsLoading || statsLoading || complianceLoading || vulnerabilitiesLoading;
-  const hasErrors = agentsError || alertsError || statsError || complianceError || vulnerabilitiesError;
 
   // Use real data if available, otherwise use mock data
   const displayData = wazuhIntegration && stats ? {
@@ -152,16 +151,9 @@ const Security = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {hasErrors && (
-              <Badge variant="outline" className="text-red-400 border-red-400">
-                Erro de Conexão
-              </Badge>
-            )}
-            {!hasErrors && (
-              <Badge variant="outline" className={`${wazuhIntegration && stats && !isLoadingData ? 'text-green-400 border-green-400' : 'text-orange-400 border-orange-400'}`}>
-                {wazuhIntegration && stats && !isLoadingData ? 'Dados Reais' : 'Dados Mock'}
-              </Badge>
-            )}
+            <Badge variant="outline" className={`${wazuhIntegration && !isLoadingData ? 'text-green-400 border-green-400' : 'text-orange-400 border-orange-400'}`}>
+              {wazuhIntegration && !isLoadingData ? 'Dados Reais' : 'Dados Mock'}
+            </Badge>
             <Button 
               onClick={handleRefresh}
               disabled={isLoadingData}
@@ -173,23 +165,6 @@ const Security = () => {
             </Button>
           </div>
         </div>
-
-        {/* Connection Status Alert */}
-        {hasErrors && (
-          <Alert className="border-amber-500 bg-amber-500/10">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="text-white">
-              Problema na conexão com o servidor Wazuh. Dados reais não estão disponíveis. 
-              <Button 
-                variant="link" 
-                className="p-0 ml-2 text-amber-400"
-                onClick={() => window.location.href = '/admin'}
-              >
-                Verificar configuração
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

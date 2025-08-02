@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -27,8 +27,8 @@ const GLPIScheduledTicketsView = () => {
   const updateTicket = useUpdateGLPIScheduledTicket();
   const deleteTicket = useDeleteGLPIScheduledTicket();
   
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingTicket, setEditingTicket] = useState<GLPIScheduledTicket | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [editingTicket, setEditingTicket] = React.useState<GLPIScheduledTicket | null>(null);
 
   const PRIORITY_MAP: Record<number, { label: string; color: string }> = {
     1: { label: 'Muito Baixa', color: 'bg-gray-800 text-gray-100 border-gray-700' },

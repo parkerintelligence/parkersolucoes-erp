@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,9 +16,9 @@ export const BaculaAdminConfig = () => {
   const updateIntegration = useUpdateIntegration();
   const deleteIntegration = useDeleteIntegration();
 
-  const [isCreating, setIsCreating] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
+  const [isCreating, setIsCreating] = React.useState(false);
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [formData, setFormData] = React.useState({
     name: '',
     base_url: '',
     username: '',

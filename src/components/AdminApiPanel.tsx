@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,9 +25,9 @@ export const AdminApiPanel = () => {
   const updateIntegration = useUpdateIntegration();
   const deleteIntegration = useDeleteIntegration();
 
-  const [showForm, setShowForm] = useState(false);
-  const [editingIntegration, setEditingIntegration] = useState<string | null>(null);
-  const [formData, setFormData] = useState<IntegrationFormData>({
+  const [showForm, setShowForm] = React.useState(false);
+  const [editingIntegration, setEditingIntegration] = React.useState<string | null>(null);
+  const [formData, setFormData] = React.useState<IntegrationFormData>({
     name: '',
     type: 'api',
     base_url: '',

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import * as React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,8 +7,8 @@ import { Upload, X } from 'lucide-react';
 import { useRealFtp } from '@/hooks/useRealFtp';
 
 export const FtpUploadDialog = () => {
-  const [open, setOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [open, setOpen] = React.useState(false);
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const { uploadFile } = useRealFtp();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
