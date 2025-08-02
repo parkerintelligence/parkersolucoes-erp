@@ -3,7 +3,7 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { TopHeader } from '@/components/TopHeader';
-import { AppSidebar } from '@/components/AppSidebar';
+import { SafeAppSidebar } from '@/components/SafeAppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
 
@@ -54,7 +54,7 @@ export const Layout = ({ children }: LayoutProps) => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-primary">
-        <AppSidebar />
+        <SafeAppSidebar />
         <SidebarInset className="flex-1 min-w-0 flex flex-col transition-all duration-200 md:ml-0">
           <TopHeader />
           <main className="flex-1 overflow-auto bg-slate-900">

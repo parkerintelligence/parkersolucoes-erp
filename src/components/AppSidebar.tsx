@@ -102,7 +102,16 @@ export function AppSidebar() {
     isMaster,
     isAuthenticated
   } = useAuth();
-  const { data: logoSetting } = useSystemSetting('company_logo_url');
+  
+  // Safely get logo setting with error boundary
+  let logoSetting = null;
+  try {
+    const result = useSystemSetting('company_logo_url');
+    logoSetting = result?.data;
+  } catch (error) {
+    console.log('AppSidebar: Logo setting hook failed, using fallback');
+    logoSetting = null;
+  }
   const location = useLocation();
   const currentPath = location.pathname;
   const isActive = (path: string) => currentPath === path;
