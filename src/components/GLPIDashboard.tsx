@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { GLPIKPIHeader } from './glpi/GLPIKPIHeader';
 import { GLPITicketMetrics } from './glpi/GLPITicketMetrics';
 import { GLPIAssetMetrics } from './glpi/GLPIAssetMetrics';
