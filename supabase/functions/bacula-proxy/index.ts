@@ -262,42 +262,28 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    console.log('Authorization header present:', !!authHeader);
-    
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       console.error('❌ Nenhum header de autorização fornecido')
-      return new Response(JSON.stringify({ error: 'Header de autorização ausente.' }), {
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
         ...corsOptions,
         status: 401
       })
     }
 
-    console.log("Authenticating user...");
-    const token = authHeader.replace('Bearer ', '');
-    console.log('Token extracted, length:', token.length);
-    
-    // Create a client with the user's token instead of service role
-    const userSupabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: {
-            Authorization: authHeader,
-          },
-        },
-      }
-    );
-    
-    const { data: { user }, error: userError } = await userSupabaseClient.auth.getUser();
+    // Get user from token
+    const { data: { user }, error: userError } = await supabase.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    )
 
     if (userError || !user) {
-      console.error('❌ Token inválido:', { 
-        error: userError?.message,
-        hasUser: !!user 
-      });
-      return new Response(JSON.stringify({ error: 'Falha na autenticação. Verifique se você está logado.' }), {
+      console.error('❌ Token inválido:', userError)
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
         ...corsOptions,
         status: 401
       })
@@ -306,7 +292,7 @@ serve(async (req) => {
     console.log(`✅ Usuário autenticado: ${user.email}`)
 
     // Get Bacula integration
-    const { data: integrations, error: integrationError } = await userSupabaseClient
+    const { data: integrations, error: integrationError } = await supabase
       .from('integrations')
       .select('*')
       .eq('type', 'bacula')
@@ -706,33 +692,12 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('❌ Erro geral no bacula-proxy:', error)
-    
-    // Determine appropriate status code based on error type
-    let status = 500;
-    let errorMessage = 'Erro interno do servidor';
-    
-    if (error instanceof Error) {
-      if (error.message.includes('Unauthorized') || error.message.includes('Authentication failed')) {
-        status = 401;
-        errorMessage = 'Falha na autenticação. Verifique se você está logado.';
-      } else if (error.message.includes('Bacula integration not found')) {
-        status = 404;
-        errorMessage = 'Integração Bacula não encontrada ou inativa.';
-      } else if (error.message.includes('Authorization header')) {
-        status = 401;
-        errorMessage = 'Header de autorização ausente.';
-      } else {
-        errorMessage = error.message;
-      }
-    }
-    
     return new Response(JSON.stringify({ 
-      error: errorMessage,
-      details: error instanceof Error ? error.message : 'Erro desconhecido',
-      timestamp: new Date().toISOString()
+      error: 'Internal server error',
+      details: error.message 
     }), {
       ...corsOptions,
-      status
+      status: 500
     })
   }
 })
