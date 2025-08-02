@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -35,9 +35,9 @@ interface GuacamoleLogsProps {
 }
 
 export const GuacamoleLogs = ({ logs, onClearLogs, onRefresh }: GuacamoleLogsProps) => {
-  const [autoScroll, setAutoScroll] = useState(true);
+  const [autoScroll, setAutoScroll] = React.useState(true);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (autoScroll && logs.length > 0) {
       const scrollArea = document.getElementById('logs-scroll-area');
       if (scrollArea) {
