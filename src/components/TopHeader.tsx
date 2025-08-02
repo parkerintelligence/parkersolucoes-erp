@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 // import { useSystemSettings } from '@/hooks/useSystemSettings'; // Temporarily disabled
 import { Button } from '@/components/ui/button';
