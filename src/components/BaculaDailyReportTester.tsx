@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
 import { 
   TestTube, 
   Send, 
@@ -244,20 +244,20 @@ export const BaculaDailyReportTester = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="summary" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-slate-700 border-slate-600">
-                <TabsTrigger value="summary" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
+            <SafeTabs defaultValue="summary" className="w-full">
+              <SafeTabsList className="grid w-full grid-cols-3 bg-slate-700 border-slate-600">
+                <SafeTabsTrigger value="summary" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
                   Resumo
-                </TabsTrigger>
-                <TabsTrigger value="steps" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
+                </SafeTabsTrigger>
+                <SafeTabsTrigger value="steps" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
                   Passos Executados
-                </TabsTrigger>
-                <TabsTrigger value="diagnostic" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
+                </SafeTabsTrigger>
+                <SafeTabsTrigger value="diagnostic" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
                   Diagnóstico
-                </TabsTrigger>
-              </TabsList>
+                </SafeTabsTrigger>
+              </SafeTabsList>
 
-              <TabsContent value="summary" className="space-y-4">
+              <SafeTabsContent value="summary" className="space-y-4">
                 {testResults.summary && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <Card className="bg-slate-700 border-slate-600">
@@ -322,9 +322,9 @@ export const BaculaDailyReportTester = () => {
                     </AlertDescription>
                   </Alert>
                 )}
-              </TabsContent>
+              </SafeTabsContent>
 
-              <TabsContent value="steps" className="space-y-3">
+              <SafeTabsContent value="steps" className="space-y-3">
                 {testResults.steps.map((step, index) => (
                   <Card key={index} className="bg-slate-700 border-slate-600">
                     <CardContent className="p-4">
@@ -360,9 +360,9 @@ export const BaculaDailyReportTester = () => {
                     </CardContent>
                   </Card>
                 ))}
-              </TabsContent>
+              </SafeTabsContent>
 
-              <TabsContent value="diagnostic" className="space-y-3">
+              <SafeTabsContent value="diagnostic" className="space-y-3">
                 {testResults.diagnostic ? (
                   <Card className="bg-slate-700 border-slate-600">
                     <CardContent className="p-4">
@@ -380,8 +380,8 @@ export const BaculaDailyReportTester = () => {
                     </AlertDescription>
                   </Alert>
                 )}
-              </TabsContent>
-            </Tabs>
+              </SafeTabsContent>
+            </SafeTabs>
           </CardContent>
         </Card>
       )}
