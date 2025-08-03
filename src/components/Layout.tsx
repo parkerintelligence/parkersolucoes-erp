@@ -6,7 +6,6 @@ import { TopHeader } from '@/components/TopHeader';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
-
 interface LayoutProps {
   children: React.ReactNode;
 }

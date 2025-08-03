@@ -1,8 +1,8 @@
 
-import * as React from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import ErrorBoundary from '@/components/ErrorBoundary';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Admin from '@/pages/Admin';
@@ -35,17 +35,12 @@ import { Layout } from '@/components/Layout';
 const queryClient = new QueryClient();
 
 function App() {
-  // Verificar se React está disponível globalmente
-  if (typeof window !== 'undefined') {
-    (window as any).React = React;
-  }
-
   return (
-    <ErrorBoundary>
+    <AuthProvider>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <div className="min-h-screen bg-background">
-              <Routes>
+            <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
               <Route
@@ -248,11 +243,11 @@ function App() {
                   </Layout>
                 } 
               />
-              </Routes>
-            </div>
-          </BrowserRouter>
-        </QueryClientProvider>
-      </ErrorBoundary>
+            </Routes>
+          </div>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </AuthProvider>
   );
 }
 

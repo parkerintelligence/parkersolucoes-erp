@@ -4,7 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Server, HardDrive, MapPin } from 'lucide-react';
 
-import { UniFiHost } from '@/hooks/useUniFiAPI';
+export interface UniFiHost {
+  id: string;
+  name: string;
+  displayName?: string;
+  type?: string;
+  role?: string;
+  status?: string;
+  version?: string;
+  isOnline?: boolean;
+  location?: string;
+}
 
 interface UniFiHostSelectorProps {
   hosts: UniFiHost[];
@@ -47,28 +57,18 @@ export const UniFiHostSelector: React.FC<UniFiHostSelectorProps> = ({
                   className="text-white hover:bg-gray-600"
                 >
                   <div className="flex items-center justify-between w-full">
-                     <div className="flex items-center gap-2">
-                       <Server className="h-4 w-4 text-blue-400" />
-                       <span>{host.reportedState?.name || host.reportedState?.hostname}</span>
-                       {host.sitesCount !== undefined && (
-                         <Badge variant="outline" className="ml-1 text-xs">
-                           {host.sitesCount} sites
-                         </Badge>
-                       )}
-                     </div>
-                     <div className="flex items-center gap-1">
-                       <Badge 
-                         variant={host.reportedState?.state === 'connected' ? 'default' : 'secondary'}
-                         className="text-xs"
-                       >
-                         {host.reportedState?.state || 'unknown'}
-                       </Badge>
-                       {!host.isValid && (
-                         <Badge variant="destructive" className="text-xs">
-                           Sem dados
-                         </Badge>
-                       )}
-                     </div>
+                    <div className="flex items-center gap-2">
+                      <Server className="h-4 w-4 text-blue-400" />
+                      <span>{host.displayName || host.name}</span>
+                    </div>
+                    {host.status && (
+                      <Badge 
+                        variant={host.status === 'online' || host.isOnline ? 'default' : 'secondary'}
+                        className="ml-2"
+                      >
+                        {host.status || (host.isOnline ? 'online' : 'offline')}
+                      </Badge>
+                    )}
                   </div>
                 </SelectItem>
               ))}
@@ -79,42 +79,32 @@ export const UniFiHostSelector: React.FC<UniFiHostSelectorProps> = ({
             <div className="mt-3 p-4 bg-gray-700 rounded-lg">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                   <div className="flex items-center gap-2 mb-2">
-                     <HardDrive className="h-4 w-4 text-blue-400" />
-                     <h4 className="text-sm font-medium text-white">
-                       {selectedHost.reportedState?.name || selectedHost.reportedState?.hostname}
-                     </h4>
-                     {selectedHost.sitesCount !== undefined && (
-                       <Badge variant="outline" className="text-xs">
-                         {selectedHost.sitesCount} sites disponíveis
-                       </Badge>
-                     )}
-                   </div>
-                   <div className="space-y-1 text-xs text-gray-300">
-                     <p><strong>Host ID:</strong> {selectedHost.id}</p>
-                     <p><strong>IP:</strong> {selectedHost.reportedState?.ipAddrs?.[0] || selectedHost.ipAddress}</p>
-                     <p><strong>Versão:</strong> {selectedHost.reportedState?.version}</p>
-                     <p><strong>Hostname:</strong> {selectedHost.reportedState?.hostname}</p>
-                     {selectedHost.reportedState?.mgmt_port && (
-                       <p><strong>Porta Gerência:</strong> {selectedHost.reportedState.mgmt_port}</p>
-                     )}
-                   </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <HardDrive className="h-4 w-4 text-blue-400" />
+                    <h4 className="text-sm font-medium text-white">
+                      {selectedHost.displayName || selectedHost.name}
+                    </h4>
+                  </div>
+                  <div className="space-y-1 text-xs text-gray-300">
+                    <p><strong>Host ID:</strong> {selectedHost.id}</p>
+                    {selectedHost.type && <p><strong>Tipo:</strong> {selectedHost.type}</p>}
+                    {selectedHost.version && <p><strong>Versão:</strong> {selectedHost.version}</p>}
+                    {selectedHost.location && (
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        <span><strong>Localização:</strong> {selectedHost.location}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                 <div className="flex flex-col gap-1">
-                   <Badge 
-                     variant={selectedHost.reportedState?.state === 'connected' ? 'default' : 'secondary'}
-                   >
-                     {selectedHost.reportedState?.state || 'unknown'}
-                   </Badge>
-                   {selectedHost.isValid !== undefined && (
-                     <Badge 
-                       variant={selectedHost.isValid ? 'default' : 'destructive'}
-                       className="text-xs"
-                     >
-                       {selectedHost.isValid ? 'Dados válidos' : 'Sem dados disponíveis'}
-                     </Badge>
-                   )}
-                 </div>
+                {selectedHost.status && (
+                  <Badge 
+                    variant={selectedHost.status === 'online' || selectedHost.isOnline ? 'default' : 'secondary'}
+                    className="ml-2"
+                  >
+                    {selectedHost.status || (selectedHost.isOnline ? 'online' : 'offline')}
+                  </Badge>
+                )}
               </div>
             </div>
           )}
@@ -123,14 +113,9 @@ export const UniFiHostSelector: React.FC<UniFiHostSelectorProps> = ({
             <div className="text-center py-6 text-gray-300">
               <Server className="h-10 w-10 mx-auto mb-3 opacity-50" />
               <p className="text-sm font-medium mb-1">Nenhuma controladora encontrada</p>
-              <p className="text-xs mb-2">
-                Possíveis causas:
+              <p className="text-xs">
+                Verifique se o token da API UniFi está correto
               </p>
-              <ul className="text-xs space-y-1">
-                <li>• Token da API UniFi inválido ou expirado</li>
-                <li>• Nenhuma controladora vinculada à conta</li>
-                <li>• API UniFi Site Manager temporariamente indisponível</li>
-              </ul>
             </div>
           )}
 

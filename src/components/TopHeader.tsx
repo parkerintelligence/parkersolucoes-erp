@@ -1,11 +1,11 @@
 import { useAuth } from '@/contexts/AuthContext';
-// import { useSystemSettings } from '@/hooks/useSystemSettings'; // Temporarily disabled
+import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Crown, Shield, ChevronRight, Home, PanelLeft, DollarSign, Settings } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-// import { PWAInstallButton } from '@/components/PWAInstallButton'; // Temporarily disabled
+import { PWAInstallButton } from '@/components/PWAInstallButton';
 export const TopHeader = () => {
   const {
     user,
@@ -13,17 +13,13 @@ export const TopHeader = () => {
     logout,
     isMaster
   } = useAuth();
-  // Temporarily disable useSystemSettings to fix React context error
-  const settings = null;
-  /*
   const {
     data: settings
   } = useSystemSettings();
-  */
   const location = useLocation();
   const navigate = useNavigate();
-  const companyName = 'Sistema de Gestão de TI'; // Hardcoded temporarily
-  const logoUrl = null; // Hardcoded temporarily
+  const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Sistema de Gestão de TI';
+  const logoUrl = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value;
   const handleLogout = async () => {
     await logout();
   };
@@ -77,8 +73,8 @@ export const TopHeader = () => {
 
         {/* Área do Usuário */}
         <div className="flex items-center gap-1 sm:gap-2 md:gap-3 flex-shrink-0">
-          {/* Botão de Instalação PWA - Temporarily disabled */}
-          {/* <PWAInstallButton /> */}
+          {/* Botão de Instalação PWA */}
+          <PWAInstallButton />
           
           {/* Dropdown do Usuário */}
           <DropdownMenu>

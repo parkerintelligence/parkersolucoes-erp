@@ -10,26 +10,13 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   plugins: [
-    react({
-      jsxImportSource: 'react'
-    }),
-    mode === 'development' && componentTagger(),
+    react(),
+    mode === 'development' &&
+    componentTagger(),
   ].filter(Boolean),
-  optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      'react/jsx-runtime'
-    ]
-  },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src")
-    }
+      "@": path.resolve(__dirname, "./src"),
+    },
   },
-  define: {
-    'process.env.NODE_ENV': JSON.stringify(mode),
-    __DEV__: mode === 'development',
-    global: 'globalThis'
-  }
 }));
