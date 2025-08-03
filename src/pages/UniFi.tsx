@@ -6,7 +6,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
-import { useUniFiData } from '@/hooks/useUniFiData';
+import { useUniFiDevices } from "@/hooks/useUniFiDevices";
+import { useUniFiClients } from "@/hooks/useUniFiClients";
+import { useUniFiNetworks } from "@/hooks/useUniFiNetworks";
+import { useUniFiAlarms } from "@/hooks/useUniFiAlarms";
+import { useUniFiHealth } from "@/hooks/useUniFiHealth";
+import { useUniFiInsights } from "@/hooks/useUniFiInsights";
+import { useUniFiDataRefresh } from "@/hooks/useUniFiData";
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useToast } from '@/hooks/use-toast';
 import UniFiDirectSiteSelector from '@/components/UniFiDirectSiteSelector';
@@ -33,15 +39,7 @@ const UniFi = () => {
     refreshData
   } = useUniFiAPI();
 
-  const {
-    useUniFiDevices,
-    useUniFiClients,
-    useUniFiNetworks,
-    useUniFiAlarms,
-    useUniFiHealth,
-    useUniFiInsights,
-    refreshSiteData
-  } = useUniFiData();
+  const { refreshSiteData } = useUniFiDataRefresh();
 
   const unifiIntegrations = integrations?.filter(int => int.type === 'unifi' && int.is_active) || [];
 
