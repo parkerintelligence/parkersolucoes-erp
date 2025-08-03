@@ -37,7 +37,7 @@ export const TopHeader = () => {
   const getBreadcrumbTitle = () => {
     const path = location.pathname;
     const breadcrumbs: Record<string, string> = {
-      '/dashboard': 'Dashboard',
+      '/vps': 'VPS',
       '/glpi': 'GLPI',
       '/backups': 'Backups FTP',
       '/passwords': 'Senhas',

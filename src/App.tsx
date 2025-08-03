@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import Login from '@/pages/Login';
-import Dashboard from '@/pages/Dashboard';
+import VPS from '@/pages/VPS';
 import Admin from '@/pages/Admin';
 import GLPI from '@/pages/GLPI';
 import Guacamole from '@/pages/Guacamole';
@@ -60,10 +60,10 @@ function App() {
                 }
               />
               <Route
-                path="/dashboard"
+                path="/vps"
                 element={
                   <Layout>
-                    <Dashboard />
+                    <VPS />
                   </Layout>
                 }
                />
