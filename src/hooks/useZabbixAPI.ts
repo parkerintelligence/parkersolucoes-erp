@@ -87,12 +87,36 @@ export const useZabbixAPI = () => {
     console.error('useZabbixAPI context error:', error);
     // Return safe fallback when context is not available
     return {
-      useHosts: () => ({ data: [], isLoading: false, error: null, refetch: () => Promise.resolve() }),
-      useItems: () => ({ data: [], isLoading: false, error: null }),
-      useProblems: () => ({ data: [], isLoading: false, error: null, refetch: () => Promise.resolve() }),
-      useHistory: () => ({ data: [], isLoading: false, error: null }),
-      useAcknowledgeProblem: () => ({ mutate: () => {}, mutateAsync: () => Promise.resolve() }),
-      useToggleHost: () => ({ mutate: () => {}, mutateAsync: () => Promise.resolve() }),
+      useHosts: () => ({ 
+        data: [] as ZabbixHost[], 
+        isLoading: false, 
+        error: null, 
+        refetch: () => Promise.resolve({ data: [] as ZabbixHost[] }) 
+      }),
+      useItems: (hostids?: string[], params = {}) => ({ 
+        data: [] as ZabbixItem[], 
+        isLoading: false, 
+        error: null 
+      }),
+      useProblems: () => ({ 
+        data: [] as ZabbixProblem[], 
+        isLoading: false, 
+        error: null, 
+        refetch: () => Promise.resolve({ data: [] as ZabbixProblem[] }) 
+      }),
+      useHistory: () => ({ 
+        data: [], 
+        isLoading: false, 
+        error: null 
+      }),
+      useAcknowledgeProblem: () => ({ 
+        mutate: () => {}, 
+        mutateAsync: () => Promise.resolve() 
+      }),
+      useToggleHost: () => ({ 
+        mutate: () => {}, 
+        mutateAsync: () => Promise.resolve() 
+      }),
       isConfigured: false,
       integration: null,
     };
