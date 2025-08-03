@@ -441,8 +441,14 @@ const VPSCard: React.FC<VPSCardProps> = ({
             {restarting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
           </Button>
           
-          <Button onClick={onSnapshot} variant="outline" size="sm" disabled={snapshotting} title="Criar Snapshot" className="p-3 border-slate-600 hover:border-blue-500 text-slate-950 bg-slate-50">
-            {snapshotting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+          <Button 
+            onClick={() => window.open('https://hpanel.hostinger.com.br/hosting/vps-list', '_blank')} 
+            variant="outline" 
+            size="sm" 
+            title="Criar Snapshot no Painel Hostinger (API não suporta)" 
+            className="p-3 border-slate-600 hover:border-blue-500 text-slate-950 bg-slate-50"
+          >
+            <Camera className="h-4 w-4" />
           </Button>
         </div>
       </CardContent>
