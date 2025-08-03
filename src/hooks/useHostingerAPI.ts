@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useHostingerRealMetrics } from './useHostingerRealMetrics';
 
 export interface HostingerVPS {
   id: string;
@@ -148,71 +147,46 @@ const useHostingerVPSDetails = (integrationId: string, vpsId: string) => {
 };
 
 const useHostingerVPSMetrics = (integrationId: string, vpsId: string, vpsIP?: string) => {
-  // Tentar obter métricas reais através de múltiplos métodos
-  const { data: realMetrics } = useHostingerRealMetrics({
-    integrationId,
-    vpsId,
-    vpsIP,
-    enabled: !!integrationId && !!vpsId
-  });
-
   return useQuery({
     queryKey: ['hostinger-vps-metrics', integrationId, vpsId],
     queryFn: async () => {
-      console.log('📊 Processando métricas para VPS:', vpsId);
-      
-      // Se temos métricas reais, usar elas
-      if (realMetrics) {
-        console.log('✅ Usando métricas reais:', realMetrics);
-        return realMetrics;
-      }
-
-      // Fallback: gerar métricas simuladas realísticas
-      console.log('🔄 Gerando métricas simuladas para VPS:', vpsId);
+      console.log('📊 Gerando métricas simuladas para VPS:', vpsId);
       const now = Date.now();
       const seed = parseInt(vpsId.replace(/\D/g, '')) || vpsId.charCodeAt(0) || 1;
       
       // Usar seed para gerar variações consistentes mas realísticas
-      const timeVariation = Math.sin(now / 120000 + seed) * 0.3 + 0.5; // Variação temporal mais lenta
-      const dailyPattern = Math.sin((now / 86400000) * 2 * Math.PI + seed) * 0.2 + 0.8; // Padrão diário
-      const randomVariation = Math.sin(now / 45000 + seed * 3) * 0.15 + 0.85; // Variação menor
+      const timeVariation = Math.sin(now / 120000 + seed) * 0.3 + 0.5;
+      const dailyPattern = Math.sin((now / 86400000) * 2 * Math.PI + seed) * 0.2 + 0.8;
+      const randomVariation = Math.sin(now / 45000 + seed * 3) * 0.15 + 0.85;
       
       const variation = timeVariation * dailyPattern * randomVariation;
       
       const simulatedMetrics = {
-        // CPU: Varia entre 5% e 85%, com padrões realísticos
         cpu_usage: Math.max(5, Math.min(85, 
           (25 + variation * 35 + (Math.random() - 0.5) * 8)
         )),
-        // Memória: Geralmente mais estável, entre 20% e 80%
         memory_usage: Math.max(20, Math.min(80, 
           (40 + variation * 25 + (Math.random() - 0.5) * 6)
         )),
-        // Disco: Cresce lentamente ao longo do tempo, entre 15% e 75%
         disk_usage: Math.max(15, Math.min(75, 
           (30 + variation * 20 + (Math.random() - 0.5) * 5)
         )),
-        // Rede: Picos ocasionais
-        network_in: Math.random() * 800000 * (variation + 0.2), // bytes/s
-        network_out: Math.random() * 400000 * (variation + 0.2), // bytes/s
-        // Uptime: Entre 1 hora e 90 dias
+        network_in: Math.random() * 800000 * (variation + 0.2),
+        network_out: Math.random() * 400000 * (variation + 0.2),
         uptime: Math.floor(Math.random() * 7776000) + 3600,
-        // Load average: Entre 0.1 e 3.0
         load_average: Math.max(0.1, Math.min(3.0, variation * 1.5 + Math.random() * 0.5)),
-        // Processos: Entre 50 e 300
         processes: Math.floor(50 + variation * 150 + Math.random() * 50),
-        // Marca como simulado
         isReal: false,
         simulated: true,
         lastUpdated: new Date().toISOString(),
-        note: 'Dados simulados - Configure agente de monitoramento (Prometheus, Netdata) para dados reais'
+        note: 'Dados simulados - Configure agente de monitoramento para dados reais'
       };
       
       console.log('📈 Métricas simuladas geradas:', { vpsId, metrics: simulatedMetrics });
       return simulatedMetrics;
     },
     enabled: !!integrationId && !!vpsId,
-    refetchInterval: realMetrics ? 5000 : 10000, // Mais frequente para dados em tempo real
+    refetchInterval: 10000,
     retry: 1,
   });
 };
