@@ -3,6 +3,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
+// Ensure React hooks are available
+const { useState: useStateHook, useEffect: useEffectHook, useContext: useContextHook, createContext: createContextHook } = React;
+
 interface UserProfile {
   id: string;
   email: string;
@@ -21,10 +24,10 @@ interface AuthContextType {
   resetSessionTimer: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContextHook<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
+  const context = useContextHook(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
@@ -32,12 +35,12 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [sessionTimer, setSessionTimer] = useState<NodeJS.Timeout | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const [user, setUser] = useStateHook<User | null>(null);
+  const [session, setSession] = useStateHook<Session | null>(null);
+  const [userProfile, setUserProfile] = useStateHook<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useStateHook(true);
+  const [sessionTimer, setSessionTimer] = useStateHook<NodeJS.Timeout | null>(null);
+  const [isReady, setIsReady] = useStateHook(false);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -86,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  useEffect(() => {
+  useEffectHook(() => {
     let mounted = true;
     let initTimeout: NodeJS.Timeout;
 

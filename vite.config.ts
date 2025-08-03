@@ -16,10 +16,15 @@ export default defineConfig(({ mode }) => ({
   ].filter(Boolean),
   optimizeDeps: {
     include: [
-      '@tanstack/react-query',
       'react',
-      'react-dom'
+      'react-dom',
+      '@tanstack/react-query',
+      '@supabase/supabase-js'
     ],
+    exclude: ['@vite/client', '@vite/env']
+  },
+  define: {
+    global: 'globalThis',
   },
   resolve: {
     alias: {
