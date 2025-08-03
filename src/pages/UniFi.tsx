@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
+import { useUniFiData } from '@/hooks/useUniFiData';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useToast } from '@/hooks/use-toast';
 import UniFiDirectSiteSelector from '@/components/UniFiDirectSiteSelector';
@@ -23,20 +24,24 @@ const UniFi = () => {
   const [selectedIntegration, setSelectedIntegration] = useState<string>('');
   const [selectedSiteId, setSelectedSiteId] = useState<string>('');
 
-  const {
+  const { 
     useUniFiAllSites,
-    useUniFiDevices,
-    useUniFiClients,
-    useUniFiAlarms,
-    useUniFiNetworks,
-    useUniFiHealth,
-    useUniFiInsights,
     useUniFiDPI,
     useUniFiEvents,
     restartDevice,
     toggleClientBlock,
     refreshData
   } = useUniFiAPI();
+
+  const {
+    useUniFiDevices,
+    useUniFiClients,
+    useUniFiNetworks,
+    useUniFiAlarms,
+    useUniFiHealth,
+    useUniFiInsights,
+    refreshSiteData
+  } = useUniFiData();
 
   const unifiIntegrations = integrations?.filter(int => int.type === 'unifi' && int.is_active) || [];
 
@@ -63,19 +68,39 @@ const UniFi = () => {
     }
   }, [allSites, selectedSiteId]);
 
-  // Invalidate and refresh data when site changes
+  // Efeito para carregar dados quando site é selecionado
   useEffect(() => {
-    if (selectedSiteId && selectedIntegration) {
-      console.log('🔄 Site alterado, carregando dados para:', selectedSiteId);
+    if (selectedIntegration && selectedSiteId) {
+      console.log('🎯 Site selecionado mudou - carregando dados:', { 
+        selectedIntegration, 
+        selectedSiteId,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Forçar refresh de todos os dados relacionados ao site
+      refreshSiteData(selectedIntegration, selectedSiteId);
+      
+      // Log para debug
+      setTimeout(() => {
+        console.log('🔍 Status dos hooks após mudança de site:', {
+          devices: { loading: devicesLoading, hasData: !!devices?.length },
+          clients: { loading: clientsLoading, hasData: !!clients?.length },
+          networks: { loading: networksLoading, hasData: !!networks?.length },
+          alarms: { loading: alarmsLoading, hasData: !!alarms?.length },
+          health: { loading: healthLoading, hasData: !!health?.length }
+        });
+      }, 1000);
+    } else {
+      console.log('⚠️ Site ou integração não selecionados:', { selectedIntegration, selectedSiteId });
     }
-  }, [selectedSiteId, selectedIntegration]);
+  }, [selectedSiteId, selectedIntegration, refreshSiteData]);
 
   // Data fetching for active tab
-  const { data: devices, isLoading: devicesLoading } = useUniFiDevices(selectedIntegration, '', selectedSiteId);
-  const { data: clients, isLoading: clientsLoading } = useUniFiClients(selectedIntegration, '', selectedSiteId);
-  const { data: alarms, isLoading: alarmsLoading } = useUniFiAlarms(selectedIntegration, '', selectedSiteId);
-  const { data: networks, isLoading: networksLoading } = useUniFiNetworks(selectedIntegration, '', selectedSiteId);
-  const { data: health, isLoading: healthLoading } = useUniFiHealth(selectedIntegration, '', selectedSiteId);
+  const { data: devices, isLoading: devicesLoading } = useUniFiDevices(selectedIntegration, selectedSiteId);
+  const { data: clients, isLoading: clientsLoading } = useUniFiClients(selectedIntegration, selectedSiteId);
+  const { data: alarms, isLoading: alarmsLoading } = useUniFiAlarms(selectedIntegration, selectedSiteId);
+  const { data: networks, isLoading: networksLoading } = useUniFiNetworks(selectedIntegration, selectedSiteId);
+  const { data: health, isLoading: healthLoading } = useUniFiHealth(selectedIntegration, selectedSiteId);
   const { data: insights, isLoading: insightsLoading } = useUniFiInsights(selectedIntegration, selectedSiteId);
   const { data: dpiStats, isLoading: dpiLoading } = useUniFiDPI(selectedIntegration, selectedSiteId);
   const { data: events, isLoading: eventsLoading } = useUniFiEvents(selectedIntegration, selectedSiteId);
@@ -176,7 +201,7 @@ const UniFi = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-muted-foreground text-sm">Dispositivos</p>
-                      <p className="text-2xl font-bold">{devices?.data?.length || 0}</p>
+                      <p className="text-2xl font-bold">{devices?.length || 0}</p>
                       <p className="text-xs text-muted-foreground">Site: {selectedSiteId}</p>
                     </div>
                     <Wifi className="h-8 w-8 text-primary" />
@@ -186,7 +211,7 @@ const UniFi = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-muted-foreground text-sm">Clientes</p>
-                      <p className="text-2xl font-bold">{clients?.data?.length || 0}</p>
+                      <p className="text-2xl font-bold">{clients?.length || 0}</p>
                       <p className="text-xs text-muted-foreground">Conectados</p>
                     </div>
                     <Wifi className="h-8 w-8 text-primary" />
@@ -196,7 +221,7 @@ const UniFi = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-muted-foreground text-sm">Redes</p>
-                      <p className="text-2xl font-bold">{networks?.data?.length || 0}</p>
+                      <p className="text-2xl font-bold">{networks?.length || 0}</p>
                       <p className="text-xs text-muted-foreground">Configuradas</p>
                     </div>
                     <Wifi className="h-8 w-8 text-primary" />
@@ -206,7 +231,7 @@ const UniFi = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-muted-foreground text-sm">Alertas</p>
-                      <p className="text-2xl font-bold">{alarms?.data?.length || 0}</p>
+                      <p className="text-2xl font-bold">{alarms?.length || 0}</p>
                       <p className="text-xs text-muted-foreground">Ativos</p>
                     </div>
                     <AlertTriangle className="h-8 w-8 text-primary" />
@@ -218,7 +243,7 @@ const UniFi = () => {
 
           <TabsContent value="devices">
             <UniFiDeviceManager
-              devices={devices?.data || []}
+              devices={devices || []}
               loading={devicesLoading}
               restartLoading={restartDevice.isPending}
               onRestartDevice={async (deviceId: string) => {
@@ -238,7 +263,7 @@ const UniFi = () => {
 
           <TabsContent value="clients">
             <UniFiClientManager
-              clients={clients?.data || []}
+              clients={clients || []}
               loading={clientsLoading}
               blockLoading={toggleClientBlock.isPending}
               onBlockClient={async (siteId: string, clientId: string, block: boolean) => {

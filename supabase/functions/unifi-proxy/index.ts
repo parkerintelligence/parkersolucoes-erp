@@ -66,7 +66,15 @@ serve(async (req) => {
     const requestBody = await req.json();
     const { method, endpoint, integrationId, data: postData, ignore_ssl = false } = requestBody;
 
-    console.log('UniFi API request:', { method, endpoint, integrationId, userId: user.id });
+    console.log('UniFi API request:', { 
+      method, 
+      endpoint, 
+      integrationId, 
+      userId: user.id,
+      hasPostData: !!postData,
+      postDataKeys: postData ? Object.keys(postData) : [],
+      ignoreSsl: ignore_ssl
+    });
 
     // Get UniFi integration configuration
     console.log("Fetching UniFi integration...");
@@ -122,6 +130,13 @@ serve(async (req) => {
       console.log('Using UniFi Site Manager API:', baseApiUrl);
     }
     console.log('API endpoint:', endpoint);
+    console.log('Request details:', {
+      endpoint,
+      method: method || 'GET',
+      baseApiUrl,
+      isSiteManagerAPI,
+      isLocalController
+    });
 
     if (isLocalController) {
       // LOCAL CONTROLLER - Authenticate with username/password
@@ -366,8 +381,11 @@ serve(async (req) => {
         } else if (apiResponse.status === 403) {
           throw new Error('Acesso negado. Verifique as permissões do usuário na controladora.');
         } else if (apiResponse.status === 404) {
-          // Para 404, retornar uma resposta vazia ao invés de erro para alguns endpoints
-          if (endpoint.includes('/sites') || endpoint.includes('/devices') || endpoint.includes('/clients')) {
+          // Para 404, retornar uma resposta vazia ao invés de erro para endpoints de dados
+          if (endpoint.includes('/sites') || endpoint.includes('/devices') || endpoint.includes('/clients') ||
+              endpoint.includes('/stat/') || endpoint.includes('/rest/') || endpoint.includes('/insights') ||
+              endpoint.includes('/alarms') || endpoint.includes('/health') || endpoint.includes('/events') ||
+              endpoint.includes('/dpi') || endpoint.includes('/networks')) {
             console.log('404 for data endpoint, returning empty response');
             return new Response(JSON.stringify({ data: [] }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -474,8 +492,11 @@ serve(async (req) => {
         } else if (apiResponse.status === 403) {
           throw new Error('API Token não tem permissões necessárias para este endpoint.');
         } else if (apiResponse.status === 404) {
-          // Para 404, retornar uma resposta vazia ao invés de erro para alguns endpoints
-          if (endpoint.includes('/sites') || endpoint.includes('/devices') || endpoint.includes('/clients')) {
+          // Para 404, retornar uma resposta vazia ao invés de erro para endpoints de dados
+          if (endpoint.includes('/sites') || endpoint.includes('/devices') || endpoint.includes('/clients') ||
+              endpoint.includes('/ea/') || endpoint.includes('/v1/') || endpoint.includes('/insights') ||
+              endpoint.includes('/alarms') || endpoint.includes('/health') || endpoint.includes('/events') ||
+              endpoint.includes('/dpi') || endpoint.includes('/networks')) {
             console.log('404 for data endpoint, returning empty response');
             return new Response(JSON.stringify({ data: [] }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },

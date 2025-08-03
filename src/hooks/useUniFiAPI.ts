@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUniFiProxy } from "./useUniFiProxy";
 
 export interface UniFiDevice {
   id: string;
@@ -204,8 +205,13 @@ interface UniFiSiteGroup {
 export const useUniFiAPI = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { makeUniFiProxyRequest } = useUniFiProxy();
 
   const makeUniFiRequest = async (endpoint: string, method: string = 'GET', integrationId: string, data?: any, ignoreSsl?: boolean) => {
+    return makeUniFiProxyRequest(method, endpoint, integrationId, data);
+  };
+
+  const makeUniFiRequestOld = async (endpoint: string, method: string = 'GET', integrationId: string, data?: any, ignoreSsl?: boolean) => {
     console.log('Making UniFi request:', { endpoint, method, integrationId, data, ignoreSsl });
     
     try {
