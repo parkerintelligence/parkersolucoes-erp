@@ -10,47 +10,31 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   plugins: [
-    react(),
-    mode === 'development' &&
-    componentTagger(),
+    react({
+      jsxImportSource: 'react'
+    }),
+    mode === 'development' && componentTagger(),
   ].filter(Boolean),
   optimizeDeps: {
     include: [
       'react',
       'react-dom',
       'react/jsx-runtime',
-      '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-popover',
-      '@radix-ui/react-select',
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-toast',
-      '@radix-ui/react-tooltip'
+      'react/jsx-dev-runtime'
     ],
-    force: true
+    exclude: ['@radix-ui/react-dropdown-menu', '@radix-ui/react-dialog']
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "react": path.resolve(__dirname, "./node_modules/react"),
+      "react-dom": path.resolve(__dirname, "./node_modules/react-dom")
     },
-    dedupe: ['react', 'react-dom']
+    dedupe: ['react', 'react-dom', 'react/jsx-runtime']
   },
   define: {
-    __DEV__: mode === 'development'
-  },
-  build: {
-    rollupOptions: {
-      external: [],
-      output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'radix-vendor': [
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-popover'
-          ]
-        }
-      }
-    }
+    'process.env.NODE_ENV': JSON.stringify(mode),
+    __DEV__: mode === 'development',
+    global: 'globalThis'
   }
 }));
