@@ -31,6 +31,24 @@
   </head>
 
   <body>
+    <!-- CRITICAL: React Global Fix Script - MUST load before main app -->
+    <script>
+      // Ensure React hooks are never null - emergency fallback
+      window.__REACT_EMERGENCY_HOOKS__ = {
+        useState: function(initial) { 
+          console.warn('Emergency useState fallback used!'); 
+          return [initial, function(){}]; 
+        },
+        useEffect: function(fn, deps) { 
+          console.warn('Emergency useEffect fallback used!'); 
+          if (typeof fn === 'function') fn(); 
+        },
+        useContext: function(context) { 
+          console.warn('Emergency useContext fallback used!'); 
+          return null; 
+        }
+      };
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     

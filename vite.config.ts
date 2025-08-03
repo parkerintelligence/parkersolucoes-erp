@@ -17,31 +17,20 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // Force single React instance
-      "react": path.resolve(__dirname, "./node_modules/react"),
-      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
   },
   optimizeDeps: {
-    // Exclude React from optimization to prevent null reference issues
-    exclude: ['react', 'react-dom'],
-    // Force include critical dependencies
-    include: ['@supabase/supabase-js', '@tanstack/react-query'],
-    // Aggressive cache busting
+    // COMPLETELY exclude React from optimization - this is the key fix
+    exclude: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
+    // Disable dependency scanning that can cause issues
+    disabled: false,
+    // Force rebuild
     force: true,
   },
   build: {
-    // Ensure consistent chunking
+    // Ensure React stays external in development
     rollupOptions: {
-      external: [],
-      output: {
-        manualChunks: {
-          // Keep React in vendor chunk
-          vendor: ['react', 'react-dom'],
-        },
-      },
+      external: mode === 'development' ? ['react', 'react-dom'] : [],
     },
   },
-  // Clear cache on startup
-  cacheDir: 'node_modules/.vite',
 }));
