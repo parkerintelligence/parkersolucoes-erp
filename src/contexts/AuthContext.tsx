@@ -1,17 +1,38 @@
 import * as React from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
 
-interface UserProfile {
-  id: string;
-  email: string;
-  role: 'user' | 'master';
-}
+// Minimal auth context that doesn't rely on React hooks initially
+let globalAuthState = {
+  user: null as any,
+  session: null as any,
+  userProfile: null as any,
+  isAuthenticated: false,
+  isMaster: false,
+  isLoading: true
+};
 
+// Simple event emitter for auth state changes
+const authListeners = new Set<() => void>();
+
+const notifyListeners = () => {
+  authListeners.forEach(listener => {
+    try {
+      listener();
+    } catch (error) {
+      console.error('Auth listener error:', error);
+    }
+  });
+};
+
+const updateAuthState = (newState: Partial<typeof globalAuthState>) => {
+  globalAuthState = { ...globalAuthState, ...newState };
+  notifyListeners();
+};
+
+// Auth interface
 interface AuthContextType {
-  user: User | null;
-  userProfile: UserProfile | null;
-  session: Session | null;
+  user: any;
+  userProfile: any;
+  session: any;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
@@ -20,255 +41,185 @@ interface AuthContextType {
   resetSessionTimer: () => void;
 }
 
-const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = React.useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+// Create a simple React context using a factory pattern
+const createAuthContext = () => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    // Try to access React - if it fails, we'll handle it
+    const React = (window as any).React || require('react');
+    if (!React || !React.createContext) {
+      throw new Error('React not available');
+    }
+    
+    return React.createContext({
+      user: null,
+      userProfile: null,
+      session: null,
+      login: async () => false,
+      logout: async () => {},
+      isAuthenticated: false,
+      isMaster: false,
+      isLoading: true,
+      resetSessionTimer: () => {}
+    });
+  } catch (error) {
+    console.error('Failed to create auth context:', error);
+    return null;
   }
-  return context;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = React.useState<User | null>(null);
-  const [session, setSession] = React.useState<Session | null>(null);
-  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [sessionTimer, setSessionTimer] = React.useState<NodeJS.Timeout | null>(null);
-  const [isReady, setIsReady] = React.useState(false);
+const AuthContext = createAuthContext();
 
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      console.log('Buscando perfil do usuário:', userId);
-      
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Erro ao buscar perfil do usuário:', error);
-        return null;
-      }
-
-      console.log('Perfil do usuário encontrado:', data);
-      return data;
-    } catch (error) {
-      console.error('Erro ao buscar perfil do usuário:', error);
-      return null;
-    }
-  };
-
-  const startSessionTimer = () => {
-    if (sessionTimer) {
-      clearTimeout(sessionTimer);
-    }
+// Hook that works with or without React context
+export const useAuth = (): AuthContextType => {
+  try {
+    const React = (window as any).React || require('react');
     
-    const timer = setTimeout(async () => {
-      console.log('Sessão expirada após 30 minutos, fazendo logout...');
-      await logout();
-    }, 30 * 60 * 1000);
-    
-    setSessionTimer(timer);
-    console.log('Timer de sessão iniciado: 30 minutos');
-  };
-
-  const resetSessionTimer = () => {
-    if (sessionTimer) {
-      clearTimeout(sessionTimer);
-      startSessionTimer();
-      console.log('Timer de sessão resetado');
+    if (AuthContext && React && React.useContext) {
+      const context = React.useContext(AuthContext);
+      if (context) return context;
     }
-  };
-
-  React.useEffect(() => {
-    let mounted = true;
-    let initTimeout: NodeJS.Timeout;
-
-    const initializeAuth = async () => {
+  } catch (error) {
+    console.warn('useAuth falling back to global state:', error);
+  }
+  
+  // Fallback to global state
+  return {
+    ...globalAuthState,
+    login: async (email: string, password: string) => {
       try {
-        console.log('Inicializando autenticação...');
-        
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         
         if (error) {
-          console.error('Erro ao obter sessão:', error);
-          if (mounted) {
-            setIsLoading(false);
-          }
-          return;
+          console.error('Login error:', error);
+          return false;
         }
         
-        if (mounted) {
-          console.log('Sessão inicial:', session?.user?.email || 'Nenhuma sessão');
-          
-          if (session?.user) {
-            setSession(session);
-            setUser(session.user);
-            startSessionTimer();
-            
-            // Buscar perfil do usuário
-            setTimeout(async () => {
-              if (!mounted) return;
-              const profile = await fetchUserProfile(session.user.id);
-              if (profile && mounted) {
-                const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
-                const typedProfile: UserProfile = {
-                  id: profile.id,
-                  email: profile.email,
-                  role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
-                };
-                console.log('Perfil do usuário definido:', typedProfile);
-                setUserProfile(typedProfile);
-              }
-            }, 0);
-          } else {
-            setSession(null);
-            setUser(null);
-            setUserProfile(null);
-          }
-          
-          setIsLoading(false);
-          setIsReady(true);
-        }
+        updateAuthState({
+          user: data.user,
+          session: data.session,
+          isAuthenticated: !!data.user,
+          isLoading: false
+        });
+        
+        return !!data.user;
       } catch (error) {
-        console.error('Erro ao inicializar autenticação:', error);
-        if (mounted) {
-          setIsLoading(false);
-          setIsReady(true);
-        }
-      }
-    };
-
-    initTimeout = setTimeout(() => {
-      if (mounted && isLoading) {
-        console.warn('Auth initialization timeout reached, forcing loading to false');
-        setIsLoading(false);
-      }
-    }, 10000);
-
-    initializeAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-        
-        console.log('Estado de autenticação alterado:', event, session?.user?.email || 'Logout');
-        
-        if (session?.user) {
-          setSession(session);
-          setUser(session.user);
-          startSessionTimer();
-          
-          setTimeout(async () => {
-            if (!mounted) return;
-            const profile = await fetchUserProfile(session.user.id);
-            if (profile && mounted) {
-              const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
-              const typedProfile: UserProfile = {
-                id: profile.id,
-                email: profile.email,
-                role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
-              };
-              console.log('Perfil atualizado:', typedProfile);
-              setUserProfile(typedProfile);
-            }
-          }, 0);
-        } else {
-          if (sessionTimer) {
-            clearTimeout(sessionTimer);
-            setSessionTimer(null);
-          }
-          setSession(null);
-          setUser(null);
-          setUserProfile(null);
-        }
-      }
-    );
-
-    return () => {
-      mounted = false;
-      if (initTimeout) {
-        clearTimeout(initTimeout);
-      }
-      if (sessionTimer) {
-        clearTimeout(sessionTimer);
-      }
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      console.log('Tentando fazer login com:', email);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        console.error('Erro no login:', error);
+        console.error('Login failed:', error);
         return false;
       }
-
-      console.log('Login bem-sucedido para:', email);
-      return !!data.user;
-    } catch (error) {
-      console.error('Erro no login:', error);
-      return false;
-    }
-  };
-
-  const logout = async () => {
-    try {
-      console.log('Fazendo logout...');
-      
-      if (sessionTimer) {
-        clearTimeout(sessionTimer);
-        setSessionTimer(null);
+    },
+    logout: async () => {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        await supabase.auth.signOut();
+        updateAuthState({
+          user: null,
+          session: null,
+          userProfile: null,
+          isAuthenticated: false,
+          isLoading: false
+        });
+      } catch (error) {
+        console.error('Logout failed:', error);
       }
-      
-      await supabase.auth.signOut();
-      setUser(null);
-      setSession(null);
-      setUserProfile(null);
-      
-      console.log('Logout realizado com sucesso');
-    } catch (error) {
-      console.error('Erro no logout:', error);
+    },
+    resetSessionTimer: () => {}
+  };
+};
+
+// Safe auth provider that handles React availability
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  try {
+    const React = (window as any).React || require('react');
+    
+    if (!React || !React.useState) {
+      throw new Error('React hooks not available');
     }
-  };
 
-  const value = {
-    user,
-    userProfile,
-    session,
-    login,
-    logout,
-    isAuthenticated: !!user && !!session,
-    isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
-    isLoading,
-    resetSessionTimer
-  };
+    // If we get here, React is available
+    const [authState, setAuthState] = React.useState(globalAuthState);
+    
+    React.useEffect(() => {
+      const listener = () => setAuthState({ ...globalAuthState });
+      authListeners.add(listener);
+      
+      // Initialize auth
+      const initAuth = async () => {
+        try {
+          const { supabase } = await import('@/integrations/supabase/client');
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          updateAuthState({
+            user: session?.user || null,
+            session: session,
+            isAuthenticated: !!session?.user,
+            isLoading: false
+          });
+        } catch (error) {
+          console.error('Auth init error:', error);
+          updateAuthState({ isLoading: false });
+        }
+      };
+      
+      initAuth();
+      
+      return () => {
+        authListeners.delete(listener);
+      };
+    }, []);
 
-  if (!isReady) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-lg text-white">Inicializando sistema...</div>
-      </div>
-    );
+    const contextValue: AuthContextType = {
+      ...authState,
+      login: async (email: string, password: string) => {
+        try {
+          const { supabase } = await import('@/integrations/supabase/client');
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          
+          if (error) {
+            console.error('Login error:', error);
+            return false;
+          }
+          
+          updateAuthState({
+            user: data.user,
+            session: data.session,
+            isAuthenticated: !!data.user
+          });
+          
+          return !!data.user;
+        } catch (error) {
+          console.error('Login failed:', error);
+          return false;
+        }
+      },
+      logout: async () => {
+        try {
+          const { supabase } = await import('@/integrations/supabase/client');
+          await supabase.auth.signOut();
+          updateAuthState({
+            user: null,
+            session: null,
+            userProfile: null,
+            isAuthenticated: false
+          });
+        } catch (error) {
+          console.error('Logout failed:', error);
+        }
+      },
+      resetSessionTimer: () => {}
+    };
+
+    if (AuthContext && React.createElement) {
+      return React.createElement(AuthContext.Provider, { value: contextValue }, children);
+    } else {
+      return children;
+    }
+  } catch (error) {
+    console.error('AuthProvider error, using fallback:', error);
+    
+    // Fallback: just render children without context
+    return children as any;
   }
-
-  console.log('AuthContext Estado:', { 
-    isAuthenticated: !!user && !!session, 
-    isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
-    userEmail: user?.email,
-    userRole: userProfile?.role,
-    isLoading
-  });
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
