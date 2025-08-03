@@ -136,16 +136,79 @@ export const useUniFiAPI = () => {
 
       if (error) {
         console.error('UniFi request error:', error);
-        throw new Error(`UniFi API error: ${error.message}`);
+        
+        // Melhor tratamento de erros específicos
+        if (error.message?.includes('401') || error.message?.includes('unauthorized')) {
+          throw new Error('Token de API inválido ou expirado. Verifique o token na configuração UniFi.');
+        } else if (error.message?.includes('403') || error.message?.includes('forbidden')) {
+          throw new Error('Acesso negado. Verifique as permissões do token de API.');
+        } else if (error.message?.includes('404') || error.message?.includes('not found')) {
+          throw new Error('Endpoint não encontrado. Verifique a configuração da API.');
+        } else {
+          throw new Error(`Erro da API UniFi: ${error.message}`);
+        }
       }
 
       console.log('Returning response:', response);
       return response;
     } catch (err) {
       console.error('Failed to invoke unifi-proxy function:', err);
+      
+      if (err instanceof Error && err.message.includes('Token de API inválido')) {
+        throw err; // Re-lançar erros específicos de token
+      }
+      
       throw new Error(`Erro na conexão com o UniFi: ${err instanceof Error ? err.message : 'Erro desconhecido'}`);
     }
   };
+
+  // Nova função para testar a conexão e token (versão API do hook)
+  const testConnectionAPI = useMutation({
+    mutationFn: async (integrationId: string) => {
+      console.log('Testing UniFi connection for integration:', integrationId);
+      
+      try {
+        // Testar endpoint básico da Site Manager API
+        const response = await makeUniFiRequest('/ea/hosts', 'GET', integrationId);
+        
+        console.log('Connection test successful:', response);
+        return {
+          success: true,
+          message: 'Conexão com UniFi Site Manager API estabelecida com sucesso!',
+          data: response
+        };
+      } catch (error) {
+        console.error('Connection test failed:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Erro desconhecido na conexão',
+          error
+        };
+      }
+    },
+    onSuccess: (result) => {
+      if (result.success) {
+        toast({
+          title: "Conexão bem-sucedida",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Falha na conexão",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      console.error('Test connection mutation error:', error);
+      toast({
+        title: "Erro no teste de conexão",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+    }
+  });
 
   // Enhanced Hosts - buscar controladoras disponíveis (priorizar Site Manager API)
   const useUniFiHosts = (integrationId: string) => {
@@ -484,8 +547,8 @@ export const useUniFiAPI = () => {
     },
   });
 
-  // Test connection - priorizar Site Manager API
-  const testUniFiConnection = useMutation({
+  // Test connection - priorizar Site Manager API (não usar este)
+  const testUniFiConnectionLegacy = useMutation({
     mutationFn: async (integrationId: string) => {
       try {
         // Sempre tentar Site Manager API primeiro
@@ -592,7 +655,8 @@ export const useUniFiAPI = () => {
     // Mutations
     restartDevice,
     toggleClientBlock,
-    testUniFiConnection,
+    testUniFiConnection: testConnectionAPI,
+    testConnectionAPI,
     refreshData,
   };
 };

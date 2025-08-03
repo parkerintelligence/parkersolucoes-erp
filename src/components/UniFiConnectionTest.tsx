@@ -31,10 +31,10 @@ export const UniFiConnectionTest = ({ integrationId }: UniFiConnectionTestProps)
       
       setTestStatus('success');
       setTestResults(result);
-      const apiType = result.type === 'site-manager' ? 'Site Manager API' : 'Controladora Local';
+      const apiType = result.success ? 'UniFi API' : 'Desconhecido';
       toast({
         title: "Conexão Estabelecida",
-        description: `UniFi conectado via ${apiType}!`,
+        description: `UniFi conectado com sucesso!`,
       });
     } catch (error: any) {
       console.error('Connection test error:', error);

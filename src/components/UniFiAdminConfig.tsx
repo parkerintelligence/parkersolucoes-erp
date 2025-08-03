@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
 import { useToast } from '@/hooks/use-toast';
+import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { supabase } from '@/integrations/supabase/client';
 
 const UniFiAdminConfig = () => {
@@ -28,6 +29,7 @@ const UniFiAdminConfig = () => {
   const updateIntegration = useUpdateIntegration();
   const deleteIntegration = useDeleteIntegration();
   const { toast } = useToast();
+  const { testConnectionAPI } = useUniFiAPI();
 
   const [isCreating, setIsCreating] = useState(false);
   const [editingIntegration, setEditingIntegration] = useState<any>(null);
@@ -134,44 +136,8 @@ const UniFiAdminConfig = () => {
 
   const testConnection = async (integration: any) => {
     setIsTesting(integration.id);
-    try {
-      const response = await supabase.functions.invoke('unifi-proxy', {
-        body: {
-          integrationId: integration.id,
-          endpoint: '/ea/hosts',
-          method: 'GET'
-        }
-      });
-
-      const { data, error } = response;
-      
-      if (error) {
-        throw new Error(error.message || 'Falha na conexão');
-      }
-
-      toast({
-        title: "Conexão bem-sucedida",
-        description: "Conexão com a UniFi Site Manager API estabelecida com sucesso.",
-      });
-    } catch (error) {
-      let errorMessage = "Não foi possível conectar com a UniFi Site Manager API.";
-      
-      if (error instanceof Error) {
-        if (error.message.includes('401') || error.message.includes('unauthorized')) {
-          errorMessage = "Token de API inválido ou expirado. Verifique o token na configuração.";
-        } else if (error.message.includes('Token inválido')) {
-          errorMessage = "Token de API inválido ou expirado. Gere um novo token em unifi.ui.com";
-        }
-      }
-      
-      toast({
-        title: "Erro na conexão",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsTesting(null);
-    }
+    await testConnectionAPI.mutateAsync(integration.id);
+    setIsTesting(null);
   };
 
   return (
