@@ -87,6 +87,11 @@ const menuItems = [{
   url: '/vps',
   icon: LayoutDashboard,
   role: 'user'
+}, {
+  title: 'Admin',
+  url: '/admin',
+  icon: Settings,
+  role: 'master'
 }];
 export function AppSidebar() {
   const {

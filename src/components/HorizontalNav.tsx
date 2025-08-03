@@ -110,6 +110,18 @@ export const HorizontalNav = () => {
                 <span className="hidden sm:inline whitespace-nowrap">{item.title}</span>
               </NavLink>
             ))}
+
+            {/* Menu Admin */}
+            {filteredAdminItems.length > 0 && filteredAdminItems.map((item) => (
+              <NavLink 
+                key={item.title}
+                to={item.url} 
+                className={getNavClass(isActive(item.url))}
+              >
+                <item.icon className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline whitespace-nowrap">{item.title}</span>
+              </NavLink>
+            ))}
           </div>
         </div>
       </div>
