@@ -1,10 +1,6 @@
-
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import * as React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
-
-// Ensure React hooks are available
-const { useState: useStateHook, useEffect: useEffectHook, useContext: useContextHook, createContext: createContextHook } = React;
 
 interface UserProfile {
   id: string;
@@ -24,10 +20,10 @@ interface AuthContextType {
   resetSessionTimer: () => void;
 }
 
-const AuthContext = createContextHook<AuthContextType | undefined>(undefined);
+const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
-  const context = useContextHook(AuthContext);
+  const context = React.useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
@@ -35,12 +31,12 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useStateHook<User | null>(null);
-  const [session, setSession] = useStateHook<Session | null>(null);
-  const [userProfile, setUserProfile] = useStateHook<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useStateHook(true);
-  const [sessionTimer, setSessionTimer] = useStateHook<NodeJS.Timeout | null>(null);
-  const [isReady, setIsReady] = useStateHook(false);
+  const [user, setUser] = React.useState<User | null>(null);
+  const [session, setSession] = React.useState<Session | null>(null);
+  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [sessionTimer, setSessionTimer] = React.useState<NodeJS.Timeout | null>(null);
+  const [isReady, setIsReady] = React.useState(false);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -66,12 +62,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const startSessionTimer = () => {
-    // Limpar timer existente
     if (sessionTimer) {
       clearTimeout(sessionTimer);
     }
     
-    // Criar novo timer para 30 minutos (1800000 ms)
     const timer = setTimeout(async () => {
       console.log('Sessão expirada após 30 minutos, fazendo logout...');
       await logout();
@@ -89,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  useEffectHook(() => {
+  React.useEffect(() => {
     let mounted = true;
     let initTimeout: NodeJS.Timeout;
 
@@ -113,20 +107,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (session?.user) {
             setSession(session);
             setUser(session.user);
-            startSessionTimer(); // Iniciar timer de sessão
+            startSessionTimer();
             
             // Buscar perfil do usuário
-            const profile = await fetchUserProfile(session.user.id);
-            if (profile && mounted) {
-              const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
-              const typedProfile: UserProfile = {
-                id: profile.id,
-                email: profile.email,
-                role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
-              };
-              console.log('Perfil do usuário definido:', typedProfile);
-              setUserProfile(typedProfile);
-            }
+            setTimeout(async () => {
+              if (!mounted) return;
+              const profile = await fetchUserProfile(session.user.id);
+              if (profile && mounted) {
+                const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
+                const typedProfile: UserProfile = {
+                  id: profile.id,
+                  email: profile.email,
+                  role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
+                };
+                console.log('Perfil do usuário definido:', typedProfile);
+                setUserProfile(typedProfile);
+              }
+            }, 0);
           } else {
             setSession(null);
             setUser(null);
@@ -145,7 +142,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // Safety timeout to prevent infinite loading
     initTimeout = setTimeout(() => {
       if (mounted && isLoading) {
         console.warn('Auth initialization timeout reached, forcing loading to false');
@@ -155,7 +151,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
-    // Configurar listener de mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
@@ -165,9 +160,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           setSession(session);
           setUser(session.user);
-          startSessionTimer(); // Iniciar timer de sessão
+          startSessionTimer();
           
-          // Buscar perfil do usuário
           setTimeout(async () => {
             if (!mounted) return;
             const profile = await fetchUserProfile(session.user.id);
@@ -260,7 +254,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resetSessionTimer
   };
 
-  // Don't render children until the context is ready
   if (!isReady) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
