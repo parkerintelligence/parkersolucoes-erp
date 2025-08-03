@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ExternalLink, RefreshCcw, AlertTriangle, CheckCircle, Settings } from 'lucide-react';
 import { GLPIDashboard } from '@/components/GLPIDashboard';
@@ -100,20 +100,20 @@ const GLPI = () => {
 
         <GLPIConnectionStatus />
 
-        <SafeTabs defaultValue="tickets" className="w-full">
-          <SafeTabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
-            <SafeTabsTrigger value="tickets" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white">
+        <Tabs defaultValue="tickets" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
+            <TabsTrigger value="tickets" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white">
               Chamados
-            </SafeTabsTrigger>
-            <SafeTabsTrigger value="inventory" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white">
+            </TabsTrigger>
+            <TabsTrigger value="inventory" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white">
               Inventário
-            </SafeTabsTrigger>
-            <SafeTabsTrigger value="scheduled" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white">
+            </TabsTrigger>
+            <TabsTrigger value="scheduled" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white">
               Agendados
-            </SafeTabsTrigger>
-          </SafeTabsList>
+            </TabsTrigger>
+          </TabsList>
 
-          <SafeTabsContent value="tickets" className="mt-6">
+          <TabsContent value="tickets" className="mt-6">
             <div className="space-y-4">
               <GLPIFiltersPanel 
                 onFiltersChange={setFilters} 
@@ -123,16 +123,16 @@ const GLPI = () => {
               />
               <GLPITicketsGrid filters={filters} />
             </div>
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="inventory" className="mt-6">
+          <TabsContent value="inventory" className="mt-6">
             <GLPIInventory />
-          </SafeTabsContent>
+          </TabsContent>
 
-          <SafeTabsContent value="scheduled" className="mt-6">
+          <TabsContent value="scheduled" className="mt-6">
             <GLPIScheduledTicketsView />
-          </SafeTabsContent>
-        </SafeTabs>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

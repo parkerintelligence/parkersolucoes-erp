@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext.minimal';
-import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, ShieldCheck, Wifi, Server } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, ShieldCheck, Wifi } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar } from '@/components/ui/sidebar';
 const menuItems = [{
   title: 'Alertas',
@@ -83,9 +83,9 @@ const menuItems = [{
   icon: Wifi,
   role: 'user'
 }, {
-  title: 'VPS',
-  url: '/vps',
-  icon: Server,
+  title: 'Dashboard',
+  url: '/dashboard',
+  icon: LayoutDashboard,
   role: 'user'
 }];
 export function AppSidebar() {

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext.minimal';
+import { useAuth } from '@/contexts/AuthContext';
 import { MasterPasswordDialog } from '@/components/MasterPasswordDialog';
 import { useHostingerIntegrations, useHostingerVPS, useHostingerVPSMetrics, useHostingerActions } from '@/hooks/useHostingerAPI';
 import { Server, Cpu, HardDrive, Wifi, Camera, RotateCcw, MapPin, Calendar, Activity, Zap, RefreshCw, AlertCircle, Clock, Gauge, Network, BarChart3 } from 'lucide-react';
@@ -17,8 +17,7 @@ export const HostingerDashboard = () => {
   } = useAuth();
   const {
     data: integrations,
-    isLoading: integrationsLoading,
-    error: integrationsError
+    isLoading: integrationsLoading
   } = useHostingerIntegrations();
   const {
     restartVPS,
@@ -31,7 +30,6 @@ export const HostingerDashboard = () => {
   const {
     data: vpsList,
     isLoading: vpsLoading,
-    error: vpsError,
     refetch: refetchVPS
   } = useHostingerVPS(selectedIntegration || integrations?.[0]?.id);
   React.useEffect(() => {
@@ -122,21 +120,6 @@ export const HostingerDashboard = () => {
         <span className="ml-2 text-slate-400">Carregando integrações...</span>
       </div>;
   }
-
-  if (integrationsError) {
-    return <Card className="bg-slate-800 border-slate-700">
-        <CardContent className="p-8 text-center">
-          <AlertCircle className="h-16 w-16 mx-auto mb-4 text-red-400" />
-          <h3 className="text-lg font-semibold text-white mb-2">Erro na Conexão</h3>
-          <p className="text-slate-400 mb-4">
-            Erro ao carregar integração Hostinger. Verifique a conexão e configurações.
-          </p>
-          <Button onClick={() => window.location.reload()} variant="outline">
-            Tentar Novamente
-          </Button>
-        </CardContent>
-      </Card>;
-  }
   if (!integrations || integrations.length === 0) {
     return <Card className="bg-slate-800 border-slate-700">
         <CardContent className="p-8 text-center">
@@ -223,19 +206,7 @@ export const HostingerDashboard = () => {
 
       {/* Lista de VPS */}
       <div className="grid gap-6">
-        {vpsError ? <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="p-8 text-center">
-              <AlertCircle className="h-16 w-16 mx-auto mb-4 text-red-400" />
-              <h3 className="text-lg font-semibold text-white mb-2">Erro ao Carregar VPS</h3>
-              <p className="text-slate-400 mb-4">
-                Erro ao conectar com a API do Hostinger. Verifique as configurações da integração.
-              </p>
-              <Button onClick={() => refetchVPS()} variant="outline">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Tentar Novamente
-              </Button>
-            </CardContent>
-          </Card> : vpsLoading ? <div className="flex items-center justify-center p-8">
+        {vpsLoading ? <div className="flex items-center justify-center p-8">
             <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
             <span className="ml-2 text-slate-400">Carregando VPS...</span>
           </div> : !vpsList || vpsList.length === 0 ? <Card className="bg-slate-800 border-slate-700">
@@ -243,7 +214,7 @@ export const HostingerDashboard = () => {
               <AlertCircle className="h-16 w-16 mx-auto mb-4 text-slate-400" />
               <h3 className="text-lg font-semibold text-white mb-2">Nenhum VPS Encontrado</h3>
               <p className="text-slate-400">
-                Não foi possível encontrar VPS nesta integração. Verifique se há VPS configurados na sua conta Hostinger.
+                Não foi possível encontrar VPS nesta integração ou houve um erro na conexão.
               </p>
             </CardContent>
           </Card> : <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">

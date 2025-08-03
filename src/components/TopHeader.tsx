@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useAuth } from '@/contexts/AuthContext.minimal';
+import { useAuth } from '@/contexts/AuthContext';
 // import { useSystemSettings } from '@/hooks/useSystemSettings'; // Temporarily disabled
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Crown, Shield, ChevronRight, Home, PanelLeft, DollarSign, Settings } from 'lucide-react';
