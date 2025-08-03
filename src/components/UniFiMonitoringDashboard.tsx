@@ -265,13 +265,13 @@ const UniFiMonitoringDashboard = () => {
         clients={clients?.data || []}
         loading={clientsLoading}
         blockLoading={toggleClientBlock.isPending}
-        onBlockClient={async (clientId: string, shouldBlock: boolean) => {
+        onBlockClient={async (siteId: string, clientId: string, block: boolean) => {
           try {
             await toggleClientBlock.mutateAsync({
               integrationId: selectedIntegration,
               hostId: selectedHostId,
               clientId,
-              block: shouldBlock,
+              block,
               siteId: selectedSiteId
             });
           } catch (error) {
