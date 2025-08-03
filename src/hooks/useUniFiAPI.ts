@@ -730,16 +730,20 @@ export const useUniFiAPI = () => {
 
   // Site Groups query - group sites by logical categories
   const useUniFiSiteGroups = (integrationId: string) => {
+    const hostsQuery = useUniFiHosts(integrationId);
+    
     return useQuery({
-      queryKey: ['unifi-site-groups', integrationId],
+      queryKey: ['unifi-site-groups', integrationId, hostsQuery.data],
       queryFn: async () => {
         if (!integrationId) return [];
         
         console.log('Generating site groups for integration:', integrationId);
+        console.log('Hosts query data:', hostsQuery.data);
         
         // Get all hosts with their sites
-        const hostsData = queryClient.getQueryData(['unifi-hosts', integrationId]) as UniFiHost[];
+        const hostsData = hostsQuery.data;
         if (!hostsData || hostsData.length === 0) {
+          console.log('No hosts data available for site groups');
           return [];
         }
 
@@ -793,7 +797,7 @@ export const useUniFiAPI = () => {
         console.log('Generated site groups:', groups);
         return groups;
       },
-      enabled: !!integrationId,
+      enabled: !!integrationId && hostsQuery.isSuccess,
       staleTime: 5 * 60 * 1000, // 5 minutes
     });
   };

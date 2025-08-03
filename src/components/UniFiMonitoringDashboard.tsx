@@ -55,6 +55,12 @@ const UniFiMonitoringDashboard = () => {
     data: siteGroups, 
     isLoading: siteGroupsLoading 
   } = useUniFiSiteGroups(selectedIntegration);
+
+  console.log('Dashboard - Site Groups:', siteGroups);
+  console.log('Dashboard - Loading states:', { 
+    hosts: hostsLoading, 
+    siteGroups: siteGroupsLoading 
+  });
   
   // Get selected group and its host information
   const selectedGroup = siteGroups?.find(group => group.id === selectedGroupId);

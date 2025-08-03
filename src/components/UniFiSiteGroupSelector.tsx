@@ -118,9 +118,9 @@ const UniFiSiteGroupSelector: React.FC<UniFiSiteGroupSelectorProps> = ({
           </SelectTrigger>
           <SelectContent className="bg-slate-800 border-slate-600">
             {groups.length === 0 ? (
-              <SelectItem value="" disabled className="text-gray-400">
+              <div className="p-2 text-gray-400 text-sm">
                 Nenhum grupo encontrado
-              </SelectItem>
+              </div>
             ) : (
               groups.map((group) => (
                 <SelectItem 
