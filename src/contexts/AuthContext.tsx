@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
-import { ReactValidator } from '@/components/ReactValidator';
 
 interface UserProfile {
   id: string;
@@ -31,23 +30,10 @@ export const useAuth = () => {
   return context;
 };
 
-// Non-hook based component for initial validation
+// This will only be called after React validation is complete
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return (
-    <ReactValidator onValidated={(isReady, error) => {
-      if (error) {
-        console.error('React validation failed:', error);
-      } else if (isReady) {
-        console.log('React validation successful');
-      }
-    }}>
-      <AuthProviderImpl>{children}</AuthProviderImpl>
-    </ReactValidator>
-  );
-};
-
-// Actual implementation with hooks (only rendered after React validation)
-const AuthProviderImpl: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  console.log('AuthProvider rendering - React should be validated by now');
+  
   const [user, setUser] = React.useState<User | null>(null);
   const [session, setSession] = React.useState<Session | null>(null);
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
@@ -266,5 +252,5 @@ const AuthProviderImpl: React.FC<{ children: React.ReactNode }> = ({ children })
     isLoading
   });
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return React.createElement(AuthContext.Provider, { value }, children);
 };
