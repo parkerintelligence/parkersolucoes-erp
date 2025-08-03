@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,18 +18,18 @@ export const ChatwootSimpleConfig = () => {
   const { data: integrations } = useIntegrations();
   const createIntegration = useCreateIntegration();
   const updateIntegration = useUpdateIntegration();
-  const [config, setConfig] = useState<ChatwootConfig>({
+  const [config, setConfig] = React.useState<ChatwootConfig>({
     name: 'Chatwoot WhatsApp',
     base_url: '',
     api_token: ''
   });
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [isTestingConnection, setIsTestingConnection] = React.useState(false);
+  const [connectionStatus, setConnectionStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
 
   const chatwootIntegration = integrations?.find(int => int.type === 'chatwoot');
 
   // Load existing configuration
-  useState(() => {
+  React.useEffect(() => {
     if (chatwootIntegration) {
       setConfig({
         name: chatwootIntegration.name,

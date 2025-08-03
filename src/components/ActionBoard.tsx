@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
@@ -14,7 +14,7 @@ interface ActionBoardProps {
 }
 
 export function ActionBoard({ boardId, columns, cards, cardItems }: ActionBoardProps) {
-  const [isCreateColumnOpen, setIsCreateColumnOpen] = useState(false);
+  const [isCreateColumnOpen, setIsCreateColumnOpen] = React.useState(false);
   const { createColumn } = useActionPlan();
 
   const handleCreateColumn = async (data: any) => {

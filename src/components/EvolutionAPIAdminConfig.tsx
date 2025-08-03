@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,9 +17,9 @@ export const EvolutionAPIAdminConfig = () => {
   const updateIntegration = useUpdateIntegration();
   
   const evolutionIntegration = integrations?.find(integration => integration.type === 'evolution_api');
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = React.useState(false);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = React.useState({
     name: evolutionIntegration?.name || 'Evolution API WhatsApp',
     base_url: evolutionIntegration?.base_url || '',
     api_token: evolutionIntegration?.api_token || '',

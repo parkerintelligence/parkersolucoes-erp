@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,9 +19,9 @@ export const AdminCompaniesPanel = () => {
   const updateCompany = useUpdateCompany();
   const deleteCompany = useDeleteCompany();
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<any>(null);
-  const [formData, setFormData] = useState({
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [editingCompany, setEditingCompany] = React.useState<any>(null);
+  const [formData, setFormData] = React.useState({
     name: '',
     cnpj: '',
     address: '',

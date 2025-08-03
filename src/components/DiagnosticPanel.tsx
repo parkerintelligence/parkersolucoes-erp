@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +31,7 @@ export const DiagnosticPanel = () => {
   const testEvolutionConnection = useTestEvolutionConnection();
   const syncWhatsApp = useSyncWhatsAppConversations();
   
-  const [lastTest, setLastTest] = useState<Record<string, any>>({});
+  const [lastTest, setLastTest] = React.useState<Record<string, any>>({});
 
   const evolutionIntegration = integrations.find(int => 
     int.type === 'evolution_api' && int.is_active
