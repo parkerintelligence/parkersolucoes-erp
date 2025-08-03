@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    force: true,
   },
   plugins: [
     react({
@@ -25,12 +26,19 @@ export default defineConfig(({ mode }) => ({
     global: 'globalThis',
     'process.env.NODE_ENV': JSON.stringify(mode === 'development' ? 'development' : 'production'),
   },
+  // DESATIVAR COMPLETAMENTE QUALQUER OTIMIZAÇÃO
   optimizeDeps: {
-    disabled: true, // DISABLE ALL OPTIMIZATION TO PREVENT CHUNKING ISSUES
+    disabled: true,
   },
   build: {
     rollupOptions: {
       external: [],
+      // Força reconstrução completa
+      output: {
+        entryFileNames: `[name]-${Date.now()}.js`,
+        chunkFileNames: `[name]-${Date.now()}.js`,
+        assetFileNames: `[name]-${Date.now()}.[ext]`
+      }
     },
   },
 }));
