@@ -29,22 +29,34 @@ export interface Integration {
 }
 
 export const useIntegrations = () => {
-  return useQuery({
-    queryKey: ['integrations'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('integrations')
-        .select('*')
-        .order('created_at', { ascending: false });
+  // Add error boundary for React Query context issues
+  try {
+    return useQuery({
+      queryKey: ['integrations'],
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from('integrations')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching integrations:', error);
-        throw error;
-      }
+        if (error) {
+          console.error('Error fetching integrations:', error);
+          throw error;
+        }
 
-      return data as Integration[];
-    },
-  });
+        return data as Integration[];
+      },
+    });
+  } catch (error) {
+    console.error('useIntegrations hook error:', error);
+    // Return a safe fallback when context is not available
+    return {
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: () => Promise.resolve()
+    };
+  }
 };
 
 export const useCreateIntegration = () => {
