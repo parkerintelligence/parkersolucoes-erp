@@ -19,21 +19,24 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "react": path.resolve(__dirname, "./node_modules/react"),
-      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
-    dedupe: ["react", "react-dom"],
   },
   define: {
     global: 'globalThis',
     'process.env.NODE_ENV': JSON.stringify(mode === 'development' ? 'development' : 'production'),
   },
   optimizeDeps: {
+    force: true,
     include: [
+      'react/jsx-runtime',
       'react', 
       'react-dom',
     ],
-    force: true,
+    exclude: [
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-tabs',
+    ]
   },
   build: {
     rollupOptions: {
