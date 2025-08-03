@@ -14,6 +14,13 @@ export default defineConfig(({ mode }) => ({
     mode === 'development' &&
     componentTagger(),
   ].filter(Boolean),
+  optimizeDeps: {
+    include: [
+      '@tanstack/react-query',
+      'react',
+      'react-dom'
+    ],
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
