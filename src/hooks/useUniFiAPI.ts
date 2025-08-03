@@ -55,6 +55,12 @@ export interface UniFiSite {
   role: string;
   newAlarmCount?: number;
   health?: any[];
+  siteId?: string;
+  hostId?: string;
+  meta?: any;
+  statistics?: any;
+  permission?: string;
+  isOwner?: boolean;
 }
 
 export interface UniFiHost {
@@ -765,29 +771,45 @@ export const useUniFiAPI = () => {
             }
             
             if (sites.length > 0) {
-              console.log(`Found ${sites.length} sites from ${endpoint.type}`);
+              console.log(`Raw sites from ${endpoint.type}:`, sites);
               
-              // Add source information to each site
-              const sitesWithSource = sites.map(site => ({
-                ...site,
-                sourceType: endpoint.type,
-                sourceEndpoint: endpoint.path
-              }));
+              // Normalize site data structure based on API response format
+              const normalizedSites = sites.map(site => {
+                // Site Manager API returns: siteId, hostId, meta.desc, meta.name
+                // Local Controller API returns: _id, name, desc
+                const normalizedSite = {
+                  id: site.siteId || site._id || site.id || site.name,
+                  name: site.meta?.desc || site.desc || site.meta?.name || site.name || 'Site sem nome',
+                  desc: site.meta?.desc || site.desc || site.meta?.name || site.name,
+                  siteId: site.siteId || site._id || site.id,
+                  hostId: site.hostId,
+                  meta: site.meta || {},
+                  statistics: site.statistics || {},
+                  permission: site.permission,
+                  isOwner: site.isOwner,
+                  sourceType: endpoint.type,
+                  sourceEndpoint: endpoint.path,
+                  ...site
+                };
+                
+                console.log(`Normalized site from ${site.siteId || site._id}:`, normalizedSite);
+                return normalizedSite;
+              });
               
-              allSites.push(...sitesWithSource);
+              allSites.push(...normalizedSites);
             }
           } catch (error) {
             console.log(`Endpoint ${endpoint.path} failed:`, error);
           }
         }
         
-        // Remove duplicates based on site ID
+        // Remove duplicates based on siteId
         const uniqueSites = allSites.filter((site, index, self) =>
-          index === self.findIndex(s => s.id === site.id)
+          index === self.findIndex(s => (s.siteId || s.id) === (site.siteId || site.id))
         );
         
         console.log(`Total unique sites found: ${uniqueSites.length}`);
-        console.log('Sites:', uniqueSites);
+        console.log('Final unique sites:', uniqueSites);
         
         return uniqueSites;
       },
