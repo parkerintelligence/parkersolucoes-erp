@@ -1,28 +1,27 @@
 import React from 'react'
-import 'react/jsx-runtime'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
-// Force React to be available in all chunks - CRITICAL FIX
-const originalReact = window.React;
-Object.defineProperty(window, 'React', {
-  value: React,
-  writable: false,
-  configurable: false
-});
-Object.defineProperty(globalThis, 'React', {
-  value: React, 
-  writable: false,
-  configurable: false
-});
+// SOLUÇÃO DEFINITIVA: React disponível globalmente ANTES de qualquer coisa
+const setupReact = () => {
+  // Garantir que React está disponível globalmente
+  (window as any).React = React;
+  (globalThis as any).React = React;
+  
+  // Garantir que todos os hooks estão disponíveis
+  Object.keys(React).forEach(key => {
+    if (typeof (React as any)[key] === 'function') {
+      (window as any)[key] = (React as any)[key];
+      (globalThis as any)[key] = (React as any)[key];
+    }
+  });
+  
+  console.log('✅ React configurado globalmente:', !!window.React);
+};
 
-// Override any cached React references in Vite chunks
-if (typeof window !== 'undefined') {
-  (window as any).__vite_react_override__ = React;
-}
-
-console.log('React version loaded:', React.version, 'Available globally:', !!(window as any).React);
+// Executar IMEDIATAMENTE
+setupReact();
 
 const root = createRoot(document.getElementById("root")!)
 root.render(

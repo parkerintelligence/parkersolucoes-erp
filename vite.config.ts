@@ -5,11 +5,9 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  cacheDir: '.vite-new',
   server: {
     host: "::",
     port: 8080,
-    force: true,
   },
   plugins: [
     react({
@@ -21,41 +19,18 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "react": path.resolve(__dirname, "./node_modules/react"),
-      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
-    dedupe: ["react", "react-dom"],
   },
   define: {
     global: 'globalThis',
     'process.env.NODE_ENV': JSON.stringify(mode === 'development' ? 'development' : 'production'),
   },
   optimizeDeps: {
-    force: true,
-    esbuildOptions: {
-      define: {
-        global: 'globalThis',
-      },
-    },
-    include: [
-      'react/jsx-runtime',
-      'react', 
-      'react-dom',
-      '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-dialog', 
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-select',
-      '@radix-ui/react-popover',
-      '@radix-ui/react-tooltip',
-    ],
-    exclude: [],
+    disabled: true, // DISABLE ALL OPTIMIZATION TO PREVENT CHUNKING ISSUES
   },
   build: {
     rollupOptions: {
       external: [],
-      output: {
-        manualChunks: undefined,
-      },
     },
   },
 }));
