@@ -30,6 +30,7 @@ import Alertas from '@/pages/Alertas';
 import Security from '@/pages/Security';
 import UniFi from '@/pages/UniFi';
 import { Layout } from '@/components/Layout';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Create a single QueryClient instance with better error handling
 const queryClient = new QueryClient({
@@ -44,11 +45,12 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <div className="min-h-screen bg-background">
-            <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-lg text-gray-600">Carregando sistema...</div></div>}>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <BrowserRouter>
+            <div className="min-h-screen bg-background">
+              <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-lg text-gray-600">Carregando sistema...</div></div>}>
               <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
@@ -258,6 +260,7 @@ function App() {
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
