@@ -1,8 +1,7 @@
-
 import * as React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
-import { useReactValidation } from '@/hooks/useReactValidation';
+import { ReactValidator } from '@/components/ReactValidator';
 
 interface UserProfile {
   id: string;
@@ -32,52 +31,23 @@ export const useAuth = () => {
   return context;
 };
 
-// Simple loading component without hooks
-const AuthLoading = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-      <p className="text-muted-foreground">Carregando autenticação...</p>
-    </div>
-  </div>
-);
-
-// Error component without hooks
-const AuthError = ({ error }: { error: string }) => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="text-center max-w-md">
-      <h1 className="text-xl font-bold text-destructive mb-4">Erro de Inicialização</h1>
-      <p className="text-muted-foreground mb-4">{error}</p>
-      <button
-        onClick={() => window.location.reload()}
-        className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
-      >
-        Recarregar Página
-      </button>
-    </div>
-  </div>
-);
-
+// Non-hook based component for initial validation
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isReactReady, error } = useReactValidation();
-
-  // Show loading while React is initializing
-  if (!isReactReady && !error) {
-    return <AuthLoading />;
-  }
-
-  // Show error if React failed to initialize
-  if (error) {
-    return <AuthError error={error} />;
-  }
-
-  // Now that React is validated, render the actual AuthProvider
-  return <AuthProviderImpl>{children}</AuthProviderImpl>;
+  return (
+    <ReactValidator onValidated={(isReady, error) => {
+      if (error) {
+        console.error('React validation failed:', error);
+      } else if (isReady) {
+        console.log('React validation successful');
+      }
+    }}>
+      <AuthProviderImpl>{children}</AuthProviderImpl>
+    </ReactValidator>
+  );
 };
 
 // Actual implementation with hooks (only rendered after React validation)
 const AuthProviderImpl: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-
   const [user, setUser] = React.useState<User | null>(null);
   const [session, setSession] = React.useState<Session | null>(null);
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
