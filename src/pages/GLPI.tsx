@@ -1,8 +1,8 @@
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SafeTabs, SafeTabsContent, SafeTabsList, SafeTabsTrigger } from '@/components/SafeTabsWrapper';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ExternalLink, RefreshCcw, AlertTriangle, CheckCircle, Settings } from 'lucide-react';
 import { GLPIDashboard } from '@/components/GLPIDashboard';
@@ -22,12 +22,12 @@ const GLPI = () => {
     tickets,
     initSession
   } = useGLPIExpanded();
-  const [filters, setFilters] = useState({});
-  const [refreshing, setRefreshing] = useState(false);
+  const [filters, setFilters] = React.useState({});
+  const [refreshing, setRefreshing] = React.useState(false);
   const isConfigured = !!glpiIntegration;
 
   // Inicializar sessão automaticamente quando a página carregar
-  useEffect(() => {
+  React.useEffect(() => {
     if (isConfigured && !hasValidSession && !initSession.isPending) {
       console.log('🔄 Auto-inicializando sessão GLPI...');
       initSession.mutate();
@@ -100,20 +100,20 @@ const GLPI = () => {
 
         <GLPIConnectionStatus />
 
-        <Tabs defaultValue="tickets" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
-            <TabsTrigger value="tickets" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white">
+        <SafeTabs defaultValue="tickets" className="w-full">
+          <SafeTabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
+            <SafeTabsTrigger value="tickets" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white">
               Chamados
-            </TabsTrigger>
-            <TabsTrigger value="inventory" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white">
+            </SafeTabsTrigger>
+            <SafeTabsTrigger value="inventory" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white">
               Inventário
-            </TabsTrigger>
-            <TabsTrigger value="scheduled" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white">
+            </SafeTabsTrigger>
+            <SafeTabsTrigger value="scheduled" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white">
               Agendados
-            </TabsTrigger>
-          </TabsList>
+            </SafeTabsTrigger>
+          </SafeTabsList>
 
-          <TabsContent value="tickets" className="mt-6">
+          <SafeTabsContent value="tickets" className="mt-6">
             <div className="space-y-4">
               <GLPIFiltersPanel 
                 onFiltersChange={setFilters} 
@@ -123,16 +123,16 @@ const GLPI = () => {
               />
               <GLPITicketsGrid filters={filters} />
             </div>
-          </TabsContent>
+          </SafeTabsContent>
 
-          <TabsContent value="inventory" className="mt-6">
+          <SafeTabsContent value="inventory" className="mt-6">
             <GLPIInventory />
-          </TabsContent>
+          </SafeTabsContent>
 
-          <TabsContent value="scheduled" className="mt-6">
+          <SafeTabsContent value="scheduled" className="mt-6">
             <GLPIScheduledTicketsView />
-          </TabsContent>
-        </Tabs>
+          </SafeTabsContent>
+        </SafeTabs>
       </div>
     </div>
   );

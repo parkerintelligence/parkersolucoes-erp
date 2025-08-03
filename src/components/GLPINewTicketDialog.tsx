@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ export const GLPINewTicketDialog = ({
   onOpenChange
 }: GLPINewTicketDialogProps) => {
   const { createTicket } = useGLPIExpanded();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = React.useState({
     title: '',
     content: '',
     priority: '3',

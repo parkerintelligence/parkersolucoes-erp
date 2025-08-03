@@ -1,20 +1,17 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Plus, Settings, Trash2, MoreHorizontal } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-// import { SafeDropdownMenu, DropdownMenuItem } from "@/components/SafeDropdownMenu";
+
 import { ActionBoard } from "@/components/ActionBoard";
 import { BoardDialog } from "@/components/BoardDialog";
 import { useActionPlan } from "@/hooks/useActionPlan";
-import { useAuth } from "@/contexts/AuthContext";
-
 export default function ActionPlan() {
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
   const [isEditBoardOpen, setIsEditBoardOpen] = useState(false);
   const [editingBoard, setEditingBoard] = useState<any>(null);
-  const { user, isLoading: authLoading } = useAuth();
   const {
     boards,
     columns,
@@ -118,17 +115,15 @@ export default function ActionPlan() {
                         </div>
                       </TabsTrigger>
                       
-                      {!authLoading && user && selectedBoard === board.id && (
-                        <div className="relative ml-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-white hover:bg-slate-600"
-                            onClick={() => handleEditBoard(board)}
-                          >
-                            <Settings className="h-4 w-4" />
-                          </Button>
-                        </div>
+                      {selectedBoard === board.id && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteBoard(board.id)}
+                          className="ml-2 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-white hover:bg-slate-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       )}
                     </div>;
             })}

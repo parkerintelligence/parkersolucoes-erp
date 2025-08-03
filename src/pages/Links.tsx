@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import * as React from 'react';
 import { usePasswords } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useLinksExport } from '@/hooks/useLinksExport';
@@ -12,27 +11,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link, ExternalLink, Search, Building, Globe, Shield, Mail, Server, Database, Cloud, Code, Monitor, Settings, Filter, Grid, List, Copy, Eye, EyeOff, Download, TreePine } from 'lucide-react';
 import { LinksTreeView } from '@/components/LinksTreeView';
 import { toast } from '@/hooks/use-toast';
-
 const Links = () => {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  
-  // Only call hooks if authenticated and not loading
   const {
     data: passwords = [],
     isLoading
   } = usePasswords();
-  
   const {
     data: companies = []
   } = useCompanies();
-  
   const exportToPDF = useLinksExport();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCompany, setSelectedCompany] = useState('');
-  const [activeServiceTab, setActiveServiceTab] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'tree'>('tree');
-  const [sortBy, setSortBy] = useState('name');
-  const [visibleCards, setVisibleCards] = useState<Record<string, boolean>>({});
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [selectedCompany, setSelectedCompany] = React.useState('');
+  const [activeServiceTab, setActiveServiceTab] = React.useState('all');
+  const [viewMode, setViewMode] = React.useState<'grid' | 'list' | 'tree'>('grid'); // Temporarily changed from 'tree' to 'grid'
+  const [sortBy, setSortBy] = React.useState('name');
+  const [visibleCards, setVisibleCards] = React.useState<Record<string, boolean>>({});
 
   // Filtrar apenas senhas que têm gera_link = true
   const links = passwords.filter(password => password.gera_link);
@@ -115,17 +108,9 @@ const Links = () => {
     });
     await exportToPDF.mutateAsync();
   };
-  // Show loading state for auth or data loading
-  if (authLoading || isLoading) {
+  if (isLoading) {
     return <div className="flex justify-center items-center h-96">
         <div className="text-muted-foreground">Carregando links...</div>
-      </div>;
-  }
-  
-  // Safety check for authentication
-  if (!isAuthenticated) {
-    return <div className="flex justify-center items-center h-96">
-        <div className="text-muted-foreground">Acesso negado</div>
       </div>;
   }
   return <div className="space-y-4 p-4 bg-slate-900 min-h-screen">
@@ -162,46 +147,27 @@ const Links = () => {
             <Input placeholder="Buscar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-7 h-7 text-xs bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
           </div>
           
-          <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-            <SelectTrigger className="h-7 w-32 text-xs bg-slate-700 border-slate-600 text-white">
-              <SelectValue placeholder="Empresa" />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-700 border-slate-600">
-              <SelectItem value="all" className="text-xs text-white">Todas</SelectItem>
-              {companies.map(company => <SelectItem key={company.id} value={company.id} className="text-xs text-white">{company.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          {/* Temporarily commenting out Select to isolate issue */}
+          <div className="h-7 w-32 text-xs bg-slate-700 border-slate-600 text-white rounded px-2 flex items-center">
+            Empresa: {selectedCompany || 'Todas'}
+          </div>
 
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="h-7 w-28 text-xs bg-slate-700 border-slate-600 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-700 border-slate-600">
-              <SelectItem value="name" className="text-xs text-white">Nome</SelectItem>
-              <SelectItem value="company" className="text-xs text-white">Empresa</SelectItem>
-              <SelectItem value="service" className="text-xs text-white">Serviço</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Temporarily commenting out Select to isolate issue */}
+          <div className="h-7 w-28 text-xs bg-slate-700 border-slate-600 text-white rounded px-2 flex items-center">
+            Sort: {sortBy}
+          </div>
         </div>
       </div>
 
-      {/* Abas por Serviço */}
-      <Tabs value={activeServiceTab} onValueChange={setActiveServiceTab} className="w-full">
-        <TabsList className="grid w-full bg-slate-800 border-slate-700" style={{
-        gridTemplateColumns: `repeat(${uniqueServices.length + 1}, 1fr)`
-      }}>
-          <TabsTrigger value="all" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs">
+      {/* Temporarily commenting out Tabs to isolate React context issue */}
+      <div className="w-full">
+        <div className="grid w-full bg-slate-800 border-slate-700 p-2 rounded-lg mb-4">
+          <div className="bg-blue-600 text-white text-xs px-3 py-1 rounded">
             Todos ({links.length})
-          </TabsTrigger>
-          {uniqueServices.map(service => {
-          const serviceLinks = links.filter(link => link.service === service);
-          return <TabsTrigger key={service} value={service} className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs">
-                {service} ({serviceLinks.length})
-              </TabsTrigger>;
-        })}
-        </TabsList>
+          </div>
+        </div>
 
-        <TabsContent value={activeServiceTab} className="mt-4">
+        <div className="mt-4">
           {/* Grid/Lista/Árvore de Links */}
           {viewMode === 'tree' ? (
             <LinksTreeView />
@@ -319,8 +285,8 @@ const Links = () => {
                 </div>
               </CardContent>
             </Card>}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>;
 };
 export default Links;

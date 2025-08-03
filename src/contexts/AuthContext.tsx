@@ -1,4 +1,6 @@
+
 import React from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -20,11 +22,10 @@ interface AuthContextType {
   resetSessionTimer: () => void;
 }
 
-// SOLUÇÃO DEFINITIVA: Criar contexto SEM dependência de chunks problemáticos
-const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
-  const context = React.useContext(AuthContext);
+  const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
@@ -32,22 +33,11 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  console.log('🔧 AuthProvider iniciando...');
-  
-  // PROTEÇÃO TOTAL: Verificar se React está disponível
-  if (!React || typeof React.useState !== 'function') {
-    console.error('❌ React hooks não disponíveis!');
-    return React.createElement('div', { 
-      style: { padding: '20px', background: 'red', color: 'white' } 
-    }, 'Erro: React não carregado corretamente');
-  }
-
-  // Usar DIRETAMENTE React.useState para evitar chunks problemáticos
-  const [user, setUser] = React.useState<User | null>(null);
-  const [session, setSession] = React.useState<Session | null>(null);
-  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [sessionTimer, setSessionTimer] = React.useState<NodeJS.Timeout | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [sessionTimer, setSessionTimer] = useState<NodeJS.Timeout | null>(null);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -73,10 +63,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const startSessionTimer = () => {
+    // Limpar timer existente
     if (sessionTimer) {
       clearTimeout(sessionTimer);
     }
     
+    // Criar novo timer para 30 minutos (1800000 ms)
     const timer = setTimeout(async () => {
       console.log('Sessão expirada após 30 minutos, fazendo logout...');
       await logout();
@@ -94,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
@@ -117,8 +109,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (session?.user) {
             setSession(session);
             setUser(session.user);
-            startSessionTimer();
+            startSessionTimer(); // Iniciar timer de sessão
             
+            // Buscar perfil do usuário
             const profile = await fetchUserProfile(session.user.id);
             if (profile && mounted) {
               const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
@@ -148,6 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
+    // Configurar listener de mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
@@ -157,8 +151,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           setSession(session);
           setUser(session.user);
-          startSessionTimer();
+          startSessionTimer(); // Iniciar timer de sessão
           
+          // Buscar perfil do usuário
           setTimeout(async () => {
             if (!mounted) return;
             const profile = await fetchUserProfile(session.user.id);
@@ -248,15 +243,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resetSessionTimer
   };
 
-  if (isLoading) {
-    return React.createElement('div', { 
-      className: "min-h-screen bg-slate-900 flex items-center justify-center" 
-    }, React.createElement('div', { 
-      className: "text-lg text-white" 
-    }, 'Inicializando sistema...'));
-  }
-
-  console.log('✅ AuthContext funcionando:', { 
+  console.log('AuthContext Estado:', { 
     isAuthenticated: !!user && !!session, 
     isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
     userEmail: user?.email,
@@ -264,5 +251,5 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading
   });
 
-  return React.createElement(AuthContext.Provider, { value }, children);
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

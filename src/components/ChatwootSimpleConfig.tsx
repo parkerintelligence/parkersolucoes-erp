@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,6 +29,7 @@ export const ChatwootSimpleConfig = () => {
   const chatwootIntegration = integrations?.find(int => int.type === 'chatwoot');
 
   // Load existing configuration
+  // Load existing configuration
   React.useEffect(() => {
     if (chatwootIntegration) {
       setConfig({
@@ -37,7 +38,7 @@ export const ChatwootSimpleConfig = () => {
         api_token: chatwootIntegration.api_token || ''
       });
     }
-  });
+  }, [chatwootIntegration]);
 
   const testConnection = async () => {
     if (!config.base_url || !config.api_token) {

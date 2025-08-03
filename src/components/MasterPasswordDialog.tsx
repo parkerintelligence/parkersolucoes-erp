@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import * as React from 'react';
 import {
   Dialog,
   DialogContent,
@@ -28,10 +28,10 @@ export const MasterPasswordDialog: React.FC<MasterPasswordDialogProps> = ({
   title = "Autorização Master Necessária",
   description = "Para continuar com esta ação, insira sua senha de usuário master:"
 }) => {
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isValidating, setIsValidating] = useState(false);
-  const [error, setError] = useState('');
+  const [password, setPassword] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [isValidating, setIsValidating] = React.useState(false);
+  const [error, setError] = React.useState('');
 
   const handleValidate = async () => {
     if (!password.trim()) {

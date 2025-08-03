@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import * as React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,7 +13,7 @@ interface ChatwootMessageDialogProps {
 }
 
 export const ChatwootMessageDialog = ({ conversation, open, onOpenChange }: ChatwootMessageDialogProps) => {
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = React.useState('');
   const { sendMessage } = useChatwootAPI();
 
   const handleSendMessage = async () => {
