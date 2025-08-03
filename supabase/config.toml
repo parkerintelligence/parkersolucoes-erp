@@ -72,5 +72,3 @@ verify_jwt = true
 [functions.wazuh-proxy]
 verify_jwt = true
 
-[functions.unifi-website-proxy]
-verify_jwt = false

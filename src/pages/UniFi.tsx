@@ -28,12 +28,6 @@ const UniFi = () => {
   const [iframeLoading, setIframeLoading] = useState(true);
   const [iframeError, setIframeError] = useState(false);
   
-  // Generate proxy URL for the UniFi controller
-  const getProxyUrl = () => {
-    if (!unifiUrl || !user?.id) return '';
-    const baseUrl = 'https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/unifi-website-proxy';
-    return `${baseUrl}?path=/&user_id=${user.id}`;
-  };
   const isValidUrl = (url: string) => {
     try {
       new URL(url);
@@ -92,7 +86,7 @@ const UniFi = () => {
     // Force iframe reload by changing its src
     const iframe = document.getElementById('unifi-iframe') as HTMLIFrameElement;
     if (iframe && unifiUrl) {
-      iframe.src = getProxyUrl();
+      iframe.src = unifiUrl;
     }
   };
   const handleIframeLoad = () => {
@@ -207,7 +201,7 @@ const UniFi = () => {
             </Card>
           </div> : <iframe 
             id="unifi-iframe" 
-            src={getProxyUrl()} 
+            src={unifiUrl} 
             className="w-full h-full border-0" 
             onLoad={handleIframeLoad} 
             onError={handleIframeError} 
