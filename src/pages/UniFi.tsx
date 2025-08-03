@@ -94,42 +94,36 @@ const UniFi = () => {
     setIframeError(true);
   };
   if (urlLoading) {
-    return <div className="min-h-screen bg-background p-4">
-        <div className="flex items-center justify-center h-96">
-          <div className="text-muted-foreground">Carregando configurações...</div>
-        </div>
+    return <div className="flex items-center justify-center h-96">
+        <div className="text-muted-foreground">Carregando configurações...</div>
       </div>;
   }
   if (!unifiUrl) {
-    return <div className="min-h-screen p-4 bg-slate-900">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center space-y-6">
-            <div className="flex items-center justify-center">
-              <Wifi className="h-16 w-16 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold">UniFi</h1>
-              <p className="text-muted-foreground mt-2">Configure a URL do seu site UniFi para começar</p>
-            </div>
-            <Alert className="max-w-2xl mx-auto">
-              <Globe className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Site UniFi personalizado:</strong><br />
-                Configure a URL do seu controlador UniFi ou qualquer site relacionado 
-                que você gostaria de carregar nesta página.
-              </AlertDescription>
-            </Alert>
-            <Button onClick={handleOpenConfig} size="lg">
-              <Settings className="h-4 w-4 mr-2" />
-              Configurar URL
-            </Button>
-          </div>
+    return <div className="text-center space-y-6">
+        <div className="flex items-center justify-center">
+          <Wifi className="h-16 w-16 text-primary" />
         </div>
+        <div>
+          <h1 className="text-3xl font-bold">UniFi</h1>
+          <p className="text-muted-foreground mt-2">Configure a URL do seu site UniFi para começar</p>
+        </div>
+        <Alert className="max-w-2xl mx-auto">
+          <Globe className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Site UniFi personalizado:</strong><br />
+            Configure a URL do seu controlador UniFi ou qualquer site relacionado 
+            que você gostaria de carregar nesta página.
+          </AlertDescription>
+        </Alert>
+        <Button onClick={handleOpenConfig} size="lg">
+          <Settings className="h-4 w-4 mr-2" />
+          Configurar URL
+        </Button>
       </div>;
   }
-  return <div className="min-h-screen bg-background">
+  return <>
       {/* Header */}
-      <div className="border-b bg-background p-4">
+      <div className="border-b bg-background p-4 -mx-4 sm:-mx-6 lg:-mx-8 -mt-4 sm:-mt-6 lg:-mt-8 mb-4 sm:mb-6 lg:mb-8">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Wifi className="h-6 w-6 text-primary" />
@@ -173,7 +167,7 @@ const UniFi = () => {
 
       {/* Iframe Content */}
       <div className="relative" style={{
-      height: 'calc(100vh - 73px)'
+      height: 'calc(100vh - 200px)'
     }}>
         {iframeError ? <div className="flex items-center justify-center h-full bg-muted/20">
             <Card className="max-w-md">
@@ -248,6 +242,6 @@ const UniFi = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>;
+    </>;
 };
 export default UniFi;
