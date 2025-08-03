@@ -90,7 +90,7 @@ serve(async (req) => {
     }
 
     // Check if this is a local controller integration (has username/password) or Site Manager API (has api_token)
-    const { base_url, username, password, api_token, use_ssl = true, ignore_ssl: ignore_ssl_option = false } = integration;
+    const { base_url, username, password, api_token, use_ssl = true, ignore_ssl_option = false } = integration;
     
     // Priorizar Site Manager API se api_token estiver presente
     const isSiteManagerAPI = !!(api_token);
