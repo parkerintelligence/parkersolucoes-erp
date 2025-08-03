@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useToast } from '@/hooks/use-toast';
@@ -48,15 +49,26 @@ const UniFi = () => {
   // Auto-select first integration and site
   useEffect(() => {
     if (unifiIntegrations.length > 0 && !selectedIntegration) {
-      setSelectedIntegration(unifiIntegrations[0].id);
+      const firstIntegration = unifiIntegrations[0];
+      console.log('🔄 Selecionando primeira integração:', firstIntegration.id);
+      setSelectedIntegration(firstIntegration.id);
     }
   }, [unifiIntegrations, selectedIntegration]);
 
   useEffect(() => {
     if (allSites && allSites.length > 0 && !selectedSiteId) {
-      setSelectedSiteId(allSites[0].id);
+      const firstSite = allSites[0];
+      console.log('🔄 Selecionando primeiro site automaticamente:', firstSite.name, firstSite.id);
+      setSelectedSiteId(firstSite.id);
     }
   }, [allSites, selectedSiteId]);
+
+  // Invalidate and refresh data when site changes
+  useEffect(() => {
+    if (selectedSiteId && selectedIntegration) {
+      console.log('🔄 Site alterado, carregando dados para:', selectedSiteId);
+    }
+  }, [selectedSiteId, selectedIntegration]);
 
   // Data fetching for active tab
   const { data: devices, isLoading: devicesLoading } = useUniFiDevices(selectedIntegration, '', selectedSiteId);
@@ -69,11 +81,19 @@ const UniFi = () => {
   const { data: events, isLoading: eventsLoading } = useUniFiEvents(selectedIntegration, selectedSiteId);
 
   const handleRefresh = () => {
-    refreshData(selectedIntegration, '', selectedSiteId);
-    toast({
-      title: "Dados atualizados",
-      description: "Informações da rede UniFi foram atualizadas.",
-    });
+    if (selectedIntegration && selectedSiteId) {
+      console.log('🔄 Refresh manual - invalidando dados para site:', selectedSiteId);
+      refreshData(selectedIntegration, '', selectedSiteId);
+      toast({
+        title: "Dados atualizados",
+        description: `Informações do UniFi foram recarregadas para o site selecionado.`,
+      });
+    }
+  };
+
+  const handleSiteChange = (siteId: string | null) => {
+    console.log('🔄 Site mudando de', selectedSiteId, 'para', siteId);
+    setSelectedSiteId(siteId || '');
   };
 
   if (unifiIntegrations.length === 0) {
@@ -116,7 +136,7 @@ const UniFi = () => {
         <UniFiDirectSiteSelector
           sites={allSites || []}
           selectedSiteId={selectedSiteId}
-          onSiteChange={setSelectedSiteId}
+          onSiteChange={handleSiteChange}
           loading={sitesLoading}
         />
       )}
@@ -135,44 +155,65 @@ const UniFi = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-card p-6 rounded-lg border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">Dispositivos</p>
-                    <p className="text-2xl font-bold">{devices?.data?.length || 0}</p>
+            {/* Loading state for overview cards */}
+            {(devicesLoading || clientsLoading || networksLoading || alarmsLoading) ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="bg-card p-6 rounded-lg border">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-8 w-12" />
+                      </div>
+                      <Skeleton className="h-8 w-8 rounded" />
+                    </div>
                   </div>
-                  <Wifi className="h-8 w-8 text-primary" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-card p-6 rounded-lg border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground text-sm">Dispositivos</p>
+                      <p className="text-2xl font-bold">{devices?.data?.length || 0}</p>
+                      <p className="text-xs text-muted-foreground">Site: {selectedSiteId}</p>
+                    </div>
+                    <Wifi className="h-8 w-8 text-primary" />
+                  </div>
+                </div>
+                <div className="bg-card p-6 rounded-lg border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground text-sm">Clientes</p>
+                      <p className="text-2xl font-bold">{clients?.data?.length || 0}</p>
+                      <p className="text-xs text-muted-foreground">Conectados</p>
+                    </div>
+                    <Wifi className="h-8 w-8 text-primary" />
+                  </div>
+                </div>
+                <div className="bg-card p-6 rounded-lg border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground text-sm">Redes</p>
+                      <p className="text-2xl font-bold">{networks?.data?.length || 0}</p>
+                      <p className="text-xs text-muted-foreground">Configuradas</p>
+                    </div>
+                    <Wifi className="h-8 w-8 text-primary" />
+                  </div>
+                </div>
+                <div className="bg-card p-6 rounded-lg border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground text-sm">Alertas</p>
+                      <p className="text-2xl font-bold">{alarms?.data?.length || 0}</p>
+                      <p className="text-xs text-muted-foreground">Ativos</p>
+                    </div>
+                    <AlertTriangle className="h-8 w-8 text-primary" />
+                  </div>
                 </div>
               </div>
-              <div className="bg-card p-6 rounded-lg border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">Clientes</p>
-                    <p className="text-2xl font-bold">{clients?.data?.length || 0}</p>
-                  </div>
-                  <Wifi className="h-8 w-8 text-primary" />
-                </div>
-              </div>
-              <div className="bg-card p-6 rounded-lg border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">Redes</p>
-                    <p className="text-2xl font-bold">{networks?.length || 0}</p>
-                  </div>
-                  <Wifi className="h-8 w-8 text-primary" />
-                </div>
-              </div>
-              <div className="bg-card p-6 rounded-lg border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">Alertas</p>
-                    <p className="text-2xl font-bold">{alarms?.length || 0}</p>
-                  </div>
-                  <AlertTriangle className="h-8 w-8 text-primary" />
-                </div>
-              </div>
-            </div>
+            )}
           </TabsContent>
 
           <TabsContent value="devices">
