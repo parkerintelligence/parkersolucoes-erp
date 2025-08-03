@@ -27,6 +27,7 @@ export default defineConfig(({ mode }) => ({
   define: {
     global: 'globalThis',
     'process.env.NODE_ENV': JSON.stringify(mode === 'development' ? 'development' : 'production'),
+    __REACT_DEVTOOLS_GLOBAL_HOOK__: '({ isDisabled: true })',
   },
   optimizeDeps: {
     include: [
@@ -62,6 +63,12 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       external: [],
+      output: {
+        globals: {
+          'react': 'React',
+          'react-dom': 'ReactDOM',
+        },
+      },
     },
   },
 }));
