@@ -1,10 +1,11 @@
+import * as React from "react";
 import { useState } from "react";
 import { Plus, Settings, Trash2, MoreHorizontal } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
 import { ActionBoard } from "@/components/ActionBoard";
 import { BoardDialog } from "@/components/BoardDialog";
 import { useActionPlan } from "@/hooks/useActionPlan";
@@ -115,23 +116,16 @@ export default function ActionPlan() {
                         </div>
                       </TabsTrigger>
                       
-                      {selectedBoard === board.id && <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="ml-2 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-white hover:bg-slate-600">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-slate-800 border-slate-600">
-                            <DropdownMenuItem onClick={() => handleEditBoard(board)} className="text-slate-200 hover:bg-slate-700">
-                              <Settings className="h-4 w-4 mr-2" />
-                              Editar Quadro
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteBoard(board.id)} className="text-red-400 hover:bg-slate-700 focus:text-red-400">
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Excluir Quadro
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>}
+                      {selectedBoard === board.id && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteBoard(board.id)}
+                          className="ml-2 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-white hover:bg-slate-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>;
             })}
                 
