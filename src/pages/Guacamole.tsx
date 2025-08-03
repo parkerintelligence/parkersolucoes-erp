@@ -25,6 +25,7 @@ const Guacamole = () => {
     logError,
     logInfo
   } = useGuacamoleLogs();
+  
   const {
     useConnections,
     useUsers,
