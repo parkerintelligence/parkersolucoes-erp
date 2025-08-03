@@ -20,6 +20,7 @@ interface AuthContextType {
   resetSessionTimer: () => void;
 }
 
+// SOLUÇÃO DEFINITIVA: Criar contexto SEM dependência de chunks problemáticos
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
@@ -31,13 +32,17 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  console.log('AuthProvider: Starting initialization, React available:', typeof React, !!React);
+  console.log('🔧 AuthProvider iniciando...');
   
-  if (!React || !React.useState) {
-    console.error('React or React.useState not available!');
-    return React.createElement('div', { className: "min-h-screen bg-red-500 text-white flex items-center justify-center" }, 'React Error');
+  // PROTEÇÃO TOTAL: Verificar se React está disponível
+  if (!React || typeof React.useState !== 'function') {
+    console.error('❌ React hooks não disponíveis!');
+    return React.createElement('div', { 
+      style: { padding: '20px', background: 'red', color: 'white' } 
+    }, 'Erro: React não carregado corretamente');
   }
-  
+
+  // Usar DIRETAMENTE React.useState para evitar chunks problemáticos
   const [user, setUser] = React.useState<User | null>(null);
   const [session, setSession] = React.useState<Session | null>(null);
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
@@ -244,14 +249,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-lg text-white">Inicializando sistema...</div>
-      </div>
-    );
+    return React.createElement('div', { 
+      className: "min-h-screen bg-slate-900 flex items-center justify-center" 
+    }, React.createElement('div', { 
+      className: "text-lg text-white" 
+    }, 'Inicializando sistema...'));
   }
 
-  console.log('AuthContext Estado:', { 
+  console.log('✅ AuthContext funcionando:', { 
     isAuthenticated: !!user && !!session, 
     isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
     userEmail: user?.email,
