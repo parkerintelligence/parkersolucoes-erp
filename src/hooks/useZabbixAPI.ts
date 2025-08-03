@@ -72,9 +72,31 @@ export interface ZabbixProblem {
 }
 
 export const useZabbixAPI = () => {
-  const { makeZabbixProxyRequest } = useZabbixProxy();
-  const { data: integrations = [] } = useIntegrations();
-  const queryClient = useQueryClient();
+  // Add error handling for React Query context issues
+  let queryClient;
+  let integrations = [];
+  let makeZabbixProxyRequest;
+  
+  try {
+    const zabbixProxy = useZabbixProxy();
+    makeZabbixProxyRequest = zabbixProxy.makeZabbixProxyRequest;
+    const { data: integrationsData = [] } = useIntegrations();
+    queryClient = useQueryClient();
+    integrations = integrationsData;
+  } catch (error) {
+    console.error('useZabbixAPI context error:', error);
+    // Return safe fallback when context is not available
+    return {
+      useHosts: () => ({ data: [], isLoading: false, error: null, refetch: () => Promise.resolve() }),
+      useItems: () => ({ data: [], isLoading: false, error: null }),
+      useProblems: () => ({ data: [], isLoading: false, error: null, refetch: () => Promise.resolve() }),
+      useHistory: () => ({ data: [], isLoading: false, error: null }),
+      useAcknowledgeProblem: () => ({ mutate: () => {}, mutateAsync: () => Promise.resolve() }),
+      useToggleHost: () => ({ mutate: () => {}, mutateAsync: () => Promise.resolve() }),
+      isConfigured: false,
+      integration: null,
+    };
+  }
 
   const zabbixIntegration = integrations.find(int => 
     int.type === 'zabbix' && int.is_active

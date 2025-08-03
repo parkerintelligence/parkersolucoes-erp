@@ -26,7 +26,7 @@ import Companies from '@/pages/Companies';
 import Bacula from '@/pages/Bacula';
 import ReportsDashboard from '@/pages/ReportsDashboard';
 import ActionPlan from '@/pages/ActionPlan';
-import Alertas from '@/pages/Alertas';
+import SafeAlertas from '@/pages/SafeAlertas';
 import Security from '@/pages/Security';
 import UniFi from '@/pages/UniFi';
 import { Layout } from '@/components/Layout';
@@ -47,7 +47,7 @@ function App() {
                 path="/alertas"
                 element={
                   <Layout>
-                    <Alertas />
+                    <SafeAlertas />
                   </Layout>
                 }
               />
