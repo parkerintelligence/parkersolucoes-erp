@@ -19,7 +19,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isMaster: boolean;
   isLoading: boolean;
-  resetSessionTimer: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,7 +36,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [sessionTimer, setSessionTimer] = useState<NodeJS.Timeout | null>(null);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -51,7 +49,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Erro ao buscar perfil do usuário:', error);
-        return null;
+        // Se não encontrar perfil, criar um perfil básico
+        const basicProfile = {
+          id: userId,
+          email: '',
+          role: 'user' as const
+        };
+        return basicProfile;
       }
 
       console.log('Perfil do usuário encontrado:', data);
@@ -59,30 +63,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Erro ao buscar perfil do usuário:', error);
       return null;
-    }
-  };
-
-  const startSessionTimer = () => {
-    // Limpar timer existente
-    if (sessionTimer) {
-      clearTimeout(sessionTimer);
-    }
-    
-    // Criar novo timer para 30 minutos (1800000 ms)
-    const timer = setTimeout(async () => {
-      console.log('Sessão expirada após 30 minutos, fazendo logout...');
-      await logout();
-    }, 30 * 60 * 1000);
-    
-    setSessionTimer(timer);
-    console.log('Timer de sessão iniciado: 30 minutos');
-  };
-
-  const resetSessionTimer = () => {
-    if (sessionTimer) {
-      clearTimeout(sessionTimer);
-      startSessionTimer();
-      console.log('Timer de sessão resetado');
     }
   };
 
@@ -109,20 +89,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (session?.user) {
             setSession(session);
             setUser(session.user);
-            startSessionTimer(); // Iniciar timer de sessão
             
-            // Buscar perfil do usuário
-            const profile = await fetchUserProfile(session.user.id);
-            if (profile && mounted) {
-              const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
-              const typedProfile: UserProfile = {
-                id: profile.id,
-                email: profile.email,
-                role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
-              };
-              console.log('Perfil do usuário definido:', typedProfile);
-              setUserProfile(typedProfile);
-            }
+            // Buscar perfil do usuário de forma assíncrona
+            fetchUserProfile(session.user.id).then(profile => {
+              if (profile && mounted) {
+                const isMasterEmail = session.user.email === 'contato@parkersolucoes.com.br';
+                const typedProfile: UserProfile = {
+                  id: profile.id,
+                  email: session.user.email || profile.email,
+                  role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
+                };
+                console.log('Perfil do usuário definido:', typedProfile);
+                setUserProfile(typedProfile);
+              }
+            }).catch(error => {
+              console.error('Erro ao buscar perfil:', error);
+            });
           } else {
             setSession(null);
             setUser(null);
@@ -143,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Configurar listener de mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (!mounted) return;
         
         console.log('Estado de autenticação alterado:', event, session?.user?.email || 'Logout');
@@ -151,28 +133,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           setSession(session);
           setUser(session.user);
-          startSessionTimer(); // Iniciar timer de sessão
           
-          // Buscar perfil do usuário
-          setTimeout(async () => {
-            if (!mounted) return;
-            const profile = await fetchUserProfile(session.user.id);
+          // Buscar perfil do usuário de forma assíncrona
+          fetchUserProfile(session.user.id).then(profile => {
             if (profile && mounted) {
-              const isMasterEmail = profile.email === 'contato@parkersolucoes.com.br';
+              const isMasterEmail = session.user.email === 'contato@parkersolucoes.com.br';
               const typedProfile: UserProfile = {
                 id: profile.id,
-                email: profile.email,
+                email: session.user.email || profile.email,
                 role: (isMasterEmail || profile.role === 'master') ? 'master' : 'user'
               };
               console.log('Perfil atualizado:', typedProfile);
               setUserProfile(typedProfile);
             }
-          }, 0);
+          }).catch(error => {
+            console.error('Erro ao atualizar perfil:', error);
+          });
         } else {
-          if (sessionTimer) {
-            clearTimeout(sessionTimer);
-            setSessionTimer(null);
-          }
           setSession(null);
           setUser(null);
           setUserProfile(null);
@@ -182,9 +159,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
-      if (sessionTimer) {
-        clearTimeout(sessionTimer);
-      }
       subscription.unsubscribe();
     };
   }, []);
@@ -215,11 +189,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Fazendo logout...');
       
-      if (sessionTimer) {
-        clearTimeout(sessionTimer);
-        setSessionTimer(null);
-      }
-      
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
@@ -237,18 +206,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session,
     login,
     logout,
-    isAuthenticated: !!user && !!session,
+    isAuthenticated: !!session,
     isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
-    isLoading,
-    resetSessionTimer
+    isLoading
   };
 
   console.log('AuthContext Estado:', { 
-    isAuthenticated: !!user && !!session, 
+    isAuthenticated: !!session, 
     isMaster: userProfile?.role === 'master' || user?.email === 'contato@parkersolucoes.com.br',
     userEmail: user?.email,
     userRole: userProfile?.role,
-    isLoading
+    isLoading,
+    hasSession: !!session
   });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

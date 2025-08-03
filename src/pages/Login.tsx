@@ -44,27 +44,32 @@ const Login = () => {
     setIsLoading(true);
     
     try {
+      console.log('Iniciando processo de login...');
       const success = await login(email, password);
+      
       if (success) {
+        console.log('Login bem-sucedido, aguardando redirecionamento...');
         toast({
           title: "Login realizado com sucesso!",
-          description: "Redirecionando para o dashboard...",
+          description: "Redirecionando para o sistema...",
         });
-        // O redirecionamento será feito pelo useEffect
+        // O redirecionamento será feito pelo useEffect quando isAuthenticated mudar
       } else {
+        console.log('Falha no login');
         toast({
           title: "Erro no login",
           description: "Email ou senha incorretos. Verifique suas credenciais.",
           variant: "destructive",
         });
+        setIsLoading(false);
       }
     } catch (error) {
+      console.error('Erro durante o login:', error);
       toast({
         title: "Erro no login",
         description: "Ocorreu um erro inesperado. Tente novamente.",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
