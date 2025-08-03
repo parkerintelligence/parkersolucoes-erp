@@ -19,7 +19,10 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "react": path.resolve(__dirname, "./node_modules/react"),
+      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
+    dedupe: ["react", "react-dom"],
   },
   define: {
     global: 'globalThis',
@@ -31,12 +34,13 @@ export default defineConfig(({ mode }) => ({
       'react/jsx-runtime',
       'react', 
       'react-dom',
-    ],
-    exclude: [
       '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-dialog',
+      '@radix-ui/react-dialog', 
       '@radix-ui/react-tabs',
-    ]
+      '@radix-ui/react-select',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-tooltip',
+    ],
   },
   build: {
     rollupOptions: {
