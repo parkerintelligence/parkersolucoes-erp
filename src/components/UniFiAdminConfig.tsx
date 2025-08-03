@@ -291,42 +291,55 @@ const UniFiAdminConfig = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="base_url" className="text-white">URL da Controladora *</Label>
+                    <Label htmlFor="base_url" className="text-white">URL da Controladora</Label>
                     <Input
                       id="base_url"
                       value={formData.base_url}
                       onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
-                      placeholder="https://192.168.1.1:8443 ou https://unifi.empresa.com:8443"
-                      required
+                      placeholder="https://192.168.1.1:8443 ou deixe vazio para Site Manager API"
                       className="bg-slate-700 border-slate-600 text-white"
                     />
                     <p className="text-xs text-slate-400 mt-1">
-                      URL completa da sua controladora UniFi local (incluindo porta se diferente de 8443)
+                      Para controladora local: URL completa (ex: https://192.168.1.1:8443)<br/>
+                      Para Site Manager API: deixe vazio e use apenas API Token
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="api_token" className="text-white">API Token (Site Manager)</Label>
+                    <Input
+                      id="api_token"
+                      type="password"
+                      value={formData.api_token}
+                      onChange={(e) => setFormData({ ...formData, api_token: e.target.value })}
+                      placeholder="Token da UniFi Site Manager API"
+                      className="bg-slate-700 border-slate-600 text-white"
+                    />
+                    <p className="text-xs text-slate-400 mt-1">
+                      Token gerado em <a href="https://unifi.ui.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">unifi.ui.com</a> → API
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="username" className="text-white">Usuário *</Label>
+                      <Label htmlFor="username" className="text-white">Usuário (Controladora Local)</Label>
                       <Input
                         id="username"
                         value={formData.username}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                         placeholder="admin"
-                        required
                         className="bg-slate-700 border-slate-600 text-white"
                       />
                     </div>
                     
                     <div>
-                      <Label htmlFor="password" className="text-white">Senha *</Label>
+                      <Label htmlFor="password" className="text-white">Senha (Controladora Local)</Label>
                       <Input
                         id="password"
                         type="password"
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                         placeholder="••••••••"
-                        required
                         className="bg-slate-700 border-slate-600 text-white"
                       />
                     </div>
@@ -346,12 +359,11 @@ const UniFiAdminConfig = () => {
                    <Alert className="border-blue-500 bg-blue-500/10 mb-4">
                      <Wifi className="h-4 w-4" />
                      <AlertDescription className="text-white">
-                       <strong>Controladora UniFi Local:</strong><br />
-                       • Acesso direto à sua controladora UniFi<br />
-                       • Mais rápido e confiável (rede local)<br />
-                       • Funciona mesmo sem internet<br />
-                       • Suporta certificados auto-assinados<br />
-                       • Use as credenciais do admin da controladora
+                       <strong>Duas opções de integração:</strong><br />
+                       <strong>1. Controladora Local:</strong> URL + usuário/senha (mais rápido, rede local)<br />
+                       <strong>2. Site Manager API:</strong> API Token (gerencia múltiplas controladoras na nuvem)<br />
+                       <br />
+                       O sistema detecta automaticamente qual usar baseado nos campos preenchidos.
                      </AlertDescription>
                    </Alert>
 

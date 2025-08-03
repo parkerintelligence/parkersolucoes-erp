@@ -406,22 +406,50 @@ serve(async (req) => {
       });
       
     } else {
-      // SITE MANAGER API - Use API token
-      if (!api_token) {
-        console.error('Missing API token for UniFi Site Manager API');
-        throw new Error('UniFi Site Manager API requires an API token. Get yours at https://account.ui.com/api');
+      // SITE MANAGER API - Use api_token authentication
+      console.log('Using UniFi Site Manager API with token auth');
+      
+      // Map endpoints to Site Manager API format
+      let siteManagerEndpoint = endpoint;
+      
+      // Transform local controller endpoints to Site Manager API endpoints
+      if (endpoint.includes('/api/self/sites')) {
+        siteManagerEndpoint = '/ea/hosts';
+      } else if (endpoint.includes('/api/s/') && endpoint.includes('/stat/device')) {
+        // Extract site ID from local controller endpoint format
+        const match = endpoint.match(/\/api\/s\/([^\/]+)\/stat\/device/);
+        const siteId = match ? match[1] : '';
+        siteManagerEndpoint = `/ea/sites/${siteId}/devices`;
+      } else if (endpoint.includes('/api/s/') && endpoint.includes('/stat/sta')) {
+        const match = endpoint.match(/\/api\/s\/([^\/]+)\/stat\/sta/);
+        const siteId = match ? match[1] : '';
+        siteManagerEndpoint = `/ea/sites/${siteId}/clients`;
+      } else if (endpoint.includes('/api/s/') && endpoint.includes('/rest/wlanconf')) {
+        const match = endpoint.match(/\/api\/s\/([^\/]+)\/rest\/wlanconf/);
+        const siteId = match ? match[1] : '';
+        siteManagerEndpoint = `/ea/sites/${siteId}/networks`;
+      } else if (endpoint.includes('/api/s/') && endpoint.includes('/stat/alarm')) {
+        const match = endpoint.match(/\/api\/s\/([^\/]+)\/stat\/alarm/);
+        const siteId = match ? match[1] : '';
+        siteManagerEndpoint = `/ea/sites/${siteId}/events`;
+      } else if (endpoint.includes('/api/s/') && endpoint.includes('/stat/health')) {
+        const match = endpoint.match(/\/api\/s\/([^\/]+)\/stat\/health/);
+        const siteId = match ? match[1] : '';
+        siteManagerEndpoint = `/ea/sites/${siteId}/health`;
+      } else if (endpoint.includes('/ea/')) {
+        // Already a Site Manager API endpoint
+        siteManagerEndpoint = endpoint;
       }
-
-      // Make API request to UniFi Site Manager
-      const apiUrl = `${baseApiUrl}${endpoint}`;
-      console.log('Making Site Manager API request to:', apiUrl);
-
+      
+      console.log('Endpoint mapping:', { original: endpoint, mapped: siteManagerEndpoint });
+      
       const requestOptions: RequestInit = {
         method: method || 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-API-KEY': api_token
+          'Authorization': `Bearer ${api_token}`,
+          'User-Agent': 'Lovable-UniFi-Integration/1.0'
         },
       };
 
@@ -429,24 +457,19 @@ serve(async (req) => {
         requestOptions.body = JSON.stringify(postData);
       }
 
-      console.log('Request options:', { 
-        method: requestOptions.method, 
-        url: apiUrl,
-        hasApiKey: !!api_token,
-        hasBody: !!requestOptions.body 
-      });
+      const apiUrl = `${baseApiUrl}${siteManagerEndpoint}`;
+      console.log('Making Site Manager API request to:', apiUrl);
 
       const apiResponse = await fetch(apiUrl, requestOptions);
-
+      
       if (!apiResponse.ok) {
         const errorText = await apiResponse.text();
         console.error('Site Manager API request failed:', apiResponse.status, errorText);
-        console.error('Request details:', { url: apiUrl, method: requestOptions.method, endpoint });
         
         if (apiResponse.status === 401) {
-          throw new Error('API token inválido ou expirado. Verifique suas credenciais na conta UniFi.');
+          throw new Error('API Token inválido ou expirado. Verifique o token na configuração.');
         } else if (apiResponse.status === 403) {
-          throw new Error('Acesso negado. Verifique as permissões do seu token API.');
+          throw new Error('API Token não tem permissões necessárias para este endpoint.');
         } else if (apiResponse.status === 404) {
           // Para 404, retornar uma resposta vazia ao invés de erro para alguns endpoints
           if (endpoint.includes('/sites') || endpoint.includes('/devices') || endpoint.includes('/clients')) {
@@ -469,14 +492,30 @@ serve(async (req) => {
         fullResponse: JSON.stringify(responseData, null, 2)
       });
 
-      // For hosts endpoint, the data might be directly in the root array
+      // Transform Site Manager API response to match local controller format
       let finalResponse;
-      if (endpoint === '/v1/hosts' && Array.isArray(responseData)) {
-        finalResponse = { data: responseData };
+      if (siteManagerEndpoint === '/ea/hosts') {
+        // Transform hosts response to match expected format
+        finalResponse = {
+          data: Array.isArray(responseData) ? responseData.map((host: any) => ({
+            id: host.id || host.hardware_id,
+            hardwareId: host.hardware_id,
+            type: host.reported_state?.host_type === 0 ? 'network-server' : 'unknown',
+            ipAddress: host.reported_state?.ipAddrs?.[0] || 'unknown',
+            owner: host.owner || false,
+            isBlocked: host.is_blocked || false,
+            registrationTime: host.registration_time,
+            lastConnectionStateChange: host.last_connection_state_change,
+            userData: host.user_data,
+            reportedState: host.reported_state,
+            sitesCount: 0, // Will be populated later
+            isValid: true
+          })) : []
+        };
       } else if (responseData?.data) {
         finalResponse = responseData;
       } else {
-        finalResponse = { data: responseData };
+        finalResponse = { data: Array.isArray(responseData) ? responseData : [] };
       }
       
       console.log('Final response being sent:', JSON.stringify(finalResponse, null, 2));

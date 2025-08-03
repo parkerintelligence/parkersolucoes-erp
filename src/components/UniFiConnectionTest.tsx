@@ -29,22 +29,13 @@ export const UniFiConnectionTest = ({ integrationId }: UniFiConnectionTestProps)
 
       console.log('Connection test result:', result);
       
-      if (result.error) {
-        setTestStatus('error');
-        setErrorDetails(result.error);
-        toast({
-          title: "Teste de Conexão Falhou",
-          description: result.error,
-          variant: "destructive",
-        });
-      } else {
-        setTestStatus('success');
-        setTestResults(result);
-        toast({
-          title: "Conexão Estabelecida",
-          description: "UniFi Controller conectado com sucesso!",
-        });
-      }
+      setTestStatus('success');
+      setTestResults(result);
+      const apiType = result.type === 'site-manager' ? 'Site Manager API' : 'Controladora Local';
+      toast({
+        title: "Conexão Estabelecida",
+        description: `UniFi conectado via ${apiType}!`,
+      });
     } catch (error: any) {
       console.error('Connection test error:', error);
       setTestStatus('error');

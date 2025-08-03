@@ -146,80 +146,92 @@ export const useUniFiAPI = () => {
     }
   };
 
-  // Enhanced Hosts - buscar controladoras disponíveis com validação e sites
+  // Enhanced Hosts - buscar controladoras disponíveis (local e Site Manager API)
   const useUniFiHosts = (integrationId: string) => {
     return useQuery({
       queryKey: ['unifi-hosts', integrationId],
       queryFn: async () => {
         try {
-          const response = await makeUniFiRequest('/api/self/sites', 'GET', integrationId);
-          console.log('Sites response from local controller:', response);
+          // Try Site Manager API first (/ea/hosts), fallback to local controller
+          const response = await makeUniFiRequest('/ea/hosts', 'GET', integrationId);
+          console.log('Hosts response:', response);
           
-          let sites = [];
-          if (response?.data && Array.isArray(response.data)) {
-            sites = response.data;
-          } else if (Array.isArray(response)) {
-            sites = response;
+          if (response?.data && Array.isArray(response.data) && response.data.length > 0) {
+            // Site Manager API response
+            console.log('Using Site Manager API hosts');
+            return response.data.map((host: any) => ({
+              ...host,
+              sitesCount: 0, // Will be populated by sites query
+              isValid: true
+            }));
           } else {
-            console.warn('Unexpected sites response structure:', response);
-            return [];
-          }
+            // Fallback to local controller approach
+            console.log('Falling back to local controller approach');
+            const sitesResponse = await makeUniFiRequest('/api/self/sites', 'GET', integrationId);
+            
+            let sites = [];
+            if (sitesResponse?.data && Array.isArray(sitesResponse.data)) {
+              sites = sitesResponse.data;
+            } else if (Array.isArray(sitesResponse)) {
+              sites = sitesResponse;
+            }
 
-          // For local controller, we create a virtual host representing the controller itself
-          const virtualHost = {
-            id: 'local-controller',
-            hardwareId: 'local-controller',
-            type: 'network-server',
-            ipAddress: 'local',
-            owner: true,
-            isBlocked: false,
-            registrationTime: new Date().toISOString(),
-            lastConnectionStateChange: new Date().toISOString(),
-            latestBackupTime: '',
-            userData: {
-              permissions: {
-                'network.management': ['admin']
+            // For local controller, create a virtual host
+            const virtualHost = {
+              id: 'local-controller',
+              hardwareId: 'local-controller',
+              type: 'network-server',
+              ipAddress: 'local',
+              owner: true,
+              isBlocked: false,
+              registrationTime: new Date().toISOString(),
+              lastConnectionStateChange: new Date().toISOString(),
+              userData: {
+                permissions: {
+                  'network.management': ['admin']
+                },
+                status: 'ACTIVE'
               },
-              status: 'ACTIVE'
-            },
-            reportedState: {
-              controller_uuid: 'local-controller',
-              firmware_version: null,
-              hardware_id: 'local-controller',
-              host_type: 0,
-              hostname: 'Local UniFi Controller',
-              inform_port: 8080,
-              ipAddrs: ['local'],
-              mgmt_port: 8443,
-              name: 'UniFi Network',
-              override_inform_host: false,
-              release_channel: 'release',
-              state: 'connected',
-              version: 'local'
-            },
-            sitesCount: sites.length,
-            isValid: sites.length > 0,
-            sites: sites // Cache sites data for faster loading
-          };
+              reportedState: {
+                controller_uuid: 'local-controller',
+                firmware_version: null,
+                hardware_id: 'local-controller',
+                host_type: 0,
+                hostname: 'Local UniFi Controller',
+                inform_port: 8080,
+                ipAddrs: ['local'],
+                mgmt_port: 8443,
+                name: 'UniFi Network',
+                override_inform_host: false,
+                release_channel: 'release',
+                state: 'connected',
+                version: 'local'
+              },
+              sitesCount: sites.length,
+              isValid: sites.length > 0,
+              sites: sites // Cache sites data
+            };
 
-          console.log('Virtual host with sites:', [virtualHost]);
-          return [virtualHost];
+            return [virtualHost];
+          }
         } catch (error) {
           console.error('Failed to fetch hosts:', error);
           return [];
         }
       },
       enabled: !!integrationId,
-      staleTime: 2 * 60000, // 2 minutes for cached sites data
+      staleTime: 2 * 60000, // 2 minutes
       retry: 2,
     });
   };
 
-  // Sites - optimized with host cache
+  // Sites - fetching sites for a specific host (Site Manager API or local controller)
   const useUniFiSites = (integrationId: string, hostId?: string) => {
     return useQuery({
       queryKey: ['unifi-sites', integrationId, hostId],
       queryFn: async () => {
+        if (!hostId) return { data: [] };
+        
         // First try to get cached sites from hosts data
         const hostData = queryClient.getQueryData(['unifi-hosts', integrationId]) as UniFiHost[];
         const host = hostData?.find(h => h.id === hostId);
@@ -229,7 +241,19 @@ export const useUniFiAPI = () => {
           return { data: host.sites };
         }
 
-        // Fallback to API call if no cached data - use same endpoint as hosts
+        try {
+          // Try Site Manager API endpoint first
+          const siteManagerResponse = await makeUniFiRequest(`/ea/hosts/${hostId}/sites`, 'GET', integrationId);
+          
+          if (siteManagerResponse?.data && Array.isArray(siteManagerResponse.data) && siteManagerResponse.data.length > 0) {
+            console.log('Using Site Manager API sites');
+            return siteManagerResponse;
+          }
+        } catch (error) {
+          console.log('Site Manager API sites failed, trying local controller approach');
+        }
+
+        // Fallback to local controller endpoint
         return makeUniFiRequest('/api/self/sites', 'GET', integrationId);
       },
       enabled: !!integrationId && !!hostId,
@@ -400,26 +424,80 @@ export const useUniFiAPI = () => {
     },
   });
 
-  // Test connection
+  // Test connection - try both Site Manager API and local controller
   const testUniFiConnection = useMutation({
     mutationFn: async (integrationId: string) => {
-      return makeUniFiRequest('/api/self/sites', 'GET', integrationId);
+      try {
+        // Try Site Manager API first
+        const siteManagerTest = await makeUniFiRequest('/ea/hosts', 'GET', integrationId);
+        if (siteManagerTest?.data && Array.isArray(siteManagerTest.data)) {
+          return { type: 'site-manager', response: siteManagerTest };
+        }
+      } catch (error) {
+        console.log('Site Manager API test failed, trying local controller');
+      }
+      
+      // Fallback to local controller
+      const localTest = await makeUniFiRequest('/api/self/sites', 'GET', integrationId);
+      return { type: 'local-controller', response: localTest };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      const apiType = result.type === 'site-manager' ? 'Site Manager API' : 'Controladora Local';
       toast({
         title: "Conexão realizada com sucesso",
-        description: "A conexão com o UniFi Controller foi estabelecida.",
+        description: `Conectado via ${apiType}.`,
       });
     },
     onError: (error: Error) => {
       console.error('UniFi connection test failed:', error);
       toast({
         title: "Erro na conexão",
-        description: error.message || "Falha ao conectar com o UniFi Controller.",
+        description: error.message || "Falha ao conectar com UniFi (Site Manager API e Controladora Local).",
         variant: "destructive",
       });
     },
   });
+
+  // Site Manager API specific hooks
+  const useUniFiSiteManagerHosts = (integrationId: string) => {
+    return useQuery({
+      queryKey: ['unifi-site-manager-hosts', integrationId],
+      queryFn: () => makeUniFiRequest('/ea/hosts', 'GET', integrationId),
+      enabled: !!integrationId,
+      staleTime: 5 * 60000, // 5 minutes
+      retry: 2,
+    });
+  };
+
+  const useUniFiSiteManagerSites = (integrationId: string, hostId?: string) => {
+    return useQuery({
+      queryKey: ['unifi-site-manager-sites', integrationId, hostId],
+      queryFn: () => makeUniFiRequest(`/ea/hosts/${hostId}/sites`, 'GET', integrationId),
+      enabled: !!integrationId && !!hostId,
+      staleTime: 2 * 60000, // 2 minutes
+      retry: 2,
+    });
+  };
+
+  const useUniFiSiteManagerDevices = (integrationId: string, siteId?: string) => {
+    return useQuery({
+      queryKey: ['unifi-site-manager-devices', integrationId, siteId],
+      queryFn: () => makeUniFiRequest(`/ea/sites/${siteId}/devices`, 'GET', integrationId),
+      enabled: !!integrationId && !!siteId,
+      staleTime: 30000, // 30 seconds
+      retry: 2,
+    });
+  };
+
+  const useUniFiSiteManagerClients = (integrationId: string, siteId?: string) => {
+    return useQuery({
+      queryKey: ['unifi-site-manager-clients', integrationId, siteId],
+      queryFn: () => makeUniFiRequest(`/ea/sites/${siteId}/clients`, 'GET', integrationId),
+      enabled: !!integrationId && !!siteId,
+      staleTime: 30000, // 30 seconds
+      retry: 2,
+    });
+  };
 
   const refreshData = (integrationId: string, hostId?: string, siteId?: string) => {
     queryClient.invalidateQueries({ queryKey: ['unifi-hosts', integrationId] });
@@ -433,6 +511,7 @@ export const useUniFiAPI = () => {
   };
 
   return {
+    // Hybrid hooks (work with both APIs)
     useUniFiHosts,
     useUniFiSites,
     useUniFiDevices,
@@ -441,6 +520,12 @@ export const useUniFiAPI = () => {
     useUniFiAlarms,
     useUniFiHealth,
     useUniFiStats,
+    // Site Manager API specific hooks
+    useUniFiSiteManagerHosts,
+    useUniFiSiteManagerSites,
+    useUniFiSiteManagerDevices,
+    useUniFiSiteManagerClients,
+    // Mutations
     restartDevice,
     toggleClientBlock,
     testUniFiConnection,
