@@ -728,7 +728,76 @@ export const useUniFiAPI = () => {
     queryClient.invalidateQueries({ queryKey: ['unifi-stats', integrationId, hostId, siteId] });
   };
 
-  // Site Groups query - group sites by logical categories
+  // Direct Sites query - fetch all available sites from multiple endpoints
+  const useUniFiAllSites = (integrationId: string) => {
+    return useQuery({
+      queryKey: ['unifi-all-sites', integrationId],
+      queryFn: async () => {
+        if (!integrationId) return [];
+        
+        console.log('Fetching all UniFi sites directly for integration:', integrationId);
+        
+        const allSites: (UniFiSite & { sourceType: string, sourceEndpoint: string })[] = [];
+        
+        // Try multiple endpoints to find sites
+        const endpoints = [
+          { path: '/ea/sites', type: 'Site Manager EA' },
+          { path: '/v1/sites', type: 'Site Manager V1' },
+          { path: '/api/self/sites', type: 'Local Controller Self' },
+          { path: '/api/sites', type: 'Local Controller' }
+        ];
+        
+        for (const endpoint of endpoints) {
+          try {
+            console.log(`Trying endpoint: ${endpoint.path} (${endpoint.type})`);
+            
+            const sitesData = await makeUniFiRequest(
+              endpoint.path,
+              'GET',
+              integrationId
+            );
+            
+            let sites = [];
+            if (sitesData?.data && Array.isArray(sitesData.data)) {
+              sites = sitesData.data;
+            } else if (Array.isArray(sitesData)) {
+              sites = sitesData;
+            }
+            
+            if (sites.length > 0) {
+              console.log(`Found ${sites.length} sites from ${endpoint.type}`);
+              
+              // Add source information to each site
+              const sitesWithSource = sites.map(site => ({
+                ...site,
+                sourceType: endpoint.type,
+                sourceEndpoint: endpoint.path
+              }));
+              
+              allSites.push(...sitesWithSource);
+            }
+          } catch (error) {
+            console.log(`Endpoint ${endpoint.path} failed:`, error);
+          }
+        }
+        
+        // Remove duplicates based on site ID
+        const uniqueSites = allSites.filter((site, index, self) =>
+          index === self.findIndex(s => s.id === site.id)
+        );
+        
+        console.log(`Total unique sites found: ${uniqueSites.length}`);
+        console.log('Sites:', uniqueSites);
+        
+        return uniqueSites;
+      },
+      enabled: !!integrationId,
+      staleTime: 2 * 60 * 1000, // 2 minutes
+      retry: 2
+    });
+  };
+
+  // Site Groups query - group sites by logical categories (DEPRECATED - use useUniFiAllSites)
   const useUniFiSiteGroups = (integrationId: string) => {
     const hostsQuery = useUniFiHosts(integrationId);
     
@@ -807,6 +876,7 @@ export const useUniFiAPI = () => {
     useUniFiHosts,
     useUniFiSites,
     useUniFiSiteGroups,
+    useUniFiAllSites, // NEW: Direct site fetching
     useUniFiDevices,
     useUniFiClients,
     useUniFiNetworks,
