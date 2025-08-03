@@ -41,7 +41,7 @@ export const ScheduledReportsPanel = () => {
 
   const handleToggleActive = async (report: ScheduledReport) => {
     try {
-      await toggleActive.mutateAsync({ id: report.id, is_active: report.is_active });
+      await toggleActive.mutateAsync({ id: report.id, is_active: !report.is_active });
     } catch (error: any) {
       toast({
         title: "Erro ao alterar status",
