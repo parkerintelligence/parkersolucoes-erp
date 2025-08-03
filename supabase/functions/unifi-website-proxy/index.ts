@@ -68,7 +68,6 @@ serve(async (req) => {
     console.log('UniFi URL found:', unifiUrl);
 
     // Parse request to get the path to proxy
-    const url = new URL(req.url);
     const proxyPath = url.searchParams.get('path') || '/';
     const targetUrl = unifiUrl.replace(/\/+$/, '') + proxyPath;
     
