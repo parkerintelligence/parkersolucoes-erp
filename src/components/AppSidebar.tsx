@@ -79,7 +79,7 @@ const menuItems = [{
   icon: ShieldCheck,
   role: 'user'
 }, {
-  title: 'Controladora UniFi',
+  title: 'UniFi',
   url: '/unifi',
   icon: Wifi,
   role: 'user'
