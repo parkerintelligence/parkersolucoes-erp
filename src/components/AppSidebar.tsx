@@ -2,6 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, ShieldCheck, Wifi } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar } from '@/components/ui/sidebar';
+import { useSystemSettings } from '@/hooks/useSystemSettings';
 const menuItems = [{
   title: 'Alertas',
   url: '/alertas',
@@ -102,13 +103,31 @@ export function AppSidebar() {
   } = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
+  const { data: companyLogoSettings } = useSystemSettings('branding');
+  
   const isActive = (path: string) => currentPath === path;
   const isCollapsed = state === 'collapsed';
   const filteredMainItems = menuItems.filter(item => item.role === 'user' || item.role === 'master' && isMaster);
+  
+  const companyLogo = companyLogoSettings?.find(setting => setting.setting_key === 'company_logo_url')?.setting_value;
+  const companyName = companyLogoSettings?.find(setting => setting.setting_key === 'company_name')?.setting_value;
   return <Sidebar className="border-r border-primary-foreground/20 bg-slate-900" collapsible="icon">
       <SidebarHeader className="p-2 sm:p-4 border-b border-primary-foreground/20 bg-slate-900">
         <div className="flex items-center justify-center">
-          
+          {companyLogo ? (
+            <img 
+              src={companyLogo} 
+              alt={companyName || "Logo"} 
+              className={`object-contain ${isCollapsed ? 'h-8 w-8' : 'h-12 w-auto max-w-full'} transition-all duration-200`}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          ) : companyName && !isCollapsed ? (
+            <h2 className="text-white font-semibold text-sm sm:text-base text-center truncate">
+              {companyName}
+            </h2>
+          ) : null}
         </div>
       </SidebarHeader>
 
