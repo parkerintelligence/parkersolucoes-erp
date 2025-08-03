@@ -63,6 +63,9 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       external: [],
       output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+        },
         globals: {
           'react': 'React',
           'react-dom': 'ReactDOM',

@@ -3,18 +3,18 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
-// Ensure React is globally available for all components
-(globalThis as any).React = React;
-(window as any).React = React;
+// Force React to be available before any other modules load
+Object.defineProperty(window, 'React', { value: React, writable: false });
+Object.defineProperty(globalThis, 'React', { value: React, writable: false });
 
-// Ensure React hooks are available
-const hooks = ['useState', 'useEffect', 'useContext', 'useMemo', 'useCallback', 'useRef'];
-hooks.forEach(hook => {
-  (globalThis as any)[hook] = (React as any)[hook];
+// Force all React hooks to be available globally
+const reactHooks = Object.keys(React).filter(key => key.startsWith('use'));
+reactHooks.forEach(hook => {
   (window as any)[hook] = (React as any)[hook];
+  (globalThis as any)[hook] = (React as any)[hook];
 });
 
-console.log('React loaded:', !!React, 'React hooks available:', !!React.useState);
+console.log('React globally initialized:', !!window.React, 'Hooks available:', reactHooks.length);
 
 const root = createRoot(document.getElementById("root")!)
 root.render(
