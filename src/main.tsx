@@ -3,9 +3,10 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
+// Ensure React is globally available
+window.React = React;
+
 const root = createRoot(document.getElementById("root")!)
 root.render(
-  React.createElement(React.StrictMode, null,
-    React.createElement(App)
-  )
+  React.createElement(React.StrictMode, null, React.createElement(App))
 );
