@@ -3,18 +3,28 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
-// Force React to be available before any other modules load
-Object.defineProperty(window, 'React', { value: React, writable: false });
-Object.defineProperty(globalThis, 'React', { value: React, writable: false });
+// CRITICAL: Initialize React IMMEDIATELY before any other code
+const initializeReact = () => {
+  if ((window as any).__REACT_INITIALIZED__) return;
+  
+  // Force React to be available globally with all hooks
+  (window as any).React = React;
+  (globalThis as any).React = React;
+  
+  // Export all React hooks individually  
+  Object.keys(React).forEach(key => {
+    if (key.startsWith('use') || key === 'createElement' || key === 'Component') {
+      (window as any)[key] = (React as any)[key];
+      (globalThis as any)[key] = (React as any)[key];
+    }
+  });
+  
+  (window as any).__REACT_INITIALIZED__ = true;
+  console.log('React force-initialized globally');
+};
 
-// Force all React hooks to be available globally
-const reactHooks = Object.keys(React).filter(key => key.startsWith('use'));
-reactHooks.forEach(hook => {
-  (window as any)[hook] = (React as any)[hook];
-  (globalThis as any)[hook] = (React as any)[hook];
-});
-
-console.log('React globally initialized:', !!window.React, 'Hooks available:', reactHooks.length);
+// Initialize React FIRST
+initializeReact();
 
 const root = createRoot(document.getElementById("root")!)
 root.render(

@@ -31,6 +31,11 @@
   </head>
 
   <body>
+    <script>
+      // Pre-initialize React globals to prevent null reference errors
+      window.__REACT_INITIALIZED__ = false;
+      window.__REACT_ERROR__ = null;
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
