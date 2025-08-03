@@ -20,9 +20,12 @@ import {
   BarChart3,
 } from 'lucide-react';
 import {
-  SafeDropdownMenu,
+  DropdownMenu,
+  DropdownMenuContent,
   DropdownMenuItem,
-} from '@/components/SafeDropdownMenu';
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 
 const menuItems = [
@@ -53,7 +56,7 @@ const adminItems = [
 ];
 
 export const HorizontalNav = () => {
-  const { isMaster, user, isLoading } = useAuth();
+  const { isMaster } = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
 
@@ -95,12 +98,10 @@ export const HorizontalNav = () => {
               </NavLink>
             ))}
 
-            {/* Menu Financeiro (Dropdown) - Only render when user is loaded */}
-            {!isLoading && user && filteredFinancialItems.length > 0 && (
-              <SafeDropdownMenu
-                align="start"
-                className="nav-dropdown w-48"
-                trigger={
+            {/* Menu Financeiro (Dropdown) */}
+            {filteredFinancialItems.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button 
                     variant="ghost" 
                     className={`nav-card ${getFinancialActive() ? 'nav-card-active' : ''} flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200`}
@@ -109,17 +110,18 @@ export const HorizontalNav = () => {
                     <span className="hidden sm:inline whitespace-nowrap">Financeiro</span>
                     <ChevronDown className="h-3 w-3 ml-1" />
                   </Button>
-                }
-              >
-                {filteredFinancialItems.map((item) => (
-                  <DropdownMenuItem key={item.title} asChild>
-                    <NavLink to={item.url} className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-lg hover:bg-secondary/10 transition-colors">
-                      <item.icon className="h-4 w-4" />
-                      {item.title}
-                    </NavLink>
-                  </DropdownMenuItem>
-                ))}
-              </SafeDropdownMenu>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="nav-dropdown w-48">
+                  {filteredFinancialItems.map((item) => (
+                    <DropdownMenuItem key={item.title} asChild>
+                      <NavLink to={item.url} className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-lg hover:bg-secondary/10 transition-colors">
+                        <item.icon className="h-4 w-4" />
+                        {item.title}
+                      </NavLink>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </div>

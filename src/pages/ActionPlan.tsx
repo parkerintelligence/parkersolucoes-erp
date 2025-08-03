@@ -4,17 +4,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-// import { SafeDropdownMenu, DropdownMenuItem } from "@/components/SafeDropdownMenu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ActionBoard } from "@/components/ActionBoard";
 import { BoardDialog } from "@/components/BoardDialog";
 import { useActionPlan } from "@/hooks/useActionPlan";
-import { useAuth } from "@/contexts/AuthContext";
-
 export default function ActionPlan() {
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
   const [isEditBoardOpen, setIsEditBoardOpen] = useState(false);
   const [editingBoard, setEditingBoard] = useState<any>(null);
-  const { user, isLoading: authLoading } = useAuth();
   const {
     boards,
     columns,
@@ -118,18 +115,23 @@ export default function ActionPlan() {
                         </div>
                       </TabsTrigger>
                       
-                      {!authLoading && user && selectedBoard === board.id && (
-                        <div className="relative ml-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-white hover:bg-slate-600"
-                            onClick={() => handleEditBoard(board)}
-                          >
-                            <Settings className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
+                      {selectedBoard === board.id && <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="ml-2 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-white hover:bg-slate-600">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-slate-800 border-slate-600">
+                            <DropdownMenuItem onClick={() => handleEditBoard(board)} className="text-slate-200 hover:bg-slate-700">
+                              <Settings className="h-4 w-4 mr-2" />
+                              Editar Quadro
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeleteBoard(board.id)} className="text-red-400 hover:bg-slate-700 focus:text-red-400">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir Quadro
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>}
                     </div>;
             })}
                 

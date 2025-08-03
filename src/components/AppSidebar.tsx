@@ -1,6 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSystemSetting } from '@/hooks/useSystemSettings';
 import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, ShieldCheck, Wifi } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar } from '@/components/ui/sidebar';
 const menuItems = [{
@@ -88,11 +87,6 @@ const menuItems = [{
   url: '/dashboard',
   icon: LayoutDashboard,
   role: 'user'
-}, {
-  title: 'Admin',
-  url: '/admin',
-  icon: Settings,
-  role: 'master'
 }];
 export function AppSidebar() {
   const {
@@ -101,7 +95,6 @@ export function AppSidebar() {
   const {
     isMaster
   } = useAuth();
-  const { data: logoSetting } = useSystemSetting('company_logo_url');
   const location = useLocation();
   const currentPath = location.pathname;
   const isActive = (path: string) => currentPath === path;
@@ -110,20 +103,7 @@ export function AppSidebar() {
   return <Sidebar className="border-r border-primary-foreground/20 bg-slate-900" collapsible="icon">
       <SidebarHeader className="p-2 sm:p-4 border-b border-primary-foreground/20 bg-slate-900">
         <div className="flex items-center justify-center">
-          {logoSetting?.setting_value && (
-            <img 
-              src={logoSetting.setting_value} 
-              alt="Logo da empresa"
-              className={`transition-all duration-300 ${
-                isCollapsed 
-                  ? 'h-6 w-6 sm:h-8 sm:w-8' 
-                  : 'h-8 w-auto max-w-[120px] sm:h-10 sm:max-w-[150px]'
-              }`}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          )}
+          
         </div>
       </SidebarHeader>
 

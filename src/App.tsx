@@ -1,5 +1,5 @@
 
-import React, { Suspense } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -30,28 +30,17 @@ import Alertas from '@/pages/Alertas';
 import Security from '@/pages/Security';
 import UniFi from '@/pages/UniFi';
 import { Layout } from '@/components/Layout';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-// Create a single QueryClient instance with better error handling
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      refetchOnWindowFocus: false,
-      staleTime: 1000 * 60 * 5, // 5 minutes
-    },
-  },
-});
+// Create a single QueryClient instance
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <ErrorBoundary>
+    <AuthProvider>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <BrowserRouter>
-            <div className="min-h-screen bg-background">
-              <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-lg text-gray-600">Carregando sistema...</div></div>}>
-              <Routes>
+        <BrowserRouter>
+          <div className="min-h-screen bg-background">
+            <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
               <Route
@@ -254,13 +243,11 @@ function App() {
                   </Layout>
                 } 
               />
-              </Routes>
-            </Suspense>
+            </Routes>
           </div>
         </BrowserRouter>
-      </AuthProvider>
-    </QueryClientProvider>
-    </ErrorBoundary>
+      </QueryClientProvider>
+    </AuthProvider>
   );
 }
 

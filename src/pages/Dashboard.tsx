@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SafeHostingerDashboard } from '@/components/SafeHostingerDashboard';
+import { HostingerDashboard } from '@/components/HostingerDashboard';
 import { BaculaDashboard } from '@/components/BaculaDashboard';
 import { BarChart3, Users, DollarSign, FileText, Calendar, TrendingUp, Server, Archive, Activity, Database, Shield } from 'lucide-react';
 const Dashboard = () => {
@@ -66,7 +66,7 @@ const Dashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <SafeHostingerDashboard />
+                <HostingerDashboard />
               </CardContent>
             </Card>
           </TabsContent>
