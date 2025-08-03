@@ -287,51 +287,59 @@ const useHostingerActions = () => {
     }) => {
       console.log('📸 Iniciando criação de snapshot para VPS:', vpsId, 'Nome:', name);
       
-      // Tentar diferentes endpoints para snapshots baseados na documentação da API Hostinger
-      const endpoints = [
-        `/virtual-machines/${vpsId}/snapshots`,  // Endpoint padrão documentado
-        `/virtual-machines/${vpsId}/snapshot`,   // Variação singular
-        `/vps/${vpsId}/snapshots`,               // Endpoint alternativo
-        `/virtual-machines/${vpsId}/backup`,     // Backup como alternativa
-        `/virtual-machines/${vpsId}/image`       // Criar imagem como snapshot
+      // Tentar diferentes endpoints e métodos para snapshots
+      const attempts = [
+        // Endpoints mais prováveis baseados na documentação padrão
+        { endpoint: `/virtual-machines/${vpsId}/snapshots`, method: 'POST', payload: { name: name || `Snapshot-${Date.now()}` } },
+        { endpoint: `/virtual-machines/${vpsId}/snapshot`, method: 'POST', payload: { name: name || `Snapshot-${Date.now()}` } },
+        
+        // Tentativas com diferentes estruturas de payload
+        { endpoint: `/virtual-machines/${vpsId}/snapshots`, method: 'POST', payload: { snapshot_name: name || `Snapshot-${Date.now()}` } },
+        { endpoint: `/virtual-machines/${vpsId}/snapshots`, method: 'POST', payload: { label: name || `Snapshot-${Date.now()}` } },
+        
+        // Endpoints alternativos
+        { endpoint: `/vps/${vpsId}/snapshots`, method: 'POST', payload: { name: name || `Snapshot-${Date.now()}` } },
+        { endpoint: `/snapshots`, method: 'POST', payload: { vps_id: vpsId, name: name || `Snapshot-${Date.now()}` } },
+        
+        // Backup endpoints como alternativa
+        { endpoint: `/virtual-machines/${vpsId}/backup`, method: 'POST', payload: { name: name || `Backup-${Date.now()}` } },
+        { endpoint: `/virtual-machines/${vpsId}/image`, method: 'POST', payload: { name: name || `Image-${Date.now()}` } },
       ];
       
       let lastError;
       
-      for (const endpoint of endpoints) {
+      for (const attempt of attempts) {
         try {
-          console.log('🔍 Testando endpoint de snapshot:', endpoint);
+          console.log('🔍 Testando:', attempt.endpoint, 'com payload:', attempt.payload);
           
           const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
             body: {
               integration_id: integrationId,
-              endpoint: endpoint,
-              method: 'POST',
-              data: {
-                name: name || `Snapshot ${new Date().toLocaleString()}`
-              }
+              endpoint: attempt.endpoint,
+              method: attempt.method,
+              data: attempt.payload
             }
           });
 
           if (error) {
-            console.warn(`❌ Endpoint ${endpoint} falhou:`, error);
+            console.warn(`❌ Falhou ${attempt.endpoint}:`, error);
             lastError = error;
             continue;
           }
           
-          // Se chegou aqui, o endpoint funcionou
-          console.log('✅ Endpoint funcionou:', endpoint, data);
-          return data;
+          // Se chegou aqui, funcionou!
+          console.log('✅ Sucesso com:', attempt.endpoint, data);
+          return { ...data, usedEndpoint: attempt.endpoint };
           
         } catch (err) {
-          console.warn(`❌ Erro no endpoint ${endpoint}:`, err);
+          console.warn(`❌ Erro em ${attempt.endpoint}:`, err);
           lastError = err;
         }
       }
       
-      // Se todos os endpoints falharam, throw do último erro
-      console.error('❌ Todos os endpoints de snapshot falharam');
-      throw lastError;
+      // Se todos falharam, lançar erro específico
+      console.error('❌ Todos os endpoints falharam');
+      throw new Error('API Hostinger não suporta criação de snapshots via API. Use o painel web do Hostinger.');
     },
     onSuccess: (data, variables) => {
       console.log('✅ Snapshot criado com sucesso:', data);

@@ -242,6 +242,7 @@ const VPSCard: React.FC<VPSCardProps> = ({
   restarting,
   snapshotting
 }) => {
+  const { createSnapshot } = useHostingerActions();
   const safeValue = (value: any, fallback: any = 'N/A') => {
     if (typeof value === 'object' && value !== null) {
       if (Array.isArray(value) && value.length > 0) {
@@ -442,13 +443,21 @@ const VPSCard: React.FC<VPSCardProps> = ({
           </Button>
           
           <Button 
-            onClick={() => window.open('https://hpanel.hostinger.com.br/hosting/vps-list', '_blank')} 
+            onClick={() => {
+              const snapshotName = `Snapshot-VPS-${vps.name || vps.id}-${new Date().toISOString().slice(0,16).replace('T', '-').replace(':', '')}`;
+              createSnapshot.mutate({ 
+                integrationId: integrationId, 
+                vpsId: vps.id, 
+                name: snapshotName 
+              });
+            }}
             variant="outline" 
             size="sm" 
-            title="Criar Snapshot no Painel Hostinger (API não suporta)" 
-            className="p-3 border-slate-600 hover:border-blue-500 text-slate-950 bg-slate-50"
+            disabled={snapshotting}
+            title={snapshotting ? "Criando snapshot..." : "Criar Snapshot da VPS"} 
+            className="p-3 border-slate-600 hover:border-blue-500 hover:text-blue-300 bg-slate-50"
           >
-            <Camera className="h-4 w-4" />
+            {snapshotting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
           </Button>
         </div>
       </CardContent>
