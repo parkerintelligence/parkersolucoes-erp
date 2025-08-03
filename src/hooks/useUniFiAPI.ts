@@ -96,29 +96,94 @@ export interface UniFiHost {
   displayName?: string;
 }
 
-interface UniFiNetwork {
-  id: string;
+export interface UniFiNetwork {
+  _id: string;
   name: string;
   purpose: string;
+  vlan_enabled?: boolean;
   vlan?: number;
   enabled: boolean;
-  isGuest?: boolean;
   security: string;
-  wpaMode?: string;
-  wpaEncryption?: string;
-  networkGroup?: string;
-  siteId: string;
+  wpa_mode?: string;
+  wpa_enc?: string;
+  passphrase?: string;
+  usergroup_id?: string;
+  site_id: string;
+  networkconf_id?: string;
+  num_sta?: number;
+  tx_bytes?: number;
+  rx_bytes?: number;
+  usage?: string;
 }
 
-interface UniFiAlarm {
-  id: string;
-  time: number;
+export interface UniFiAlarm {
+  _id: string;
+  archived: boolean;
+  categ: number;
   datetime: string;
-  message: string;
+  handled: boolean;
+  key: string;
+  msg: string;
+  site_id: string;
+  subsystem: string;
+  time: number;
+}
+
+export interface UniFiHealth {
+  subsystem: string;
+  status: string;
+  drops: number;
+  latency: number;
+  uptime: number;
+  xput_up: number;
+  xput_down: number;
+  speedtest_lastrun?: number;
+  speedtest_ping?: number;
+  num_user?: number;
+  num_guest?: number;
+  num_iot?: number;
+  tx_bytes_r?: number;
+  rx_bytes_r?: number;
+}
+
+export interface UniFiInsight {
+  _id: string;
+  datetime: string;
+  site_id: string;
   subsystem: string;
   key: string;
-  siteId: string;
-  archived: boolean;
+  msg: string;
+  category: string;
+  severity: string;
+  app?: string;
+  bytes?: number;
+  clients?: number;
+}
+
+export interface UniFiDPIStats {
+  app: string;
+  cat: string;
+  tx_bytes: number;
+  rx_bytes: number;
+  tx_packets: number;
+  rx_packets: number;
+  known_clients: number;
+}
+
+export interface UniFiFirewallRule {
+  _id: string;
+  name: string;
+  ruleset: string;
+  rule_index: number;
+  enabled: boolean;
+  action: string;
+  protocol: string;
+  src_address?: string;
+  src_port?: string;
+  dst_address?: string;
+  dst_port?: string;
+  log?: boolean;
+  site_id: string;
 }
 
 interface UniFiSiteGroup {
@@ -551,6 +616,135 @@ export const useUniFiAPI = () => {
     });
   };
 
+  // NEW EXPANDED FUNCTIONALITY HOOKS
+
+  // Insights - Site Manager API only
+  const useUniFiInsights = (integrationId: string, siteId?: string) => {
+    return useQuery({
+      queryKey: ['unifi-insights', integrationId, siteId],
+      queryFn: async () => {
+        if (!siteId) return { data: [] };
+        
+        // Try Site Manager API
+        try {
+          const response = await makeUniFiRequest(`/ea/sites/${siteId}/insights`, 'GET', integrationId);
+          return response;
+        } catch (error) {
+          console.log('Insights not available:', error);
+          return { data: [] };
+        }
+      },
+      enabled: !!integrationId && !!siteId,
+      staleTime: 5 * 60000, // 5 minutes
+      retry: 1,
+    });
+  };
+
+  // DPI Statistics - Local Controller
+  const useUniFiDPI = (integrationId: string, siteId?: string) => {
+    return useQuery({
+      queryKey: ['unifi-dpi', integrationId, siteId],
+      queryFn: () => {
+        const endpoint = siteId ? `/api/s/${siteId}/stat/dpi` : '/api/stat/dpi';
+        return makeUniFiRequest(endpoint, 'GET', integrationId);
+      },
+      enabled: !!integrationId && !!siteId,
+      staleTime: 2 * 60000, // 2 minutes
+      retry: 2,
+    });
+  };
+
+  // Firewall Rules - Local Controller
+  const useUniFiFirewall = (integrationId: string, siteId?: string) => {
+    return useQuery({
+      queryKey: ['unifi-firewall', integrationId, siteId],
+      queryFn: () => {
+        const endpoint = siteId ? `/api/s/${siteId}/rest/firewallrule` : '/api/rest/firewallrule';
+        return makeUniFiRequest(endpoint, 'GET', integrationId);
+      },
+      enabled: !!integrationId && !!siteId,
+      staleTime: 5 * 60000, // 5 minutes
+      retry: 2,
+    });
+  };
+
+  // Events - Local Controller
+  const useUniFiEvents = (integrationId: string, siteId?: string) => {
+    return useQuery({
+      queryKey: ['unifi-events', integrationId, siteId],
+      queryFn: () => {
+        const endpoint = siteId ? `/api/s/${siteId}/stat/event` : '/api/stat/event';
+        return makeUniFiRequest(endpoint, 'GET', integrationId);
+      },
+      enabled: !!integrationId && !!siteId,
+      staleTime: 30000, // 30 seconds
+      retry: 2,
+    });
+  };
+
+  // Topology - Site Manager API
+  const useUniFiTopology = (integrationId: string, siteId?: string) => {
+    return useQuery({
+      queryKey: ['unifi-topology', integrationId, siteId],
+      queryFn: async () => {
+        if (!siteId) return { data: [] };
+        
+        try {
+          const response = await makeUniFiRequest(`/ea/sites/${siteId}/topology`, 'GET', integrationId);
+          return response;
+        } catch (error) {
+          console.log('Topology not available:', error);
+          return { data: [] };
+        }
+      },
+      enabled: !!integrationId && !!siteId,
+      staleTime: 2 * 60000, // 2 minutes
+      retry: 1,
+    });
+  };
+
+  // Port Forward Rules - Local Controller
+  const useUniFiPortForwards = (integrationId: string, siteId?: string) => {
+    return useQuery({
+      queryKey: ['unifi-portforwards', integrationId, siteId],
+      queryFn: () => {
+        const endpoint = siteId ? `/api/s/${siteId}/rest/portforward` : '/api/rest/portforward';
+        return makeUniFiRequest(endpoint, 'GET', integrationId);
+      },
+      enabled: !!integrationId && !!siteId,
+      staleTime: 5 * 60000, // 5 minutes
+      retry: 2,
+    });
+  };
+
+  // Site Configuration - Local Controller
+  const useUniFiSiteConfig = (integrationId: string, siteId?: string) => {
+    return useQuery({
+      queryKey: ['unifi-site-config', integrationId, siteId],
+      queryFn: () => {
+        const endpoint = siteId ? `/api/s/${siteId}/get/setting` : '/api/get/setting';
+        return makeUniFiRequest(endpoint, 'GET', integrationId);
+      },
+      enabled: !!integrationId && !!siteId,
+      staleTime: 10 * 60000, // 10 minutes
+      retry: 2,
+    });
+  };
+
+  // Vouchers - Local Controller
+  const useUniFiVouchers = (integrationId: string, siteId?: string) => {
+    return useQuery({
+      queryKey: ['unifi-vouchers', integrationId, siteId],
+      queryFn: () => {
+        const endpoint = siteId ? `/api/s/${siteId}/stat/voucher` : '/api/stat/voucher';
+        return makeUniFiRequest(endpoint, 'GET', integrationId);
+      },
+      enabled: !!integrationId && !!siteId,
+      staleTime: 5 * 60000, // 5 minutes
+      retry: 2,
+    });
+  };
+
   // Statistics
   const useUniFiStats = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
@@ -905,6 +1099,15 @@ export const useUniFiAPI = () => {
     useUniFiAlarms,
     useUniFiHealth,
     useUniFiStats,
+    // NEW EXPANDED FUNCTIONALITY HOOKS
+    useUniFiInsights,
+    useUniFiDPI,
+    useUniFiFirewall,
+    useUniFiEvents,
+    useUniFiTopology,
+    useUniFiPortForwards,
+    useUniFiSiteConfig,
+    useUniFiVouchers,
     // Site Manager API specific hooks
     useUniFiSiteManagerHosts,
     useUniFiSiteManagerSites,
