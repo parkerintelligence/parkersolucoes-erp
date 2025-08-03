@@ -90,7 +90,7 @@ serve(async (req) => {
     }
 
     // Check if this is a local controller integration (has username/password) or Site Manager API (has api_token)
-    const { base_url, username, password, api_token, use_ssl = true, ignore_ssl_option = false } = integration;
+    const { base_url, username, password, api_token, use_ssl = true } = integration;
     
     // Priorizar Site Manager API se api_token estiver presente
     const isSiteManagerAPI = !!(api_token);
@@ -132,7 +132,7 @@ serve(async (req) => {
       console.log('Username provided:', !!username);
       console.log('Password provided:', !!password);
       console.log('Use SSL configured:', use_ssl);
-      console.log('Ignore SSL configured:', ignore_ssl_option || requestBody.ignore_ssl);
+      console.log('Ignore SSL configured:', requestBody.ignore_ssl);
       
       // Enhanced connection diagnostics
       const connectionDetails = {
@@ -151,7 +151,7 @@ serve(async (req) => {
       let connectionMethod = '';
       
       // Determine if we should ignore SSL certificates
-      const shouldIgnoreSSL = ignore_ssl_option || requestBody.ignore_ssl;
+      const shouldIgnoreSSL = requestBody.ignore_ssl;
       
       const fetchOptions: RequestInit = {
         method: 'POST',
