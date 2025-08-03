@@ -1,7 +1,5 @@
-// Minimal AuthContext to bypass useState null error
-// This is a temporary replacement while we fix the Vite cache issue
-
-import { createContext, useContext } from 'react';
+// Fixed AuthContext with proper React state management
+import { createContext, useContext, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 
 interface UserProfile {
@@ -32,23 +30,21 @@ export const useAuth = () => {
   return context;
 };
 
-// Basic authentication state without React hooks
-let isLoggedIn = false;
-let currentUser: User | null = null;
-let currentUserProfile: UserProfile | null = null;
-
-// Minimal provider with basic login functionality
+// Reactive provider with proper state management
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const value = {
-    user: currentUser,
-    userProfile: currentUserProfile,
-    session: null,
-    login: async (email: string, password: string): Promise<boolean> => {
-      console.log('Minimal auth - login attempt:', email);
+  const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [session] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    console.log('Auth - login attempt:', email);
+    setIsLoading(true);
+    
+    try {
       // Basic authentication - accept contato@parkersolucoes.com.br with any password
       if (email === 'contato@parkersolucoes.com.br') {
-        isLoggedIn = true;
-        currentUser = { 
+        const newUser = { 
           id: 'master-user', 
           email: email,
           user_metadata: {},
@@ -56,30 +52,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           aud: 'authenticated',
           created_at: new Date().toISOString()
         } as User;
-        currentUserProfile = {
+        
+        const newUserProfile = {
           id: 'master-user',
           email: email,
-          role: 'master'
+          role: 'master' as const
         };
-        // Force re-render by triggering a minimal state change
-        setTimeout(() => window.location.href = '/vps', 100);
+        
+        setUser(newUser);
+        setUserProfile(newUserProfile);
+        
+        console.log('Auth - login successful, user set:', newUser);
         return true;
       }
       return false;
-    },
-    logout: async () => {
-      console.log('Minimal auth - logout');
-      isLoggedIn = false;
-      currentUser = null;
-      currentUserProfile = null;
-      window.location.href = '/login';
-    },
-    isAuthenticated: isLoggedIn,
-    isMaster: currentUserProfile?.role === 'master',
-    isLoading: false,
-    resetSessionTimer: () => {
-      console.log('Minimal auth - reset timer');
+    } finally {
+      setIsLoading(false);
     }
+  }, []);
+
+  const logout = useCallback(async () => {
+    console.log('Auth - logout');
+    setUser(null);
+    setUserProfile(null);
+  }, []);
+
+  const resetSessionTimer = useCallback(() => {
+    console.log('Auth - reset timer');
+  }, []);
+
+  const isAuthenticated = !!user;
+  const isMaster = userProfile?.role === 'master';
+
+  console.log('Auth Provider render - isAuthenticated:', isAuthenticated, 'user:', user);
+
+  const value = {
+    user,
+    userProfile,
+    session,
+    login,
+    logout,
+    isAuthenticated,
+    isMaster,
+    isLoading,
+    resetSessionTimer
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
