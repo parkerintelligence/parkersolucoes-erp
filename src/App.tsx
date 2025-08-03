@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext.minimal';
 import Login from '@/pages/Login';
-import Dashboard from '@/pages/Dashboard';
+
 import Admin from '@/pages/Admin';
 import GLPI from '@/pages/GLPI';
 import Guacamole from '@/pages/Guacamole';
@@ -60,14 +60,6 @@ function App() {
                   </Layout>
                 }
               />
-              <Route
-                path="/dashboard"
-                element={
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
-                }
-               />
               <Route
                 path="/admin"
                 element={

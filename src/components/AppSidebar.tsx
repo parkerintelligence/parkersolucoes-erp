@@ -87,11 +87,6 @@ const menuItems = [{
   url: '/vps',
   icon: Server,
   role: 'user'
-}, {
-  title: 'Dashboard',
-  url: '/dashboard',
-  icon: LayoutDashboard,
-  role: 'user'
 }];
 export function AppSidebar() {
   const {

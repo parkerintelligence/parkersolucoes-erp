@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: 'master'
         };
         // Force re-render by triggering a minimal state change
-        setTimeout(() => window.location.href = '/dashboard', 100);
+        setTimeout(() => window.location.href = '/vps', 100);
         return true;
       }
       return false;
