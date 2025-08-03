@@ -29,6 +29,7 @@ import ActionPlan from '@/pages/ActionPlan';
 import AlertasMonitoring from '@/pages/AlertasMonitoring';
 import Security from '@/pages/Security';
 import UniFi from '@/pages/UniFi';
+import VPS from '@/pages/VPS';
 import { Layout } from '@/components/Layout';
 
 // Create a single QueryClient instance
@@ -240,6 +241,14 @@ function App() {
                 element={
                   <Layout>
                     <UniFi />
+                  </Layout>
+                } 
+              />
+              <Route 
+                path="/vps" 
+                element={
+                  <Layout>
+                    <VPS />
                   </Layout>
                 } 
               />
