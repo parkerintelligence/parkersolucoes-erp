@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HostingerDashboard } from '@/components/HostingerDashboard';
 import { BaculaDashboard } from '@/components/BaculaDashboard';
 import { BarChart3, Users, DollarSign, FileText, Calendar, TrendingUp, Server, Archive, Activity, Database, Shield } from 'lucide-react';
-
 const Dashboard = () => {
   const stats = [{
     title: "Empresas Ativas",
@@ -32,9 +31,7 @@ const Dashboard = () => {
     changeType: "warning",
     icon: <Calendar className="h-6 w-6 text-purple-400" />
   }];
-
-  return (
-    <div className="min-h-screen bg-slate-900 text-white p-6">
+  return <div className="min-h-screen bg-slate-900 text-white p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -49,25 +46,11 @@ const Dashboard = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
-            <Card key={index} className="bg-slate-800 border-slate-700">
+          {stats.map((stat, index) => <Card key={index} className="bg-slate-800 border-slate-700">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-400 text-sm font-medium">{stat.title}</p>
-                    <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
-                    <p className={`text-sm mt-1 ${stat.changeType === 'positive' ? 'text-green-400' : 
-                        stat.changeType === 'warning' ? 'text-yellow-400' : 'text-red-400'}`}>
-                      {stat.change}
-                    </p>
-                  </div>
-                  <div className="flex-shrink-0">
-                    {stat.icon}
-                  </div>
-                </div>
+                
               </CardContent>
-            </Card>
-          ))}
+            </Card>)}
         </div>
 
         {/* Dashboard Tabs */}
@@ -77,10 +60,7 @@ const Dashboard = () => {
               <Server className="h-4 w-4" />
               Infraestrutura
             </TabsTrigger>
-            <TabsTrigger value="backups" className="flex items-center gap-2">
-              <Archive className="h-4 w-4" />
-              Backups
-            </TabsTrigger>
+            
           </TabsList>
 
           <TabsContent value="infrastructure" className="space-y-6">
@@ -118,8 +98,6 @@ const Dashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Dashboard;
