@@ -19,12 +19,31 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "react": "react",
+      "react-dom": "react-dom",
     },
+    dedupe: ["react", "react-dom"],
   },
   define: {
     global: 'globalThis',
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'],
+    include: [
+      'react', 
+      'react-dom',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-select',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-tooltip',
+      '@radix-ui/react-collapsible',
+      '@radix-ui/react-accordion',
+    ],
+  },
+  build: {
+    rollupOptions: {
+      external: [],
+    },
   },
 }));
