@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext.minimal';
 import { MasterPasswordDialog } from '@/components/MasterPasswordDialog';
 import { useHostingerIntegrations, useHostingerVPS, useHostingerVPSMetrics, useHostingerActions } from '@/hooks/useHostingerAPI';
 import { Server, Cpu, HardDrive, Wifi, Camera, RotateCcw, MapPin, Calendar, Activity, Zap, RefreshCw, AlertCircle, Clock, Gauge, Network, BarChart3 } from 'lucide-react';
