@@ -1,7 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HostingerDashboard } from '@/components/HostingerDashboard';
-import { Server } from 'lucide-react';
+import { SnapshotsGrid } from '@/components/SnapshotsGrid';
+import { Server, Camera } from 'lucide-react';
 
 const VPS = () => {
   return (
@@ -18,7 +20,7 @@ const VPS = () => {
           </Badge>
         </div>
 
-        {/* Hostinger VPS Content */}
+        {/* VPS Management Tabs */}
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
@@ -30,7 +32,26 @@ const VPS = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <HostingerDashboard />
+            <Tabs defaultValue="dashboard" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="dashboard" className="flex items-center gap-2">
+                  <Server className="h-4 w-4" />
+                  VPS
+                </TabsTrigger>
+                <TabsTrigger value="snapshots" className="flex items-center gap-2">
+                  <Camera className="h-4 w-4" />
+                  Snapshots
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="dashboard" className="mt-6">
+                <HostingerDashboard />
+              </TabsContent>
+              
+              <TabsContent value="snapshots" className="mt-6">
+                <SnapshotsGrid />
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
