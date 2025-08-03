@@ -66,7 +66,7 @@ serve(async (req) => {
     const requestBody = await req.json();
     const { method, endpoint, integrationId, data: postData, ignore_ssl = false } = requestBody;
 
-    console.log('UniFi Local Controller API request:', { method, endpoint, integrationId, userId: user.id });
+    console.log('UniFi API request:', { method, endpoint, integrationId, userId: user.id });
 
     // Get UniFi integration configuration
     console.log("Fetching UniFi integration...");
@@ -90,10 +90,11 @@ serve(async (req) => {
     }
 
     // Check if this is a local controller integration (has username/password) or Site Manager API (has api_token)
-    const { base_url, username, password, api_token, use_ssl = true, ignore_ssl = false } = integration;
+    const { base_url, username, password, api_token, use_ssl = true, ignore_ssl: ignore_ssl_option = false } = integration;
     
-    const isLocalController = !!(username && password && base_url && !base_url.includes('api.ui.com'));
-    const isSiteManagerAPI = !!(api_token && (!base_url || base_url.includes('api.ui.com')));
+    // Priorizar Site Manager API se api_token estiver presente
+    const isSiteManagerAPI = !!(api_token);
+    const isLocalController = !isSiteManagerAPI && !!(username && password && base_url);
     
     console.log("Integration config:", { 
       hasBaseUrl: !!base_url,
@@ -131,7 +132,7 @@ serve(async (req) => {
       console.log('Username provided:', !!username);
       console.log('Password provided:', !!password);
       console.log('Use SSL configured:', use_ssl);
-      console.log('Ignore SSL configured:', ignore_ssl || requestBody.ignore_ssl);
+      console.log('Ignore SSL configured:', ignore_ssl_option || requestBody.ignore_ssl);
       
       // Enhanced connection diagnostics
       const connectionDetails = {
@@ -150,7 +151,7 @@ serve(async (req) => {
       let connectionMethod = '';
       
       // Determine if we should ignore SSL certificates
-      const shouldIgnoreSSL = ignore_ssl || requestBody.ignore_ssl;
+      const shouldIgnoreSSL = ignore_ssl_option || requestBody.ignore_ssl;
       
       const fetchOptions: RequestInit = {
         method: 'POST',

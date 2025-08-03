@@ -359,11 +359,16 @@ const UniFiAdminConfig = () => {
                    <Alert className="border-blue-500 bg-blue-500/10 mb-4">
                      <Wifi className="h-4 w-4" />
                      <AlertDescription className="text-white">
-                       <strong>Duas opções de integração:</strong><br />
-                       <strong>1. Controladora Local:</strong> URL + usuário/senha (mais rápido, rede local)<br />
-                       <strong>2. Site Manager API:</strong> API Token (gerencia múltiplas controladoras na nuvem)<br />
+                       <strong>⚡ Site Manager API (Recomendado):</strong><br />
+                       • Use apenas <strong>API Token</strong> (deixe URL vazio)<br />
+                       • Gerencia múltiplas controladoras na nuvem<br />
+                       • Acesso via api.ui.com<br />
                        <br />
-                       O sistema detecta automaticamente qual usar baseado nos campos preenchidos.
+                       <strong>🏠 Controladora Local (Alternativa):</strong><br />
+                       • Use <strong>URL + usuário/senha</strong> (deixe API Token vazio)<br />
+                       • Acesso direto à controladora local<br />
+                       <br />
+                       <strong>🎯 Sistema prioriza Site Manager API se API Token estiver presente.</strong>
                      </AlertDescription>
                    </Alert>
 

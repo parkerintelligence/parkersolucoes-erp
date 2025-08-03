@@ -86,6 +86,7 @@ export interface UniFiHost {
   sitesCount?: number;
   isValid?: boolean;
   sites?: UniFiSite[];
+  apiType?: 'site-manager' | 'local-controller';
 }
 
 interface UniFiNetwork {
@@ -146,27 +147,38 @@ export const useUniFiAPI = () => {
     }
   };
 
-  // Enhanced Hosts - buscar controladoras disponíveis (local e Site Manager API)
+  // Enhanced Hosts - buscar controladoras disponíveis (priorizar Site Manager API)
   const useUniFiHosts = (integrationId: string) => {
     return useQuery({
       queryKey: ['unifi-hosts', integrationId],
       queryFn: async () => {
         try {
-          // Try Site Manager API first (/ea/hosts), fallback to local controller
+          // Sempre tentar Site Manager API primeiro (/ea/hosts)
+          console.log('Tentando Site Manager API hosts...');
           const response = await makeUniFiRequest('/ea/hosts', 'GET', integrationId);
-          console.log('Hosts response:', response);
+          console.log('Site Manager API hosts response:', response);
           
           if (response?.data && Array.isArray(response.data) && response.data.length > 0) {
             // Site Manager API response
-            console.log('Using Site Manager API hosts');
+            console.log('✅ Usando Site Manager API hosts');
             return response.data.map((host: any) => ({
               ...host,
               sitesCount: 0, // Will be populated by sites query
-              isValid: true
+              isValid: true,
+              apiType: 'site-manager'
             }));
-          } else {
+          }
+          
+          // Se chegou aqui, não há dados do Site Manager API ou é controladora local
+          console.log('❌ Site Manager API não retornou hosts, tentando controladora local...');
+          throw new Error('Site Manager API não disponível, tentando local controller');
+          
+        } catch (error) {
+          console.log('Site Manager API falhou, tentando controladora local:', error.message);
+          
+          try {
             // Fallback to local controller approach
-            console.log('Falling back to local controller approach');
+            console.log('Tentando controladora local (/api/self/sites)...');
             const sitesResponse = await makeUniFiRequest('/api/self/sites', 'GET', integrationId);
             
             let sites = [];
@@ -175,6 +187,8 @@ export const useUniFiAPI = () => {
             } else if (Array.isArray(sitesResponse)) {
               sites = sitesResponse;
             }
+
+            console.log('✅ Usando controladora local, sites encontrados:', sites.length);
 
             // For local controller, create a virtual host
             const virtualHost = {
@@ -209,14 +223,15 @@ export const useUniFiAPI = () => {
               },
               sitesCount: sites.length,
               isValid: sites.length > 0,
-              sites: sites // Cache sites data
+              sites: sites, // Cache sites data
+              apiType: 'local-controller'
             };
 
             return [virtualHost];
+          } catch (localError) {
+            console.error('❌ Controladora local também falhou:', localError);
+            return [];
           }
-        } catch (error) {
-          console.error('Failed to fetch hosts:', error);
-          return [];
         }
       },
       enabled: !!integrationId,
@@ -225,7 +240,7 @@ export const useUniFiAPI = () => {
     });
   };
 
-  // Sites - fetching sites for a specific host (Site Manager API or local controller)
+  // Sites - fetching sites for a specific host (priorizar Site Manager API)
   const useUniFiSites = (integrationId: string, hostId?: string) => {
     return useQuery({
       queryKey: ['unifi-sites', integrationId, hostId],
@@ -237,24 +252,35 @@ export const useUniFiAPI = () => {
         const host = hostData?.find(h => h.id === hostId);
         
         if (host?.sites && host.sites.length > 0) {
-          console.log('Using cached sites from host data:', host.sites);
+          console.log('✅ Usando sites em cache do host:', host.sites);
           return { data: host.sites };
         }
 
-        try {
-          // Try Site Manager API endpoint first
-          const siteManagerResponse = await makeUniFiRequest(`/ea/hosts/${hostId}/sites`, 'GET', integrationId);
-          
-          if (siteManagerResponse?.data && Array.isArray(siteManagerResponse.data) && siteManagerResponse.data.length > 0) {
-            console.log('Using Site Manager API sites');
-            return siteManagerResponse;
+        // Se é um host do Site Manager API, usar endpoint específico
+        if (host?.apiType === 'site-manager' || hostId !== 'local-controller') {
+          try {
+            console.log(`Tentando Site Manager API sites para host ${hostId}...`);
+            const siteManagerResponse = await makeUniFiRequest(`/ea/hosts/${hostId}/sites`, 'GET', integrationId);
+            
+            if (siteManagerResponse?.data && Array.isArray(siteManagerResponse.data) && siteManagerResponse.data.length > 0) {
+              console.log('✅ Usando Site Manager API sites');
+              return siteManagerResponse;
+            }
+          } catch (error) {
+            console.log('❌ Site Manager API sites falhou:', error.message);
           }
-        } catch (error) {
-          console.log('Site Manager API sites failed, trying local controller approach');
         }
 
         // Fallback to local controller endpoint
-        return makeUniFiRequest('/api/self/sites', 'GET', integrationId);
+        console.log('Tentando controladora local sites...');
+        try {
+          const localResponse = await makeUniFiRequest('/api/self/sites', 'GET', integrationId);
+          console.log('✅ Usando controladora local sites');
+          return localResponse;
+        } catch (error) {
+          console.error('❌ Controladora local sites também falhou:', error);
+          return { data: [] };
+        }
       },
       enabled: !!integrationId && !!hostId,
       staleTime: 60000, // 1 minute
@@ -262,29 +288,63 @@ export const useUniFiAPI = () => {
     });
   };
 
-  // Devices - usar endpoint correto da Controladora Local
+  // Devices - detectar API correta baseado no tipo de integração
   const useUniFiDevices = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
       queryKey: ['unifi-devices', integrationId, hostId, siteId],
-      queryFn: () => {
-        const endpoint = siteId ? `/api/s/${siteId}/stat/device` : '/api/stat/device';
+      queryFn: async () => {
+        if (!siteId) return { data: [] };
+        
+        // Tentar Site Manager API primeiro
+        try {
+          console.log(`Tentando Site Manager API devices para site ${siteId}...`);
+          const siteManagerResponse = await makeUniFiRequest(`/ea/sites/${siteId}/devices`, 'GET', integrationId);
+          
+          if (siteManagerResponse?.data && Array.isArray(siteManagerResponse.data)) {
+            console.log('✅ Usando Site Manager API devices');
+            return siteManagerResponse;
+          }
+        } catch (error) {
+          console.log('❌ Site Manager API devices falhou, tentando controladora local...');
+        }
+        
+        // Fallback para controladora local
+        const endpoint = `/api/s/${siteId}/stat/device`;
+        console.log('✅ Usando controladora local devices');
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!hostId,
+      enabled: !!integrationId && !!hostId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
   };
 
-  // Clients - usar endpoint correto da Controladora Local
+  // Clients - detectar API correta baseado no tipo de integração
   const useUniFiClients = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
       queryKey: ['unifi-clients', integrationId, hostId, siteId],
-      queryFn: () => {
-        const endpoint = siteId ? `/api/s/${siteId}/stat/sta` : '/api/stat/sta';
+      queryFn: async () => {
+        if (!siteId) return { data: [] };
+        
+        // Tentar Site Manager API primeiro
+        try {
+          console.log(`Tentando Site Manager API clients para site ${siteId}...`);
+          const siteManagerResponse = await makeUniFiRequest(`/ea/sites/${siteId}/clients`, 'GET', integrationId);
+          
+          if (siteManagerResponse?.data && Array.isArray(siteManagerResponse.data)) {
+            console.log('✅ Usando Site Manager API clients');
+            return siteManagerResponse;
+          }
+        } catch (error) {
+          console.log('❌ Site Manager API clients falhou, tentando controladora local...');
+        }
+        
+        // Fallback para controladora local
+        const endpoint = `/api/s/${siteId}/stat/sta`;
+        console.log('✅ Usando controladora local clients');
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!hostId,
+      enabled: !!integrationId && !!hostId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
@@ -424,35 +484,39 @@ export const useUniFiAPI = () => {
     },
   });
 
-  // Test connection - try both Site Manager API and local controller
+  // Test connection - priorizar Site Manager API
   const testUniFiConnection = useMutation({
     mutationFn: async (integrationId: string) => {
       try {
-        // Try Site Manager API first
+        // Sempre tentar Site Manager API primeiro
+        console.log('🔍 Testando Site Manager API...');
         const siteManagerTest = await makeUniFiRequest('/ea/hosts', 'GET', integrationId);
         if (siteManagerTest?.data && Array.isArray(siteManagerTest.data)) {
+          console.log('✅ Site Manager API funcionando!');
           return { type: 'site-manager', response: siteManagerTest };
         }
       } catch (error) {
-        console.log('Site Manager API test failed, trying local controller');
+        console.log('❌ Site Manager API falhou, tentando controladora local...', error.message);
       }
       
       // Fallback to local controller
+      console.log('🔍 Testando controladora local...');
       const localTest = await makeUniFiRequest('/api/self/sites', 'GET', integrationId);
+      console.log('✅ Controladora local funcionando!');
       return { type: 'local-controller', response: localTest };
     },
     onSuccess: (result) => {
-      const apiType = result.type === 'site-manager' ? 'Site Manager API' : 'Controladora Local';
+      const apiType = result.type === 'site-manager' ? 'Site Manager API (api.ui.com)' : 'Controladora Local';
       toast({
-        title: "Conexão realizada com sucesso",
+        title: "✅ Conexão realizada com sucesso",
         description: `Conectado via ${apiType}.`,
       });
     },
     onError: (error: Error) => {
-      console.error('UniFi connection test failed:', error);
+      console.error('❌ UniFi connection test failed:', error);
       toast({
-        title: "Erro na conexão",
-        description: error.message || "Falha ao conectar com UniFi (Site Manager API e Controladora Local).",
+        title: "❌ Erro na conexão",
+        description: error.message || "Falha ao conectar com UniFi. Verifique suas credenciais e conectividade.",
         variant: "destructive",
       });
     },
