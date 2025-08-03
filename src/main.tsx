@@ -1,4 +1,6 @@
-import React from 'react';
+// Import React fix first to ensure hooks are never null
+import '@/utils/reactFix';
+import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
@@ -13,9 +15,9 @@ const root = createRoot(rootElement);
 
 // Use a simple wrapper to ensure React is fully initialized
 const AppWrapper = () => {
-  const [isReady, setIsReady] = React.useState(false);
+  const [isReady, setIsReady] = useState(false);
   
-  React.useEffect(() => {
+  useEffect(() => {
     // Small delay to ensure React context is properly set up
     const timer = setTimeout(() => setIsReady(true), 10);
     return () => clearTimeout(timer);
