@@ -5,9 +5,11 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  cacheDir: '.vite-new',
   server: {
     host: "::",
     port: 8080,
+    force: true,
   },
   plugins: [
     react({
@@ -30,6 +32,11 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     force: true,
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
     include: [
       'react/jsx-runtime',
       'react', 
@@ -41,6 +48,7 @@ export default defineConfig(({ mode }) => ({
       '@radix-ui/react-popover',
       '@radix-ui/react-tooltip',
     ],
+    exclude: [],
   },
   build: {
     rollupOptions: {

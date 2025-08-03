@@ -4,13 +4,22 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
-// Absolutely critical: Ensure React is available globally BEFORE any other imports
+// Force React to be available in all chunks - CRITICAL FIX
+const originalReact = window.React;
+Object.defineProperty(window, 'React', {
+  value: React,
+  writable: false,
+  configurable: false
+});
+Object.defineProperty(globalThis, 'React', {
+  value: React, 
+  writable: false,
+  configurable: false
+});
+
+// Override any cached React references in Vite chunks
 if (typeof window !== 'undefined') {
-  window.React = React;
-  (window as any).__REACT_VERSION__ = React.version;
-}
-if (typeof globalThis !== 'undefined') {
-  (globalThis as any).React = React;
+  (window as any).__vite_react_override__ = React;
 }
 
 console.log('React version loaded:', React.version, 'Available globally:', !!(window as any).React);
