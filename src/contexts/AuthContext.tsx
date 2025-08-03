@@ -31,7 +31,12 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  console.log('AuthProvider: Starting initialization, React available:', !!React);
+  console.log('AuthProvider: Starting initialization, React available:', typeof React, !!React);
+  
+  if (!React || !React.useState) {
+    console.error('React or React.useState not available!');
+    return React.createElement('div', { className: "min-h-screen bg-red-500 text-white flex items-center justify-center" }, 'React Error');
+  }
   
   const [user, setUser] = React.useState<User | null>(null);
   const [session, setSession] = React.useState<Session | null>(null);
