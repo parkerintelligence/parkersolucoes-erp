@@ -1,6 +1,5 @@
 
-import React from 'react';
-import { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -38,6 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionTimer, setSessionTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -88,6 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
+    let initTimeout: NodeJS.Timeout;
 
     const initializeAuth = async () => {
       try {
@@ -130,14 +131,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           
           setIsLoading(false);
+          setIsReady(true);
         }
       } catch (error) {
         console.error('Erro ao inicializar autenticação:', error);
         if (mounted) {
           setIsLoading(false);
+          setIsReady(true);
         }
       }
     };
+
+    // Safety timeout to prevent infinite loading
+    initTimeout = setTimeout(() => {
+      if (mounted && isLoading) {
+        console.warn('Auth initialization timeout reached, forcing loading to false');
+        setIsLoading(false);
+      }
+    }, 10000);
 
     initializeAuth();
 
@@ -182,6 +193,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
+      if (initTimeout) {
+        clearTimeout(initTimeout);
+      }
       if (sessionTimer) {
         clearTimeout(sessionTimer);
       }
@@ -242,6 +256,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading,
     resetSessionTimer
   };
+
+  // Don't render children until the context is ready
+  if (!isReady) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-lg text-white">Inicializando sistema...</div>
+      </div>
+    );
+  }
 
   console.log('AuthContext Estado:', { 
     isAuthenticated: !!user && !!session, 

@@ -1,8 +1,9 @@
-import * as React from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, Database, AlertCircle, CheckCircle } from 'lucide-react';
+import { useState } from 'react';
 
 interface UniFiDebugPanelProps {
   sites?: any;
@@ -15,7 +16,7 @@ export const UniFiDebugPanel: React.FC<UniFiDebugPanelProps> = ({
   sitesLoading,
   sitesError
 }) => {
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>

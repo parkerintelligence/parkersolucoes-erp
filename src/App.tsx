@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -40,7 +40,8 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <div className="min-h-screen bg-background">
-            <Routes>
+            <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-lg text-gray-600">Carregando sistema...</div></div>}>
+              <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
               <Route
@@ -243,7 +244,8 @@ function App() {
                   </Layout>
                 } 
               />
-            </Routes>
+              </Routes>
+            </Suspense>
           </div>
         </BrowserRouter>
       </QueryClientProvider>

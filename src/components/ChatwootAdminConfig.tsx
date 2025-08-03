@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ export const ChatwootAdminConfig = () => {
   
   const chatwootIntegration = integrations?.find(integration => integration.type === 'chatwoot');
 
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     name: chatwootIntegration?.name || 'Chatwoot Atendimento',
     base_url: chatwootIntegration?.base_url || '',
     api_token: chatwootIntegration?.api_token || '',

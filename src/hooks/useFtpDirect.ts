@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 
 export interface FtpFile {
@@ -189,11 +189,11 @@ drwxr-xr-x 1 ${this.config.username} ${this.config.username} 0 Jan 14 15:20 data
 }
 
 export const useFtpDirect = (integration?: any) => {
-  const [client, setClient] = React.useState<FtpDirectClient | null>(null);
-  const [currentPath, setCurrentPath] = React.useState('/');
+  const [client, setClient] = useState<FtpDirectClient | null>(null);
+  const [currentPath, setCurrentPath] = useState('/');
 
   // Create client when integration is available
-  React.useEffect(() => {
+  useEffect(() => {
     if (integration) {
       const cleanHost = integration.base_url
         .replace(/^(ftp:\/\/|ftps:\/\/|http:\/\/|https:\/\/)/, '')
@@ -258,11 +258,11 @@ export const useFtpDirect = (integration?: any) => {
     }
   });
 
-  const navigateToPath = React.useCallback((path: string) => {
+  const navigateToPath = useCallback((path: string) => {
     setCurrentPath(path);
   }, []);
 
-  const navigateUp = React.useCallback(() => {
+  const navigateUp = useCallback(() => {
     if (currentPath !== '/') {
       const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/';
       setCurrentPath(parentPath);

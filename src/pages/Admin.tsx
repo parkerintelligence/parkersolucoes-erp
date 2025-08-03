@@ -1,5 +1,5 @@
 
-import * as React from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 
 const Admin = () => {
-  const [activePanel, setActivePanel] = React.useState("");
+  const [activePanel, setActivePanel] = useState("");
 
   const integrationButtons = [
     {

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,7 @@ export const ChatwootConfig = () => {
   
   const chatwootIntegration = integrations.find(integration => integration.type === 'chatwoot');
   
-  const [config, setConfig] = React.useState({
+  const [config, setConfig] = useState({
     name: chatwootIntegration?.name || 'Chatwoot Principal',
     base_url: chatwootIntegration?.base_url || '',
     api_token: chatwootIntegration?.api_token || '',
@@ -26,8 +26,8 @@ export const ChatwootConfig = () => {
     is_active: chatwootIntegration?.is_active ?? true,
   });
 
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [testStatus, setTestStatus] = React.useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [isLoading, setIsLoading] = useState(false);
+  const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
 
   const handleTestConnection = async () => {
     if (!config.base_url || !config.api_token) {

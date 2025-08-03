@@ -1,5 +1,5 @@
 
-import React from "react";
+import { useState, useEffect } from "react";
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,13 +13,13 @@ interface BoardDialogProps {
 }
 
 export function BoardDialog({ board, onSave }: BoardDialogProps) {
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     name: "",
     description: "",
     color: "#3b82f6",
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (board) {
       setFormData({
         name: board.name,

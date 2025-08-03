@@ -1,5 +1,5 @@
 
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,12 +22,12 @@ const GLPI = () => {
     tickets,
     initSession
   } = useGLPIExpanded();
-  const [filters, setFilters] = React.useState({});
-  const [refreshing, setRefreshing] = React.useState(false);
+  const [filters, setFilters] = useState({});
+  const [refreshing, setRefreshing] = useState(false);
   const isConfigured = !!glpiIntegration;
 
   // Inicializar sessão automaticamente quando a página carregar
-  React.useEffect(() => {
+  useEffect(() => {
     if (isConfigured && !hasValidSession && !initSession.isPending) {
       console.log('🔄 Auto-inicializando sessão GLPI...');
       initSession.mutate();

@@ -1,5 +1,5 @@
 
-import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -24,9 +24,9 @@ interface GrafanaDashboardManagerProps {
 }
 
 export const GrafanaDashboardManager = ({ grafanaIntegration, credentials }: GrafanaDashboardManagerProps) => {
-  const [selectedDashboard, setSelectedDashboard] = React.useState('');
-  const [dashboards, setDashboards] = React.useState<GrafanaDashboard[]>([]);
-  const [loadingDashboards, setLoadingDashboards] = React.useState(false);
+  const [selectedDashboard, setSelectedDashboard] = useState('');
+  const [dashboards, setDashboards] = useState<GrafanaDashboard[]>([]);
+  const [loadingDashboards, setLoadingDashboards] = useState(false);
 
   const fetchDashboards = async () => {
     setLoadingDashboards(true);
@@ -95,7 +95,7 @@ export const GrafanaDashboardManager = ({ grafanaIntegration, credentials }: Gra
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (grafanaIntegration && (credentials.api_token || (credentials.username && credentials.password))) {
       fetchDashboards();
     }

@@ -1,4 +1,4 @@
-import React from "react";
+import { useState } from "react";
 import { Calendar, Edit, Trash2, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,9 +17,9 @@ interface ActionCardProps {
 }
 
 export function ActionCardComponent({ card, items }: ActionCardProps) {
-  const [isEditCardOpen, setIsEditCardOpen] = React.useState(false);
-  const [newItemText, setNewItemText] = React.useState("");
-  const [isAddingItem, setIsAddingItem] = React.useState(false);
+  const [isEditCardOpen, setIsEditCardOpen] = useState(false);
+  const [newItemText, setNewItemText] = useState("");
+  const [isAddingItem, setIsAddingItem] = useState(false);
   
   const { 
     updateCard, 

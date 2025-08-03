@@ -1,5 +1,5 @@
 
-import React from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,7 @@ export const GuacamoleConnectionCard = ({
   onDelete,
   isDeleting = false
 }: Omit<GuacamoleConnectionCardProps, 'onToggleDetails' | 'showDetails'>) => {
-  const [isConnecting, setIsConnecting] = React.useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   const getProtocolColor = (protocol: string) => {
     switch (protocol?.toLowerCase()) {

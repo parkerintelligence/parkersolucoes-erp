@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -32,14 +32,14 @@ export const ScheduleTable = ({
   onUpdate,
   onDelete
 }: ScheduleTableProps) => {
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState('');
-  const [typeFilter, setTypeFilter] = React.useState('');
-  const [editingItem, setEditingItem] = React.useState<ScheduleItem | null>(null);
-  const [showEditDialog, setShowEditDialog] = React.useState(false);
-  const [showWhatsAppDialog, setShowWhatsAppDialog] = React.useState(false);
-  const [showGLPIConfirm, setShowGLPIConfirm] = React.useState(false);
-  const [selectedItem, setSelectedItem] = React.useState<ScheduleItem | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
+  const [showGLPIConfirm, setShowGLPIConfirm] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ScheduleItem | null>(null);
   const {
     createTicket
   } = useGLPIExpanded();

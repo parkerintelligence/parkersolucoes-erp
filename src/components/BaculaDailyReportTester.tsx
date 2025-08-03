@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,11 +46,11 @@ interface TestResults {
 }
 
 export const BaculaDailyReportTester = () => {
-  const [phoneNumber, setPhoneNumber] = React.useState('5534992284722');
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [testResults, setTestResults] = React.useState<TestResults | null>(null);
-  const [runDiagnostic, setRunDiagnostic] = React.useState(true);
-  const [sendReport, setSendReport] = React.useState(true);
+  const [phoneNumber, setPhoneNumber] = useState('5534992284722');
+  const [isLoading, setIsLoading] = useState(false);
+  const [testResults, setTestResults] = useState<TestResults | null>(null);
+  const [runDiagnostic, setRunDiagnostic] = useState(true);
+  const [sendReport, setSendReport] = useState(true);
 
   const handleTest = async () => {
     if (!phoneNumber.trim()) {

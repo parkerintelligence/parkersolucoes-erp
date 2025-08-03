@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,14 +16,14 @@ export const HostingerAdminConfig = () => {
   const updateIntegration = useUpdateIntegration();
   const deleteIntegration = useDeleteIntegration();
   
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     name: '',
     base_url: 'https://api.hostinger.com/v1',
     api_token: '',
     is_active: true
   });
   
-  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const hostingerIntegrations = integrations?.filter(integration => integration.type === 'hostinger') || [];
 
