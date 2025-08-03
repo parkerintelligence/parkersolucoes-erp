@@ -449,10 +449,12 @@ serve(async (req) => {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': `Bearer ${api_token}`,
+          'X-API-KEY': api_token,  // CORRECTED: Using X-API-KEY instead of Authorization Bearer
           'User-Agent': 'Lovable-UniFi-Integration/1.0'
         },
       };
+      
+      console.log('Using X-API-KEY authentication with token length:', api_token.length);
 
       if (postData && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
         requestOptions.body = JSON.stringify(postData);
