@@ -78,6 +78,18 @@ const UniFiMonitoringDashboard = () => {
     }
   }, [unifiIntegrations, selectedIntegration]);
 
+  // Aggregate all sites from all hosts
+  const allSitesFromHosts = hosts ? hosts.flatMap(host => 
+    (host.sites || []).map(site => ({
+      ...site,
+      hostId: host.id,
+      hostName: host.reportedState?.hostname || host.reportedState?.name || `Host ${host.id}`
+    }))
+  ) : [];
+  
+  // Use aggregated sites if available, otherwise fall back to the single host sites
+  const availableSites = allSitesFromHosts.length > 0 ? allSitesFromHosts : (sites?.data || []);
+
   // Auto-select first host
   useEffect(() => {
     if (hosts && hosts.length > 0 && !selectedHostId) {
@@ -85,12 +97,17 @@ const UniFiMonitoringDashboard = () => {
     }
   }, [hosts, selectedHostId]);
 
-  // Auto-select first site
+  // Auto-select first site from all available sites
   useEffect(() => {
-    if (sites?.data && sites.data.length > 0 && !selectedSiteId) {
-      setSelectedSiteId(sites.data[0].id);
+    if (availableSites.length > 0 && !selectedSiteId) {
+      setSelectedSiteId(availableSites[0].id);
+      // If this site is from a different host, update the selected host
+      const siteHost = availableSites[0].hostId;
+      if (siteHost && siteHost !== selectedHostId) {
+        setSelectedHostId(siteHost);
+      }
     }
-  }, [sites, selectedSiteId]);
+  }, [availableSites, selectedSiteId, selectedHostId]);
 
   const handleRefresh = () => {
     refreshData(selectedIntegration, selectedHostId, selectedSiteId);
@@ -212,7 +229,7 @@ const UniFiMonitoringDashboard = () => {
         />
         
         <UniFiSiteSelector
-          sites={sites?.data || []}
+          sites={availableSites}
           selectedSiteId={selectedSiteId}
           onSiteChange={setSelectedSiteId}
           loading={sitesLoading}

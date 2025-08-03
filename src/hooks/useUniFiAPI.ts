@@ -216,28 +216,101 @@ export const useUniFiAPI = () => {
       queryKey: ['unifi-hosts', integrationId],
       queryFn: async () => {
         try {
-          // Sempre tentar Site Manager API primeiro (/ea/hosts)
+          // Tentar Site Manager API primeiro (/v1/hosts e /ea/hosts)
           console.log('Tentando Site Manager API hosts...');
-          const response = await makeUniFiRequest('/ea/hosts', 'GET', integrationId);
-          console.log('Site Manager API hosts response:', response);
           
-          if (response?.data && Array.isArray(response.data) && response.data.length > 0) {
-            // Site Manager API response
-            console.log('✅ Usando Site Manager API hosts');
-            return response.data.map((host: any) => ({
-              ...host,
-              sitesCount: 0, // Will be populated by sites query
-              isValid: true,
-              apiType: 'site-manager'
-            }));
+          let hostsData: any[] = [];
+          
+          // Primeiro tentar /v1/hosts
+          try {
+            const v1Response = await makeUniFiRequest('/v1/hosts', 'GET', integrationId);
+            console.log('Site Manager API /v1/hosts response:', v1Response);
+            
+            if (v1Response?.data && Array.isArray(v1Response.data)) {
+              hostsData = v1Response.data;
+              console.log('✅ Usando Site Manager API /v1/hosts, hosts encontrados:', hostsData.length);
+            }
+          } catch (v1Error) {
+            console.log('❌ /v1/hosts falhou, tentando /ea/hosts...');
+            
+            // Fallback para /ea/hosts
+            const eaResponse = await makeUniFiRequest('/ea/hosts', 'GET', integrationId);
+            console.log('Site Manager API /ea/hosts response:', eaResponse);
+            
+            if (eaResponse?.data && Array.isArray(eaResponse.data)) {
+              hostsData = eaResponse.data;
+              console.log('✅ Usando Site Manager API /ea/hosts, hosts encontrados:', hostsData.length);
+            }
           }
           
-          // Se chegou aqui, não há dados do Site Manager API ou é controladora local
-          console.log('❌ Site Manager API não retornou hosts, tentando controladora local...');
-          throw new Error('Site Manager API não disponível, tentando local controller');
+          if (hostsData.length > 0) {
+            // Para cada host, buscar seus sites e popular o array
+            const hostsWithSites = await Promise.allSettled(
+              hostsData.map(async (host: any) => {
+                try {
+                  console.log(`Buscando sites para host ${host.id}...`);
+                  
+                  // Tentar diferentes endpoints para sites
+                  let sitesData: any[] = [];
+                  
+                  // Tentar /v1/hosts/{id}/sites primeiro
+                  try {
+                    const sitesV1Response = await makeUniFiRequest(`/v1/hosts/${host.id}/sites`, 'GET', integrationId);
+                    if (sitesV1Response?.data && Array.isArray(sitesV1Response.data)) {
+                      sitesData = sitesV1Response.data;
+                      console.log(`✅ Sites encontrados via /v1/hosts/${host.id}/sites:`, sitesData.length);
+                    }
+                  } catch (v1SitesError) {
+                    console.log(`❌ /v1/hosts/${host.id}/sites falhou, tentando /ea/hosts/${host.id}/sites...`);
+                    
+                    // Fallback para /ea/hosts/{id}/sites
+                    try {
+                      const sitesEaResponse = await makeUniFiRequest(`/ea/hosts/${host.id}/sites`, 'GET', integrationId);
+                      if (sitesEaResponse?.data && Array.isArray(sitesEaResponse.data)) {
+                        sitesData = sitesEaResponse.data;
+                        console.log(`✅ Sites encontrados via /ea/hosts/${host.id}/sites:`, sitesData.length);
+                      }
+                    } catch (eaSitesError) {
+                      console.log(`❌ Ambos endpoints de sites falharam para host ${host.id}`);
+                    }
+                  }
+
+                  return {
+                    ...host,
+                    sites: sitesData || [],
+                    sitesCount: sitesData?.length || 0,
+                    isValid: true,
+                    apiType: 'site-manager'
+                  };
+                } catch (error) {
+                  console.error(`Erro ao buscar sites para host ${host.id}:`, error);
+                  return {
+                    ...host,
+                    sites: [],
+                    sitesCount: 0,
+                    isValid: false,
+                    apiType: 'site-manager'
+                  };
+                }
+              })
+            );
+
+            // Filtrar apenas hosts que foram resolvidos com sucesso
+            const validHosts = hostsWithSites
+              .filter(result => result.status === 'fulfilled')
+              .map(result => (result as any).value)
+              .filter(host => host.isValid || host.sites?.length > 0);
+
+            if (validHosts.length > 0) {
+              console.log('✅ Hosts válidos com sites encontrados:', validHosts.length);
+              return validHosts;
+            }
+          }
+          
+          throw new Error('Site Manager API não disponível ou sem dados, tentando local controller');
           
         } catch (error) {
-          console.log('Site Manager API falhou, tentando controladora local:', error.message);
+          console.log('Site Manager API falhou completamente, tentando controladora local:', error.message);
           
           try {
             // Fallback to local controller approach
@@ -253,7 +326,7 @@ export const useUniFiAPI = () => {
 
             console.log('✅ Usando controladora local, sites encontrados:', sites.length);
 
-            // For local controller, create a virtual host
+            // For local controller, create a virtual host with the sites
             const virtualHost = {
               id: 'local-controller',
               hardwareId: 'local-controller',
