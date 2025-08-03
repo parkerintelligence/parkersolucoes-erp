@@ -83,7 +83,7 @@ const menuItems = [{
   icon: Wifi,
   role: 'user'
 }, {
-  title: 'VPS',
+  title: 'Dashboard',
   url: '/dashboard',
   icon: LayoutDashboard,
   role: 'user'
