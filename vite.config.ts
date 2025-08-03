@@ -19,7 +19,14 @@ export default defineConfig(({ mode }) => ({
       'react',
       'react-dom',
       '@tanstack/react-query',
-      '@supabase/supabase-js'
+      '@supabase/supabase-js',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-slot',
+      'lucide-react'
     ],
     exclude: ['@vite/client', '@vite/env']
   },

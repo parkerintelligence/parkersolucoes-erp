@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import * as React from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,11 +21,11 @@ export const SafeDropdownMenu: React.FC<SafeDropdownMenuProps> = ({
   className,
   align = 'end'
 }) => {
-  const [isReady, setIsReady] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const mountedRef = useRef(true);
+  const [isReady, setIsReady] = React.useState(false);
+  const [hasError, setHasError] = React.useState(false);
+  const mountedRef = React.useRef(true);
 
-  useEffect(() => {
+  React.useEffect(() => {
     // Ensure component is still mounted
     if (!mountedRef.current) return;
     
@@ -41,7 +41,7 @@ export const SafeDropdownMenu: React.FC<SafeDropdownMenuProps> = ({
     };
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     return () => {
       mountedRef.current = false;
     };
