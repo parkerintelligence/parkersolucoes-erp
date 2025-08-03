@@ -87,6 +87,7 @@ export interface UniFiHost {
   isValid?: boolean;
   sites?: UniFiSite[];
   apiType?: 'site-manager' | 'local-controller';
+  displayName?: string;
 }
 
 interface UniFiNetwork {
@@ -347,7 +348,7 @@ export const useUniFiAPI = () => {
                 firmware_version: null,
                 hardware_id: 'local-controller',
                 host_type: 0,
-                hostname: 'Local UniFi Controller',
+                hostname: 'UniFi Network (Local Controller)',
                 inform_port: 8080,
                 ipAddrs: ['local'],
                 mgmt_port: 8443,
@@ -360,7 +361,8 @@ export const useUniFiAPI = () => {
               sitesCount: sites.length,
               isValid: sites.length > 0,
               sites: sites, // Cache sites data
-              apiType: 'local-controller'
+              apiType: 'local-controller',
+              displayName: 'UniFi Network' // Garantir que o nome seja exibido corretamente
             };
 
             return [virtualHost];
