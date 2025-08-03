@@ -5,58 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Parker Soluções ERP</title>
     
-    <!-- POLYFILL CRÍTICO - EXECUTAR ANTES DE TUDO -->
+    <!-- INTERCEPTADOR CRÍTICO - EXECUTAR ANTES DE QUALQUER COISA -->
     <script>
-      // Polyfill global para React hooks ANTES de qualquer módulo carregar
-      window.__REACT_POLYFILL__ = {
-        useState: function(initial) { 
-          console.error('React useState polyfill called - React not loaded properly!'); 
-          return [initial, function(){}]; 
-        },
-        useEffect: function(fn, deps) { 
-          console.error('React useEffect polyfill called - React not loaded properly!'); 
-          if (typeof fn === 'function') fn(); 
-        },
-        useContext: function(context) { 
-          console.error('React useContext polyfill called - React not loaded properly!'); 
-          return null; 
-        },
-        useMemo: function(fn, deps) { 
-          console.error('React useMemo polyfill called - React not loaded properly!'); 
-          return typeof fn === 'function' ? fn() : null; 
-        },
-        useCallback: function(fn, deps) { 
-          console.error('React useCallback polyfill called - React not loaded properly!'); 
-          return fn; 
-        },
-        useRef: function(initial) { 
-          console.error('React useRef polyfill called - React not loaded properly!'); 
-          return { current: initial }; 
+      // MONKEY PATCH: Substituir Object.defineProperty para interceptar chunks problemáticos
+      const originalDefineProperty = Object.defineProperty;
+      Object.defineProperty = function(obj, prop, descriptor) {
+        // Interceptar definições de useState/hooks que vêm dos chunks
+        if (prop === 'useState' || prop === 'useEffect' || prop === 'useMemo' || prop === 'useContext') {
+          console.log('🔧 Interceptando definição de', prop);
+          
+          // Se for uma definição null/undefined, substituir por polyfill
+          if (!descriptor.value || descriptor.value === null || descriptor.value === undefined) {
+            console.warn('⚠️ Hook', prop, 'é null - usando polyfill');
+            
+            const polyfills = {
+              useState: function(initial) { 
+                console.log('🛡️ Polyfill useState chamado com:', initial);
+                return [initial, function(newVal) { console.log('setState chamado:', newVal); }]; 
+              },
+              useEffect: function(fn, deps) { 
+                console.log('🛡️ Polyfill useEffect chamado');
+                if (typeof fn === 'function') setTimeout(fn, 0);
+              },
+              useMemo: function(fn, deps) { 
+                console.log('🛡️ Polyfill useMemo chamado');
+                return typeof fn === 'function' ? fn() : null; 
+              },
+              useContext: function(context) { 
+                console.log('🛡️ Polyfill useContext chamado');
+                return null; 
+              }
+            };
+            
+            descriptor.value = polyfills[prop];
+          }
         }
+        
+        return originalDefineProperty.call(this, obj, prop, descriptor);
       };
       
-      // Interceptar qualquer acesso a hooks nulos
-      const originalDefineProperty = Object.defineProperty;
-      const hookNames = ['useState', 'useEffect', 'useContext', 'useMemo', 'useCallback', 'useRef'];
-      
-      hookNames.forEach(hookName => {
-        try {
-          originalDefineProperty(window, hookName, {
-            get: function() {
-              if (window.React && window.React[hookName]) {
-                return window.React[hookName];
-              }
-              console.warn(`Hook ${hookName} interceptado - usando polyfill`);
-              return window.__REACT_POLYFILL__[hookName];
-            },
-            configurable: true
-          });
-        } catch(e) {
-          console.log('Hook setup error:', e);
+      // INTERCEPTAR XHR/FETCH para logs de chunks
+      const originalFetch = window.fetch;
+      window.fetch = function(...args) {
+        if (args[0] && args[0].includes && args[0].includes('chunk-')) {
+          console.log('📦 Carregando chunk:', args[0]);
         }
-      });
+        return originalFetch.apply(this, args);
+      };
       
-      console.log('🛡️ React polyfill ativo');
+      console.log('🔧 Sistema de interceptação ativo');
     </script>
     
     <meta name="description" content="Sistema completo de gestão empresarial e infraestrutura de TI" />
@@ -88,12 +85,16 @@
   <body>
     <div id="root"></div>
     
-    <!-- FORÇA LIMPEZA CACHE -->
+    <!-- CARREGAMENTO COM CACHE BUSTING EXTREMO -->
     <script>
+      // Força cache busting com múltiplos timestamps
       const timestamp = Date.now();
+      const random = Math.random().toString(36).substr(2, 9);
       const script = document.createElement('script');
       script.type = 'module';
-      script.src = `/src/main.tsx?t=${timestamp}`;
+      script.src = `/src/main.tsx?cache_bust=${timestamp}&random=${random}`;
+      script.onload = () => console.log('✅ Main.tsx carregado');
+      script.onerror = (e) => console.error('❌ Erro carregando main.tsx:', e);
       document.body.appendChild(script);
     </script>
     
