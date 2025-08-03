@@ -32,21 +32,50 @@ export const useAuth = () => {
   return context;
 };
 
-// Minimal provider without useState - just static values for now
+// Basic authentication state without React hooks
+let isLoggedIn = false;
+let currentUser: User | null = null;
+let currentUserProfile: UserProfile | null = null;
+
+// Minimal provider with basic login functionality
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const value = {
-    user: null,
-    userProfile: null,
+    user: currentUser,
+    userProfile: currentUserProfile,
     session: null,
     login: async (email: string, password: string): Promise<boolean> => {
       console.log('Minimal auth - login attempt:', email);
+      // Basic authentication - accept contato@parkersolucoes.com.br with any password
+      if (email === 'contato@parkersolucoes.com.br') {
+        isLoggedIn = true;
+        currentUser = { 
+          id: 'master-user', 
+          email: email,
+          user_metadata: {},
+          app_metadata: {},
+          aud: 'authenticated',
+          created_at: new Date().toISOString()
+        } as User;
+        currentUserProfile = {
+          id: 'master-user',
+          email: email,
+          role: 'master'
+        };
+        // Force re-render by triggering a minimal state change
+        setTimeout(() => window.location.href = '/alertas', 100);
+        return true;
+      }
       return false;
     },
     logout: async () => {
       console.log('Minimal auth - logout');
+      isLoggedIn = false;
+      currentUser = null;
+      currentUserProfile = null;
+      window.location.href = '/login';
     },
-    isAuthenticated: false,
-    isMaster: false,
+    isAuthenticated: isLoggedIn,
+    isMaster: currentUserProfile?.role === 'master',
     isLoading: false,
     resetSessionTimer: () => {
       console.log('Minimal auth - reset timer');
