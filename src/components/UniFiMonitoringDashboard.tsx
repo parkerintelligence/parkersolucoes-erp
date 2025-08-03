@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { useIntegrations } from '@/hooks/useIntegrations';
-import { UniFiHostSelector } from '@/components/UniFiHostSelector';
+import { UniFiSiteGroupSelector } from '@/components/UniFiSiteGroupSelector';
 import { UniFiSiteSelector } from '@/components/UniFiSiteSelector';
 import { UniFiDeviceManager } from '@/components/UniFiDeviceManager';
 import { UniFiClientManager } from '@/components/UniFiClientManager';
@@ -28,13 +28,13 @@ const UniFiMonitoringDashboard = () => {
   const { toast } = useToast();
   
   const [selectedIntegration, setSelectedIntegration] = useState<string>('');
-  const [selectedHostId, setSelectedHostId] = useState<string>('');
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [selectedSiteId, setSelectedSiteId] = useState<string>('');
   const [showRealTimeStats, setShowRealTimeStats] = useState(true);
 
   const {
     useUniFiHosts,
-    useUniFiSites,
+    useUniFiSiteGroups,
     useUniFiDevices,
     useUniFiClients,
     useUniFiStats,
@@ -52,10 +52,14 @@ const UniFiMonitoringDashboard = () => {
   } = useUniFiHosts(selectedIntegration);
   
   const { 
-    data: sites, 
-    isLoading: sitesLoading 
-  } = useUniFiSites(selectedIntegration, selectedHostId);
+    data: siteGroups, 
+    isLoading: siteGroupsLoading 
+  } = useUniFiSiteGroups(selectedIntegration);
   
+  // Get selected group and its host information
+  const selectedGroup = siteGroups?.find(group => group.id === selectedGroupId);
+  const selectedHostId = selectedGroup?.hostId || '';
+
   const { 
     data: devices, 
     isLoading: devicesLoading 
@@ -78,36 +82,22 @@ const UniFiMonitoringDashboard = () => {
     }
   }, [unifiIntegrations, selectedIntegration]);
 
-  // Aggregate all sites from all hosts
-  const allSitesFromHosts = hosts ? hosts.flatMap(host => 
-    (host.sites || []).map(site => ({
-      ...site,
-      hostId: host.id,
-      hostName: host.reportedState?.hostname || host.reportedState?.name || `Host ${host.id}`
-    }))
-  ) : [];
-  
-  // Use aggregated sites if available, otherwise fall back to the single host sites
-  const availableSites = allSitesFromHosts.length > 0 ? allSitesFromHosts : (sites?.data || []);
+  // Get sites from selected group
+  const availableSites = selectedGroup?.sites || [];
 
-  // Auto-select first host
+  // Auto-select first group
   useEffect(() => {
-    if (hosts && hosts.length > 0 && !selectedHostId) {
-      setSelectedHostId(hosts[0].id);
+    if (siteGroups && siteGroups.length > 0 && !selectedGroupId) {
+      setSelectedGroupId(siteGroups[0].id);
     }
-  }, [hosts, selectedHostId]);
+  }, [siteGroups, selectedGroupId]);
 
-  // Auto-select first site from all available sites
+  // Auto-select first site from selected group
   useEffect(() => {
     if (availableSites.length > 0 && !selectedSiteId) {
       setSelectedSiteId(availableSites[0].id);
-      // If this site is from a different host, update the selected host
-      const siteHost = availableSites[0].hostId;
-      if (siteHost && siteHost !== selectedHostId) {
-        setSelectedHostId(siteHost);
-      }
     }
-  }, [availableSites, selectedSiteId, selectedHostId]);
+  }, [availableSites, selectedSiteId]);
 
   const handleRefresh = () => {
     refreshData(selectedIntegration, selectedHostId, selectedSiteId);
@@ -219,20 +209,21 @@ const UniFiMonitoringDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Host and Site Selectors */}
+      {/* Group and Site Selectors */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <UniFiHostSelector
-          hosts={hosts || []}
-          selectedHostId={selectedHostId}
-          onHostChange={setSelectedHostId}
-          loading={hostsLoading}
+        <UniFiSiteGroupSelector
+          groups={siteGroups || []}
+          selectedGroupId={selectedGroupId}
+          onGroupChange={setSelectedGroupId}
+          loading={siteGroupsLoading}
         />
         
         <UniFiSiteSelector
           sites={availableSites}
           selectedSiteId={selectedSiteId}
           onSiteChange={setSelectedSiteId}
-          loading={sitesLoading}
+          loading={siteGroupsLoading}
+          groupName={selectedGroup?.name}
         />
       </div>
 

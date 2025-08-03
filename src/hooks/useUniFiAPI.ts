@@ -115,6 +115,21 @@ interface UniFiAlarm {
   archived: boolean;
 }
 
+interface UniFiSiteGroup {
+  id: string;
+  name: string;
+  description: string;
+  type: 'host' | 'location' | 'function' | 'default';
+  sites: UniFiSite[];
+  hostId?: string;
+  hostName?: string;
+  totalDevices: number;
+  totalClients: number;
+  onlineDevices: number;
+  status: 'healthy' | 'warning' | 'error';
+  apiType?: 'site-manager' | 'local-controller';
+}
+
 export const useUniFiAPI = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -703,6 +718,7 @@ export const useUniFiAPI = () => {
 
   const refreshData = (integrationId: string, hostId?: string, siteId?: string) => {
     queryClient.invalidateQueries({ queryKey: ['unifi-hosts', integrationId] });
+    queryClient.invalidateQueries({ queryKey: ['unifi-site-groups', integrationId] });
     queryClient.invalidateQueries({ queryKey: ['unifi-sites', integrationId, hostId] });
     queryClient.invalidateQueries({ queryKey: ['unifi-devices', integrationId, hostId, siteId] });
     queryClient.invalidateQueries({ queryKey: ['unifi-clients', integrationId, hostId, siteId] });
@@ -712,10 +728,81 @@ export const useUniFiAPI = () => {
     queryClient.invalidateQueries({ queryKey: ['unifi-stats', integrationId, hostId, siteId] });
   };
 
+  // Site Groups query - group sites by logical categories
+  const useUniFiSiteGroups = (integrationId: string) => {
+    return useQuery({
+      queryKey: ['unifi-site-groups', integrationId],
+      queryFn: async () => {
+        if (!integrationId) return [];
+        
+        console.log('Generating site groups for integration:', integrationId);
+        
+        // Get all hosts with their sites
+        const hostsData = queryClient.getQueryData(['unifi-hosts', integrationId]) as UniFiHost[];
+        if (!hostsData || hostsData.length === 0) {
+          return [];
+        }
+
+        const groups: UniFiSiteGroup[] = [];
+        
+        // Create groups by host
+        for (const host of hostsData) {
+          if (host.sites && host.sites.length > 0) {
+            // Calculate aggregated stats for this group
+            let totalDevices = 0;
+            let totalClients = 0;
+            let onlineDevices = 0;
+            
+            // Note: We'll need to fetch device/client data to get accurate counts
+            // For now, we'll use placeholder values or estimated counts
+            
+            const group: UniFiSiteGroup = {
+              id: `host-${host.id}`,
+              name: host.displayName || host.reportedState?.name || host.reportedState?.hostname || `Host ${host.id}`,
+              description: `${host.sites.length} sites ${host.apiType === 'local-controller' ? '(Controladora Local)' : '(Site Manager)'}`,
+              type: 'host',
+              sites: host.sites,
+              hostId: host.id,
+              hostName: host.displayName || host.reportedState?.name || host.reportedState?.hostname,
+              totalDevices,
+              totalClients,
+              onlineDevices,
+              status: 'healthy', // TODO: Calculate based on sites health
+              apiType: host.apiType
+            };
+            
+            groups.push(group);
+          }
+        }
+        
+        // If no groups created, create a default group
+        if (groups.length === 0) {
+          groups.push({
+            id: 'default',
+            name: 'Sites Disponíveis',
+            description: 'Sites sem agrupamento específico',
+            type: 'default',
+            sites: [],
+            totalDevices: 0,
+            totalClients: 0,
+            onlineDevices: 0,
+            status: 'healthy'
+          });
+        }
+        
+        console.log('Generated site groups:', groups);
+        return groups;
+      },
+      enabled: !!integrationId,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+  };
+
   return {
     // Hybrid hooks (work with both APIs)
     useUniFiHosts,
     useUniFiSites,
+    useUniFiSiteGroups,
     useUniFiDevices,
     useUniFiClients,
     useUniFiNetworks,

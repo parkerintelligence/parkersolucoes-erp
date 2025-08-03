@@ -11,13 +11,15 @@ interface UniFiSiteSelectorProps {
   selectedSiteId?: string;
   onSiteChange: (siteId: string) => void;
   loading?: boolean;
+  groupName?: string;
 }
 
 export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
   sites,
   selectedSiteId,
   onSiteChange,
-  loading = false
+  loading = false,
+  groupName
 }) => {
   const selectedSite = sites.find(site => site.id === selectedSiteId);
 
@@ -26,7 +28,7 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
       <CardHeader className="pb-3">
         <CardTitle className="text-white flex items-center gap-2">
           <Globe className="h-5 w-5 text-blue-400" />
-          Seleção de Site UniFi
+          Sites UniFi {groupName && `- ${groupName}`}
         </CardTitle>
       </CardHeader>
       <CardContent>
