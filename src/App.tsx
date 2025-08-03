@@ -2,7 +2,6 @@
 import * as React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
@@ -43,10 +42,9 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <div className="min-h-screen bg-background">
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <div className="min-h-screen bg-background">
               <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
@@ -254,8 +252,7 @@ function App() {
             </div>
           </BrowserRouter>
         </QueryClientProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+      </ErrorBoundary>
   );
 }
 
