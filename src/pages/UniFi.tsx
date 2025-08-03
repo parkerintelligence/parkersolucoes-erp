@@ -6,31 +6,25 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Wifi, 
-  Settings, 
-  ExternalLink, 
-  RefreshCw, 
-  Globe,
-  AlertTriangle,
-  CheckCircle
-} from 'lucide-react';
+import { Wifi, Settings, ExternalLink, RefreshCw, Globe, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useSystemSetting, useUpsertSystemSetting } from '@/hooks/useSystemSettings';
 import { useToast } from '@/hooks/use-toast';
-
 const UniFi = () => {
-  const { toast } = useToast();
-  const { data: unifiUrlSetting, isLoading: urlLoading } = useSystemSetting('unifi_website_url');
+  const {
+    toast
+  } = useToast();
+  const {
+    data: unifiUrlSetting,
+    isLoading: urlLoading
+  } = useSystemSetting('unifi_website_url');
   const upsertSetting = useUpsertSystemSetting();
-  
+
   // Extract the string value from the SystemSetting object
   const unifiUrl = unifiUrlSetting?.setting_value || '';
-  
   const [showConfig, setShowConfig] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [iframeLoading, setIframeLoading] = useState(true);
   const [iframeError, setIframeError] = useState(false);
-
   const isValidUrl = (url: string) => {
     try {
       new URL(url);
@@ -39,7 +33,6 @@ const UniFi = () => {
       return false;
     }
   };
-
   const handleSaveUrl = async () => {
     if (!urlInput.trim()) {
       toast({
@@ -49,7 +42,6 @@ const UniFi = () => {
       });
       return;
     }
-
     if (!isValidUrl(urlInput)) {
       toast({
         title: "URL inválida",
@@ -58,7 +50,6 @@ const UniFi = () => {
       });
       return;
     }
-
     try {
       await upsertSetting.mutateAsync({
         setting_key: 'unifi_website_url',
@@ -67,12 +58,10 @@ const UniFi = () => {
         category: 'unifi',
         description: 'URL do site UniFi a ser carregado na página'
       });
-      
       toast({
         title: "URL configurada",
-        description: "URL do UniFi salva com sucesso.",
+        description: "URL do UniFi salva com sucesso."
       });
-      
       setShowConfig(false);
       setIframeLoading(true);
       setIframeError(false);
@@ -84,12 +73,10 @@ const UniFi = () => {
       });
     }
   };
-
   const handleOpenConfig = () => {
     setUrlInput(unifiUrl);
     setShowConfig(true);
   };
-
   const handleRefresh = () => {
     setIframeLoading(true);
     setIframeError(false);
@@ -99,29 +86,22 @@ const UniFi = () => {
       iframe.src = unifiUrl;
     }
   };
-
   const handleIframeLoad = () => {
     setIframeLoading(false);
   };
-
   const handleIframeError = () => {
     setIframeLoading(false);
     setIframeError(true);
   };
-
   if (urlLoading) {
-    return (
-      <div className="min-h-screen bg-background p-4">
+    return <div className="min-h-screen bg-background p-4">
         <div className="flex items-center justify-center h-96">
           <div className="text-muted-foreground">Carregando configurações...</div>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (!unifiUrl) {
-    return (
-      <div className="min-h-screen bg-background p-4">
+    return <div className="min-h-screen p-4 bg-slate-900">
         <div className="max-w-4xl mx-auto">
           <div className="text-center space-y-6">
             <div className="flex items-center justify-center">
@@ -145,12 +125,9 @@ const UniFi = () => {
             </Button>
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-background p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -163,48 +140,30 @@ const UniFi = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            {iframeLoading && (
-              <Badge variant="secondary" className="animate-pulse">
+            {iframeLoading && <Badge variant="secondary" className="animate-pulse">
                 <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
                 Carregando...
-              </Badge>
-            )}
-            {iframeError && (
-              <Badge variant="destructive">
+              </Badge>}
+            {iframeError && <Badge variant="destructive">
                 <AlertTriangle className="h-3 w-3 mr-1" />
                 Erro de carregamento
-              </Badge>
-            )}
-            {!iframeLoading && !iframeError && (
-              <Badge variant="outline" className="text-green-600 border-green-600">
+              </Badge>}
+            {!iframeLoading && !iframeError && <Badge variant="outline" className="text-green-600 border-green-600">
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Carregado
-              </Badge>
-            )}
+              </Badge>}
             
-            <Button 
-              onClick={handleRefresh}
-              variant="outline"
-              size="sm"
-            >
+            <Button onClick={handleRefresh} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               Atualizar
             </Button>
             
-            <Button 
-              onClick={() => window.open(unifiUrl, '_blank')}
-              variant="outline"
-              size="sm"
-            >
+            <Button onClick={() => window.open(unifiUrl, '_blank')} variant="outline" size="sm">
               <ExternalLink className="h-4 w-4 mr-2" />
               Abrir em nova aba
             </Button>
             
-            <Button 
-              onClick={handleOpenConfig}
-              variant="outline"
-              size="sm"
-            >
+            <Button onClick={handleOpenConfig} variant="outline" size="sm">
               <Settings className="h-4 w-4 mr-2" />
               Configurar
             </Button>
@@ -213,9 +172,10 @@ const UniFi = () => {
       </div>
 
       {/* Iframe Content */}
-      <div className="relative" style={{ height: 'calc(100vh - 73px)' }}>
-        {iframeError ? (
-          <div className="flex items-center justify-center h-full bg-muted/20">
+      <div className="relative" style={{
+      height: 'calc(100vh - 73px)'
+    }}>
+        {iframeError ? <div className="flex items-center justify-center h-full bg-muted/20">
             <Card className="max-w-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-destructive">
@@ -242,19 +202,7 @@ const UniFi = () => {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        ) : (
-          <iframe
-            id="unifi-iframe"
-            src={unifiUrl}
-            className="w-full h-full border-0"
-            onLoad={handleIframeLoad}
-            onError={handleIframeError}
-            allow="fullscreen; clipboard-read; clipboard-write"
-            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
-            title="UniFi Interface"
-          />
-        )}
+          </div> : <iframe id="unifi-iframe" src={unifiUrl} className="w-full h-full border-0" onLoad={handleIframeLoad} onError={handleIframeError} allow="fullscreen; clipboard-read; clipboard-write" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox" title="UniFi Interface" />}
       </div>
 
       {/* Configuration Dialog */}
@@ -273,13 +221,7 @@ const UniFi = () => {
           <div className="space-y-4">
             <div>
               <Label htmlFor="url">URL do Site *</Label>
-              <Input
-                id="url"
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                placeholder="https://unifi.exemplo.com:8443"
-                className="mt-1"
-              />
+              <Input id="url" value={urlInput} onChange={e => setUrlInput(e.target.value)} placeholder="https://unifi.exemplo.com:8443" className="mt-1" />
               <p className="text-xs text-muted-foreground mt-1">
                 Inclua o protocolo (http:// ou https://) e a porta se necessário
               </p>
@@ -296,24 +238,16 @@ const UniFi = () => {
             </Alert>
             
             <div className="flex gap-3 pt-2">
-              <Button 
-                onClick={handleSaveUrl}
-                disabled={upsertSetting.isPending || !urlInput.trim()}
-              >
+              <Button onClick={handleSaveUrl} disabled={upsertSetting.isPending || !urlInput.trim()}>
                 {upsertSetting.isPending ? 'Salvando...' : 'Salvar URL'}
               </Button>
-              <Button 
-                variant="outline"
-                onClick={() => setShowConfig(false)}
-              >
+              <Button variant="outline" onClick={() => setShowConfig(false)}>
                 Cancelar
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </div>;
 };
-
 export default UniFi;
