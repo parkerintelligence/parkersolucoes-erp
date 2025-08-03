@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Wifi, Settings, ExternalLink, RefreshCw, Globe, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useSystemSetting, useUpsertSystemSetting } from '@/hooks/useSystemSettings';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 const UniFi = () => {
+  const { user } = useAuth();
   const {
     toast
   } = useToast();
@@ -29,9 +30,9 @@ const UniFi = () => {
   
   // Generate proxy URL for the UniFi controller
   const getProxyUrl = () => {
-    if (!unifiUrl) return '';
+    if (!unifiUrl || !user?.id) return '';
     const baseUrl = 'https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/unifi-website-proxy';
-    return `${baseUrl}?path=/`;
+    return `${baseUrl}?path=/&user_id=${user.id}`;
   };
   const isValidUrl = (url: string) => {
     try {

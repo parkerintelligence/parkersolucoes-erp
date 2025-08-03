@@ -73,4 +73,4 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.unifi-website-proxy]
-verify_jwt = true
+verify_jwt = false

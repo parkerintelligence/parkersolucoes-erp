@@ -25,28 +25,30 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     );
 
-    const authHeader = req.headers.get('Authorization');
-    console.log('Authorization header present:', !!authHeader);
+    // Get user_id from query parameters for public function
+    const url = new URL(req.url);
+    const userId = url.searchParams.get('user_id');
     
-    if (!authHeader) {
-      console.error('No authorization header found');
-      throw new Error('Authorization header is required');
+    if (!userId) {
+      console.error('No user_id parameter found');
+      throw new Error('user_id parameter is required');
     }
 
-    console.log("Authenticating user...");
-    const token = authHeader.replace('Bearer ', '');
+    console.log(`User ID from parameter: ${userId}`);
     
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    // Validate that the user exists in our database
+    const { data: userProfile, error: profileError } = await supabaseClient
+      .from('user_profiles')
+      .select('id')
+      .eq('id', userId)
+      .single();
 
-    if (authError || !user) {
-      console.error('Authentication failed:', { 
-        error: authError?.message, 
-        hasUser: !!user 
-      });
-      throw new Error(`Authentication failed: ${authError?.message || 'User not found'}`);
+    if (profileError || !userProfile) {
+      console.error('User validation failed:', profileError);
+      throw new Error('Invalid user_id');
     }
 
-    console.log(`User authenticated: ${user.id}`);
+    console.log(`User validated: ${userId}`);
 
     // Get UniFi URL from system settings
     console.log("Fetching UniFi URL setting...");
@@ -54,7 +56,7 @@ serve(async (req) => {
       .from('system_settings')
       .select('setting_value')
       .eq('setting_key', 'unifi_website_url')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
     if (settingError || !urlSetting) {
