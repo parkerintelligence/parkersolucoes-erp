@@ -8,6 +8,8 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    // Force reload and clear cache
+    force: true,
   },
   plugins: [
     react(),
@@ -20,17 +22,12 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    // COMPLETELY exclude React from optimization - this is the key fix
-    exclude: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
-    // Disable dependency scanning that can cause issues
-    disabled: false,
-    // Force rebuild
+    // Force fresh dependency resolution
     force: true,
+    // Clear all previous optimizations
+    include: [],
+    exclude: [],
   },
-  build: {
-    // Ensure React stays external in development
-    rollupOptions: {
-      external: mode === 'development' ? ['react', 'react-dom'] : [],
-    },
-  },
+  // Use a different cache directory to force fresh start
+  cacheDir: `node_modules/.vite-fresh-${Date.now()}`,
 }));
