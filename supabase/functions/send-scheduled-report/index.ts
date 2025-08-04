@@ -583,90 +583,71 @@ async function getBaculaData(userId: string, settings: any) {
 
     console.log(`🔌 [BACULA] Integração Bacula encontrada: ${baculaIntegration.name}`);
 
-    // Implementar conectividade robusta com retry e fallback
-    const maxRetries = 3;
-    const baseDelay = 1000; // 1 segundo
+    // NOVA IMPLEMENTAÇÃO: Usar a mesma lógica que funciona na interface
+    // Conectar diretamente ao Bacula usando os dados da integração
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
     
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`🔄 [BACULA] Tentativa ${attempt}/${maxRetries} - Chamando bacula-proxy...`);
-        
-        // Usar service role key para autenticação interna
-        const baculaResponse = await supabase.functions.invoke('bacula-proxy', {
-          body: {
-            endpoint: 'jobs/last24h',
-            params: { limit: settings.max_jobs || 50 }
-          },
-          headers: {
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-            'x-internal-call': 'true',
-            'x-user-id': userId,
-            'x-request-id': `bacula-${Date.now()}-${attempt}`
-          }
-        });
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    
+    console.log(`📅 [BACULA] Buscando jobs de ${yesterday.toISOString()} até ${today.toISOString()}`);
+    
+    // Buscar dados das últimas 24 horas usando endpoint específico
+    const requestId = `bacula-daily-${Date.now()}`;
+    console.log(`🔍 [BACULA] Request ID: ${requestId}`);
+    
+    // Usar client anônimo com session do usuário para autenticação correta
+    const clientSupabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
 
-        if (baculaResponse.error) {
-          console.error(`❌ [BACULA] Tentativa ${attempt} - Erro no response:`, baculaResponse.error);
-          
-          if (attempt === maxRetries) {
-            console.log(`🚨 [BACULA] Fallback ativado - usando dados simulados`);
-            return getFallbackBaculaData();
-          }
-          
-          // Backoff exponencial
-          const delay = baseDelay * Math.pow(2, attempt - 1);
-          console.log(`⏳ [BACULA] Aguardando ${delay}ms antes da próxima tentativa...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          continue;
+    const baculaResponse = await clientSupabase.functions.invoke('bacula-proxy', {
+      body: {
+        endpoint: 'jobs/last24h',
+        params: { 
+          limit: 100,
+          start_date: yesterday.toISOString(),
+          end_date: today.toISOString()
         }
-
-        // Validar resposta
-        if (!baculaResponse.data) {
-          console.warn(`⚠️ [BACULA] Tentativa ${attempt} - Resposta vazia`);
-          if (attempt === maxRetries) {
-            return getFallbackBaculaData();
-          }
-          continue;
-        }
-
-        // Sucesso - processar resposta
-        console.log(`✅ [BACULA] Tentativa ${attempt} - Dados recebidos com sucesso`);
-        return processBaculaResponse(baculaResponse.data, attempt);
-        
-      } catch (error) {
-        console.error(`❌ [BACULA] Tentativa ${attempt} - Erro de execução:`, error);
-        
-        if (attempt === maxRetries) {
-          console.log(`🚨 [BACULA] Todas as tentativas falharam - usando fallback`);
-          return getFallbackBaculaData();
-        }
-        
-        // Backoff exponencial
-        const delay = baseDelay * Math.pow(2, attempt - 1);
-        console.log(`⏳ [BACULA] Aguardando ${delay}ms antes da próxima tentativa...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+      },
+      headers: {
+        'x-request-id': requestId,
+        'x-user-id': userId
       }
+    });
+
+    if (baculaResponse.error) {
+      console.error(`❌ [BACULA] Erro na requisição:`, baculaResponse.error);
+      throw new Error(`Falha crítica na conexão Bacula: ${baculaResponse.error.message}. Sistema indisponível para relatórios automáticos.`);
     }
 
-    // Fallback se todas as tentativas falharam
-    return getFallbackBaculaData();
+    if (!baculaResponse.data) {
+      console.warn(`⚠️ [BACULA] Resposta vazia`);
+      return getFallbackBaculaData();
+    }
 
+    console.log(`✅ [BACULA] Dados recebidos com sucesso`);
+    return processBaculaJobsForDailyReport(baculaResponse.data, yesterday, today);
+        
   } catch (error) {
-    console.error('❌ [BACULA] Erro geral ao buscar dados:', error);
-    return getFallbackBaculaData();
+    console.error('❌ [BACULA] Erro ao buscar dados:', error);
+    throw error;
   }
 }
 
-// Função para processar resposta do Bacula com melhor tratamento de erros
-function processBaculaResponse(baculaResponse: any, attempt: number): any {
-  console.log(`📊 [BACULA] Processando resposta (tentativa ${attempt}):`, JSON.stringify(baculaResponse, null, 2));
+// Nova função para processar jobs especificamente para o relatório diário
+function processBaculaJobsForDailyReport(baculaResponse: any, startDate: Date, endDate: Date): any {
+  console.log(`📊 [BACULA] Processando jobs para relatório diário:`, JSON.stringify(baculaResponse, null, 2));
   
   if (!baculaResponse || typeof baculaResponse !== 'object') {
-    console.warn(`⚠️ [BACULA] Resposta inválida na tentativa ${attempt}:`, baculaResponse);
+    console.warn(`⚠️ [BACULA] Resposta inválida:`, baculaResponse);
     throw new Error('Resposta do Bacula inválida');
   }
 
-  // Extrair jobs da resposta com múltiplas tentativas de parsing
+  // Extrair jobs da resposta - seguindo a mesma lógica da interface
   let jobs = [];
   if (baculaResponse.jobs && Array.isArray(baculaResponse.jobs)) {
     jobs = baculaResponse.jobs;
@@ -676,58 +657,120 @@ function processBaculaResponse(baculaResponse: any, attempt: number): any {
     jobs = baculaResponse.data;
   } else if (baculaResponse.result && Array.isArray(baculaResponse.result)) {
     jobs = baculaResponse.result;
-  } else if (baculaResponse.response && Array.isArray(baculaResponse.response)) {
-    jobs = baculaResponse.response;
   } else {
     console.warn(`⚠️ [BACULA] Estrutura de dados inesperada:`, Object.keys(baculaResponse));
     jobs = [];
   }
 
-  console.log(`📋 [BACULA] Total de jobs encontrados: ${jobs.length}`);
+  console.log(`📋 [BACULA] Total de jobs brutos: ${jobs.length}`);
 
-  // Processar jobs para o template com validação robusta
-  const processedJobs = jobs.map(job => {
-    const processedJob = {
-      name: job.name || job.job || job.jobname || 'Job sem nome',
-      client: job.client || job.clientname || 'Cliente desconhecido',
-      level: job.level || job.joblevel || 'Nível desconhecido',
-      status: getStatusText(job.jobstatus || job.status || 'Unknown'),
-      startTime: formatDateTime(job.starttime || job.start_time || job.schedtime),
-      bytes: formatBytes(job.jobbytes || job.bytes || 0),
-      files: (job.jobfiles || job.files || 0).toLocaleString(),
-      endTime: formatDateTime(job.endtime || job.end_time || job.realendtime)
-    };
-    
-    return processedJob;
+  // Filtrar jobs do dia anterior (últimas 24 horas)
+  const filteredJobs = jobs.filter(job => {
+    const jobDate = new Date(job.starttime || job.start_time || job.schedtime);
+    return jobDate >= startDate && jobDate <= endDate;
   });
 
-  // Filtrar jobs com erro usando múltiplos critérios
-  const errorStatuses = ['E', 'f', 'F', 'A', 'Error', 'Fatal', 'Canceled', 'Erro', 'Falha'];
-  const successStatuses = ['T', 'Success', 'OK', 'Sucesso', 'Completed'];
+  console.log(`📅 [BACULA] Jobs das últimas 24 horas: ${filteredJobs.length}`);
+
+  // Processar cada job com as mesmas funções da interface
+  const processedJobs = filteredJobs.map(job => {
+    return {
+      name: job.name || job.job || job.jobname || 'Job sem nome',
+      client: job.client || job.clientname || 'Cliente desconhecido', 
+      level: formatJobLevel(job.level || job.joblevel || ''),
+      status: job.jobstatus || job.status || 'U',
+      startTime: formatDateTime(job.starttime || job.start_time || job.schedtime),
+      endTime: formatDateTime(job.endtime || job.end_time || job.realendtime),
+      bytes: parseInt(job.jobbytes || job.bytes || 0),
+      files: parseInt(job.jobfiles || job.files || 0),
+      rawStatus: job.jobstatus || job.status || 'U'
+    };
+  });
+
+  // Usar a mesma lógica de classificação da interface
+  const successJobs = processedJobs.filter(job => job.rawStatus === 'T');
+  const errorJobs = processedJobs.filter(job => ['E', 'f', 'F', 'A'].includes(job.rawStatus));
+  const runningJobs = processedJobs.filter(job => job.rawStatus === 'R');
+
+  // Preparar jobs com erro formatados para o template
+  const formattedErrorJobs = errorJobs.map(job => ({
+    name: job.name,
+    client: job.client,
+    level: job.level,
+    startTime: job.startTime,
+    bytes: formatBytes(job.bytes),
+    files: job.files.toLocaleString('pt-BR'),
+    status: getStatusDescription(job.rawStatus)
+  }));
+
+  // Calcular estatísticas
+  const totalJobs = processedJobs.length;
+  const successCount = successJobs.length;
+  const errorCount = errorJobs.length;
+  const errorRate = totalJobs > 0 ? Math.round((errorCount / totalJobs) * 100) : 0;
   
-  const errorJobs = processedJobs.filter(job => 
-    errorStatuses.some(status => job.status.includes(status))
-  );
-
-  const successJobs = processedJobs.filter(job => 
-    successStatuses.some(status => job.status.includes(status))
-  );
-
-  const stats = {
-    totalJobs: processedJobs.length,
-    successCount: successJobs.length,
-    errorCount: errorJobs.length,
-    errorRate: processedJobs.length > 0 ? Math.round((errorJobs.length / processedJobs.length) * 100) : 0,
-    hasErrors: errorJobs.length > 0,
-    hasCriticalErrors: errorJobs.some(job => ['Fatal', 'F', 'A', 'Canceled'].some(status => job.status.includes(status))),
-    errorJobs: errorJobs,
-    clientsAffected: new Set(errorJobs.map(job => job.client)).size,
-    recurrentFailuresCount: errorJobs.filter(job => job.name.toLowerCase().includes('backup')).length,
+  // Clientes únicos afetados por erros
+  const clientsAffected = new Set(errorJobs.map(job => job.client)).size;
+  
+  const result = {
+    date: new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+    totalJobs,
+    successCount,
+    errorCount,
+    errorRate,
+    clientsAffected,
+    errorJobs: formattedErrorJobs,
+    hasErrors: errorCount > 0,
+    hasCriticalErrors: errorJobs.some(job => ['f', 'F', 'A'].includes(job.rawStatus)),
+    recurrentFailuresCount: errorJobs.filter(job => 
+      job.name.toLowerCase().includes('backup') || 
+      job.name.toLowerCase().includes('incremental') ||
+      job.name.toLowerCase().includes('full')
+    ).length,
     timestamp: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
   };
 
-  console.log(`📊 [BACULA] Estatísticas processadas:`, stats);
-  return stats;
+  console.log(`📊 [BACULA] Estatísticas do relatório diário:`, {
+    totalJobs: result.totalJobs,
+    successCount: result.successCount, 
+    errorCount: result.errorCount,
+    errorRate: result.errorRate,
+    clientsAffected: result.clientsAffected,
+    hasErrors: result.hasErrors
+  });
+
+  return result;
+}
+
+// Função para formatar o nível do job
+function formatJobLevel(level: string): string {
+  const levelMap: { [key: string]: string } = {
+    'F': 'Full',
+    'I': 'Incremental', 
+    'D': 'Differential',
+    'B': 'Base',
+    'C': 'Catalog'
+  };
+  
+  return levelMap[level] || level || 'N/A';
+}
+
+// Função para descrição detalhada do status
+function getStatusDescription(status: string): string {
+  const statusMap: { [key: string]: string } = {
+    'T': 'Concluído com Sucesso',
+    'E': 'Erro Não-Fatal',
+    'f': 'Erro Fatal',
+    'F': 'Falha Crítica',
+    'A': 'Cancelado',
+    'R': 'Executando',
+    'C': 'Criado',
+    'B': 'Bloqueado',
+    'e': 'Erro Menor',
+    'W': 'Warning'
+  };
+  
+  return statusMap[status] || `Status Desconhecido (${status})`;
 }
 
 // Função para dados de fallback quando Bacula não está disponível
