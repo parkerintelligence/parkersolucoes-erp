@@ -3,7 +3,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // import { AuthProvider, useAuth } from '@/contexts/AuthContext'; // Temporarily disabled
-import { TooltipProvider } from '@/components/ui/tooltip';
+// import { TooltipProvider } from '@/components/ui/tooltip'; // Temporarily disabled
 import Login from '@/pages/Login';
 import VPS from '@/pages/VPS';
 import Admin from '@/pages/Admin';
@@ -38,10 +38,9 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <BrowserRouter>
-            <div className="min-h-screen bg-background">
-            <Routes>
+      <BrowserRouter>
+        <div className="min-h-screen bg-background">
+          <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
               <Route
@@ -245,9 +244,8 @@ function App() {
                 } 
               />
           </Routes>
-          </div>
-        </BrowserRouter>
-      </TooltipProvider>
+        </div>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }
