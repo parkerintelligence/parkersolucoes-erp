@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useZabbixAPI } from '@/hooks/useZabbixAPI';
+// import { useZabbixAPI } from '@/hooks/useZabbixAPI';
 import { RefreshCw, Wifi, WifiOff, Server, AlertTriangle, Cpu, HardDrive, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -17,25 +17,36 @@ interface DeviceStatus {
 }
 
 export default function Alertas() {
-  const { useHosts, useProblems, useItems } = useZabbixAPI();
+  // Temporarily disabled due to React hooks corruption
+  // const { useHosts, useProblems, useItems } = useZabbixAPI();
   
-  const { data: hosts = [], isLoading: hostsLoading, refetch: refetchHosts } = useHosts({}, {
-    refetchInterval: 30000, // Refresh every 30 seconds
-  });
+  // const { data: hosts = [], isLoading: hostsLoading, refetch: refetchHosts } = useHosts({}, {
+  //   refetchInterval: 30000, // Refresh every 30 seconds
+  // });
   
-  const { data: problems = [], isLoading: problemsLoading, refetch: refetchProblems } = useProblems({}, {
-    refetchInterval: 30000,
-  });
+  // const { data: problems = [], isLoading: problemsLoading, refetch: refetchProblems } = useProblems({}, {
+  //   refetchInterval: 30000,
+  // });
+
+  // Static fallback data
+  const hosts = [];
+  const hostsLoading = false;
+  const refetchHosts = () => {};
+  const problems = [];
+  const problemsLoading = false;
+  const refetchProblems = () => {};
 
   const hostIds = hosts.map(host => host.hostid);
   
   // Simplified performance items query - broader approach
-  const { data: performanceItems = [], isLoading: itemsLoading } = useItems(hostIds, {
-    output: ['itemid', 'name', 'key_', 'hostid', 'status', 'value_type', 'units', 'lastvalue', 'lastclock'],
-    filter: {
-      status: 0 // Only active items
-    }
-  });
+  // const { data: performanceItems = [], isLoading: itemsLoading } = useItems(hostIds, {
+  //   output: ['itemid', 'name', 'key_', 'hostid', 'status', 'value_type', 'units', 'lastvalue', 'lastclock'],
+  //   filter: {
+  //     status: 0 // Only active items
+  //   }
+  // });
+  const performanceItems = [];
+  const itemsLoading = false;
 
   const getDeviceStatus = (host: any): DeviceStatus => {
     // Análise mais robusta de disponibilidade
@@ -374,191 +385,21 @@ export default function Alertas() {
         </Card>
       </div>
 
-      {/* Tabs for Status and Performance */}
-      <Tabs defaultValue="status" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="status">Status Server</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="status" className="space-y-4">
-          {/* Devices Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-            {devices.map((device) => {
-              const perf = device.status === 'online' ? getPerformanceData(device.id) : null;
-              return (
-                <Card 
-                  key={device.id} 
-                  className={cn(
-                    "transition-all duration-200 hover:shadow-md",
-                    getStatusColor(device.status)
-                  )}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex flex-col items-center space-y-3">
-                      {getStatusIcon(device.status)}
-                      <h3 className="font-medium text-xs text-center text-white break-words w-full" title={device.name}>
-                        {device.name}
-                      </h3>
-                      {getStatusBadge(device.status)}
-                      {device.status === 'online' && perf?.itemsFound?.uptime && (
-                        <div className="flex items-center gap-1 text-xs text-slate-400">
-                          <Clock className="h-3 w-3" />
-                          <span>{formatUptime(perf.uptime)}</span>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="performance" className="space-y-4">
-          {/* Performance Table */}
-          <Card className="bg-slate-800 border-slate-700">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-slate-700 hover:bg-slate-700/50">
-                  <TableHead className="text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <Server className="h-4 w-4" />
-                      Device
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <Wifi className="h-4 w-4" />
-                      Status
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <Cpu className="h-4 w-4" />
-                      CPU
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <HardDrive className="h-4 w-4" />
-                      Memória
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      Uptime
-                    </div>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {devices
-                  .filter(device => device.status === 'online')
-                  .map((device) => {
-                    const perf = getPerformanceData(device.id);
-                    return { device, perf };
-                  })
-                  .sort((a, b) => b.perf.uptime - a.perf.uptime) // Sort by uptime descending
-                  .map(({ device, perf }) => (
-                    <TableRow key={device.id} className="border-slate-700 hover:bg-slate-700/30">
-                      <TableCell className="font-medium text-white">
-                        <div className="flex items-center gap-2">
-                          <Server className="h-4 w-4 text-blue-400" />
-                          {device.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(device.status)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-slate-300">
-                              {perf.itemsFound?.cpu ? `${perf.cpu.toFixed(1)}%` : (
-                                <span className="text-red-400">N/A</span>
-                              )}
-                            </span>
-                          </div>
-                          {perf.itemsFound?.cpu && (
-                            <Progress 
-                              value={perf.cpu} 
-                              className="h-2 w-24"
-                              style={{
-                                '--progress-foreground': perf.cpu > 80 ? 'hsl(0 70% 50%)' : perf.cpu > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
-                              } as React.CSSProperties}
-                            />
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-slate-300">
-                              {perf.itemsFound?.memory ? `${perf.memory.toFixed(1)}%` : (
-                                <span className="text-red-400">N/A</span>
-                              )}
-                            </span>
-                          </div>
-                          {perf.itemsFound?.memory && (
-                            <Progress 
-                              value={perf.memory} 
-                              className="h-2 w-24"
-                              style={{
-                                '--progress-foreground': perf.memory > 80 ? 'hsl(0 70% 50%)' : perf.memory > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
-                              } as React.CSSProperties}
-                            />
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-slate-300">
-                          {perf.itemsFound?.uptime ? formatUptime(perf.uptime) : (
-                            <span className="text-red-400">N/A</span>
-                          )}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </Card>
-
-          {devices.filter(device => device.status === 'online').length === 0 && (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center space-y-4">
-                <Server className="h-12 w-12 mx-auto text-muted-foreground" />
-                <div>
-                  <h3 className="text-lg font-semibold">Nenhum dispositivo online</h3>
-                  <p className="text-muted-foreground">Dados de performance só são exibidos para dispositivos online.</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      {(hostsLoading || problemsLoading) && devices.length === 0 && (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center space-y-4">
-            <RefreshCw className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-            <p className="text-muted-foreground">Carregando dispositivos...</p>
+      {/* Emergency mode - simplified content */}
+      <div className="space-y-4">
+        <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+          <div className="text-center text-slate-400">
+            <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-yellow-400" />
+            <h3 className="text-lg font-medium mb-2 text-white">
+              Sistema em Modo de Emergência
+            </h3>
+            <p className="text-slate-400 text-sm max-w-md mx-auto">
+              Os alertas Zabbix estão temporariamente indisponíveis devido a problemas técnicos. 
+              O sistema será restaurado em breve.
+            </p>
           </div>
         </div>
-      )}
-
-      {!hostsLoading && !problemsLoading && devices.length === 0 && (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center space-y-4">
-            <Server className="h-12 w-12 mx-auto text-muted-foreground" />
-            <div>
-              <h3 className="text-lg font-semibold">Nenhum dispositivo encontrado</h3>
-              <p className="text-muted-foreground">Verifique a configuração do Zabbix na página de Administração.</p>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
