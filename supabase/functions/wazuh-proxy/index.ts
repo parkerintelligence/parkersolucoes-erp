@@ -106,6 +106,27 @@ serve(async (req) => {
     }
 
     console.log("Creating Supabase client...");
+    
+    // Extract token from Bearer header
+    const token = authHeader.replace('Bearer ', '');
+    console.log('Token extracted, length:', token?.length || 0);
+    
+    if (!token || token.length < 10) {
+      console.error('Invalid or missing JWT token');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Unauthorized',
+          details: 'Invalid or missing JWT token',
+          hint: 'Please make sure you are logged in and try again. Your session may have expired.',
+          authHeader: 'Invalid token format'
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -128,17 +149,27 @@ serve(async (req) => {
 
     console.log('User authentication result:', { 
       user: user ? { id: user.id, email: user.email } : null, 
-      error: authError?.message 
+      error: authError?.message,
+      tokenValid: !!user
     });
 
     if (authError || !user) {
       console.error('Authentication failed:', authError);
+      const errorMessage = authError?.message || 'No user found';
+      
+      // Check if it's a token expiration or invalid session
+      const isExpiredToken = errorMessage.includes('expired') || errorMessage.includes('invalid') || errorMessage.includes('session');
+      
       return new Response(
         JSON.stringify({ 
           error: 'Unauthorized',
-          details: authError?.message || 'No user found',
-          hint: 'Please make sure you are logged in and try again. Your session may have expired.',
-          authHeader: 'Present but invalid'
+          details: errorMessage,
+          hint: isExpiredToken 
+            ? 'Your session has expired. Please refresh the page and try again.'
+            : 'Please make sure you are logged in and try again.',
+          authHeader: 'Present but invalid',
+          tokenExpired: isExpiredToken,
+          needsRefresh: true
         }),
         {
           status: 401,

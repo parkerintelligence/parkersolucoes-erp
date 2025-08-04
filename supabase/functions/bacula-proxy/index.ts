@@ -275,13 +275,29 @@ serve(async (req) => {
 
     console.log("Authenticating user...");
     const token = authHeader.replace('Bearer ', '');
-    console.log('Token extracted, length:', token.length);
+    console.log('Token extracted, length:', token?.length || 0);
+    
+    if (!token || token.length < 10) {
+      console.error('❌ Token JWT inválido ou ausente');
+      return new Response(JSON.stringify({ 
+        error: 'Token JWT inválido',
+        details: 'Token ausente ou formato inválido',
+        hint: 'Verifique se você está logado e tente novamente'
+      }), {
+        ...corsOptions,
+        status: 401
+      })
+    }
     
     // Create a client with the user's token instead of service role
     const userSupabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        },
         global: {
           headers: {
             Authorization: authHeader,
@@ -292,12 +308,30 @@ serve(async (req) => {
     
     const { data: { user }, error: userError } = await userSupabaseClient.auth.getUser();
 
+    console.log('User authentication result:', { 
+      user: user ? { id: user.id, email: user.email } : null, 
+      error: userError?.message,
+      tokenValid: !!user
+    });
+
     if (userError || !user) {
       console.error('❌ Token inválido:', { 
         error: userError?.message,
         hasUser: !!user 
       });
-      return new Response(JSON.stringify({ error: 'Falha na autenticação. Verifique se você está logado.' }), {
+      
+      const errorMessage = userError?.message || 'Usuário não encontrado';
+      const isExpiredToken = errorMessage.includes('expired') || errorMessage.includes('invalid') || errorMessage.includes('session');
+      
+      return new Response(JSON.stringify({ 
+        error: 'Falha na autenticação',
+        details: errorMessage,
+        hint: isExpiredToken 
+          ? 'Sua sessão expirou. Atualize a página e tente novamente.'
+          : 'Verifique se você está logado e tente novamente',
+        tokenExpired: isExpiredToken,
+        needsRefresh: true
+      }), {
         ...corsOptions,
         status: 401
       })

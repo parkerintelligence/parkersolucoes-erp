@@ -57,7 +57,13 @@ export const useWazuhAPI = () => {
     
     try {
       // Check token validity before making request
-      await checkTokenValidity();
+      const isValid = await checkTokenValidity();
+      if (!isValid && retryCount === 0) {
+        console.log('Token invalid, refreshing before request...');
+        await refreshToken();
+        // Wait a bit for the new token to be ready
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
       
       const { data, error } = await supabase.functions.invoke('wazuh-proxy', {
         body: {
@@ -70,25 +76,48 @@ export const useWazuhAPI = () => {
       if (error) {
         console.error('Wazuh request error:', error);
         
-        // Handle authentication errors specifically - try to refresh token once
-        if ((error.message?.includes('Unauthorized') || error.message?.includes('401')) && retryCount === 0) {
-          console.log('Token expired, attempting refresh...');
+        // Parse error details if it's a string
+        let errorDetails = error;
+        if (typeof error === 'string') {
+          try {
+            errorDetails = JSON.parse(error);
+          } catch (e) {
+            // Keep as string if not JSON
+          }
+        }
+        
+        // Check for auth-related errors
+        const isAuthError = error.message?.includes('401') || 
+                           error.message?.includes('Unauthorized') ||
+                           errorDetails?.error === 'Unauthorized' ||
+                           errorDetails?.tokenExpired === true ||
+                           errorDetails?.needsRefresh === true;
+        
+        if (isAuthError && retryCount === 0) {
+          console.log('Auth error detected, attempting token refresh...');
           try {
             await refreshToken();
             console.log('Token refreshed, retrying request...');
+            // Wait a bit for the new token to be ready
+            await new Promise(resolve => setTimeout(resolve, 200));
             return await makeWazuhRequest(endpoint, method, integrationId, 1);
           } catch (refreshError) {
             console.error('Token refresh failed:', refreshError);
             toast({
-              title: "Erro de Autenticação",
-              description: "Sua sessão expirou. Por favor, faça login novamente.",
+              title: "Sessão Expirada",
+              description: "Por favor, atualize a página e faça login novamente.",
               variant: "destructive",
             });
-            throw new Error('Session expired. Please login again.');
+            throw new Error('Authentication failed. Please refresh the page and login again.');
           }
         }
         
-        throw new Error(`Wazuh API error: ${error.message}`);
+        // Handle other specific errors
+        if (errorDetails?.details) {
+          throw new Error(`Wazuh API error: ${errorDetails.details}`);
+        }
+        
+        throw new Error(`Wazuh API error: ${error.message || 'Unknown error'}`);
       }
 
       if (data?.error) {
@@ -96,6 +125,17 @@ export const useWazuhAPI = () => {
         
         // Handle specific Wazuh errors
         if (data.error.includes('Unauthorized') || data.details?.includes('expired')) {
+          if (retryCount === 0) {
+            console.log('Wazuh auth error in response, attempting token refresh...');
+            try {
+              await refreshToken();
+              await new Promise(resolve => setTimeout(resolve, 200));
+              return await makeWazuhRequest(endpoint, method, integrationId, 1);
+            } catch (refreshError) {
+              console.error('Token refresh failed for Wazuh error:', refreshError);
+            }
+          }
+          
           toast({
             title: "Erro de Autenticação Wazuh",
             description: "Problema na autenticação com o servidor Wazuh. Verifique suas credenciais.",
@@ -113,8 +153,31 @@ export const useWazuhAPI = () => {
       }
 
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in makeWazuhRequest:', error);
+      
+      // Check for auth errors in catch block
+      const isAuthError = error.message?.includes('401') || 
+                         error.message?.includes('Unauthorized') ||
+                         error.message?.includes('session') ||
+                         error.message?.includes('expired');
+      
+      if (isAuthError && retryCount === 0) {
+        console.log('Auth error in catch block, attempting token refresh...');
+        try {
+          await refreshToken();
+          await new Promise(resolve => setTimeout(resolve, 200));
+          return await makeWazuhRequest(endpoint, method, integrationId, 1);
+        } catch (refreshError) {
+          console.error('Token refresh failed in catch:', refreshError);
+          toast({
+            title: "Erro de Autenticação",
+            description: "Sua sessão expirou. Por favor, atualize a página.",
+            variant: "destructive",
+          });
+        }
+      }
+      
       throw error;
     }
   };
