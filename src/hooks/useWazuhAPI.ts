@@ -76,27 +76,6 @@ export const useWazuhAPI = () => {
         try {
           const data = await makeWazuhRequest('/agents', 'GET', integrationId);
           console.log('Wazuh agents data received:', data);
-          
-          // Process the real Wazuh agents data
-          if (data?.data?.affected_items) {
-            return {
-              ...data,
-              data: {
-                ...data.data,
-                affected_items: data.data.affected_items.map((agent: any) => ({
-                  id: agent.id,
-                  name: agent.name,
-                  ip: agent.ip,
-                  status: agent.status, // active, disconnected, never_connected
-                  version: agent.version,
-                  os: agent.os,
-                  lastKeepAlive: agent.lastKeepAlive,
-                  group: agent.group,
-                }))
-              }
-            };
-          }
-          
           return data;
         } catch (error) {
           console.error('Failed to fetch Wazuh agents:', error);
@@ -117,42 +96,7 @@ export const useWazuhAPI = () => {
   const useWazuhAlerts = (integrationId: string, limit: number = 50) => {
     return useQuery({
       queryKey: ['wazuh-alerts', integrationId, limit],
-      queryFn: async () => {
-        try {
-          const data = await makeWazuhRequest(`/alerts?limit=${limit}&sort=-timestamp`, 'GET', integrationId);
-          console.log('Wazuh alerts data received:', data);
-          
-          // Process real Wazuh alerts data
-          if (data?.data?.affected_items) {
-            return {
-              ...data,
-              data: {
-                ...data.data,
-                affected_items: data.data.affected_items.map((alert: any) => ({
-                  id: alert.id || `${alert.agent?.id}-${alert.timestamp}`,
-                  timestamp: alert.timestamp,
-                  rule: {
-                    id: alert.rule?.id,
-                    level: alert.rule?.level,
-                    description: alert.rule?.description,
-                  },
-                  agent: {
-                    id: alert.agent?.id,
-                    name: alert.agent?.name,
-                  },
-                  location: alert.location,
-                  full_log: alert.full_log,
-                }))
-              }
-            };
-          }
-          
-          return data;
-        } catch (error) {
-          console.error('Failed to fetch Wazuh alerts:', error);
-          throw error;
-        }
-      },
+      queryFn: () => makeWazuhRequest(`/alerts?limit=${limit}&sort=-timestamp`, 'GET', integrationId),
       enabled: !!integrationId,
       staleTime: 30000, // 30 seconds
       retry: 2,
@@ -163,64 +107,26 @@ export const useWazuhAPI = () => {
     return useQuery({
       queryKey: ['wazuh-stats', integrationId],
       queryFn: async (): Promise<WazuhStats> => {
-        try {
-          // Use real Wazuh API endpoints
-          const [agentsResponse, alertsResponse] = await Promise.all([
-            makeWazuhRequest('/agents', 'GET', integrationId),
-            makeWazuhRequest('/alerts?limit=1000', 'GET', integrationId),
-          ]);
+        const [agentsResponse, alertsResponse] = await Promise.all([
+          makeWazuhRequest('/agents/summary/status', 'GET', integrationId),
+          makeWazuhRequest('/alerts/summary', 'GET', integrationId),
+        ]);
 
-          console.log('Raw agents response:', agentsResponse);
-          console.log('Raw alerts response:', alertsResponse);
+        // Process the responses to create our stats object
+        const agentStats = agentsResponse?.data || {};
+        const alertStats = alertsResponse?.data || {};
 
-          // Process agents data - Wazuh returns agents in data.affected_items
-          const agents = agentsResponse?.data?.affected_items || [];
-          const total_agents = agents.length;
-          const agents_connected = agents.filter((agent: any) => agent.status === 'active').length;
-          const agents_disconnected = agents.filter((agent: any) => agent.status === 'disconnected').length;
-          const agents_never_connected = agents.filter((agent: any) => agent.status === 'never_connected').length;
-
-          // Process alerts data - Wazuh returns alerts in data.affected_items
-          const alerts = alertsResponse?.data?.affected_items || [];
-          const today = new Date().toISOString().split('T')[0];
-          const alertsToday = alerts.filter((alert: any) => 
-            alert.timestamp && alert.timestamp.startsWith(today)
-          );
-          
-          const critical_alerts = alertsToday.filter((alert: any) => alert.rule?.level >= 12).length;
-          const high_alerts = alertsToday.filter((alert: any) => alert.rule?.level >= 7 && alert.rule?.level < 12).length;
-          const medium_alerts = alertsToday.filter((alert: any) => alert.rule?.level >= 4 && alert.rule?.level < 7).length;
-          const low_alerts = alertsToday.filter((alert: any) => alert.rule?.level < 4).length;
-
-          const stats = {
-            total_agents,
-            agents_connected,
-            agents_disconnected,
-            agents_never_connected,
-            total_alerts_today: alertsToday.length,
-            critical_alerts,
-            high_alerts,
-            medium_alerts,
-            low_alerts,
-          };
-
-          console.log('Processed Wazuh stats:', stats);
-          return stats;
-        } catch (error) {
-          console.error('Failed to fetch Wazuh stats:', error);
-          // Return fallback stats
-          return {
-            total_agents: 0,
-            agents_connected: 0,
-            agents_disconnected: 0,
-            agents_never_connected: 0,
-            total_alerts_today: 0,
-            critical_alerts: 0,
-            high_alerts: 0,
-            medium_alerts: 0,
-            low_alerts: 0,
-          };
-        }
+        return {
+          total_agents: agentStats.Total || 0,
+          agents_connected: agentStats.Active || 0,
+          agents_disconnected: agentStats.Disconnected || 0,
+          agents_never_connected: agentStats['Never connected'] || 0,
+          total_alerts_today: alertStats.total_today || 0,
+          critical_alerts: alertStats.critical || 0,
+          high_alerts: alertStats.high || 0,
+          medium_alerts: alertStats.medium || 0,
+          low_alerts: alertStats.low || 0,
+        };
       },
       enabled: !!integrationId,
       staleTime: 60000, // 1 minute
@@ -250,7 +156,7 @@ export const useWazuhAPI = () => {
 
   const testWazuhConnection = useMutation({
     mutationFn: async (integrationId: string) => {
-      return makeWazuhRequest('/', 'GET', integrationId);
+      return makeWazuhRequest('//', 'GET', integrationId);
     },
     onSuccess: () => {
       toast({

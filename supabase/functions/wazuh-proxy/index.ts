@@ -211,15 +211,14 @@ serve(async (req) => {
     
     if (error.message.includes('error sending request for url')) {
       errorMessage = 'Connection failed - check Wazuh server URL and SSL configuration';
-      const baseUrlToUse = typeof cleanBaseUrl !== 'undefined' ? cleanBaseUrl : base_url || 'unknown';
-      errorDetails = `Unable to connect to ${baseUrlToUse}. Please verify: 1) Server is running, 2) URL is correct, 3) SSL certificate is valid, 4) Port ${baseUrlToUse.includes(':') ? baseUrlToUse.split(':').pop() : '55000'} is open`;
+      errorDetails = `Unable to connect to ${cleanBaseUrl}. Please verify: 1) Server is running, 2) URL is correct, 3) SSL certificate is valid, 4) Port ${cleanBaseUrl.includes(':') ? cleanBaseUrl.split(':').pop() : '55000'} is open`;
     }
     
     return new Response(
       JSON.stringify({ 
         error: errorMessage,
         details: errorDetails,
-        url_attempted: `${typeof cleanBaseUrl !== 'undefined' ? cleanBaseUrl : base_url || 'unknown'}${endpoint || ''}`,
+        url_attempted: `${cleanBaseUrl}${endpoint}`,
         suggestions: [
           'Verify Wazuh server is running',
           'Check if URL is accessible from this environment',
