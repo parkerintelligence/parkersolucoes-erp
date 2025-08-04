@@ -16,6 +16,8 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
+const supabaseAdmin = supabase; // Alias para clareza
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -620,8 +622,8 @@ async function getGLPIData(userId: string, settings: any) {
 async function getBaculaData(userId: string, settings: any) {
   console.log('🗄️ [BACULA] Buscando dados reais do Bacula para usuário:', userId);
   
-  // Buscar integração Bacula do usuário
-  const { data: baculaIntegration } = await supabase
+  // Buscar integração Bacula do usuário usando service role
+  const { data: baculaIntegration } = await supabaseAdmin
     .from('integrations')
     .select('*')
     .eq('user_id', userId)
@@ -642,84 +644,163 @@ async function getBaculaData(userId: string, settings: any) {
 
   console.log(`🔌 [BACULA] Integração Bacula encontrada: ${baculaIntegration.name}`);
 
-  try {
-    // Chamar a função bacula-proxy para obter jobs das últimas 24h
-    const { data: baculaResponse, error: baculaError } = await supabase.functions.invoke('bacula-proxy', {
-      body: {
-        endpoint: 'jobs/last24h'
+  // Implementar retry com backoff exponencial para falhas temporárias
+  const maxRetries = 3;
+  let lastError: any = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🔄 [BACULA] Tentativa ${attempt}/${maxRetries} de conexão...`);
+
+      // Chamar bacula-proxy usando service role para chamadas internas
+      const { data: baculaResponse, error: baculaError } = await supabaseAdmin.functions.invoke('bacula-proxy', {
+        body: {
+          endpoint: 'jobs/last24h',
+          internal_call: true, // Flag para identificar chamada interna
+          user_id: userId // Passar user_id explicitamente para chamadas internas
+        },
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          'Content-Type': 'application/json',
+          'x-internal-call': 'true' // Header especial para chamadas internas
+        }
+      });
+
+      if (baculaError) {
+        console.error(`❌ [BACULA] Tentativa ${attempt} falhou:`, baculaError);
+        lastError = baculaError;
+        
+        // Se não é a última tentativa, aguardar antes de retry
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000; // Backoff exponencial: 2s, 4s, 8s
+          console.log(`⏳ [BACULA] Aguardando ${delay}ms antes da próxima tentativa...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        throw new Error(`Falha na conexão Bacula após ${maxRetries} tentativas: ${baculaError.message}`);
       }
-    });
 
-    if (baculaError) {
-      console.error('❌ [BACULA] Erro ao chamar bacula-proxy:', baculaError);
-      throw baculaError;
+      if (!baculaResponse) {
+        console.error(`❌ [BACULA] Tentativa ${attempt} sem dados retornados`);
+        lastError = new Error('Nenhum dado retornado');
+        
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        throw new Error('Falha crítica na conexão Bacula: Sistema indisponível para relatórios automáticos.');
+      }
+
+      console.log(`✅ [BACULA] Sucesso na tentativa ${attempt}! Dados recebidos`);
+      
+      // Se chegou até aqui, a chamada foi bem-sucedida
+      // Continue com o processamento dos dados existente...
+      return await processBaculaResponse(baculaResponse, attempt);
+
+    } catch (error) {
+      console.error(`❌ [BACULA] Erro na tentativa ${attempt}:`, error);
+      lastError = error;
+      
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`⏳ [BACULA] Aguardando ${delay}ms antes da próxima tentativa...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
     }
-
-    console.log('📊 [BACULA] Resposta do Bacula:', JSON.stringify(baculaResponse, null, 2));
-
-    // Processar estrutura de dados do Bacula (pode variar)
-    let jobs = [];
-    if (baculaResponse?.output && Array.isArray(baculaResponse.output)) {
-      jobs = baculaResponse.output;
-    } else if (Array.isArray(baculaResponse?.jobs)) {
-      jobs = baculaResponse.jobs;
-    } else if (Array.isArray(baculaResponse)) {
-      jobs = baculaResponse;
-    } else if (baculaResponse?.data && Array.isArray(baculaResponse.data)) {
-      jobs = baculaResponse.data;
-    }
-    
-    console.log(`💼 [BACULA] Total de jobs encontrados: ${jobs.length}`);
-
-    // Filtrar jobs do último dia
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(0, 0, 0, 0);
-
-    const recentJobs = jobs.filter(job => {
-      if (!job.startTime) return false;
-      const jobDate = new Date(job.startTime);
-      return jobDate >= yesterday;
-    });
-
-    console.log(`📅 [BACULA] Jobs das últimas 24h: ${recentJobs.length}`);
-
-    // Filtrar jobs com erro
-    const errorJobs = recentJobs.filter(job => 
-      job.level && ['Error', 'Fatal'].includes(job.level)
-    );
-
-    console.log(`❌ [BACULA] Jobs com erro: ${errorJobs.length}`);
-
-    // Gerar lista de jobs com erro
-    let errorJobsList = '';
-    errorJobs.forEach(job => {
-      const startTime = job.startTime ? new Date(job.startTime).toLocaleString('pt-BR') : 'N/A';
-      errorJobsList += `• ${job.name || 'Job sem nome'} - ${job.level}\n`;
-      errorJobsList += `  📂 Cliente: ${job.client || 'N/A'}\n`;
-      errorJobsList += `  ⏰ Horário: ${startTime}\n`;
-      errorJobsList += `  💾 Bytes: ${job.bytes || '0'}\n`;
-      errorJobsList += `  📄 Arquivos: ${job.files || '0'}\n\n`;
-    });
-
-    const totalJobs = recentJobs.length;
-    const errorCount = errorJobs.length;
-    const errorRate = totalJobs > 0 ? Math.round((errorCount / totalJobs) * 100) : 0;
-
-    return {
-      hasErrors: errorCount > 0,
-      errorJobs: errorJobsList.trim() || 'Nenhum job com erro encontrado',
-      totalJobs,
-      errorCount,
-      errorRate
-    };
-
-  } catch (error) {
-    console.error('❌ [BACULA] Erro ao buscar dados:', error);
-    
-    // Retornar erro crítico em vez de dados mockados
-    throw new Error(`Falha crítica na conexão Bacula: ${error.message}. Sistema indisponível para relatórios automáticos.`);
   }
+
+  // Se chegou até aqui, todas as tentativas falharam
+  console.error('❌ [BACULA] Todas as tentativas falharam:', lastError);
+  throw new Error(`Falha crítica na conexão Bacula após ${maxRetries} tentativas: ${lastError?.message || 'Sistema indisponível'}`);
+}
+
+// Função auxiliar para processar resposta do Bacula
+async function processBaculaResponse(baculaResponse: any, attempt: number) {
+  console.log('📊 [BACULA] Resposta do Bacula:', JSON.stringify(baculaResponse, null, 2));
+
+  // Processar estrutura de dados do Bacula (pode variar)
+  let jobs = [];
+  if (baculaResponse?.output && Array.isArray(baculaResponse.output)) {
+    jobs = baculaResponse.output;
+  } else if (Array.isArray(baculaResponse?.jobs)) {
+    jobs = baculaResponse.jobs;
+  } else if (Array.isArray(baculaResponse)) {
+    jobs = baculaResponse;
+  } else if (baculaResponse?.data && Array.isArray(baculaResponse.data)) {
+    jobs = baculaResponse.data;
+  }
+  
+  console.log(`💼 [BACULA] Total de jobs encontrados: ${jobs.length}`);
+
+  // Filtrar jobs do último dia
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  yesterday.setHours(0, 0, 0, 0);
+
+  const recentJobs = jobs.filter(job => {
+    if (!job.starttime) return false;
+    const jobDate = new Date(job.starttime);
+    return jobDate >= yesterday;
+  });
+
+  console.log(`📅 [BACULA] Jobs das últimas 24h: ${recentJobs.length}`);
+
+  // Filtrar jobs com erro
+  const errorJobs = recentJobs.filter(job => 
+    job.jobstatus && ['E', 'f', 'e'].includes(job.jobstatus)
+  );
+
+  console.log(`❌ [BACULA] Jobs com erro: ${errorJobs.length}`);
+
+  // Gerar lista de jobs com erro
+  let errorJobsList = '';
+  errorJobs.forEach(job => {
+    const startTime = job.starttime ? new Date(job.starttime).toLocaleString('pt-BR') : 'N/A';
+    errorJobsList += `• ${job.name || job.job || 'Job sem nome'} - ${getStatusText(job.jobstatus)}\n`;
+    errorJobsList += `  📂 Cliente: ${job.client || 'N/A'}\n`;
+    errorJobsList += `  ⏰ Horário: ${startTime}\n`;
+    errorJobsList += `  💾 Bytes: ${formatBytes(job.jobbytes || 0)}\n`;
+    errorJobsList += `  📄 Arquivos: ${job.jobfiles || '0'}\n\n`;
+  });
+
+  const totalJobs = recentJobs.length;
+  const errorCount = errorJobs.length;
+  const errorRate = totalJobs > 0 ? Math.round((errorCount / totalJobs) * 100) : 0;
+
+  return {
+    hasErrors: errorCount > 0,
+    errorJobs: errorJobsList.trim() || 'Nenhum job com erro encontrado',
+    totalJobs,
+    errorCount,
+    errorRate
+  };
+}
+
+// Função auxiliar para formatar status
+function getStatusText(status: string): string {
+  const statusMap: Record<string, string> = {
+    'T': 'Sucesso',
+    'R': 'Executando',
+    'E': 'Error',
+    'e': 'Fatal',
+    'f': 'Fatal',
+    'A': 'Cancelado',
+    'W': 'Warning'
+  };
+  return statusMap[status] || status;
+}
+
+// Função auxiliar para formatar bytes
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 serve(handler);

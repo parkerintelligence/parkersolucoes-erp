@@ -262,62 +262,102 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    console.log('Authorization header present:', !!authHeader);
+    let userId: string | null = null;
+    let isInternalCall = false;
     
-    if (!authHeader) {
-      console.error('❌ Nenhum header de autorização fornecido')
-      return new Response(JSON.stringify({ error: 'Header de autorização ausente.' }), {
-        ...corsOptions,
-        status: 401
-      })
-    }
-
-    console.log("Authenticating user...");
-    const token = authHeader.replace('Bearer ', '');
-    console.log('Token extracted, length:', token.length);
+    // Verificar se é uma chamada interna
+    const internalCallHeader = req.headers.get('x-internal-call');
     
-    // Create a client with the user's token instead of service role
-    const userSupabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: {
-            Authorization: authHeader,
-          },
-        },
+    let requestBody: any = null;
+    
+    if (internalCallHeader === 'true') {
+      console.log('🔧 [INTERNAL] Chamada interna detectada');
+      isInternalCall = true;
+      
+      // Para chamadas internas, obter user_id do body
+      const bodyText = await req.text();
+      try {
+        requestBody = JSON.parse(bodyText);
+        userId = requestBody.user_id;
+      } catch (e) {
+        console.error('❌ [INTERNAL] Erro ao parsear body:', e);
+        return new Response(JSON.stringify({ error: 'Body JSON inválido para chamada interna.' }), {
+          ...corsOptions,
+          status: 400
+        });
       }
-    );
-    
-    const { data: { user }, error: userError } = await userSupabaseClient.auth.getUser();
+      
+      if (!userId) {
+        console.error('❌ [INTERNAL] user_id não fornecido para chamada interna');
+        return new Response(JSON.stringify({ error: 'user_id é obrigatório para chamadas internas.' }), {
+          ...corsOptions,
+          status: 400
+        });
+      }
+      
+      console.log(`🔧 [INTERNAL] Processando para usuário: ${userId}`);
+      
+    } else {
+      // Autenticação normal para chamadas externas
+      const authHeader = req.headers.get('Authorization');
+      console.log('Authorization header present:', !!authHeader);
+      
+      if (!authHeader) {
+        console.error('❌ Nenhum header de autorização fornecido')
+        return new Response(JSON.stringify({ error: 'Header de autorização ausente.' }), {
+          ...corsOptions,
+          status: 401
+        })
+      }
 
-    if (userError || !user) {
-      console.error('❌ Token inválido:', { 
-        error: userError?.message,
-        hasUser: !!user 
-      });
-      return new Response(JSON.stringify({ 
-        error: 'Falha na autenticação. Verifique se você está logado.',
-        details: userError?.message || 'Token inválido'
-      }), {
-        ...corsOptions,
-        status: 401
-      })
+      console.log("Authenticating user...");
+      const token = authHeader.replace('Bearer ', '');
+      console.log('Token extracted, length:', token.length);
+      
+      // Create a client with the user's token instead of service role
+      const userSupabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        {
+          global: {
+            headers: {
+              Authorization: authHeader,
+            },
+          },
+        }
+      );
+      
+      const { data: { user }, error: userError } = await userSupabaseClient.auth.getUser();
+
+      if (userError || !user) {
+        console.error('❌ Token inválido:', { 
+          error: userError?.message,
+          hasUser: !!user 
+        });
+        return new Response(JSON.stringify({ 
+          error: 'Falha na autenticação. Verifique se você está logado.',
+          details: userError?.message || 'Token inválido'
+        }), {
+          ...corsOptions,
+          status: 401
+        })
+      }
+
+      userId = user.id;
+      console.log(`✅ Usuário autenticado: ${user.email}`)
     }
 
-    console.log(`✅ Usuário autenticado: ${user.email}`)
-
-    // Usar service role para buscar integração (internal function call)
+    // Usar service role para buscar integração
     const serviceSupabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Buscar integração ativa do Bacula (sem filtro de usuário para chamadas internas)
+    // Buscar integração ativa do Bacula para o usuário específico
     const { data: integrations, error: integrationError } = await serviceSupabase
       .from('integrations')
       .select('*')
+      .eq('user_id', userId)
       .eq('type', 'bacula')
       .eq('is_active', true)
       .limit(1)
@@ -341,7 +381,21 @@ serve(async (req) => {
     const integration = integrations[0]
     console.log(`✅ Integração Bacula encontrada: ${integration.name}`)
 
-    const { endpoint, params } = await req.json()
+    // Se já temos o body parseado (chamada interna), usar ele
+    if (!requestBody) {
+      const bodyText = await req.text();
+      try {
+        requestBody = JSON.parse(bodyText);
+      } catch (e) {
+        console.error('❌ Erro ao parsear body da requisição:', e);
+        return new Response(JSON.stringify({ error: 'Body JSON inválido.' }), {
+          ...corsOptions,
+          status: 400
+        });
+      }
+    }
+    
+    const { endpoint, params } = requestBody;
     console.log(`📝 Endpoint solicitado: ${endpoint}`)
     console.log(`📝 Parâmetros:`, params)
 
