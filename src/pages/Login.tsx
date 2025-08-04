@@ -1,6 +1,4 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 
 const Login = () => {
   const handleSubmit = (e: React.FormEvent) => {
@@ -10,75 +8,163 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center relative overflow-hidden">
-      {/* Background effects */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
-      
-      {/* Main content */}
-      <div className="relative z-10 w-full max-w-md p-8">
-        <Card className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl">
-          <CardContent className="p-8">
-            <div className="space-y-6">
-              {/* Header */}
-              <div className="text-center space-y-2">
-                <h1 className="text-3xl font-bold text-white">
-                  Parker Soluções ERP
-                </h1>
-                <p className="text-slate-300">
-                  Sistema de Gestão Empresarial
-                </p>
-              </div>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: 'system-ui, -apple-system, sans-serif'
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: '400px',
+        padding: '2rem',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backdropFilter: 'blur(10px)',
+        borderRadius: '12px',
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+      }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <h1 style={{ 
+            color: 'white', 
+            fontSize: '2rem', 
+            fontWeight: 'bold', 
+            margin: '0 0 0.5rem 0' 
+          }}>
+            Parker Soluções ERP
+          </h1>
+          <p style={{ 
+            color: '#94a3b8', 
+            margin: 0 
+          }}>
+            Sistema de Gestão Empresarial
+          </p>
+        </div>
 
-              {/* Login form */}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-200">
-                    E-mail
-                  </label>
-                  <input
-                    type="email"
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="seu@email.com"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-200">
-                    Senha
-                  </label>
-                  <input
-                    type="password"
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
-                >
-                  Entrar
-                </Button>
-              </form>
+        {/* Login form */}
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ 
+              display: 'block', 
+              color: '#e2e8f0', 
+              fontSize: '0.875rem', 
+              marginBottom: '0.5rem',
+              fontWeight: '500'
+            }}>
+              E-mail
+            </label>
+            <input
+              type="email"
+              placeholder="seu@email.com"
+              required
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '6px',
+                color: 'white',
+                fontSize: '1rem',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+          
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ 
+              display: 'block', 
+              color: '#e2e8f0', 
+              fontSize: '0.875rem', 
+              marginBottom: '0.5rem',
+              fontWeight: '500'
+            }}>
+              Senha
+            </label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              required
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '6px',
+                color: 'white',
+                fontSize: '1rem',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+          
+          <button
+            type="submit"
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '1rem',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+          >
+            Entrar
+          </button>
+        </form>
 
-              {/* Features */}
-              <div className="grid grid-cols-2 gap-4 pt-6 border-t border-white/20">
-                <div className="text-center space-y-1">
-                  <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center mx-auto">
-                    <span className="text-blue-400">🛡️</span>
-                  </div>
-                  <p className="text-xs text-slate-300">Seguro</p>
-                </div>
-                <div className="text-center space-y-1">
-                  <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center mx-auto">
-                    <span className="text-green-400">⚡</span>
-                  </div>
-                  <p className="text-xs text-slate-300">Rápido</p>
-                </div>
-              </div>
+        {/* Features */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: '1fr 1fr', 
+          gap: '1rem', 
+          marginTop: '2rem',
+          paddingTop: '1.5rem',
+          borderTop: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              width: '2rem',
+              height: '2rem',
+              backgroundColor: 'rgba(59, 130, 246, 0.2)',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 0.5rem'
+            }}>
+              🛡️
             </div>
-          </CardContent>
-        </Card>
+            <p style={{ color: '#94a3b8', fontSize: '0.75rem', margin: 0 }}>
+              Seguro
+            </p>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              width: '2rem',
+              height: '2rem',
+              backgroundColor: 'rgba(34, 197, 94, 0.2)',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 0.5rem'
+            }}>
+              ⚡
+            </div>
+            <p style={{ color: '#94a3b8', fontSize: '0.75rem', margin: 0 }}>
+              Rápido
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
