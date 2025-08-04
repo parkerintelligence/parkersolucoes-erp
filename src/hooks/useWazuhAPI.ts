@@ -3,7 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuthRefresh } from "@/hooks/useAuthRefresh";
 
 interface WazuhAgent {
   id: string;
@@ -50,136 +49,24 @@ interface WazuhStats {
 export const useWazuhAPI = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { refreshToken, checkTokenValidity } = useAuthRefresh();
 
-  const makeWazuhRequest = async (endpoint: string, method: string = 'GET', integrationId: string, retryCount = 0) => {
-    console.log('Making Wazuh request:', { endpoint, method, integrationId, retryCount });
+  const makeWazuhRequest = async (endpoint: string, method: string = 'GET', integrationId: string) => {
+    console.log('Making Wazuh request:', { endpoint, method, integrationId });
     
-    try {
-      // Check token validity before making request
-      const isValid = await checkTokenValidity();
-      if (!isValid && retryCount === 0) {
-        console.log('Token invalid, refreshing before request...');
-        await refreshToken();
-        // Wait a bit for the new token to be ready
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      
-      const { data, error } = await supabase.functions.invoke('wazuh-proxy', {
-        body: {
-          method,
-          endpoint,
-          integrationId,
-        },
-      });
+    const { data, error } = await supabase.functions.invoke('wazuh-proxy', {
+      body: {
+        method,
+        endpoint,
+        integrationId,
+      },
+    });
 
-      if (error) {
-        console.error('Wazuh request error:', error);
-        
-        // Parse error details if it's a string
-        let errorDetails = error;
-        if (typeof error === 'string') {
-          try {
-            errorDetails = JSON.parse(error);
-          } catch (e) {
-            // Keep as string if not JSON
-          }
-        }
-        
-        // Check for auth-related errors
-        const isAuthError = error.message?.includes('401') || 
-                           error.message?.includes('Unauthorized') ||
-                           errorDetails?.error === 'Unauthorized' ||
-                           errorDetails?.tokenExpired === true ||
-                           errorDetails?.needsRefresh === true;
-        
-        if (isAuthError && retryCount === 0) {
-          console.log('Auth error detected, attempting token refresh...');
-          try {
-            await refreshToken();
-            console.log('Token refreshed, retrying request...');
-            // Wait a bit for the new token to be ready
-            await new Promise(resolve => setTimeout(resolve, 200));
-            return await makeWazuhRequest(endpoint, method, integrationId, 1);
-          } catch (refreshError) {
-            console.error('Token refresh failed:', refreshError);
-            toast({
-              title: "Sessão Expirada",
-              description: "Por favor, atualize a página e faça login novamente.",
-              variant: "destructive",
-            });
-            throw new Error('Authentication failed. Please refresh the page and login again.');
-          }
-        }
-        
-        // Handle other specific errors
-        if (errorDetails?.details) {
-          throw new Error(`Wazuh API error: ${errorDetails.details}`);
-        }
-        
-        throw new Error(`Wazuh API error: ${error.message || 'Unknown error'}`);
-      }
-
-      if (data?.error) {
-        console.error('Wazuh API response error:', data);
-        
-        // Handle specific Wazuh errors
-        if (data.error.includes('Unauthorized') || data.details?.includes('expired')) {
-          if (retryCount === 0) {
-            console.log('Wazuh auth error in response, attempting token refresh...');
-            try {
-              await refreshToken();
-              await new Promise(resolve => setTimeout(resolve, 200));
-              return await makeWazuhRequest(endpoint, method, integrationId, 1);
-            } catch (refreshError) {
-              console.error('Token refresh failed for Wazuh error:', refreshError);
-            }
-          }
-          
-          toast({
-            title: "Erro de Autenticação Wazuh",
-            description: "Problema na autenticação com o servidor Wazuh. Verifique suas credenciais.",
-            variant: "destructive",
-          });
-        } else if (data.error.includes('Cannot connect')) {
-          toast({
-            title: "Erro de Conectividade",
-            description: "Não foi possível conectar ao servidor Wazuh. Verifique se o servidor está rodando.",
-            variant: "destructive",
-          });
-        }
-        
-        throw new Error(data.error);
-      }
-
-      return data;
-    } catch (error: any) {
-      console.error('Error in makeWazuhRequest:', error);
-      
-      // Check for auth errors in catch block
-      const isAuthError = error.message?.includes('401') || 
-                         error.message?.includes('Unauthorized') ||
-                         error.message?.includes('session') ||
-                         error.message?.includes('expired');
-      
-      if (isAuthError && retryCount === 0) {
-        console.log('Auth error in catch block, attempting token refresh...');
-        try {
-          await refreshToken();
-          await new Promise(resolve => setTimeout(resolve, 200));
-          return await makeWazuhRequest(endpoint, method, integrationId, 1);
-        } catch (refreshError) {
-          console.error('Token refresh failed in catch:', refreshError);
-          toast({
-            title: "Erro de Autenticação",
-            description: "Sua sessão expirou. Por favor, atualize a página.",
-            variant: "destructive",
-          });
-        }
-      }
-      
-      throw error;
+    if (error) {
+      console.error('Wazuh request error:', error);
+      throw new Error(`Wazuh API error: ${error.message}`);
     }
+
+    return data;
   };
 
   const useWazuhAgents = (integrationId: string) => {
@@ -187,44 +74,37 @@ export const useWazuhAPI = () => {
       queryKey: ['wazuh-agents', integrationId],
       queryFn: async () => {
         try {
-          const data = await makeWazuhRequest('/v1/agents?pretty=true&wait_for_complete=true', 'GET', integrationId);
+          const data = await makeWazuhRequest('/agents', 'GET', integrationId);
           console.log('Wazuh agents data received:', data);
           
-          // Process real Wazuh data structure
-          if (data?.data?.affected_items) {
-            return data.data.affected_items.map((agent: any) => ({
-              id: agent.id,
-              name: agent.name,
-              ip: agent.ip,
-              status: agent.status,
-              version: agent.version,
-              os: agent.os,
-              lastKeepAlive: agent.last_keep_alive,
-              group: agent.group,
-            }));
+          // Check if we got real data from Wazuh
+          const hasRealData = data && (
+            data.data?.affected_items?.length > 0 ||
+            data.data?.total_affected_items > 0 ||
+            (Array.isArray(data.data) && data.data.length > 0) ||
+            data.affected_items?.length > 0
+          );
+          
+          console.log('Has real agents data:', hasRealData);
+          
+          if (!hasRealData) {
+            toast({
+              title: "Nenhum agente encontrado",
+              description: "Wazuh conectado com sucesso, mas nenhum agente foi encontrado.",
+              variant: "default",
+            });
           }
           
           return data;
-    } catch (error) {
-      console.error('Failed to fetch Wazuh agents:', error);
-      
-      // Show toast only for network/auth errors, not for expected API errors
-      if (error.message.includes('401') || error.message.includes('403')) {
-        toast({
-          title: "Erro de Autenticação",
-          description: "Credenciais inválidas. Verifique a configuração do Wazuh.",
-          variant: "destructive",
-        });
-      } else if (error.message.includes('503') || error.message.includes('Cannot connect')) {
-        toast({
-          title: "Erro de Conectividade",
-          description: "Não foi possível conectar ao servidor Wazuh. Verifique a rede.",
-          variant: "destructive",
-        });
-      }
-      
-      throw error;
-    }
+        } catch (error) {
+          console.error('Failed to fetch Wazuh agents:', error);
+          toast({
+            title: "Erro ao buscar agentes",
+            description: `Falha na conexão: ${error.message}`,
+            variant: "destructive",
+          });
+          throw error;
+        }
       },
       enabled: !!integrationId,
       staleTime: 30000, // 30 seconds
@@ -237,28 +117,18 @@ export const useWazuhAPI = () => {
       queryKey: ['wazuh-alerts', integrationId, limit],
       queryFn: async () => {
         try {
-          const data = await makeWazuhRequest(`/v1/alerts?pretty=true&limit=${limit}&sort=-timestamp`, 'GET', integrationId);
+          const data = await makeWazuhRequest(`/alerts?limit=${limit}&sort=-timestamp`, 'GET', integrationId);
           console.log('Wazuh alerts data received:', data);
           
-          // Process real Wazuh data structure
-          if (data?.data?.affected_items) {
-            return data.data.affected_items.map((alert: any) => ({
-              id: alert.id || alert._id,
-              timestamp: alert.timestamp || alert['@timestamp'],
-              rule: {
-                id: alert.rule?.id,
-                level: alert.rule?.level,
-                description: alert.rule?.description,
-              },
-              agent: {
-                id: alert.agent?.id,
-                name: alert.agent?.name,
-              },
-              location: alert.location,
-              full_log: alert.full_log,
-            }));
-          }
+          // Check if we got real data
+          const hasRealData = data && (
+            data.data?.affected_items?.length > 0 ||
+            data.data?.total_affected_items > 0 ||
+            (Array.isArray(data.data) && data.data.length > 0) ||
+            data.affected_items?.length > 0
+          );
           
+          console.log('Has real alerts data:', hasRealData);
           return data;
         } catch (error) {
           console.error('Failed to fetch Wazuh alerts:', error);
@@ -267,7 +137,7 @@ export const useWazuhAPI = () => {
       },
       enabled: !!integrationId,
       staleTime: 30000, // 30 seconds
-      retry: 2,
+      retry: 1,
     });
   };
 
@@ -276,62 +146,107 @@ export const useWazuhAPI = () => {
       queryKey: ['wazuh-stats', integrationId],
       queryFn: async (): Promise<WazuhStats> => {
         try {
-          const [agentsResponse, alertsResponse] = await Promise.all([
-            makeWazuhRequest('/v1/agents?pretty=true', 'GET', integrationId),
-            makeWazuhRequest('/v1/alerts?pretty=true&limit=1000', 'GET', integrationId),
-          ]);
+          // Try different endpoints for stats based on Wazuh API version
+          const statsEndpoints = [
+            '/agents/summary/status',
+            '/agents/stats',
+            '/agents',
+            '/summary/agents'
+          ];
 
-          // Process agents data
-          const agents = agentsResponse?.data?.affected_items || [];
-          const agentStats = {
-            total: agents.length,
-            active: agents.filter((a: any) => a.status === 'active').length,
-            disconnected: agents.filter((a: any) => a.status === 'disconnected').length,
-            never_connected: agents.filter((a: any) => a.status === 'never_connected').length,
+          let agentsResponse = null;
+          let alertsResponse = null;
+
+          // Try to get agent statistics from different endpoints
+          for (const endpoint of statsEndpoints) {
+            try {
+              agentsResponse = await makeWazuhRequest(endpoint, 'GET', integrationId);
+              console.log(`Successfully got agents data from ${endpoint}:`, agentsResponse);
+              break;
+            } catch (error) {
+              console.log(`Failed to get data from ${endpoint}:`, error.message);
+              continue;
+            }
+          }
+
+          // Try to get alerts if agents endpoint worked
+          if (agentsResponse) {
+            try {
+              alertsResponse = await makeWazuhRequest('/alerts', 'GET', integrationId);
+              console.log('Got alerts response:', alertsResponse);
+            } catch (alertsError) {
+              console.log('Could not get alerts, continuing with agents only:', alertsError.message);
+            }
+          }
+
+          // Process the responses to create our stats object
+          let agentStats: any = {};
+          let alertStats: any = {};
+
+          if (agentsResponse) {
+            // Handle different response structures
+            agentStats = agentsResponse?.data?.affected_items?.[0] || 
+                        agentsResponse?.data || 
+                        agentsResponse?.affected_items?.[0] || 
+                        agentsResponse || {};
+          }
+
+          if (alertsResponse) {
+            alertStats = alertsResponse?.data?.affected_items?.[0] || 
+                        alertsResponse?.data || 
+                        alertsResponse?.affected_items?.[0] || 
+                        alertsResponse || {};
+          }
+
+          console.log('Processed agent stats:', agentStats);
+          console.log('Processed alert stats:', alertStats);
+
+          // Create stats object with fallback values
+          const stats: WazuhStats = {
+            total_agents: agentStats?.total || agentStats?.Total || agentStats?.total_agents || 0,
+            agents_connected: agentStats?.active || agentStats?.Active || agentStats?.connected || 0,
+            agents_disconnected: agentStats?.disconnected || agentStats?.Disconnected || 0,
+            agents_never_connected: agentStats?.never_connected || agentStats?.['Never connected'] || 0,
+            total_alerts_today: alertStats?.total_today || alertStats?.total || 0,
+            critical_alerts: alertStats?.critical || 0,
+            high_alerts: alertStats?.high || 0,
+            medium_alerts: alertStats?.medium || 0,
+            low_alerts: alertStats?.low || 0,
           };
 
-          // Process alerts data
-          const alerts = alertsResponse?.data?.affected_items || [];
-          const today = new Date().toISOString().split('T')[0];
-          const todayAlerts = alerts.filter((alert: any) => {
-            const alertDate = new Date(alert.timestamp || alert['@timestamp']).toISOString().split('T')[0];
-            return alertDate === today;
-          });
+          console.log('Final processed Wazuh stats:', stats);
+          
+          // Check if we have any real data
+          const hasAnyData = stats.total_agents > 0 || stats.total_alerts_today > 0;
+          if (hasAnyData) {
+            toast({
+              title: "Dados carregados com sucesso",
+              description: `${stats.total_agents} agentes encontrados`,
+              variant: "default",
+            });
+          }
 
-          const alertStats = {
-            total_today: todayAlerts.length,
-            critical: alerts.filter((a: any) => a.rule?.level >= 12).length,
-            high: alerts.filter((a: any) => a.rule?.level >= 7 && a.rule?.level < 12).length,
-            medium: alerts.filter((a: any) => a.rule?.level >= 4 && a.rule?.level < 7).length,
-            low: alerts.filter((a: any) => a.rule?.level < 4).length,
-          };
-
-          return {
-            total_agents: agentStats.total,
-            agents_connected: agentStats.active,
-            agents_disconnected: agentStats.disconnected,
-            agents_never_connected: agentStats.never_connected,
-            total_alerts_today: alertStats.total_today,
-            critical_alerts: alertStats.critical,
-            high_alerts: alertStats.high,
-            medium_alerts: alertStats.medium,
-            low_alerts: alertStats.low,
-          };
+          return stats;
         } catch (error) {
           console.error('Failed to fetch Wazuh stats:', error);
+          toast({
+            title: "Erro ao buscar estatísticas",
+            description: `Falha na conexão: ${error.message}`,
+            variant: "destructive",
+          });
           throw error;
         }
       },
       enabled: !!integrationId,
       staleTime: 60000, // 1 minute
-      retry: 2,
+      retry: 1,
     });
   };
 
   const useWazuhCompliance = (integrationId: string) => {
     return useQuery({
       queryKey: ['wazuh-compliance', integrationId],
-      queryFn: () => makeWazuhRequest('/v1/sca?pretty=true', 'GET', integrationId),
+      queryFn: () => makeWazuhRequest('/compliance', 'GET', integrationId),
       enabled: !!integrationId,
       staleTime: 300000, // 5 minutes
       retry: 2,
@@ -341,7 +256,7 @@ export const useWazuhAPI = () => {
   const useWazuhVulnerabilities = (integrationId: string) => {
     return useQuery({
       queryKey: ['wazuh-vulnerabilities', integrationId],
-      queryFn: () => makeWazuhRequest('/v1/vulnerability?pretty=true', 'GET', integrationId),
+      queryFn: () => makeWazuhRequest('/vulnerability', 'GET', integrationId),
       enabled: !!integrationId,
       staleTime: 300000, // 5 minutes
       retry: 2,
@@ -349,36 +264,51 @@ export const useWazuhAPI = () => {
   };
 
   const testWazuhConnection = useMutation({
-    mutationFn: async (params: { endpoint: string; method: string; integrationId: string }) => {
-      const { endpoint, method, integrationId } = params;
-      
-      console.log('Testing Wazuh connection with params:', params);
-      
-      // Test connectivity first
-      const connectivityData = await makeWazuhRequest('/test-connectivity', 'GET', integrationId);
-      
-      console.log('Connectivity test data:', connectivityData);
-      
-      if (!connectivityData.connectivity?.success) {
-        throw new Error(`Connection failed: ${connectivityData.connectivity?.error || 'Unknown error'}`);
-      }
-      
-      // Try to fetch basic info if not just testing connectivity
-      let apiData = null;
-      if (endpoint !== '/test-connectivity') {
+    mutationFn: async (integrationId: string) => {
+      // Test multiple endpoints to verify connectivity
+      const testEndpoints = [
+        '/manager/info',
+        '/manager/status', 
+        '/',
+        '/agents',
+        '/security/user/authenticate/run_as'
+      ];
+
+      let lastError;
+      for (const endpoint of testEndpoints) {
         try {
-          apiData = await makeWazuhRequest('/v1?pretty=true', 'GET', integrationId);
+          console.log(`Testing Wazuh endpoint: ${endpoint}`);
+          const result = await makeWazuhRequest(endpoint, 'GET', integrationId);
+          console.log(`Successfully connected to ${endpoint}:`, result);
+          return { 
+            success: true, 
+            endpoint,
+            data: result,
+            message: `Conectado com sucesso via ${endpoint}`
+          };
         } catch (error) {
-          console.log('API info fetch failed, but connectivity works:', error);
+          console.log(`Failed to connect to ${endpoint}:`, error.message);
+          lastError = error;
+          continue;
         }
       }
       
-      return {
-        success: true,
-        data: apiData,
-        connectivity: connectivityData,
-        message: `Connection successful using ${connectivityData.connectivity.method.toUpperCase()} protocol`
-      };
+      // If all endpoints failed, throw the last error
+      throw lastError || new Error('All connection attempts failed');
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Conexão realizada com sucesso",
+        description: data.message || "A conexão com o Wazuh foi estabelecida.",
+      });
+    },
+    onError: (error: Error) => {
+      console.error('Wazuh connection test failed:', error);
+      toast({
+        title: "Erro na conexão",
+        description: error.message || "Falha ao conectar com o Wazuh. Verifique as configurações.",
+        variant: "destructive",
+      });
     },
   });
 

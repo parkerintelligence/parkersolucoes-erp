@@ -25,68 +25,13 @@ export const useBaculaAPI = () => {
 
       if (error) {
         console.error('Bacula proxy error:', error);
-        
-        // Parse error details if it's a string
-        let errorDetails = error;
-        if (typeof error === 'string') {
-          try {
-            errorDetails = JSON.parse(error);
-          } catch (e) {
-            // Keep as string if not JSON
-          }
-        }
-        
-        // Check for auth-related errors
-        const isAuthError = error.message?.includes('401') || 
-                           error.message?.includes('Unauthorized') ||
-                           error.message?.includes('autenticação') ||
-                           errorDetails?.error?.includes('autenticação') ||
-                           errorDetails?.tokenExpired === true ||
-                           errorDetails?.needsRefresh === true;
-        
-        if (isAuthError) {
-          throw new Error('Sessão expirada. Por favor, atualize a página e tente novamente.');
-        }
-        
-        // Handle other specific errors
-        if (errorDetails?.details) {
-          throw new Error(`Bacula API error: ${errorDetails.details}`);
-        }
-        
         throw new Error(error.message || 'Failed to connect to BaculaWeb');
-      }
-
-      if (data?.error) {
-        console.error('Bacula API returned error:', data);
-        
-        // Check for auth errors in the response
-        const isAuthError = data.error?.includes('autenticação') || 
-                           data.error?.includes('Unauthorized') ||
-                           data.details?.includes('expired');
-        
-        if (isAuthError) {
-          throw new Error('Sessão expirada. Por favor, atualize a página e tente novamente.');
-        }
-        
-        throw new Error(`Bacula API error: ${data.error}${data.details ? ': ' + data.details : ''}`);
       }
 
       console.log('Bacula API response:', data);
       return data;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error in makeBaculaRequest:', error);
-      
-      // Check for auth errors in catch block
-      const isAuthError = error.message?.includes('401') || 
-                         error.message?.includes('Unauthorized') ||
-                         error.message?.includes('autenticação') ||
-                         error.message?.includes('session') ||
-                         error.message?.includes('expired');
-      
-      if (isAuthError) {
-        throw new Error('Sessão expirada. Por favor, atualize a página e tente novamente.');
-      }
-      
       throw error;
     }
   };
