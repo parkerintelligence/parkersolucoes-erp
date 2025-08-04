@@ -1,5 +1,5 @@
 
-import * as React from 'react';
+import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -20,14 +20,15 @@ import {
   Activity,
   BarChart3,
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
+// Temporarily disabled DropdownMenu to fix React hooks issue
+// import {
+//   DropdownMenu,
+//   DropdownMenuContent,
+//   DropdownMenuItem,
+//   DropdownMenuSeparator,
+//   DropdownMenuTrigger,
+// } from '@/components/ui/dropdown-menu';
+// import { Button } from '@/components/ui/button';
 
 const menuItems = [
   { title: 'VPS', url: '/vps', icon: LayoutDashboard, role: 'user' },
