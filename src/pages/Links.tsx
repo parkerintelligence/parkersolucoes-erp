@@ -148,26 +148,17 @@ const Links = () => {
             <Input placeholder="Buscar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-7 h-7 text-xs bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
           </div>
           
-          <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-            <SelectTrigger className="h-7 w-32 text-xs bg-slate-700 border-slate-600 text-white">
-              <SelectValue placeholder="Empresa" />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-700 border-slate-600">
-              <SelectItem value="all" className="text-xs text-white">Todas</SelectItem>
-              {companies.map(company => <SelectItem key={company.id} value={company.id} className="text-xs text-white">{company.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          {/* Temporarily simplified company filter */}
+          <div className="text-xs text-white">
+            <span className="text-slate-400">Empresa: </span>
+            <span className="text-blue-400">{selectedCompany === 'all' ? 'Todas' : companies.find(c => c.id === selectedCompany)?.name || 'Todas'}</span>
+          </div>
 
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="h-7 w-28 text-xs bg-slate-700 border-slate-600 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-700 border-slate-600">
-              <SelectItem value="name" className="text-xs text-white">Nome</SelectItem>
-              <SelectItem value="company" className="text-xs text-white">Empresa</SelectItem>
-              <SelectItem value="service" className="text-xs text-white">Serviço</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Temporarily simplified sort filter */}
+          <div className="text-xs text-white">
+            <span className="text-slate-400">Ordenar: </span>
+            <span className="text-blue-400">{sortBy === 'name' ? 'Nome' : sortBy === 'company' ? 'Empresa' : 'Serviço'}</span>
+          </div>
         </div>
       </div>
 
