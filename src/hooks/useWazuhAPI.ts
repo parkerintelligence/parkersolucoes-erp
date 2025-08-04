@@ -226,21 +226,22 @@ export const useWazuhAPI = () => {
 
   const testWazuhConnection = useMutation({
     mutationFn: async (integrationId: string) => {
-      return makeWazuhRequest('/v1', 'GET', integrationId);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Conexão realizada com sucesso",
-        description: "A conexão com o Wazuh foi estabelecida.",
-      });
-    },
-    onError: (error: Error) => {
-      console.error('Wazuh connection test failed:', error);
-      toast({
-        title: "Erro na conexão",
-        description: error.message || "Falha ao conectar com o Wazuh.",
-        variant: "destructive",
-      });
+      // Test connectivity first
+      const connectivityData = await makeWazuhRequest('/test-connectivity', 'GET', integrationId);
+      
+      if (!connectivityData.connectivity?.success) {
+        throw new Error(`Connection failed: ${connectivityData.connectivity?.error || 'Unknown error'}`);
+      }
+      
+      // Try to fetch basic info
+      const data = await makeWazuhRequest('/v1?pretty=true', 'GET', integrationId);
+      
+      return {
+        success: true,
+        data: data,
+        connectivity: connectivityData,
+        message: `Connection successful using ${connectivityData.connectivity.method.toUpperCase()} protocol`
+      };
     },
   });
 
