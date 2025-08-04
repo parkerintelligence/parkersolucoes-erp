@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useHostingerIntegrations, useHostingerVPS } from '@/hooks/useHostingerAPI';
-import { useHostingerSnapshots } from '@/hooks/useHostingerAPI';
+import { useHostingerSnapshots } from '@/hooks/useHostingerSnapshots';
 import { Camera, Calendar, HardDrive, Search, Filter, RefreshCw, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
