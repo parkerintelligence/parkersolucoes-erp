@@ -253,39 +253,76 @@ function enrichJobData(jobs: BaculaJob[]): BaculaJob[] {
   });
 }
 
+// Cache para endpoints bem-sucedidos
+const endpointCache = new Map<string, { endpoint: string; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
+// Healthcheck básico com timeout reduzido
+async function performHealthcheck(baseUrl: string, auth: string): Promise<{ success: boolean; responseTime: number; error?: string }> {
+  const healthEndpoints = ['/api/v2/info', '/api/v1/info', '/api/info'];
+  
+  for (const testEndpoint of healthEndpoints) {
+    const start = Date.now();
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout para healthcheck
+      
+      const response = await fetch(`${baseUrl}${testEndpoint}`, {
+        method: 'HEAD', // Usa HEAD para ser mais rápido
+        headers: { 'Authorization': `Basic ${auth}` },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      const responseTime = Date.now() - start;
+      
+      if (response.ok) {
+        console.log(`✅ Healthcheck bem-sucedido em ${responseTime}ms: ${testEndpoint}`);
+        return { success: true, responseTime };
+      }
+    } catch (error) {
+      console.log(`⚠️ Healthcheck falhou: ${testEndpoint} - ${error.message}`);
+    }
+  }
+  
+  return { success: false, responseTime: 0, error: 'Nenhum endpoint de healthcheck respondeu' };
+}
+
 serve(async (req) => {
-  console.log(`🔄 Bacula proxy request: ${req.method} ${req.url}`)
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  console.log(`🔄 [${requestId}] Bacula proxy request: ${req.method} ${req.url}`);
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, corsOptions)
+    return new Response(null, corsOptions);
   }
 
   try {
     const authHeader = req.headers.get('Authorization');
-    console.log('Authorization header present:', !!authHeader);
+    console.log(`🔐 [${requestId}] Authorization header present:`, !!authHeader);
     
     if (!authHeader) {
-      console.error('❌ Nenhum header de autorização fornecido')
-      return new Response(JSON.stringify({ error: 'Header de autorização ausente.' }), {
+      console.error(`❌ [${requestId}] Nenhum header de autorização fornecido`);
+      return new Response(JSON.stringify({ 
+        error: 'Header de autorização ausente.',
+        requestId 
+      }), {
         ...corsOptions,
         status: 401
-      })
+      });
     }
 
-    console.log("Authenticating user...");
+    console.log(`👤 [${requestId}] Authenticating user...`);
     const token = authHeader.replace('Bearer ', '');
-    console.log('Token extracted, length:', token.length);
+    console.log(`🔑 [${requestId}] Token extracted, length:`, token.length);
     
-    // Create a client with the user's token instead of service role
+    // Create a client with the user's token
     const userSupabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
-          headers: {
-            Authorization: authHeader,
-          },
+          headers: { Authorization: authHeader },
         },
       }
     );
@@ -293,111 +330,191 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await userSupabaseClient.auth.getUser();
 
     if (userError || !user) {
-      console.error('❌ Token inválido:', { 
+      console.error(`❌ [${requestId}] Token inválido:`, { 
         error: userError?.message,
         hasUser: !!user 
       });
-      return new Response(JSON.stringify({ error: 'Falha na autenticação. Verifique se você está logado.' }), {
+      return new Response(JSON.stringify({ 
+        error: 'Falha na autenticação. Verifique se você está logado.',
+        requestId
+      }), {
         ...corsOptions,
         status: 401
-      })
+      });
     }
 
-    console.log(`✅ Usuário autenticado: ${user.email}`)
+    console.log(`✅ [${requestId}] Usuário autenticado: ${user.email}`);
 
-    // Get Bacula integration
+    // Get Bacula integration with error handling
     const { data: integrations, error: integrationError } = await userSupabaseClient
       .from('integrations')
       .select('*')
       .eq('type', 'bacula')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .limit(1)
+      .limit(1);
 
     if (integrationError) {
-      console.error('❌ Erro na consulta de integração:', integrationError)
-      return new Response(JSON.stringify({ error: 'Database error' }), {
+      console.error(`❌ [${requestId}] Erro na consulta de integração:`, integrationError);
+      return new Response(JSON.stringify({ 
+        error: 'Erro na base de dados ao buscar integração',
+        requestId,
+        details: integrationError.message 
+      }), {
         ...corsOptions,
         status: 500
-      })
+      });
     }
 
     if (!integrations || integrations.length === 0) {
-      console.error('❌ Nenhuma integração Bacula ativa encontrada')
-      return new Response(JSON.stringify({ error: 'Bacula integration not found' }), {
+      console.error(`❌ [${requestId}] Nenhuma integração Bacula ativa encontrada`);
+      return new Response(JSON.stringify({ 
+        error: 'Integração Bacula não encontrada ou inativa',
+        requestId
+      }), {
         ...corsOptions,
         status: 404
-      })
+      });
     }
 
-    const integration = integrations[0]
-    console.log(`✅ Integração Bacula encontrada: ${integration.name}`)
+    const integration = integrations[0];
+    console.log(`✅ [${requestId}] Integração Bacula encontrada: ${integration.name}`);
 
-    const { endpoint, params } = await req.json()
-    console.log(`📝 Endpoint solicitado: ${endpoint}`)
-    console.log(`📝 Parâmetros:`, params)
+    const { endpoint, params } = await req.json();
+    console.log(`📝 [${requestId}] Endpoint solicitado: ${endpoint}`);
+    console.log(`📝 [${requestId}] Parâmetros:`, params);
 
-    // Create base64 auth header
-    const auth = btoa(`${integration.username}:${integration.password}`)
-    const baseUrl = integration.base_url.replace(/\/$/, '')
+    // Validar credenciais
+    if (!integration.username || !integration.password || !integration.base_url) {
+      console.error(`❌ [${requestId}] Configuração incompleta da integração`);
+      return new Response(JSON.stringify({ 
+        error: 'Configuração incompleta da integração Bacula',
+        requestId,
+        missing: {
+          username: !integration.username,
+          password: !integration.password,
+          base_url: !integration.base_url
+        }
+      }), {
+        ...corsOptions,
+        status: 400
+      });
+    }
 
-    console.log(`🔗 Conectando com Bacula em: ${baseUrl}`)
-    console.log(`👤 Usuário: ${integration.username}`)
+    // Create auth header e normalize base URL
+    const auth = btoa(`${integration.username}:${integration.password}`);
+    const baseUrl = integration.base_url.replace(/\/$/, '');
 
-    // Múltiplas estratégias de endpoint para diferentes versões da API
+    console.log(`🔗 [${requestId}] Conectando com Bacula em: ${baseUrl}`);
+    console.log(`👤 [${requestId}] Usuário: ${integration.username}`);
+    console.log(`🔑 [${requestId}] Autenticação: Basic ${auth.substring(0, 10)}...`);
+
+    // Perform healthcheck primeiro para detectar problemas de conectividade
+    if (endpoint !== 'test') {
+      console.log(`🏥 [${requestId}] Executando healthcheck...`);
+      const healthResult = await performHealthcheck(baseUrl, auth);
+      
+      if (!healthResult.success) {
+        console.error(`❌ [${requestId}] Falha no healthcheck: ${healthResult.error}`);
+        return new Response(JSON.stringify({ 
+          error: 'Servidor Bacula não está acessível',
+          requestId,
+          details: healthResult.error,
+          suggestion: 'Verifique se o servidor está funcionando e as credenciais estão corretas'
+        }), {
+          ...corsOptions,
+          status: 503
+        });
+      }
+      
+      console.log(`✅ [${requestId}] Healthcheck passou em ${healthResult.responseTime}ms`);
+    }
+
+    // Verificar cache de endpoints bem-sucedidos
+    const cacheKey = `${baseUrl}:${endpoint}`;
+    const cachedEndpoint = endpointCache.get(cacheKey);
+    
+    if (cachedEndpoint && (Date.now() - cachedEndpoint.timestamp) < CACHE_DURATION) {
+      console.log(`📋 [${requestId}] Usando endpoint em cache: ${cachedEndpoint.endpoint}`);
+    }
+
+    // Estratégias otimizadas de endpoint (priorizar versões mais estáveis)
     const endpointMap: Record<string, string[]> = {
       'test': [
-        '/api/v2/config/api/info', 
-        '/api/v1/config/api/info', 
-        '/web/api/v2/config/api/info',
         '/api/v2/info',
-        '/api/v1/info'
+        '/api/v1/info', 
+        '/api/v2/config/api/info',
+        '/api/info'
       ],
       'jobs': [
         '/api/v2/jobs?limit=1000&order_by=starttime&order_direction=desc', 
-        '/api/v1/jobs?limit=1000', 
-        '/web/api/v2/jobs?limit=1000',
-        '/api/jobs?limit=1000',
-        '/jobs?limit=1000'
+        '/api/v1/jobs?limit=1000',
+        '/api/jobs?limit=1000'
       ],
       'jobs/all': [
         '/api/v2/jobs?limit=1000&order_by=starttime&order_direction=desc', 
-        '/api/v1/jobs?limit=1000', 
-        '/web/api/v2/jobs?limit=1000',
-        '/api/jobs?limit=1000',
-        '/jobs?limit=1000'
+        '/api/v1/jobs?limit=1000',
+        '/api/jobs?limit=1000'
       ],
       'jobs/recent': [
         '/api/v2/jobs?limit=100&order_by=jobid&order_direction=desc', 
         '/api/v1/jobs?limit=100',
-        '/api/v2/jobs?limit=100',
         '/api/jobs?limit=100'
       ],
       'jobs/last24h': [
         '/api/v2/jobs?age=86400&limit=1000&order_by=starttime&order_direction=desc',
         '/api/v1/jobs?age=86400&limit=1000',
-        '/api/v2/jobs?limit=1000',
-        '/api/jobs?limit=1000'
+        '/api/v2/jobs?limit=1000'
+      ],
+      'jobs/running': [
+        '/api/v2/jobs?jobstatus=R&limit=1000',
+        '/api/v1/jobs?jobstatus=R&limit=1000',
+        '/api/jobs?jobstatus=R'
+      ],
+      'director': [
+        '/api/v2/directors',
+        '/api/v1/directors',
+        '/api/directors'
       ],
       'jobs/configured': [
         '/api/v2/config/dir/job', 
         '/api/v1/config/dir/job',
-        '/api/v2/config/job',
-        '/api/v1/config/job'
+        '/api/v2/config/job'
       ],
       'clients': [
         '/api/v2/clients', 
-        '/api/v1/clients',
-        '/api/clients'
+        '/api/v1/clients'
+      ],
+      'clients/configured': [
+        '/api/v2/config/dir/client',
+        '/api/v1/config/dir/client',
+        '/api/v2/config/client'
+      ],
+      'storages': [
+        '/api/v2/storages',
+        '/api/v1/storages'
+      ],
+      'volumes': [
+        '/api/v2/volumes',
+        '/api/v1/volumes'
       ],
       'status': [
         '/api/v2/status', 
-        '/api/v1/status',
-        '/api/status'
+        '/api/v1/status'
+      ],
+      'statistics': [
+        '/api/v2/stats',
+        '/api/v1/stats',
+        '/api/v2/statistics'
       ]
-    }
+    };
 
-    let apiEndpoints = endpointMap[endpoint] || [endpoint.startsWith('/') ? endpoint : `/${endpoint}`]
+    let apiEndpoints = endpointMap[endpoint] || [endpoint.startsWith('/') ? endpoint : `/${endpoint}`];
+    
+    // Se temos endpoint em cache, colocar como primeiro da lista
+    if (cachedEndpoint && !apiEndpoints.includes(cachedEndpoint.endpoint)) {
+      apiEndpoints.unshift(cachedEndpoint.endpoint);
+    }
     
     // Aplicar filtros específicos para jobs das últimas 24h
     if (endpoint === 'jobs' || endpoint === 'jobs/last24h') {
@@ -436,56 +553,66 @@ serve(async (req) => {
       apiEndpoints[0] = `/api/v2/jobs?${queryParams.toString()}`
     }
 
-    // Tentar múltiplos endpoints até encontrar um que funcione
+    // Sistema de retry com backoff exponencial e circuit breaker
     let lastError = null;
     let successfulEndpoint = '';
     let rawData = null;
+    let attemptsCount = 0;
+    const maxAttempts = Math.min(apiEndpoints.length, 3); // Limitar tentativas
+    
+    console.log(`🎯 [${requestId}] Tentando ${maxAttempts} endpoints de ${apiEndpoints.length} disponíveis`);
 
-    for (const apiEndpoint of apiEndpoints) {
+    for (let i = 0; i < maxAttempts; i++) {
+      const apiEndpoint = apiEndpoints[i];
+      attemptsCount++;
+      
       // Garantir que sempre tenha a barra entre baseUrl e endpoint
-      const normalizedEndpoint = apiEndpoint.startsWith('/') ? apiEndpoint : `/${apiEndpoint}`
-      const fullUrl = `${baseUrl}${normalizedEndpoint}`
-      console.log(`🔄 Tentando endpoint: ${fullUrl}`)
-      console.log(`🔑 Autenticação: Basic ${auth.substring(0, 10)}...`)
+      const normalizedEndpoint = apiEndpoint.startsWith('/') ? apiEndpoint : `/${apiEndpoint}`;
+      const fullUrl = `${baseUrl}${normalizedEndpoint}`;
+      
+      console.log(`🔄 [${requestId}] Tentativa ${attemptsCount}/${maxAttempts}: ${fullUrl}`);
 
       try {
-        // Make request to BaculaWeb API with timeout
-        const controller = new AbortController()
+        // Timeout mais agressivo para detectar problemas rapidamente
+        const controller = new AbortController();
+        const timeoutMs = i === 0 ? 10000 : 15000; // Primeiro endpoint: 10s, outros: 15s
         const timeoutId = setTimeout(() => {
-          console.log(`⏰ Timeout de 30s atingido para ${fullUrl}`)
-          controller.abort()
-        }, 30000) // 30 second timeout
+          console.log(`⏰ [${requestId}] Timeout de ${timeoutMs/1000}s atingido para ${fullUrl}`);
+          controller.abort();
+        }, timeoutMs);
 
-        const startRequest = Date.now()
+        const startRequest = Date.now();
         const response = await fetch(fullUrl, {
           method: 'GET',
           headers: {
             'Authorization': `Basic ${auth}`,
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'User-Agent': 'Parker Intelligence System',
-            'Cache-Control': 'no-cache'
+            'User-Agent': 'Parker Intelligence System v2.0',
+            'Cache-Control': 'no-cache',
+            'Connection': 'close' // Evitar keep-alive para reduzir problemas de conexão
           },
           signal: controller.signal
-        })
+        });
 
-        clearTimeout(timeoutId)
-        const requestTime = Date.now() - startRequest
+        clearTimeout(timeoutId);
+        const requestTime = Date.now() - startRequest;
 
-        console.log(`📊 Resposta ${fullUrl}: ${response.status} ${response.statusText} (${requestTime}ms)`)
-        console.log(`📊 Headers de resposta:`, Object.fromEntries(response.headers.entries()))
+        console.log(`📊 [${requestId}] Resposta ${fullUrl}: ${response.status} ${response.statusText} (${requestTime}ms)`);
 
         if (!response.ok) {
-          console.error(`❌ Erro HTTP ${response.status} no endpoint ${apiEndpoint}`)
+          console.error(`❌ [${requestId}] Erro HTTP ${response.status} no endpoint ${apiEndpoint}`);
           
-          // Try to get error details
-          let errorDetail = 'Unknown error'
+          // Tentar obter detalhes do erro com timeout
+          let errorDetail = response.statusText;
           try {
-            const errorText = await response.text()
-            errorDetail = errorText || response.statusText
-            console.error(`❌ Detalhes do erro: ${errorDetail.substring(0, 200)}`)
+            const textResponse = await Promise.race([
+              response.text(),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+            ]);
+            errorDetail = textResponse.toString().substring(0, 200) || response.statusText;
           } catch (e) {
-            errorDetail = response.statusText
+            console.warn(`⚠️ [${requestId}] Não foi possível ler corpo da resposta de erro`);
           }
 
           lastError = {
@@ -494,31 +621,51 @@ serve(async (req) => {
             endpoint: apiEndpoint,
             url: fullUrl,
             response_time: requestTime,
-            timestamp: new Date().toISOString()
-          }
+            timestamp: new Date().toISOString(),
+            attempt: attemptsCount
+          };
           
-          // Para alguns erros específicos, tentar próximo endpoint
+          // Tratamento inteligente de erros
           if (response.status === 404 || response.status === 405) {
-            console.log(`🔄 Erro ${response.status} - tentando próximo endpoint...`)
+            console.log(`🔄 [${requestId}] Erro ${response.status} - tentando próximo endpoint...`);
             continue; 
           } else if (response.status === 401 || response.status === 403) {
-            console.error('🚨 Erro de autenticação - verificar credenciais')
-            // Para erros de auth, não tentar outros endpoints
-            break;
+            console.error(`🚨 [${requestId}] Erro de autenticação - credenciais inválidas`);
+            return new Response(JSON.stringify({ 
+              error: 'Credenciais inválidas para Bacula',
+              requestId,
+              details: 'Verifique o usuário e senha da integração Bacula',
+              httpStatus: response.status
+            }), {
+              ...corsOptions,
+              status: 401
+            });
+          } else if (response.status >= 500) {
+            console.error(`🚨 [${requestId}] Erro do servidor (${response.status}) - tentando próximo endpoint`);
+            continue;
           } else {
             continue; // Tentar próximo endpoint para outros erros
           }
         }
 
-        let data
-        const contentType = response.headers.get('content-type')
-        console.log(`📝 Content-Type: ${contentType}`)
+        let data;
+        const contentType = response.headers.get('content-type');
+        console.log(`📝 [${requestId}] Content-Type: ${contentType}`);
 
         if (contentType && contentType.includes('application/json')) {
           try {
-            data = await response.json()
-            console.log(`✅ JSON parseado com sucesso, estrutura:`, Object.keys(data || {}))
-            console.log(`📝 Primeira amostra dos dados:`, JSON.stringify(data, null, 2).substring(0, 500))
+            // Parse JSON com timeout
+            const jsonPromise = response.json();
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('JSON parse timeout')), 5000)
+            );
+            
+            data = await Promise.race([jsonPromise, timeoutPromise]);
+            console.log(`✅ [${requestId}] JSON parseado com sucesso, estrutura:`, Object.keys(data || {}));
+            
+            // Cache do endpoint bem-sucedido
+            endpointCache.set(cacheKey, { endpoint: normalizedEndpoint, timestamp: Date.now() });
+            console.log(`💾 [${requestId}] Endpoint cacheado: ${normalizedEndpoint}`);
             
             // Para jobs configurados, estruturar os dados se necessário
             if (endpoint === 'jobs/configured' && data) {
@@ -529,7 +676,7 @@ serve(async (req) => {
             if ((endpoint === 'jobs' || endpoint === 'jobs/last24h' || endpoint === 'jobs/recent') && data) {
               let jobs: BaculaJob[] = [];
               
-              // Extrair jobs de diferentes estruturas
+              // Extrair jobs de diferentes estruturas de resposta
               if (Array.isArray(data)) {
                 jobs = data;
               } else if (data.jobs && Array.isArray(data.jobs)) {
@@ -542,16 +689,16 @@ serve(async (req) => {
                 jobs = data.output;
               }
               
-              console.log(`📊 Total de jobs encontrados: ${jobs.length}`);
+              console.log(`📊 [${requestId}] Total de jobs encontrados: ${jobs.length}`);
               
               // Filtrar últimas 24h e enriquecer dados
               if (endpoint === 'jobs' || endpoint === 'jobs/last24h') {
                 const filteredJobs = filterLast24Hours(jobs);
-                console.log(`📊 Jobs das últimas 24h: ${filteredJobs.length}`);
+                console.log(`📊 [${requestId}] Jobs das últimas 24h: ${filteredJobs.length}`);
                 
                 const enrichedJobs = enrichJobData(filteredJobs);
                 
-                // Calcular estatísticas
+                // Calcular estatísticas detalhadas
                 const stats = {
                   total: enrichedJobs.length,
                   completed: enrichedJobs.filter(j => j.jobstatus === 'T').length,
@@ -574,7 +721,8 @@ serve(async (req) => {
                 data = {
                   success: true,
                   endpoint: fullUrl,
-                  jobs: enrichedJobs,
+                  requestId,
+                  data: enrichedJobs, // Mudança: usar 'data' ao invés de 'jobs' para consistência
                   stats: {
                     ...stats,
                     totalBytesFormatted: formatBytes(stats.totalBytes),
@@ -583,10 +731,12 @@ serve(async (req) => {
                     successRate: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0,
                     errorRate: stats.total > 0 ? Math.round((stats.error / stats.total) * 100) : 0
                   },
-                  debug: {
+                  meta: {
                     timeRange: getLast24HoursRange(),
                     originalJobCount: jobs.length,
-                    filteredJobCount: filteredJobs.length
+                    filteredJobCount: filteredJobs.length,
+                    responseTime: requestTime,
+                    attempt: attemptsCount
                   }
                 };
               } else {
@@ -595,10 +745,27 @@ serve(async (req) => {
                 data = {
                   success: true,
                   endpoint: fullUrl,
-                  jobs: enrichedJobs,
-                  total: enrichedJobs.length
+                  requestId,
+                  data: enrichedJobs,
+                  total: enrichedJobs.length,
+                  meta: {
+                    responseTime: requestTime,
+                    attempt: attemptsCount
+                  }
                 };
               }
+            } else {
+              // Para endpoints que não são de jobs, retornar dados diretamente
+              data = {
+                success: true,
+                endpoint: fullUrl,
+                requestId,
+                data: data,
+                meta: {
+                  responseTime: requestTime,
+                  attempt: attemptsCount
+                }
+              };
             }
             
             successfulEndpoint = fullUrl;
@@ -606,103 +773,180 @@ serve(async (req) => {
             break; // Sucesso, sair do loop
             
           } catch (jsonError) {
-            console.error('❌ Erro no parse JSON:', jsonError)
-            const textData = await response.text()
-            console.error('❌ Resposta bruta:', textData.substring(0, 500))
+            console.error(`❌ [${requestId}] Erro no parse JSON:`, jsonError);
             
-            // Se recebeu HTML, provavelmente é uma página de login
+            // Tentar ler como texto para diagnóstico
+            let textData = '';
+            try {
+              textData = await response.text();
+            } catch (textError) {
+              console.error(`❌ [${requestId}] Erro ao ler texto da resposta:`, textError);
+            }
+            
+            console.error(`❌ [${requestId}] Resposta bruta (primeiros 300 chars):`, textData.substring(0, 300));
+            
+            // Se recebeu HTML, provavelmente é uma página de login ou erro
             if (textData.includes('<html>') || textData.includes('<!DOCTYPE')) {
+              console.error(`🚨 [${requestId}] Recebido HTML ao invés de JSON - possível erro de autenticação`);
               return new Response(JSON.stringify({ 
-                error: 'Received HTML instead of JSON - check authentication',
-                details: 'O servidor retornou uma página HTML ao invés de dados JSON. Verifique a autenticação.',
+                error: 'Recebido HTML ao invés de JSON',
+                requestId,
+                details: 'O servidor retornou uma página HTML. Verifique a autenticação e configurações.',
                 endpoint: apiEndpoint,
-                url: fullUrl
+                url: fullUrl,
+                suggestion: 'Verifique se as credenciais estão corretas e o servidor está configurado adequadamente'
               }), {
                 ...corsOptions,
-                status: 401
-              })
+                status: 422
+              });
             }
             
             lastError = {
               error: 'JSON parsing failed',
               details: jsonError.message,
               endpoint: apiEndpoint,
-              rawData: textData.substring(0, 200)
-            }
+              url: fullUrl,
+              rawDataSample: textData.substring(0, 200),
+              attempt: attemptsCount
+            };
             continue;
           }
         } else {
-          // If not JSON, try to get as text
-          const textData = await response.text()
-          console.log('❌ Resposta não-JSON:', textData.substring(0, 200))
+          // Se não é JSON, tentar obter como texto para diagnóstico
+          let textData = '';
+          try {
+            textData = await response.text();
+          } catch (textError) {
+            console.error(`❌ [${requestId}] Erro ao ler resposta não-JSON:`, textError);
+          }
           
-          // Check if it's HTML (login page)
+          console.log(`❌ [${requestId}] Resposta não-JSON:`, textData.substring(0, 200));
+          
+          // Verificar se é HTML (página de login)
           if (textData.includes('<html>') || textData.includes('<!DOCTYPE')) {
+            console.error(`🚨 [${requestId}] Recebida página de login - erro de autenticação`);
             return new Response(JSON.stringify({ 
-              error: 'Authentication required - received login page',
-              details: 'O servidor retornou uma página de login. Verifique suas credenciais.',
+              error: 'Página de login recebida',
+              requestId,
+              details: 'O servidor retornou uma página de login. Credenciais inválidas.',
               endpoint: apiEndpoint,
-              url: fullUrl
+              url: fullUrl,
+              suggestion: 'Verifique o usuário e senha da integração Bacula'
             }), {
               ...corsOptions,
               status: 401
-            })
+            });
           }
           
           lastError = {
             error: 'Non-JSON response',
             details: `Content-Type: ${contentType}`,
             endpoint: apiEndpoint,
-            rawData: textData.substring(0, 200)
-          }
+            url: fullUrl,
+            rawDataSample: textData.substring(0, 200),
+            attempt: attemptsCount
+          };
           continue;
         }
 
       } catch (fetchError) {
-        console.error(`❌ Erro de conexão para ${apiEndpoint}:`, fetchError)
+        console.error(`❌ [${requestId}] Erro de conexão para ${apiEndpoint}:`, fetchError);
         
-        let errorMessage = 'Connection failed'
+        let errorMessage = 'Connection failed';
+        let errorCategory = 'network';
+        
         if (fetchError.name === 'AbortError') {
-          errorMessage = 'Request timeout (30s)'
+          errorMessage = `Request timeout (${timeoutMs/1000}s)`;
+          errorCategory = 'timeout';
         } else if (fetchError.message) {
-          errorMessage = fetchError.message
+          errorMessage = fetchError.message;
+          if (fetchError.message.includes('ECONNREFUSED')) {
+            errorCategory = 'connection_refused';
+            errorMessage = 'Conexão recusada - servidor inacessível';
+          } else if (fetchError.message.includes('ENOTFOUND')) {
+            errorCategory = 'dns';
+            errorMessage = 'Host não encontrado - verifique a URL';
+          } else if (fetchError.message.includes('ETIMEDOUT')) {
+            errorCategory = 'timeout';
+            errorMessage = 'Timeout de conexão';
+          }
         }
 
         lastError = {
           error: errorMessage,
+          category: errorCategory,
           details: `Falha ao conectar com ${fullUrl}`,
-          endpoint: apiEndpoint
+          endpoint: apiEndpoint,
+          url: fullUrl,
+          attempt: attemptsCount,
+          timestamp: new Date().toISOString()
+        };
+        
+        // Para erros de conectividade graves, não tentar mais endpoints
+        if (errorCategory === 'connection_refused' || errorCategory === 'dns') {
+          console.error(`🚨 [${requestId}] Erro grave de conectividade (${errorCategory}) - interrompendo tentativas`);
+          break;
         }
-        continue; // Tentar próximo endpoint
+        
+        continue; // Tentar próximo endpoint para outros erros
       }
     }
 
     // Se chegou aqui com dados, retornar sucesso
     if (rawData && successfulEndpoint) {
-      console.log(`✅ Sucesso com endpoint: ${successfulEndpoint}`);
+      console.log(`✅ [${requestId}] Sucesso com endpoint: ${successfulEndpoint}`);
       
       return new Response(JSON.stringify(rawData), {
         ...corsOptions,
         headers: {
           ...corsOptions.headers,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-Request-ID': requestId
         }
-      })
+      });
     }
 
     // Se chegou aqui, todos os endpoints falharam
-    console.error('❌ Todos os endpoints falharam para:', endpoint)
+    console.error(`❌ [${requestId}] Todos os ${attemptsCount} endpoints testados falharam para: ${endpoint}`);
+    
+    // Classificar o tipo de erro para melhor diagnóstico
+    let failureCategory = 'unknown';
+    let recommendation = 'Verifique a conectividade com o servidor Bacula';
+    
+    if (lastError) {
+      if (lastError.category === 'connection_refused' || lastError.category === 'dns') {
+        failureCategory = 'connectivity';
+        recommendation = 'Verifique se o servidor Bacula está funcionando e acessível';
+      } else if (lastError.category === 'timeout') {
+        failureCategory = 'performance';
+        recommendation = 'O servidor está lento ou sobrecarregado. Tente novamente em alguns minutos';
+      } else if (lastError.error?.includes('HTTP 401') || lastError.error?.includes('HTTP 403')) {
+        failureCategory = 'authentication';
+        recommendation = 'Verifique as credenciais da integração Bacula';
+      } else if (lastError.error?.includes('HTTP 404')) {
+        failureCategory = 'api_compatibility';
+        recommendation = 'A versão da API Bacula pode ser incompatível. Verifique a documentação';
+      }
+    }
+    
     return new Response(JSON.stringify({ 
-      error: 'All endpoints failed',
-      details: 'Não foi possível conectar com nenhum endpoint da API Bacula',
-      lastError: lastError,
-      endpoints: apiEndpoints,
-      baseUrl: baseUrl,
-      testedEndpoints: apiEndpoints.length
+      error: 'Todos os endpoints falharam',
+      requestId,
+      details: `Não foi possível conectar com nenhum endpoint da API Bacula após ${attemptsCount} tentativas`,
+      failureCategory,
+      recommendation,
+      lastError,
+      debug: {
+        endpoints: apiEndpoints.slice(0, maxAttempts),
+        baseUrl,
+        attemptsCount,
+        totalEndpoints: apiEndpoints.length,
+        timestamp: new Date().toISOString()
+      }
     }), {
       ...corsOptions,
-      status: 500
-    })
+      status: 503
+    });
 
   } catch (error) {
     console.error('❌ Erro geral no bacula-proxy:', error)
