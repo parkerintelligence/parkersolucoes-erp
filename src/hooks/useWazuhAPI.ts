@@ -51,7 +51,7 @@ export const useWazuhAPI = () => {
   const queryClient = useQueryClient();
 
   const makeWazuhRequest = async (endpoint: string, method: string = 'GET', integrationId: string) => {
-    console.log('Making Wazuh request:', { endpoint, method, integrationId });
+    console.log('🔄 Making Wazuh request:', { endpoint, method, integrationId });
     
     const { data, error } = await supabase.functions.invoke('wazuh-proxy', {
       body: {
@@ -62,10 +62,11 @@ export const useWazuhAPI = () => {
     });
 
     if (error) {
-      console.error('Wazuh request error:', error);
+      console.error('❌ Wazuh request error:', error);
       throw new Error(`Wazuh API error: ${error.message}`);
     }
 
+    console.log('✅ Wazuh response received:', data ? 'Data present' : 'No data');
     return data;
   };
 
@@ -265,47 +266,55 @@ export const useWazuhAPI = () => {
 
   const testWazuhConnection = useMutation({
     mutationFn: async (integrationId: string) => {
-      // Test multiple endpoints to verify connectivity
-      const testEndpoints = [
-        '/manager/info',
-        '/manager/status', 
-        '/',
-        '/agents',
-        '/security/user/authenticate/run_as'
-      ];
-
-      let lastError;
-      for (const endpoint of testEndpoints) {
-        try {
-          console.log(`Testing Wazuh endpoint: ${endpoint}`);
-          const result = await makeWazuhRequest(endpoint, 'GET', integrationId);
-          console.log(`Successfully connected to ${endpoint}:`, result);
-          return { 
-            success: true, 
-            endpoint,
-            data: result,
-            message: `Conectado com sucesso via ${endpoint}`
-          };
-        } catch (error) {
-          console.log(`Failed to connect to ${endpoint}:`, error.message);
-          lastError = error;
-          continue;
-        }
-      }
+      console.log('🧪 Testing Wazuh connection for integration:', integrationId);
       
-      // If all endpoints failed, throw the last error
-      throw lastError || new Error('All connection attempts failed');
+      // Simple connectivity test first
+      try {
+        console.log('🔍 Testing basic connection...');
+        const result = await makeWazuhRequest('/', 'GET', integrationId);
+        console.log('✅ Basic connection test successful:', result);
+        return { 
+          success: true, 
+          endpoint: '/',
+          data: result,
+          message: 'Conectado com sucesso ao servidor Wazuh'
+        };
+      } catch (error) {
+        console.error('❌ Basic connection failed, trying alternatives...', error);
+        
+        // Try alternative endpoints
+        const testEndpoints = ['/agents', '/manager/info', '/manager/status'];
+        
+        for (const endpoint of testEndpoints) {
+          try {
+            console.log(`🔍 Trying endpoint: ${endpoint}`);
+            const result = await makeWazuhRequest(endpoint, 'GET', integrationId);
+            console.log('✅ Alternative endpoint successful:', endpoint);
+            return { 
+              success: true, 
+              endpoint,
+              data: result,
+              message: `Conectado com sucesso via ${endpoint}`
+            };
+          } catch (endpointError) {
+            console.error(`❌ Endpoint ${endpoint} failed:`, endpointError);
+          }
+        }
+        
+        throw error;
+      }
     },
     onSuccess: (data) => {
+      console.log('🎉 Connection test successful:', data);
       toast({
-        title: "Conexão realizada com sucesso",
+        title: "✅ Conexão realizada com sucesso",
         description: data.message || "A conexão com o Wazuh foi estabelecida.",
       });
     },
     onError: (error: Error) => {
-      console.error('Wazuh connection test failed:', error);
+      console.error('💥 Connection test failed:', error);
       toast({
-        title: "Erro na conexão",
+        title: "❌ Erro na conexão",
         description: error.message || "Falha ao conectar com o Wazuh. Verifique as configurações.",
         variant: "destructive",
       });

@@ -47,27 +47,31 @@ const Security = () => {
   const hasRealData = React.useMemo(() => {
     if (!wazuhIntegration || isLoadingData) return false;
     
-    // Check if we have successful data from any of the queries
-    const hasValidStats = stats && !statsError && 
-      (stats.total_agents > 0 || stats.agents_connected > 0);
-    const hasValidAgents = agents && !agentsError && 
-      Array.isArray(agents?.data?.affected_items) && agents.data.affected_items.length > 0;
-    const hasValidAlerts = alerts && !alertsError;
+    // Check if we have successful responses without errors
+    const hasStats = stats && !statsError;
+    const hasAgents = agents && !agentsError;
+    const hasAlerts = alerts && !alertsError;
+    const hasCompliance = compliance && !complianceError;
+    const hasVulnerabilities = vulnerabilities && !vulnerabilitiesError;
     
-    console.log('Real data check:', { 
-      hasValidStats, 
-      hasValidAgents, 
-      hasValidAlerts, 
-      stats, 
-      statsError,
-      agents: agents?.data,
-      agentsError,
-      alerts: alerts?.data,
-      alertsError
+    console.log('🔍 Real data check:', { 
+      hasStats: !!hasStats,
+      hasAgents: !!hasAgents,
+      hasAlerts: !!hasAlerts,
+      hasCompliance: !!hasCompliance,
+      hasVulnerabilities: !!hasVulnerabilities,
+      errors: {
+        statsError: statsError?.message,
+        agentsError: agentsError?.message,
+        alertsError: alertsError?.message,
+        complianceError: complianceError?.message,
+        vulnerabilitiesError: vulnerabilitiesError?.message
+      }
     });
     
-    return hasValidStats || hasValidAgents || hasValidAlerts;
-  }, [wazuhIntegration, isLoadingData, stats, statsError, agents, agentsError, alerts, alertsError]);
+    // We have real data if any endpoint returned successfully
+    return hasStats || hasAgents || hasAlerts || hasCompliance || hasVulnerabilities;
+  }, [wazuhIntegration, isLoadingData, stats, statsError, agents, agentsError, alerts, alertsError, compliance, complianceError, vulnerabilities, vulnerabilitiesError]);
   const displayData = hasRealData ? {
     agents: {
       total: stats.total_agents || 0,
