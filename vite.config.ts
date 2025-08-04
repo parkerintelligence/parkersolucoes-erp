@@ -25,12 +25,17 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     include: [
       "react",
-      "react-dom",
+      "react-dom", 
       "react/jsx-runtime",
       "@tanstack/react-query",
       "@supabase/supabase-js"
     ],
     force: true,
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
   },
   build: {
     rollupOptions: {
