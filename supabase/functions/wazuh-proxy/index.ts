@@ -262,10 +262,14 @@ serve(async (req) => {
 
     console.log("Fetch options:", JSON.stringify({
       method: fetchOptions.method,
-      headers: { ...fetchOptions.headers, Authorization: '[REDACTED]' }
+      headers: { ...fetchOptions.headers, Authorization: '[REDACTED]' },
+      url: wazuhApiUrl
     }, null, 2));
 
     const response = await fetch(wazuhApiUrl, fetchOptions)
+    
+    console.log(`Wazuh API response: ${response.status} ${response.statusText}`);
+    console.log(`Response headers:`, Object.fromEntries(response.headers.entries()));
     
     if (!response.ok) {
       console.error(`Wazuh API returned ${response.status}: ${response.statusText}`);

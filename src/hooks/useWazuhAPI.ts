@@ -92,15 +92,26 @@ export const useWazuhAPI = () => {
           }
           
           return data;
-        } catch (error) {
-          console.error('Failed to fetch Wazuh agents:', error);
-          toast({
-            title: "Erro ao buscar agentes",
-            description: "Usando dados de exemplo. Verifique a conexão com Wazuh.",
-            variant: "destructive",
-          });
-          throw error;
-        }
+    } catch (error) {
+      console.error('Failed to fetch Wazuh agents:', error);
+      
+      // Show toast only for network/auth errors, not for expected API errors
+      if (error.message.includes('401') || error.message.includes('403')) {
+        toast({
+          title: "Erro de Autenticação",
+          description: "Credenciais inválidas. Verifique a configuração do Wazuh.",
+          variant: "destructive",
+        });
+      } else if (error.message.includes('503') || error.message.includes('Cannot connect')) {
+        toast({
+          title: "Erro de Conectividade",
+          description: "Não foi possível conectar ao servidor Wazuh. Verifique a rede.",
+          variant: "destructive",
+        });
+      }
+      
+      throw error;
+    }
       },
       enabled: !!integrationId,
       staleTime: 30000, // 30 seconds

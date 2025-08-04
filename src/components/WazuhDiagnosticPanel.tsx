@@ -83,13 +83,13 @@ export function WazuhDiagnosticPanel() {
   };
 
   return (
-    <Card>
+    <Card className="bg-slate-800 border-slate-700">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-white">
           <Activity className="h-5 w-5" />
           Wazuh Diagnostic Panel
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-slate-400">
           Test connectivity and diagnose issues with your Wazuh integration
         </CardDescription>
       </CardHeader>
@@ -97,14 +97,14 @@ export function WazuhDiagnosticPanel() {
       <CardContent className="space-y-6">
         {/* Integration Info */}
         <div className="space-y-3">
-          <h4 className="font-medium">Integration Configuration</h4>
+          <h4 className="font-medium text-white">Integration Configuration</h4>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-muted-foreground">Name:</span>
-              <div className="font-medium">{wazuhIntegration.name}</div>
+              <span className="text-slate-400">Name:</span>
+              <div className="font-medium text-white">{wazuhIntegration.name}</div>
             </div>
             <div>
-              <span className="text-muted-foreground">Status:</span>
+              <span className="text-slate-400">Status:</span>
               <div>
                 <Badge variant={wazuhIntegration.is_active ? "default" : "secondary"}>
                   {wazuhIntegration.is_active ? "Active" : "Inactive"}
@@ -112,12 +112,12 @@ export function WazuhDiagnosticPanel() {
               </div>
             </div>
             <div>
-              <span className="text-muted-foreground">Base URL:</span>
-              <div className="font-mono text-xs break-all">{config.base_url}</div>
+              <span className="text-slate-400">Base URL:</span>
+              <div className="font-mono text-xs break-all text-white">{config.base_url}</div>
             </div>
             <div>
-              <span className="text-muted-foreground">Username:</span>
-              <div className="font-medium">{config.username}</div>
+              <span className="text-slate-400">Username:</span>
+              <div className="font-medium text-white">{config.username}</div>
             </div>
           </div>
         </div>
@@ -126,7 +126,7 @@ export function WazuhDiagnosticPanel() {
 
         {/* Connection Test */}
         <div className="space-y-3">
-          <h4 className="font-medium">Connection Test</h4>
+          <h4 className="font-medium text-white">Connection Test</h4>
           <div className="flex items-center gap-2">
             <Button 
               onClick={handleTestConnection}
@@ -209,8 +209,8 @@ export function WazuhDiagnosticPanel() {
 
         {/* Troubleshooting Tips */}
         <div className="space-y-3">
-          <h4 className="font-medium">Troubleshooting Tips</h4>
-          <div className="text-sm text-muted-foreground space-y-2">
+          <h4 className="font-medium text-white">Troubleshooting Tips</h4>
+          <div className="text-sm text-slate-400 space-y-2">
             <div>• Ensure Wazuh server is running and accessible</div>
             <div>• Check firewall allows connections on port 55000</div>
             <div>• Verify username and password are correct</div>

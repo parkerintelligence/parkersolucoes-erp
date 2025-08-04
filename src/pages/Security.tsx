@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useWazuhAPI } from '@/hooks/useWazuhAPI';
+import { WazuhDiagnosticPanel } from '@/components/WazuhDiagnosticPanel';
 
 const Security = () => {
   const { data: integrations } = useIntegrations();
@@ -226,12 +227,13 @@ const Security = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-6 bg-slate-800">
             <TabsTrigger value="dashboard" className="text-white">Dashboard</TabsTrigger>
             <TabsTrigger value="agents" className="text-white">Agentes</TabsTrigger>
             <TabsTrigger value="alerts" className="text-white">Alertas</TabsTrigger>
             <TabsTrigger value="compliance" className="text-white">Conformidade</TabsTrigger>
             <TabsTrigger value="vulnerabilities" className="text-white">Vulnerabilidades</TabsTrigger>
+            <TabsTrigger value="diagnostic" className="text-white">Diagnóstico</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4">
@@ -428,6 +430,10 @@ const Security = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="diagnostic" className="space-y-4">
+            <WazuhDiagnosticPanel />
           </TabsContent>
         </Tabs>
       </div>
