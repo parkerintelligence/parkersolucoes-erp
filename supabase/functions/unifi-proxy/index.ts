@@ -416,6 +416,9 @@ serve(async (req) => {
       // Transform local controller endpoints to Site Manager API v1 endpoints
       if (endpoint.includes('/api/self/sites')) {
         siteManagerEndpoint = '/v1/hosts';
+      } else if (endpoint.includes('/v1/hosts/') && endpoint.includes('/sites')) {
+        // Handle /v1/hosts/{hostId}/sites endpoint
+        siteManagerEndpoint = endpoint;
       } else if (endpoint.includes('/api/s/') && endpoint.includes('/stat/device')) {
         // Extract site ID from local controller endpoint format
         const match = endpoint.match(/\/api\/s\/([^\/]+)\/stat\/device/);
@@ -443,6 +446,8 @@ serve(async (req) => {
       } else if (endpoint.includes('/ea/hosts')) {
         // Convert old ea/hosts to v1/hosts
         siteManagerEndpoint = endpoint.replace('/ea/hosts', '/v1/hosts');
+        // Also handle sites sub-endpoint
+        siteManagerEndpoint = siteManagerEndpoint.replace('/ea/', '/v1/');
       }
       
       console.log('Endpoint mapping:', { original: endpoint, mapped: siteManagerEndpoint });
