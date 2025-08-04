@@ -16,10 +16,12 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { data: brandingSettings } = useSystemSettings('branding');
+  // Temporarily disable system settings due to React hooks issue
+  // const { data: brandingSettings } = useSystemSettings('branding');
+  const brandingSettings = null;
 
-  const companyLogo = brandingSettings?.find(setting => setting.setting_key === 'company_logo_url')?.setting_value;
-  const companyName = brandingSettings?.find(setting => setting.setting_key === 'company_name')?.setting_value || 'Parker Soluções ERP';
+  const companyLogo = null; // brandingSettings?.find(setting => setting.setting_key === 'company_logo_url')?.setting_value;
+  const companyName = 'Parker Soluções ERP'; // brandingSettings?.find(setting => setting.setting_key === 'company_name')?.setting_value || 'Parker Soluções ERP';
 
   // Floating particles animation
   const particles = Array.from({ length: 20 }, (_, i) => (
