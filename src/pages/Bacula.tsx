@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { BaculaDashboard } from '@/components/BaculaDashboard';
 import { BaculaAnalysisDialog } from '@/components/BaculaAnalysisDialog';
 import { BaculaJobsDialog } from '@/components/BaculaJobsDialog';
+import { BaculaDiagnosticPanel } from '@/components/BaculaDiagnosticPanel';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 const Bacula = () => {
@@ -201,6 +202,9 @@ const Bacula = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Painel de diagnóstico */}
+        <BaculaDiagnosticPanel />
 
         {/* Dashboard principal */}
         <BaculaDashboard />

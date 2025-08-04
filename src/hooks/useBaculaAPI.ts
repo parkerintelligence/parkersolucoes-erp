@@ -261,3 +261,17 @@ export const useBaculaClientsConfigured = () => {
     staleTime: 60000 // Keep data fresh for 1 minute
   });
 };
+
+// Hook para diagnóstico completo do Bacula
+export const useBaculaDiagnostic = () => {
+  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
+  
+  return useQuery({
+    queryKey: ['bacula-diagnostic'],
+    queryFn: () => makeBaculaRequest('diagnostic'),
+    enabled: false, // Só executa quando chamado manualmente
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 0 // Sempre buscar dados frescos
+  });
+};
