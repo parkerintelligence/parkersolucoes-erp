@@ -505,22 +505,56 @@ serve(async (req) => {
       let finalResponse;
       if (siteManagerEndpoint === '/v1/hosts') {
         // Transform hosts response to match expected format
-        finalResponse = {
-          data: Array.isArray(responseData) ? responseData.map((host: any) => ({
-            id: host.id || host.hardware_id,
-            hardwareId: host.hardware_id,
-            type: host.reported_state?.host_type === 0 ? 'network-server' : 'unknown',
-            ipAddress: host.reported_state?.ipAddrs?.[0] || 'unknown',
-            owner: host.owner || false,
-            isBlocked: host.is_blocked || false,
-            registrationTime: host.registration_time,
-            lastConnectionStateChange: host.last_connection_state_change,
-            userData: host.user_data,
-            reportedState: host.reported_state,
-            sitesCount: 0, // Will be populated later
-            isValid: true
-          })) : []
-        };
+        const hosts = Array.isArray(responseData) ? responseData : (responseData?.data || []);
+        
+        console.log('Processing hosts response. Raw hosts count:', hosts.length);
+        
+        if (hosts.length === 0) {
+          console.log('⚠️ DEBUGGING: No hosts found in Site Manager API');
+          console.log('This indicates:');
+          console.log('1. No UniFi controllers are registered with this Cloud account');
+          console.log('2. Controllers may be local-only (not connected to Cloud)');
+          console.log('3. API token may not have access to controllers');
+          console.log('4. User should check unifi.ui.com to verify controller registration');
+          
+          finalResponse = {
+            data: [],
+            meta: {
+              empty_response: true,
+              suggestion: 'local_controller_setup',
+              message: 'No controllers found in UniFi Cloud. Consider using local controller configuration.',
+              debug_info: {
+                raw_response: responseData,
+                endpoint_called: apiUrl,
+                token_used: true
+              }
+            }
+          };
+        } else {
+          finalResponse = {
+            data: hosts.map((host: any) => ({
+              id: host.id || host.hardware_id,
+              hardwareId: host.hardware_id,
+              type: host.reported_state?.host_type === 0 ? 'network-server' : 'unknown',
+              ipAddress: host.reported_state?.ipAddrs?.[0] || 'unknown',
+              owner: host.owner || false,
+              isBlocked: host.is_blocked || false,
+              registrationTime: host.registration_time,
+              lastConnectionStateChange: host.last_connection_state_change,
+              userData: host.user_data,
+              reportedState: host.reported_state,
+              sitesCount: 0, // Will be populated later
+              isValid: true
+            }))
+          };
+          
+          console.log('Processed hosts:', finalResponse.data.map(h => ({
+            id: h.id,
+            name: h.reportedState?.name,
+            state: h.reportedState?.state,
+            ip: h.ipAddress
+          })));
+        }
       } else if (responseData?.data) {
         finalResponse = responseData;
       } else {

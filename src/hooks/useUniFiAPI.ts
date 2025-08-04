@@ -250,6 +250,24 @@ export const useUniFiAPI = () => {
           console.log('🔍 Buscando hosts via Site Manager API v1...');
           const hostsResponse = await makeUniFiRequest('/v1/hosts', 'GET', integrationId);
           
+          console.log('Hosts response:', { 
+            hasData: !!hostsResponse?.data, 
+            isArray: Array.isArray(hostsResponse?.data),
+            length: hostsResponse?.data?.length,
+            meta: hostsResponse?.meta 
+          });
+          
+          // Check if we got an empty response with suggestion for local setup
+          if (hostsResponse?.meta?.empty_response) {
+            console.log('❌ Empty response detected - no controllers in UniFi Cloud');
+            toast({
+              title: "Controladora não encontrada no Cloud",
+              description: "Nenhuma controladora encontrada no UniFi Cloud. Verifique se a controladora está registrada em unifi.ui.com ou configure uma controladora local.",
+              variant: "destructive",
+            });
+            return [];
+          }
+          
           if (hostsResponse?.data && Array.isArray(hostsResponse.data) && hostsResponse.data.length > 0) {
             console.log('✅ Hosts encontrados:', hostsResponse.data.length);
             
