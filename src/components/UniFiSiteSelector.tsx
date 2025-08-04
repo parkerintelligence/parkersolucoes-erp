@@ -102,12 +102,22 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
           )}
 
           {sites.length === 0 && !loading && (
-            <div className="text-center py-6 text-gray-300">
-              <Server className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm font-medium mb-1">Nenhum site encontrado na controladora</p>
-              <p className="text-xs">
-                Verifique se a controladora está configurada e acessível
-              </p>
+            <div className="bg-red-900/30 border border-red-700 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-400 mt-0.5" />
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-red-200">Token API inválido ou nenhum site disponível</p>
+                  <div className="text-xs text-red-300 space-y-1">
+                    <p><strong>Passos para resolver:</strong></p>
+                    <ol className="list-decimal list-inside space-y-1">
+                      <li>Acesse <a href="https://unifi.ui.com" target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:underline">unifi.ui.com</a></li>
+                      <li>Vá em Settings → API</li>
+                      <li>Gere um novo token de API</li>
+                      <li>Atualize na página de Administração</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

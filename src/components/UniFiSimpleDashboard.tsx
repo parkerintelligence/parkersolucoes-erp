@@ -58,7 +58,8 @@ const UniFiSimpleDashboard = () => {
   // Queries - using Site Manager API directly (no host selection needed)
   const { 
     data: sites, 
-    isLoading: sitesLoading 
+    isLoading: sitesLoading,
+    error: sitesError
   } = useUniFiSites(selectedIntegration);
   
   const { 
@@ -110,6 +111,33 @@ const UniFiSimpleDashboard = () => {
         </AlertDescription>
       </Alert>
     );
+  }
+
+  // Check for API token errors
+  if (sitesError && selectedIntegration) {
+    const isTokenError = sitesError.message?.includes('API Token inválido') || 
+                        sitesError.message?.includes('unauthorized') ||
+                        sitesError.message?.includes('401');
+    
+    if (isTokenError) {
+      return (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <p><strong>Token UniFi inválido ou expirado</strong></p>
+              <p>Para resolver este problema:</p>
+              <ol className="list-decimal list-inside space-y-1 text-sm">
+                <li>Acesse <a href="https://unifi.ui.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">unifi.ui.com</a></li>
+                <li>Vá em Settings → API</li>
+                <li>Gere um novo token de API</li>
+                <li>Atualize a configuração na página de Administração</li>
+              </ol>
+            </div>
+          </AlertDescription>
+        </Alert>
+      );
+    }
   }
 
   const selectedSite = sites?.data?.find(site => site.id === selectedSiteId);
