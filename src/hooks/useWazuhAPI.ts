@@ -107,30 +107,47 @@ export const useWazuhAPI = () => {
     return useQuery({
       queryKey: ['wazuh-stats', integrationId],
       queryFn: async (): Promise<WazuhStats> => {
-        const [agentsResponse, alertsResponse] = await Promise.all([
-          makeWazuhRequest('/agents/summary/status', 'GET', integrationId),
-          makeWazuhRequest('/alerts/summary', 'GET', integrationId),
-        ]);
+        try {
+          const [agentsResponse, alertsResponse] = await Promise.all([
+            makeWazuhRequest('/agents/summary/status', 'GET', integrationId),
+            makeWazuhRequest('/alerts/summary', 'GET', integrationId),
+          ]);
 
-        // Process the responses to create our stats object
-        const agentStats = agentsResponse?.data || {};
-        const alertStats = alertsResponse?.data || {};
+          console.log('Raw agents response:', agentsResponse);
+          console.log('Raw alerts response:', alertsResponse);
 
-        return {
-          total_agents: agentStats.Total || 0,
-          agents_connected: agentStats.Active || 0,
-          agents_disconnected: agentStats.Disconnected || 0,
-          agents_never_connected: agentStats['Never connected'] || 0,
-          total_alerts_today: alertStats.total_today || 0,
-          critical_alerts: alertStats.critical || 0,
-          high_alerts: alertStats.high || 0,
-          medium_alerts: alertStats.medium || 0,
-          low_alerts: alertStats.low || 0,
-        };
+          // Process the responses to create our stats object
+          // Wazuh API typically returns data in response.data.affected_items or response.data
+          const agentStats = agentsResponse?.data?.affected_items?.[0] || agentsResponse?.data || {};
+          const alertStats = alertsResponse?.data?.affected_items?.[0] || alertsResponse?.data || {};
+
+          const stats = {
+            total_agents: agentStats.total || agentStats.Total || 0,
+            agents_connected: agentStats.active || agentStats.Active || 0,
+            agents_disconnected: agentStats.disconnected || agentStats.Disconnected || 0,
+            agents_never_connected: agentStats.never_connected || agentStats['Never connected'] || 0,
+            total_alerts_today: alertStats.total_today || 0,
+            critical_alerts: alertStats.critical || 0,
+            high_alerts: alertStats.high || 0,
+            medium_alerts: alertStats.medium || 0,
+            low_alerts: alertStats.low || 0,
+          };
+
+          console.log('Processed Wazuh stats:', stats);
+          return stats;
+        } catch (error) {
+          console.error('Failed to fetch Wazuh stats:', error);
+          toast({
+            title: "Erro ao buscar estatísticas",
+            description: "Usando dados de exemplo. Verifique a conexão com Wazuh.",
+            variant: "destructive",
+          });
+          throw error;
+        }
       },
       enabled: !!integrationId,
       staleTime: 60000, // 1 minute
-      retry: 2,
+      retry: 1,
     });
   };
 
@@ -156,7 +173,7 @@ export const useWazuhAPI = () => {
 
   const testWazuhConnection = useMutation({
     mutationFn: async (integrationId: string) => {
-      return makeWazuhRequest('//', 'GET', integrationId);
+      return makeWazuhRequest('/manager/info', 'GET', integrationId);
     },
     onSuccess: () => {
       toast({
