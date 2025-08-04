@@ -46,14 +46,14 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
           <BrowserRouter>
             <div className="min-h-screen bg-background">
-            <Routes>
-              <Route path="/" element={<Login />} />
-              <Route path="/login" element={<Login />} />
-              <Route
+              <Routes>
+                <Route path="/" element={<Login />} />
+                <Route path="/login" element={<Login />} />
+                <Route
                 path="/alertas"
                 element={
                   <Layout>
@@ -256,8 +256,8 @@ function App() {
             </Routes>
           </div>
         </BrowserRouter>
+        </AuthProvider>
       </QueryClientProvider>
-    </AuthProvider>
     </ErrorBoundary>
   );
 }
