@@ -84,6 +84,27 @@ serve(async (req) => {
   }
 
   try {
+    // Check for Authorization header first
+    const authHeader = req.headers.get('Authorization');
+    console.log('Authorization header present:', !!authHeader);
+    console.log('Request method:', req.method);
+    console.log('Request URL:', req.url);
+
+    if (!authHeader) {
+      console.error('No Authorization header found');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Unauthorized',
+          details: 'No Authorization header found',
+          hint: 'Please make sure you are logged in and try again'
+        }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
     console.log("Creating Supabase client...");
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -94,7 +115,7 @@ serve(async (req) => {
           persistSession: false
         },
         global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
+          headers: { Authorization: authHeader },
         },
       }
     )
@@ -102,11 +123,23 @@ serve(async (req) => {
     console.log("Authenticating user...");
     const {
       data: { user },
+      error: authError
     } = await supabase.auth.getUser()
 
-    if (!user) {
+    console.log('User authentication result:', { 
+      user: user ? { id: user.id, email: user.email } : null, 
+      error: authError?.message 
+    });
+
+    if (authError || !user) {
+      console.error('Authentication failed:', authError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ 
+          error: 'Unauthorized',
+          details: authError?.message || 'No user found',
+          hint: 'Please make sure you are logged in and try again. Your session may have expired.',
+          authHeader: 'Present but invalid'
+        }),
         {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

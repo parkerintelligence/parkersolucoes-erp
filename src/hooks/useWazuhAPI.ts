@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthRefresh } from "@/hooks/useAuthRefresh";
 
 interface WazuhAgent {
   id: string;
@@ -49,24 +50,73 @@ interface WazuhStats {
 export const useWazuhAPI = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { refreshToken, checkTokenValidity } = useAuthRefresh();
 
-  const makeWazuhRequest = async (endpoint: string, method: string = 'GET', integrationId: string) => {
-    console.log('Making Wazuh request:', { endpoint, method, integrationId });
+  const makeWazuhRequest = async (endpoint: string, method: string = 'GET', integrationId: string, retryCount = 0) => {
+    console.log('Making Wazuh request:', { endpoint, method, integrationId, retryCount });
     
-    const { data, error } = await supabase.functions.invoke('wazuh-proxy', {
-      body: {
-        method,
-        endpoint,
-        integrationId,
-      },
-    });
+    try {
+      // Check token validity before making request
+      await checkTokenValidity();
+      
+      const { data, error } = await supabase.functions.invoke('wazuh-proxy', {
+        body: {
+          method,
+          endpoint,
+          integrationId,
+        },
+      });
 
-    if (error) {
-      console.error('Wazuh request error:', error);
-      throw new Error(`Wazuh API error: ${error.message}`);
+      if (error) {
+        console.error('Wazuh request error:', error);
+        
+        // Handle authentication errors specifically - try to refresh token once
+        if ((error.message?.includes('Unauthorized') || error.message?.includes('401')) && retryCount === 0) {
+          console.log('Token expired, attempting refresh...');
+          try {
+            await refreshToken();
+            console.log('Token refreshed, retrying request...');
+            return await makeWazuhRequest(endpoint, method, integrationId, 1);
+          } catch (refreshError) {
+            console.error('Token refresh failed:', refreshError);
+            toast({
+              title: "Erro de Autenticação",
+              description: "Sua sessão expirou. Por favor, faça login novamente.",
+              variant: "destructive",
+            });
+            throw new Error('Session expired. Please login again.');
+          }
+        }
+        
+        throw new Error(`Wazuh API error: ${error.message}`);
+      }
+
+      if (data?.error) {
+        console.error('Wazuh API response error:', data);
+        
+        // Handle specific Wazuh errors
+        if (data.error.includes('Unauthorized') || data.details?.includes('expired')) {
+          toast({
+            title: "Erro de Autenticação Wazuh",
+            description: "Problema na autenticação com o servidor Wazuh. Verifique suas credenciais.",
+            variant: "destructive",
+          });
+        } else if (data.error.includes('Cannot connect')) {
+          toast({
+            title: "Erro de Conectividade",
+            description: "Não foi possível conectar ao servidor Wazuh. Verifique se o servidor está rodando.",
+            variant: "destructive",
+          });
+        }
+        
+        throw new Error(data.error);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error in makeWazuhRequest:', error);
+      throw error;
     }
-
-    return data;
   };
 
   const useWazuhAgents = (integrationId: string) => {
