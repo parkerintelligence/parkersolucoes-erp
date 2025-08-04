@@ -717,28 +717,8 @@ async function getBaculaData(userId: string, settings: any) {
   } catch (error) {
     console.error('❌ [BACULA] Erro ao buscar dados:', error);
     
-    // Fallback para dados simulados em caso de erro
-    const mockBaculaData = {
-      hasErrors: true,
-      errorJobs: `• backup_servidor_web - Error
-  📂 Cliente: servidor-web-01
-  ⏰ Horário: ${new Date().toLocaleString('pt-BR')}
-  💾 Bytes: 1,234,567,890
-  📄 Arquivos: 45,123
-
-• backup_banco_dados - Fatal
-  📂 Cliente: db-principal
-  ⏰ Horário: ${new Date(Date.now() - 3600000).toLocaleString('pt-BR')}
-  💾 Bytes: 987,654,321
-  📄 Arquivos: 12,456
-
-⚠️ Dados obtidos via fallback devido a erro na conexão Bacula`,
-      totalJobs: 8,
-      errorCount: 2,
-      errorRate: 25
-    };
-
-    return mockBaculaData;
+    // Retornar erro crítico em vez de dados mockados
+    throw new Error(`Falha crítica na conexão Bacula: ${error.message}. Sistema indisponível para relatórios automáticos.`);
   }
 }
 

@@ -297,7 +297,10 @@ serve(async (req) => {
         error: userError?.message,
         hasUser: !!user 
       });
-      return new Response(JSON.stringify({ error: 'Falha na autenticação. Verifique se você está logado.' }), {
+      return new Response(JSON.stringify({ 
+        error: 'Falha na autenticação. Verifique se você está logado.',
+        details: userError?.message || 'Token inválido'
+      }), {
         ...corsOptions,
         status: 401
       })
@@ -305,12 +308,17 @@ serve(async (req) => {
 
     console.log(`✅ Usuário autenticado: ${user.email}`)
 
-    // Get Bacula integration
-    const { data: integrations, error: integrationError } = await userSupabaseClient
+    // Usar service role para buscar integração (internal function call)
+    const serviceSupabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Buscar integração ativa do Bacula (sem filtro de usuário para chamadas internas)
+    const { data: integrations, error: integrationError } = await serviceSupabase
       .from('integrations')
       .select('*')
       .eq('type', 'bacula')
-      .eq('user_id', user.id)
       .eq('is_active', true)
       .limit(1)
 

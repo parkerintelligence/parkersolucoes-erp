@@ -62,13 +62,12 @@ export const BaculaDailyReportTester = () => {
     setTestResults(null);
 
     try {
-      console.log('🧪 Iniciando teste do relatório diário Bacula...');
+      console.log('🧪 Iniciando teste de conexão Bacula...');
       
-      const { data, error } = await supabase.functions.invoke('test-bacula-report', {
+      const { data, error } = await supabase.functions.invoke('test-bacula-connection', {
         body: {
           phone_number: phoneNumber,
-          run_diagnostic: runDiagnostic,
-          send_report: sendReport
+          run_diagnostic: runDiagnostic
         }
       });
 
@@ -76,12 +75,30 @@ export const BaculaDailyReportTester = () => {
         throw new Error(error.message);
       }
 
-      setTestResults(data);
+      // Adaptar dados para o formato esperado pelo componente
+      const adaptedData = {
+        timestamp: data.timestamp,
+        phone_number: data.phone_number,
+        steps: data.results || [],
+        diagnostic: data.summary,
+        report_sent: sendReport,
+        success: data.success,
+        summary: data.summary ? {
+          total_steps: data.summary.totalSteps,
+          successful_steps: data.summary.successful,
+          success_rate: data.summary.score,
+          overall_status: data.success ? 'SUCESSO' : 'FALHA',
+          critical_issues: data.results?.filter(r => r.status === 'failed').map(r => r.message) || []
+        } : undefined,
+        recommendations: data.recommendations || []
+      };
+
+      setTestResults(adaptedData);
       
       if (data.success) {
-        toast.success(`Teste concluído com sucesso! ${data.summary?.success_rate}% dos passos executados.`);
+        toast.success(`Teste concluído com sucesso! ${data.summary?.score}% de sucesso.`);
       } else {
-        toast.warning(`Teste concluído com problemas. ${data.summary?.critical_issues?.length || 0} falhas encontradas.`);
+        toast.warning(`Teste concluído com problemas. ${data.summary?.failed || 0} falhas encontradas.`);
       }
       
     } catch (error) {
@@ -137,6 +154,16 @@ export const BaculaDailyReportTester = () => {
 
   const getStepName = (step: string) => {
     switch (step) {
+      case 'bacula_integration':
+        return 'Verificação da Integração Bacula';
+      case 'bacula_connectivity':
+        return 'Teste de Conectividade';
+      case 'bacula_jobs':
+        return 'Recuperação de Jobs';
+      case 'whatsapp_integration':
+        return 'Verificação do WhatsApp';
+      case 'whatsapp_test':
+        return 'Teste de Envio WhatsApp';
       case 'diagnostic':
         return 'Diagnóstico do Sistema';
       case 'send_report':
@@ -146,7 +173,7 @@ export const BaculaDailyReportTester = () => {
       case 'jobs_test':
         return 'Teste de Jobs';
       default:
-        return step;
+        return step.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
   };
 
