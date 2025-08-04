@@ -104,14 +104,14 @@ export function AppSidebar() {
   } = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
-  const { data: companyLogoSettings } = useSystemSettings('branding');
+  // const { data: companyLogoSettings } = useSystemSettings('branding');
   
   const isActive = (path: string) => currentPath === path;
   const isCollapsed = state === 'collapsed';
   const filteredMainItems = menuItems.filter(item => item.role === 'user' || item.role === 'master' && isMaster);
   
-  const companyLogo = companyLogoSettings?.find(setting => setting.setting_key === 'company_logo_url')?.setting_value;
-  const companyName = companyLogoSettings?.find(setting => setting.setting_key === 'company_name')?.setting_value;
+  const companyLogo = null; // Temporarily disabled
+  const companyName = null; // Temporarily disabled
   return <Sidebar className="border-r border-primary-foreground/20 bg-slate-900" collapsible="icon">
       <SidebarHeader className="p-2 sm:p-4 border-b border-primary-foreground/20 bg-slate-900">
         <div className="flex items-center justify-center">
