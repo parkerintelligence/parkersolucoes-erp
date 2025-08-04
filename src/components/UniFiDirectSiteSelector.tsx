@@ -85,7 +85,11 @@ const UniFiDirectSiteSelector: React.FC<UniFiDirectSiteSelectorProps> = ({
           </SelectContent>
         </Select>
 
-        {selectedSite}
+        {selectedSite && (
+          <div className="mt-4 p-3 bg-slate-800 rounded-lg">
+            <p className="text-sm text-slate-300">Site selecionado: {selectedSite.name}</p>
+          </div>
+        )}
       </CardContent>
     </Card>;
 };

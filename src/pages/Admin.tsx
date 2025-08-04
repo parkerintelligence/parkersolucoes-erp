@@ -19,6 +19,7 @@ import UniFiAdminConfig from "@/components/UniFiAdminConfig";
 import { AdminCompaniesPanel } from "@/components/AdminCompaniesPanel";
 import SystemSettingsPanel from "@/components/SystemSettingsPanel";
 import { BrandingSettingsPanel } from "@/components/BrandingSettingsPanel";
+import CacheManagement from "@/components/CacheManagement";
 import { 
   Settings, 
   Building, 
@@ -32,7 +33,8 @@ import {
   Server,
   Archive,
   Activity,
-  Wifi
+  Wifi,
+  Trash2
 } from "lucide-react";
 
 const Admin = () => {
@@ -137,6 +139,12 @@ const Admin = () => {
       label: "Visual",
       icon: <Palette className="h-5 w-5" />,
       component: <BrandingSettingsPanel />
+    },
+    {
+      id: "cache",
+      label: "Cache",
+      icon: <Trash2 className="h-5 w-5" />,
+      component: <CacheManagement />
     }
   ];
 
