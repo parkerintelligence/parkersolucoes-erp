@@ -286,7 +286,28 @@ function filterLast24Hours(jobs: BaculaJob[]): BaculaJob[] {
 }
 
 // Função para enriquecer dados dos jobs
-function enrichJobData(jobs: BaculaJob[]): BaculaJob[] {
+function enrichJobData(jobs: any): BaculaJob[] {
+  // Ensure jobs is an array
+  if (!jobs) {
+    console.log('⚠️ No jobs data provided to enrichJobData');
+    return [];
+  }
+  
+  if (!Array.isArray(jobs)) {
+    console.log('⚠️ Jobs data is not an array:', typeof jobs, jobs);
+    // If it's an object with jobs array inside, try to extract it
+    if (jobs.output && Array.isArray(jobs.output)) {
+      jobs = jobs.output;
+    } else if (jobs.jobs && Array.isArray(jobs.jobs)) {
+      jobs = jobs.jobs;
+    } else if (jobs.data && Array.isArray(jobs.data)) {
+      jobs = jobs.data;
+    } else {
+      console.log('❌ Cannot extract jobs array from:', jobs);
+      return [];
+    }
+  }
+  
   return jobs.map(job => {
     const startTime = job.starttime ? new Date(job.starttime) : null;
     const endTime = job.endtime ? new Date(job.endtime) : null;
