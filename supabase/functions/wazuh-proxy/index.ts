@@ -92,172 +92,143 @@ serve(async (req) => {
 
     console.log(`Attempting to connect to Wazuh API: ${cleanBaseUrl}${endpoint}`);
     
-    // First, try to authenticate and get a JWT token using official Wazuh API endpoint
+    // Step 1: Test basic connectivity first
+    console.log('Step 1: Testing basic connectivity...');
+    try {
+      const connectivityTest = await fetch(`${cleanBaseUrl}`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(10000),
+      });
+      console.log('Connectivity test result:', connectivityTest.status);
+    } catch (connectError) {
+      console.log('Basic connectivity failed, will try anyway:', connectError.message);
+    }
+
+    // Step 2: Get JWT token using proper Wazuh API authentication
+    console.log('Step 2: Authenticating with Wazuh API...');
     const authUrl = `${cleanBaseUrl}/security/user/authenticate`;
-    console.log('Step 1: Authenticating with Wazuh API to get JWT token');
     console.log('Auth URL:', authUrl);
     
     const basicAuth = btoa(`${username}:${password}`);
     
-    try {
-      const authResponse = await fetch(authUrl, {
-        method: 'POST', // Wazuh API uses POST for authentication
+    // Function to attempt authentication
+    const attemptAuth = async (url: string, isRetry = false) => {
+      console.log(`Attempting ${isRetry ? 'HTTP' : 'HTTPS'} authentication to:`, url);
+      
+      const authResponse = await fetch(url, {
+        method: 'POST',
         headers: {
           'Authorization': `Basic ${basicAuth}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        signal: AbortSignal.timeout(15000), // 15 second timeout
+        signal: AbortSignal.timeout(15000),
       });
 
+      console.log('Auth response status:', authResponse.status);
+      console.log('Auth response headers:', Object.fromEntries(authResponse.headers.entries()));
+
       if (!authResponse.ok) {
-        console.error('Authentication failed:', authResponse.status, authResponse.statusText);
-        
-        // Try HTTP if HTTPS fails
-        if (cleanBaseUrl.startsWith('https://')) {
-          console.log('HTTPS authentication failed, trying HTTP...');
-          const httpUrl = cleanBaseUrl.replace('https://', 'http://');
-          const httpAuthResponse = await fetch(`${httpUrl}/security/user/authenticate`, {
-            method: 'POST', // Wazuh API uses POST for authentication
-            headers: {
-              'Authorization': `Basic ${basicAuth}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            signal: AbortSignal.timeout(15000),
-          });
-          
-          if (httpAuthResponse.ok) {
-            cleanBaseUrl = httpUrl;
-            console.log('HTTP authentication successful, using HTTP for API calls');
-            // Use the HTTP response for auth data
-            const httpAuthData = await httpAuthResponse.json();
-            const httpJwtToken = httpAuthData.data?.token;
-            if (httpJwtToken) {
-              console.log('JWT token obtained from HTTP request');
-            }
-          } else {
-            throw new Error(`Authentication failed on both HTTPS and HTTP: ${authResponse.statusText}`);
-          }
-        } else {
-          throw new Error(`Authentication failed: ${authResponse.statusText}`);
-        }
+        const errorText = await authResponse.text();
+        console.error('Auth error response body:', errorText);
+        throw new Error(`Authentication failed: ${authResponse.status} ${authResponse.statusText} - ${errorText}`);
       }
 
-      // Get the JWT token from successful authentication
-      let jwtToken = null;
-      try {
-        const authData = await authResponse.json();
-        jwtToken = authData.data?.token;
-        console.log('JWT token obtained successfully');
-      } catch (e) {
-        console.log('Could not parse JWT from auth response, using Basic Auth');
-      }
+      const authData = await authResponse.json();
+      console.log('Auth response data:', JSON.stringify(authData, null, 2));
+      
+      return {
+        token: authData.data?.token || authData.token,
+        baseUrl: url.replace('/security/user/authenticate', '')
+      };
+    };
 
-      // Make the actual API request with JWT token (if available) or Basic Auth
-      const apiUrl = `${cleanBaseUrl}${endpoint}`;
-      const requestHeaders = jwtToken 
-        ? {
-            'Authorization': `Bearer ${jwtToken}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          }
-        : {
-            'Authorization': `Basic ${basicAuth}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          };
-
-      console.log(`Step 2: Making API request to: ${apiUrl}`);
-      console.log('Using authentication:', jwtToken ? 'JWT Bearer Token' : 'HTTP Basic Auth');
-
-      const fetchOptions = {
-        method: method || 'GET',
-        headers: requestHeaders,
-        signal: AbortSignal.timeout(30000), // 30 second timeout
+    // Function to make API request
+    const makeApiRequest = async (baseUrl: string, token: string | null) => {
+      const apiUrl = `${baseUrl}${endpoint}`;
+      console.log('Step 3: Making API request to:', apiUrl);
+      
+      const requestHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
       };
 
-      const apiResponse = await fetch(apiUrl, fetchOptions);
-
-      if (!apiResponse.ok) {
-        console.error('Wazuh API request failed:', apiResponse.status, apiResponse.statusText);
-        const errorText = await apiResponse.text();
-        console.error('Wazuh API error response:', errorText);
-        throw new Error(`Wazuh API request failed: ${apiResponse.status} ${apiResponse.statusText}`);
+      if (token) {
+        requestHeaders['Authorization'] = `Bearer ${token}`;
+        console.log('Using JWT Bearer authentication');
+      } else {
+        requestHeaders['Authorization'] = `Basic ${basicAuth}`;
+        console.log('Using Basic authentication (no JWT token available)');
       }
 
-      // Check if response is JSON
+      const apiResponse = await fetch(apiUrl, {
+        method: method || 'GET',
+        headers: requestHeaders,
+        signal: AbortSignal.timeout(30000),
+      });
+
+      console.log('API response status:', apiResponse.status);
+      console.log('API response headers:', Object.fromEntries(apiResponse.headers.entries()));
+
+      if (!apiResponse.ok) {
+        const errorText = await apiResponse.text();
+        console.error('API error response:', errorText);
+        throw new Error(`API request failed: ${apiResponse.status} ${apiResponse.statusText} - ${errorText}`);
+      }
+
       const contentType = apiResponse.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const responseText = await apiResponse.text();
-        console.error('Wazuh API returned non-JSON response:', responseText.substring(0, 200));
-        throw new Error('Wazuh API returned invalid response format');
+        console.error('Non-JSON response received:', responseText.substring(0, 200));
+        throw new Error('API returned non-JSON response');
       }
 
       const responseData = await apiResponse.json();
-      console.log('Wazuh API response successful, data keys:', Object.keys(responseData));
-      console.log('Response structure:', JSON.stringify(responseData, null, 2).substring(0, 500));
+      console.log('API response keys:', Object.keys(responseData));
+      console.log('API response sample:', JSON.stringify(responseData, null, 2).substring(0, 1000));
+      
+      return responseData;
+    };
 
+    try {
+      // Try HTTPS first
+      let authResult;
+      let finalBaseUrl = cleanBaseUrl;
+      
+      try {
+        authResult = await attemptAuth(authUrl);
+        finalBaseUrl = authResult.baseUrl;
+      } catch (httpsError) {
+        console.log('HTTPS authentication failed, trying HTTP fallback...');
+        
+        // Try HTTP as fallback
+        if (cleanBaseUrl.startsWith('https://')) {
+          const httpUrl = cleanBaseUrl.replace('https://', 'http://');
+          const httpAuthUrl = `${httpUrl}/security/user/authenticate`;
+          
+          try {
+            authResult = await attemptAuth(httpAuthUrl, true);
+            finalBaseUrl = authResult.baseUrl;
+            console.log('HTTP authentication successful, using HTTP for API calls');
+          } catch (httpError) {
+            console.error('Both HTTPS and HTTP authentication failed');
+            throw new Error(`Authentication failed on both protocols. HTTPS: ${httpsError.message}, HTTP: ${httpError.message}`);
+          }
+        } else {
+          throw httpsError;
+        }
+      }
+
+      // Make the actual API request
+      const responseData = await makeApiRequest(finalBaseUrl, authResult.token);
+      
       return new Response(JSON.stringify(responseData), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
 
-    } catch (authError) {
-      console.error('Authentication/API error:', authError);
-      
-      // Try HTTP fallback if HTTPS fails
-      if (cleanBaseUrl.startsWith('https://')) {
-        console.log('HTTPS failed, trying HTTP fallback...');
-        const httpUrl = cleanBaseUrl.replace('https://', 'http://');
-        
-        try {
-          // Try auth with HTTP
-          const httpAuthResponse = await fetch(`${httpUrl}/security/user/authenticate`, {
-            method: 'POST', // Wazuh API uses POST for authentication
-            headers: {
-              'Authorization': `Basic ${basicAuth}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            signal: AbortSignal.timeout(15000),
-          });
-          
-          let httpJwtToken = null;
-          if (httpAuthResponse.ok) {
-            try {
-              const httpAuthData = await httpAuthResponse.json();
-              httpJwtToken = httpAuthData.data?.token;
-              console.log('HTTP authentication successful');
-            } catch (e) {
-              console.log('HTTP auth successful but no JWT, using Basic Auth');
-            }
-          }
-          
-          // Make HTTP API request
-          const httpApiUrl = `${httpUrl}${endpoint}`;
-          const httpHeaders = httpJwtToken 
-            ? { 'Authorization': `Bearer ${httpJwtToken}`, 'Content-Type': 'application/json', 'Accept': 'application/json' }
-            : { 'Authorization': `Basic ${basicAuth}`, 'Content-Type': 'application/json', 'Accept': 'application/json' };
-          
-          const httpApiResponse = await fetch(httpApiUrl, {
-            method: method || 'GET',
-            headers: httpHeaders,
-            signal: AbortSignal.timeout(30000),
-          });
-          
-          if (httpApiResponse.ok) {
-            const httpResponseData = await httpApiResponse.json();
-            console.log('HTTP API request successful, data keys:', Object.keys(httpResponseData));
-            return new Response(JSON.stringify(httpResponseData), {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-        } catch (httpError) {
-          console.error('HTTP fallback also failed:', httpError);
-        }
-      }
-      
-      throw authError;
+    } catch (error) {
+      console.error('Complete request flow failed:', error);
+      throw error;
     }
 
   } catch (error) {
