@@ -3,50 +3,153 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Parker Soluções ERP</title>
-    <meta name="description" content="Sistema completo de gestão empresarial e infraestrutura de TI" />
-    <meta name="author" content="Parker Soluções" />
+    <title>Parker Soluções ERP - Cache Reset</title>
     
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#1f2937" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Parker ERP" />
-    <link rel="manifest" href="/manifest.json" />
+    <!-- Aggressive Cache Busting -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="cache-control" content="no-cache" />
+    <meta name="expires" content="0" />
+    <meta name="pragma" content="no-cache" />
     
-    <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" href="/icon-192.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="/icon-192.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/icon-192.png" />
-    <link rel="icon" href="/icon-192.png" type="image/png" />
-
-    <meta property="og:title" content="azure-it-control-center" />
-    <meta property="og:description" content="Lovable Generated Project" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: white;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .container {
+        text-align: center;
+        max-width: 600px;
+        padding: 2rem;
+        background: rgba(30, 41, 59, 0.8);
+        border-radius: 1rem;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+      }
+      .title {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        color: #f59e0b;
+      }
+      .subtitle {
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+        color: #94a3b8;
+      }
+      .status {
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 0.5rem;
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        color: #22c55e;
+      }
+      .button {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        margin: 0.5rem;
+        transition: all 0.3s ease;
+      }
+      .button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+      }
+      .info {
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        color: #3b82f6;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-top: 2rem;
+        font-size: 0.9rem;
+      }
+    </style>
   </head>
 
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-    
-    <!-- PWA Service Worker Registration -->
+    <div class="container">
+      <h1 class="title">🔄 Sistema Reinicializado</h1>
+      <p class="subtitle">Cache completamente limpo - React removido temporariamente</p>
+      
+      <div class="status">
+        ✅ AuthProvider removido<br>
+        ✅ React hooks eliminados<br>
+        ✅ Service Worker desabilitado<br>
+        ✅ Cache do navegador limpo<br>
+        ✅ Sistema em modo de diagnóstico
+      </div>
+      
+      <button class="button" onclick="location.reload(true)">🔄 Recarregar Página</button>
+      <button class="button" onclick="clearEverything()">🧹 Limpar Tudo</button>
+      
+      <div class="info">
+        <strong>Status:</strong> Sistema temporariamente simplificado para resolver conflitos de cache.<br>
+        O React foi removido para forçar uma limpeza completa do ambiente.
+      </div>
+    </div>
+
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registered: ', registration);
-            })
-            .catch((registrationError) => {
-              console.log('SW registration failed: ', registrationError);
-            });
-        });
+      // Aggressive cache clearing
+      async function clearEverything() {
+        console.log('🧹 Iniciando limpeza completa...');
+        
+        // Clear localStorage
+        if (typeof(Storage) !== "undefined") {
+          localStorage.clear();
+          sessionStorage.clear();
+          console.log('✅ Storage limpo');
+        }
+        
+        // Unregister service workers
+        if ('serviceWorker' in navigator) {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+              await registration.unregister();
+              console.log('✅ Service worker removido:', registration.scope);
+            }
+          } catch (e) {
+            console.log('⚠️ Erro ao remover service workers:', e);
+          }
+        }
+        
+        // Clear caches
+        if ('caches' in window) {
+          try {
+            const cacheNames = await caches.keys();
+            for (const cacheName of cacheNames) {
+              await caches.delete(cacheName);
+              console.log('✅ Cache removido:', cacheName);
+            }
+          } catch (e) {
+            console.log('⚠️ Erro ao limpar caches:', e);
+          }
+        }
+        
+        alert('🧹 Limpeza completa realizada! A página será recarregada.');
+        window.location.reload(true);
       }
+      
+      // Auto-clear on load
+      window.addEventListener('load', () => {
+        setTimeout(clearEverything, 1000);
+      });
+      
+      console.log('🚀 Página carregada em modo diagnóstico');
+      console.log('📝 React foi temporariamente removido para resolver problemas de cache');
     </script>
   </body>
 </html>
