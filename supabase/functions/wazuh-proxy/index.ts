@@ -113,54 +113,54 @@ serve(async (req) => {
     const basicAuth = btoa(`${username}:${password}`);
     const cacheKey = `${cleanBaseUrl}:${username}`;
     
+    // Function to attempt authentication and cache token
+    const attemptAuth = async (url: string, isRetry = false) => {
+      console.log(`Attempting ${isRetry ? 'HTTP' : 'HTTPS'} authentication to:`, url);
+      
+      const authResponse = await fetch(url, {
+        method: 'GET', // Changed to GET as per Wazuh API documentation
+        headers: {
+          'Authorization': `Basic ${basicAuth}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(15000),
+      });
+
+      console.log('Auth response status:', authResponse.status);
+      
+      if (!authResponse.ok) {
+        const errorText = await authResponse.text();
+        console.error('Auth error response body:', errorText);
+        throw new Error(`Authentication failed: ${authResponse.status} ${authResponse.statusText}`);
+      }
+
+      const authData = await authResponse.json();
+      console.log('Auth response received, token length:', authData.data?.token?.length || 0);
+      
+      const token = authData.data?.token;
+      if (!token) {
+        throw new Error('No JWT token received from authentication');
+      }
+      
+      // Cache the token for 15 minutes (Wazuh default expiry is usually longer)
+      tokenCache[cacheKey] = {
+        token: token,
+        expires: Date.now() + (15 * 60 * 1000)
+      };
+      
+      return {
+        token: token,
+        baseUrl: url.replace('/security/user/authenticate', '')
+      };
+    };
+    
     // Check if we have a valid cached token
     const cachedToken = tokenCache[cacheKey];
     if (cachedToken && cachedToken.expires > Date.now()) {
       console.log('Using cached JWT token');
     } else {
       console.log('Getting new JWT token...');
-      
-      // Function to attempt authentication and cache token
-      const attemptAuth = async (url: string, isRetry = false) => {
-        console.log(`Attempting ${isRetry ? 'HTTP' : 'HTTPS'} authentication to:`, url);
-        
-        const authResponse = await fetch(url, {
-          method: 'GET', // Changed to GET as per Wazuh API documentation
-          headers: {
-            'Authorization': `Basic ${basicAuth}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          signal: AbortSignal.timeout(15000),
-        });
-
-        console.log('Auth response status:', authResponse.status);
-        
-        if (!authResponse.ok) {
-          const errorText = await authResponse.text();
-          console.error('Auth error response body:', errorText);
-          throw new Error(`Authentication failed: ${authResponse.status} ${authResponse.statusText}`);
-        }
-
-        const authData = await authResponse.json();
-        console.log('Auth response received, token length:', authData.data?.token?.length || 0);
-        
-        const token = authData.data?.token;
-        if (!token) {
-          throw new Error('No JWT token received from authentication');
-        }
-        
-        // Cache the token for 15 minutes (Wazuh default expiry is usually longer)
-        tokenCache[cacheKey] = {
-          token: token,
-          expires: Date.now() + (15 * 60 * 1000)
-        };
-        
-        return {
-          token: token,
-          baseUrl: url.replace('/security/user/authenticate', '')
-        };
-      };
     }
 
     // Function to make API request with proper Wazuh endpoints
