@@ -1,7 +1,7 @@
 
 "use client"
 
-import * as React from 'react';
+import React from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import jsPDF from 'jspdf';
