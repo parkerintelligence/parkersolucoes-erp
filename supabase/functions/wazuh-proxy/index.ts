@@ -79,27 +79,29 @@ serve(async (req) => {
     // Clean up base URL - remove any trailing slashes and add port if needed
     let cleanBaseUrl = base_url.replace(/\/+$/, '');
     
-    // If it's just a domain/IP without port and doesn't have a port specified, add common Wazuh ports
-    if (!cleanBaseUrl.includes(':') && !cleanBaseUrl.includes('://')) {
-      cleanBaseUrl = `https://${cleanBaseUrl}:55000`;
-    } else if (cleanBaseUrl.startsWith('http://') || cleanBaseUrl.startsWith('https://')) {
-      // If protocol is specified but no port, add default Wazuh port
-      if (!cleanBaseUrl.match(/:(\d+)/)) {
+    // Add default Wazuh API port (55000) if not specified
+    if (!cleanBaseUrl.includes(':') || cleanBaseUrl.match(/^https?:\/\/[^:]+$/)) {
+      if (cleanBaseUrl.startsWith('http://')) {
         cleanBaseUrl = cleanBaseUrl + ':55000';
+      } else if (cleanBaseUrl.startsWith('https://')) {
+        cleanBaseUrl = cleanBaseUrl + ':55000';
+      } else {
+        cleanBaseUrl = `https://${cleanBaseUrl}:55000`;
       }
     }
 
     console.log(`Attempting to connect to Wazuh API: ${cleanBaseUrl}${endpoint}`);
     
-    // First, try to authenticate and get a JWT token
+    // First, try to authenticate and get a JWT token using official Wazuh API endpoint
     const authUrl = `${cleanBaseUrl}/security/user/authenticate`;
     console.log('Step 1: Authenticating with Wazuh API to get JWT token');
+    console.log('Auth URL:', authUrl);
     
     const basicAuth = btoa(`${username}:${password}`);
     
     try {
       const authResponse = await fetch(authUrl, {
-        method: 'GET',
+        method: 'POST', // Wazuh API uses POST for authentication
         headers: {
           'Authorization': `Basic ${basicAuth}`,
           'Content-Type': 'application/json',
@@ -116,7 +118,7 @@ serve(async (req) => {
           console.log('HTTPS authentication failed, trying HTTP...');
           const httpUrl = cleanBaseUrl.replace('https://', 'http://');
           const httpAuthResponse = await fetch(`${httpUrl}/security/user/authenticate`, {
-            method: 'GET',
+            method: 'POST', // Wazuh API uses POST for authentication
             headers: {
               'Authorization': `Basic ${basicAuth}`,
               'Content-Type': 'application/json',
@@ -128,6 +130,12 @@ serve(async (req) => {
           if (httpAuthResponse.ok) {
             cleanBaseUrl = httpUrl;
             console.log('HTTP authentication successful, using HTTP for API calls');
+            // Use the HTTP response for auth data
+            const httpAuthData = await httpAuthResponse.json();
+            const httpJwtToken = httpAuthData.data?.token;
+            if (httpJwtToken) {
+              console.log('JWT token obtained from HTTP request');
+            }
           } else {
             throw new Error(`Authentication failed on both HTTPS and HTTP: ${authResponse.statusText}`);
           }
@@ -205,7 +213,7 @@ serve(async (req) => {
         try {
           // Try auth with HTTP
           const httpAuthResponse = await fetch(`${httpUrl}/security/user/authenticate`, {
-            method: 'GET',
+            method: 'POST', // Wazuh API uses POST for authentication
             headers: {
               'Authorization': `Basic ${basicAuth}`,
               'Content-Type': 'application/json',
