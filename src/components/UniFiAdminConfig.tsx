@@ -36,12 +36,7 @@ const UniFiAdminConfig = () => {
 
   const [formData, setFormData] = useState({
     name: '',
-    base_url: '',
     api_token: '',
-    username: '',
-    password: '',
-    port: 8443,
-    use_ssl: true,
     is_active: true
   });
 
@@ -50,12 +45,7 @@ const UniFiAdminConfig = () => {
   const resetForm = () => {
     setFormData({
       name: '',
-      base_url: '',
       api_token: '',
-      username: '',
-      password: '',
-      port: 8443,
-      use_ssl: true,
       is_active: true
     });
     setIsCreating(false);
@@ -66,17 +56,24 @@ const UniFiAdminConfig = () => {
     e.preventDefault();
     
     try {
-      // For local controller, only include relevant fields
+      if (!formData.api_token.trim()) {
+        toast({
+          title: "Erro",
+          description: "API Token é obrigatório.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const integrationData = {
         type: 'unifi',
         name: formData.name,
-        base_url: formData.base_url,
-        // Only include api_token if it's provided (for Site Manager API)
-        ...(formData.api_token && { api_token: formData.api_token }),
-        username: formData.username,
-        password: formData.password,
-        port: formData.port,
-        use_ssl: formData.use_ssl,
+        base_url: '', // Required field, empty for Site Manager API
+        api_token: formData.api_token,
+        username: '', // Optional fields for compatibility
+        password: '',
+        port: 8443,
+        use_ssl: true,
         is_active: formData.is_active
       };
 
@@ -111,12 +108,7 @@ const UniFiAdminConfig = () => {
     setEditingIntegration(integration);
     setFormData({
       name: integration.name,
-      base_url: integration.base_url || '',
       api_token: integration.api_token || '',
-      username: integration.username || '',
-      password: integration.password || '',
-      port: integration.port || 8443,
-      use_ssl: integration.use_ssl ?? true,
       is_active: integration.is_active
     });
     setIsCreating(true);
@@ -143,13 +135,11 @@ const UniFiAdminConfig = () => {
   const testConnection = async (integration: any) => {
     setIsTesting(integration.id);
     try {
-      // Teste de conexão sem precisar verificar autenticação manualmente
-
-      // Teste via edge function usando controladora local
+      // Teste via Site Manager API
       const response = await supabase.functions.invoke('unifi-proxy', {
         body: {
           integrationId: integration.id,
-          endpoint: '/api/self/sites',
+          endpoint: '/ea/hosts',
           method: 'GET'
         }
       });
@@ -157,17 +147,17 @@ const UniFiAdminConfig = () => {
       const { data, error } = response;
       
       if (error) {
-        throw new Error(error.message || 'Falha na conexão');
+        throw new Error(error.message || 'Token inválido ou falha na conexão');
       }
 
       toast({
         title: "Conexão bem-sucedida",
-        description: "Conexão com a Controladora UniFi estabelecida.",
+        description: "Token válido! Conexão com Site Manager API estabelecida.",
       });
     } catch (error) {
       toast({
         title: "Erro na conexão",
-        description: "Não foi possível conectar com a Controladora UniFi. Verifique URL, credenciais e conectividade.",
+        description: "Token inválido ou falha na conexão. Verifique o token em unifi.ui.com.",
         variant: "destructive",
       });
     } finally {
@@ -184,8 +174,8 @@ const UniFiAdminConfig = () => {
             <div>
               <CardTitle className="text-white">Integração UniFi</CardTitle>
               <CardDescription className="text-slate-400">
-                Configure o acesso à sua Controladora UniFi local para gerenciamento direto e seguro.
-                Utilize suas credenciais de administrador para conectar à controladora local.
+                Configure o acesso via Site Manager API usando apenas seu token de API.
+                Acesse múltiplas controladoras na nuvem de forma simples e segura.
               </CardDescription>
             </div>
           </div>
@@ -217,7 +207,7 @@ const UniFiAdminConfig = () => {
                             <Server className="h-5 w-5 text-blue-400" />
                             <div>
                               <h3 className="text-white font-medium">{integration.name}</h3>
-                              <p className="text-slate-400 text-sm">{integration.base_url || 'Controladora Local'}</p>
+                              <p className="text-slate-400 text-sm">Site Manager API</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -263,114 +253,49 @@ const UniFiAdminConfig = () => {
 
             <TabsContent value="new">
               {isCreating && (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name" className="text-white">Nome da Integração</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="Ex: UniFi Principal"
-                        required
-                        className="bg-slate-700 border-slate-600 text-white"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="port" className="text-white">Porta</Label>
-                      <Input
-                        id="port"
-                        type="number"
-                        value={formData.port}
-                        onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) || 8443 })}
-                        placeholder="8443"
-                        className="bg-slate-700 border-slate-600 text-white"
-                      />
-                    </div>
-                  </div>
-
+                <form onSubmit={handleSubmit} className="space-y-6">
                   <div>
-                    <Label htmlFor="base_url" className="text-white">URL da Controladora</Label>
+                    <Label htmlFor="name" className="text-white">Nome da Integração</Label>
                     <Input
-                      id="base_url"
-                      value={formData.base_url}
-                      onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
-                      placeholder="https://192.168.1.1:8443 ou deixe vazio para Site Manager API"
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Ex: UniFi Principal"
+                      required
                       className="bg-slate-700 border-slate-600 text-white"
                     />
-                    <p className="text-xs text-slate-400 mt-1">
-                      Para controladora local: URL completa (ex: https://192.168.1.1:8443)<br/>
-                      Para Site Manager API: deixe vazio e use apenas API Token
-                    </p>
                   </div>
 
                   <div>
-                    <Label htmlFor="api_token" className="text-white">API Token (Site Manager)</Label>
+                    <Label htmlFor="api_token" className="text-white">API Token *</Label>
                     <Input
                       id="api_token"
                       type="password"
                       value={formData.api_token}
                       onChange={(e) => setFormData({ ...formData, api_token: e.target.value })}
-                      placeholder="Token da UniFi Site Manager API"
+                      placeholder="Cole aqui seu token da UniFi Site Manager API"
+                      required
                       className="bg-slate-700 border-slate-600 text-white"
                     />
-                    <p className="text-xs text-slate-400 mt-1">
-                      Token gerado em <a href="https://unifi.ui.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">unifi.ui.com</a> → API
-                    </p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="username" className="text-white">Usuário (Controladora Local)</Label>
-                      <Input
-                        id="username"
-                        value={formData.username}
-                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                        placeholder="admin"
-                        className="bg-slate-700 border-slate-600 text-white"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="password" className="text-white">Senha (Controladora Local)</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        placeholder="••••••••"
-                        className="bg-slate-700 border-slate-600 text-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label className="text-white">Usar SSL/HTTPS</Label>
-                      <p className="text-sm text-slate-400">Conexão segura (recomendado)</p>
-                    </div>
-                    <Switch
-                      checked={formData.use_ssl}
-                      onCheckedChange={(checked) => setFormData({ ...formData, use_ssl: checked })}
-                    />
-                  </div>
-
-                   <Alert className="border-blue-500 bg-blue-500/10 mb-4">
-                     <Wifi className="h-4 w-4" />
-                     <AlertDescription className="text-white">
-                       <strong>⚡ Site Manager API (Recomendado):</strong><br />
-                       • Use apenas <strong>API Token</strong> (deixe URL vazio)<br />
-                       • Gerencia múltiplas controladoras na nuvem<br />
-                       • Acesso via api.ui.com<br />
-                       <br />
-                       <strong>🏠 Controladora Local (Alternativa):</strong><br />
-                       • Use <strong>URL + usuário/senha</strong> (deixe API Token vazio)<br />
-                       • Acesso direto à controladora local<br />
-                       <br />
-                       <strong>🎯 Sistema prioriza Site Manager API se API Token estiver presente.</strong>
-                     </AlertDescription>
-                   </Alert>
+                  <Alert className="border-blue-500 bg-blue-500/10">
+                    <Wifi className="h-4 w-4" />
+                    <AlertDescription className="text-white">
+                      <strong>🚀 Como obter seu API Token:</strong><br />
+                      1. Acesse <a href="https://unifi.ui.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">unifi.ui.com</a><br />
+                      2. Faça login em sua conta UniFi<br />
+                      3. Navegue para <strong>Settings → API</strong><br />
+                      4. Crie um novo token com as permissões necessárias<br />
+                      5. Copie e cole o token acima<br />
+                      <br />
+                      <strong>✨ Benefícios do Site Manager API:</strong><br />
+                      • Acesso a todas suas controladoras na nuvem<br />
+                      • Segurança aprimorada com tokens<br />
+                      • Não requer configuração de rede local<br />
+                      • Suporte oficial da Ubiquiti
+                    </AlertDescription>
+                  </Alert>
 
                   <div className="flex items-center justify-between">
                     <div>
@@ -386,7 +311,7 @@ const UniFiAdminConfig = () => {
                   <div className="flex gap-3">
                     <Button 
                       type="submit"
-                      disabled={createIntegration.isPending || updateIntegration.isPending}
+                      disabled={createIntegration.isPending || updateIntegration.isPending || !formData.api_token.trim()}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       {editingIntegration ? 'Atualizar' : 'Criar'} Integração
