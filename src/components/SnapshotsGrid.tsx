@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useHostingerIntegrations, useHostingerVPS } from '@/hooks/useHostingerAPI';
-import { useHostingerSnapshots } from '@/hooks/useHostingerSnapshots';
+// import { useHostingerSnapshots } from '@/hooks/useHostingerSnapshots';
 import { Camera, Calendar, HardDrive, Search, Filter, RefreshCw, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -24,11 +24,10 @@ const SnapshotsGrid = () => {
     data: vpsList 
   } = useHostingerVPS(selectedIntegration);
   
-  const { 
-    data: snapshots, 
-    isLoading: snapshotsLoading,
-    refetch: refetchSnapshots 
-  } = useHostingerSnapshots(selectedIntegration);
+  // Temporarily disable snapshots functionality
+  const snapshots = [];
+  const snapshotsLoading = false;
+  const refetchSnapshots = () => {};
 
   // Auto-select first integration
   React.useEffect(() => {
