@@ -1,7 +1,4 @@
 import React from 'react';
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
-import { TopHeader } from "@/components/TopHeader";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,14 +6,15 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <TopHeader />
-        <main className="flex-1 space-y-4 p-4 md:p-6 pt-6">
-          {children}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="min-h-screen bg-background">
+      <header className="border-b bg-card">
+        <div className="flex h-16 items-center px-4">
+          <h1 className="text-xl font-semibold">Sistema de Gestão</h1>
+        </div>
+      </header>
+      <main className="container mx-auto py-6">
+        {children}
+      </main>
+    </div>
   );
 };
