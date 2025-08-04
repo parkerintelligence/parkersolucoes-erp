@@ -49,7 +49,14 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
                   <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-2">
                       <Server className="h-4 w-4 text-blue-400" />
-                      <span>{site.description || site.name}</span>
+                      <div className="flex flex-col">
+                        <span>{site.description || site.name}</span>
+                        {(site as any).controllerName && (
+                          <span className="text-xs text-gray-400">
+                            {(site as any).controllerName}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {(site.newAlarmCount || 0) > 0 && (
                       <Badge variant="destructive" className="ml-2">

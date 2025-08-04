@@ -238,39 +238,52 @@ export const useUniFiAPI = () => {
     });
   };
 
-  // Sites - fetching sites for a specific host (priorizar Site Manager API)
+  // Sites - buscar todos os sites disponíveis via Site Manager API
   const useUniFiSites = (integrationId: string, hostId?: string) => {
     return useQuery({
-      queryKey: ['unifi-sites', integrationId, hostId],
+      queryKey: ['unifi-sites', integrationId],
       queryFn: async () => {
-        if (!hostId) return { data: [] };
+        if (!integrationId) return { data: [] };
         
-        // First try to get cached sites from hosts data
-        const hostData = queryClient.getQueryData(['unifi-hosts', integrationId]) as UniFiHost[];
-        const host = hostData?.find(h => h.id === hostId);
-        
-        if (host?.sites && host.sites.length > 0) {
-          console.log('✅ Usando sites em cache do host:', host.sites);
-          return { data: host.sites };
-        }
-
-        // Se é um host do Site Manager API, usar endpoint específico
-        if (host?.apiType === 'site-manager' || hostId !== 'local-controller') {
-          try {
-            console.log(`Tentando Site Manager API sites para host ${hostId}...`);
-            const siteManagerResponse = await makeUniFiRequest(`/ea/hosts/${hostId}/sites`, 'GET', integrationId);
+        try {
+          // Primeiro, tentar buscar hosts para obter todos os sites
+          console.log('🔍 Buscando hosts e sites via Site Manager API...');
+          const hostsResponse = await makeUniFiRequest('/ea/hosts', 'GET', integrationId);
+          
+          if (hostsResponse?.data && Array.isArray(hostsResponse.data) && hostsResponse.data.length > 0) {
+            console.log('✅ Hosts encontrados:', hostsResponse.data.length);
             
-            if (siteManagerResponse?.data && Array.isArray(siteManagerResponse.data) && siteManagerResponse.data.length > 0) {
-              console.log('✅ Usando Site Manager API sites');
-              return siteManagerResponse;
+            // Para cada host, buscar seus sites
+            const allSites = [];
+            for (const host of hostsResponse.data) {
+              try {
+                console.log(`🔍 Buscando sites para host ${host.id}...`);
+                const sitesResponse = await makeUniFiRequest(`/ea/hosts/${host.id}/sites`, 'GET', integrationId);
+                
+                if (sitesResponse?.data && Array.isArray(sitesResponse.data)) {
+                  // Adicionar informação do controlador aos sites
+                  const sitesWithController = sitesResponse.data.map(site => ({
+                    ...site,
+                    controllerName: host.reportedState?.name || host.reportedState?.hostname || 'Controladora UniFi',
+                    controllerId: host.id
+                  }));
+                  allSites.push(...sitesWithController);
+                  console.log(`✅ ${sitesResponse.data.length} sites encontrados no host ${host.id}`);
+                }
+              } catch (error) {
+                console.log(`❌ Erro ao buscar sites do host ${host.id}:`, error.message);
+              }
             }
-          } catch (error) {
-            console.log('❌ Site Manager API sites falhou:', error.message);
+            
+            console.log('✅ Total de sites encontrados:', allSites.length);
+            return { data: allSites };
           }
+        } catch (error) {
+          console.log('❌ Site Manager API falhou, tentando controladora local...', error.message);
         }
 
         // Fallback to local controller endpoint
-        console.log('Tentando controladora local sites...');
+        console.log('🔍 Tentando controladora local sites...');
         try {
           const localResponse = await makeUniFiRequest('/api/self/sites', 'GET', integrationId);
           console.log('✅ Usando controladora local sites');
@@ -280,7 +293,7 @@ export const useUniFiAPI = () => {
           return { data: [] };
         }
       },
-      enabled: !!integrationId && !!hostId,
+      enabled: !!integrationId,
       staleTime: 60000, // 1 minute
       retry: 2,
     });
