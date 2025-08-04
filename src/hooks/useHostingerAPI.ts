@@ -433,5 +433,5 @@ export {
   useHostingerVPSDetails,
   useHostingerVPSMetrics,
   useHostingerActions,
-  useHostingerSnapshots,
+  useHostingerSnapshots, // Export do hook de snapshots
 };
