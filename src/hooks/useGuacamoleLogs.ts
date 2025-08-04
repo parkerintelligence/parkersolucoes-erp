@@ -1,5 +1,5 @@
 
-import * as React from 'react';
+import React from 'react';
 import { GuacamoleLogEntry } from '@/components/guacamole/GuacamoleLogs';
 
 export const useGuacamoleLogs = () => {

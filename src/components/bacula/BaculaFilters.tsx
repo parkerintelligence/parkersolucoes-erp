@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 const { useState } = React;
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
