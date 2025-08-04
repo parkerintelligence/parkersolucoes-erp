@@ -13,15 +13,18 @@ import {
   AlertCircle, Key, Globe, Users 
 } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
-import { toast } from '@/hooks/use-toast';
+import { useWazuhAPI } from '@/hooks/useWazuhAPI';
+import { useToast } from '@/hooks/use-toast';
 
 const WazuhAdminConfig = () => {
-  const { data: integrations = [], refetch } = useIntegrations();
-  const wazuhIntegration = integrations.find(int => int.type === 'wazuh');
-
+  const { toast } = useToast();
+  const { testWazuhConnection } = useWazuhAPI();
+  const { data: integrations } = useIntegrations();
   const createIntegration = useCreateIntegration();
   const updateIntegration = useUpdateIntegration();
   const deleteIntegration = useDeleteIntegration();
+  
+  const wazuhIntegration = integrations?.find(int => int.type === 'wazuh');
 
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
@@ -109,7 +112,7 @@ const WazuhAdminConfig = () => {
       });
 
       console.log('🔄 Fazendo refetch dos dados...');
-      refetch();
+      // Data will be automatically refetched by react-query
     } catch (error) {
       console.error('💥 Erro ao salvar configuração:', error);
       console.error('💥 Detalhes do erro:', error.message);
@@ -126,10 +129,10 @@ const WazuhAdminConfig = () => {
   };
 
   const handleTestConnection = async () => {
-    if (!formData.base_url || !formData.username || !formData.password) {
+    if (!wazuhIntegration) {
       toast({
-        title: "Dados incompletos",
-        description: "Preencha todos os campos obrigatórios antes de testar.",
+        title: "Configuração necessária",
+        description: "Salve a configuração antes de testar a conexão",
         variant: "destructive",
       });
       return;
@@ -137,35 +140,18 @@ const WazuhAdminConfig = () => {
 
     setIsTesting(true);
     setTestResult(null);
-
+    
     try {
-      // Teste básico de conectividade com a API do Wazuh
-      const testUrl = `${formData.base_url.replace(/\/$/, '')}/`;
-      const response = await fetch(testUrl, { 
-        method: 'GET',
-        mode: 'no-cors' // Para evitar problemas de CORS no teste
-      });
-
+      await testWazuhConnection.mutateAsync(wazuhIntegration.id);
       setTestResult({
         success: true,
-        message: "Conexão com Wazuh estabelecida com sucesso!"
-      });
-
-      toast({
-        title: "Teste bem-sucedido!",
-        description: "A conexão com o Wazuh foi testada com sucesso.",
+        message: "Conexão com Wazuh estabelecida com sucesso! Todos os endpoints estão funcionando."
       });
     } catch (error) {
       console.error('Erro no teste de conexão:', error);
       setTestResult({
         success: false,
-        message: "Falha na conexão. Verifique URL e credenciais."
-      });
-
-      toast({
-        title: "Teste falhou",
-        description: "Não foi possível conectar com o Wazuh. Verifique as configurações.",
-        variant: "destructive",
+        message: "Falha na conexão. Verifique URL, credenciais e conectividade de rede."
       });
     } finally {
       setIsTesting(false);
@@ -186,7 +172,10 @@ const WazuhAdminConfig = () => {
           api_token: '',
           is_active: true,
         });
-        refetch();
+        toast({
+          title: "Integração excluída",
+          description: "A integração Wazuh foi removida com sucesso.",
+        });
       } catch (error) {
         console.error('Erro ao excluir integração:', error);
       }
@@ -329,13 +318,14 @@ const WazuhAdminConfig = () => {
             <TabsContent value="settings" className="space-y-4">
               <Alert className="border-blue-500 bg-blue-500/10">
                 <Shield className="h-4 w-4" />
-                <AlertDescription className="text-white">
-                  <strong>Sobre a API do Wazuh:</strong><br />
-                  • Porta padrão: 55000<br />
-                  • Autenticação via usuário/senha<br />
-                  • Acesso HTTPS recomendado<br />
-                  • Suporte para múltiplos clusters
-                </AlertDescription>
+                 <AlertDescription className="text-white">
+                   <strong>Sobre a API do Wazuh:</strong><br />
+                   • Porta padrão: 55000<br />
+                   • Autenticação JWT via Basic Auth<br />
+                   • Endpoints oficiais da API REST<br />
+                   • Acesso HTTPS recomendado<br />
+                   • Cache de token para performance
+                 </AlertDescription>
               </Alert>
 
               <Card className="bg-slate-700 border-slate-600">

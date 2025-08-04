@@ -29,8 +29,9 @@ const Security = () => {
     useWazuhAgents, 
     useWazuhAlerts, 
     useWazuhStats,
-    useWazuhCompliance,
-    useWazuhVulnerabilities,
+    useWazuhManagerInfo,
+    useWazuhRules,
+    testWazuhConnection,
     refreshData 
   } = useWazuhAPI();
 
@@ -38,10 +39,10 @@ const Security = () => {
   const { data: agents, isLoading: agentsLoading, error: agentsError } = useWazuhAgents(wazuhIntegration?.id || '');
   const { data: alerts, isLoading: alertsLoading, error: alertsError } = useWazuhAlerts(wazuhIntegration?.id || '');
   const { data: stats, isLoading: statsLoading, error: statsError } = useWazuhStats(wazuhIntegration?.id || '');
-  const { data: compliance, isLoading: complianceLoading, error: complianceError } = useWazuhCompliance(wazuhIntegration?.id || '');
-  const { data: vulnerabilities, isLoading: vulnerabilitiesLoading, error: vulnerabilitiesError } = useWazuhVulnerabilities(wazuhIntegration?.id || '');
+  const { data: managerInfo, isLoading: managerInfoLoading, error: managerInfoError } = useWazuhManagerInfo(wazuhIntegration?.id || '');
+  const { data: rules, isLoading: rulesLoading, error: rulesError } = useWazuhRules(wazuhIntegration?.id || '');
 
-  const isLoadingData = agentsLoading || alertsLoading || statsLoading || complianceLoading || vulnerabilitiesLoading;
+  const isLoadingData = agentsLoading || alertsLoading || statsLoading || managerInfoLoading || rulesLoading;
 
   // Use real data if available, otherwise use mock data
   const hasRealData = React.useMemo(() => {
@@ -82,18 +83,12 @@ const Security = () => {
       low: stats.low_alerts || 0,
       total: stats.total_alerts_today || 0
     },
-    compliance: compliance?.data || {
-      pci_dss: 87,
-      gdpr: 92,
-      hipaa: 78,
-      nist: 85
+    managerInfo: managerInfo?.data || {
+      name: "Wazuh Manager",
+      version: "4.0.0",
+      hostname: "wazuh-manager"
     },
-    vulnerabilities: vulnerabilities?.data || {
-      critical: 5,
-      high: 23,
-      medium: 67,
-      low: 134
-    },
+    rulesCount: rules?.data?.total_affected_items || 0,
     agentsList: agents?.data?.affected_items || [],
     alertsList: alerts?.data?.affected_items || []
   } : {
@@ -110,18 +105,12 @@ const Security = () => {
       low: 89,
       total: 285
     },
-    compliance: {
-      pci_dss: 87,
-      gdpr: 92,
-      hipaa: 78,
-      nist: 85
+    managerInfo: {
+      name: "Wazuh Manager (Demo)",
+      version: "4.0.0",
+      hostname: "demo-wazuh-manager"
     },
-    vulnerabilities: {
-      critical: 5,
-      high: 23,
-      medium: 67,
-      low: 134
-    },
+    rulesCount: 1850,
     agentsList: [
       { id: '001', name: 'web-server-01', ip: '192.168.1.10', os: { name: 'Ubuntu 20.04' }, status: 'active' },
       { id: '002', name: 'db-server-01', ip: '192.168.1.20', os: { name: 'CentOS 8' }, status: 'active' },
@@ -221,40 +210,37 @@ const Security = () => {
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-sm">Conformidade</CardTitle>
-                <CheckCircle className="h-4 w-4 text-green-400" />
+                <CardTitle className="text-white text-sm">Manager Status</CardTitle>
+                <Database className="h-4 w-4 text-green-400" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-400">
-                {Math.round((displayData.compliance.pci_dss + displayData.compliance.gdpr + displayData.compliance.hipaa + displayData.compliance.nist) / 4)}%
-              </div>
-              <p className="text-xs text-slate-400">média geral</p>
+              <div className="text-xl font-bold text-green-400">{displayData.managerInfo.name}</div>
+              <p className="text-xs text-slate-400">v{displayData.managerInfo.version}</p>
             </CardContent>
           </Card>
 
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-sm">Vulnerabilidades</CardTitle>
-                <Bug className="h-4 w-4 text-orange-400" />
+                <CardTitle className="text-white text-sm">Regras Ativas</CardTitle>
+                <FileText className="h-4 w-4 text-purple-400" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-400">{displayData.vulnerabilities.critical + displayData.vulnerabilities.high}</div>
-              <p className="text-xs text-slate-400">críticas e altas</p>
+              <div className="text-2xl font-bold text-purple-400">{displayData.rulesCount}</div>
+              <p className="text-xs text-slate-400">regras de detecção</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Main Content */}
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-4 bg-slate-800">
             <TabsTrigger value="dashboard" className="text-white">Dashboard</TabsTrigger>
             <TabsTrigger value="agents" className="text-white">Agentes</TabsTrigger>
             <TabsTrigger value="alerts" className="text-white">Alertas</TabsTrigger>
-            <TabsTrigger value="compliance" className="text-white">Conformidade</TabsTrigger>
-            <TabsTrigger value="vulnerabilities" className="text-white">Vulnerabilidades</TabsTrigger>
+            <TabsTrigger value="rules" className="text-white">Regras</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4">
@@ -379,75 +365,6 @@ const Security = () => {
                       </Badge>
                     </div>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="compliance" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {Object.entries(displayData.compliance).map(([standard, score]) => {
-                const scoreValue = typeof score === 'number' ? score : 0;
-                return (
-                  <Card key={standard} className="bg-slate-800 border-slate-700">
-                    <CardHeader>
-                      <CardTitle className="text-white">
-                        {standard.toUpperCase().replace('_', ' ')}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <span className="text-2xl font-bold text-white">{scoreValue}%</span>
-                        <div className={`p-2 rounded-full ${
-                          scoreValue >= 90 ? 'bg-green-500/20 text-green-400' :
-                          scoreValue >= 70 ? 'bg-yellow-500/20 text-yellow-400' :
-                          'bg-red-500/20 text-red-400'
-                        }`}>
-                          <Lock className="h-4 w-4" />
-                        </div>
-                      </div>
-                      <div className="w-full bg-slate-600 rounded-full h-2 mt-3">
-                        <div 
-                          className={`h-2 rounded-full ${
-                            scoreValue >= 90 ? 'bg-green-500' :
-                            scoreValue >= 70 ? 'bg-yellow-500' : 'bg-red-500'
-                          }`}
-                          style={{ width: `${scoreValue}%` }}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="vulnerabilities" className="space-y-4">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">Análise de Vulnerabilidades</CardTitle>
-                <CardDescription className="text-slate-400">
-                  Vulnerabilidades detectadas nos sistemas monitorados
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-red-400">{displayData.vulnerabilities.critical}</div>
-                    <p className="text-sm text-slate-400">Críticas</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-400">{displayData.vulnerabilities.high}</div>
-                    <p className="text-sm text-slate-400">Altas</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-yellow-400">{displayData.vulnerabilities.medium}</div>
-                    <p className="text-sm text-slate-400">Médias</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-slate-400">{displayData.vulnerabilities.low}</div>
-                    <p className="text-sm text-slate-400">Baixas</p>
-                  </div>
                 </div>
               </CardContent>
             </Card>
