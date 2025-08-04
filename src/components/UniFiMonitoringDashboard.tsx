@@ -18,7 +18,7 @@ import {
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { UniFiHostSelector } from '@/components/UniFiHostSelector';
-import { UniFiSiteSelector } from '@/components/UniFiSiteSelector';
+import { UniFiSiteCombobox } from '@/components/UniFiSiteCombobox';
 import { UniFiDeviceManager } from '@/components/UniFiDeviceManager';
 import { UniFiClientManager } from '@/components/UniFiClientManager';
 import { useToast } from '@/hooks/use-toast';
@@ -211,11 +211,17 @@ const UniFiMonitoringDashboard = () => {
           loading={hostsLoading}
         />
         
-        <UniFiSiteSelector
+        <UniFiSiteCombobox
           sites={sites?.data || []}
           selectedSiteId={selectedSiteId}
           onSiteChange={setSelectedSiteId}
           loading={sitesLoading}
+          stats={stats ? {
+            total_devices: stats.total_devices || 0,
+            online_devices: stats.online_devices || 0,
+            total_clients: stats.total_clients || 0,
+            wireless_clients: stats.wireless_clients || 0,
+          } : undefined}
         />
       </div>
 
