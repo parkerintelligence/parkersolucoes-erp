@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, ShieldCheck, Wifi } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar } from '@/components/ui/sidebar';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 const menuItems = [{
@@ -64,9 +64,24 @@ const menuItems = [{
   icon: Settings,
   role: 'user'
 }, {
+  title: 'Zabbix',
+  url: '/zabbix',
+  icon: Activity,
+  role: 'user'
+}, {
   title: 'Bacula',
   url: '/bacula',
   icon: Database,
+  role: 'user'
+}, {
+  title: 'Wazuh',
+  url: '/security',
+  icon: ShieldCheck,
+  role: 'user'
+}, {
+  title: 'UniFi',
+  url: '/unifi',
+  icon: Wifi,
   role: 'user'
 }, {
   title: 'VPS',

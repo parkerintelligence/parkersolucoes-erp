@@ -8,12 +8,14 @@ import { ChatwootAdminConfig } from "@/components/ChatwootAdminConfig";
 import { EvolutionAPIAdminConfig } from "@/components/EvolutionAPIAdminConfig";
 import { WasabiAdminConfig } from "@/components/WasabiAdminConfig";
 import { GrafanaAdminConfig } from "@/components/GrafanaAdminConfig";
+import ZabbixAdminConfig from "@/components/ZabbixAdminConfig";
+import WazuhAdminConfig from "@/components/WazuhAdminConfig";
 import { FtpAdminConfig } from "@/components/FtpAdminConfig";
 import { GLPIConfig } from "@/components/GLPIConfig";
 import GuacamoleAdminConfig from "@/components/GuacamoleAdminConfig";
 import { BaculaAdminConfig } from "@/components/BaculaAdminConfig";
 import { HostingerAdminConfig } from "@/components/HostingerAdminConfig";
-
+import UniFiAdminConfig from "@/components/UniFiAdminConfig";
 import { AdminCompaniesPanel } from "@/components/AdminCompaniesPanel";
 import SystemSettingsPanel from "@/components/SystemSettingsPanel";
 import { BrandingSettingsPanel } from "@/components/BrandingSettingsPanel";
@@ -29,7 +31,8 @@ import {
   Database,
   Server,
   Archive,
-  Activity
+  Activity,
+  Wifi
 } from "lucide-react";
 
 const Admin = () => {
@@ -59,6 +62,18 @@ const Admin = () => {
       label: "Grafana",
       icon: <BarChart3 className="h-5 w-5" />,
       component: <GrafanaAdminConfig />
+    },
+    {
+      id: "zabbix",
+      label: "Zabbix",
+      icon: <Shield className="h-5 w-5" />,
+      component: <ZabbixAdminConfig />
+    },
+    {
+      id: "wazuh",
+      label: "Wazuh",
+      icon: <Shield className="h-5 w-5 text-orange-500" />,
+      component: <WazuhAdminConfig />
     },
     {
       id: "ftp",
@@ -95,6 +110,12 @@ const Admin = () => {
       label: "BomControle",
       icon: <Activity className="h-5 w-5" />,
       component: <BomControleAdminConfig />
+    },
+    {
+      id: "unifi",
+      label: "UniFi",
+      icon: <Wifi className="h-5 w-5 text-blue-400" />,
+      component: <UniFiAdminConfig />
     }
   ];
 

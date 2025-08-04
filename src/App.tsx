@@ -17,7 +17,7 @@ import WhatsAppTemplates from '@/pages/WhatsAppTemplates';
 import Wasabi from '@/pages/Wasabi';
 import Schedule from '@/pages/Schedule';
 import Automation from '@/pages/Automation';
-
+import Zabbix from '@/pages/Zabbix';
 import Services from '@/pages/Services';
 import Budgets from '@/pages/Budgets';
 import Contracts from '@/pages/Contracts';
@@ -27,6 +27,8 @@ import Bacula from '@/pages/Bacula';
 import ReportsDashboard from '@/pages/ReportsDashboard';
 import ActionPlan from '@/pages/ActionPlan';
 import Alertas from '@/pages/Alertas';
+import Security from '@/pages/Security';
+import UniFi from '@/pages/UniFi';
 import { Layout } from '@/components/Layout';
 
 // Create a single QueryClient instance
@@ -154,6 +156,14 @@ function App() {
                 }
               />
               <Route
+                path="/zabbix"
+                element={
+                  <Layout>
+                    <Zabbix />
+                  </Layout>
+                }
+              />
+              <Route
                 path="/services"
                 element={
                   <Layout>
@@ -214,6 +224,22 @@ function App() {
                 element={
                   <Layout>
                     <ActionPlan />
+                  </Layout>
+                } 
+              />
+              <Route 
+                path="/security" 
+                element={
+                  <Layout>
+                    <Security />
+                  </Layout>
+                } 
+              />
+              <Route 
+                path="/unifi" 
+                element={
+                  <Layout>
+                    <UniFi />
                   </Layout>
                 } 
               />

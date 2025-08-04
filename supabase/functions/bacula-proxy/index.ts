@@ -353,27 +353,6 @@ serve(async (req) => {
         '/api/v2/info',
         '/api/v1/info'
       ],
-      'director': [
-        '/api/v2/status/director',
-        '/api/v1/status/director', 
-        '/api/v2/director/status',
-        '/api/v1/director/status',
-        '/api/director',
-        '/director',
-        '/status/director',
-        '/api/v2/status',
-        '/api/v1/status'
-      ],
-      'jobs/running': [
-        '/api/v2/jobs?jobstatus=R',
-        '/api/v1/jobs?jobstatus=R',
-        '/api/v2/jobs/running',
-        '/api/v1/jobs/running',
-        '/api/jobs/running',
-        '/jobs/running',
-        '/api/v2/jobs?limit=100&jobstatus=R',
-        '/api/v1/jobs?limit=100&jobstatus=R'
-      ],
       'jobs': [
         '/api/v2/jobs?limit=1000&order_by=starttime&order_direction=desc', 
         '/api/v1/jobs?limit=1000', 
@@ -656,59 +635,25 @@ serve(async (req) => {
           // If not JSON, try to get as text
           const textData = await response.text()
           console.log('❌ Resposta não-JSON:', textData.substring(0, 200))
-          console.log(`📝 Content-Type: ${contentType}`)
-          console.log(`📊 Headers de resposta:`, Object.fromEntries(response.headers.entries()))
           
-          // Check if it's HTML (login page or error page)
-          if (textData.includes('<html>') || textData.includes('<!DOCTYPE') || contentType?.includes('text/html')) {
-            console.error('🚨 Servidor retornou HTML - possível problema de autenticação')
-            console.error('📄 Conteúdo HTML recebido:', textData.substring(0, 300))
-            
-            // If response status is 200 but HTML, it's likely a login redirect
-            if (response.status === 200) {
-              return new Response(JSON.stringify({ 
-                error: 'Authentication failed - received HTML login page',
-                details: 'O servidor retornou uma página HTML de login ao invés de dados JSON. Verifique as credenciais de acesso.',
-                endpoint: apiEndpoint,
-                url: fullUrl,
-                authStatus: 'invalid_credentials'
-              }), {
-                ...corsOptions,
-                status: 401
-              })
-            }
-            
+          // Check if it's HTML (login page)
+          if (textData.includes('<html>') || textData.includes('<!DOCTYPE')) {
             return new Response(JSON.stringify({ 
-              error: 'Server returned HTML instead of JSON',
-              details: `O servidor retornou HTML (Status: ${response.status}). Verifique se o endpoint está correto e se o serviço está funcionando.`,
+              error: 'Authentication required - received login page',
+              details: 'O servidor retornou uma página de login. Verifique suas credenciais.',
               endpoint: apiEndpoint,
-              url: fullUrl,
-              responseStatus: response.status
+              url: fullUrl
             }), {
               ...corsOptions,
-              status: 502
+              status: 401
             })
           }
           
-          // Check if empty response
-          if (!textData || textData.trim().length === 0) {
-            console.error('📭 Resposta vazia recebida')
-            lastError = {
-              error: 'Empty response',
-              details: `Resposta vazia do servidor (Content-Type: ${contentType})`,
-              endpoint: apiEndpoint,
-              responseStatus: response.status
-            }
-            continue;
-          }
-          
-          // Try to handle other text responses
           lastError = {
             error: 'Non-JSON response',
-            details: `Content-Type: ${contentType}, Status: ${response.status}`,
+            details: `Content-Type: ${contentType}`,
             endpoint: apiEndpoint,
-            rawData: textData.substring(0, 200),
-            responseStatus: response.status
+            rawData: textData.substring(0, 200)
           }
           continue;
         }

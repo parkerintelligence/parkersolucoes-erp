@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Settings, Plus, Edit, Trash2, Save, Clock, HardDrive, 
-  MessageCircle, ExternalLink, Database 
+  MessageCircle, ExternalLink, Database, Shield, Wifi 
 } from 'lucide-react';
 import { useSystemSettings, useUpsertSystemSetting, useDeleteSystemSetting } from '@/hooks/useSystemSettings';
 import { toast } from '@/hooks/use-toast';
@@ -44,6 +44,8 @@ const SystemSettingsPanel = () => {
     whatsapp: { name: 'WhatsApp', icon: MessageCircle, color: 'green' },
     glpi: { name: 'GLPI', icon: ExternalLink, color: 'purple' },
     database: { name: 'Database', icon: Database, color: 'orange' },
+    security: { name: 'Segurança', icon: Shield, color: 'red' },
+    unifi: { name: 'UniFi', icon: Wifi, color: 'blue' },
     general: { name: 'Geral', icon: Settings, color: 'gray' }
   };
 
