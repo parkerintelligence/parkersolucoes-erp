@@ -1,61 +1,86 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.2";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE'
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 interface ScheduledReportRequest {
   report_id: string;
 }
 
-serve(async (req: Request): Promise<Response> => {
-  console.log(`🚀 [SEND] Iniciando função send-scheduled-report`);
-  console.log(`🚀 [SEND] Método da requisição: ${req.method}`);
-  console.log(`🚀 [SEND] Headers da requisição:`, JSON.stringify(Object.fromEntries(req.headers.entries()), null, 2));
-  
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
+
+const handler = async (req: Request): Promise<Response> => {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const utcNow = new Date();
-  const brasiliaTime = new Date(utcNow.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
-  
-  console.log(`🕐 [SEND] Horário UTC: ${utcNow.toISOString()}`);
-  console.log(`🕐 [SEND] Horário Brasília: ${brasiliaTime.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`);
+  const startTime = Date.now();
+  let reportLog = null;
+
+  console.log('🚀 [SEND] Iniciando função send-scheduled-report');
+  console.log('🚀 [SEND] Método da requisição:', req.method);
+  console.log('🚀 [SEND] Headers da requisição:', Object.fromEntries(req.headers.entries()));
 
   try {
-    const body: ScheduledReportRequest = await req.json();
-    console.log(`📝 [SEND] Corpo da requisição recebido:`, JSON.stringify(body, null, 2));
+    console.log('🚀 [SEND] Iniciando função send-scheduled-report');
     
-    const { report_id } = body;
+    let requestBody;
+    try {
+      const bodyText = await req.text();
+      console.log('📝 [SEND] Corpo da requisição recebido:', bodyText);
+      
+      if (!bodyText.trim()) {
+        throw new Error('Corpo da requisição está vazio');
+      }
+      
+      requestBody = JSON.parse(bodyText);
+    } catch (parseError: any) {
+      console.error('❌ [SEND] Erro ao parsear JSON:', parseError);
+      throw new Error(`Erro ao parsear JSON: ${parseError.message}`);
+    }
+
+    const { report_id }: ScheduledReportRequest = requestBody;
+    
+    if (!report_id) {
+      throw new Error('report_id é obrigatório');
+    }
 
     console.log(`🚀 [SEND] Processando relatório: ${report_id}`);
-
-    // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Fetch scheduled report details
+    console.log(`🕐 [SEND] Horário UTC: ${new Date().toISOString()}`);
+    console.log(`🕐 [SEND] Horário Brasília: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`);
+    
+    // Buscar configuração do relatório
     const { data: report, error: reportError } = await supabase
       .from('scheduled_reports')
       .select('*')
       .eq('id', report_id)
+      .eq('is_active', true)
       .single();
 
     if (reportError || !report) {
-      console.error(`❌ [SEND] Relatório não encontrado: ${report_id}`, reportError);
-      throw new Error(`Relatório agendado não encontrado: ${report_id}`);
+      console.error('❌ [SEND] Relatório não encontrado:', reportError);
+      throw new Error(`Relatório não encontrado ou inativo: ${reportError?.message || 'Report not found'}`);
     }
 
     console.log(`📋 [SEND] Relatório encontrado: ${report.name} (${report.report_type})`);
 
-    // Fetch user integration (WhatsApp)
+    // Criar log inicial
+    reportLog = {
+      report_id: report_id,
+      phone_number: report.phone_number,
+      status: 'pending',
+      user_id: report.user_id,
+      execution_date: new Date().toISOString()
+    };
+
+    // Buscar Evolution API integration do usuário
     const { data: integration, error: integrationError } = await supabase
       .from('integrations')
       .select('*')
@@ -65,304 +90,335 @@ serve(async (req: Request): Promise<Response> => {
       .single();
 
     if (integrationError || !integration) {
-      console.error(`❌ [SEND] Integração WhatsApp não encontrada:`, integrationError);
-      throw new Error('Integração WhatsApp não configurada ou inativa');
+      console.error('❌ [SEND] Evolution API não configurada:', integrationError);
+      throw new Error(`Evolution API não configurada para este usuário: ${integrationError?.message || 'Integration not found'}`);
     }
 
     console.log(`🔌 [SEND] Integration encontrada: ${integration.name}`);
 
-    // Fetch message template
+    // Buscar template da mensagem por ID
     console.log(`🔍 [SEND] Buscando template por ID: ${report.report_type}`);
+    // Removendo filtro user_id para busca por ID específico para evitar erro "multiple rows"
     const { data: template, error: templateError } = await supabase
       .from('whatsapp_message_templates')
       .select('*')
       .eq('id', report.report_type)
-      .single();
+      .eq('is_active', true)
+      .maybeSingle();
 
     if (templateError || !template) {
-      console.error(`❌ [SEND] Template não encontrado:`, templateError);
-      throw new Error('Template de mensagem não encontrado');
+      console.error('❌ [SEND] Template não encontrado:', templateError);
+      console.error('❌ [SEND] Report details:', { report_type: report.report_type, user_id: report.user_id });
+      throw new Error(`Template não encontrado ou inativo: ${report.report_type} - ${templateError?.message || 'Template not found'}`);
     }
 
     console.log(`📝 [SEND] Template encontrado: ${template.name} (tipo: ${template.template_type})`);
 
-    // Generate message content
-    const messageContent = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings);
-    console.log(`💬 [SEND] Mensagem gerada (${messageContent.length} caracteres)`);
+    // Gerar conteúdo baseado no template
+    const message = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings);
+    console.log(`💬 [SEND] Mensagem gerada (${message.length} caracteres)`);
 
-    // Send WhatsApp message
+    // Atualizar log com conteúdo da mensagem
+    reportLog.message_content = message.substring(0, 1000); // Limitar tamanho
+
+    // Enviar mensagem via WhatsApp
+    const instanceName = integration.instance_name || 'main_instance';
+    const cleanPhoneNumber = report.phone_number.replace(/\D/g, '');
+    
+    console.log(`📱 [SEND] Enviando para: ${cleanPhoneNumber} via instância: ${instanceName}`);
     console.log(`🔗 [SEND] Base URL: ${integration.base_url}`);
-    console.log(`📱 [SEND] Enviando para: ${report.phone_number} via instância: ${integration.instance_name}`);
     
-    const whatsappUrl = `${integration.base_url}/message/sendText/${integration.instance_name}`;
-    console.log(`🔄 [SEND] Enviando para: ${whatsappUrl}`);
-    
+    // Preparar dados para envio
     const whatsappPayload = {
-      number: report.phone_number,
-      text: messageContent
+      number: cleanPhoneNumber,
+      text: message,
     };
-    
+
     console.log(`📤 [SEND] Payload WhatsApp:`, JSON.stringify(whatsappPayload, null, 2));
 
-    const whatsappResponse = await fetch(whatsappUrl, {
+    // Tentar enviar via Evolution API
+    const url = `${integration.base_url}/message/sendText/${instanceName}`;
+    console.log(`🔄 [SEND] Enviando para: ${url}`);
+    
+    const whatsappApiResponse = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': integration.api_key || integration.api_token || ''
+        'apikey': integration.api_token || '',
       },
-      body: JSON.stringify(whatsappPayload)
+      body: JSON.stringify(whatsappPayload),
     });
 
-    console.log(`📡 [SEND] Status da resposta: ${whatsappResponse.status}`);
-
-    const whatsappResult = await whatsappResponse.json();
-    console.log(`📋 [SEND] Resposta bruta:`, JSON.stringify(whatsappResult, null, 2));
-
-    // Log execution result
-    const executionTime = Date.now() - new Date(utcNow).getTime();
+    console.log(`📡 [SEND] Status da resposta: ${whatsappApiResponse.status}`);
     
-    if (whatsappResponse.ok) {
-      console.log(`📤 [SEND] Retornando resposta de sucesso`);
-      
-      // Update last execution time
-      await supabase
-        .from('scheduled_reports')
-        .update({ 
-          last_execution: new Date().toISOString(),
-          execution_count: (report.execution_count || 0) + 1
-        })
-        .eq('id', report_id);
+    let whatsappResponse;
+    const responseText = await whatsappApiResponse.text();
+    console.log(`📋 [SEND] Resposta bruta:`, responseText);
 
-      // Log success
-      await supabase.from('scheduled_reports_logs').insert({
-        report_id: report_id,
-        user_id: report.user_id,
-        execution_date: new Date().toISOString(),
-        status: 'success',
-        phone_number: report.phone_number,
-        message_sent: true,
-        message_content: messageContent,
-        execution_time_ms: executionTime,
-        whatsapp_response: whatsappResult
-      });
-
-      console.log(`✅ [SEND] Relatório enviado com sucesso para ${report.phone_number}`);
-
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Relatório enviado com sucesso',
-        template_name: template.name,
-        template_type: template.template_type,
-        phone_number: report.phone_number,
-        execution_time_ms: executionTime,
-        whatsapp_response: whatsappResult
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    } else {
-      console.error(`❌ [SEND] Erro ao enviar WhatsApp:`, whatsappResult);
-      
-      // Log error
-      await supabase.from('scheduled_reports_logs').insert({
-        report_id: report_id,
-        user_id: report.user_id,
-        execution_date: new Date().toISOString(),
-        status: 'error',
-        phone_number: report.phone_number,
-        message_sent: false,
-        error_details: `WhatsApp API error: ${whatsappResponse.status} - ${JSON.stringify(whatsappResult)}`,
-        execution_time_ms: executionTime
-      });
-
-      throw new Error(`Erro na API WhatsApp: ${whatsappResponse.status}`);
+    try {
+      whatsappResponse = JSON.parse(responseText);
+    } catch {
+      whatsappResponse = { raw: responseText };
     }
 
-  } catch (error) {
-    console.error(`❌ [SEND] Erro na função send-scheduled-report:`, error);
+    const executionTime = Date.now() - startTime;
+
+    if (!whatsappApiResponse.ok) {
+      // Log de erro
+      await supabase.from('scheduled_reports_logs').insert({
+        ...reportLog,
+        status: 'error',
+        message_sent: false,
+        error_details: `Falha HTTP ${whatsappApiResponse.status}: ${responseText}`,
+        execution_time_ms: executionTime,
+        whatsapp_response: whatsappResponse
+      });
+      
+      throw new Error(`Falha ao enviar mensagem WhatsApp (${whatsappApiResponse.status}): ${responseText}`);
+    }
+
+    // Log de sucesso
+    await supabase.from('scheduled_reports_logs').insert({
+      ...reportLog,
+      status: 'success',
+      message_sent: true,
+      execution_time_ms: executionTime,
+      whatsapp_response: whatsappResponse
+    });
+
+    console.log(`✅ [SEND] Relatório enviado com sucesso para ${cleanPhoneNumber}`);
+
+    const successResponse = { 
+      success: true, 
+      message: 'Relatório enviado com sucesso',
+      template_name: template.name,
+      template_type: template.template_type,
+      phone_number: cleanPhoneNumber,
+      execution_time_ms: executionTime,
+      whatsapp_response: whatsappResponse
+    };
+
+    console.log('📤 [SEND] Retornando resposta de sucesso');
+
+    return new Response(JSON.stringify(successResponse), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+
+  } catch (error: any) {
+    const executionTime = Date.now() - startTime;
     
-    return new Response(JSON.stringify({
+    console.error("❌ [SEND] Erro na função send-scheduled-report:", error);
+    console.error("❌ [SEND] Stack trace:", error.stack);
+    
+    // Log de erro se temos informações do relatório
+    if (reportLog) {
+      try {
+        await supabase.from('scheduled_reports_logs').insert({
+          ...reportLog,
+          status: 'error',
+          message_sent: false,
+          error_details: error.message,
+          execution_time_ms: executionTime
+        });
+      } catch (logError) {
+        console.error("❌ [SEND] Erro ao salvar log:", logError);
+      }
+    }
+
+    const errorResponse = { 
       success: false,
       error: error.message,
-      timestamp: new Date().toISOString()
-    }), {
+      timestamp: new Date().toISOString(),
+      execution_time_ms: executionTime
+    };
+
+    return new Response(JSON.stringify(errorResponse), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
-});
+};
 
-// Generate message content based on template and report type
+// Função para gerar mensagem baseada em template
 async function generateMessageFromTemplate(template: any, reportType: string, userId: string, settings: any): Promise<string> {
-  let templateBody = template.body || template.template || '';
-  
-  try {
-    // Replace basic placeholders
-    const currentDate = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    templateBody = templateBody.replace(/\{\{date\}\}/g, currentDate);
+  const currentDate = new Date().toLocaleDateString('pt-BR');
+  const currentTime = new Date().toLocaleTimeString('pt-BR');
+  let messageContent = template.body;
 
-    // Generate data based on report type
-    switch (reportType) {
-      case 'backup_alert':
-        const backupData = await getBackupData(userId, settings);
-        templateBody = templateBody.replace(/\{\{backup_list\}\}/g, backupData.list);
-        templateBody = templateBody.replace(/\{\{total_outdated\}\}/g, backupData.total.toString());
-        templateBody = templateBody.replace(/\{\{hours_threshold\}\}/g, (settings?.hours_threshold || 24).toString());
-        break;
+  // Substituir variáveis básicas
+  messageContent = messageContent
+    .replace(/\{\{date\}\}/g, currentDate)
+    .replace(/\{\{time\}\}/g, currentTime);
 
-      case 'schedule_critical':
-        const scheduleData = await getScheduleData(userId, settings);
-        let scheduleItems = scheduleData.items;
-        if (!scheduleItems || scheduleItems.trim() === '') {
-          scheduleItems = '✅ Nenhum vencimento crítico nos próximos dias!';
-        }
-        templateBody = templateBody.replace(/\{\{schedule_items\}\}/g, scheduleItems);
-        templateBody = templateBody.replace(/\{\{total_items\}\}/g, scheduleData.total.toString());
-        break;
+  // Substituir variáveis específicas baseadas no tipo de relatório
+  switch (reportType) {
+    case 'backup_alert':
+      const backupData = await getBackupData(userId, settings);
+      messageContent = messageContent
+        .replace(/\{\{hours_threshold\}\}/g, backupData.hoursThreshold.toString())
+        .replace(/\{\{backup_list\}\}/g, backupData.list)
+        .replace(/\{\{total_outdated\}\}/g, backupData.outdatedCount.toString());
+      break;
 
-      case 'glpi_summary':
-        const glpiData = await getGLPIData(userId, settings);
-        templateBody = templateBody.replace(/\{\{open_tickets\}\}/g, glpiData.open.toString());
-        templateBody = templateBody.replace(/\{\{critical_tickets\}\}/g, glpiData.critical.toString());
-        templateBody = templateBody.replace(/\{\{pending_tickets\}\}/g, glpiData.pending.toString());
-        templateBody = templateBody.replace(/\{\{ticket_list\}\}/g, glpiData.list);
-        templateBody = templateBody.replace(/\{\{new_tickets\}\}/g, glpiData.new?.toString() || '0');
-        templateBody = templateBody.replace(/\{\{resolved_tickets\}\}/g, glpiData.resolved?.toString() || '0');
-        templateBody = templateBody.replace(/\{\{avg_resolution_time\}\}/g, glpiData.avgTime || 'N/A');
-        templateBody = templateBody.replace(/\{\{critical_tickets_list\}\}/g, glpiData.criticalList || 'Nenhum chamado crítico');
-        templateBody = templateBody.replace(/\{\{open_tickets_list\}\}/g, glpiData.openList || 'Nenhum chamado em aberto');
-        templateBody = templateBody.replace(/\{\{productivity_summary\}\}/g, glpiData.productivity || 'N/A');
-        templateBody = templateBody.replace(/\{\{critical_count\}\}/g, glpiData.critical.toString());
-        templateBody = templateBody.replace(/\{\{critical_tickets_detailed\}\}/g, glpiData.criticalDetailed || 'Nenhum chamado crítico');
-        templateBody = templateBody.replace(/\{\{week_period\}\}/g, getWeekPeriod());
-        templateBody = templateBody.replace(/\{\{total_processed\}\}/g, glpiData.totalProcessed?.toString() || '0');
-        templateBody = templateBody.replace(/\{\{resolution_rate\}\}/g, glpiData.resolutionRate?.toString() || '0');
-        templateBody = templateBody.replace(/\{\{satisfaction_score\}\}/g, glpiData.satisfactionScore?.toString() || 'N/A');
-        templateBody = templateBody.replace(/\{\{sla_compliance\}\}/g, glpiData.slaCompliance?.toString() || '0');
-        templateBody = templateBody.replace(/\{\{weekly_highlights\}\}/g, glpiData.weeklyHighlights || 'Sem destaques');
-        templateBody = templateBody.replace(/\{\{top_categories\}\}/g, glpiData.topCategories || 'Sem dados');
-        templateBody = templateBody.replace(/\{\{trends_summary\}\}/g, glpiData.trendsSummary || 'Sem tendências');
-        break;
+    case 'schedule_critical':
+      const scheduleData = await getScheduleData(userId, settings);
+      messageContent = messageContent
+        .replace(/\{\{schedule_items\}\}/g, scheduleData.items)
+        .replace(/\{\{total_items\}\}/g, scheduleData.total.toString())
+        .replace(/\{\{critical_count\}\}/g, scheduleData.critical.toString());
+      break;
 
-      case 'bacula_daily':
-        const baculaData = await getBaculaData(userId, settings);
-        templateBody = templateBody.replace(/\{\{totalJobs\}\}/g, baculaData.totalJobs.toString());
-        templateBody = templateBody.replace(/\{\{successCount\}\}/g, baculaData.successCount.toString());
-        templateBody = templateBody.replace(/\{\{errorCount\}\}/g, baculaData.errorCount.toString());
-        templateBody = templateBody.replace(/\{\{errorRate\}\}/g, baculaData.errorRate.toString());
-        templateBody = templateBody.replace(/\{\{clientsAffected\}\}/g, baculaData.clientsAffected.toString());
-        templateBody = templateBody.replace(/\{\{recurrentFailuresCount\}\}/g, baculaData.recurrentFailuresCount.toString());
-        templateBody = templateBody.replace(/\{\{timestamp\}\}/g, baculaData.timestamp);
+    case 'glpi_summary':
+      const glpiData = await getGLPIData(userId, settings);
+      messageContent = messageContent
+        .replace(/\{\{open_tickets\}\}/g, glpiData.open.toString())
+        .replace(/\{\{critical_tickets\}\}/g, glpiData.critical.toString())
+        .replace(/\{\{pending_tickets\}\}/g, glpiData.pending.toString())
+        .replace(/\{\{ticket_list\}\}/g, glpiData.list);
+      break;
 
-        // Handle conditional blocks
-        if (baculaData.hasErrors) {
-          // Replace conditional with content
-          templateBody = templateBody.replace(/\{\{#if hasErrors\}\}/g, '');
-          templateBody = templateBody.replace(/\{\{\/if\}\}/g, '');
-          
-          if (baculaData.hasCriticalErrors) {
-            templateBody = templateBody.replace(/\{\{#if hasCriticalErrors\}\}/g, '');
-            templateBody = templateBody.replace(/\{\{\/if\}\}/g, '');
-          } else {
-            // Remove critical errors section
-            templateBody = templateBody.replace(/\{\{#if hasCriticalErrors\}\}[\s\S]*?\{\{\/if\}\}/g, '');
-          }
-
-          // Process error jobs list
-          if (baculaData.errorJobs && baculaData.errorJobs.length > 0) {
-            let errorJobsList = '';
-            baculaData.errorJobs.forEach((job: any) => {
-              errorJobsList += `• ${job.name} - ${job.status}\n`;
-              errorJobsList += `  📂 Cliente: ${job.client}\n`;
-              errorJobsList += `  ⏰ Horário: ${job.startTime}\n`;
-              errorJobsList += `  💾 Bytes: ${job.bytes}\n`;
-              errorJobsList += `  📄 Arquivos: ${job.files}\n\n`;
-            });
-            templateBody = templateBody.replace(/\{\{#each errorJobs\}\}[\s\S]*?\{\{\/each\}\}/g, errorJobsList);
-          }
-
-          if (baculaData.recurrentFailuresCount > 0) {
-            templateBody = templateBody.replace(/\{\{#if recurrentFailuresCount\}\}/g, '');
-            templateBody = templateBody.replace(/\{\{\/if\}\}/g, '');
-          } else {
-            templateBody = templateBody.replace(/\{\{#if recurrentFailuresCount\}\}[\s\S]*?\{\{\/if\}\}/g, '');
-          }
-        } else {
-          // Remove hasErrors section and show else content
-          templateBody = templateBody.replace(/\{\{#if hasErrors\}\}[\s\S]*?\{\{else\}\}/g, '');
-          templateBody = templateBody.replace(/\{\{\/if\}\}/g, '');
-        }
-
-        // Adicionar nota sobre fallback se aplicável
-        if (baculaData.isFallback) {
-          templateBody += '\n\n⚠️ Dados obtidos via fallback devido a erro na conexão Bacula';
-        }
-        
-        // Adicionar timestamp
-        templateBody += `\n\n🕒 Relatório gerado em: ${baculaData.timestamp || new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`;
-        break;
-
-      default:
-        console.log(`⚠️ [TEMPLATE] Tipo de relatório não reconhecido: ${reportType}`);
-    }
-
-    return templateBody;
-  } catch (error) {
-    console.error(`❌ [TEMPLATE] Erro ao gerar mensagem:`, error);
-    return `Erro ao gerar relatório: ${error.message}`;
-  }
-}
-
-function getWeekPeriod(): string {
-  const now = new Date();
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - now.getDay());
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
-  
-  return `${weekStart.toLocaleDateString('pt-BR')} - ${weekEnd.toLocaleDateString('pt-BR')}`;
-}
-
-async function getBackupData(userId: string, settings: any) {
-  console.log('💾 [BACKUP] Buscando dados reais de backup para usuário:', userId);
-  
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-
-  try {
-    // Buscar dados de backup FTP se disponível
-    const { data: ftpIntegration } = await supabase
-      .from('integrations')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('type', 'ftp')
-      .eq('is_active', true)
-      .single();
-
-    if (ftpIntegration) {
-      // Implementar lógica de verificação de backup via FTP
-      console.log('📁 [BACKUP] Integração FTP encontrada, verificando backups...');
+    case 'bacula_daily':
+      const baculaData = await getBaculaData(userId, settings);
       
-      // Por enquanto, retornar dados simulados
-      return {
-        list: '• Backup Servidor 01 - há 25 horas\n• Backup Banco de Dados - há 30 horas',
-        total: 2
-      };
+      // Substituições básicas
+      messageContent = messageContent
+        .replace(/\{\{date\}\}/g, currentDate)
+        .replace(/\{\{totalJobs\}\}/g, baculaData.totalJobs.toString())
+        .replace(/\{\{errorCount\}\}/g, baculaData.errorCount.toString())
+        .replace(/\{\{errorRate\}\}/g, baculaData.errorRate.toString());
+      
+      // Handle conditional blocks com regex mais robusta
+      if (baculaData.hasErrors) {
+        // Remove else block e mantém if block
+        messageContent = messageContent.replace(/\{\{#if hasErrors\}\}([\s\S]*?)\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/g, '$1');
+        // Handle errorJobs dentro do if block
+        messageContent = messageContent.replace(/\{\{#each errorJobs\}\}([\s\S]*?)\{\{\/each\}\}/g, baculaData.errorJobs);
+        messageContent = messageContent.replace(/\{\{errorJobs\}\}/g, baculaData.errorJobs);
+      } else {
+        // Remove if block e mantém else block
+        messageContent = messageContent.replace(/\{\{#if hasErrors\}\}([\s\S]*?)\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/g, '$2');
+      }
+      
+      // Cleanup any remaining template variables
+      messageContent = messageContent
+        .replace(/\{\{[^}]+\}\}/g, '') // Remove any remaining template variables
+        .replace(/\n\s*\n\s*\n/g, '\n\n') // Clean up multiple newlines
+        .trim();
+      break;
+  }
+
+  return messageContent;
+}
+
+// Função para obter dados reais de backup via FTP
+async function getBackupData(userId: string, settings: any) {
+  console.log('🔍 [BACKUP] Buscando dados reais de backup para usuário:', userId);
+  
+  // Buscar configuração de horas de alerta
+  const { data: alertSetting } = await supabase
+    .from('system_settings')
+    .select('setting_value')
+    .eq('user_id', userId)
+    .eq('setting_key', 'ftp_backup_alert_hours')
+    .single();
+
+  const alertHours = alertSetting ? parseInt(alertSetting.setting_value) : 48;
+  console.log(`⏰ [BACKUP] Limite de horas configurado: ${alertHours}h`);
+  
+  // Buscar integração FTP ativa do usuário
+  const { data: ftpIntegration } = await supabase
+    .from('integrations')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('type', 'ftp')
+    .eq('is_active', true)
+    .single();
+
+  if (!ftpIntegration) {
+    console.log('⚠️ [BACKUP] Nenhuma integração FTP encontrada, usando dados simulados');
+    return {
+      hoursThreshold: alertHours,
+      list: '⚠️ FTP não configurado - dados não disponíveis',
+      outdatedCount: 0
+    };
+  }
+
+  console.log(`🔌 [BACKUP] Integração FTP encontrada: ${ftpIntegration.name}`);
+
+  try {
+    // Chamar a função ftp-list para obter arquivos reais
+    const { data: ftpResponse, error: ftpError } = await supabase.functions.invoke('ftp-list', {
+      body: {
+        host: ftpIntegration.base_url,
+        port: ftpIntegration.port || 21,
+        username: ftpIntegration.username,
+        password: ftpIntegration.password,
+        secure: ftpIntegration.use_ssl || false,
+        passive: ftpIntegration.passive_mode || true,
+        path: '/'
+      }
+    });
+
+    if (ftpError) {
+      console.error('❌ [BACKUP] Erro ao chamar ftp-list:', ftpError);
+      throw ftpError;
     }
 
-    // Fallback para dados simulados
+    const files = ftpResponse?.files || [];
+    console.log(`📁 [BACKUP] Total de arquivos encontrados: ${files.length}`);
+
+    // Filtrar arquivos/pastas antigas (mais de X horas)
+    const thresholdTime = new Date();
+    thresholdTime.setHours(thresholdTime.getHours() - alertHours);
+
+    const outdatedItems = files.filter(file => {
+      const fileDate = new Date(file.lastModified);
+      const isOld = fileDate < thresholdTime;
+      if (isOld) {
+        console.log(`⚠️ [BACKUP] Item antigo encontrado: ${file.name} (${fileDate.toLocaleString('pt-BR')})`);
+      }
+      return isOld;
+    });
+
+    console.log(`🚨 [BACKUP] Total de itens desatualizados: ${outdatedItems.length}`);
+
+    let backupList = '';
+    if (outdatedItems.length === 0) {
+      backupList = '✅ Todos os backups estão atualizados!';
+    } else {
+      outdatedItems.forEach((item) => {
+        const hoursAgo = Math.floor((Date.now() - new Date(item.lastModified).getTime()) / (1000 * 60 * 60));
+        const icon = item.isDirectory ? '📁' : '📄';
+        backupList += `${icon} ${item.name} - há ${hoursAgo}h\n`;
+      });
+    }
+
     return {
-      list: '• Nenhum backup desatualizado encontrado',
-      total: 0
+      hoursThreshold: alertHours,
+      list: backupList.trim(),
+      outdatedCount: outdatedItems.length
     };
 
   } catch (error) {
-    console.error('❌ [BACKUP] Erro ao buscar dados:', error);
+    console.error('❌ [BACKUP] Erro ao buscar dados FTP:', error);
+    
+    // Fallback para dados simulados em caso de erro
+    const mockOutdatedBackups = [
+      { name: 'backup_servidor1.tar.gz', lastModified: new Date(Date.now() - (72 * 60 * 60 * 1000)) },
+      { name: 'backup_bd_principal.sql', lastModified: new Date(Date.now() - (96 * 60 * 60 * 1000)) }
+    ];
+
+    let backupList = '';
+    mockOutdatedBackups.forEach((backup) => {
+      const hoursAgo = Math.floor((Date.now() - backup.lastModified.getTime()) / (1000 * 60 * 60));
+      backupList += `📄 ${backup.name} - há ${hoursAgo}h\n`;
+    });
+
     return {
-      list: '• Erro ao verificar status dos backups',
-      total: 0
+      hoursThreshold: alertHours,
+      list: backupList.trim() + '\n\n⚠️ Dados obtidos via fallback devido a erro no FTP',
+      outdatedCount: mockOutdatedBackups.length
     };
   }
 }
@@ -370,114 +426,115 @@ async function getBackupData(userId: string, settings: any) {
 async function getScheduleData(userId: string, settings: any) {
   console.log('📅 [SCHEDULE] Buscando dados reais da agenda para usuário:', userId);
   
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
+  // Buscar configuração de dias críticos (padrão 7 dias)
+  const { data: criticalDaysSetting } = await supabase
+    .from('system_settings')
+    .select('setting_value')
+    .eq('user_id', userId)
+    .eq('setting_key', 'schedule_critical_days')
+    .single();
 
-  try {
-    const criticalDays = settings?.critical_days || 7;
-    console.log(`⏰ [SCHEDULE] Limite de dias críticos configurado: ${criticalDays} dias`);
-    
-    const today = new Date();
-    const futureDate = new Date();
-    futureDate.setDate(today.getDate() + criticalDays);
-    
-    const startDate = today.toISOString().split('T')[0];
-    const endDate = futureDate.toISOString().split('T')[0];
-    
-    console.log(`📅 [SCHEDULE] Buscando itens entre ${startDate} e ${endDate}`);
+  const criticalDays = criticalDaysSetting ? parseInt(criticalDaysSetting.setting_value) : 7;
+  console.log(`⏰ [SCHEDULE] Limite de dias críticos configurado: ${criticalDays} dias`);
 
-    const { data: scheduleItems, error } = await supabase
-      .from('schedule_items')
-      .select(`
-        *,
-        companies!inner(name)
-      `)
-      .eq('user_id', userId)
-      .gte('due_date', startDate)
-      .lte('due_date', endDate)
-      .order('due_date', { ascending: true });
+  // Calcular data limite (hoje + criticalDays)
+  const today = new Date();
+  const criticalDate = new Date();
+  criticalDate.setDate(today.getDate() + criticalDays);
+  
+  const todayStr = today.toISOString().split('T')[0];
+  const criticalDateStr = criticalDate.toISOString().split('T')[0];
 
-    if (error) {
-      console.error('❌ [SCHEDULE] Erro ao buscar itens da agenda:', error);
-      throw error;
-    }
+  console.log(`📅 [SCHEDULE] Buscando itens entre ${todayStr} e ${criticalDateStr}`);
 
-    console.log(`📋 [SCHEDULE] Total de itens encontrados: ${scheduleItems?.length || 0}`);
+  // Buscar itens da agenda críticos (vencimento em até X dias)
+  const { data: criticalItems, error } = await supabase
+    .from('schedule_items')
+    .select('title, company, due_date, type, status')
+    .eq('user_id', userId)
+    .eq('status', 'pending')
+    .gte('due_date', todayStr)
+    .lte('due_date', criticalDateStr)
+    .order('due_date', { ascending: true });
 
-    const criticalItems = scheduleItems?.filter(item => {
-      const dueDate = new Date(item.due_date + 'T00:00:00');
-      const daysUntil = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      return daysUntil <= 3; // Crítico = 3 dias ou menos
-    }) || [];
-
-    let itemsList = '';
-    let criticalCount = 0;
-
-    if (criticalItems.length > 0) {
-      criticalItems.forEach(item => {
-        const company = item.companies?.name || 'Empresa não definida';
-        const dueDate = new Date(item.due_date + 'T00:00:00');
-        const daysUntil = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        
-        // Definir ícone baseado na urgência
-        let urgencyIcon = '🟢';
-        if (daysUntil <= 1) {
-          urgencyIcon = '🔴';
-          criticalCount++;
-        } else if (daysUntil <= 3) {
-          urgencyIcon = '🟡';
-          criticalCount++;
-        }
-        
-        const daysText = daysUntil === 0 ? 'hoje' : 
-                        daysUntil === 1 ? 'amanhã' : 
-                        `${daysUntil} dias`;
-        
-        itemsList += `${urgencyIcon} ${item.title} - ${company} (${daysText})\n`;
-        
-        console.log(`📌 [SCHEDULE] Item: ${item.title} - ${company} (vence em ${daysUntil} dias)`);
-      });
-    }
-
-    console.log(`🚨 [SCHEDULE] Total de itens críticos (≤3 dias): ${criticalCount}`);
-
+  if (error) {
+    console.error('❌ [SCHEDULE] Erro ao buscar itens da agenda:', error);
     return {
-      items: itemsList.trim(),
-      total: criticalItems?.length || 0,
-      critical: criticalCount
-    };
-  } catch (error) {
-    console.error('❌ [SCHEDULE] Erro ao buscar dados da agenda:', error);
-    return {
-      items: '❌ Erro ao carregar itens da agenda',
+      items: '⚠️ Erro ao buscar dados da agenda',
       total: 0,
       critical: 0
     };
   }
+
+  console.log(`📋 [SCHEDULE] Total de itens encontrados: ${criticalItems?.length || 0}`);
+
+  let itemsList = '';
+  let criticalCount = 0; // Itens que vencem em até 3 dias
+  
+  if (!criticalItems || criticalItems.length === 0) {
+    itemsList = '✅ Nenhum vencimento crítico nos próximos dias!';
+  } else {
+    criticalItems.forEach((item) => {
+      const dueDate = new Date(item.due_date + 'T00:00:00');
+      const daysUntil = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Definir ícone baseado na urgência
+      let urgencyIcon = '🟢';
+      if (daysUntil <= 1) {
+        urgencyIcon = '🔴';
+        criticalCount++;
+      } else if (daysUntil <= 3) {
+        urgencyIcon = '🟡';
+        criticalCount++;
+      }
+      
+      const daysText = daysUntil === 0 ? 'hoje' : 
+                      daysUntil === 1 ? 'amanhã' : 
+                      `${daysUntil} dias`;
+      
+      itemsList += `${urgencyIcon} ${item.title} - ${item.company} (${daysText})\n`;
+      
+      console.log(`📌 [SCHEDULE] Item: ${item.title} - ${item.company} (vence em ${daysUntil} dias)`);
+    });
+  }
+
+  console.log(`🚨 [SCHEDULE] Total de itens críticos (≤3 dias): ${criticalCount}`);
+
+  return {
+    items: itemsList.trim(),
+    total: criticalItems?.length || 0,
+    critical: criticalCount
+  };
 }
 
 async function getGLPIData(userId: string, settings: any) {
   console.log('🎫 [GLPI] Buscando dados reais do GLPI para usuário:', userId);
   
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
+  // Buscar integração GLPI do usuário
+  const { data: glpiIntegration } = await supabase
+    .from('integrations')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('type', 'glpi')
+    .eq('is_active', true)
+    .single();
+
+  if (!glpiIntegration) {
+    console.log('⚠️ [GLPI] Nenhuma integração GLPI encontrada');
+    return {
+      open: 0,
+      critical: 0,
+      pending: 0,
+      list: '⚠️ GLPI não configurado para este usuário.'
+    };
+  }
+
+  console.log(`🔌 [GLPI] Integração GLPI encontrada: ${glpiIntegration.name}`);
 
   try {
-    // Buscar integração GLPI do usuário
-    const { data: glpiIntegration } = await supabase
-      .from('integrations')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('type', 'glpi')
-      .eq('is_active', true)
-      .single();
-
-    if (!glpiIntegration) {
-      console.log('⚠️ [GLPI] Integração não encontrada ou inativa');
+    // Verificar se temos session token
+    if (!glpiIntegration.webhook_url || !glpiIntegration.api_token) {
+      console.log('⚠️ [GLPI] Session token ou App token não encontrado');
       return {
         open: 0,
         critical: 0,
@@ -520,40 +577,42 @@ async function getGLPIData(userId: string, settings: any) {
     const urgentTickets = tickets
       .filter(ticket => ticket.priority >= 5 && [1, 2, 3, 4].includes(ticket.status))
       .slice(0, 5) // Limitar a 5 tickets
-      .map(ticket => `• #${ticket.id} - ${ticket.name || 'Sem título'}`)
-      .join('\n');
+      .map(ticket => `#${ticket.id} - ${ticket.name || 'Sem título'}`);
+
+    const ticketList = urgentTickets.length > 0 
+      ? urgentTickets.map(ticket => `• ${ticket}`).join('\n')
+      : 'Nenhum chamado crítico encontrado';
+
+    console.log(`📊 [GLPI] Estatísticas: Abertos=${openTickets}, Críticos=${criticalTickets}, Pendentes=${pendingTickets}`);
 
     return {
       open: openTickets,
       critical: criticalTickets,
       pending: pendingTickets,
-      list: urgentTickets || '✅ Nenhum ticket crítico no momento',
-      new: tickets.filter(ticket => ticket.status === 1).length,
-      resolved: tickets.filter(ticket => ticket.status === 6).length,
-      avgTime: 'N/A', // Seria necessário cálculo mais complexo
-      criticalList: urgentTickets || 'Nenhum chamado crítico',
-      openList: tickets.filter(ticket => [1, 2, 3].includes(ticket.status))
-        .slice(0, 5)
-        .map(ticket => `• #${ticket.id} - ${ticket.name || 'Sem título'}`)
-        .join('\n') || 'Nenhum chamado em aberto',
-      productivity: 'Dentro do esperado',
-      criticalDetailed: urgentTickets || 'Nenhum chamado crítico',
-      totalProcessed: tickets.length,
-      resolutionRate: tickets.length > 0 ? Math.round((tickets.filter(ticket => ticket.status === 6).length / tickets.length) * 100) : 0,
-      satisfactionScore: 4.2,
-      slaCompliance: 85,
-      weeklyHighlights: 'Performance estável',
-      topCategories: 'Suporte técnico, Infraestrutura',
-      trendsSummary: 'Redução de 5% nos chamados'
+      list: ticketList
     };
 
   } catch (error) {
     console.error('❌ [GLPI] Erro ao buscar dados:', error);
+    
+    // Fallback para dados simulados em caso de erro
+    const mockGlpiData = {
+      openTickets: Math.floor(Math.random() * 20) + 5,
+      criticalTickets: Math.floor(Math.random() * 5),
+      pendingTickets: Math.floor(Math.random() * 8) + 2,
+      urgentTickets: [
+        `#${Math.floor(Math.random() * 9000) + 1000} - Sistema indisponível`,
+        `#${Math.floor(Math.random() * 9000) + 1000} - Falha crítica no servidor`
+      ]
+    };
+
+    const ticketList = mockGlpiData.urgentTickets.join('\n• ');
+
     return {
-      open: 0,
-      critical: 0,
-      pending: 0,
-      list: `❌ Erro ao conectar com GLPI: ${error.message}`
+      open: mockGlpiData.openTickets,
+      critical: mockGlpiData.criticalTickets,
+      pending: mockGlpiData.pendingTickets,
+      list: ticketList ? `• ${ticketList}\n\n⚠️ Dados obtidos via fallback devido a erro na conexão GLPI` : 'Nenhum chamado urgente'
     };
   }
 }
@@ -561,299 +620,126 @@ async function getGLPIData(userId: string, settings: any) {
 async function getBaculaData(userId: string, settings: any) {
   console.log('🗄️ [BACULA] Buscando dados reais do Bacula para usuário:', userId);
   
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
+  // Buscar integração Bacula do usuário
+  const { data: baculaIntegration } = await supabase
+    .from('integrations')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('type', 'bacula')
+    .eq('is_active', true)
+    .single();
+
+  if (!baculaIntegration) {
+    console.log('⚠️ [BACULA] Nenhuma integração Bacula encontrada');
+    return {
+      hasErrors: false,
+      errorJobs: '',
+      totalJobs: 0,
+      errorCount: 0,
+      errorRate: 0
+    };
+  }
+
+  console.log(`🔌 [BACULA] Integração Bacula encontrada: ${baculaIntegration.name}`);
 
   try {
-    // Buscar integração Bacula do usuário
-    const { data: baculaIntegration } = await supabase
-      .from('integrations')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('type', 'bacula')
-      .eq('is_active', true)
-      .single();
-
-    if (!baculaIntegration) {
-      console.log('⚠️ [BACULA] Integração não encontrada ou inativa');
-      return getFallbackBaculaData();
-    }
-
-    console.log(`🔌 [BACULA] Integração Bacula encontrada: ${baculaIntegration.name}`);
-
-    // NOVA IMPLEMENTAÇÃO: Usar a mesma lógica que funciona na interface
-    // Conectar diretamente ao Bacula usando os dados da integração
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(0, 0, 0, 0);
-    
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    
-    console.log(`📅 [BACULA] Buscando jobs de ${yesterday.toISOString()} até ${today.toISOString()}`);
-    
-    // Buscar dados das últimas 24 horas usando endpoint específico
-    const requestId = `bacula-daily-${Date.now()}`;
-    console.log(`🔍 [BACULA] Request ID: ${requestId}`);
-    
-    // Usar client anônimo com session do usuário para autenticação correta
-    const clientSupabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    );
-
-    const baculaResponse = await clientSupabase.functions.invoke('bacula-proxy', {
+    // Chamar a função bacula-proxy para obter jobs das últimas 24h
+    const { data: baculaResponse, error: baculaError } = await supabase.functions.invoke('bacula-proxy', {
       body: {
-        endpoint: 'jobs/last24h',
-        params: { 
-          limit: 100,
-          start_date: yesterday.toISOString(),
-          end_date: today.toISOString()
-        }
-      },
-      headers: {
-        'x-request-id': requestId,
-        'x-user-id': userId
+        endpoint: 'jobs/last24h'
       }
     });
 
-    if (baculaResponse.error) {
-      console.error(`❌ [BACULA] Erro na requisição:`, baculaResponse.error);
-      throw new Error(`Falha crítica na conexão Bacula: ${baculaResponse.error.message}. Sistema indisponível para relatórios automáticos.`);
+    if (baculaError) {
+      console.error('❌ [BACULA] Erro ao chamar bacula-proxy:', baculaError);
+      throw baculaError;
     }
 
-    if (!baculaResponse.data) {
-      console.warn(`⚠️ [BACULA] Resposta vazia`);
-      return getFallbackBaculaData();
-    }
+    console.log('📊 [BACULA] Resposta do Bacula:', JSON.stringify(baculaResponse, null, 2));
 
-    console.log(`✅ [BACULA] Dados recebidos com sucesso`);
-    return processBaculaJobsForDailyReport(baculaResponse.data, yesterday, today);
-        
+    // Processar estrutura de dados do Bacula (pode variar)
+    let jobs = [];
+    if (baculaResponse?.output && Array.isArray(baculaResponse.output)) {
+      jobs = baculaResponse.output;
+    } else if (Array.isArray(baculaResponse?.jobs)) {
+      jobs = baculaResponse.jobs;
+    } else if (Array.isArray(baculaResponse)) {
+      jobs = baculaResponse;
+    } else if (baculaResponse?.data && Array.isArray(baculaResponse.data)) {
+      jobs = baculaResponse.data;
+    }
+    
+    console.log(`💼 [BACULA] Total de jobs encontrados: ${jobs.length}`);
+
+    // Filtrar jobs do último dia
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+
+    const recentJobs = jobs.filter(job => {
+      if (!job.startTime) return false;
+      const jobDate = new Date(job.startTime);
+      return jobDate >= yesterday;
+    });
+
+    console.log(`📅 [BACULA] Jobs das últimas 24h: ${recentJobs.length}`);
+
+    // Filtrar jobs com erro
+    const errorJobs = recentJobs.filter(job => 
+      job.level && ['Error', 'Fatal'].includes(job.level)
+    );
+
+    console.log(`❌ [BACULA] Jobs com erro: ${errorJobs.length}`);
+
+    // Gerar lista de jobs com erro
+    let errorJobsList = '';
+    errorJobs.forEach(job => {
+      const startTime = job.startTime ? new Date(job.startTime).toLocaleString('pt-BR') : 'N/A';
+      errorJobsList += `• ${job.name || 'Job sem nome'} - ${job.level}\n`;
+      errorJobsList += `  📂 Cliente: ${job.client || 'N/A'}\n`;
+      errorJobsList += `  ⏰ Horário: ${startTime}\n`;
+      errorJobsList += `  💾 Bytes: ${job.bytes || '0'}\n`;
+      errorJobsList += `  📄 Arquivos: ${job.files || '0'}\n\n`;
+    });
+
+    const totalJobs = recentJobs.length;
+    const errorCount = errorJobs.length;
+    const errorRate = totalJobs > 0 ? Math.round((errorCount / totalJobs) * 100) : 0;
+
+    return {
+      hasErrors: errorCount > 0,
+      errorJobs: errorJobsList.trim() || 'Nenhum job com erro encontrado',
+      totalJobs,
+      errorCount,
+      errorRate
+    };
+
   } catch (error) {
     console.error('❌ [BACULA] Erro ao buscar dados:', error);
-    throw error;
-  }
-}
+    
+    // Fallback para dados simulados em caso de erro
+    const mockBaculaData = {
+      hasErrors: true,
+      errorJobs: `• backup_servidor_web - Error
+  📂 Cliente: servidor-web-01
+  ⏰ Horário: ${new Date().toLocaleString('pt-BR')}
+  💾 Bytes: 1,234,567,890
+  📄 Arquivos: 45,123
 
-// Nova função para processar jobs especificamente para o relatório diário
-function processBaculaJobsForDailyReport(baculaResponse: any, startDate: Date, endDate: Date): any {
-  console.log(`📊 [BACULA] Processando jobs para relatório diário:`, JSON.stringify(baculaResponse, null, 2));
-  
-  if (!baculaResponse || typeof baculaResponse !== 'object') {
-    console.warn(`⚠️ [BACULA] Resposta inválida:`, baculaResponse);
-    throw new Error('Resposta do Bacula inválida');
-  }
+• backup_banco_dados - Fatal
+  📂 Cliente: db-principal
+  ⏰ Horário: ${new Date(Date.now() - 3600000).toLocaleString('pt-BR')}
+  💾 Bytes: 987,654,321
+  📄 Arquivos: 12,456
 
-  // Extrair jobs da resposta - seguindo a mesma lógica da interface
-  let jobs = [];
-  if (baculaResponse.jobs && Array.isArray(baculaResponse.jobs)) {
-    jobs = baculaResponse.jobs;
-  } else if (Array.isArray(baculaResponse)) {
-    jobs = baculaResponse;
-  } else if (baculaResponse.data && Array.isArray(baculaResponse.data)) {
-    jobs = baculaResponse.data;
-  } else if (baculaResponse.result && Array.isArray(baculaResponse.result)) {
-    jobs = baculaResponse.result;
-  } else {
-    console.warn(`⚠️ [BACULA] Estrutura de dados inesperada:`, Object.keys(baculaResponse));
-    jobs = [];
-  }
-
-  console.log(`📋 [BACULA] Total de jobs brutos: ${jobs.length}`);
-
-  // Filtrar jobs do dia anterior (últimas 24 horas)
-  const filteredJobs = jobs.filter(job => {
-    const jobDate = new Date(job.starttime || job.start_time || job.schedtime);
-    return jobDate >= startDate && jobDate <= endDate;
-  });
-
-  console.log(`📅 [BACULA] Jobs das últimas 24 horas: ${filteredJobs.length}`);
-
-  // Processar cada job com as mesmas funções da interface
-  const processedJobs = filteredJobs.map(job => {
-    return {
-      name: job.name || job.job || job.jobname || 'Job sem nome',
-      client: job.client || job.clientname || 'Cliente desconhecido', 
-      level: formatJobLevel(job.level || job.joblevel || ''),
-      status: job.jobstatus || job.status || 'U',
-      startTime: formatDateTime(job.starttime || job.start_time || job.schedtime),
-      endTime: formatDateTime(job.endtime || job.end_time || job.realendtime),
-      bytes: parseInt(job.jobbytes || job.bytes || 0),
-      files: parseInt(job.jobfiles || job.files || 0),
-      rawStatus: job.jobstatus || job.status || 'U'
+⚠️ Dados obtidos via fallback devido a erro na conexão Bacula`,
+      totalJobs: 8,
+      errorCount: 2,
+      errorRate: 25
     };
-  });
 
-  // Usar a mesma lógica de classificação da interface
-  const successJobs = processedJobs.filter(job => job.rawStatus === 'T');
-  const errorJobs = processedJobs.filter(job => ['E', 'f', 'F', 'A'].includes(job.rawStatus));
-  const runningJobs = processedJobs.filter(job => job.rawStatus === 'R');
-
-  // Preparar jobs com erro formatados para o template
-  const formattedErrorJobs = errorJobs.map(job => ({
-    name: job.name,
-    client: job.client,
-    level: job.level,
-    startTime: job.startTime,
-    bytes: formatBytes(job.bytes),
-    files: job.files.toLocaleString('pt-BR'),
-    status: getStatusDescription(job.rawStatus)
-  }));
-
-  // Calcular estatísticas
-  const totalJobs = processedJobs.length;
-  const successCount = successJobs.length;
-  const errorCount = errorJobs.length;
-  const errorRate = totalJobs > 0 ? Math.round((errorCount / totalJobs) * 100) : 0;
-  
-  // Clientes únicos afetados por erros
-  const clientsAffected = new Set(errorJobs.map(job => job.client)).size;
-  
-  const result = {
-    date: new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-    totalJobs,
-    successCount,
-    errorCount,
-    errorRate,
-    clientsAffected,
-    errorJobs: formattedErrorJobs,
-    hasErrors: errorCount > 0,
-    hasCriticalErrors: errorJobs.some(job => ['f', 'F', 'A'].includes(job.rawStatus)),
-    recurrentFailuresCount: errorJobs.filter(job => 
-      job.name.toLowerCase().includes('backup') || 
-      job.name.toLowerCase().includes('incremental') ||
-      job.name.toLowerCase().includes('full')
-    ).length,
-    timestamp: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
-  };
-
-  console.log(`📊 [BACULA] Estatísticas do relatório diário:`, {
-    totalJobs: result.totalJobs,
-    successCount: result.successCount, 
-    errorCount: result.errorCount,
-    errorRate: result.errorRate,
-    clientsAffected: result.clientsAffected,
-    hasErrors: result.hasErrors
-  });
-
-  return result;
-}
-
-// Função para formatar o nível do job
-function formatJobLevel(level: string): string {
-  const levelMap: { [key: string]: string } = {
-    'F': 'Full',
-    'I': 'Incremental', 
-    'D': 'Differential',
-    'B': 'Base',
-    'C': 'Catalog'
-  };
-  
-  return levelMap[level] || level || 'N/A';
-}
-
-// Função para descrição detalhada do status
-function getStatusDescription(status: string): string {
-  const statusMap: { [key: string]: string } = {
-    'T': 'Concluído com Sucesso',
-    'E': 'Erro Não-Fatal',
-    'f': 'Erro Fatal',
-    'F': 'Falha Crítica',
-    'A': 'Cancelado',
-    'R': 'Executando',
-    'C': 'Criado',
-    'B': 'Bloqueado',
-    'e': 'Erro Menor',
-    'W': 'Warning'
-  };
-  
-  return statusMap[status] || `Status Desconhecido (${status})`;
-}
-
-// Função para dados de fallback quando Bacula não está disponível
-function getFallbackBaculaData(): any {
-  console.log(`🔄 [BACULA] Gerando dados de fallback`);
-  
-  const now = new Date();
-  const fallbackJobs = [
-    {
-      name: 'backup_servidor_web',
-      client: 'servidor-web-01',
-      level: 'Incremental',
-      status: 'Error',
-      startTime: formatDateTime(new Date(now.getTime() - 60000).toISOString()),
-      bytes: formatBytes(1234567890),
-      files: '45,123',
-      endTime: formatDateTime(now.toISOString())
-    },
-    {
-      name: 'backup_banco_dados',
-      client: 'db-principal',
-      level: 'Full',
-      status: 'Fatal',
-      startTime: formatDateTime(new Date(now.getTime() - 3600000).toISOString()),
-      bytes: formatBytes(987654321),
-      files: '12,456',
-      endTime: formatDateTime(new Date(now.getTime() - 3000000).toISOString())
-    }
-  ];
-
-  return {
-    totalJobs: 8,
-    successCount: 6,
-    errorCount: 2,
-    errorRate: 25,
-    hasErrors: true,
-    hasCriticalErrors: true,
-    errorJobs: fallbackJobs,
-    clientsAffected: 2,
-    recurrentFailuresCount: 2,
-    timestamp: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-    isFallback: true
-  };
-}
-
-// Função para formatar data/hora
-function formatDateTime(dateStr: string): string {
-  if (!dateStr) return new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-  
-  try {
-    const date = new Date(dateStr);
-    return date.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-  } catch {
-    return new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    return mockBaculaData;
   }
 }
 
-// Função para mapear status do Bacula para texto legível
-function getStatusText(status: string): string {
-  const statusMap: { [key: string]: string } = {
-    'T': 'Sucesso',
-    'E': 'Error',
-    'f': 'Fatal',
-    'F': 'Fatal',
-    'A': 'Canceled',
-    'R': 'Running',
-    'C': 'Created',
-    'B': 'Blocked',
-    'e': 'Non-fatal error',
-    'W': 'Warning'
-  };
-  
-  return statusMap[status] || status;
-}
-
-// Função para formatar bytes em formato legível
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
-  
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
+serve(handler);

@@ -69,9 +69,6 @@ verify_jwt = true
 [functions.send-bacula-daily-report]
 verify_jwt = true
 
-[functions.test-bacula-connection]
-verify_jwt = true
-
 [functions.wazuh-proxy]
 verify_jwt = true
 

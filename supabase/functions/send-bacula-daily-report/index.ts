@@ -234,7 +234,6 @@ serve(async (req) => {
         try {
           console.log(`🔄 Tentando estratégia: ${strategy.description}`);
           
-          // Use service role key directly for internal function call
           const baculaResponse = await retryWithBackoff(async () => {
             return await supabase.functions.invoke('bacula-proxy', {
               body: {
@@ -242,7 +241,7 @@ serve(async (req) => {
                 params: strategy.params
               },
               headers: {
-                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
               }
             });
           }, RETRY_CONFIG.maxRetries);
