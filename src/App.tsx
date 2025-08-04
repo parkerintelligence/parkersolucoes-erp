@@ -1,9 +1,8 @@
 
-import React from 'react';
+import * as React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Login from '@/pages/Login';
 import VPS from '@/pages/VPS';
 import Admin from '@/pages/Admin';
@@ -32,28 +31,19 @@ import Security from '@/pages/Security';
 import UniFi from '@/pages/UniFi';
 import { Layout } from '@/components/Layout';
 
-// Create a single QueryClient instance with better error handling
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 30000,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+// Create a single QueryClient instance
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <ErrorBoundary>
+    <AuthProvider>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <BrowserRouter>
-            <div className="min-h-screen bg-background">
-              <Routes>
-                <Route path="/" element={<Login />} />
-                <Route path="/login" element={<Login />} />
-                <Route
+        <BrowserRouter>
+          <div className="min-h-screen bg-background">
+            <Routes>
+              <Route path="/" element={<Login />} />
+              <Route path="/login" element={<Login />} />
+              <Route
                 path="/alertas"
                 element={
                   <Layout>
@@ -256,9 +246,8 @@ function App() {
             </Routes>
           </div>
         </BrowserRouter>
-        </AuthProvider>
       </QueryClientProvider>
-    </ErrorBoundary>
+    </AuthProvider>
   );
 }
 

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import * as React from 'react';
 import { ScheduledReportsPanel } from '@/components/ScheduledReportsPanel';
 
 const Automation = () => {

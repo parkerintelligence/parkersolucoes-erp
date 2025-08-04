@@ -1,5 +1,5 @@
 
-import React from 'react';
+import * as React from 'react';
 import { useState } from 'react';
 import { useRealFtp } from '@/hooks/useRealFtp';
 import { toast } from '@/hooks/use-toast';
