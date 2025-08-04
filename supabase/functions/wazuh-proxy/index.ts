@@ -7,52 +7,49 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
-console.log("🚀 Wazuh-proxy function starting...");
+console.log("Wazuh-proxy function starting...");
 
 serve(async (req) => {
-  console.log(`📥 Received ${req.method} request to wazuh-proxy`);
+  console.log(`Received ${req.method} request to wazuh-proxy`);
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log("✅ Handling CORS preflight request");
+    console.log("Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // 1. Initialize Supabase client
-    console.log("🔧 Creating Supabase client...");
+    console.log("Creating Supabase client...");
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    // 2. Authenticate user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('❌ No authorization header');
+      console.error('No authorization header');
       throw new Error('Authorization header is required');
     }
 
-    console.log("🔐 Authenticating user...");
+    console.log("Authenticating user...");
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
       authHeader.replace('Bearer ', '')
     );
 
     if (authError || !user) {
-      console.error('❌ Auth error:', authError);
+      console.error('Auth error:', authError);
       throw new Error('Unauthorized');
     }
 
-    console.log(`✅ User authenticated: ${user.id}`);
+    console.log(`User authenticated: ${user.id}`);
 
-    // 3. Parse request body
     const requestBody = await req.json();
-    const { method = 'GET', endpoint, integrationId } = requestBody;
+    const { method, endpoint, integrationId } = requestBody;
 
-    console.log('📋 Wazuh proxy request:', { method, endpoint, integrationId, userId: user.id });
+    console.log('Wazuh proxy request:', { method, endpoint, integrationId, userId: user.id });
 
-    // 4. Get Wazuh integration configuration
-    console.log("🔍 Fetching Wazuh integration...");
+    // Get Wazuh integration configuration
+    console.log("Fetching Wazuh integration...");
     const { data: integration, error: integrationError } = await supabaseClient
       .from('integrations')
       .select('*')
@@ -62,16 +59,11 @@ serve(async (req) => {
       .single();
 
     if (integrationError || !integration) {
-      console.error('❌ Integration not found:', integrationError);
+      console.error('Integration not found:', integrationError);
       throw new Error('Wazuh integration not found');
     }
 
-    console.log("✅ Integration found:", { 
-      id: integration.id, 
-      name: integration.name, 
-      is_active: integration.is_active,
-      base_url: integration.base_url?.substring(0, 50) + '...'
-    });
+    console.log("Integration found:", { id: integration.id, name: integration.name, is_active: integration.is_active });
 
     if (!integration.is_active) {
       throw new Error('Wazuh integration is not active');
@@ -80,129 +72,164 @@ serve(async (req) => {
     const { base_url, username, password } = integration;
     
     if (!base_url || !username || !password) {
-      console.error('❌ Missing integration config:', { 
-        has_base_url: !!base_url, 
-        has_username: !!username, 
-        has_password: !!password 
-      });
+      console.error('Missing integration config:', { base_url: !!base_url, username: !!username, password: !!password });
       throw new Error('Wazuh integration is not properly configured');
     }
 
-    // 5. Prepare Wazuh URL
-    let wazuhUrl = base_url.replace(/\/+$/, '');
+    // Clean up base URL - remove any trailing slashes and add port if needed
+    let cleanBaseUrl = base_url.replace(/\/+$/, '');
     
-    // Add default port 55000 if not specified
-    if (!wazuhUrl.match(/:\d+$/)) {
-      wazuhUrl = wazuhUrl + ':55000';
+    // If it's just a domain/IP without port and doesn't have a port specified, add common Wazuh ports
+    if (!cleanBaseUrl.includes(':') && !cleanBaseUrl.includes('://')) {
+      cleanBaseUrl = `https://${cleanBaseUrl}:55000`;
+    } else if (cleanBaseUrl.startsWith('http://') || cleanBaseUrl.startsWith('https://')) {
+      // If protocol is specified but no port, add default Wazuh port
+      if (!cleanBaseUrl.match(/:(\d+)/)) {
+        cleanBaseUrl = cleanBaseUrl + ':55000';
+      }
     }
 
-    // Ensure protocol
-    if (!wazuhUrl.startsWith('http')) {
-      wazuhUrl = 'https://' + wazuhUrl;
-    }
-
-    console.log(`🌐 Prepared Wazuh URL: ${wazuhUrl}`);
-
-    // 6. Create basic auth header
+    console.log(`Making direct Wazuh API request to: ${cleanBaseUrl}${endpoint}`);
+    
+    // Make direct API request with Basic Auth (more common for Wazuh)
+    const apiUrl = `${cleanBaseUrl}${endpoint}`;
     const basicAuth = btoa(`${username}:${password}`);
-    console.log(`🔑 Created basic auth for user: ${username}`);
+    
+    console.log('Using HTTP Basic Authentication for Wazuh API');
 
-    // 7. Simple connectivity test
-    console.log('🔗 Testing basic connectivity...');
-    try {
-      const testResponse = await fetch(`${wazuhUrl}`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000),
-      });
-      console.log(`✅ Connectivity test: ${testResponse.status}`);
-    } catch (connectError) {
-      console.log(`⚠️ Connectivity test failed: ${connectError.message}`);
-    }
-
-    // 8. Try authentication and API call
-    const apiUrl = `${wazuhUrl}${endpoint}`;
-    console.log(`🎯 Making API request to: ${apiUrl}`);
-
-    const apiResponse = await fetch(apiUrl, {
-      method: method,
+    // Configure fetch options with SSL handling
+    const fetchOptions = {
+      method: method || 'GET',
       headers: {
         'Authorization': `Basic ${basicAuth}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      signal: AbortSignal.timeout(15000),
-    });
+      // Add timeout and SSL handling
+      signal: AbortSignal.timeout(30000), // 30 second timeout
+    };
 
-    console.log(`📊 API Response status: ${apiResponse.status}`);
-    console.log(`📊 API Response headers:`, Object.fromEntries(apiResponse.headers.entries()));
+    console.log('Fetch options:', JSON.stringify(fetchOptions, null, 2));
+
+    const apiResponse = await fetch(apiUrl, fetchOptions);
 
     if (!apiResponse.ok) {
+      console.error('Wazuh API request failed:', apiResponse.status, apiResponse.statusText);
       const errorText = await apiResponse.text();
-      console.error(`❌ API error response (${apiResponse.status}):`, errorText);
+      console.error('Wazuh API error response:', errorText);
       
-      // Try HTTP if HTTPS failed
-      if (wazuhUrl.startsWith('https://')) {
-        console.log('🔄 Trying HTTP fallback...');
-        const httpUrl = wazuhUrl.replace('https://', 'http://');
+      // Try alternative approach with different auth if basic auth fails
+      if (apiResponse.status === 401 || apiResponse.status === 403) {
+        console.log('Basic auth failed, trying token-based authentication...');
+        
+        try {
+          // Try Wazuh's token-based authentication
+          const authResponse = await fetch(`${cleanBaseUrl}/security/user/authenticate`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Basic ${basicAuth}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (authResponse.ok) {
+            const authData = await authResponse.json();
+            const token = authData.data?.token;
+
+            if (token) {
+              console.log('Token authentication successful, retrying API request');
+              const tokenApiResponse = await fetch(apiUrl, {
+                method: method || 'GET',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+                },
+              });
+
+              if (tokenApiResponse.ok) {
+                const responseData = await tokenApiResponse.json();
+                console.log('Wazuh API response successful with token auth, data keys:', Object.keys(responseData));
+                return new Response(JSON.stringify(responseData), {
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+              }
+            }
+          }
+        } catch (tokenError) {
+          console.error('Token authentication also failed:', tokenError);
+        }
+      }
+      
+      // Try with HTTP instead of HTTPS if SSL fails
+      if (cleanBaseUrl.startsWith('https://')) {
+        console.log('HTTPS failed, trying HTTP...');
+        const httpUrl = cleanBaseUrl.replace('https://', 'http://');
         const httpApiUrl = `${httpUrl}${endpoint}`;
         
-        const httpResponse = await fetch(httpApiUrl, {
-          method: method,
-          headers: {
-            'Authorization': `Basic ${basicAuth}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          signal: AbortSignal.timeout(15000),
-        });
-
-        console.log(`📊 HTTP fallback status: ${httpResponse.status}`);
-
-        if (!httpResponse.ok) {
-          const httpErrorText = await httpResponse.text();
-          console.error(`❌ HTTP fallback also failed (${httpResponse.status}):`, httpErrorText);
-          throw new Error(`API request failed on both HTTPS and HTTP: ${httpResponse.status} ${httpResponse.statusText}`);
+        try {
+          const httpResponse = await fetch(httpApiUrl, fetchOptions);
+          if (httpResponse.ok) {
+            const contentType = httpResponse.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              const responseData = await httpResponse.json();
+              console.log('Wazuh API response successful via HTTP, data keys:', Object.keys(responseData));
+              return new Response(JSON.stringify(responseData), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              });
+            }
+          }
+        } catch (httpError) {
+          console.error('HTTP fallback also failed:', httpError);
         }
-
-        const httpData = await httpResponse.json();
-        console.log(`✅ HTTP success, returning data with ${Object.keys(httpData).length} keys`);
-        
-        return new Response(JSON.stringify(httpData), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
       }
-
-      throw new Error(`API request failed: ${apiResponse.status} ${apiResponse.statusText} - ${errorText}`);
+      
+      throw new Error(`Wazuh API request failed: ${apiResponse.statusText}`);
     }
 
-    // 9. Parse successful response
+    // Check if response is JSON
+    const contentType = apiResponse.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const responseText = await apiResponse.text();
+      console.error('Wazuh API returned non-JSON response:', responseText.substring(0, 200));
+      throw new Error('Wazuh API returned invalid response format');
+    }
+
     const responseData = await apiResponse.json();
-    console.log(`✅ API success, returning data with ${Object.keys(responseData).length} keys`);
-    console.log(`📄 Sample response:`, JSON.stringify(responseData, null, 2).substring(0, 500));
-    
+    console.log('Wazuh API response successful, data keys:', Object.keys(responseData));
+
     return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('💥 Error in wazuh-proxy function:', error);
+    console.error('Error in wazuh-proxy function:', error);
     
-    // Enhanced error response
-    const errorResponse = {
-      error: 'Wazuh API connection failed',
-      message: error.message,
-      timestamp: new Date().toISOString(),
-      suggestions: [
-        'Verify Wazuh server is running and accessible',
-        'Check username and password credentials',
-        'Ensure network/firewall allows access to Wazuh API port 55000',
-        'Try HTTP if HTTPS has SSL certificate issues'
-      ]
-    };
+    // Provide more specific error information
+    let errorMessage = 'Wazuh API connection failed';
+    let errorDetails = error.message;
     
-    return new Response(JSON.stringify(errorResponse), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    if (error.message.includes('error sending request for url')) {
+      errorMessage = 'Connection failed - check Wazuh server URL and SSL configuration';
+      errorDetails = `Unable to connect to ${cleanBaseUrl}. Please verify: 1) Server is running, 2) URL is correct, 3) SSL certificate is valid, 4) Port ${cleanBaseUrl.includes(':') ? cleanBaseUrl.split(':').pop() : '55000'} is open`;
+    }
+    
+    return new Response(
+      JSON.stringify({ 
+        error: errorMessage,
+        details: errorDetails,
+        url_attempted: `${cleanBaseUrl}${endpoint}`,
+        suggestions: [
+          'Verify Wazuh server is running',
+          'Check if URL is accessible from this environment',
+          'Verify SSL certificate is valid',
+          'Try using HTTP instead of HTTPS if SSL issues persist'
+        ]
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });

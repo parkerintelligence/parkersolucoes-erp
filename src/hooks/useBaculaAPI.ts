@@ -16,7 +16,7 @@ export const useBaculaAPI = () => {
       throw new Error('Bacula integration not configured');
     }
 
-    console.log(`🔄 Making Bacula request to endpoint: ${endpoint}`, params ? `with params: ${JSON.stringify(params)}` : '');
+    console.log(`Making Bacula request to endpoint: ${endpoint}`, params ? `with params: ${JSON.stringify(params)}` : '');
     
     try {
       const { data, error } = await supabase.functions.invoke('bacula-proxy', {
@@ -24,30 +24,14 @@ export const useBaculaAPI = () => {
       });
 
       if (error) {
-        console.error('❌ Bacula proxy error:', error);
+        console.error('Bacula proxy error:', error);
         throw new Error(error.message || 'Failed to connect to BaculaWeb');
       }
 
-      if (!data) {
-        throw new Error('No data received from Bacula proxy');
-      }
-
-      // Handle error responses from the edge function
-      if (data.error) {
-        console.error('❌ Bacula API error:', data);
-        const errorMessage = data.details || data.error || 'Unknown error from Bacula API';
-        const suggestion = data.suggestion || data.recommendation || '';
-        throw new Error(`${errorMessage}${suggestion ? ` - ${suggestion}` : ''}`);
-      }
-
-      // Log successful responses
-      if (data.success) {
-        console.log(`✅ Bacula API success: ${data.endpoint}`, data.meta || {});
-      }
-
+      console.log('Bacula API response:', data);
       return data;
     } catch (error) {
-      console.error('❌ Error in makeBaculaRequest:', error);
+      console.error('Error in makeBaculaRequest:', error);
       throw error;
     }
   };
@@ -259,19 +243,5 @@ export const useBaculaClientsConfigured = () => {
     retry: 3,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
     staleTime: 60000 // Keep data fresh for 1 minute
-  });
-};
-
-// Hook para diagnóstico completo do Bacula
-export const useBaculaDiagnostic = () => {
-  const { makeBaculaRequest, isEnabled } = useBaculaAPI();
-  
-  return useQuery({
-    queryKey: ['bacula-diagnostic'],
-    queryFn: () => makeBaculaRequest('diagnostic'),
-    enabled: false, // Só executa quando chamado manualmente
-    retry: false,
-    refetchOnWindowFocus: false,
-    staleTime: 0 // Sempre buscar dados frescos
   });
 };

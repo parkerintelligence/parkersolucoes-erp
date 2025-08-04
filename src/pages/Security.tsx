@@ -35,43 +35,16 @@ const Security = () => {
   } = useWazuhAPI();
 
   // Fetch real Wazuh data if integration is available
-  const { data: agents, isLoading: agentsLoading, error: agentsError } = useWazuhAgents(wazuhIntegration?.id || '');
-  const { data: alerts, isLoading: alertsLoading, error: alertsError } = useWazuhAlerts(wazuhIntegration?.id || '');
-  const { data: stats, isLoading: statsLoading, error: statsError } = useWazuhStats(wazuhIntegration?.id || '');
-  const { data: compliance, isLoading: complianceLoading, error: complianceError } = useWazuhCompliance(wazuhIntegration?.id || '');
-  const { data: vulnerabilities, isLoading: vulnerabilitiesLoading, error: vulnerabilitiesError } = useWazuhVulnerabilities(wazuhIntegration?.id || '');
+  const { data: agents, isLoading: agentsLoading } = useWazuhAgents(wazuhIntegration?.id || '');
+  const { data: alerts, isLoading: alertsLoading } = useWazuhAlerts(wazuhIntegration?.id || '');
+  const { data: stats, isLoading: statsLoading } = useWazuhStats(wazuhIntegration?.id || '');
+  const { data: compliance, isLoading: complianceLoading } = useWazuhCompliance(wazuhIntegration?.id || '');
+  const { data: vulnerabilities, isLoading: vulnerabilitiesLoading } = useWazuhVulnerabilities(wazuhIntegration?.id || '');
 
   const isLoadingData = agentsLoading || alertsLoading || statsLoading || complianceLoading || vulnerabilitiesLoading;
 
   // Use real data if available, otherwise use mock data
-  const hasRealData = React.useMemo(() => {
-    if (!wazuhIntegration || isLoadingData) return false;
-    
-    // Check if we have successful responses without errors
-    const hasStats = stats && !statsError;
-    const hasAgents = agents && !agentsError;
-    const hasAlerts = alerts && !alertsError;
-    const hasCompliance = compliance && !complianceError;
-    const hasVulnerabilities = vulnerabilities && !vulnerabilitiesError;
-    
-    console.log('🔍 Real data check:', { 
-      hasStats: !!hasStats,
-      hasAgents: !!hasAgents,
-      hasAlerts: !!hasAlerts,
-      hasCompliance: !!hasCompliance,
-      hasVulnerabilities: !!hasVulnerabilities,
-      errors: {
-        statsError: statsError?.message,
-        agentsError: agentsError?.message,
-        alertsError: alertsError?.message,
-        complianceError: complianceError?.message,
-        vulnerabilitiesError: vulnerabilitiesError?.message
-      }
-    });
-    
-    // We have real data if any endpoint returned successfully
-    return hasStats || hasAgents || hasAlerts || hasCompliance || hasVulnerabilities;
-  }, [wazuhIntegration, isLoadingData, stats, statsError, agents, agentsError, alerts, alertsError, compliance, complianceError, vulnerabilities, vulnerabilitiesError]);
+  const hasRealData = wazuhIntegration && stats && !isLoadingData;
   const displayData = hasRealData ? {
     agents: {
       total: stats.total_agents || 0,
