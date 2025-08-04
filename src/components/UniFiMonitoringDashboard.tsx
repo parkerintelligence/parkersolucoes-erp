@@ -17,7 +17,8 @@ import {
 } from 'lucide-react';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { useIntegrations } from '@/hooks/useIntegrations';
-import UniFiDirectSiteSelector from '@/components/UniFiDirectSiteSelector';
+import { UniFiHostSelector } from '@/components/UniFiHostSelector';
+import { UniFiSiteSelector } from '@/components/UniFiSiteSelector';
 import { UniFiDeviceManager } from '@/components/UniFiDeviceManager';
 import { UniFiClientManager } from '@/components/UniFiClientManager';
 import { useToast } from '@/hooks/use-toast';
@@ -27,11 +28,13 @@ const UniFiMonitoringDashboard = () => {
   const { toast } = useToast();
   
   const [selectedIntegration, setSelectedIntegration] = useState<string>('');
+  const [selectedHostId, setSelectedHostId] = useState<string>('');
   const [selectedSiteId, setSelectedSiteId] = useState<string>('');
   const [showRealTimeStats, setShowRealTimeStats] = useState(true);
 
   const {
-    useUniFiAllSites,
+    useUniFiHosts,
+    useUniFiSites,
     useUniFiDevices,
     useUniFiClients,
     useUniFiStats,
@@ -42,50 +45,55 @@ const UniFiMonitoringDashboard = () => {
 
   const unifiIntegrations = integrations?.filter(int => int.type === 'unifi' && int.is_active) || [];
 
-  // Get all sites directly for selected integration
+  // Queries
   const { 
-    data: allSites, 
+    data: hosts, 
+    isLoading: hostsLoading 
+  } = useUniFiHosts(selectedIntegration);
+  
+  const { 
+    data: sites, 
     isLoading: sitesLoading 
-  } = useUniFiAllSites(selectedIntegration);
-
-  console.log('Dashboard - All Sites:', allSites);
-  console.log('Dashboard - Loading states:', { 
-    sites: sitesLoading 
-  });
-
-  // Get selected site information
-  const selectedSite = allSites?.find(site => site.id === selectedSiteId);
-
+  } = useUniFiSites(selectedIntegration, selectedHostId);
+  
   const { 
     data: devices, 
     isLoading: devicesLoading 
-  } = useUniFiDevices(selectedIntegration, '', selectedSiteId);
+  } = useUniFiDevices(selectedIntegration, selectedHostId, selectedSiteId);
   
   const { 
     data: clients, 
     isLoading: clientsLoading 
-  } = useUniFiClients(selectedIntegration, '', selectedSiteId);
+  } = useUniFiClients(selectedIntegration, selectedHostId, selectedSiteId);
   
   const { 
     data: stats, 
     isLoading: statsLoading 
-  } = useUniFiStats(selectedIntegration, '', selectedSiteId);
+  } = useUniFiStats(selectedIntegration, selectedHostId, selectedSiteId);
 
-  // Auto-select first integration and site
+  // Auto-select first integration
   useEffect(() => {
     if (unifiIntegrations.length > 0 && !selectedIntegration) {
       setSelectedIntegration(unifiIntegrations[0].id);
     }
   }, [unifiIntegrations, selectedIntegration]);
 
+  // Auto-select first host
   useEffect(() => {
-    if (allSites && allSites.length > 0 && !selectedSiteId) {
-      setSelectedSiteId(allSites[0].id);
+    if (hosts && hosts.length > 0 && !selectedHostId) {
+      setSelectedHostId(hosts[0].id);
     }
-  }, [allSites, selectedSiteId]);
+  }, [hosts, selectedHostId]);
+
+  // Auto-select first site
+  useEffect(() => {
+    if (sites?.data && sites.data.length > 0 && !selectedSiteId) {
+      setSelectedSiteId(sites.data[0].id);
+    }
+  }, [sites, selectedSiteId]);
 
   const handleRefresh = () => {
-    refreshData(selectedIntegration, '', selectedSiteId);
+    refreshData(selectedIntegration, selectedHostId, selectedSiteId);
     toast({
       title: "Dados atualizados",
       description: "Informações da rede UniFi foram atualizadas.",
@@ -194,15 +202,22 @@ const UniFiMonitoringDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Direct Site Selection */}
-      {selectedIntegration && (
-        <UniFiDirectSiteSelector
-          sites={allSites || []}
+      {/* Host and Site Selectors */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <UniFiHostSelector
+          hosts={hosts || []}
+          selectedHostId={selectedHostId}
+          onHostChange={setSelectedHostId}
+          loading={hostsLoading}
+        />
+        
+        <UniFiSiteSelector
+          sites={sites?.data || []}
           selectedSiteId={selectedSiteId}
           onSiteChange={setSelectedSiteId}
           loading={sitesLoading}
         />
-      )}
+      </div>
 
       {/* Statistics Cards */}
       {showRealTimeStats && stats && (
@@ -226,48 +241,45 @@ const UniFiMonitoringDashboard = () => {
         </div>
       )}
 
-      {/* Device and Client Management */}
-      {selectedIntegration && selectedSiteId && (
-        <div className="space-y-6">
-          <UniFiDeviceManager
-            devices={devices?.data || []}
-            loading={devicesLoading}
-            restartLoading={restartDevice.isPending}
-            onRestartDevice={async (deviceId: string) => {
-              try {
-                await restartDevice.mutateAsync({
-                  integrationId: selectedIntegration,
-                  hostId: '',
-                  deviceId,
-                  siteId: selectedSiteId
-                });
-              } catch (error) {
-                console.error('Device restart failed:', error);
-              }
-            }}
-          />
+      {/* Devices Management */}
+      <UniFiDeviceManager
+        devices={devices?.data || []}
+        loading={devicesLoading}
+        restartLoading={restartDevice.isPending}
+        onRestartDevice={async (deviceId: string) => {
+          try {
+            await restartDevice.mutateAsync({
+              integrationId: selectedIntegration,
+              hostId: selectedHostId,
+              deviceId,
+              siteId: selectedSiteId
+            });
+          } catch (error) {
+            console.error('Device restart failed:', error);
+          }
+        }}
+      />
 
-          <UniFiClientManager
-            clients={clients?.data || []}
-            loading={clientsLoading}
-            blockLoading={toggleClientBlock.isPending}
-            onBlockClient={async (siteId: string, clientId: string, block: boolean) => {
-              try {
-                await toggleClientBlock.mutateAsync({
-                  integrationId: selectedIntegration,
-                  hostId: '',
-                  clientId,
-                  block,
-                  siteId: selectedSiteId
-                });
-              } catch (error) {
-                console.error('Client block/unblock failed:', error);
-              }
-            }}
-            selectedSiteId={selectedSiteId}
-          />
-        </div>
-      )}
+      {/* Clients Management */}
+      <UniFiClientManager
+        clients={clients?.data || []}
+        loading={clientsLoading}
+        blockLoading={toggleClientBlock.isPending}
+        onBlockClient={async (siteId: string, clientId: string, block: boolean) => {
+          try {
+            await toggleClientBlock.mutateAsync({
+              integrationId: selectedIntegration,
+              hostId: selectedHostId,
+              clientId,
+              block,
+              siteId: selectedSiteId
+            });
+          } catch (error) {
+            console.error('Client block/unblock failed:', error);
+          }
+        }}
+        selectedSiteId={selectedSiteId}
+      />
     </div>
   );
 };

@@ -49,14 +49,7 @@ export const UniFiHostSelector: React.FC<UniFiHostSelectorProps> = ({
                   <div className="flex items-center justify-between w-full">
                      <div className="flex items-center gap-2">
                        <Server className="h-4 w-4 text-blue-400" />
-                       <div className="flex flex-col">
-                         <span>{host.displayName || host.reportedState?.name || host.reportedState?.hostname}</span>
-                         {host.apiType && (
-                           <span className="text-xs text-gray-400">
-                             {host.apiType === 'local-controller' ? 'Controladora Local' : 'Site Manager API'}
-                           </span>
-                         )}
-                       </div>
+                       <span>{host.reportedState?.name || host.reportedState?.hostname}</span>
                        {host.sitesCount !== undefined && (
                          <Badge variant="outline" className="ml-1 text-xs">
                            {host.sitesCount} sites
@@ -89,13 +82,8 @@ export const UniFiHostSelector: React.FC<UniFiHostSelectorProps> = ({
                    <div className="flex items-center gap-2 mb-2">
                      <HardDrive className="h-4 w-4 text-blue-400" />
                      <h4 className="text-sm font-medium text-white">
-                       {selectedHost.displayName || selectedHost.reportedState?.name || selectedHost.reportedState?.hostname}
+                       {selectedHost.reportedState?.name || selectedHost.reportedState?.hostname}
                      </h4>
-                     {selectedHost.apiType && (
-                       <span className="text-xs text-gray-400 font-normal">
-                         {selectedHost.apiType === 'local-controller' ? 'Controladora Local' : 'Site Manager API'}
-                       </span>
-                     )}
                      {selectedHost.sitesCount !== undefined && (
                        <Badge variant="outline" className="text-xs">
                          {selectedHost.sitesCount} sites disponíveis

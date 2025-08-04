@@ -66,15 +66,7 @@ serve(async (req) => {
     const requestBody = await req.json();
     const { method, endpoint, integrationId, data: postData, ignore_ssl = false } = requestBody;
 
-    console.log('UniFi API request:', { 
-      method, 
-      endpoint, 
-      integrationId, 
-      userId: user.id,
-      hasPostData: !!postData,
-      postDataKeys: postData ? Object.keys(postData) : [],
-      ignoreSsl: ignore_ssl
-    });
+    console.log('UniFi API request:', { method, endpoint, integrationId, userId: user.id });
 
     // Get UniFi integration configuration
     console.log("Fetching UniFi integration...");
@@ -130,13 +122,6 @@ serve(async (req) => {
       console.log('Using UniFi Site Manager API:', baseApiUrl);
     }
     console.log('API endpoint:', endpoint);
-    console.log('Request details:', {
-      endpoint,
-      method: method || 'GET',
-      baseApiUrl,
-      isSiteManagerAPI,
-      isLocalController
-    });
 
     if (isLocalController) {
       // LOCAL CONTROLLER - Authenticate with username/password
@@ -381,11 +366,8 @@ serve(async (req) => {
         } else if (apiResponse.status === 403) {
           throw new Error('Acesso negado. Verifique as permissões do usuário na controladora.');
         } else if (apiResponse.status === 404) {
-          // Para 404, retornar uma resposta vazia ao invés de erro para endpoints de dados
-          if (endpoint.includes('/sites') || endpoint.includes('/devices') || endpoint.includes('/clients') ||
-              endpoint.includes('/stat/') || endpoint.includes('/rest/') || endpoint.includes('/insights') ||
-              endpoint.includes('/alarms') || endpoint.includes('/health') || endpoint.includes('/events') ||
-              endpoint.includes('/dpi') || endpoint.includes('/networks')) {
+          // Para 404, retornar uma resposta vazia ao invés de erro para alguns endpoints
+          if (endpoint.includes('/sites') || endpoint.includes('/devices') || endpoint.includes('/clients')) {
             console.log('404 for data endpoint, returning empty response');
             return new Response(JSON.stringify({ data: [] }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -455,9 +437,6 @@ serve(async (req) => {
         const match = endpoint.match(/\/api\/s\/([^\/]+)\/stat\/health/);
         const siteId = match ? match[1] : '';
         siteManagerEndpoint = `/ea/sites/${siteId}/health`;
-      } else if (endpoint.includes('/ea/sites/') && endpoint.includes('/insights')) {
-        // Already correct format for insights
-        siteManagerEndpoint = endpoint;
       } else if (endpoint.includes('/ea/')) {
         // Already a Site Manager API endpoint
         siteManagerEndpoint = endpoint;
@@ -470,12 +449,10 @@ serve(async (req) => {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-API-KEY': api_token,  // CORRECTED: Using X-API-KEY instead of Authorization Bearer
+          'Authorization': `Bearer ${api_token}`,
           'User-Agent': 'Lovable-UniFi-Integration/1.0'
         },
       };
-      
-      console.log('Using X-API-KEY authentication with token length:', api_token.length);
 
       if (postData && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
         requestOptions.body = JSON.stringify(postData);
@@ -495,69 +472,14 @@ serve(async (req) => {
         } else if (apiResponse.status === 403) {
           throw new Error('API Token não tem permissões necessárias para este endpoint.');
         } else if (apiResponse.status === 404) {
-          // Para 404, tentar controladora local se credenciais estão disponíveis
-          console.log('Site Manager API retornou 404, tentando fallback para controladora local...');
-          
-          // Verificar se temos credenciais para controladora local
-          if (username && password && base_url) {
-            console.log('Credenciais de controladora local disponíveis, fazendo fallback...');
-            // Fazer uma chamada recursiva com as credenciais de controladora local
-            const fallbackIntegration = {
-              ...integration,
-              api_token: null  // Remove api_token para forçar uso de controladora local
-            };
-            
-            // Atualizar temporariamente a configuração
-            const originalApiToken = integration.api_token;
-            integration.api_token = null;
-            
-            try {
-              // Recursividade controlada: chamar apenas uma vez para controladora local
-              console.log('Tentando controladora local para endpoint:', endpoint);
-              // Esta será processada pela seção de controladora local acima
-              const fallbackOptions: RequestInit = {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': req.headers.get('Authorization') || ''
-                },
-                body: JSON.stringify({
-                  method,
-                  endpoint,
-                  integrationId,
-                  data: postData,
-                  ignore_ssl: ignore_ssl,
-                  fallback_attempt: true  // Flag para evitar loop infinito
-                })
-              };
-              
-              // Restore api_token
-              integration.api_token = originalApiToken;
-              
-              // Se chegamos aqui, retornar dados vazios como fallback
-              console.log('404 for data endpoint after fallback attempt, returning empty response');
-              return new Response(JSON.stringify({ data: [] }), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              });
-              
-            } catch (fallbackError) {
-              console.error('Fallback para controladora local também falhou:', fallbackError);
-              // Restore api_token
-              integration.api_token = originalApiToken;
-              
-              // Retornar dados vazios como último recurso
-              console.log('404 for data endpoint, returning empty response');
-              return new Response(JSON.stringify({ data: [] }), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              });
-            }
-          } else {
-            // Sem credenciais de fallback, retornar dados vazios
-            console.log('404 for data endpoint, no fallback credentials available, returning empty response');
+          // Para 404, retornar uma resposta vazia ao invés de erro para alguns endpoints
+          if (endpoint.includes('/sites') || endpoint.includes('/devices') || endpoint.includes('/clients')) {
+            console.log('404 for data endpoint, returning empty response');
             return new Response(JSON.stringify({ data: [] }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
           }
+          throw new Error('Endpoint não encontrado. Verifique se o site/host existe ou se a API mudou.');
         }
         
         throw new Error(`Site Manager API request failed: ${apiResponse.status} - ${errorText}`);

@@ -3,7 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useUniFiProxy } from "./useUniFiProxy";
 
 export interface UniFiDevice {
   id: string;
@@ -56,12 +55,6 @@ export interface UniFiSite {
   role: string;
   newAlarmCount?: number;
   health?: any[];
-  siteId?: string;
-  hostId?: string;
-  meta?: any;
-  statistics?: any;
-  permission?: string;
-  isOwner?: boolean;
 }
 
 export interface UniFiHost {
@@ -94,124 +87,38 @@ export interface UniFiHost {
   isValid?: boolean;
   sites?: UniFiSite[];
   apiType?: 'site-manager' | 'local-controller';
-  displayName?: string;
 }
 
-export interface UniFiNetwork {
-  _id: string;
-  name: string;
-  purpose: string;
-  vlan_enabled?: boolean;
-  vlan?: number;
-  enabled: boolean;
-  security: string;
-  wpa_mode?: string;
-  wpa_enc?: string;
-  passphrase?: string;
-  usergroup_id?: string;
-  site_id: string;
-  networkconf_id?: string;
-  num_sta?: number;
-  tx_bytes?: number;
-  rx_bytes?: number;
-  usage?: string;
-}
-
-export interface UniFiAlarm {
-  _id: string;
-  archived: boolean;
-  categ: number;
-  datetime: string;
-  handled: boolean;
-  key: string;
-  msg: string;
-  site_id: string;
-  subsystem: string;
-  time: number;
-}
-
-export interface UniFiHealth {
-  subsystem: string;
-  status: string;
-  drops: number;
-  latency: number;
-  uptime: number;
-  xput_up: number;
-  xput_down: number;
-  speedtest_lastrun?: number;
-  speedtest_ping?: number;
-  num_user?: number;
-  num_guest?: number;
-  num_iot?: number;
-  tx_bytes_r?: number;
-  rx_bytes_r?: number;
-}
-
-export interface UniFiInsight {
-  _id: string;
-  datetime: string;
-  site_id: string;
-  subsystem: string;
-  key: string;
-  msg: string;
-  category: string;
-  severity: string;
-  app?: string;
-  bytes?: number;
-  clients?: number;
-}
-
-export interface UniFiDPIStats {
-  app: string;
-  cat: string;
-  tx_bytes: number;
-  rx_bytes: number;
-  tx_packets: number;
-  rx_packets: number;
-  known_clients: number;
-}
-
-export interface UniFiFirewallRule {
-  _id: string;
-  name: string;
-  ruleset: string;
-  rule_index: number;
-  enabled: boolean;
-  action: string;
-  protocol: string;
-  src_address?: string;
-  src_port?: string;
-  dst_address?: string;
-  dst_port?: string;
-  log?: boolean;
-  site_id: string;
-}
-
-interface UniFiSiteGroup {
+interface UniFiNetwork {
   id: string;
   name: string;
-  description: string;
-  type: 'host' | 'location' | 'function' | 'default';
-  sites: UniFiSite[];
-  hostId?: string;
-  hostName?: string;
-  totalDevices: number;
-  totalClients: number;
-  onlineDevices: number;
-  status: 'healthy' | 'warning' | 'error';
-  apiType?: 'site-manager' | 'local-controller';
+  purpose: string;
+  vlan?: number;
+  enabled: boolean;
+  isGuest?: boolean;
+  security: string;
+  wpaMode?: string;
+  wpaEncryption?: string;
+  networkGroup?: string;
+  siteId: string;
+}
+
+interface UniFiAlarm {
+  id: string;
+  time: number;
+  datetime: string;
+  message: string;
+  subsystem: string;
+  key: string;
+  siteId: string;
+  archived: boolean;
 }
 
 export const useUniFiAPI = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { makeUniFiProxyRequest } = useUniFiProxy();
 
   const makeUniFiRequest = async (endpoint: string, method: string = 'GET', integrationId: string, data?: any, ignoreSsl?: boolean) => {
-    return makeUniFiProxyRequest(method, endpoint, integrationId, data);
-  };
-
-  const makeUniFiRequestOld = async (endpoint: string, method: string = 'GET', integrationId: string, data?: any, ignoreSsl?: boolean) => {
     console.log('Making UniFi request:', { endpoint, method, integrationId, data, ignoreSsl });
     
     try {
@@ -229,79 +136,16 @@ export const useUniFiAPI = () => {
 
       if (error) {
         console.error('UniFi request error:', error);
-        
-        // Melhor tratamento de erros específicos
-        if (error.message?.includes('401') || error.message?.includes('unauthorized')) {
-          throw new Error('Token de API inválido ou expirado. Verifique o token na configuração UniFi.');
-        } else if (error.message?.includes('403') || error.message?.includes('forbidden')) {
-          throw new Error('Acesso negado. Verifique as permissões do token de API.');
-        } else if (error.message?.includes('404') || error.message?.includes('not found')) {
-          throw new Error('Endpoint não encontrado. Verifique a configuração da API.');
-        } else {
-          throw new Error(`Erro da API UniFi: ${error.message}`);
-        }
+        throw new Error(`UniFi API error: ${error.message}`);
       }
 
       console.log('Returning response:', response);
       return response;
     } catch (err) {
       console.error('Failed to invoke unifi-proxy function:', err);
-      
-      if (err instanceof Error && err.message.includes('Token de API inválido')) {
-        throw err; // Re-lançar erros específicos de token
-      }
-      
       throw new Error(`Erro na conexão com o UniFi: ${err instanceof Error ? err.message : 'Erro desconhecido'}`);
     }
   };
-
-  // Nova função para testar a conexão e token (versão API do hook)
-  const testConnectionAPI = useMutation({
-    mutationFn: async (integrationId: string) => {
-      console.log('Testing UniFi connection for integration:', integrationId);
-      
-      try {
-        // Testar endpoint básico da Site Manager API
-        const response = await makeUniFiRequest('/ea/hosts', 'GET', integrationId);
-        
-        console.log('Connection test successful:', response);
-        return {
-          success: true,
-          message: 'Conexão com UniFi Site Manager API estabelecida com sucesso!',
-          data: response
-        };
-      } catch (error) {
-        console.error('Connection test failed:', error);
-        return {
-          success: false,
-          message: error instanceof Error ? error.message : 'Erro desconhecido na conexão',
-          error
-        };
-      }
-    },
-    onSuccess: (result) => {
-      if (result.success) {
-        toast({
-          title: "Conexão bem-sucedida",
-          description: result.message,
-        });
-      } else {
-        toast({
-          title: "Falha na conexão",
-          description: result.message,
-          variant: "destructive",
-        });
-      }
-    },
-    onError: (error) => {
-      console.error('Test connection mutation error:', error);
-      toast({
-        title: "Erro no teste de conexão",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
-        variant: "destructive",
-      });
-    }
-  });
 
   // Enhanced Hosts - buscar controladoras disponíveis (priorizar Site Manager API)
   const useUniFiHosts = (integrationId: string) => {
@@ -309,101 +153,28 @@ export const useUniFiAPI = () => {
       queryKey: ['unifi-hosts', integrationId],
       queryFn: async () => {
         try {
-          // Tentar Site Manager API primeiro (/v1/hosts e /ea/hosts)
+          // Sempre tentar Site Manager API primeiro (/ea/hosts)
           console.log('Tentando Site Manager API hosts...');
+          const response = await makeUniFiRequest('/ea/hosts', 'GET', integrationId);
+          console.log('Site Manager API hosts response:', response);
           
-          let hostsData: any[] = [];
-          
-          // Primeiro tentar /v1/hosts
-          try {
-            const v1Response = await makeUniFiRequest('/v1/hosts', 'GET', integrationId);
-            console.log('Site Manager API /v1/hosts response:', v1Response);
-            
-            if (v1Response?.data && Array.isArray(v1Response.data)) {
-              hostsData = v1Response.data;
-              console.log('✅ Usando Site Manager API /v1/hosts, hosts encontrados:', hostsData.length);
-            }
-          } catch (v1Error) {
-            console.log('❌ /v1/hosts falhou, tentando /ea/hosts...');
-            
-            // Fallback para /ea/hosts
-            const eaResponse = await makeUniFiRequest('/ea/hosts', 'GET', integrationId);
-            console.log('Site Manager API /ea/hosts response:', eaResponse);
-            
-            if (eaResponse?.data && Array.isArray(eaResponse.data)) {
-              hostsData = eaResponse.data;
-              console.log('✅ Usando Site Manager API /ea/hosts, hosts encontrados:', hostsData.length);
-            }
+          if (response?.data && Array.isArray(response.data) && response.data.length > 0) {
+            // Site Manager API response
+            console.log('✅ Usando Site Manager API hosts');
+            return response.data.map((host: any) => ({
+              ...host,
+              sitesCount: 0, // Will be populated by sites query
+              isValid: true,
+              apiType: 'site-manager'
+            }));
           }
           
-          if (hostsData.length > 0) {
-            // Para cada host, buscar seus sites e popular o array
-            const hostsWithSites = await Promise.allSettled(
-              hostsData.map(async (host: any) => {
-                try {
-                  console.log(`Buscando sites para host ${host.id}...`);
-                  
-                  // Tentar diferentes endpoints para sites
-                  let sitesData: any[] = [];
-                  
-                  // Tentar /v1/hosts/{id}/sites primeiro
-                  try {
-                    const sitesV1Response = await makeUniFiRequest(`/v1/hosts/${host.id}/sites`, 'GET', integrationId);
-                    if (sitesV1Response?.data && Array.isArray(sitesV1Response.data)) {
-                      sitesData = sitesV1Response.data;
-                      console.log(`✅ Sites encontrados via /v1/hosts/${host.id}/sites:`, sitesData.length);
-                    }
-                  } catch (v1SitesError) {
-                    console.log(`❌ /v1/hosts/${host.id}/sites falhou, tentando /ea/hosts/${host.id}/sites...`);
-                    
-                    // Fallback para /ea/hosts/{id}/sites
-                    try {
-                      const sitesEaResponse = await makeUniFiRequest(`/ea/hosts/${host.id}/sites`, 'GET', integrationId);
-                      if (sitesEaResponse?.data && Array.isArray(sitesEaResponse.data)) {
-                        sitesData = sitesEaResponse.data;
-                        console.log(`✅ Sites encontrados via /ea/hosts/${host.id}/sites:`, sitesData.length);
-                      }
-                    } catch (eaSitesError) {
-                      console.log(`❌ Ambos endpoints de sites falharam para host ${host.id}`);
-                    }
-                  }
-
-                  return {
-                    ...host,
-                    sites: sitesData || [],
-                    sitesCount: sitesData?.length || 0,
-                    isValid: true,
-                    apiType: 'site-manager'
-                  };
-                } catch (error) {
-                  console.error(`Erro ao buscar sites para host ${host.id}:`, error);
-                  return {
-                    ...host,
-                    sites: [],
-                    sitesCount: 0,
-                    isValid: false,
-                    apiType: 'site-manager'
-                  };
-                }
-              })
-            );
-
-            // Filtrar apenas hosts que foram resolvidos com sucesso
-            const validHosts = hostsWithSites
-              .filter(result => result.status === 'fulfilled')
-              .map(result => (result as any).value)
-              .filter(host => host.isValid || host.sites?.length > 0);
-
-            if (validHosts.length > 0) {
-              console.log('✅ Hosts válidos com sites encontrados:', validHosts.length);
-              return validHosts;
-            }
-          }
-          
-          throw new Error('Site Manager API não disponível ou sem dados, tentando local controller');
+          // Se chegou aqui, não há dados do Site Manager API ou é controladora local
+          console.log('❌ Site Manager API não retornou hosts, tentando controladora local...');
+          throw new Error('Site Manager API não disponível, tentando local controller');
           
         } catch (error) {
-          console.log('Site Manager API falhou completamente, tentando controladora local:', error.message);
+          console.log('Site Manager API falhou, tentando controladora local:', error.message);
           
           try {
             // Fallback to local controller approach
@@ -419,7 +190,7 @@ export const useUniFiAPI = () => {
 
             console.log('✅ Usando controladora local, sites encontrados:', sites.length);
 
-            // For local controller, create a virtual host with the sites
+            // For local controller, create a virtual host
             const virtualHost = {
               id: 'local-controller',
               hardwareId: 'local-controller',
@@ -440,7 +211,7 @@ export const useUniFiAPI = () => {
                 firmware_version: null,
                 hardware_id: 'local-controller',
                 host_type: 0,
-                hostname: 'UniFi Network (Local Controller)',
+                hostname: 'Local UniFi Controller',
                 inform_port: 8080,
                 ipAddrs: ['local'],
                 mgmt_port: 8443,
@@ -453,8 +224,7 @@ export const useUniFiAPI = () => {
               sitesCount: sites.length,
               isValid: sites.length > 0,
               sites: sites, // Cache sites data
-              apiType: 'local-controller',
-              displayName: 'UniFi Network' // Garantir que o nome seja exibido corretamente
+              apiType: 'local-controller'
             };
 
             return [virtualHost];
@@ -525,15 +295,13 @@ export const useUniFiAPI = () => {
       queryFn: async () => {
         if (!siteId) return { data: [] };
         
-        console.log(`🔍 Carregando devices para site: ${siteId}`);
-        
         // Tentar Site Manager API primeiro
         try {
           console.log(`Tentando Site Manager API devices para site ${siteId}...`);
           const siteManagerResponse = await makeUniFiRequest(`/ea/sites/${siteId}/devices`, 'GET', integrationId);
           
           if (siteManagerResponse?.data && Array.isArray(siteManagerResponse.data)) {
-            console.log('✅ Usando Site Manager API devices, encontrados:', siteManagerResponse.data.length);
+            console.log('✅ Usando Site Manager API devices');
             return siteManagerResponse;
           }
         } catch (error) {
@@ -543,11 +311,9 @@ export const useUniFiAPI = () => {
         // Fallback para controladora local
         const endpoint = `/api/s/${siteId}/stat/device`;
         console.log('✅ Usando controladora local devices');
-        const localResponse = await makeUniFiRequest(endpoint, 'GET', integrationId);
-        console.log('Devices encontrados via controladora local:', localResponse?.data?.length || 0);
-        return localResponse;
+        return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!siteId,
+      enabled: !!integrationId && !!hostId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
@@ -560,15 +326,13 @@ export const useUniFiAPI = () => {
       queryFn: async () => {
         if (!siteId) return { data: [] };
         
-        console.log(`🔍 Carregando clients para site: ${siteId}`);
-        
         // Tentar Site Manager API primeiro
         try {
           console.log(`Tentando Site Manager API clients para site ${siteId}...`);
           const siteManagerResponse = await makeUniFiRequest(`/ea/sites/${siteId}/clients`, 'GET', integrationId);
           
           if (siteManagerResponse?.data && Array.isArray(siteManagerResponse.data)) {
-            console.log('✅ Usando Site Manager API clients, encontrados:', siteManagerResponse.data.length);
+            console.log('✅ Usando Site Manager API clients');
             return siteManagerResponse;
           }
         } catch (error) {
@@ -578,11 +342,9 @@ export const useUniFiAPI = () => {
         // Fallback para controladora local
         const endpoint = `/api/s/${siteId}/stat/sta`;
         console.log('✅ Usando controladora local clients');
-        const localResponse = await makeUniFiRequest(endpoint, 'GET', integrationId);
-        console.log('Clients encontrados via controladora local:', localResponse?.data?.length || 0);
-        return localResponse;
+        return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!siteId,
+      enabled: !!integrationId && !!hostId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
@@ -596,7 +358,7 @@ export const useUniFiAPI = () => {
         const endpoint = siteId ? `/api/s/${siteId}/rest/wlanconf` : '/api/rest/wlanconf';
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!siteId,
+      enabled: !!integrationId && !!hostId,
       staleTime: 60000, // 1 minute
       retry: 2,
     });
@@ -610,7 +372,7 @@ export const useUniFiAPI = () => {
         const endpoint = siteId ? `/api/s/${siteId}/stat/alarm` : '/api/stat/alarm';
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!siteId,
+      enabled: !!integrationId && !!hostId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
@@ -624,137 +386,8 @@ export const useUniFiAPI = () => {
         const endpoint = siteId ? `/api/s/${siteId}/stat/health` : '/api/stat/health';
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!siteId,
+      enabled: !!integrationId && !!hostId,
       staleTime: 30000, // 30 seconds
-      retry: 2,
-    });
-  };
-
-  // NEW EXPANDED FUNCTIONALITY HOOKS
-
-  // Insights - Site Manager API only
-  const useUniFiInsights = (integrationId: string, siteId?: string) => {
-    return useQuery({
-      queryKey: ['unifi-insights', integrationId, siteId],
-      queryFn: async () => {
-        if (!siteId) return { data: [] };
-        
-        // Try Site Manager API
-        try {
-          const response = await makeUniFiRequest(`/ea/sites/${siteId}/insights`, 'GET', integrationId);
-          return response;
-        } catch (error) {
-          console.log('Insights not available:', error);
-          return { data: [] };
-        }
-      },
-      enabled: !!integrationId && !!siteId,
-      staleTime: 5 * 60000, // 5 minutes
-      retry: 1,
-    });
-  };
-
-  // DPI Statistics - Local Controller
-  const useUniFiDPI = (integrationId: string, siteId?: string) => {
-    return useQuery({
-      queryKey: ['unifi-dpi', integrationId, siteId],
-      queryFn: () => {
-        const endpoint = siteId ? `/api/s/${siteId}/stat/dpi` : '/api/stat/dpi';
-        return makeUniFiRequest(endpoint, 'GET', integrationId);
-      },
-      enabled: !!integrationId && !!siteId,
-      staleTime: 2 * 60000, // 2 minutes
-      retry: 2,
-    });
-  };
-
-  // Firewall Rules - Local Controller
-  const useUniFiFirewall = (integrationId: string, siteId?: string) => {
-    return useQuery({
-      queryKey: ['unifi-firewall', integrationId, siteId],
-      queryFn: () => {
-        const endpoint = siteId ? `/api/s/${siteId}/rest/firewallrule` : '/api/rest/firewallrule';
-        return makeUniFiRequest(endpoint, 'GET', integrationId);
-      },
-      enabled: !!integrationId && !!siteId,
-      staleTime: 5 * 60000, // 5 minutes
-      retry: 2,
-    });
-  };
-
-  // Events - Local Controller
-  const useUniFiEvents = (integrationId: string, siteId?: string) => {
-    return useQuery({
-      queryKey: ['unifi-events', integrationId, siteId],
-      queryFn: () => {
-        const endpoint = siteId ? `/api/s/${siteId}/stat/event` : '/api/stat/event';
-        return makeUniFiRequest(endpoint, 'GET', integrationId);
-      },
-      enabled: !!integrationId && !!siteId,
-      staleTime: 30000, // 30 seconds
-      retry: 2,
-    });
-  };
-
-  // Topology - Site Manager API
-  const useUniFiTopology = (integrationId: string, siteId?: string) => {
-    return useQuery({
-      queryKey: ['unifi-topology', integrationId, siteId],
-      queryFn: async () => {
-        if (!siteId) return { data: [] };
-        
-        try {
-          const response = await makeUniFiRequest(`/ea/sites/${siteId}/topology`, 'GET', integrationId);
-          return response;
-        } catch (error) {
-          console.log('Topology not available:', error);
-          return { data: [] };
-        }
-      },
-      enabled: !!integrationId && !!siteId,
-      staleTime: 2 * 60000, // 2 minutes
-      retry: 1,
-    });
-  };
-
-  // Port Forward Rules - Local Controller
-  const useUniFiPortForwards = (integrationId: string, siteId?: string) => {
-    return useQuery({
-      queryKey: ['unifi-portforwards', integrationId, siteId],
-      queryFn: () => {
-        const endpoint = siteId ? `/api/s/${siteId}/rest/portforward` : '/api/rest/portforward';
-        return makeUniFiRequest(endpoint, 'GET', integrationId);
-      },
-      enabled: !!integrationId && !!siteId,
-      staleTime: 5 * 60000, // 5 minutes
-      retry: 2,
-    });
-  };
-
-  // Site Configuration - Local Controller
-  const useUniFiSiteConfig = (integrationId: string, siteId?: string) => {
-    return useQuery({
-      queryKey: ['unifi-site-config', integrationId, siteId],
-      queryFn: () => {
-        const endpoint = siteId ? `/api/s/${siteId}/get/setting` : '/api/get/setting';
-        return makeUniFiRequest(endpoint, 'GET', integrationId);
-      },
-      enabled: !!integrationId && !!siteId,
-      staleTime: 10 * 60000, // 10 minutes
-      retry: 2,
-    });
-  };
-
-  // Vouchers - Local Controller
-  const useUniFiVouchers = (integrationId: string, siteId?: string) => {
-    return useQuery({
-      queryKey: ['unifi-vouchers', integrationId, siteId],
-      queryFn: () => {
-        const endpoint = siteId ? `/api/s/${siteId}/stat/voucher` : '/api/stat/voucher';
-        return makeUniFiRequest(endpoint, 'GET', integrationId);
-      },
-      enabled: !!integrationId && !!siteId,
-      staleTime: 5 * 60000, // 5 minutes
       retry: 2,
     });
   };
@@ -793,7 +426,7 @@ export const useUniFiAPI = () => {
           clients
         };
       },
-      enabled: !!integrationId && !!siteId,
+      enabled: !!integrationId && !!hostId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
@@ -851,8 +484,8 @@ export const useUniFiAPI = () => {
     },
   });
 
-  // Test connection - priorizar Site Manager API (não usar este)
-  const testUniFiConnectionLegacy = useMutation({
+  // Test connection - priorizar Site Manager API
+  const testUniFiConnection = useMutation({
     mutationFn: async (integrationId: string) => {
       try {
         // Sempre tentar Site Manager API primeiro
@@ -932,7 +565,6 @@ export const useUniFiAPI = () => {
 
   const refreshData = (integrationId: string, hostId?: string, siteId?: string) => {
     queryClient.invalidateQueries({ queryKey: ['unifi-hosts', integrationId] });
-    queryClient.invalidateQueries({ queryKey: ['unifi-site-groups', integrationId] });
     queryClient.invalidateQueries({ queryKey: ['unifi-sites', integrationId, hostId] });
     queryClient.invalidateQueries({ queryKey: ['unifi-devices', integrationId, hostId, siteId] });
     queryClient.invalidateQueries({ queryKey: ['unifi-clients', integrationId, hostId, siteId] });
@@ -942,186 +574,16 @@ export const useUniFiAPI = () => {
     queryClient.invalidateQueries({ queryKey: ['unifi-stats', integrationId, hostId, siteId] });
   };
 
-  // Direct Sites query - fetch all available sites from multiple endpoints
-  const useUniFiAllSites = (integrationId: string) => {
-    return useQuery({
-      queryKey: ['unifi-all-sites', integrationId],
-      queryFn: async () => {
-        if (!integrationId) return [];
-        
-        console.log('Fetching all UniFi sites directly for integration:', integrationId);
-        
-        const allSites: (UniFiSite & { sourceType: string, sourceEndpoint: string })[] = [];
-        
-        // Try multiple endpoints to find sites
-        const endpoints = [
-          { path: '/ea/sites', type: 'Site Manager EA' },
-          { path: '/v1/sites', type: 'Site Manager V1' },
-          { path: '/api/self/sites', type: 'Local Controller Self' },
-          { path: '/api/sites', type: 'Local Controller' }
-        ];
-        
-        for (const endpoint of endpoints) {
-          try {
-            console.log(`Trying endpoint: ${endpoint.path} (${endpoint.type})`);
-            
-            const sitesData = await makeUniFiRequest(
-              endpoint.path,
-              'GET',
-              integrationId
-            );
-            
-            let sites = [];
-            if (sitesData?.data && Array.isArray(sitesData.data)) {
-              sites = sitesData.data;
-            } else if (Array.isArray(sitesData)) {
-              sites = sitesData;
-            }
-            
-            if (sites.length > 0) {
-              console.log(`Raw sites from ${endpoint.type}:`, sites);
-              
-              // Normalize site data structure based on API response format
-              const normalizedSites = sites.map(site => {
-                // Site Manager API returns: siteId, hostId, meta.desc, meta.name
-                // Local Controller API returns: _id, name, desc
-                const normalizedSite = {
-                  id: site.siteId || site._id || site.id || site.name,
-                  name: site.meta?.desc || site.desc || site.meta?.name || site.name || 'Site sem nome',
-                  desc: site.meta?.desc || site.desc || site.meta?.name || site.name,
-                  siteId: site.siteId || site._id || site.id,
-                  hostId: site.hostId,
-                  meta: site.meta || {},
-                  statistics: site.statistics || {},
-                  permission: site.permission,
-                  isOwner: site.isOwner,
-                  sourceType: endpoint.type,
-                  sourceEndpoint: endpoint.path,
-                  ...site
-                };
-                
-                console.log(`Normalized site from ${site.siteId || site._id}:`, normalizedSite);
-                return normalizedSite;
-              });
-              
-              allSites.push(...normalizedSites);
-            }
-          } catch (error) {
-            console.log(`Endpoint ${endpoint.path} failed:`, error);
-          }
-        }
-        
-        // Remove duplicates based on siteId
-        const uniqueSites = allSites.filter((site, index, self) =>
-          index === self.findIndex(s => (s.siteId || s.id) === (site.siteId || site.id))
-        );
-        
-        console.log(`Total unique sites found: ${uniqueSites.length}`);
-        console.log('Final unique sites:', uniqueSites);
-        
-        return uniqueSites;
-      },
-      enabled: !!integrationId,
-      staleTime: 2 * 60 * 1000, // 2 minutes
-      retry: 2
-    });
-  };
-
-  // Site Groups query - group sites by logical categories (DEPRECATED - use useUniFiAllSites)
-  const useUniFiSiteGroups = (integrationId: string) => {
-    const hostsQuery = useUniFiHosts(integrationId);
-    
-    return useQuery({
-      queryKey: ['unifi-site-groups', integrationId, hostsQuery.data],
-      queryFn: async () => {
-        if (!integrationId) return [];
-        
-        console.log('Generating site groups for integration:', integrationId);
-        console.log('Hosts query data:', hostsQuery.data);
-        
-        // Get all hosts with their sites
-        const hostsData = hostsQuery.data;
-        if (!hostsData || hostsData.length === 0) {
-          console.log('No hosts data available for site groups');
-          return [];
-        }
-
-        const groups: UniFiSiteGroup[] = [];
-        
-        // Create groups by host
-        for (const host of hostsData) {
-          if (host.sites && host.sites.length > 0) {
-            // Calculate aggregated stats for this group
-            let totalDevices = 0;
-            let totalClients = 0;
-            let onlineDevices = 0;
-            
-            // Note: We'll need to fetch device/client data to get accurate counts
-            // For now, we'll use placeholder values or estimated counts
-            
-            const group: UniFiSiteGroup = {
-              id: `host-${host.id}`,
-              name: host.displayName || host.reportedState?.name || host.reportedState?.hostname || `Host ${host.id}`,
-              description: `${host.sites.length} sites ${host.apiType === 'local-controller' ? '(Controladora Local)' : '(Site Manager)'}`,
-              type: 'host',
-              sites: host.sites,
-              hostId: host.id,
-              hostName: host.displayName || host.reportedState?.name || host.reportedState?.hostname,
-              totalDevices,
-              totalClients,
-              onlineDevices,
-              status: 'healthy', // TODO: Calculate based on sites health
-              apiType: host.apiType
-            };
-            
-            groups.push(group);
-          }
-        }
-        
-        // If no groups created, create a default group
-        if (groups.length === 0) {
-          groups.push({
-            id: 'default',
-            name: 'Sites Disponíveis',
-            description: 'Sites sem agrupamento específico',
-            type: 'default',
-            sites: [],
-            totalDevices: 0,
-            totalClients: 0,
-            onlineDevices: 0,
-            status: 'healthy'
-          });
-        }
-        
-        console.log('Generated site groups:', groups);
-        return groups;
-      },
-      enabled: !!integrationId && hostsQuery.isSuccess,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    });
-  };
-
   return {
     // Hybrid hooks (work with both APIs)
     useUniFiHosts,
     useUniFiSites,
-    useUniFiSiteGroups,
-    useUniFiAllSites, // NEW: Direct site fetching
     useUniFiDevices,
     useUniFiClients,
     useUniFiNetworks,
     useUniFiAlarms,
     useUniFiHealth,
     useUniFiStats,
-    // NEW EXPANDED FUNCTIONALITY HOOKS
-    useUniFiInsights,
-    useUniFiDPI,
-    useUniFiFirewall,
-    useUniFiEvents,
-    useUniFiTopology,
-    useUniFiPortForwards,
-    useUniFiSiteConfig,
-    useUniFiVouchers,
     // Site Manager API specific hooks
     useUniFiSiteManagerHosts,
     useUniFiSiteManagerSites,
@@ -1130,8 +592,7 @@ export const useUniFiAPI = () => {
     // Mutations
     restartDevice,
     toggleClientBlock,
-    testUniFiConnection: testConnectionAPI,
-    testConnectionAPI,
+    testUniFiConnection,
     refreshData,
   };
 };

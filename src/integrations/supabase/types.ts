@@ -575,7 +575,7 @@ export type Database = {
       integrations: {
         Row: {
           api_token: string | null
-          base_url: string | null
+          base_url: string
           bucket_name: string | null
           created_at: string
           directory: string | null
@@ -599,7 +599,7 @@ export type Database = {
         }
         Insert: {
           api_token?: string | null
-          base_url?: string | null
+          base_url: string
           bucket_name?: string | null
           created_at?: string
           directory?: string | null
@@ -623,7 +623,7 @@ export type Database = {
         }
         Update: {
           api_token?: string | null
-          base_url?: string | null
+          base_url?: string
           bucket_name?: string | null
           created_at?: string
           directory?: string | null
