@@ -97,7 +97,7 @@ const WazuhAdminConfig = () => {
         console.log('🔄 Atualizando integração existente...');
         await updateIntegration.mutateAsync({
           id: wazuhIntegration.id,
-          ...integrationData
+          updates: integrationData
         });
         console.log('✅ Integração atualizada com sucesso');
       } else {
