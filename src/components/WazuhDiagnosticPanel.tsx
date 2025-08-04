@@ -37,7 +37,11 @@ export function WazuhDiagnosticPanel() {
     }
 
     try {
-      const result = await testWazuhConnection.mutateAsync(wazuhIntegration.id);
+      const result = await testWazuhConnection.mutateAsync({
+        endpoint: '/test-connectivity',
+        method: 'GET',
+        integrationId: wazuhIntegration.id
+      });
       
       toast({
         title: "Connection Test Successful",
@@ -76,11 +80,24 @@ export function WazuhDiagnosticPanel() {
     );
   }
 
-  // Access integration properties directly since they're stored in the table columns
-  const config = {
-    base_url: (wazuhIntegration as any).base_url,
-    username: (wazuhIntegration as any).username
-  };
+  // Access integration properties - handle both config object and direct properties
+  const config = (() => {
+    const integration = wazuhIntegration as any;
+    
+    if (integration.config && integration.config.baseUrl) {
+      // New structure with config object
+      return {
+        base_url: integration.config.baseUrl,
+        username: integration.config.username
+      };
+    } else {
+      // Old structure with direct columns
+      return {
+        base_url: integration.base_url,
+        username: integration.username
+      };
+    }
+  })();
 
   return (
     <Card className="bg-slate-800 border-slate-700">

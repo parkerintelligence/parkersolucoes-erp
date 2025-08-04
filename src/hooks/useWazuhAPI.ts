@@ -236,20 +236,33 @@ export const useWazuhAPI = () => {
   };
 
   const testWazuhConnection = useMutation({
-    mutationFn: async (integrationId: string) => {
+    mutationFn: async (params: { endpoint: string; method: string; integrationId: string }) => {
+      const { endpoint, method, integrationId } = params;
+      
+      console.log('Testing Wazuh connection with params:', params);
+      
       // Test connectivity first
       const connectivityData = await makeWazuhRequest('/test-connectivity', 'GET', integrationId);
+      
+      console.log('Connectivity test data:', connectivityData);
       
       if (!connectivityData.connectivity?.success) {
         throw new Error(`Connection failed: ${connectivityData.connectivity?.error || 'Unknown error'}`);
       }
       
-      // Try to fetch basic info
-      const data = await makeWazuhRequest('/v1?pretty=true', 'GET', integrationId);
+      // Try to fetch basic info if not just testing connectivity
+      let apiData = null;
+      if (endpoint !== '/test-connectivity') {
+        try {
+          apiData = await makeWazuhRequest('/v1?pretty=true', 'GET', integrationId);
+        } catch (error) {
+          console.log('API info fetch failed, but connectivity works:', error);
+        }
+      }
       
       return {
         success: true,
-        data: data,
+        data: apiData,
         connectivity: connectivityData,
         message: `Connection successful using ${connectivityData.connectivity.method.toUpperCase()} protocol`
       };

@@ -138,8 +138,12 @@ serve(async (req) => {
         .single()
 
       if (integrationError || !integration) {
+        console.error("Integration error in test:", integrationError);
         return new Response(
-          JSON.stringify({ error: 'Wazuh integration not found or not active' }),
+          JSON.stringify({ 
+            error: 'Wazuh integration not found or not active',
+            details: integrationError?.message || 'No integration found'
+          }),
           {
             status: 404,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -147,7 +151,20 @@ serve(async (req) => {
         )
       }
 
-      const { base_url, username, password } = integration
+      // Handle both old and new integration data structure
+      let base_url, username, password;
+      
+      if (integration.config && integration.config.baseUrl) {
+        // New structure with config object
+        base_url = integration.config.baseUrl;
+        username = integration.config.username;
+        password = integration.config.password;
+      } else {
+        // Old structure with direct columns
+        base_url = integration.base_url;
+        username = integration.username;
+        password = integration.password;
+      }
       if (!base_url || !username || !password) {
         return new Response(
           JSON.stringify({ error: 'Wazuh integration configuration incomplete' }),
@@ -187,8 +204,12 @@ serve(async (req) => {
       .single()
 
     if (integrationError || !integration) {
+      console.error("Integration error:", integrationError);
       return new Response(
-        JSON.stringify({ error: 'Wazuh integration not found or not active' }),
+        JSON.stringify({ 
+          error: 'Wazuh integration not found or not active',
+          details: integrationError?.message || 'No integration found'
+        }),
         {
           status: 404,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -199,10 +220,31 @@ serve(async (req) => {
     console.log("Integration found:", {
       id: integration.id,
       name: integration.name,
-      is_active: integration.is_active
+      is_active: integration.is_active,
+      config_keys: integration.config ? Object.keys(integration.config) : 'no config'
     });
 
-    const { base_url, username, password } = integration
+    // Handle both old and new integration data structure
+    let base_url, username, password;
+    
+    if (integration.config && integration.config.baseUrl) {
+      // New structure with config object
+      base_url = integration.config.baseUrl;
+      username = integration.config.username;
+      password = integration.config.password;
+    } else {
+      // Old structure with direct columns
+      base_url = integration.base_url;
+      username = integration.username;
+      password = integration.password;
+    }
+
+    console.log("Extracted credentials:", {
+      has_base_url: !!base_url,
+      has_username: !!username,
+      has_password: !!password,
+      base_url_preview: base_url ? base_url.substring(0, 20) + '...' : 'none'
+    });
     
     if (!base_url || !username || !password) {
       return new Response(
