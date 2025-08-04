@@ -4,30 +4,18 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useHostingerIntegrations, useHostingerSnapshots, useHostingerVPS } from '@/hooks/useHostingerAPI';
+import { useHostingerIntegrations, useHostingerVPS } from '@/hooks/useHostingerAPI';
 import { Camera, Calendar, HardDrive, Search, Filter, RefreshCw, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const SnapshotsGrid = () => {
   const [selectedIntegration, setSelectedIntegration] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'created_at' | 'size'>('created_at');
   
   const { 
     data: integrations, 
     isLoading: integrationsLoading 
   } = useHostingerIntegrations();
-  
-  const { 
-    data: vpsList 
-  } = useHostingerVPS(selectedIntegration);
-  
-  const { 
-    data: snapshots, 
-    isLoading: snapshotsLoading,
-    refetch: refetchSnapshots 
-  } = useHostingerSnapshots(selectedIntegration);
 
   // Auto-select first integration
   React.useEffect(() => {
@@ -36,61 +24,6 @@ const SnapshotsGrid = () => {
     }
   }, [integrations, selectedIntegration]);
 
-  const handleRefresh = () => {
-    refetchSnapshots();
-  };
-
-  const filteredSnapshots = React.useMemo(() => {
-    if (!snapshots) return [];
-    
-    let filtered = snapshots.filter((snapshot: any) =>
-      snapshot.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      snapshot.id?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    // Sort snapshots
-    filtered.sort((a: any, b: any) => {
-      switch (sortBy) {
-        case 'name':
-          return (a.name || '').localeCompare(b.name || '');
-        case 'size':
-          return (b.size || 0) - (a.size || 0);
-        case 'created_at':
-        default:
-          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-      }
-    });
-
-    return filtered;
-  }, [snapshots, searchTerm, sortBy]);
-
-  const getVPSName = (vpsId: string) => {
-    const vps = vpsList?.find((v: any) => v.id === vpsId);
-    return vps?.name || vps?.hostname || vpsId;
-  };
-
-  const formatSize = (bytes: number) => {
-    if (!bytes) return 'N/A';
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'completed':
-      case 'available':
-        return 'bg-green-900/20 text-green-400 border-green-600';
-      case 'creating':
-      case 'pending':
-        return 'bg-yellow-900/20 text-yellow-400 border-yellow-600';
-      case 'error':
-      case 'failed':
-        return 'bg-red-900/20 text-red-400 border-red-600';
-      default:
-        return 'bg-slate-700 text-slate-300 border-slate-600';
-    }
-  };
 
   if (integrationsLoading) {
     return (
