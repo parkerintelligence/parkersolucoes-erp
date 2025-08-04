@@ -34,18 +34,26 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- PWA Service Worker Registration -->
+    <!-- PWA Service Worker Registration - DISABLED -->
     <script>
+      // Desabilitar service worker para limpar cache
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registered: ', registration);
-            })
-            .catch((registrationError) => {
-              console.log('SW registration failed: ', registrationError);
-            });
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            console.log('Desregistrando service worker:', registration);
+            registration.unregister();
+          }
         });
+        
+        // Limpar todos os caches
+        if ('caches' in window) {
+          caches.keys().then(names => {
+            names.forEach(name => {
+              console.log('Limpando cache:', name);
+              caches.delete(name);
+            });
+          });
+        }
       }
     </script>
   </body>
