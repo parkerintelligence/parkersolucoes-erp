@@ -48,804 +48,689 @@ interface BaculaJob {
 
 interface BaculaApiResponse {
   jobs?: BaculaJob[];
-  result?: BaculaJob[];
-  data?: BaculaJob[];
-  output?: BaculaJob[];
-  [key: string]: any;
-}
-
-// Função para transformar dados de jobs configurados em estrutura consistente
-function transformConfiguredJobs(data: any): any {
-  console.log('🔄 Transformando dados de jobs configurados:', typeof data, Object.keys(data || {}));
-  
-  if (!data) return { output: [], total: 0 };
-  
-  let jobs: any[] = [];
-  
-  // Se os dados vêm como objeto com jobs
-  if (data.output && typeof data.output === 'object') {
-    if (Array.isArray(data.output)) {
-      jobs = data.output;
-    } else {
-      // Converter objeto para array
-      jobs = Object.entries(data.output).map(([key, value]: [string, any]) => ({
-        name: value.name || value.Name || key,
-        jobname: value.name || value.Name || key,
-        type: value.type || value.Type || value.JobType || 'B',
-        client: value.client || value.Client || value.ClientName || 'Unknown',
-        level: value.level || value.Level || 'Full',
-        schedule: value.schedule || value.Schedule || '',
-        pool: value.pool || value.Pool || '',
-        storage: value.storage || value.Storage || '',
-        fileset: value.fileset || value.FileSet || '',
-        enabled: value.enabled !== false,
-        ...value
-      }));
-    }
-  } else if (data.result && Array.isArray(data.result)) {
-    jobs = data.result;
-  } else if (Array.isArray(data)) {
-    jobs = data;
-  } else if (typeof data === 'object') {
-    // Se é um objeto, tentar extrair jobs de qualquer propriedade
-    for (const key in data) {
-      if (Array.isArray(data[key])) {
-        jobs = data[key];
-        break;
-      } else if (typeof data[key] === 'object' && data[key] !== null) {
-        // Se é um objeto aninhado, converter para array
-        jobs = Object.entries(data[key]).map(([jobKey, jobValue]: [string, any]) => ({
-          name: jobValue.name || jobValue.Name || jobKey,
-          jobname: jobValue.name || jobValue.Name || jobKey,
-          type: jobValue.type || jobValue.Type || jobValue.JobType || 'B',
-          client: jobValue.client || jobValue.Client || jobValue.ClientName || 'Unknown',
-          level: jobValue.level || jobValue.Level || 'Full',
-          schedule: jobValue.schedule || jobValue.Schedule || '',
-          pool: jobValue.pool || jobValue.Pool || '',
-          storage: jobValue.storage || jobValue.Storage || '',
-          fileset: jobValue.fileset || jobValue.FileSet || '',
-          enabled: jobValue.enabled !== false,
-          ...jobValue
-        }));
-        break;
-      }
-    }
-  }
-  
-  // Normalizar cada job
-  const normalizedJobs = jobs.map((job: any) => ({
-    name: job.name || job.jobname || job.Name || job.Job || 'Unknown',
-    jobname: job.name || job.jobname || job.Name || job.Job || 'Unknown',
-    type: job.type || job.Type || job.JobType || job.Level || 'B',
-    client: job.client || job.Client || job.ClientName || 'Unknown',
-    level: job.level || job.Level || 'Full',
-    schedule: job.schedule || job.Schedule || '',
-    pool: job.pool || job.Pool || '',
-    storage: job.storage || job.Storage || '',
-    fileset: job.fileset || job.FileSet || '',
-    enabled: job.enabled !== false,
-    ...job
-  }));
-  
-  console.log('✅ Jobs transformados:', normalizedJobs.length);
-  
-  return {
-    output: normalizedJobs,
-    total: normalizedJobs.length
+  stats?: {
+    total: number;
+    success: number;
+    error: number;
+    running: number;
   };
+  error?: string;
+  message?: string;
 }
 
-// Função para obter descrição detalhada do status do job
-function getJobStatusDescription(status: string): string {
-  const statusMap: Record<string, string> = {
-    'T': 'Terminado com Sucesso',
-    'R': 'Em Execução',
-    'E': 'Erro Não Fatal',
-    'e': 'Erro Fatal',
-    'f': 'Falha Fatal',
-    'A': 'Cancelado pelo Usuário',
-    'W': 'Terminado com Avisos',
-    'C': 'Criado (não executado)',
-    'B': 'Bloqueado',
-    'I': 'Incompleto',
-    'F': 'Aguardando por FD',
-    'S': 'Aguardando por SD',
-    'M': 'Aguardando por nova mídia',
-    'j': 'Aguardando por job',
-    'c': 'Aguardando por cliente',
-    'd': 'Aguardando por máxima capacidade de jobs',
-    't': 'Aguardando por tempo de início',
-    'p': 'Aguardando por prioridade mais alta',
-    'a': 'Aguardando por recurso de armazenamento',
-    'i': 'Fazendo incremento de dados',
-    'D': 'Fazendo diferencial de dados',
-    'l': 'Fazendo listagem de dados'
-  };
-  return statusMap[status] || `Status Desconhecido (${status})`;
+interface BaculaClient {
+  clientid: number;
+  name: string;
+  uname: string;
+  autoprune: number;
+  fileretention: number;
+  jobretention: number;
 }
 
-// Função para formatar duração
-function formatDuration(milliseconds: number): string {
-  if (milliseconds <= 0) return 'N/A';
-  
-  const seconds = Math.floor(milliseconds / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  
-  if (days > 0) {
-    return `${days}d ${hours % 24}h ${minutes % 60}m`;
-  } else if (hours > 0) {
-    return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
-  } else if (minutes > 0) {
-    return `${minutes}m ${seconds % 60}s`;
-  } else {
-    return `${seconds}s`;
-  }
+interface BaculaVolume {
+  mediaid: number;
+  volumename: string;
+  slot: number;
+  poolid: number;
+  mediatype: string;
+  mediatypeid: number;
+  labeltype: number;
+  firstwritten: string;
+  lastwritten: string;
+  labeldate: string;
+  voljobs: number;
+  volfiles: number;
+  volblocks: number;
+  volmounts: number;
+  volbytes: number;
+  volparts: number;
+  volstatus: string;
+  enabled: number;
+  recycle: number;
+  actiononpurge: number;
+  volretention: number;
+  voluseduration: number;
+  maxvoljobs: number;
+  maxvolfiles: number;
+  maxvolbytes: number;
+  inchanger: number;
+  storageid: number;
+  deviceid: number;
+  mediaaddressing: number;
+  volreadtime: number;
+  volwritetime: number;
+  endfile: number;
+  endblock: number;
+  locationid: number;
+  recyclecount: number;
+  initialwrite: string;
+  scratchpoolid: number;
+  recyclepoolid: number;
+  comment: string;
 }
 
-// Função para formatar bytes
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+interface BaculaStorage {
+  storageid: number;
+  name: string;
+  address: string;
+  sdport: number;
+  password: string;
+  device: string;
+  mediatype: string;
+  autochanger: number;
+  enabled: number;
+  comment: string;
 }
 
-// Função para formatar velocidade
-function formatSpeed(bytesPerSecond: number): string {
-  if (bytesPerSecond === 0) return '0 B/s';
-  return formatBytes(bytesPerSecond) + '/s';
-}
-
-// Função para calcular horário de Brasília
-function getBrasiliaTime(): Date {
-  const now = new Date();
-  const brasiliaOffset = -3; // UTC-3
-  return new Date(now.getTime() + (brasiliaOffset * 60 * 60 * 1000));
-}
-
-// Função para obter últimas 24h em timezone de Brasília
-function getLast24HoursRange(): { start: Date, end: Date } {
-  const brasiliaTime = getBrasiliaTime();
-  const end = new Date(brasiliaTime);
-  const start = new Date(end.getTime() - (24 * 60 * 60 * 1000));
-  
-  return { start, end };
-}
-
-// Função para filtrar jobs das últimas 24h
-function filterLast24Hours(jobs: BaculaJob[]): BaculaJob[] {
-  const { start, end } = getLast24HoursRange();
-  
-  return jobs.filter(job => {
-    // Usar múltiplos critérios de data
-    const jobDate = job.starttime ? new Date(job.starttime) : 
-                   job.schedtime ? new Date(job.schedtime) :
-                   job.endtime ? new Date(job.endtime) : null;
-    
-    if (!jobDate) return false;
-    
-    return jobDate >= start && jobDate <= end;
-  });
-}
-
-// Função para enriquecer dados dos jobs
-function enrichJobData(jobs: BaculaJob[]): BaculaJob[] {
-  return jobs.map(job => {
-    const startTime = job.starttime ? new Date(job.starttime) : null;
-    const endTime = job.endtime ? new Date(job.endtime) : null;
-    const duration = startTime && endTime ? endTime.getTime() - startTime.getTime() : 0;
-    
-    // Calcular velocidade
-    const speed = duration > 0 && job.jobbytes ? 
-      (job.jobbytes / (duration / 1000)) : 0;
-    
-    return {
-      ...job,
-      jobstatuslong: getJobStatusDescription(job.jobstatus),
-      duration: formatDuration(duration),
-      size: formatBytes(job.jobbytes || 0),
-      speed: formatSpeed(speed),
-      errors_detail: job.joberrors > 0 ? `${job.joberrors} erro(s)` : 'Nenhum erro'
+interface BaculaStatus {
+  director?: {
+    name: string;
+    version: string;
+    started: string;
+    jobs: {
+      running: number;
+      total: number;
     };
-  });
+  };
+  storage?: Array<{
+    name: string;
+    status: string;
+    device: string;
+  }>;
+  clients?: Array<{
+    name: string;
+    status: string;
+    version: string;
+  }>;
 }
 
-serve(async (req) => {
-  console.log(`🔄 Bacula proxy request: ${req.method} ${req.url}`)
+interface BaculaStatistics {
+  jobs: {
+    total: number;
+    success: number;
+    error: number;
+    running: number;
+    last24h: number;
+  };
+  clients: {
+    total: number;
+    active: number;
+  };
+  volumes: {
+    total: number;
+    available: number;
+    full: number;
+  };
+  storage: {
+    total_capacity: string;
+    used_capacity: string;
+    free_capacity: string;
+  };
+}
 
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, corsOptions)
+// Helper function to make HTTP requests to Bacula API
+async function makeBaculaRequest(integration: any, endpoint: string, params: any = {}, requestId: string = '') {
+  const baseUrl = integration.base_url?.replace(/\/$/, '') || '';
+  
+  console.log(`🔗 [${requestId}] Bacula base URL: ${baseUrl}`);
+  console.log(`🔗 [${requestId}] Endpoint: ${endpoint}`);
+  console.log(`🔗 [${requestId}] Params:`, JSON.stringify(params, null, 2));
+
+  if (!baseUrl) {
+    throw new Error('Base URL da integração Bacula não configurada');
   }
+
+  // Build the full URL
+  let url = `${baseUrl}/api/${endpoint}`;
+  
+  // Add query parameters if provided
+  if (Object.keys(params).length > 0) {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      queryParams.append(key, String(value));
+    });
+    url += `?${queryParams.toString()}`;
+  }
+
+  console.log(`🚀 [${requestId}] Making request to: ${url}`);
 
   try {
-    let userId: string | null = null;
-    let isInternalCall = false;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${btoa(`${integration.username}:${integration.password}`)}`,
+        'User-Agent': 'Bacula-Proxy/1.0'
+      },
+      // Add timeout
+      signal: AbortSignal.timeout(30000) // 30 seconds timeout
+    });
+
+    console.log(`📡 [${requestId}] Response status: ${response.status}`);
+    console.log(`📡 [${requestId}] Response headers:`, Object.fromEntries(response.headers.entries()));
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ [${requestId}] HTTP error ${response.status}:`, errorText);
+      throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log(`✅ [${requestId}] Response received:`, JSON.stringify(data, null, 2));
     
+    return data;
+  } catch (error) {
+    console.error(`❌ [${requestId}] Request failed:`, error);
+    
+    if (error.name === 'TimeoutError') {
+      throw new Error('Timeout: Bacula API não respondeu em 30 segundos');
+    }
+    
+    if (error.message?.includes('fetch')) {
+      throw new Error(`Erro de conectividade: ${error.message}`);
+    }
+    
+    throw error;
+  }
+}
+
+// Enhanced endpoint handlers with better error handling and data validation
+const endpointHandlers = {
+  // Test connection
+  'test': async (integration: any, params: any, requestId: string) => {
+    console.log(`🧪 [${requestId}] Testing Bacula connection...`);
+    
+    try {
+      const result = await makeBaculaRequest(integration, 'status', {}, requestId);
+      return {
+        success: true,
+        message: 'Conexão com Bacula OK',
+        data: result,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`❌ [${requestId}] Connection test failed:`, error);
+      return {
+        success: false,
+        message: `Falha na conexão: ${error.message}`,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      };
+    }
+  },
+
+  // Get jobs from last 24 hours
+  'jobs/last24h': async (integration: any, params: any, requestId: string) => {
+    console.log(`📋 [${requestId}] Fetching jobs from last 24 hours...`);
+    
+    try {
+      const limit = params.limit || 50;
+      const hours = params.hours || 24;
+      
+      const result = await makeBaculaRequest(integration, 'jobs', {
+        limit,
+        hours,
+        order: 'desc'
+      }, requestId);
+
+      // Validate and process the response
+      let jobs = [];
+      if (Array.isArray(result)) {
+        jobs = result;
+      } else if (result.jobs && Array.isArray(result.jobs)) {
+        jobs = result.jobs;
+      } else if (result.data && Array.isArray(result.data)) {
+        jobs = result.data;
+      }
+
+      // Calculate basic statistics
+      const stats = {
+        total: jobs.length,
+        success: jobs.filter(job => ['T', 'OK'].includes(job.jobstatus)).length,
+        error: jobs.filter(job => ['E', 'f', 'F', 'A'].includes(job.jobstatus)).length,
+        running: jobs.filter(job => ['R'].includes(job.jobstatus)).length
+      };
+
+      console.log(`📊 [${requestId}] Jobs statistics:`, stats);
+
+      return {
+        jobs: jobs,
+        stats: stats,
+        total: jobs.length,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`❌ [${requestId}] Failed to fetch jobs:`, error);
+      throw error;
+    }
+  },
+
+  // Get all jobs
+  'jobs': async (integration: any, params: any, requestId: string) => {
+    console.log(`📋 [${requestId}] Fetching all jobs...`);
+    
+    try {
+      const limit = params.limit || 100;
+      const offset = params.offset || 0;
+      
+      const result = await makeBaculaRequest(integration, 'jobs', {
+        limit,
+        offset,
+        order: 'desc'
+      }, requestId);
+
+      let jobs = [];
+      if (Array.isArray(result)) {
+        jobs = result;
+      } else if (result.jobs && Array.isArray(result.jobs)) {
+        jobs = result.jobs;
+      }
+
+      return {
+        jobs: jobs,
+        total: jobs.length,
+        limit: limit,
+        offset: offset,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`❌ [${requestId}] Failed to fetch all jobs:`, error);
+      throw error;
+    }
+  },
+
+  // Get recent jobs (completed in last few hours)
+  'jobs/recent': async (integration: any, params: any, requestId: string) => {
+    console.log(`📋 [${requestId}] Fetching recent jobs...`);
+    
+    try {
+      const hours = params.hours || 6;
+      const limit = params.limit || 20;
+      
+      const result = await makeBaculaRequest(integration, 'jobs/recent', {
+        hours,
+        limit,
+        status: 'completed'
+      }, requestId);
+
+      let jobs = [];
+      if (Array.isArray(result)) {
+        jobs = result;
+      } else if (result.jobs && Array.isArray(result.jobs)) {
+        jobs = result.jobs;
+      }
+
+      return {
+        jobs: jobs,
+        total: jobs.length,
+        hours: hours,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`❌ [${requestId}] Failed to fetch recent jobs:`, error);
+      throw error;
+    }
+  },
+
+  // Get running jobs
+  'jobs/running': async (integration: any, params: any, requestId: string) => {
+    console.log(`🏃 [${requestId}] Fetching running jobs...`);
+    
+    try {
+      const result = await makeBaculaRequest(integration, 'jobs/running', {}, requestId);
+
+      let jobs = [];
+      if (Array.isArray(result)) {
+        jobs = result;
+      } else if (result.jobs && Array.isArray(result.jobs)) {
+        jobs = result.jobs;
+      }
+
+      return {
+        jobs: jobs,
+        total: jobs.length,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`❌ [${requestId}] Failed to fetch running jobs:`, error);
+      throw error;
+    }
+  },
+
+  // Get clients
+  'clients': async (integration: any, params: any, requestId: string) => {
+    console.log(`👥 [${requestId}] Fetching clients...`);
+    
+    try {
+      const result = await makeBaculaRequest(integration, 'clients', params, requestId);
+
+      let clients = [];
+      if (Array.isArray(result)) {
+        clients = result;
+      } else if (result.clients && Array.isArray(result.clients)) {
+        clients = result.clients;
+      }
+
+      return {
+        clients: clients,
+        total: clients.length,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`❌ [${requestId}] Failed to fetch clients:`, error);
+      throw error;
+    }
+  },
+
+  // Get volumes
+  'volumes': async (integration: any, params: any, requestId: string) => {
+    console.log(`💿 [${requestId}] Fetching volumes...`);
+    
+    try {
+      const result = await makeBaculaRequest(integration, 'volumes', params, requestId);
+
+      let volumes = [];
+      if (Array.isArray(result)) {
+        volumes = result;
+      } else if (result.volumes && Array.isArray(result.volumes)) {
+        volumes = result.volumes;
+      }
+
+      return {
+        volumes: volumes,
+        total: volumes.length,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`❌ [${requestId}] Failed to fetch volumes:`, error);
+      throw error;
+    }
+  },
+
+  // Get storage devices
+  'storage': async (integration: any, params: any, requestId: string) => {
+    console.log(`🗄️ [${requestId}] Fetching storage devices...`);
+    
+    try {
+      const result = await makeBaculaRequest(integration, 'storage', params, requestId);
+
+      let storage = [];
+      if (Array.isArray(result)) {
+        storage = result;
+      } else if (result.storage && Array.isArray(result.storage)) {
+        storage = result.storage;
+      }
+
+      return {
+        storage: storage,
+        total: storage.length,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`❌ [${requestId}] Failed to fetch storage:`, error);
+      throw error;
+    }
+  },
+
+  // Get overall status
+  'status': async (integration: any, params: any, requestId: string) => {
+    console.log(`📊 [${requestId}] Fetching overall status...`);
+    
+    try {
+      const result = await makeBaculaRequest(integration, 'status', params, requestId);
+
+      return {
+        status: result,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`❌ [${requestId}] Failed to fetch status:`, error);
+      throw error;
+    }
+  },
+
+  // Get director status
+  'status/director': async (integration: any, params: any, requestId: string) => {
+    console.log(`🎯 [${requestId}] Fetching director status...`);
+    
+    try {
+      const result = await makeBaculaRequest(integration, 'status/director', params, requestId);
+
+      return {
+        director: result,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`❌ [${requestId}] Failed to fetch director status:`, error);
+      throw error;
+    }
+  },
+
+  // Get statistics
+  'statistics': async (integration: any, params: any, requestId: string) => {
+    console.log(`📈 [${requestId}] Fetching statistics...`);
+    
+    try {
+      const result = await makeBaculaRequest(integration, 'statistics', params, requestId);
+
+      return {
+        statistics: result,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`❌ [${requestId}] Failed to fetch statistics:`, error);
+      throw error;
+    }
+  },
+
+  // Get jobs by period
+  'jobs/period': async (integration: any, params: any, requestId: string) => {
+    console.log(`📅 [${requestId}] Fetching jobs by period...`);
+    
+    try {
+      const days = params.days || 7;
+      const status = params.status;
+      
+      const queryParams: any = { days };
+      if (status) {
+        queryParams.status = status;
+      }
+      
+      const result = await makeBaculaRequest(integration, 'jobs/period', queryParams, requestId);
+
+      let jobs = [];
+      if (Array.isArray(result)) {
+        jobs = result;
+      } else if (result.jobs && Array.isArray(result.jobs)) {
+        jobs = result.jobs;
+      }
+
+      return {
+        jobs: jobs,
+        total: jobs.length,
+        days: days,
+        status: status,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`❌ [${requestId}] Failed to fetch jobs by period:`, error);
+      throw error;
+    }
+  },
+
+  // Get configured jobs
+  'jobs/configured': async (integration: any, params: any, requestId: string) => {
+    console.log(`⚙️ [${requestId}] Fetching configured jobs...`);
+    
+    try {
+      const result = await makeBaculaRequest(integration, 'jobs/configured', params, requestId);
+
+      let jobs = [];
+      if (Array.isArray(result)) {
+        jobs = result;
+      } else if (result.jobs && Array.isArray(result.jobs)) {
+        jobs = result.jobs;
+      }
+
+      return {
+        jobs: jobs,
+        total: jobs.length,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`❌ [${requestId}] Failed to fetch configured jobs:`, error);
+      throw error;
+    }
+  },
+
+  // Get configured clients
+  'clients/configured': async (integration: any, params: any, requestId: string) => {
+    console.log(`⚙️ [${requestId}] Fetching configured clients...`);
+    
+    try {
+      const result = await makeBaculaRequest(integration, 'clients/configured', params, requestId);
+
+      let clients = [];
+      if (Array.isArray(result)) {
+        clients = result;
+      } else if (result.clients && Array.isArray(result.clients)) {
+        clients = result.clients;
+      }
+
+      return {
+        clients: clients,
+        total: clients.length,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`❌ [${requestId}] Failed to fetch configured clients:`, error);
+      throw error;
+    }
+  }
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsOptions.headers })
+  }
+
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  )
+
+  try {
+    const body = await req.json()
+    const { endpoint, params = {} } = body
+    
+    console.log('🔄 Request received:', { endpoint, params })
+
     // Verificar se é uma chamada interna
-    const internalCallHeader = req.headers.get('x-internal-call');
+    const isInternalCall = req.headers.get('x-internal-call') === 'true'
+    const userIdFromHeader = req.headers.get('x-user-id')
+    const requestId = req.headers.get('x-request-id') || `req-${Date.now()}`
     
-    let requestBody: any = null;
-    
-    if (internalCallHeader === 'true') {
-      console.log('🔧 [INTERNAL] Chamada interna detectada');
-      isInternalCall = true;
-      
-      // Para chamadas internas, obter user_id do body
-      const bodyText = await req.text();
-      try {
-        requestBody = JSON.parse(bodyText);
-        userId = requestBody.user_id;
-      } catch (e) {
-        console.error('❌ [INTERNAL] Erro ao parsear body:', e);
-        return new Response(JSON.stringify({ error: 'Body JSON inválido para chamada interna.' }), {
-          ...corsOptions,
-          status: 400
-        });
-      }
-      
-      if (!userId) {
-        console.error('❌ [INTERNAL] user_id não fornecido para chamada interna');
-        return new Response(JSON.stringify({ error: 'user_id é obrigatório para chamadas internas.' }), {
-          ...corsOptions,
-          status: 400
-        });
-      }
-      
-      console.log(`🔧 [INTERNAL] Processando para usuário: ${userId}`);
-      
+    console.log(`🔍 [${requestId}] Internal call: ${isInternalCall}, User ID: ${userIdFromHeader}`)
+
+    let userId: string;
+
+    if (isInternalCall && userIdFromHeader) {
+      // Para chamadas internas, usar o user ID do header
+      userId = userIdFromHeader;
+      console.log(`🔧 [${requestId}] Using internal user ID: ${userId}`);
     } else {
-      // Autenticação normal para chamadas externas
-      const authHeader = req.headers.get('Authorization');
-      console.log('Authorization header present:', !!authHeader);
-      
-      if (!authHeader) {
-        console.error('❌ Nenhum header de autorização fornecido')
-        return new Response(JSON.stringify({ error: 'Header de autorização ausente.' }), {
-          ...corsOptions,
-          status: 401
-        })
+      // Para chamadas externas, verificar token JWT
+      const authHeader = req.headers.get('authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.error(`❌ [${requestId}] No authorization header provided`)
+        return new Response('Unauthorized', { status: 401, headers: corsOptions.headers })
       }
 
-      console.log("Authenticating user...");
-      const token = authHeader.replace('Bearer ', '');
-      console.log('Token extracted, length:', token.length);
-      
-      // Create a client with the user's token instead of service role
-      const userSupabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-        {
-          global: {
-            headers: {
-              Authorization: authHeader,
-            },
-          },
-        }
-      );
-      
-      const { data: { user }, error: userError } = await userSupabaseClient.auth.getUser();
+      const token = authHeader.replace('Bearer ', '')
 
-      if (userError || !user) {
-        console.error('❌ Token inválido:', { 
-          error: userError?.message,
-          hasUser: !!user 
-        });
-        return new Response(JSON.stringify({ 
-          error: 'Falha na autenticação. Verifique se você está logado.',
-          details: userError?.message || 'Token inválido'
-        }), {
-          ...corsOptions,
-          status: 401
-        })
+      // Verificar o token e obter informações do usuário
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
+      
+      if (authError || !user) {
+        console.error(`❌ [${requestId}] Token verification failed:`, authError)
+        return new Response('Invalid token', { status: 401, headers: corsOptions.headers })
       }
 
       userId = user.id;
-      console.log(`✅ Usuário autenticado: ${user.email}`)
+      console.log(`✅ [${requestId}] User authenticated:`, userId);
     }
 
-    // Usar service role para buscar integração
-    const serviceSupabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Buscar integração ativa do Bacula para o usuário específico
-    const { data: integrations, error: integrationError } = await serviceSupabase
+    // Buscar integração Bacula para este usuário
+    const { data: integration, error: integrationError } = await supabaseClient
       .from('integrations')
       .select('*')
-      .eq('user_id', userId)
       .eq('type', 'bacula')
+      .eq('user_id', userId)
       .eq('is_active', true)
-      .limit(1)
+      .single()
 
-    if (integrationError) {
-      console.error('❌ Erro na consulta de integração:', integrationError)
-      return new Response(JSON.stringify({ error: 'Database error' }), {
-        ...corsOptions,
-        status: 500
+    if (integrationError || !integration) {
+      console.error(`❌ [${requestId}] No active Bacula integration found for user ${userId}:`, integrationError)
+      return new Response('No Bacula integration configured', { 
+        status: 404, 
+        headers: corsOptions.headers 
       })
     }
 
-    if (!integrations || integrations.length === 0) {
-      console.error('❌ Nenhuma integração Bacula ativa encontrada')
-      return new Response(JSON.stringify({ error: 'Bacula integration not found' }), {
-        ...corsOptions,
-        status: 404
+    console.log(`🔌 [${requestId}] Found Bacula integration:`, integration.name)
+
+    // Check if the requested endpoint exists
+    if (!endpointHandlers[endpoint]) {
+      console.error(`❌ [${requestId}] Unknown endpoint: ${endpoint}`)
+      return new Response(JSON.stringify({
+        error: 'Unknown endpoint',
+        available_endpoints: Object.keys(endpointHandlers),
+        requested: endpoint
+      }), {
+        status: 400,
+        headers: { ...corsOptions.headers, 'Content-Type': 'application/json' }
       })
     }
 
-    const integration = integrations[0]
-    console.log(`✅ Integração Bacula encontrada: ${integration.name}`)
-
-    // Se já temos o body parseado (chamada interna), usar ele
-    if (!requestBody) {
-      const bodyText = await req.text();
-      try {
-        requestBody = JSON.parse(bodyText);
-      } catch (e) {
-        console.error('❌ Erro ao parsear body da requisição:', e);
-        return new Response(JSON.stringify({ error: 'Body JSON inválido.' }), {
-          ...corsOptions,
-          status: 400
-        });
-      }
-    }
-    
-    const { endpoint, params } = requestBody;
-    console.log(`📝 Endpoint solicitado: ${endpoint}`)
-    console.log(`📝 Parâmetros:`, params)
-
-    // Create base64 auth header
-    const auth = btoa(`${integration.username}:${integration.password}`)
-    const baseUrl = integration.base_url.replace(/\/$/, '')
-
-    console.log(`🔗 Conectando com Bacula em: ${baseUrl}`)
-    console.log(`👤 Usuário: ${integration.username}`)
-
-    // Múltiplas estratégias de endpoint para diferentes versões da API
-    const endpointMap: Record<string, string[]> = {
-      'test': [
-        '/api/v2/config/api/info', 
-        '/api/v1/config/api/info', 
-        '/web/api/v2/config/api/info',
-        '/api/v2/info',
-        '/api/v1/info'
-      ],
-      'director': [
-        '/api/v2/status/director',
-        '/api/v1/status/director', 
-        '/api/v2/director/status',
-        '/api/v1/director/status',
-        '/api/director',
-        '/director',
-        '/status/director',
-        '/api/v2/status',
-        '/api/v1/status'
-      ],
-      'jobs/running': [
-        '/api/v2/jobs?jobstatus=R',
-        '/api/v1/jobs?jobstatus=R',
-        '/api/v2/jobs/running',
-        '/api/v1/jobs/running',
-        '/api/jobs/running',
-        '/jobs/running',
-        '/api/v2/jobs?limit=100&jobstatus=R',
-        '/api/v1/jobs?limit=100&jobstatus=R'
-      ],
-      'jobs': [
-        '/api/v2/jobs?limit=1000&order_by=starttime&order_direction=desc', 
-        '/api/v1/jobs?limit=1000', 
-        '/web/api/v2/jobs?limit=1000',
-        '/api/jobs?limit=1000',
-        '/jobs?limit=1000'
-      ],
-      'jobs/all': [
-        '/api/v2/jobs?limit=1000&order_by=starttime&order_direction=desc', 
-        '/api/v1/jobs?limit=1000', 
-        '/web/api/v2/jobs?limit=1000',
-        '/api/jobs?limit=1000',
-        '/jobs?limit=1000'
-      ],
-      'jobs/recent': [
-        '/api/v2/jobs?limit=100&order_by=jobid&order_direction=desc', 
-        '/api/v1/jobs?limit=100',
-        '/api/v2/jobs?limit=100',
-        '/api/jobs?limit=100'
-      ],
-      'jobs/last24h': [
-        '/api/v2/jobs?age=86400&limit=1000&order_by=starttime&order_direction=desc',
-        '/api/v1/jobs?age=86400&limit=1000',
-        '/api/v2/jobs?limit=1000',
-        '/api/jobs?limit=1000'
-      ],
-      'jobs/configured': [
-        '/api/v2/config/dir/job', 
-        '/api/v1/config/dir/job',
-        '/api/v2/config/job',
-        '/api/v1/config/job'
-      ],
-      'clients': [
-        '/api/v2/clients', 
-        '/api/v1/clients',
-        '/api/clients'
-      ],
-      'status': [
-        '/api/v2/status', 
-        '/api/v1/status',
-        '/api/status'
-      ]
-    }
-
-    let apiEndpoints = endpointMap[endpoint] || [endpoint.startsWith('/') ? endpoint : `/${endpoint}`]
-    
-    // Aplicar filtros específicos para jobs das últimas 24h
-    if (endpoint === 'jobs' || endpoint === 'jobs/last24h') {
-      const { start, end } = getLast24HoursRange();
-      const startDate = start.toISOString().split('T')[0];
-      const endDate = end.toISOString().split('T')[0];
+    // Execute the endpoint handler
+    try {
+      console.log(`🚀 [${requestId}] Executing endpoint: ${endpoint}`)
+      const result = await endpointHandlers[endpoint](integration, params, requestId)
       
-      // Adicionar endpoints com filtros de data específicos
-      apiEndpoints.unshift(
-        `/api/v2/jobs?start_date=${startDate}&end_date=${endDate}&limit=1000&order_by=starttime&order_direction=desc`,
-        `/api/v1/jobs?start_date=${startDate}&end_date=${endDate}&limit=1000`,
-        `/api/v2/jobs?age=86400&limit=1000&order_by=starttime&order_direction=desc`
-      );
-    }
-    
-    // Handle custom parameters for specific endpoints
-    if (endpoint === 'jobs/period' && params) {
-      const queryParams = new URLSearchParams()
+      console.log(`✅ [${requestId}] Endpoint executed successfully`)
       
-      // Add age parameter if days is specified
-      if (params.days && params.days > 0) {
-        const ageInSeconds = params.days * 24 * 60 * 60
-        queryParams.append('age', ageInSeconds.toString())
-      }
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { ...corsOptions.headers, 'Content-Type': 'application/json' }
+      })
+    } catch (endpointError) {
+      console.error(`❌ [${requestId}] Endpoint execution failed:`, endpointError)
       
-      // Add limit and ordering
-      queryParams.append('limit', '1000')
-      queryParams.append('order_by', 'starttime')
-      queryParams.append('order_direction', 'desc')
-      
-      // Add status filter if specified
-      if (params.status && params.status !== 'all') {
-        queryParams.append('jobstatus', params.status)
-      }
-      
-      apiEndpoints[0] = `/api/v2/jobs?${queryParams.toString()}`
-    }
-
-    // Tentar múltiplos endpoints até encontrar um que funcione
-    let lastError = null;
-    let successfulEndpoint = '';
-    let rawData = null;
-
-    for (const apiEndpoint of apiEndpoints) {
-      // Garantir que sempre tenha a barra entre baseUrl e endpoint
-      const normalizedEndpoint = apiEndpoint.startsWith('/') ? apiEndpoint : `/${apiEndpoint}`
-      const fullUrl = `${baseUrl}${normalizedEndpoint}`
-      console.log(`🔄 Tentando endpoint: ${fullUrl}`)
-      console.log(`🔑 Autenticação: Basic ${auth.substring(0, 10)}...`)
-
-      try {
-        // Make request to BaculaWeb API with timeout
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => {
-          console.log(`⏰ Timeout de 30s atingido para ${fullUrl}`)
-          controller.abort()
-        }, 30000) // 30 second timeout
-
-        const startRequest = Date.now()
-        const response = await fetch(fullUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'User-Agent': 'Parker Intelligence System',
-            'Cache-Control': 'no-cache'
-          },
-          signal: controller.signal
-        })
-
-        clearTimeout(timeoutId)
-        const requestTime = Date.now() - startRequest
-
-        console.log(`📊 Resposta ${fullUrl}: ${response.status} ${response.statusText} (${requestTime}ms)`)
-        console.log(`📊 Headers de resposta:`, Object.fromEntries(response.headers.entries()))
-
-        if (!response.ok) {
-          console.error(`❌ Erro HTTP ${response.status} no endpoint ${apiEndpoint}`)
-          
-          // Try to get error details
-          let errorDetail = 'Unknown error'
-          try {
-            const errorText = await response.text()
-            errorDetail = errorText || response.statusText
-            console.error(`❌ Detalhes do erro: ${errorDetail.substring(0, 200)}`)
-          } catch (e) {
-            errorDetail = response.statusText
-          }
-
-          lastError = {
-            error: `HTTP ${response.status}`,
-            details: errorDetail,
-            endpoint: apiEndpoint,
-            url: fullUrl,
-            response_time: requestTime,
-            timestamp: new Date().toISOString()
-          }
-          
-          // Para alguns erros específicos, tentar próximo endpoint
-          if (response.status === 404 || response.status === 405) {
-            console.log(`🔄 Erro ${response.status} - tentando próximo endpoint...`)
-            continue; 
-          } else if (response.status === 401 || response.status === 403) {
-            console.error('🚨 Erro de autenticação - verificar credenciais')
-            // Para erros de auth, não tentar outros endpoints
-            break;
-          } else {
-            continue; // Tentar próximo endpoint para outros erros
-          }
-        }
-
-        let data
-        const contentType = response.headers.get('content-type')
-        console.log(`📝 Content-Type: ${contentType}`)
-
-        if (contentType && contentType.includes('application/json')) {
-          try {
-            data = await response.json()
-            console.log(`✅ JSON parseado com sucesso, estrutura:`, Object.keys(data || {}))
-            console.log(`📝 Primeira amostra dos dados:`, JSON.stringify(data, null, 2).substring(0, 500))
-            
-            // Para jobs configurados, estruturar os dados se necessário
-            if (endpoint === 'jobs/configured' && data) {
-              data = transformConfiguredJobs(data);
-            }
-            
-            // Enriquecer dados de jobs se for endpoint de jobs
-            if ((endpoint === 'jobs' || endpoint === 'jobs/last24h' || endpoint === 'jobs/recent') && data) {
-              let jobs: BaculaJob[] = [];
-              
-              // Extrair jobs de diferentes estruturas
-              if (Array.isArray(data)) {
-                jobs = data;
-              } else if (data.jobs && Array.isArray(data.jobs)) {
-                jobs = data.jobs;
-              } else if (data.data && Array.isArray(data.data)) {
-                jobs = data.data;
-              } else if (data.result && Array.isArray(data.result)) {
-                jobs = data.result;
-              } else if (data.output && Array.isArray(data.output)) {
-                jobs = data.output;
-              }
-              
-              console.log(`📊 Total de jobs encontrados: ${jobs.length}`);
-              
-              // Filtrar últimas 24h e enriquecer dados
-              if (endpoint === 'jobs' || endpoint === 'jobs/last24h') {
-                const filteredJobs = filterLast24Hours(jobs);
-                console.log(`📊 Jobs das últimas 24h: ${filteredJobs.length}`);
-                
-                const enrichedJobs = enrichJobData(filteredJobs);
-                
-                // Calcular estatísticas
-                const stats = {
-                  total: enrichedJobs.length,
-                  completed: enrichedJobs.filter(j => j.jobstatus === 'T').length,
-                  running: enrichedJobs.filter(j => j.jobstatus === 'R').length,
-                  error: enrichedJobs.filter(j => ['E', 'f', 'e'].includes(j.jobstatus)).length,
-                  warning: enrichedJobs.filter(j => j.jobstatus === 'W').length,
-                  cancelled: enrichedJobs.filter(j => j.jobstatus === 'A').length,
-                  totalBytes: enrichedJobs.reduce((sum, j) => sum + (j.jobbytes || 0), 0),
-                  totalFiles: enrichedJobs.reduce((sum, j) => sum + (j.jobfiles || 0), 0),
-                  totalErrors: enrichedJobs.reduce((sum, j) => sum + (j.joberrors || 0), 0),
-                  clients: [...new Set(enrichedJobs.map(j => j.client))],
-                  avgDuration: enrichedJobs.length > 0 ? 
-                    enrichedJobs.reduce((sum, j) => {
-                      const start = j.starttime ? new Date(j.starttime) : null;
-                      const end = j.endtime ? new Date(j.endtime) : null;
-                      return sum + (start && end ? end.getTime() - start.getTime() : 0);
-                    }, 0) / enrichedJobs.length / 1000 : 0
-                };
-                
-                data = {
-                  success: true,
-                  endpoint: fullUrl,
-                  jobs: enrichedJobs,
-                  stats: {
-                    ...stats,
-                    totalBytesFormatted: formatBytes(stats.totalBytes),
-                    avgDurationFormatted: formatDuration(stats.avgDuration * 1000),
-                    clientCount: stats.clients.length,
-                    successRate: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0,
-                    errorRate: stats.total > 0 ? Math.round((stats.error / stats.total) * 100) : 0
-                  },
-                  debug: {
-                    timeRange: getLast24HoursRange(),
-                    originalJobCount: jobs.length,
-                    filteredJobCount: filteredJobs.length
-                  }
-                };
-              } else {
-                // Para outros endpoints de jobs, apenas enriquecer
-                const enrichedJobs = enrichJobData(jobs);
-                data = {
-                  success: true,
-                  endpoint: fullUrl,
-                  jobs: enrichedJobs,
-                  total: enrichedJobs.length
-                };
-              }
-            }
-            
-            successfulEndpoint = fullUrl;
-            rawData = data;
-            break; // Sucesso, sair do loop
-            
-          } catch (jsonError) {
-            console.error('❌ Erro no parse JSON:', jsonError)
-            const textData = await response.text()
-            console.error('❌ Resposta bruta:', textData.substring(0, 500))
-            
-            // Se recebeu HTML, provavelmente é uma página de login
-            if (textData.includes('<html>') || textData.includes('<!DOCTYPE')) {
-              return new Response(JSON.stringify({ 
-                error: 'Received HTML instead of JSON - check authentication',
-                details: 'O servidor retornou uma página HTML ao invés de dados JSON. Verifique a autenticação.',
-                endpoint: apiEndpoint,
-                url: fullUrl
-              }), {
-                ...corsOptions,
-                status: 401
-              })
-            }
-            
-            lastError = {
-              error: 'JSON parsing failed',
-              details: jsonError.message,
-              endpoint: apiEndpoint,
-              rawData: textData.substring(0, 200)
-            }
-            continue;
-          }
-        } else {
-          // If not JSON, try to get as text
-          const textData = await response.text()
-          console.log('❌ Resposta não-JSON:', textData.substring(0, 200))
-          console.log(`📝 Content-Type: ${contentType}`)
-          console.log(`📊 Headers de resposta:`, Object.fromEntries(response.headers.entries()))
-          
-          // Check if it's HTML (login page or error page)
-          if (textData.includes('<html>') || textData.includes('<!DOCTYPE') || contentType?.includes('text/html')) {
-            console.error('🚨 Servidor retornou HTML - possível problema de autenticação')
-            console.error('📄 Conteúdo HTML recebido:', textData.substring(0, 300))
-            
-            // If response status is 200 but HTML, it's likely a login redirect
-            if (response.status === 200) {
-              return new Response(JSON.stringify({ 
-                error: 'Authentication failed - received HTML login page',
-                details: 'O servidor retornou uma página HTML de login ao invés de dados JSON. Verifique as credenciais de acesso.',
-                endpoint: apiEndpoint,
-                url: fullUrl,
-                authStatus: 'invalid_credentials'
-              }), {
-                ...corsOptions,
-                status: 401
-              })
-            }
-            
-            return new Response(JSON.stringify({ 
-              error: 'Server returned HTML instead of JSON',
-              details: `O servidor retornou HTML (Status: ${response.status}). Verifique se o endpoint está correto e se o serviço está funcionando.`,
-              endpoint: apiEndpoint,
-              url: fullUrl,
-              responseStatus: response.status
-            }), {
-              ...corsOptions,
-              status: 502
-            })
-          }
-          
-          // Check if empty response
-          if (!textData || textData.trim().length === 0) {
-            console.error('📭 Resposta vazia recebida')
-            lastError = {
-              error: 'Empty response',
-              details: `Resposta vazia do servidor (Content-Type: ${contentType})`,
-              endpoint: apiEndpoint,
-              responseStatus: response.status
-            }
-            continue;
-          }
-          
-          // Try to handle other text responses
-          lastError = {
-            error: 'Non-JSON response',
-            details: `Content-Type: ${contentType}, Status: ${response.status}`,
-            endpoint: apiEndpoint,
-            rawData: textData.substring(0, 200),
-            responseStatus: response.status
-          }
-          continue;
-        }
-
-      } catch (fetchError) {
-        console.error(`❌ Erro de conexão para ${apiEndpoint}:`, fetchError)
-        
-        let errorMessage = 'Connection failed'
-        if (fetchError.name === 'AbortError') {
-          errorMessage = 'Request timeout (30s)'
-        } else if (fetchError.message) {
-          errorMessage = fetchError.message
-        }
-
-        lastError = {
-          error: errorMessage,
-          details: `Falha ao conectar com ${fullUrl}`,
-          endpoint: apiEndpoint
-        }
-        continue; // Tentar próximo endpoint
-      }
-    }
-
-    // Se chegou aqui com dados, retornar sucesso
-    if (rawData && successfulEndpoint) {
-      console.log(`✅ Sucesso com endpoint: ${successfulEndpoint}`);
-      
-      return new Response(JSON.stringify(rawData), {
-        ...corsOptions,
-        headers: {
-          ...corsOptions.headers,
-          'Content-Type': 'application/json'
-        }
+      return new Response(JSON.stringify({
+        error: 'Endpoint execution failed',
+        details: endpointError.message,
+        endpoint: endpoint,
+        timestamp: new Date().toISOString()
+      }), {
+        status: 500,
+        headers: { ...corsOptions.headers, 'Content-Type': 'application/json' }
       })
     }
-
-    // Se chegou aqui, todos os endpoints falharam
-    console.error('❌ Todos os endpoints falharam para:', endpoint)
-    return new Response(JSON.stringify({ 
-      error: 'All endpoints failed',
-      details: 'Não foi possível conectar com nenhum endpoint da API Bacula',
-      lastError: lastError,
-      endpoints: apiEndpoints,
-      baseUrl: baseUrl,
-      testedEndpoints: apiEndpoints.length
-    }), {
-      ...corsOptions,
-      status: 500
-    })
 
   } catch (error) {
-    console.error('❌ Erro geral no bacula-proxy:', error)
+    console.error('❌ Unexpected error:', error)
     
-    // Determine appropriate status code based on error type
-    let status = 500;
-    let errorMessage = 'Erro interno do servidor';
+    let status = 500
+    let errorMessage = 'Internal server error'
     
-    if (error instanceof Error) {
-      if (error.message.includes('Unauthorized') || error.message.includes('Authentication failed')) {
-        status = 401;
-        errorMessage = 'Falha na autenticação. Verifique se você está logado.';
-      } else if (error.message.includes('Bacula integration not found')) {
-        status = 404;
-        errorMessage = 'Integração Bacula não encontrada ou inativa.';
-      } else if (error.message.includes('Authorization header')) {
-        status = 401;
-        errorMessage = 'Header de autorização ausente.';
-      } else {
-        errorMessage = error.message;
-      }
+    if (error.message?.includes('JSON')) {
+      status = 400
+      errorMessage = 'Invalid JSON in request body'
     }
-    
-    return new Response(JSON.stringify({ 
+
+    return new Response(JSON.stringify({
       error: errorMessage,
-      details: error instanceof Error ? error.message : 'Erro desconhecido',
+      details: error.message,
       timestamp: new Date().toISOString()
     }), {
       ...corsOptions,
