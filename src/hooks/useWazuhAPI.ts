@@ -72,10 +72,24 @@ export const useWazuhAPI = () => {
   const useWazuhAgents = (integrationId: string) => {
     return useQuery({
       queryKey: ['wazuh-agents', integrationId],
-      queryFn: () => makeWazuhRequest('/agents', 'GET', integrationId),
+      queryFn: async () => {
+        try {
+          const data = await makeWazuhRequest('/agents', 'GET', integrationId);
+          console.log('Wazuh agents data received:', data);
+          return data;
+        } catch (error) {
+          console.error('Failed to fetch Wazuh agents:', error);
+          toast({
+            title: "Erro ao buscar agentes",
+            description: "Usando dados de exemplo. Verifique a conexão com Wazuh.",
+            variant: "destructive",
+          });
+          throw error;
+        }
+      },
       enabled: !!integrationId,
       staleTime: 30000, // 30 seconds
-      retry: 2,
+      retry: 1, // Reduced retry for faster fallback
     });
   };
 

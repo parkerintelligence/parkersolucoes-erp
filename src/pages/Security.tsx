@@ -44,7 +44,8 @@ const Security = () => {
   const isLoadingData = agentsLoading || alertsLoading || statsLoading || complianceLoading || vulnerabilitiesLoading;
 
   // Use real data if available, otherwise use mock data
-  const displayData = wazuhIntegration && stats ? {
+  const hasRealData = wazuhIntegration && stats && !isLoadingData;
+  const displayData = hasRealData ? {
     agents: {
       total: stats.total_agents || 0,
       active: stats.agents_connected || 0,
@@ -151,8 +152,8 @@ const Security = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className={`${wazuhIntegration && !isLoadingData ? 'text-green-400 border-green-400' : 'text-orange-400 border-orange-400'}`}>
-              {wazuhIntegration && !isLoadingData ? 'Dados Reais' : 'Dados Mock'}
+            <Badge variant="outline" className={`${hasRealData ? 'text-green-400 border-green-400' : 'text-orange-400 border-orange-400'}`}>
+              {hasRealData ? 'Dados Reais' : 'Dados Mock'}
             </Badge>
             <Button 
               onClick={handleRefresh}
