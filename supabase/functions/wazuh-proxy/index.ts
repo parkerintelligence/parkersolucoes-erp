@@ -89,6 +89,11 @@ serve(async (req) => {
       }
     }
 
+    // Ensure the URL is properly formatted for Wazuh API
+    if (!cleanBaseUrl.endsWith('/api')) {
+      cleanBaseUrl = cleanBaseUrl + '/api';
+    }
+
     console.log(`Making direct Wazuh API request to: ${cleanBaseUrl}${endpoint}`);
     
     // Make direct API request with Basic Auth (more common for Wazuh)
@@ -208,17 +213,48 @@ serve(async (req) => {
     // Provide more specific error information
     let errorMessage = 'Wazuh API connection failed';
     let errorDetails = error.message;
+    let urlAttempted = 'Unknown URL';
+    
+    // Try to get the cleanBaseUrl from the integration base_url if available
+    try {
+      const requestBody = await req.json().catch(() => ({}));
+      const { integrationId } = requestBody;
+      
+      if (integrationId) {
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+        );
+        
+        const { data: integration } = await supabaseClient
+          .from('integrations')
+          .select('base_url')
+          .eq('id', integrationId)
+          .single()
+          .catch(() => ({ data: null }));
+          
+        if (integration?.base_url) {
+          let baseUrl = integration.base_url.replace(/\/+$/, '');
+          if (!baseUrl.includes(':') && !baseUrl.includes('://')) {
+            baseUrl = `https://${baseUrl}:55000`;
+          }
+          urlAttempted = baseUrl;
+        }
+      }
+    } catch (e) {
+      console.log('Could not determine URL for error response:', e);
+    }
     
     if (error.message.includes('error sending request for url')) {
       errorMessage = 'Connection failed - check Wazuh server URL and SSL configuration';
-      errorDetails = `Unable to connect to ${cleanBaseUrl}. Please verify: 1) Server is running, 2) URL is correct, 3) SSL certificate is valid, 4) Port ${cleanBaseUrl.includes(':') ? cleanBaseUrl.split(':').pop() : '55000'} is open`;
+      errorDetails = `Unable to connect to Wazuh server. Please verify: 1) Server is running, 2) URL is correct, 3) SSL certificate is valid, 4) Port 55000 is open`;
     }
     
     return new Response(
       JSON.stringify({ 
         error: errorMessage,
         details: errorDetails,
-        url_attempted: `${cleanBaseUrl}${endpoint}`,
+        url_attempted: urlAttempted,
         suggestions: [
           'Verify Wazuh server is running',
           'Check if URL is accessible from this environment',

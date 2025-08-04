@@ -74,8 +74,23 @@ export const useWazuhAPI = () => {
       queryKey: ['wazuh-agents', integrationId],
       queryFn: async () => {
         try {
-          const data = await makeWazuhRequest('/agents', 'GET', integrationId);
+          const data = await makeWazuhRequest('/v1/agents?pretty=true&wait_for_complete=true', 'GET', integrationId);
           console.log('Wazuh agents data received:', data);
+          
+          // Process real Wazuh data structure
+          if (data?.data?.affected_items) {
+            return data.data.affected_items.map((agent: any) => ({
+              id: agent.id,
+              name: agent.name,
+              ip: agent.ip,
+              status: agent.status,
+              version: agent.version,
+              os: agent.os,
+              lastKeepAlive: agent.last_keep_alive,
+              group: agent.group,
+            }));
+          }
+          
           return data;
         } catch (error) {
           console.error('Failed to fetch Wazuh agents:', error);
@@ -96,7 +111,36 @@ export const useWazuhAPI = () => {
   const useWazuhAlerts = (integrationId: string, limit: number = 50) => {
     return useQuery({
       queryKey: ['wazuh-alerts', integrationId, limit],
-      queryFn: () => makeWazuhRequest(`/alerts?limit=${limit}&sort=-timestamp`, 'GET', integrationId),
+      queryFn: async () => {
+        try {
+          const data = await makeWazuhRequest(`/v1/alerts?pretty=true&limit=${limit}&sort=-timestamp`, 'GET', integrationId);
+          console.log('Wazuh alerts data received:', data);
+          
+          // Process real Wazuh data structure
+          if (data?.data?.affected_items) {
+            return data.data.affected_items.map((alert: any) => ({
+              id: alert.id || alert._id,
+              timestamp: alert.timestamp || alert['@timestamp'],
+              rule: {
+                id: alert.rule?.id,
+                level: alert.rule?.level,
+                description: alert.rule?.description,
+              },
+              agent: {
+                id: alert.agent?.id,
+                name: alert.agent?.name,
+              },
+              location: alert.location,
+              full_log: alert.full_log,
+            }));
+          }
+          
+          return data;
+        } catch (error) {
+          console.error('Failed to fetch Wazuh alerts:', error);
+          throw error;
+        }
+      },
       enabled: !!integrationId,
       staleTime: 30000, // 30 seconds
       retry: 2,
@@ -107,26 +151,52 @@ export const useWazuhAPI = () => {
     return useQuery({
       queryKey: ['wazuh-stats', integrationId],
       queryFn: async (): Promise<WazuhStats> => {
-        const [agentsResponse, alertsResponse] = await Promise.all([
-          makeWazuhRequest('/agents/summary/status', 'GET', integrationId),
-          makeWazuhRequest('/alerts/summary', 'GET', integrationId),
-        ]);
+        try {
+          const [agentsResponse, alertsResponse] = await Promise.all([
+            makeWazuhRequest('/v1/agents?pretty=true', 'GET', integrationId),
+            makeWazuhRequest('/v1/alerts?pretty=true&limit=1000', 'GET', integrationId),
+          ]);
 
-        // Process the responses to create our stats object
-        const agentStats = agentsResponse?.data || {};
-        const alertStats = alertsResponse?.data || {};
+          // Process agents data
+          const agents = agentsResponse?.data?.affected_items || [];
+          const agentStats = {
+            total: agents.length,
+            active: agents.filter((a: any) => a.status === 'active').length,
+            disconnected: agents.filter((a: any) => a.status === 'disconnected').length,
+            never_connected: agents.filter((a: any) => a.status === 'never_connected').length,
+          };
 
-        return {
-          total_agents: agentStats.Total || 0,
-          agents_connected: agentStats.Active || 0,
-          agents_disconnected: agentStats.Disconnected || 0,
-          agents_never_connected: agentStats['Never connected'] || 0,
-          total_alerts_today: alertStats.total_today || 0,
-          critical_alerts: alertStats.critical || 0,
-          high_alerts: alertStats.high || 0,
-          medium_alerts: alertStats.medium || 0,
-          low_alerts: alertStats.low || 0,
-        };
+          // Process alerts data
+          const alerts = alertsResponse?.data?.affected_items || [];
+          const today = new Date().toISOString().split('T')[0];
+          const todayAlerts = alerts.filter((alert: any) => {
+            const alertDate = new Date(alert.timestamp || alert['@timestamp']).toISOString().split('T')[0];
+            return alertDate === today;
+          });
+
+          const alertStats = {
+            total_today: todayAlerts.length,
+            critical: alerts.filter((a: any) => a.rule?.level >= 12).length,
+            high: alerts.filter((a: any) => a.rule?.level >= 7 && a.rule?.level < 12).length,
+            medium: alerts.filter((a: any) => a.rule?.level >= 4 && a.rule?.level < 7).length,
+            low: alerts.filter((a: any) => a.rule?.level < 4).length,
+          };
+
+          return {
+            total_agents: agentStats.total,
+            agents_connected: agentStats.active,
+            agents_disconnected: agentStats.disconnected,
+            agents_never_connected: agentStats.never_connected,
+            total_alerts_today: alertStats.total_today,
+            critical_alerts: alertStats.critical,
+            high_alerts: alertStats.high,
+            medium_alerts: alertStats.medium,
+            low_alerts: alertStats.low,
+          };
+        } catch (error) {
+          console.error('Failed to fetch Wazuh stats:', error);
+          throw error;
+        }
       },
       enabled: !!integrationId,
       staleTime: 60000, // 1 minute
@@ -137,7 +207,7 @@ export const useWazuhAPI = () => {
   const useWazuhCompliance = (integrationId: string) => {
     return useQuery({
       queryKey: ['wazuh-compliance', integrationId],
-      queryFn: () => makeWazuhRequest('/compliance', 'GET', integrationId),
+      queryFn: () => makeWazuhRequest('/v1/sca?pretty=true', 'GET', integrationId),
       enabled: !!integrationId,
       staleTime: 300000, // 5 minutes
       retry: 2,
@@ -147,7 +217,7 @@ export const useWazuhAPI = () => {
   const useWazuhVulnerabilities = (integrationId: string) => {
     return useQuery({
       queryKey: ['wazuh-vulnerabilities', integrationId],
-      queryFn: () => makeWazuhRequest('/vulnerability', 'GET', integrationId),
+      queryFn: () => makeWazuhRequest('/v1/vulnerability?pretty=true', 'GET', integrationId),
       enabled: !!integrationId,
       staleTime: 300000, // 5 minutes
       retry: 2,
@@ -156,7 +226,7 @@ export const useWazuhAPI = () => {
 
   const testWazuhConnection = useMutation({
     mutationFn: async (integrationId: string) => {
-      return makeWazuhRequest('//', 'GET', integrationId);
+      return makeWazuhRequest('/v1', 'GET', integrationId);
     },
     onSuccess: () => {
       toast({
