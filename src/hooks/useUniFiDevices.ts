@@ -23,6 +23,9 @@ export const useUniFiDevices = (integrationId: string, siteId?: string) => {
         if (response && Array.isArray(response) && response.length > 0) {
           console.log(`✅ Devices encontrados via Site Manager API:`, response.length);
           return response;
+        } else if (response?.data && Array.isArray(response.data)) {
+          console.log(`✅ Devices encontrados via Site Manager API (nested):`, response.data.length);
+          return response.data;
         }
         
         throw new Error('Site Manager API não disponível ou sem dados');
@@ -36,9 +39,9 @@ export const useUniFiDevices = (integrationId: string, siteId?: string) => {
           const localResponse = await makeUniFiProxyRequest('GET', `/api/s/${siteId}/stat/device`, integrationId);
           console.log(`Local controller devices response for ${siteId}:`, localResponse);
           
-          const devices = localResponse || [];
-          console.log(`✅ Devices encontrados via controladora local:`, devices.length);
-          return devices;
+          const devices = localResponse?.data || localResponse || [];
+          console.log(`✅ Devices encontrados via controladora local:`, Array.isArray(devices) ? devices.length : 0);
+          return Array.isArray(devices) ? devices : [];
         } catch (localError) {
           console.error('❌ Controladora local devices também falhou:', localError.message);
           return [];

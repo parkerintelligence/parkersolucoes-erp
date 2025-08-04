@@ -22,8 +22,14 @@ export const useUniFiInsights = (integrationId: string, siteId?: string) => {
         if (response && Array.isArray(response)) {
           console.log(`✅ Insights encontrados via Site Manager API:`, response.length);
           return response;
+        } else if (response?.data && Array.isArray(response.data)) {
+          console.log(`✅ Insights encontrados via Site Manager API (nested):`, response.data.length);
+          return response.data;
         }
         
+        
+        // Se não há dados na resposta, retornar array vazio
+        console.log('❌ Site Manager API insights: dados vazios ou formato inválido');
         return [];
       } catch (error) {
         console.log('❌ Site Manager API insights falhou:', error.message);

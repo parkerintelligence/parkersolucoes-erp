@@ -23,6 +23,9 @@ export const useUniFiClients = (integrationId: string, siteId?: string) => {
         if (response && Array.isArray(response) && response.length > 0) {
           console.log(`✅ Clients encontrados via Site Manager API:`, response.length);
           return response;
+        } else if (response?.data && Array.isArray(response.data)) {
+          console.log(`✅ Clients encontrados via Site Manager API (nested):`, response.data.length);
+          return response.data;
         }
         
         throw new Error('Site Manager API não disponível ou sem dados');
@@ -36,9 +39,9 @@ export const useUniFiClients = (integrationId: string, siteId?: string) => {
           const localResponse = await makeUniFiProxyRequest('GET', `/api/s/${siteId}/stat/sta`, integrationId);
           console.log(`Local controller clients response for ${siteId}:`, localResponse);
           
-          const clients = localResponse || [];
-          console.log(`✅ Clients encontrados via controladora local:`, clients.length);
-          return clients;
+          const clients = localResponse?.data || localResponse || [];
+          console.log(`✅ Clients encontrados via controladora local:`, Array.isArray(clients) ? clients.length : 0);
+          return Array.isArray(clients) ? clients : [];
         } catch (localError) {
           console.error('❌ Controladora local clients também falhou:', localError.message);
           return [];

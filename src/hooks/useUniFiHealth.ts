@@ -23,6 +23,9 @@ export const useUniFiHealth = (integrationId: string, siteId?: string) => {
         if (response && Array.isArray(response) && response.length > 0) {
           console.log(`✅ Health encontrado via Site Manager API:`, response.length);
           return response;
+        } else if (response?.data && Array.isArray(response.data)) {
+          console.log(`✅ Health encontrado via Site Manager API (nested):`, response.data.length);
+          return response.data;
         }
         
         throw new Error('Site Manager API não disponível ou sem dados');
@@ -36,9 +39,9 @@ export const useUniFiHealth = (integrationId: string, siteId?: string) => {
           const localResponse = await makeUniFiProxyRequest('GET', `/api/s/${siteId}/stat/health`, integrationId);
           console.log(`Local controller health response for ${siteId}:`, localResponse);
           
-          const health = localResponse || [];
-          console.log(`✅ Health encontrado via controladora local:`, health.length);
-          return health;
+          const health = localResponse?.data || localResponse || [];
+          console.log(`✅ Health encontrado via controladora local:`, Array.isArray(health) ? health.length : 0);
+          return Array.isArray(health) ? health : [];
         } catch (localError) {
           console.error('❌ Controladora local health também falhou:', localError.message);
           return [];
