@@ -1,6 +1,4 @@
 
-"use client"
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIntegrations } from './useIntegrations';
 import { toast } from '@/hooks/use-toast';

@@ -1,7 +1,5 @@
 
 import { useState } from 'react';
-"use client"
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePasswords } from '@/hooks/usePasswords';
 import { toast } from '@/hooks/use-toast';

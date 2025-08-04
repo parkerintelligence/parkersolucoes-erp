@@ -3,8 +3,6 @@
 // this hook is temporarily disabled and returns mock data
 // until the proper table is created
 
-"use client"
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 

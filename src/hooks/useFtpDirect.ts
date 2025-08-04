@@ -1,6 +1,4 @@
 import { useState, useCallback, useEffect } from 'react';
-"use client"
-
 import { useQuery, useMutation } from '@tanstack/react-query';
 
 export interface FtpFile {
