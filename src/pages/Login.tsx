@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Shield, Server, Database, Lock, Eye, EyeOff, Sparkles, Zap, BarChart3, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { useSystemSettings } from '@/hooks/useSystemSettings';
+// import { useSystemSettings } from '@/hooks/useSystemSettings';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -16,10 +16,14 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { data: brandingSettings } = useSystemSettings('branding');
+  // Temporarily remove useSystemSettings to fix the startup issue
+  // const { data: brandingSettings } = useSystemSettings('branding');
+  const brandingSettings = null;
 
-  const companyLogo = brandingSettings?.find(setting => setting.setting_key === 'company_logo_url')?.setting_value;
-  const companyName = brandingSettings?.find(setting => setting.setting_key === 'company_name')?.setting_value || 'Parker Soluções ERP';
+  // const companyLogo = brandingSettings?.find(setting => setting.setting_key === 'company_logo_url')?.setting_value;
+  // const companyName = brandingSettings?.find(setting => setting.setting_key === 'company_name')?.setting_value || 'Parker Soluções ERP';
+  const companyLogo = null;
+  const companyName = 'Parker Soluções ERP';
 
   // Floating particles animation
   const particles = Array.from({ length: 20 }, (_, i) => (
