@@ -413,33 +413,36 @@ serve(async (req) => {
       // Map endpoints to Site Manager API format
       let siteManagerEndpoint = endpoint;
       
-      // Transform local controller endpoints to Site Manager API endpoints
+      // Transform local controller endpoints to Site Manager API endpoints using v1 API
       if (endpoint.includes('/api/self/sites')) {
-        siteManagerEndpoint = '/ea/hosts';
+        siteManagerEndpoint = '/v1/hosts';
       } else if (endpoint.includes('/api/s/') && endpoint.includes('/stat/device')) {
         // Extract site ID from local controller endpoint format
         const match = endpoint.match(/\/api\/s\/([^\/]+)\/stat\/device/);
-        const siteId = match ? match[1] : '';
-        siteManagerEndpoint = `/ea/sites/${siteId}/devices`;
+        const hostId = match ? match[1] : '';
+        siteManagerEndpoint = `/v1/devices?hosts=${hostId}`;
       } else if (endpoint.includes('/api/s/') && endpoint.includes('/stat/sta')) {
         const match = endpoint.match(/\/api\/s\/([^\/]+)\/stat\/sta/);
-        const siteId = match ? match[1] : '';
-        siteManagerEndpoint = `/ea/sites/${siteId}/clients`;
+        const hostId = match ? match[1] : '';
+        siteManagerEndpoint = `/v1/clients?hosts=${hostId}`;
       } else if (endpoint.includes('/api/s/') && endpoint.includes('/rest/wlanconf')) {
         const match = endpoint.match(/\/api\/s\/([^\/]+)\/rest\/wlanconf/);
-        const siteId = match ? match[1] : '';
-        siteManagerEndpoint = `/ea/sites/${siteId}/networks`;
+        const hostId = match ? match[1] : '';
+        siteManagerEndpoint = `/v1/networks?hosts=${hostId}`;
       } else if (endpoint.includes('/api/s/') && endpoint.includes('/stat/alarm')) {
         const match = endpoint.match(/\/api\/s\/([^\/]+)\/stat\/alarm/);
-        const siteId = match ? match[1] : '';
-        siteManagerEndpoint = `/ea/sites/${siteId}/events`;
+        const hostId = match ? match[1] : '';
+        siteManagerEndpoint = `/v1/events?hosts=${hostId}`;
       } else if (endpoint.includes('/api/s/') && endpoint.includes('/stat/health')) {
         const match = endpoint.match(/\/api\/s\/([^\/]+)\/stat\/health/);
-        const siteId = match ? match[1] : '';
-        siteManagerEndpoint = `/ea/sites/${siteId}/health`;
-      } else if (endpoint.includes('/ea/')) {
-        // Already a Site Manager API endpoint
+        const hostId = match ? match[1] : '';
+        siteManagerEndpoint = `/v1/health?hosts=${hostId}`;
+      } else if (endpoint.includes('/v1/')) {
+        // Already a Site Manager API v1 endpoint
         siteManagerEndpoint = endpoint;
+      } else if (endpoint.includes('/ea/')) {
+        // Convert old ea endpoints to v1
+        siteManagerEndpoint = endpoint.replace('/ea/', '/v1/');
       }
       
       console.log('Endpoint mapping:', { original: endpoint, mapped: siteManagerEndpoint });
@@ -495,7 +498,7 @@ serve(async (req) => {
 
       // Transform Site Manager API response to match local controller format
       let finalResponse;
-      if (siteManagerEndpoint === '/ea/hosts') {
+      if (siteManagerEndpoint === '/v1/hosts') {
         // Transform hosts response to match expected format
         finalResponse = {
           data: Array.isArray(responseData) ? responseData.map((host: any) => ({
