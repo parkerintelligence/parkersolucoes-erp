@@ -38,14 +38,18 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
+    commonjsOptions: {
+      include: [/node_modules/],
+    },
     rollupOptions: {
       external: [],
       output: {
-        manualChunks: {
-          react: ["react", "react-dom"],
-          query: ["@tanstack/react-query"],
-        },
+        manualChunks: undefined,
       },
     },
   },
+  define: {
+    global: 'globalThis',
+  },
+  clearScreen: false,
 }));

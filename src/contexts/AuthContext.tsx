@@ -1,6 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
+import React from 'react';
 
 interface UserProfile {
   id: string;
@@ -9,9 +7,9 @@ interface UserProfile {
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: any;
   userProfile: UserProfile | null;
-  session: Session | null;
+  session: any;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
@@ -19,37 +17,23 @@ interface AuthContextType {
   isLoading: boolean;
 }
 
-// Criar contexto com valor padrão temporário
-const AuthContext = createContext<AuthContextType>({
+// Valor padrão temporário sem contexto React para evitar hooks
+const defaultAuth: AuthContextType = {
   user: null,
   userProfile: null,
   session: null,
-  login: async () => false,
+  login: async () => true,
   logout: async () => {},
   isAuthenticated: false,
-  isMaster: false,
+  isMaster: true,
   isLoading: false,
-});
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  return context;
 };
 
-// Provider simplificado temporariamente
+export const useAuth = () => {
+  return defaultAuth;
+};
+
+// Provider que apenas retorna children sem contexto ou hooks
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-
-  // Estado temporário simplificado
-  const value = {
-    user: null,
-    userProfile: null,
-    session: null,
-    login: async () => true, // Mock sempre sucesso para testar
-    logout: async () => {},
-    isAuthenticated: false,
-    isMaster: true, // Mock como master para acessar tudo
-    isLoading: false
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <>{children}</>;
 };
