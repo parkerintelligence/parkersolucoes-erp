@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, ShieldCheck, Wifi } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar } from '@/components/ui/sidebar';
-import { useSystemSettings } from '@/hooks/useSystemSettings';
+// import { useSystemSettings } from '@/hooks/useSystemSettings';
 const menuItems = [{
   title: 'Alertas',
   url: '/alertas',
@@ -103,14 +103,16 @@ export function AppSidebar() {
   } = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
-  const { data: companyLogoSettings } = useSystemSettings('branding');
+  // Temporarily disabled due to React hooks corruption
+  // const { data: companyLogoSettings } = useSystemSettings('branding');
   
   const isActive = (path: string) => currentPath === path;
   const isCollapsed = state === 'collapsed';
   const filteredMainItems = menuItems.filter(item => item.role === 'user' || item.role === 'master' && isMaster);
   
-  const companyLogo = companyLogoSettings?.find(setting => setting.setting_key === 'company_logo_url')?.setting_value;
-  const companyName = companyLogoSettings?.find(setting => setting.setting_key === 'company_name')?.setting_value;
+  // Temporarily use static values due to React hooks corruption
+  const companyLogo = null; // companyLogoSettings?.find(setting => setting.setting_key === 'company_logo_url')?.setting_value;
+  const companyName = 'Parker Soluções'; // companyLogoSettings?.find(setting => setting.setting_key === 'company_name')?.setting_value;
   return <Sidebar className="border-r border-primary-foreground/20 bg-slate-900" collapsible="icon">
       <SidebarHeader className="p-2 sm:p-4 border-b border-primary-foreground/20 bg-slate-900">
         <div className="flex items-center justify-center">
