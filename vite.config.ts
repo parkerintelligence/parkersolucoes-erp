@@ -17,39 +17,6 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "react": path.resolve(__dirname, "./node_modules/react"),
-      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
-    },
-    dedupe: ["react", "react-dom", "@tanstack/react-query"],
-  },
-  optimizeDeps: {
-    include: [
-      "react",
-      "react-dom", 
-      "react/jsx-runtime",
-      "@tanstack/react-query",
-      "@supabase/supabase-js"
-    ],
-    force: true,
-    esbuildOptions: {
-      define: {
-        global: 'globalThis',
-      },
     },
   },
-  build: {
-    commonjsOptions: {
-      include: [/node_modules/],
-    },
-    rollupOptions: {
-      external: [],
-      output: {
-        manualChunks: undefined,
-      },
-    },
-  },
-  define: {
-    global: 'globalThis',
-  },
-  clearScreen: false,
 }));

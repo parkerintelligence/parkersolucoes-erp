@@ -1,145 +1,52 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Parker Soluções ERP - Cache Limpo</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            color: white;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .container {
-            text-align: center;
-            padding: 2rem;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            max-width: 500px;
-        }
-        .status {
-            margin: 1rem 0;
-            padding: 1rem;
-            background: rgba(16, 185, 129, 0.2);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            border-radius: 8px;
-        }
-        button {
-            margin: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            background: #3b82f6;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: background 0.2s;
-        }
-        button:hover {
-            background: #2563eb;
-        }
-        .success {
-            background: #10b981;
-        }
-        .success:hover {
-            background: #059669;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🚀 Parker Soluções ERP</h1>
-        
-        <div class="status">
-            <h3>✅ Sistema Funcionando!</h3>
-            <p>Cache completamente limpo<br>
-            Pronto para restaurar React</p>
-        </div>
-        
-        <div>
-            <button onclick="clearAllCaches()">Limpar Cache Força</button>
-            <button onclick="hardReload()" class="success">Hard Reload</button>
-            <button onclick="testSystem()">Testar Sistema</button>
-        </div>
-        
-        <div id="messages" style="margin-top: 2rem; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 6px; min-height: 100px; text-align: left; font-size: 0.875rem;">
-            <strong>Log do Sistema:</strong><br>
-            ✅ HTML nativo carregado<br>
-            ✅ Sem React hooks<br>
-            ✅ Sem dependências externas<br>
-            ✅ Aguardando comandos...
-        </div>
-    </div>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Parker Soluções ERP</title>
+    <meta name="description" content="Sistema completo de gestão empresarial e infraestrutura de TI" />
+    <meta name="author" content="Parker Soluções" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1f2937" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Parker ERP" />
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-192.png" />
+    <link rel="icon" href="/icon-192.png" type="image/png" />
 
+    <meta property="og:title" content="azure-it-control-center" />
+    <meta property="og:description" content="Lovable Generated Project" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@lovable_dev" />
+    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- PWA Service Worker Registration -->
     <script>
-        function addLog(message) {
-            const logs = document.getElementById('messages');
-            logs.innerHTML += '<br>🔧 ' + message;
-            logs.scrollTop = logs.scrollHeight;
-        }
-
-        function clearAllCaches() {
-            addLog('Iniciando limpeza agressiva de cache...');
-            
-            // Limpar localStorage
-            localStorage.clear();
-            addLog('LocalStorage limpo');
-            
-            // Limpar sessionStorage
-            sessionStorage.clear();
-            addLog('SessionStorage limpo');
-            
-            // Limpar todos os caches
-            if ('caches' in window) {
-                caches.keys().then(names => {
-                    names.forEach(name => {
-                        caches.delete(name);
-                        addLog('Cache deletado: ' + name);
-                    });
-                });
-            }
-            
-            // Desregistrar service workers
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(registrations => {
-                    registrations.forEach(registration => {
-                        registration.unregister();
-                        addLog('Service Worker desregistrado');
-                    });
-                });
-            }
-            
-            addLog('✅ Limpeza completa finalizada!');
-        }
-
-        function hardReload() {
-            addLog('Forçando reload completo...');
-            setTimeout(() => {
-                window.location.reload(true);
-            }, 1000);
-        }
-
-        function testSystem() {
-            addLog('Testando sistema básico...');
-            addLog('✅ JavaScript funcionando');
-            addLog('✅ DOM funcionando');
-            addLog('✅ Eventos funcionando');
-            addLog('✅ Sistema 100% operacional!');
-        }
-
-        // Auto-limpar ao carregar
-        setTimeout(() => {
-            addLog('Auto-limpeza iniciada...');
-            clearAllCaches();
-        }, 1000);
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
     </script>
-</body>
+  </body>
 </html>

@@ -1,4 +1,3 @@
-import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, ShieldCheck, Wifi } from 'lucide-react';
@@ -110,8 +109,8 @@ export function AppSidebar() {
   const isCollapsed = state === 'collapsed';
   const filteredMainItems = menuItems.filter(item => item.role === 'user' || item.role === 'master' && isMaster);
   
-  const companyLogo = companyLogoSettings?.find(s => s.setting_key === 'company_logo')?.setting_value;
-  const companyName = companyLogoSettings?.find(s => s.setting_key === 'company_name')?.setting_value;
+  const companyLogo = companyLogoSettings?.find(setting => setting.setting_key === 'company_logo_url')?.setting_value;
+  const companyName = companyLogoSettings?.find(setting => setting.setting_key === 'company_name')?.setting_value;
   return <Sidebar className="border-r border-primary-foreground/20 bg-slate-900" collapsible="icon">
       <SidebarHeader className="p-2 sm:p-4 border-b border-primary-foreground/20 bg-slate-900">
         <div className="flex items-center justify-center">
