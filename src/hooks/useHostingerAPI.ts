@@ -33,14 +33,7 @@ export interface HostingerVPS {
   network_out?: number;
 }
 
-export interface HostingerSnapshot {
-  id: string;
-  name: string;
-  vps_id: string;
-  size: number;
-  created_at: string;
-  status: string;
-}
+// HostingerSnapshot interface moved to useHostingerSnapshots.ts
 
 const useHostingerIntegrations = () => {
   return useQuery({
@@ -395,37 +388,7 @@ const useHostingerActions = () => {
   };
 };
 
-const useHostingerSnapshots = (integrationId?: string) => {
-  return useQuery({
-    queryKey: ['hostinger-snapshots', integrationId],
-    queryFn: async () => {
-      if (!integrationId) return [];
-      
-      console.log('📸 Buscando snapshots para integração:', integrationId);
-      
-      const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
-        body: {
-          integration_id: integrationId,
-          endpoint: '/virtual-machines/snapshots',
-          method: 'GET'
-        }
-      });
-
-      if (error) {
-        console.error('❌ Erro ao buscar snapshots:', error);
-        throw error;
-      }
-      
-      const snapshotsList = data?.data || [];
-      console.log('✅ Snapshots encontrados:', snapshotsList);
-      
-      return snapshotsList;
-    },
-    enabled: !!integrationId,
-    refetchInterval: 30000, // Atualizar a cada 30 segundos
-    retry: 1,
-  });
-};
+// useHostingerSnapshots moved to separate file: useHostingerSnapshots.ts
 
 export {
   useHostingerIntegrations,
@@ -433,5 +396,4 @@ export {
   useHostingerVPSDetails,
   useHostingerVPSMetrics,
   useHostingerActions,
-  useHostingerSnapshots,
 };
