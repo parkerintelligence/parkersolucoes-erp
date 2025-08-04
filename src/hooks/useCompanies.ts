@@ -1,5 +1,5 @@
 
-import * as React from 'react';
+import React from 'react';
 "use client"
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
