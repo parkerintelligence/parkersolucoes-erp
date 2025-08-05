@@ -758,22 +758,48 @@ export const useGLPIExpanded = () => {
   // Mutations para criar, atualizar e deletar tickets
   const createTicket = useMutation({
     mutationFn: (ticketData: Partial<GLPITicket>) => {
+      console.log('🎫 Criando ticket GLPI:', ticketData);
+      
+      // A API GLPI espera um array de objetos para criação
+      const ticketArray = [ticketData];
+      
       return makeGLPIRequest('tickets', {
         method: 'POST',
-        body: JSON.stringify(ticketData),
+        body: JSON.stringify(ticketArray),
       });
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      console.log('✅ Ticket criado com sucesso:', result);
       queryClient.invalidateQueries({ queryKey: ['glpi', 'tickets'] });
+      
+      // Extrair ID do ticket criado se disponível
+      const ticketId = result?.[0]?.id || result?.id;
+      const successMessage = ticketId 
+        ? `Ticket #${ticketId} criado com sucesso no GLPI.`
+        : "O ticket foi criado com sucesso no GLPI.";
+        
       toast({
         title: "Ticket criado!",
-        description: "O ticket foi criado com sucesso no GLPI.",
+        description: successMessage,
       });
     },
     onError: (error: Error) => {
+      console.error('❌ Erro ao criar ticket:', error);
+      
+      // Melhorar mensagens de erro baseadas no tipo
+      let errorMessage = error.message;
+      
+      if (error.message.includes('ERROR_BAD_ARRAY')) {
+        errorMessage = 'Erro no formato dos dados. Verifique os campos obrigatórios.';
+      } else if (error.message.includes('ERROR_SESSION_TOKEN_MISSING')) {
+        errorMessage = 'Sessão expirada. Será reconectado automaticamente na próxima tentativa.';
+      } else if (error.message.includes('ERROR_NOT_FOUND')) {
+        errorMessage = 'Endpoint não encontrado. Verifique a configuração do GLPI.';
+      }
+      
       toast({
         title: "Erro ao criar ticket",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive"
       });
     },

@@ -322,6 +322,7 @@ serve(async (req) => {
 
     if (data && (method === 'POST' || method === 'PUT')) {
       requestOptions.body = JSON.stringify(data)
+      console.log('Request body being sent:', JSON.stringify(data, null, 2))
     }
 
     let apiResponse: Response
