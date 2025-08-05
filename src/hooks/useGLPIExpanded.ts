@@ -840,13 +840,15 @@ export const useGLPIExpanded = () => {
       }
       
       try {
-        // A API GLPI espera um array de objetos para criação
-        const ticketArray = [enhancedTicketData];
-        console.log('🎫 [useGLPIExpanded] Enviando para GLPI proxy:', ticketArray);
+        // Formato correto da API GLPI: {"input": {...}}
+        const glpiPayload = {
+          input: enhancedTicketData
+        };
+        console.log('🎫 [useGLPIExpanded] Enviando payload formatado para GLPI:', JSON.stringify(glpiPayload, null, 2));
         
-        const response = await makeGLPIRequest('tickets', {
+        const response = await makeGLPIRequest('Ticket', {
           method: 'POST',
-          body: JSON.stringify(ticketArray),
+          body: JSON.stringify(glpiPayload)
         });
         
         console.log('🎫 [useGLPIExpanded] Resposta do GLPI proxy:', response);

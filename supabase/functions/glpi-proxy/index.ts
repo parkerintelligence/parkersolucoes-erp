@@ -324,6 +324,7 @@ serve(async (req) => {
 
     if (data && (method === 'POST' || method === 'PUT')) {
       requestOptions.body = JSON.stringify(data)
+      console.log('🔍 Payload sendo enviado para API GLPI:', JSON.stringify(data, null, 2))
     }
 
     let apiResponse: Response
@@ -352,9 +353,24 @@ serve(async (req) => {
 
     if (!apiResponse.ok) {
       const errorText = await apiResponse.text()
-      console.error('API error response:', errorText)
-      console.error('API error status:', apiResponse.status)
-      console.error('API error headers:', Object.fromEntries(apiResponse.headers.entries()))
+      console.error('❌ API error response:', errorText)
+      console.error('❌ API error status:', apiResponse.status)
+      console.error('❌ API error headers:', Object.fromEntries(apiResponse.headers.entries()))
+      
+      // Tentar fazer parse do erro para obter mais detalhes
+      try {
+        const errorData = JSON.parse(errorText)
+        console.error('❌ Parsed error data:', errorData)
+        
+        // Verificar se é erro específico de formato
+        if (errorData && typeof errorData === 'object') {
+          if (errorData.length && errorData[0] && errorData[0].message) {
+            console.error('❌ GLPI error message:', errorData[0].message)
+          }
+        }
+      } catch (parseError) {
+        console.error('❌ Erro não é JSON válido')
+      }
       
       // Se for erro 401, limpar cache da sessão
       if (apiResponse.status === 401) {
