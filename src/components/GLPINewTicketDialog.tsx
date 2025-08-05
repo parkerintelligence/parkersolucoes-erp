@@ -50,7 +50,7 @@ export const GLPINewTicketDialog = ({
         urgency: parseInt(formData.urgency),
         impact: parseInt(formData.impact),
         type: parseInt(formData.requestType),
-        // Os valores de entities_id, users_id_requester, etc. serão definidos dinamicamente no hook
+        itilcategories_id: formData.category ? parseInt(formData.category) : undefined,
       };
 
       await createTicket.mutateAsync(ticketData);

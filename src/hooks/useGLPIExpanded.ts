@@ -34,6 +34,8 @@ export interface GLPITicket {
   assigns: any[];
   suppliers: any[];
   categories_id: number;
+  itilcategories_id?: number;
+  requesttypes_id?: number;
   locations_id: number;
   validation?: any;
   satisfaction?: any;
@@ -810,9 +812,17 @@ export const useGLPIExpanded = () => {
       
       // Mesclar dados do ticket com valores válidos
       const enhancedTicketData = {
-        ...ticketData,
-        ...validValues,
+        name: ticketData.name,
+        content: ticketData.content || '',
+        priority: ticketData.priority || 3,
+        urgency: ticketData.urgency || 3,
+        impact: ticketData.impact || 3,
+        type: ticketData.type || 1,
         status: 1, // Status: Novo
+        entities_id: validValues.entities_id,
+        users_id_requester: validValues.users_id_requester,
+        itilcategories_id: ticketData.itilcategories_id || validValues.itilcategories_id,
+        requesttypes_id: validValues.requesttypes_id
       };
       
       console.log('🎫 Dados do ticket preparados com valores válidos:', JSON.stringify(enhancedTicketData, null, 2));
