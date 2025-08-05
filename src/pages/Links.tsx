@@ -1,5 +1,5 @@
-import React from 'react';
-import { useState } from 'react';
+import * as React from 'react';
+const { useState } = React;
 import { usePasswords } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useLinksExport } from '@/hooks/useLinksExport';
