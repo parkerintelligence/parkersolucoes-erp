@@ -310,6 +310,8 @@ serve(async (req) => {
     console.log('=== Making API call ===')
     console.log('API Path:', apiPath)
     console.log('Full URL:', apiUrl)
+    console.log('HTTP Method:', method)
+    console.log('Request Body:', data ? JSON.stringify(data, null, 2) : 'N/A')
 
     const requestOptions: RequestInit = {
       method: method,
@@ -322,7 +324,6 @@ serve(async (req) => {
 
     if (data && (method === 'POST' || method === 'PUT')) {
       requestOptions.body = JSON.stringify(data)
-      console.log('Request body being sent:', JSON.stringify(data, null, 2))
     }
 
     let apiResponse: Response
@@ -347,10 +348,13 @@ serve(async (req) => {
 
     console.log('=== API Response ===')
     console.log('API response status:', apiResponse.status)
+    console.log('API response headers:', Object.fromEntries(apiResponse.headers.entries()))
 
     if (!apiResponse.ok) {
       const errorText = await apiResponse.text()
       console.error('API error response:', errorText)
+      console.error('API error status:', apiResponse.status)
+      console.error('API error headers:', Object.fromEntries(apiResponse.headers.entries()))
       
       // Se for erro 401, limpar cache da sessão
       if (apiResponse.status === 401) {
@@ -360,8 +364,11 @@ serve(async (req) => {
       
       // Tratamento especial para erros 400 na criação de tickets
       if (apiResponse.status === 400 && apiPath.toLowerCase().includes('ticket')) {
+        console.log('Erro 400 detectado em endpoint de ticket - analisando detalhes')
         try {
           const errorData = JSON.parse(errorText)
+          console.log('Error data parsed:', errorData)
+          
           if (Array.isArray(errorData) && errorData.length >= 2) {
             const [errorCode, errorMessage] = errorData
             console.error('GLPI API Error Details:', { errorCode, errorMessage })
@@ -385,6 +392,7 @@ serve(async (req) => {
           }
         } catch (parseError) {
           console.error('Não foi possível parsear erro da API GLPI:', parseError)
+          console.error('Raw error text that failed to parse:', errorText)
         }
       }
       
@@ -424,15 +432,22 @@ serve(async (req) => {
     let result
     try {
       const responseText = await apiResponse.text()
-      console.log('Raw API response (first 200 chars):', responseText.substring(0, 200))
+      console.log('Raw API response (first 500 chars):', responseText.substring(0, 500))
       
       if (responseText.trim() === '') {
         result = {}
+        console.log('Empty response - returning empty object')
       } else {
         result = JSON.parse(responseText)
+        console.log('Parsed result type:', typeof result)
+        console.log('Parsed result (structure):', Array.isArray(result) ? `Array[${result.length}]` : typeof result)
+        if (Array.isArray(result) && result.length > 0) {
+          console.log('First result item keys:', Object.keys(result[0] || {}))
+        }
       }
     } catch (parseError) {
       console.error('Error parsing API response:', parseError)
+      console.error('Original response text:', responseText)
       return new Response(
         JSON.stringify({ 
           error: 'Erro ao processar resposta da API GLPI. Resposta não é um JSON válido.'

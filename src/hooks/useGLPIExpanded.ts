@@ -804,11 +804,17 @@ export const useGLPIExpanded = () => {
 
   // Mutations para criar, atualizar e deletar tickets
   const createTicket = useMutation({
-    mutationFn: (ticketData: Partial<GLPITicket>) => {
-      console.log('🎫 Criando ticket GLPI:', ticketData);
+    mutationFn: async (ticketData: Partial<GLPITicket>) => {
+      console.log('🎫 [useGLPIExpanded] Iniciando criação de ticket:', ticketData);
+      
+      // Validar dados obrigatórios
+      if (!ticketData.name?.trim()) {
+        throw new Error('O título do ticket é obrigatório');
+      }
       
       // Obter valores válidos dinamicamente
       const validValues = getValidValues();
+      console.log('🎫 [useGLPIExpanded] Valores válidos obtidos:', validValues);
       
       // Mesclar dados do ticket com valores válidos
       const enhancedTicketData = {
@@ -825,15 +831,30 @@ export const useGLPIExpanded = () => {
         requesttypes_id: validValues.requesttypes_id
       };
       
-      console.log('🎫 Dados do ticket preparados com valores válidos:', JSON.stringify(enhancedTicketData, null, 2));
+      console.log('🎫 [useGLPIExpanded] Dados do ticket preparados:', JSON.stringify(enhancedTicketData, null, 2));
       
-      // A API GLPI espera um array de objetos para criação
-      const ticketArray = [enhancedTicketData];
+      // Verificar se temos uma sessão válida
+      if (!hasValidSession) {
+        console.warn('🎫 [useGLPIExpanded] Sessão inválida - tentando inicializar');
+        throw new Error('Sessão GLPI inválida. Tentando reconectar...');
+      }
       
-      return makeGLPIRequest('tickets', {
-        method: 'POST',
-        body: JSON.stringify(ticketArray),
-      });
+      try {
+        // A API GLPI espera um array de objetos para criação
+        const ticketArray = [enhancedTicketData];
+        console.log('🎫 [useGLPIExpanded] Enviando para GLPI proxy:', ticketArray);
+        
+        const response = await makeGLPIRequest('tickets', {
+          method: 'POST',
+          body: JSON.stringify(ticketArray),
+        });
+        
+        console.log('🎫 [useGLPIExpanded] Resposta do GLPI proxy:', response);
+        return response;
+      } catch (error) {
+        console.error('🎫 [useGLPIExpanded] Erro na requisição:', error);
+        throw error;
+      }
     },
     onSuccess: (result) => {
       console.log('✅ Ticket criado com sucesso:', result);
