@@ -138,19 +138,44 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    )
+    // Verificar autenticação - permitir service role key
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: corsHeaders }
+      )
+    }
 
-    const { data: { user } } = await supabaseClient.auth.getUser()
-    if (!user) {
-      throw new Error('User not authenticated')
+    let user;
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Tentar autenticação com service role key primeiro
+    if (token === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+      console.log('🔑 [AUTH] Autenticado com service role key');
+      user = { id: 'service-role' };
+    } else {
+      // Verificar usuário autenticado normal
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        {
+          global: {
+            headers: { Authorization: authHeader },
+          },
+        }
+      )
+
+      const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser();
+
+      if (authError || !authUser) {
+        console.error('❌ [AUTH] Erro de autenticação:', authError?.message || 'Usuário não encontrado');
+        return new Response(
+          JSON.stringify({ error: 'User not authenticated' }),
+          { status: 401, headers: corsHeaders }
+        )
+      }
+      user = authUser;
     }
 
     const { host, port, username, password, secure, path, passive } = await req.json()
