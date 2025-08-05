@@ -255,14 +255,12 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
     case 'backup_alert':
       const backupData = await getBackupData(userId, settings);
       messageContent = messageContent
-        .replace(/\{\{hours_threshold\}\}/g, backupData.hoursThreshold.toString())
-        .replace(/\{\{backup_list\}\}/g, backupData.list)
-        .replace(/\{\{total_outdated\}\}/g, backupData.outdatedCount.toString());
+        .replace(/\{\{hours_threshold\}\}/g, (backupData.hoursThreshold || 24).toString());
 
       // Substituir variáveis dinâmicas para backup_alert
       if (backupData.outdatedItems && backupData.outdatedItems.length > 0) {
         const itemsList = backupData.outdatedItems.map(item => 
-          `📄 ${item.name} (${item.type}) - há ${item.hoursSinceModified}h`
+          `📄 ${item.name || 'Arquivo'} (${item.type || 'desconhecido'}) - há ${item.hoursSinceModified || 0}h`
         ).join('\n');
         
         messageContent = messageContent.replace('{{outdated_items}}', itemsList);
