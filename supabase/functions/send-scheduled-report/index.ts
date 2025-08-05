@@ -254,6 +254,12 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
   switch (reportType) {
     case 'backup_alert':
       const backupData = await getBackupData(userId, settings);
+      console.log(`📊 [BACKUP] Dados obtidos:`, { 
+        outdatedCount: backupData.outdatedItems?.length || 0,
+        hoursThreshold: backupData.hoursThreshold,
+        hasItems: !!backupData.outdatedItems?.length 
+      });
+      
       messageContent = messageContent
         .replace(/\{\{hours_threshold\}\}/g, (backupData.hoursThreshold || 24).toString());
 
@@ -263,11 +269,15 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
           `📄 ${item.name || 'Arquivo'} (${item.type || 'desconhecido'}) - há ${item.hoursSinceModified || 0}h`
         ).join('\n');
         
-        messageContent = messageContent.replace('{{outdated_items}}', itemsList);
-        messageContent = messageContent.replace('{{outdated_count}}', backupData.outdatedItems.length.toString());
+        messageContent = messageContent.replace(/\{\{backup_list\}\}/g, itemsList);
+        messageContent = messageContent.replace(/\{\{total_outdated\}\}/g, backupData.outdatedItems.length.toString());
+        
+        console.log(`📋 [BACKUP] Substituições feitas - Lista: ${itemsList.substring(0, 100)}..., Total: ${backupData.outdatedItems.length}`);
       } else {
-        messageContent = messageContent.replace('{{outdated_items}}', 'Nenhum backup desatualizado encontrado');
-        messageContent = messageContent.replace('{{outdated_count}}', '0');
+        messageContent = messageContent.replace(/\{\{backup_list\}\}/g, 'Nenhum backup desatualizado encontrado');
+        messageContent = messageContent.replace(/\{\{total_outdated\}\}/g, '0');
+        
+        console.log(`✅ [BACKUP] Nenhum backup desatualizado encontrado`);
       }
       
       messageContent = messageContent.replace('{{hours_threshold}}', (backupData.hoursThreshold || 24).toString());
