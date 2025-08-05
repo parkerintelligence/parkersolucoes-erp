@@ -358,6 +358,36 @@ serve(async (req) => {
         sessionCache.delete(integrationId)
       }
       
+      // Tratamento especial para erros 400 na criação de tickets
+      if (apiResponse.status === 400 && apiPath.toLowerCase().includes('ticket')) {
+        try {
+          const errorData = JSON.parse(errorText)
+          if (Array.isArray(errorData) && errorData.length >= 2) {
+            const [errorCode, errorMessage] = errorData
+            console.error('GLPI API Error Details:', { errorCode, errorMessage })
+            
+            return new Response(
+              JSON.stringify({ 
+                error: `GLPI API Error: ${errorCode}`,
+                details: {
+                  code: errorCode,
+                  message: errorMessage,
+                  status: apiResponse.status,
+                  statusText: apiResponse.statusText,
+                  url: apiUrl
+                }
+              }),
+              { 
+                status: 400, 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+              }
+            )
+          }
+        } catch (parseError) {
+          console.error('Não foi possível parsear erro da API GLPI:', parseError)
+        }
+      }
+      
       let errorMessage = 'Erro da API GLPI'
       
       switch (apiResponse.status) {

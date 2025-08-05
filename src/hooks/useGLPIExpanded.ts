@@ -760,8 +760,17 @@ export const useGLPIExpanded = () => {
     mutationFn: (ticketData: Partial<GLPITicket>) => {
       console.log('🎫 Criando ticket GLPI:', ticketData);
       
+      // Validar campos obrigatórios antes de enviar
+      const requiredFields = ['name', 'entities_id', 'users_id_requester'];
+      const missingFields = requiredFields.filter(field => !ticketData[field as keyof GLPITicket]);
+      
+      if (missingFields.length > 0) {
+        throw new Error(`Campos obrigatórios ausentes: ${missingFields.join(', ')}`);
+      }
+      
       // A API GLPI espera um array de objetos para criação
       const ticketArray = [ticketData];
+      console.log('🎫 Dados do ticket preparados:', JSON.stringify(ticketArray, null, 2));
       
       return makeGLPIRequest('tickets', {
         method: 'POST',

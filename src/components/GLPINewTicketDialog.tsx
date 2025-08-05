@@ -52,6 +52,10 @@ export const GLPINewTicketDialog = ({
         type: parseInt(formData.requestType),
         entities_id: 0, // Entidade padrão
         status: 1, // Status: Novo
+        // Campos obrigatórios adicionais para GLPI
+        requesttypes_id: parseInt(formData.requestType),
+        users_id_requester: 2, // ID padrão do usuário solicitante (ajustar conforme necessário)
+        itilcategories_id: formData.category ? parseInt(formData.category) : 1, // Categoria padrão se não especificada
       };
 
       await createTicket.mutateAsync(ticketData);
