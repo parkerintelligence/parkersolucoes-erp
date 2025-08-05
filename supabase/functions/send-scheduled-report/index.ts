@@ -354,8 +354,8 @@ async function getBackupData(userId: string, settings: any) {
     .eq('setting_key', 'ftp_backup_alert_hours')
     .single();
 
-  // Usar 24h para alertas automatizados, 48h para outros relatórios
-  const defaultHours = settings?.template_type === 'backup_alert' ? 24 : 48;
+  // Para backup_alert, usar 48h (2 dias) como padrão para detectar backups há mais de 2 dias
+  const defaultHours = settings?.template_type === 'backup_alert' ? 48 : 24;
   const alertHours = alertSetting ? parseInt(alertSetting.setting_value) : defaultHours;
   console.log(`⏰ [BACKUP] Limite de horas configurado: ${alertHours}h (template: ${settings?.template_type || 'unknown'})`);
 
@@ -427,16 +427,21 @@ async function getBackupData(userId: string, settings: any) {
     console.log('✅ [BACKUP] Dados FTP reais obtidos:', ftpResponse.files.length, 'arquivos/pastas');
     
     // Analisar arquivos para encontrar os desatualizados (prioritizar pastas)
-    const hoursThreshold = settings?.hours_threshold || 24;
+    const hoursThreshold = alertHours; // Usar alertHours em vez de settings?.hours_threshold || 24
     const now = new Date();
     const outdatedItems = [];
+    
+    console.log(`⏰ [BACKUP] Aplicando filtro de ${hoursThreshold} horas para arquivos desatualizados`);
 
     ftpResponse.files.forEach(file => {
       if (file.lastModified) {
         const fileDate = new Date(file.lastModified);
         const hoursDiff = (now.getTime() - fileDate.getTime()) / (1000 * 60 * 60);
+        const isOutdated = hoursDiff > hoursThreshold;
         
-        if (hoursDiff > hoursThreshold) {
+        console.log(`🔍 [BACKUP] Analisando: ${file.name} (${file.type}) - há ${Math.floor(hoursDiff)}h ${isOutdated ? '❌ DESATUALIZADO' : '✅ OK'}`);
+        
+        if (isOutdated) {
           outdatedItems.push({
             name: file.name,
             type: file.type === 'directory' ? 'pasta' : 'arquivo',
@@ -444,6 +449,8 @@ async function getBackupData(userId: string, settings: any) {
             priority: file.type === 'directory' ? 1 : 2 // Pastas têm prioridade
           });
         }
+      } else {
+        console.log(`⚠️ [BACKUP] Arquivo sem data de modificação: ${file.name}`);
       }
     });
 
