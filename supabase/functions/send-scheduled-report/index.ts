@@ -354,6 +354,14 @@ async function getBackupData(userId: string, settings: any) {
     // Chamar a função ftp-list para obter arquivos reais
     // Usar configuração correta da integração
     const ftpConfig = ftpIntegration.config || {};
+    console.log('🚀 [BACKUP] Chamando ftp-list com configuração:', {
+      host: ftpConfig.host || ftpIntegration.base_url,
+      port: ftpConfig.port || ftpIntegration.port || 21,
+      username: ftpConfig.username || ftpIntegration.username,
+      path: ftpConfig.path || '/',
+      secure: ftpConfig.secure || ftpIntegration.use_ssl || false
+    });
+    
     const { data: ftpResponse, error: ftpError } = await supabase.functions.invoke('ftp-list', {
       body: {
         host: ftpConfig.host || ftpIntegration.base_url,
