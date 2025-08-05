@@ -311,11 +311,12 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
   return messageContent;
 }
 
-// Função para obter dados reais de backup via FTP
+// Função para obter dados reais de backup via FTP com foco em alertas de 24h
 async function getBackupData(userId: string, settings: any) {
   console.log('🔍 [BACKUP] Buscando dados reais de backup para usuário:', userId);
   
-  // Buscar configuração de horas de alerta
+  // Para backup alerts automatizados, usar 24h como padrão (mais crítico)
+  // Buscar configuração específica ou usar padrão baseado no tipo
   const { data: alertSetting } = await supabase
     .from('system_settings')
     .select('setting_value')
@@ -323,10 +324,12 @@ async function getBackupData(userId: string, settings: any) {
     .eq('setting_key', 'ftp_backup_alert_hours')
     .single();
 
-  const alertHours = alertSetting ? parseInt(alertSetting.setting_value) : 48;
-  console.log(`⏰ [BACKUP] Limite de horas configurado: ${alertHours}h`);
+  // Usar 24h para alertas automatizados, 48h para outros relatórios
+  const defaultHours = settings?.template_type === 'backup_alert' ? 24 : 48;
+  const alertHours = alertSetting ? parseInt(alertSetting.setting_value) : defaultHours;
+  console.log(`⏰ [BACKUP] Limite de horas configurado: ${alertHours}h (template: ${settings?.template_type || 'unknown'})`);
   
-  // Buscar integração FTP ativa do usuário
+  // Buscar integração FTP ativa do usuário  
   const { data: ftpIntegration } = await supabase
     .from('integrations')
     .select('*')
@@ -345,39 +348,47 @@ async function getBackupData(userId: string, settings: any) {
   }
 
   console.log(`🔌 [BACKUP] Integração FTP encontrada: ${ftpIntegration.name}`);
+  console.log(`🔗 [BACKUP] Host FTP: ${ftpIntegration.config?.host || ftpIntegration.base_url}`);
 
   try {
     // Chamar a função ftp-list para obter arquivos reais
+    // Usar configuração correta da integração
+    const ftpConfig = ftpIntegration.config || {};
     const { data: ftpResponse, error: ftpError } = await supabase.functions.invoke('ftp-list', {
       body: {
-        host: ftpIntegration.base_url,
-        port: ftpIntegration.port || 21,
-        username: ftpIntegration.username,
-        password: ftpIntegration.password,
-        secure: ftpIntegration.use_ssl || false,
-        passive: ftpIntegration.passive_mode || true,
-        path: '/'
+        host: ftpConfig.host || ftpIntegration.base_url,
+        port: ftpConfig.port || ftpIntegration.port || 21,
+        username: ftpConfig.username || ftpIntegration.username,
+        password: ftpConfig.password || ftpIntegration.password,
+        secure: ftpConfig.secure || ftpIntegration.use_ssl || false,
+        path: ftpConfig.path || '/'
       }
     });
 
     if (ftpError) {
       console.error('❌ [BACKUP] Erro ao chamar ftp-list:', ftpError);
-      throw ftpError;
+      console.log('🔄 [BACKUP] Usando dados simulados devido a erro no FTP');
+      return getMockBackupData(alertHours, true);
     }
 
     const files = ftpResponse?.files || [];
     console.log(`📁 [BACKUP] Total de arquivos encontrados: ${files.length}`);
 
-    // Filtrar arquivos/pastas antigas (mais de X horas)
-    const thresholdTime = new Date();
-    thresholdTime.setHours(thresholdTime.getHours() - alertHours);
+    // Filtrar pastas/arquivos antigos (mais de X horas)
+    const currentTime = new Date();
+    const thresholdTime = new Date(currentTime.getTime() - (alertHours * 60 * 60 * 1000));
+    console.log(`📅 [BACKUP] Analisando itens modificados antes de: ${thresholdTime.toLocaleString('pt-BR')}`);
 
     const outdatedItems = files.filter(file => {
+      if (!file.lastModified) return false;
       const fileDate = new Date(file.lastModified);
       const isOld = fileDate < thresholdTime;
+      
       if (isOld) {
-        console.log(`⚠️ [BACKUP] Item antigo encontrado: ${file.name} (${fileDate.toLocaleString('pt-BR')})`);
+        const hoursAgo = Math.floor((currentTime.getTime() - fileDate.getTime()) / (1000 * 60 * 60));
+        console.log(`⚠️ [BACKUP] Item desatualizado: ${file.name} (há ${hoursAgo}h)`);
       }
+      
       return isOld;
     });
 
@@ -387,11 +398,23 @@ async function getBackupData(userId: string, settings: any) {
     if (outdatedItems.length === 0) {
       backupList = '✅ Todos os backups estão atualizados!';
     } else {
-      outdatedItems.forEach((item) => {
-        const hoursAgo = Math.floor((Date.now() - new Date(item.lastModified).getTime()) / (1000 * 60 * 60));
-        const icon = item.isDirectory ? '📁' : '📄';
-        backupList += `${icon} ${item.name} - há ${hoursAgo}h\n`;
+      // Focar em pastas (diretórios) primeiro, depois arquivos
+      const sortedItems = outdatedItems.sort((a, b) => {
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+        return 0;
       });
+
+      sortedItems.slice(0, 15).forEach((item) => {
+        const hoursAgo = Math.floor((currentTime.getTime() - new Date(item.lastModified).getTime()) / (1000 * 60 * 60));
+        const icon = item.isDirectory ? '📁' : '📄';
+        const type = item.isDirectory ? 'pasta' : 'arquivo';
+        backupList += `${icon} ${item.name} (${type}) - há ${hoursAgo}h\n`;
+      });
+
+      if (outdatedItems.length > 15) {
+        backupList += `\n... e mais ${outdatedItems.length - 15} itens`;
+      }
     }
 
     return {
@@ -402,25 +425,40 @@ async function getBackupData(userId: string, settings: any) {
 
   } catch (error) {
     console.error('❌ [BACKUP] Erro ao buscar dados FTP:', error);
-    
-    // Fallback para dados simulados em caso de erro
-    const mockOutdatedBackups = [
-      { name: 'backup_servidor1.tar.gz', lastModified: new Date(Date.now() - (72 * 60 * 60 * 1000)) },
-      { name: 'backup_bd_principal.sql', lastModified: new Date(Date.now() - (96 * 60 * 60 * 1000)) }
-    ];
-
-    let backupList = '';
-    mockOutdatedBackups.forEach((backup) => {
-      const hoursAgo = Math.floor((Date.now() - backup.lastModified.getTime()) / (1000 * 60 * 60));
-      backupList += `📄 ${backup.name} - há ${hoursAgo}h\n`;
-    });
-
-    return {
-      hoursThreshold: alertHours,
-      list: backupList.trim() + '\n\n⚠️ Dados obtidos via fallback devido a erro no FTP',
-      outdatedCount: mockOutdatedBackups.length
-    };
+    console.log('🔄 [BACKUP] Usando dados simulados devido a erro de conexão');
+    return getMockBackupData(alertHours, true);
   }
+}
+
+// Função helper para dados simulados de backup
+function getMockBackupData(alertHours: number, isFallback: boolean = false) {
+  const mockOutdatedBackups = [
+    { name: 'backup_servidor1.tar.gz', lastModified: new Date(Date.now() - (72 * 60 * 60 * 1000)), isDirectory: false },
+    { name: 'backup_bd_principal.sql', lastModified: new Date(Date.now() - (96 * 60 * 60 * 1000)), isDirectory: false },
+    { name: 'backup_sistema_web', lastModified: new Date(Date.now() - (48 * 60 * 60 * 1000)), isDirectory: true },
+    { name: 'backup_emails.zip', lastModified: new Date(Date.now() - (120 * 60 * 60 * 1000)), isDirectory: false }
+  ];
+
+  let backupList = '';
+  const filteredBackups = mockOutdatedBackups.filter(backup => {
+    const hoursAgo = (Date.now() - backup.lastModified.getTime()) / (1000 * 60 * 60);
+    return hoursAgo > alertHours;
+  });
+
+  filteredBackups.forEach((backup) => {
+    const hoursAgo = Math.floor((Date.now() - backup.lastModified.getTime()) / (1000 * 60 * 60));
+    const icon = backup.isDirectory ? '📁' : '📄';
+    const type = backup.isDirectory ? 'pasta' : 'arquivo';
+    backupList += `${icon} ${backup.name} (${type}) - há ${hoursAgo}h\n`;
+  });
+
+  const fallbackMessage = isFallback ? '\n\n⚠️ Dados obtidos via fallback devido a erro no FTP' : '';
+
+  return {
+    hoursThreshold: alertHours,
+    list: backupList.trim() + fallbackMessage,
+    outdatedCount: filteredBackups.length
+  };
 }
 
 async function getScheduleData(userId: string, settings: any) {
