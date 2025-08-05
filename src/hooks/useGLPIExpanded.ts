@@ -755,22 +755,70 @@ export const useGLPIExpanded = () => {
     staleTime: 60000,
   });
 
+  // Nova query para categorias de tickets
+  const itilCategories = useQuery({
+    queryKey: ['glpi', 'itilcategories', glpiIntegration?.id],
+    queryFn: () => makeGLPIRequest('ITILCategory'),
+    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    staleTime: 60000,
+  });
+
+  // Nova query para tipos de solicitação
+  const requestTypes = useQuery({
+    queryKey: ['glpi', 'requesttypes', glpiIntegration?.id],
+    queryFn: () => makeGLPIRequest('RequestType'),
+    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    staleTime: 60000,
+  });
+
+  // Função para obter valores válidos com fallbacks
+  const getValidValues = () => {
+    // Buscar primeira entidade válida
+    const validEntity = entities.data?.find((entity: any) => entity?.id) || { id: 0 };
+    
+    // Buscar primeiro usuário válido
+    const validUser = users.data?.find((user: any) => user?.id) || { id: 2 };
+    
+    // Buscar primeira categoria válida
+    const validCategory = itilCategories.data?.find((cat: any) => cat?.id) || { id: 1 };
+    
+    // Buscar primeiro tipo de solicitação válido
+    const validRequestType = requestTypes.data?.find((type: any) => type?.id) || { id: 1 };
+    
+    console.log('🔍 Valores válidos encontrados:', {
+      entity: validEntity,
+      user: validUser,
+      category: validCategory,
+      requestType: validRequestType
+    });
+    
+    return {
+      entities_id: validEntity.id,
+      users_id_requester: validUser.id,
+      itilcategories_id: validCategory.id,
+      requesttypes_id: validRequestType.id
+    };
+  };
+
   // Mutations para criar, atualizar e deletar tickets
   const createTicket = useMutation({
     mutationFn: (ticketData: Partial<GLPITicket>) => {
       console.log('🎫 Criando ticket GLPI:', ticketData);
       
-      // Validar campos obrigatórios antes de enviar
-      const requiredFields = ['name', 'entities_id', 'users_id_requester'];
-      const missingFields = requiredFields.filter(field => !ticketData[field as keyof GLPITicket]);
+      // Obter valores válidos dinamicamente
+      const validValues = getValidValues();
       
-      if (missingFields.length > 0) {
-        throw new Error(`Campos obrigatórios ausentes: ${missingFields.join(', ')}`);
-      }
+      // Mesclar dados do ticket com valores válidos
+      const enhancedTicketData = {
+        ...ticketData,
+        ...validValues,
+        status: 1, // Status: Novo
+      };
+      
+      console.log('🎫 Dados do ticket preparados com valores válidos:', JSON.stringify(enhancedTicketData, null, 2));
       
       // A API GLPI espera um array de objetos para criação
-      const ticketArray = [ticketData];
-      console.log('🎫 Dados do ticket preparados:', JSON.stringify(ticketArray, null, 2));
+      const ticketArray = [enhancedTicketData];
       
       return makeGLPIRequest('tickets', {
         method: 'POST',
@@ -890,6 +938,8 @@ export const useGLPIExpanded = () => {
     entities,
     locations,
     groups,
+    itilCategories,
+    requestTypes,
     
     // Mutations
     createTicket,

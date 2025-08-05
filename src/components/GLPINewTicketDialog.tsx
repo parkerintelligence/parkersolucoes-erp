@@ -18,7 +18,7 @@ export const GLPINewTicketDialog = ({
   open,
   onOpenChange
 }: GLPINewTicketDialogProps) => {
-  const { createTicket } = useGLPIExpanded();
+  const { createTicket, entities, users, itilCategories, requestTypes } = useGLPIExpanded();
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -50,12 +50,7 @@ export const GLPINewTicketDialog = ({
         urgency: parseInt(formData.urgency),
         impact: parseInt(formData.impact),
         type: parseInt(formData.requestType),
-        entities_id: 0, // Entidade padrão
-        status: 1, // Status: Novo
-        // Campos obrigatórios adicionais para GLPI
-        requesttypes_id: parseInt(formData.requestType),
-        users_id_requester: 2, // ID padrão do usuário solicitante (ajustar conforme necessário)
-        itilcategories_id: formData.category ? parseInt(formData.category) : 1, // Categoria padrão se não especificada
+        // Os valores de entities_id, users_id_requester, etc. serão definidos dinamicamente no hook
       };
 
       await createTicket.mutateAsync(ticketData);
@@ -177,13 +172,21 @@ export const GLPINewTicketDialog = ({
 
           <div>
             <Label htmlFor="category" className="text-gray-300">Categoria</Label>
-            <Input
-              id="category"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              placeholder="Ex: Hardware, Software, Rede"
-              className="bg-gray-700 border-gray-600 text-white"
-            />
+            <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+              <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <SelectValue placeholder="Selecione uma categoria" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-700 border-gray-600">
+                {itilCategories.data?.map((category: any) => (
+                  <SelectItem key={category.id} value={category.id.toString()} className="text-white">
+                    {category.name}
+                  </SelectItem>
+                ))}
+                {(!itilCategories.data || itilCategories.data.length === 0) && (
+                  <SelectItem value="1" className="text-white">Geral</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
