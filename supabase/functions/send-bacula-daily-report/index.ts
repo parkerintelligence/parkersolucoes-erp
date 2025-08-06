@@ -116,8 +116,7 @@ serve(async (req) => {
       const { data: templateData } = await supabase
         .from('whatsapp_message_templates')
         .select('*')
-        .eq('name', 'Relatório Diário de Erros Bacula')
-        .eq('template_type', 'bacula_daily_report')
+        .eq('template_type', 'bacula_daily')
         .eq('is_active', true)
         .single();
       template = templateData;
@@ -496,12 +495,38 @@ serve(async (req) => {
     console.log(`   Bloqueados: ${blockedJobs}`);
     console.log(`   Outros: ${otherJobs}`);
 
+    // Calcular duração média dos jobs concluídos
+    const completedJobs = [...jobsByStatus.success, ...jobsByStatus.errors];
+    let avgDuration = 'N/A';
+    if (completedJobs.length > 0) {
+      const totalDuration = completedJobs.reduce((sum, job) => {
+        if (job.starttime && job.endtime) {
+          return sum + (new Date(job.endtime) - new Date(job.starttime));
+        }
+        return sum;
+      }, 0);
+      const avgMs = totalDuration / completedJobs.length;
+      const avgMinutes = Math.round(avgMs / 60000);
+      avgDuration = avgMinutes > 60 ? 
+        `${Math.floor(avgMinutes / 60)}h ${avgMinutes % 60}m` : 
+        `${avgMinutes}m`;
+    }
+
+    // Contar clientes únicos afetados por problemas
+    const problemJobs = [...jobsByStatus.errors, ...jobsByStatus.cancelled, ...jobsByStatus.blocked];
+    const affectedClients = new Set(problemJobs.map(job => job.client || job.clientname || 'Desconhecido')).size;
+    const totalClients = new Set(filteredJobs.map(job => job.client || job.clientname || 'Desconhecido')).size;
+
     // Preparar dados para o template
     const templateData = {
-      analysis_date: yesterdayFormatted,
-      report_time: getBrasiliaTime(),
+      // Variáveis básicas de data e tempo
+      date: yesterdayFormatted,
+      period: `Dia ${yesterdayFormatted}`,
+      current_time: getBrasiliaTime(),
+      start_date: getBrasiliaTime(brasiliaStartTime),
+      end_date: getBrasiliaTime(brasiliaEndTime),
       
-      // Estatísticas gerais
+      // Estatísticas principais
       total_jobs: totalJobs,
       success_jobs: successJobs,
       error_jobs: errorJobs,
@@ -509,22 +534,31 @@ serve(async (req) => {
       running_jobs: runningJobs,
       blocked_jobs: blockedJobs,
       other_jobs: otherJobs,
-      critical_jobs: criticalJobs,
       success_rate: totalJobs > 0 ? Math.round((successJobs / totalJobs) * 100) : 0,
       
       // Dados processados
       total_bytes: formatBytes(totalBytes),
       total_files: totalFiles.toLocaleString('pt-BR'),
+      avg_duration: avgDuration,
       
-      // Detalhes dos jobs por categoria
-      success_details: jobsByStatus.success.map(formatJobDetails),
-      error_details: jobsByStatus.errors.map(formatJobDetails),
-      cancelled_details: jobsByStatus.cancelled.map(formatJobDetails),
-      running_details: jobsByStatus.running.map(formatJobDetails),
-      blocked_details: jobsByStatus.blocked.map(formatJobDetails),
-      other_details: jobsByStatus.other.map(formatJobDetails),
+      // Análise crítica
+      has_issues: (errorJobs + cancelledJobs + blockedJobs) > 0,
+      total_issues: errorJobs + cancelledJobs + blockedJobs,
+      affected_clients: affectedClients,
+      total_clients: totalClients,
       
-      // Manter compatibilidade com template antigo
+      // Detalhes dos jobs por categoria (como texto formatado)
+      success_jobs_details: jobsByStatus.success.length > 0 ? jobsByStatus.success : null,
+      error_jobs_details: jobsByStatus.errors.length > 0 ? jobsByStatus.errors : null,
+      cancelled_jobs_details: jobsByStatus.cancelled.length > 0 ? jobsByStatus.cancelled : null,
+      running_jobs_details: jobsByStatus.running.length > 0 ? jobsByStatus.running : null,
+      blocked_jobs_details: jobsByStatus.blocked.length > 0 ? jobsByStatus.blocked : null,
+      other_jobs_details: jobsByStatus.other.length > 0 ? jobsByStatus.other : null,
+      
+      // Compatibilidade com template antigo
+      analysis_date: yesterdayFormatted,
+      report_time: getBrasiliaTime(),
+      critical_jobs: errorJobs + cancelledJobs,
       fatal_jobs: errorJobs,
       fatal_details: jobsByStatus.errors.map(formatJobDetails)
     };
@@ -551,10 +585,21 @@ serve(async (req) => {
     });
 
     // Função para formatar lista de jobs
-    const formatJobsList = (jobs, showDuration = false) => {
-      if (!jobs || jobs.length === 0) return '• Nenhum job encontrado';
+    const formatJobsList = (jobsArray, showDuration = false) => {
+      if (!jobsArray || jobsArray.length === 0) return '• Nenhum job encontrado';
       
-      return jobs.map(job => {
+      // Se o array contém jobs não formatados, formatá-los primeiro
+      const formattedJobs = jobsArray.map(job => {
+        if (job.jobstatus_emoji) {
+          // Job já formatado
+          return job;
+        } else {
+          // Job precisa ser formatado
+          return formatJobDetails(job);
+        }
+      });
+      
+      return formattedJobs.map(job => {
         let jobText = `${job.jobstatus_emoji} *${job.name}*\n  🏢 ${job.client} • 📊 ${job.level} • 🕐 ${job.starttime}`;
         if (showDuration && job.duration !== 'N/A') {
           jobText += ` • ⏱️ ${job.duration}`;
@@ -564,16 +609,23 @@ serve(async (req) => {
       }).join('\n  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     };
 
-    // Processar listas de jobs por categoria
-    finalMessage = finalMessage.replace(/\{\{success_jobs_details\}\}/g, formatJobsList(templateData.success_details, true));
-    finalMessage = finalMessage.replace(/\{\{error_jobs_details\}\}/g, formatJobsList(templateData.error_details, true));
-    finalMessage = finalMessage.replace(/\{\{cancelled_jobs_details\}\}/g, formatJobsList(templateData.cancelled_details, true));
-    finalMessage = finalMessage.replace(/\{\{running_jobs_details\}\}/g, formatJobsList(templateData.running_details));
-    finalMessage = finalMessage.replace(/\{\{blocked_jobs_details\}\}/g, formatJobsList(templateData.blocked_details));
-    finalMessage = finalMessage.replace(/\{\{other_jobs_details\}\}/g, formatJobsList(templateData.other_details, true));
+    // Processar listas de jobs por categoria usando os arrays originais
+    finalMessage = finalMessage.replace(/\{\{success_jobs_details\}\}/g, 
+      jobsByStatus.success.length > 0 ? formatJobsList(jobsByStatus.success, true) : '');
+    finalMessage = finalMessage.replace(/\{\{error_jobs_details\}\}/g, 
+      jobsByStatus.errors.length > 0 ? formatJobsList(jobsByStatus.errors, true) : '');
+    finalMessage = finalMessage.replace(/\{\{cancelled_jobs_details\}\}/g, 
+      jobsByStatus.cancelled.length > 0 ? formatJobsList(jobsByStatus.cancelled, true) : '');
+    finalMessage = finalMessage.replace(/\{\{running_jobs_details\}\}/g, 
+      jobsByStatus.running.length > 0 ? formatJobsList(jobsByStatus.running) : '');
+    finalMessage = finalMessage.replace(/\{\{blocked_jobs_details\}\}/g, 
+      jobsByStatus.blocked.length > 0 ? formatJobsList(jobsByStatus.blocked) : '');
+    finalMessage = finalMessage.replace(/\{\{other_jobs_details\}\}/g, 
+      jobsByStatus.other.length > 0 ? formatJobsList(jobsByStatus.other, true) : '');
 
     // Manter compatibilidade com template antigo
-    finalMessage = finalMessage.replace(/\{\{fatal_jobs_details\}\}/g, formatJobsList(templateData.error_details, true));
+    finalMessage = finalMessage.replace(/\{\{fatal_jobs_details\}\}/g, 
+      jobsByStatus.errors.length > 0 ? formatJobsList(jobsByStatus.errors, true) : '');
 
     // Processar blocos condicionais
     finalMessage = processConditionalBlocks(finalMessage, templateData);
