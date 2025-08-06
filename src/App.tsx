@@ -1,12 +1,23 @@
 import * as React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from '@/contexts/AuthContext';
+import Login from '@/pages/Login';
 
 function App() {
-  console.log('React object:', React);
-  console.log('useState:', React.useState);
+  console.log('App component rendering...');
   
-  return React.createElement('div', { 
-    className: 'min-h-screen bg-gray-100 flex items-center justify-center' 
-  }, 'Hello World - React Test');
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <div className="min-h-screen bg-background">
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/login" element={<Login />} />
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </AuthProvider>
+  );
 }
 
 export default App;
