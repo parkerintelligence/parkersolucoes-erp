@@ -495,61 +495,114 @@ function getFallbackBackupData() {
   };
 }
 
-// Função para obter dados de agenda crítica
+// Função para obter dados completos da agenda de vencimentos
 async function getScheduleData(userId: string, settings: any) {
-  const criticalDaysThreshold = settings?.critical_days || 3;
+  console.log('🔍 [AGENDA] Buscando todos os itens da agenda para usuário:', userId);
   
   const today = new Date();
-  const thresholdDate = new Date();
-  thresholdDate.setDate(today.getDate() + criticalDaysThreshold);
+  console.log('📅 [AGENDA] Data atual:', today.toISOString().split('T')[0]);
   
+  // Buscar TODOS os itens da agenda do usuário, independente de status e data
   const { data: scheduleItems, error } = await supabase
     .from('schedule_items')
     .select('*')
     .eq('user_id', userId)
-    .eq('status', 'pending')
-    .gte('due_date', today.toISOString().split('T')[0])
-    .lte('due_date', thresholdDate.toISOString().split('T')[0])
     .order('due_date', { ascending: true });
 
   if (error) {
-    console.error('Erro ao buscar itens de agenda:', error);
+    console.error('❌ [AGENDA] Erro ao buscar itens de agenda:', error);
     return {
       items: '⚠️ Erro ao carregar dados da agenda',
       total: 0,
-      critical: 0
+      overdue: 0,
+      today: 0,
+      upcoming: 0
     };
   }
 
-  const items = scheduleItems || [];
-  const criticalItems = items.filter(item => {
+  const allItems = scheduleItems || [];
+  console.log('📊 [AGENDA] Total de itens encontrados:', allItems.length);
+
+  // Categorizar itens por status de vencimento
+  const categorizedItems = {
+    overdue: [],
+    today: [],
+    upcoming: []
+  };
+
+  allItems.forEach(item => {
     const dueDate = new Date(item.due_date);
+    const todayStr = today.toISOString().split('T')[0];
+    const dueDateStr = dueDate.toISOString().split('T')[0];
+    
     const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    return diffDays <= 1; // Crítico: vence hoje ou amanhã
+    
+    if (dueDateStr < todayStr) {
+      categorizedItems.overdue.push({ ...item, daysOverdue: Math.abs(diffDays) });
+    } else if (dueDateStr === todayStr) {
+      categorizedItems.today.push(item);
+    } else {
+      categorizedItems.upcoming.push({ ...item, daysUntil: diffDays });
+    }
   });
 
+  console.log('📈 [AGENDA] Categorização:', {
+    vencidos: categorizedItems.overdue.length,
+    hoje: categorizedItems.today.length,
+    avencer: categorizedItems.upcoming.length
+  });
+
+  // Construir mensagem completa
   let itemsText = '';
-  if (items.length === 0) {
-    itemsText = '✅ Nenhum item na agenda para os próximos dias';
-  } else {
-    itemsText = items.slice(0, 10).map(item => {
-      const dueDate = new Date(item.due_date);
-      const formattedDate = dueDate.toLocaleDateString('pt-BR');
-      const daysDiff = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      const urgency = daysDiff <= 1 ? '🔴' : daysDiff <= 3 ? '🟡' : '🟢';
-      
-      return `${urgency} ${item.title} - ${item.company} (${formattedDate})`;
-    }).join('\n');
-    
-    if (items.length > 10) {
-      itemsText += `\n... e mais ${items.length - 10} itens`;
-    }
+  
+  // Seção de itens vencidos
+  if (categorizedItems.overdue.length > 0) {
+    itemsText += `❌ *VENCIDOS (${categorizedItems.overdue.length} itens):*\n`;
+    categorizedItems.overdue.forEach(item => {
+      const formattedDate = new Date(item.due_date).toLocaleDateString('pt-BR');
+      itemsText += `• ${item.title} - ${item.company} (${item.type}) - venceu há ${item.daysOverdue} dia(s) (${formattedDate})\n`;
+    });
+    itemsText += '\n';
   }
+
+  // Seção de itens vencendo hoje
+  if (categorizedItems.today.length > 0) {
+    itemsText += `⚠️ *VENCEM HOJE (${categorizedItems.today.length} itens):*\n`;
+    categorizedItems.today.forEach(item => {
+      const formattedDate = new Date(item.due_date).toLocaleDateString('pt-BR');
+      itemsText += `• ${item.title} - ${item.company} (${item.type}) - ${formattedDate}\n`;
+    });
+    itemsText += '\n';
+  }
+
+  // Seção de próximos vencimentos (próximos 30 dias)
+  const upcomingFiltered = categorizedItems.upcoming.filter(item => item.daysUntil <= 30);
+  if (upcomingFiltered.length > 0) {
+    itemsText += `📅 *A VENCER (${upcomingFiltered.length} itens nos próximos 30 dias):*\n`;
+    upcomingFiltered.forEach(item => {
+      const formattedDate = new Date(item.due_date).toLocaleDateString('pt-BR');
+      itemsText += `• ${item.title} - ${item.company} (${item.type}) - em ${item.daysUntil} dia(s) (${formattedDate})\n`;
+    });
+    itemsText += '\n';
+  }
+
+  // Resumo final
+  const totalRelevant = categorizedItems.overdue.length + categorizedItems.today.length + upcomingFiltered.length;
+  if (totalRelevant > 0) {
+    itemsText += `📊 *RESUMO TOTAL:* ${totalRelevant} itens (${categorizedItems.overdue.length} vencidos, ${categorizedItems.today.length} hoje, ${upcomingFiltered.length} próximos)`;
+  } else {
+    itemsText = '✅ Nenhum item vencido, vencendo hoje ou nos próximos 30 dias';
+  }
+
+  console.log('📝 [AGENDA] Mensagem gerada com', itemsText.length, 'caracteres');
 
   return {
     items: itemsText,
-    total: items.length,
-    critical: criticalItems.length
+    total: allItems.length,
+    overdue: categorizedItems.overdue.length,
+    today: categorizedItems.today.length,
+    upcoming: upcomingFiltered.length,
+    critical: categorizedItems.overdue.length + categorizedItems.today.length
   };
 }
 
