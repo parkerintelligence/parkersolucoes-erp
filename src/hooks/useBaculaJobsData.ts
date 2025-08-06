@@ -1,4 +1,4 @@
-import { useMemo, createElement } from 'react';
+import React from 'react';
 import { Badge } from '@/components/ui/badge';
 
 // Hook para extrair e processar dados dos jobs
@@ -24,7 +24,7 @@ export const useBaculaJobsData = (jobsData: any, searchTerm: string, statusFilte
   const allJobs = extractJobs(jobsData);
 
   // Filtrar jobs
-  const filteredJobs = useMemo(() => {
+  const filteredJobs = React.useMemo(() => {
     let filtered = allJobs;
 
     console.log('=== DEBUG BACULA FILTERS ===');
@@ -106,7 +106,7 @@ export const useBaculaJobsData = (jobsData: any, searchTerm: string, statusFilte
   }, [allJobs, searchTerm, statusFilter, dateFilter]);
 
   // Calcular estatísticas dos jobs
-  const jobStats = useMemo(() => {
+  const jobStats = React.useMemo(() => {
     const totalJobs = filteredJobs.length;
     const completedJobs = filteredJobs.filter(job => job.jobstatus === 'T').length;
     const errorJobs = filteredJobs.filter(job => job.jobstatus === 'E' || job.jobstatus === 'f').length;
@@ -212,31 +212,31 @@ export const formatDateTime = (dateTime: string) => {
 export const getJobStatusBadge = (status: string) => {
   switch (status) {
     case 'T':
-      return createElement(Badge, { className: "bg-green-900/20 text-green-400 border-green-600 text-xs" }, "Completo - OK");
+      return React.createElement(Badge, { className: "bg-green-900/20 text-green-400 border-green-600 text-xs" }, "Completo - OK");
     case 'W':
-      return createElement(Badge, { className: "bg-yellow-900/20 text-yellow-400 border-yellow-600 text-xs" }, "Aviso");
+      return React.createElement(Badge, { className: "bg-yellow-900/20 text-yellow-400 border-yellow-600 text-xs" }, "Aviso");
     case 'E':
-      return createElement(Badge, { className: "bg-red-900/20 text-red-400 border-red-600 text-xs" }, "Erro");
+      return React.createElement(Badge, { className: "bg-red-900/20 text-red-400 border-red-600 text-xs" }, "Erro");
     case 'f':
-      return createElement(Badge, { className: "bg-red-900/20 text-red-400 border-red-600 text-xs" }, "Fatal");
+      return React.createElement(Badge, { className: "bg-red-900/20 text-red-400 border-red-600 text-xs" }, "Fatal");
     case 'R':
-      return createElement(Badge, { className: "bg-blue-900/20 text-blue-400 border-blue-600 text-xs" }, "Executando");
+      return React.createElement(Badge, { className: "bg-blue-900/20 text-blue-400 border-blue-600 text-xs" }, "Executando");
     case 'A':
-      return createElement(Badge, { className: "bg-gray-900/20 text-gray-400 border-gray-600 text-xs" }, "Cancelado");
+      return React.createElement(Badge, { className: "bg-gray-900/20 text-gray-400 border-gray-600 text-xs" }, "Cancelado");
     default:
-      return createElement(Badge, { className: "bg-gray-900/20 text-gray-400 border-gray-600 text-xs" }, status);
+      return React.createElement(Badge, { className: "bg-gray-900/20 text-gray-400 border-gray-600 text-xs" }, status);
   }
 };
 
 export const getJobLevelBadge = (level: string) => {
   switch (level) {
     case 'F':
-      return createElement(Badge, { className: "bg-blue-900/20 text-blue-400 border-blue-600 text-xs" }, "Completo");
+      return React.createElement(Badge, { className: "bg-blue-900/20 text-blue-400 border-blue-600 text-xs" }, "Completo");
     case 'I':
-      return createElement(Badge, { className: "bg-orange-900/20 text-orange-400 border-orange-600 text-xs" }, "Incremental");
+      return React.createElement(Badge, { className: "bg-orange-900/20 text-orange-400 border-orange-600 text-xs" }, "Incremental");
     case 'D':
-      return createElement(Badge, { className: "bg-purple-900/20 text-purple-400 border-purple-600 text-xs" }, "Diferencial");
+      return React.createElement(Badge, { className: "bg-purple-900/20 text-purple-400 border-purple-600 text-xs" }, "Diferencial");
     default:
-      return createElement(Badge, { className: "bg-gray-900/20 text-gray-400 border-gray-600 text-xs" }, level || "N/A");
+      return React.createElement(Badge, { className: "bg-gray-900/20 text-gray-400 border-gray-600 text-xs" }, level || "N/A");
   }
 };

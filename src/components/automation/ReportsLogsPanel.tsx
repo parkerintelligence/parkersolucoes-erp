@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useClearReportsLogs } from '@/hooks/useClearReportsLogs';
 import { useToast } from "@/hooks/use-toast";
 
 interface ReportLog {
@@ -41,6 +42,7 @@ export const ReportsLogsPanel = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('7days');
+  const clearLogs = useClearReportsLogs();
   const { toast } = useToast();
 
   const { data: logs = [], isLoading, refetch } = useQuery({
@@ -131,14 +133,7 @@ export const ReportsLogsPanel = () => {
 
   const handleClearLogs = async () => {
     try {
-      const { error } = await supabase
-        .from('scheduled_reports_logs')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
-      
-      if (error) throw error;
-      
-      refetch(); // Refresh the logs after clearing
+      await clearLogs.mutateAsync();
       toast({
         title: "Logs limpos com sucesso",
         description: "Todos os logs de execução foram removidos.",
@@ -331,9 +326,10 @@ export const ReportsLogsPanel = () => {
                   </AlertDialogCancel>
                   <AlertDialogAction 
                     onClick={handleClearLogs}
+                    disabled={clearLogs.isPending}
                     className="bg-red-600 hover:bg-red-700 text-white"
                   >
-                    Limpar Logs
+                    {clearLogs.isPending ? 'Limpando...' : 'Limpar Logs'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

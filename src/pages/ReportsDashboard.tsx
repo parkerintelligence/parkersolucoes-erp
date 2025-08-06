@@ -6,8 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useReportsLogs, useReportsMetrics } from '@/hooks/useReportsLogs';
 import { useScheduledReports } from '@/hooks/useScheduledReports';
-import { supabase } from '@/integrations/supabase/client';
-
+import { useClearReportsLogs } from '@/hooks/useClearReportsLogs';
 import { 
   BarChart3, 
   Activity, 
@@ -29,22 +28,16 @@ const ReportsDashboard = () => {
   const { data: metrics, isLoading: metricsLoading, refetch: refetchMetrics } = useReportsMetrics();
   const { data: logs, isLoading: logsLoading, refetch: refetchLogs } = useReportsLogs(selectedReport === 'all' ? undefined : selectedReport);
   const { data: reports } = useScheduledReports();
+  const clearLogs = useClearReportsLogs();
 
-  const handleClearLogs = async () => {
+  const handleClearLogs = () => {
     if (confirm('Tem certeza que deseja limpar todos os logs? Esta ação não pode ser desfeita.')) {
-      try {
-        const { error } = await supabase
-          .from('scheduled_reports_logs')
-          .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000');
-        
-        if (error) throw error;
-        
-        refetchLogs();
-        refetchMetrics();
-      } catch (error) {
-        console.error('Erro ao limpar logs:', error);
-      }
+      clearLogs.mutate(undefined, {
+        onSuccess: () => {
+          refetchLogs();
+          refetchMetrics();
+        }
+      });
     }
   };
 
@@ -94,6 +87,7 @@ const ReportsDashboard = () => {
               onClick={handleClearLogs} 
               variant="outline" 
               size="sm"
+              disabled={clearLogs.isPending}
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Limpar Logs

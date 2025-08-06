@@ -351,20 +351,13 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                       ) : (
                         activeTemplates.map((template) => {
                           const Icon = templateTypeIcons[template.template_type as keyof typeof templateTypeIcons] || MessageCircle;
-                          const isBackupAlert = template.template_type === 'backup_alert';
                           return (
                             <SelectItem key={template.id} value={template.id} className="text-white hover:bg-gray-600">
                               <div className="flex items-center gap-2">
                                 <Icon className="h-4 w-4" />
                                 <div className="flex flex-col">
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-medium">{template.name}</span>
-                                    {isBackupAlert && <span className="text-xs">📂</span>}
-                                  </div>
+                                  <span className="font-medium">{template.name}</span>
                                   <span className="text-xs text-gray-400">{template.subject}</span>
-                                  {isBackupAlert && (
-                                    <span className="text-xs text-amber-400">⚠️ Analisa pastas há +24h sem modificação</span>
-                                  )}
                                 </div>
                               </div>
                             </SelectItem>

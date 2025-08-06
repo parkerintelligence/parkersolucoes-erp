@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useIntegrations } from './useIntegrations';
