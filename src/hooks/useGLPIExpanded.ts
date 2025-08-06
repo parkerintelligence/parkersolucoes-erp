@@ -34,6 +34,8 @@ export interface GLPITicket {
   assigns: any[];
   suppliers: any[];
   categories_id: number;
+  itilcategories_id?: number;
+  requesttypes_id?: number;
   locations_id: number;
   validation?: any;
   satisfaction?: any;
@@ -802,28 +804,59 @@ export const useGLPIExpanded = () => {
 
   // Mutations para criar, atualizar e deletar tickets
   const createTicket = useMutation({
-    mutationFn: (ticketData: Partial<GLPITicket>) => {
-      console.log('🎫 Criando ticket GLPI:', ticketData);
+    mutationFn: async (ticketData: Partial<GLPITicket>) => {
+      console.log('🎫 [useGLPIExpanded] Iniciando criação de ticket:', ticketData);
+      
+      // Validar dados obrigatórios
+      if (!ticketData.name?.trim()) {
+        throw new Error('O título do ticket é obrigatório');
+      }
       
       // Obter valores válidos dinamicamente
       const validValues = getValidValues();
+      console.log('🎫 [useGLPIExpanded] Valores válidos obtidos:', validValues);
       
       // Mesclar dados do ticket com valores válidos
       const enhancedTicketData = {
-        ...ticketData,
-        ...validValues,
+        name: ticketData.name,
+        content: ticketData.content || '',
+        priority: ticketData.priority || 3,
+        urgency: ticketData.urgency || 3,
+        impact: ticketData.impact || 3,
+        type: ticketData.type || 1,
         status: 1, // Status: Novo
+        entities_id: validValues.entities_id,
+        users_id_requester: validValues.users_id_requester,
+        itilcategories_id: ticketData.itilcategories_id || validValues.itilcategories_id,
+        requesttypes_id: validValues.requesttypes_id
       };
       
-      console.log('🎫 Dados do ticket preparados com valores válidos:', JSON.stringify(enhancedTicketData, null, 2));
+      console.log('🎫 [useGLPIExpanded] Dados do ticket preparados:', JSON.stringify(enhancedTicketData, null, 2));
       
-      // A API GLPI espera um array de objetos para criação
-      const ticketArray = [enhancedTicketData];
+      // Verificar se temos uma sessão válida
+      if (!hasValidSession) {
+        console.warn('🎫 [useGLPIExpanded] Sessão inválida - tentando inicializar');
+        throw new Error('Sessão GLPI inválida. Tentando reconectar...');
+      }
       
-      return makeGLPIRequest('tickets', {
-        method: 'POST',
-        body: JSON.stringify(ticketArray),
-      });
+      try {
+        // Formato correto da API GLPI: {"input": {...}}
+        const glpiPayload = {
+          input: enhancedTicketData
+        };
+        console.log('🎫 [useGLPIExpanded] Enviando payload formatado para GLPI:', JSON.stringify(glpiPayload, null, 2));
+        
+        const response = await makeGLPIRequest('Ticket', {
+          method: 'POST',
+          body: JSON.stringify(glpiPayload)
+        });
+        
+        console.log('🎫 [useGLPIExpanded] Resposta do GLPI proxy:', response);
+        return response;
+      } catch (error) {
+        console.error('🎫 [useGLPIExpanded] Erro na requisição:', error);
+        throw error;
+      }
     },
     onSuccess: (result) => {
       console.log('✅ Ticket criado com sucesso:', result);

@@ -138,19 +138,44 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    )
+    // Verificar autenticação - permitir service role key
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: corsHeaders }
+      )
+    }
 
-    const { data: { user } } = await supabaseClient.auth.getUser()
-    if (!user) {
-      throw new Error('User not authenticated')
+    let user;
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Tentar autenticação com service role key primeiro
+    if (token === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+      console.log('🔑 [AUTH] Autenticado com service role key');
+      user = { id: 'service-role' };
+    } else {
+      // Verificar usuário autenticado normal
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        {
+          global: {
+            headers: { Authorization: authHeader },
+          },
+        }
+      )
+
+      const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser();
+
+      if (authError || !authUser) {
+        console.error('❌ [AUTH] Erro de autenticação:', authError?.message || 'Usuário não encontrado');
+        return new Response(
+          JSON.stringify({ error: 'User not authenticated' }),
+          { status: 401, headers: corsHeaders }
+        )
+      }
+      user = authUser;
     }
 
     const { host, port, username, password, secure, path, passive } = await req.json()
@@ -159,28 +184,49 @@ serve(async (req) => {
     console.log('Host:', host)
     console.log('Port:', port)
     console.log('User:', username)
-    console.log('Path:', path)
+    console.log('Path:', path || '/')
     console.log('Secure:', secure)
+    console.log('User ID:', user.id)
 
     let files = []
     
     try {
-      // Tentar conectar ao FTP real
-      const ftpConn = await connectFTP(host, port || 21, username, password)
+      console.log(`🔗 [FTP] Tentando conectar em ${host}:${port || 21} com usuário ${username}`);
+      
+      // Tentar conectar ao FTP real com timeout
+      const ftpConn = await Promise.race([
+        connectFTP(host, port || 21, username, password),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Connection timeout after 10s')), 10000)
+        )
+      ]) as Deno.Conn;
+      
+      console.log('✅ [FTP] Conexão estabelecida, listando arquivos...');
       
       // Listar arquivos
-      const listData = await listFTPFiles(ftpConn, path)
-      console.log('Raw FTP LIST data:', listData)
+      const listData = await Promise.race([
+        listFTPFiles(ftpConn, path || '/'),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('LIST timeout after 15s')), 15000)
+        )
+      ]) as string;
+      
+      console.log('📁 [FTP] Raw FTP LIST data:', listData.substring(0, 500) + '...');
       
       // Parsear dados
-      files = parseListData(listData, path, username)
+      files = parseListData(listData, path || '/', username);
       
-      ftpConn.close()
+      ftpConn.close();
       
-      console.log('✅ Real FTP connection successful, files retrieved:', files.length)
+      console.log(`✅ [FTP] Conexão FTP real bem-sucedida, ${files.length} arquivos/pastas encontrados`);
+      
+      // Log detalhado dos primeiros itens para debug
+      files.slice(0, 3).forEach(file => {
+        console.log(`📄 [FTP] ${file.type}: ${file.name} | Modificado: ${file.lastModified} | Tamanho: ${file.size}`);
+      });
       
     } catch (ftpError) {
-      console.error('❌ Real FTP connection failed:', ftpError)
+      console.error('❌ [FTP] Falha na conexão FTP real:', ftpError.message || ftpError);
       
       // Fallback para dados simulados baseados na configuração real
       console.log('Using fallback simulated data for:', host)

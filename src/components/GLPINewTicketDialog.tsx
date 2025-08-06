@@ -32,7 +32,11 @@ export const GLPINewTicketDialog = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('🎫 [GLPINewTicketDialog] Iniciando criação de chamado');
+    console.log('🎫 [GLPINewTicketDialog] Form data:', formData);
+    
     if (!formData.title.trim()) {
+      console.warn('🎫 [GLPINewTicketDialog] Título vazio - cancelando criação');
       toast({
         title: "Erro",
         description: "O título do chamado é obrigatório.",
@@ -50,10 +54,18 @@ export const GLPINewTicketDialog = ({
         urgency: parseInt(formData.urgency),
         impact: parseInt(formData.impact),
         type: parseInt(formData.requestType),
-        // Os valores de entities_id, users_id_requester, etc. serão definidos dinamicamente no hook
+        itilcategories_id: formData.category ? parseInt(formData.category) : undefined,
       };
 
-      await createTicket.mutateAsync(ticketData);
+      console.log('🎫 [GLPINewTicketDialog] Dados preparados para envio:', ticketData);
+      console.log('🎫 [GLPINewTicketDialog] Mutation status:', {
+        isPending: createTicket.isPending,
+        isError: createTicket.isError,
+        error: createTicket.error
+      });
+
+      const result = await createTicket.mutateAsync(ticketData);
+      console.log('🎫 [GLPINewTicketDialog] Resultado da criação:', result);
       
       // Reset form
       setFormData({
@@ -66,10 +78,18 @@ export const GLPINewTicketDialog = ({
         requestType: '1'
       });
       
+      console.log('🎫 [GLPINewTicketDialog] Formulário resetado e dialog fechando');
       onOpenChange(false);
     } catch (error) {
-      // Erro será tratado pelo hook
-      console.error('Erro ao criar chamado:', error);
+      console.error('🎫 [GLPINewTicketDialog] Erro ao criar chamado:', error);
+      // Erro será tratado pelo hook, mas vamos adicionar uma mensagem de fallback
+      if (!createTicket.isError) {
+        toast({
+          title: "Erro inesperado",
+          description: "Não foi possível criar o chamado. Tente novamente.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
