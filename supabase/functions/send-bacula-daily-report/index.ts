@@ -182,20 +182,20 @@ serve(async (req) => {
 
     console.log('Integrações encontradas - Evolution API e Bacula');
 
-    // Calcular período do dia anterior em Brasília
+    // Calcular período dos últimos 2 dias em Brasília
     const now = new Date();
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
+    const twoDaysAgo = new Date(now);
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
     
-    // Início e fim do dia anterior em Brasília
-    const startOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0);
-    const endOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
+    // Início dos últimos 2 dias e fim de ontem em Brasília
+    const startOfPeriod = new Date(twoDaysAgo.getFullYear(), twoDaysAgo.getMonth(), twoDaysAgo.getDate(), 0, 0, 0);
+    const endOfPeriod = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
     
     // Converter para UTC para a consulta
-    const startTimeUTC = startOfYesterday.toISOString();
-    const endTimeUTC = endOfYesterday.toISOString();
+    const startTimeUTC = startOfPeriod.toISOString();
+    const endTimeUTC = endOfPeriod.toISOString();
     
-    console.log(`Período de análise: ${startOfYesterday.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} até ${endOfYesterday.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`);
+    console.log(`Período de análise - Últimos 2 dias: ${startOfPeriod.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} até ${endOfPeriod.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`);
 
     // Buscar dados do Bacula com múltiplas tentativas e endpoints
     let baculaData;
@@ -388,7 +388,7 @@ serve(async (req) => {
       for (const dateStr of possibleDates) {
         try {
           const jobTime = new Date(dateStr);
-          if (!isNaN(jobTime.getTime()) && jobTime >= startOfYesterday && jobTime <= endOfYesterday) {
+          if (!isNaN(jobTime.getTime()) && jobTime >= startOfPeriod && jobTime <= endOfPeriod) {
             return true;
           }
         } catch (error) {
@@ -413,7 +413,21 @@ serve(async (req) => {
       })));
     }
 
-    // Análise dos jobs
+    // Análise dos jobs - Filtrar especificamente FATAL e CANCELADO
+    const fatalJobs = filteredJobs.filter(job => {
+      const status = job.jobstatus || job.status || 'U';
+      return status === 'f'; // Jobs com status Fatal
+    });
+
+    const cancelledJobs = filteredJobs.filter(job => {
+      const status = job.jobstatus || job.status || 'U';
+      return status === 'A'; // Jobs com status Cancelado
+    });
+
+    // Combinar jobs críticos (Fatal + Cancelado)
+    const criticalJobs = [...fatalJobs, ...cancelledJobs];
+    
+    // Manter análise de erro geral para compatibilidade
     const errorJobs = filteredJobs.filter(job => {
       const status = job.jobstatus || job.status || 'U';
       const errorLevel = getErrorLevel(status);
@@ -462,16 +476,45 @@ serve(async (req) => {
 
     // Preparar dados para o template
     const reportData = {
-      date: yesterday.toLocaleDateString('pt-BR'),
+      date: twoDaysAgo.toLocaleDateString('pt-BR') + ' - ' + now.toLocaleDateString('pt-BR'),
       time: getBrasiliaTime(),
       total_jobs: filteredJobs.length,
       error_jobs: errorJobs.length,
+      fatal_jobs: fatalJobs.length,
+      cancelled_jobs: cancelledJobs.length,
+      critical_jobs: criticalJobs.length,
       success_jobs: successJobs.length,
       warning_jobs: warningJobs.length,
       error_rate: filteredJobs.length > 0 ? Math.round((errorJobs.length / filteredJobs.length) * 100) : 0,
       success_rate: filteredJobs.length > 0 ? Math.round((successJobs.length / filteredJobs.length) * 100) : 0,
       clients_with_errors: Object.keys(clientAnalysis).filter(client => clientAnalysis[client].errors > 0).length,
       total_clients: Object.keys(clientAnalysis).length,
+      // Detalhes de jobs FATAL
+      fatal_details: fatalJobs.map(job => ({
+        name: job.job || job.jobname || job.name || 'Job sem nome',
+        client: job.client || job.clientname || 'Cliente desconhecido',
+        status: 'FATAL',
+        time: new Date(job.starttime || job.schedtime || job.endtime).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+        level: job.level || 'Full',
+        bytes: job.jobbytes ? formatBytes(job.jobbytes) : '0 B',
+        files: job.jobfiles || 0,
+        duration: job.duration || 'N/A',
+        errors: job.joberrors || 0,
+        reason: job.joberrors > 0 ? `${job.joberrors} erro(s) detectado(s)` : 'Falha crítica no backup'
+      })),
+      // Detalhes de jobs CANCELADO
+      cancelled_details: cancelledJobs.map(job => ({
+        name: job.job || job.jobname || job.name || 'Job sem nome',
+        client: job.client || job.clientname || 'Cliente desconhecido',
+        status: 'CANCELADO',
+        time: new Date(job.starttime || job.schedtime || job.endtime).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+        level: job.level || 'Full',
+        bytes: job.jobbytes ? formatBytes(job.jobbytes) : '0 B',
+        files: job.jobfiles || 0,
+        duration: job.duration || 'N/A',
+        reason: 'Job foi cancelado antes da conclusão'
+      })),
+      // Manter compatibilidade com template existente
       error_details: errorJobs.slice(0, 10).map(job => ({
         name: job.job || job.jobname || job.name || 'Job sem nome',
         client: job.client || job.clientname || 'Cliente desconhecido',
@@ -496,8 +539,8 @@ serve(async (req) => {
       data_source: dataSource,
       successful_strategy: successfulStrategy || 'cache',
       raw_jobs_count: jobs.length,
-      period_start: startOfYesterday.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-      period_end: endOfYesterday.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+      period_start: startOfPeriod.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+      period_end: endOfPeriod.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
     };
 
     console.log('Dados do relatório preparados:', {
@@ -516,6 +559,12 @@ serve(async (req) => {
     message = message.replace(/\{\{total_jobs\}\}/g, reportData.total_jobs.toString());
     message = message.replace(/\{\{errorJobs\}\}/g, reportData.error_jobs.toString());
     message = message.replace(/\{\{error_jobs\}\}/g, reportData.error_jobs.toString());
+    message = message.replace(/\{\{fatalJobs\}\}/g, reportData.fatal_jobs.toString());
+    message = message.replace(/\{\{fatal_jobs\}\}/g, reportData.fatal_jobs.toString());
+    message = message.replace(/\{\{cancelledJobs\}\}/g, reportData.cancelled_jobs.toString());
+    message = message.replace(/\{\{cancelled_jobs\}\}/g, reportData.cancelled_jobs.toString());
+    message = message.replace(/\{\{criticalJobs\}\}/g, reportData.critical_jobs.toString());
+    message = message.replace(/\{\{critical_jobs\}\}/g, reportData.critical_jobs.toString());
     message = message.replace(/\{\{successJobs\}\}/g, reportData.success_jobs.toString());
     message = message.replace(/\{\{success_jobs\}\}/g, reportData.success_jobs.toString());
     message = message.replace(/\{\{warningJobs\}\}/g, reportData.warning_jobs.toString());
@@ -544,7 +593,11 @@ serve(async (req) => {
       { pattern: /\{\{#if error_jobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.error_jobs > 0 },
       { pattern: /\{\{#if errorJobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.error_jobs > 0 },
       { pattern: /\{\{#if hasErrors\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.error_jobs > 0 },
-      { pattern: /\{\{#if hasCriticalErrors\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.error_jobs > 5 },
+      { pattern: /\{\{#if hasCriticalErrors\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.critical_jobs > 0 },
+      { pattern: /\{\{#if hasFatalJobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.fatal_jobs > 0 },
+      { pattern: /\{\{#if hasCancelledJobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.cancelled_jobs > 0 },
+      { pattern: /\{\{#if fatal_jobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.fatal_jobs > 0 },
+      { pattern: /\{\{#if cancelled_jobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.cancelled_jobs > 0 },
       { pattern: /\{\{#if total_jobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.total_jobs > 0 }
     ];
 
@@ -554,7 +607,65 @@ serve(async (req) => {
       });
     });
 
-    // Processar loops de detalhes de erro com múltiplas variações
+    // Processar loops de jobs FATAL
+    const fatalLoopPatterns = [
+      /\{\{#each fatal_details\}\}(.*?)\{\{\/each\}\}/gs,
+      /\{\{#each fatalJobs\}\}(.*?)\{\{\/each\}\}/gs
+    ];
+
+    fatalLoopPatterns.forEach(pattern => {
+      if (reportData.fatal_details.length > 0) {
+        message = message.replace(pattern, (match, content) => {
+          return reportData.fatal_details.map(job => {
+            let jobContent = content;
+            jobContent = jobContent.replace(/\{\{name\}\}/g, job.name);
+            jobContent = jobContent.replace(/\{\{jobname\}\}/g, job.name);
+            jobContent = jobContent.replace(/\{\{client\}\}/g, job.client);
+            jobContent = jobContent.replace(/\{\{status\}\}/g, job.status);
+            jobContent = jobContent.replace(/\{\{time\}\}/g, job.time);
+            jobContent = jobContent.replace(/\{\{startTime\}\}/g, job.time);
+            jobContent = jobContent.replace(/\{\{level\}\}/g, job.level);
+            jobContent = jobContent.replace(/\{\{bytes\}\}/g, job.bytes);
+            jobContent = jobContent.replace(/\{\{files\}\}/g, job.files.toString());
+            jobContent = jobContent.replace(/\{\{reason\}\}/g, job.reason);
+            return jobContent;
+          }).join('');
+        });
+      } else {
+        message = message.replace(pattern, '');
+      }
+    });
+
+    // Processar loops de jobs CANCELADO
+    const cancelledLoopPatterns = [
+      /\{\{#each cancelled_details\}\}(.*?)\{\{\/each\}\}/gs,
+      /\{\{#each cancelledJobs\}\}(.*?)\{\{\/each\}\}/gs
+    ];
+
+    cancelledLoopPatterns.forEach(pattern => {
+      if (reportData.cancelled_details.length > 0) {
+        message = message.replace(pattern, (match, content) => {
+          return reportData.cancelled_details.map(job => {
+            let jobContent = content;
+            jobContent = jobContent.replace(/\{\{name\}\}/g, job.name);
+            jobContent = jobContent.replace(/\{\{jobname\}\}/g, job.name);
+            jobContent = jobContent.replace(/\{\{client\}\}/g, job.client);
+            jobContent = jobContent.replace(/\{\{status\}\}/g, job.status);
+            jobContent = jobContent.replace(/\{\{time\}\}/g, job.time);
+            jobContent = jobContent.replace(/\{\{startTime\}\}/g, job.time);
+            jobContent = jobContent.replace(/\{\{level\}\}/g, job.level);
+            jobContent = jobContent.replace(/\{\{bytes\}\}/g, job.bytes);
+            jobContent = jobContent.replace(/\{\{files\}\}/g, job.files.toString());
+            jobContent = jobContent.replace(/\{\{reason\}\}/g, job.reason);
+            return jobContent;
+          }).join('');
+        });
+      } else {
+        message = message.replace(pattern, '');
+      }
+    });
+
+    // Processar loops de detalhes de erro com múltiplas variações (manter compatibilidade)
     const errorLoopPatterns = [
       /\{\{#each error_details\}\}(.*?)\{\{\/each\}\}/gs,
       /\{\{#each errorJobs\}\}(.*?)\{\{\/each\}\}/gs
@@ -565,7 +676,6 @@ serve(async (req) => {
         message = message.replace(pattern, (match, content) => {
           return reportData.error_details.map(error => {
             let errorContent = content;
-            // Múltiplas variações de variáveis
             errorContent = errorContent.replace(/\{\{name\}\}/g, error.name);
             errorContent = errorContent.replace(/\{\{jobname\}\}/g, error.name);
             errorContent = errorContent.replace(/\{\{client\}\}/g, error.client);
