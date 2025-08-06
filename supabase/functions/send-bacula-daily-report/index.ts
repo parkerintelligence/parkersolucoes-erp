@@ -474,9 +474,71 @@ serve(async (req) => {
       else if (status === 'T') typeAnalysis[type].success++;
     });
 
-    // Preparar dados para o template
+    // Preparar dados para o template com logs detalhados
+    console.log(`📊 Preparando dados para template:`, {
+      total_jobs: filteredJobs.length,
+      fatal_jobs: fatalJobs.length,
+      cancelled_jobs: cancelledJobs.length,
+      critical_jobs: criticalJobs.length
+    });
+
+    // Mapear dados de jobs FATAL com logs
+    const fatalDetails = fatalJobs.map(job => {
+      // Log detalhado do job para debug
+      console.log('📋 Processando job FATAL:', {
+        jobid: job.jobid,
+        name: job.job || job.jobname || job.name,
+        client: job.client || job.clientname,
+        status: job.jobstatus,
+        starttime: job.starttime,
+        level: job.level,
+        bytes: job.jobbytes,
+        files: job.jobfiles
+      });
+
+      return {
+        name: job.job || job.jobname || job.name || `Job-${job.jobid || 'unknown'}`,
+        client: job.client || job.clientname || 'Cliente desconhecido',
+        status: 'FATAL',
+        time: job.starttime ? new Date(job.starttime).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : getBrasiliaTime(),
+        level: job.level || job.type || 'Full',
+        bytes: job.jobbytes ? formatBytes(parseInt(job.jobbytes)) : '0 B',
+        files: job.jobfiles || 0,
+        duration: job.duration || 'N/A',
+        errors: job.joberrors || 0,
+        reason: job.joberrors > 0 ? `${job.joberrors} erro(s) detectado(s)` : 'Falha crítica no backup'
+      };
+    });
+
+    // Mapear dados de jobs CANCELADO com logs
+    const cancelledDetails = cancelledJobs.map(job => {
+      // Log detalhado do job para debug
+      console.log('📋 Processando job CANCELADO:', {
+        jobid: job.jobid,
+        name: job.job || job.jobname || job.name,
+        client: job.client || job.clientname,
+        status: job.jobstatus,
+        starttime: job.starttime,
+        level: job.level,
+        bytes: job.jobbytes,
+        files: job.jobfiles
+      });
+
+      return {
+        name: job.job || job.jobname || job.name || `Job-${job.jobid || 'unknown'}`,
+        client: job.client || job.clientname || 'Cliente desconhecido',
+        status: 'CANCELADO',
+        time: job.starttime ? new Date(job.starttime).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : getBrasiliaTime(),
+        level: job.level || job.type || 'Full',
+        bytes: job.jobbytes ? formatBytes(parseInt(job.jobbytes)) : '0 B',
+        files: job.jobfiles || 0,
+        duration: job.duration || 'N/A',
+        reason: 'Job foi cancelado antes da conclusão'
+      };
+    });
+
     const reportData = {
-      date: twoDaysAgo.toLocaleDateString('pt-BR') + ' - ' + now.toLocaleDateString('pt-BR'),
+      date: new Date().toLocaleDateString('pt-BR'),
       time: getBrasiliaTime(),
       total_jobs: filteredJobs.length,
       error_jobs: errorJobs.length,
@@ -489,31 +551,11 @@ serve(async (req) => {
       success_rate: filteredJobs.length > 0 ? Math.round((successJobs.length / filteredJobs.length) * 100) : 0,
       clients_with_errors: Object.keys(clientAnalysis).filter(client => clientAnalysis[client].errors > 0).length,
       total_clients: Object.keys(clientAnalysis).length,
+      hasCriticalErrors: criticalJobs.length > 0,
       // Detalhes de jobs FATAL
-      fatal_details: fatalJobs.map(job => ({
-        name: job.job || job.jobname || job.name || 'Job sem nome',
-        client: job.client || job.clientname || 'Cliente desconhecido',
-        status: 'FATAL',
-        time: new Date(job.starttime || job.schedtime || job.endtime).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-        level: job.level || 'Full',
-        bytes: job.jobbytes ? formatBytes(job.jobbytes) : '0 B',
-        files: job.jobfiles || 0,
-        duration: job.duration || 'N/A',
-        errors: job.joberrors || 0,
-        reason: job.joberrors > 0 ? `${job.joberrors} erro(s) detectado(s)` : 'Falha crítica no backup'
-      })),
+      fatal_details: fatalDetails,
       // Detalhes de jobs CANCELADO
-      cancelled_details: cancelledJobs.map(job => ({
-        name: job.job || job.jobname || job.name || 'Job sem nome',
-        client: job.client || job.clientname || 'Cliente desconhecido',
-        status: 'CANCELADO',
-        time: new Date(job.starttime || job.schedtime || job.endtime).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-        level: job.level || 'Full',
-        bytes: job.jobbytes ? formatBytes(job.jobbytes) : '0 B',
-        files: job.jobfiles || 0,
-        duration: job.duration || 'N/A',
-        reason: 'Job foi cancelado antes da conclusão'
-      })),
+      cancelled_details: cancelledDetails,
       // Manter compatibilidade com template existente
       error_details: errorJobs.slice(0, 10).map(job => ({
         name: job.job || job.jobname || job.name || 'Job sem nome',
@@ -549,119 +591,115 @@ serve(async (req) => {
       success_rate: reportData.success_rate
     });
 
-    // Formatar mensagem usando o template melhorado
+    // Formatar mensagem usando processamento Handlebars simplificado
     let message = template.body;
     
-    // Substituir variáveis básicas com dados reais
-    message = message.replace(/\{\{date\}\}/g, reportData.date);
-    message = message.replace(/\{\{time\}\}/g, reportData.time);
-    message = message.replace(/\{\{totalJobs\}\}/g, reportData.total_jobs.toString());
-    message = message.replace(/\{\{total_jobs\}\}/g, reportData.total_jobs.toString());
-    message = message.replace(/\{\{errorJobs\}\}/g, reportData.error_jobs.toString());
-    message = message.replace(/\{\{error_jobs\}\}/g, reportData.error_jobs.toString());
-    message = message.replace(/\{\{fatalJobs\}\}/g, reportData.fatal_jobs.toString());
-    message = message.replace(/\{\{fatal_jobs\}\}/g, reportData.fatal_jobs.toString());
-    message = message.replace(/\{\{cancelledJobs\}\}/g, reportData.cancelled_jobs.toString());
-    message = message.replace(/\{\{cancelled_jobs\}\}/g, reportData.cancelled_jobs.toString());
-    message = message.replace(/\{\{criticalJobs\}\}/g, reportData.critical_jobs.toString());
-    message = message.replace(/\{\{critical_jobs\}\}/g, reportData.critical_jobs.toString());
-    message = message.replace(/\{\{successJobs\}\}/g, reportData.success_jobs.toString());
-    message = message.replace(/\{\{success_jobs\}\}/g, reportData.success_jobs.toString());
-    message = message.replace(/\{\{warningJobs\}\}/g, reportData.warning_jobs.toString());
-    message = message.replace(/\{\{warning_jobs\}\}/g, reportData.warning_jobs.toString());
-    message = message.replace(/\{\{errorRate\}\}/g, reportData.error_rate.toString());
-    message = message.replace(/\{\{error_rate\}\}/g, reportData.error_rate.toString());
-    message = message.replace(/\{\{successRate\}\}/g, reportData.success_rate.toString());
-    message = message.replace(/\{\{success_rate\}\}/g, reportData.success_rate.toString());
-    message = message.replace(/\{\{clientsWithErrors\}\}/g, reportData.clients_with_errors.toString());
-    message = message.replace(/\{\{clients_with_errors\}\}/g, reportData.clients_with_errors.toString());
-    message = message.replace(/\{\{totalClients\}\}/g, reportData.total_clients.toString());
-    message = message.replace(/\{\{total_clients\}\}/g, reportData.total_clients.toString());
-
-    // Adicionar informações de diagnóstico se necessário
-    message = message.replace(/\{\{dataSource\}\}/g, dataSource);
-    message = message.replace(/\{\{data_source\}\}/g, dataSource);
-    message = message.replace(/\{\{rawDataJobs\}\}/g, jobs.length.toString());
-    message = message.replace(/\{\{raw_jobs_count\}\}/g, jobs.length.toString());
-    message = message.replace(/\{\{successfulStrategy\}\}/g, successfulStrategy || 'cache');
-    message = message.replace(/\{\{successful_strategy\}\}/g, successfulStrategy || 'cache');
-    message = message.replace(/\{\{period_start\}\}/g, reportData.period_start);
-    message = message.replace(/\{\{period_end\}\}/g, reportData.period_end);
-
-    // Processar seções condicionais com múltiplas variações
-    const conditionalPatterns = [
-      { pattern: /\{\{#if error_jobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.error_jobs > 0 },
-      { pattern: /\{\{#if errorJobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.error_jobs > 0 },
-      { pattern: /\{\{#if hasErrors\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.error_jobs > 0 },
-      { pattern: /\{\{#if hasCriticalErrors\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.critical_jobs > 0 },
-      { pattern: /\{\{#if hasFatalJobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.fatal_jobs > 0 },
-      { pattern: /\{\{#if hasCancelledJobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.cancelled_jobs > 0 },
-      { pattern: /\{\{#if fatal_jobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.fatal_jobs > 0 },
-      { pattern: /\{\{#if cancelled_jobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.cancelled_jobs > 0 },
-      { pattern: /\{\{#if total_jobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.total_jobs > 0 }
-    ];
-
-    conditionalPatterns.forEach(({ pattern, condition }) => {
-      message = message.replace(pattern, (match, content) => {
-        return condition ? content : '';
-      });
+    console.log(`🔄 Iniciando processamento de template com dados:`, {
+      fatal_jobs: reportData.fatal_jobs,
+      cancelled_jobs: reportData.cancelled_jobs,
+      fatal_details_count: reportData.fatal_details.length,
+      cancelled_details_count: reportData.cancelled_details.length
     });
+    
+    // Substituir variáveis básicas com dados reais
+    message = message.replace(/\{\{date\}\}/g, reportData.date || 'N/A');
+    message = message.replace(/\{\{time\}\}/g, reportData.time || 'N/A');
+    message = message.replace(/\{\{total_jobs\}\}/g, reportData.total_jobs.toString());
+    message = message.replace(/\{\{success_jobs\}\}/g, reportData.success_jobs.toString());
+    message = message.replace(/\{\{fatal_jobs\}\}/g, reportData.fatal_jobs.toString());
+    message = message.replace(/\{\{cancelled_jobs\}\}/g, reportData.cancelled_jobs.toString());
+    message = message.replace(/\{\{critical_jobs\}\}/g, reportData.critical_jobs.toString());
+    message = message.replace(/\{\{error_rate\}\}/g, reportData.error_rate.toString());
+    message = message.replace(/\{\{clients_with_errors\}\}/g, reportData.clients_with_errors.toString());
+    message = message.replace(/\{\{total_clients\}\}/g, reportData.total_clients.toString());
+    message = message.replace(/\{\{period_start\}\}/g, reportData.period_start || 'N/A');
+    message = message.replace(/\{\{period_end\}\}/g, reportData.period_end || 'N/A');
 
-    // Processar loops de jobs FATAL
-    const fatalLoopPatterns = [
-      /\{\{#each fatal_details\}\}(.*?)\{\{\/each\}\}/gs,
-      /\{\{#each fatalJobs\}\}(.*?)\{\{\/each\}\}/gs
-    ];
-
-    fatalLoopPatterns.forEach(pattern => {
-      if (reportData.fatal_details.length > 0) {
-        message = message.replace(pattern, (match, content) => {
-          return reportData.fatal_details.map(job => {
-            let jobContent = content;
-            jobContent = jobContent.replace(/\{\{name\}\}/g, job.name);
-            jobContent = jobContent.replace(/\{\{jobname\}\}/g, job.name);
-            jobContent = jobContent.replace(/\{\{client\}\}/g, job.client);
-            jobContent = jobContent.replace(/\{\{status\}\}/g, job.status);
-            jobContent = jobContent.replace(/\{\{time\}\}/g, job.time);
-            jobContent = jobContent.replace(/\{\{startTime\}\}/g, job.time);
-            jobContent = jobContent.replace(/\{\{level\}\}/g, job.level);
-            jobContent = jobContent.replace(/\{\{bytes\}\}/g, job.bytes);
-            jobContent = jobContent.replace(/\{\{files\}\}/g, job.files.toString());
-            jobContent = jobContent.replace(/\{\{reason\}\}/g, job.reason);
-            return jobContent;
-          }).join('');
-        });
+    // Processar blocos condicionais {{#if}} e {{else}}
+    
+    // 1. Processar bloco fatal_jobs
+    const fatalIfPattern = /\{\{#if fatal_jobs\}\}(.*?)\{\{\/if\}\}/gs;
+    message = message.replace(fatalIfPattern, (match, content) => {
+      if (reportData.fatal_jobs > 0) {
+        console.log(`✅ Processando bloco fatal_jobs (${reportData.fatal_jobs} jobs)`);
+        return content;
       } else {
-        message = message.replace(pattern, '');
+        console.log(`❌ Removendo bloco fatal_jobs (0 jobs)`);
+        return '';
       }
     });
 
-    // Processar loops de jobs CANCELADO
-    const cancelledLoopPatterns = [
-      /\{\{#each cancelled_details\}\}(.*?)\{\{\/each\}\}/gs,
-      /\{\{#each cancelledJobs\}\}(.*?)\{\{\/each\}\}/gs
-    ];
-
-    cancelledLoopPatterns.forEach(pattern => {
-      if (reportData.cancelled_details.length > 0) {
-        message = message.replace(pattern, (match, content) => {
-          return reportData.cancelled_details.map(job => {
-            let jobContent = content;
-            jobContent = jobContent.replace(/\{\{name\}\}/g, job.name);
-            jobContent = jobContent.replace(/\{\{jobname\}\}/g, job.name);
-            jobContent = jobContent.replace(/\{\{client\}\}/g, job.client);
-            jobContent = jobContent.replace(/\{\{status\}\}/g, job.status);
-            jobContent = jobContent.replace(/\{\{time\}\}/g, job.time);
-            jobContent = jobContent.replace(/\{\{startTime\}\}/g, job.time);
-            jobContent = jobContent.replace(/\{\{level\}\}/g, job.level);
-            jobContent = jobContent.replace(/\{\{bytes\}\}/g, job.bytes);
-            jobContent = jobContent.replace(/\{\{files\}\}/g, job.files.toString());
-            jobContent = jobContent.replace(/\{\{reason\}\}/g, job.reason);
-            return jobContent;
-          }).join('');
-        });
+    // 2. Processar bloco cancelled_jobs
+    const cancelledIfPattern = /\{\{#if cancelled_jobs\}\}(.*?)\{\{\/if\}\}/gs;
+    message = message.replace(cancelledIfPattern, (match, content) => {
+      if (reportData.cancelled_jobs > 0) {
+        console.log(`✅ Processando bloco cancelled_jobs (${reportData.cancelled_jobs} jobs)`);
+        return content;
       } else {
-        message = message.replace(pattern, '');
+        console.log(`❌ Removendo bloco cancelled_jobs (0 jobs)`);
+        return '';
+      }
+    });
+
+    // 3. Processar bloco hasCriticalErrors com {{else}}
+    const criticalErrorsPattern = /\{\{#if hasCriticalErrors\}\}(.*?)\{\{else\}\}(.*?)\{\{\/if\}\}/gs;
+    message = message.replace(criticalErrorsPattern, (match, ifContent, elseContent) => {
+      if (reportData.hasCriticalErrors) {
+        console.log(`✅ Usando bloco IF de hasCriticalErrors`);
+        return ifContent;
+      } else {
+        console.log(`✅ Usando bloco ELSE de hasCriticalErrors`);
+        return elseContent;
+      }
+    });
+
+    // 4. Processar loops {{#each fatal_details}}
+    const fatalLoopPattern = /\{\{#each fatal_details\}\}(.*?)\{\{\/each\}\}/gs;
+    message = message.replace(fatalLoopPattern, (match, content) => {
+      if (reportData.fatal_details.length > 0) {
+        console.log(`🔄 Processando loop fatal_details com ${reportData.fatal_details.length} items`);
+        return reportData.fatal_details.map((job, index) => {
+          let jobContent = content;
+          console.log(`📋 Processando job FATAL ${index + 1}:`, job);
+          
+          jobContent = jobContent.replace(/\{\{name\}\}/g, job.name || 'N/A');
+          jobContent = jobContent.replace(/\{\{client\}\}/g, job.client || 'N/A');
+          jobContent = jobContent.replace(/\{\{time\}\}/g, job.time || 'N/A');
+          jobContent = jobContent.replace(/\{\{level\}\}/g, job.level || 'N/A');
+          jobContent = jobContent.replace(/\{\{bytes\}\}/g, job.bytes || 'N/A');
+          jobContent = jobContent.replace(/\{\{files\}\}/g, job.files?.toString() || '0');
+          jobContent = jobContent.replace(/\{\{reason\}\}/g, job.reason || 'N/A');
+          
+          return jobContent;
+        }).join('');
+      } else {
+        console.log(`❌ Nenhum job FATAL encontrado, removendo bloco`);
+        return '';
+      }
+    });
+
+    // 5. Processar loops {{#each cancelled_details}}
+    const cancelledLoopPattern = /\{\{#each cancelled_details\}\}(.*?)\{\{\/each\}\}/gs;
+    message = message.replace(cancelledLoopPattern, (match, content) => {
+      if (reportData.cancelled_details.length > 0) {
+        console.log(`🔄 Processando loop cancelled_details com ${reportData.cancelled_details.length} items`);
+        return reportData.cancelled_details.map((job, index) => {
+          let jobContent = content;
+          console.log(`📋 Processando job CANCELADO ${index + 1}:`, job);
+          
+          jobContent = jobContent.replace(/\{\{name\}\}/g, job.name || 'N/A');
+          jobContent = jobContent.replace(/\{\{client\}\}/g, job.client || 'N/A');
+          jobContent = jobContent.replace(/\{\{time\}\}/g, job.time || 'N/A');
+          jobContent = jobContent.replace(/\{\{level\}\}/g, job.level || 'N/A');
+          jobContent = jobContent.replace(/\{\{bytes\}\}/g, job.bytes || 'N/A');
+          jobContent = jobContent.replace(/\{\{files\}\}/g, job.files?.toString() || '0');
+          jobContent = jobContent.replace(/\{\{reason\}\}/g, job.reason || 'N/A');
+          
+          return jobContent;
+        }).join('');
+      } else {
+        console.log(`❌ Nenhum job CANCELADO encontrado, removendo bloco`);
+        return '';
       }
     });
 
@@ -719,9 +757,15 @@ serve(async (req) => {
     });
 
     // Limpar variáveis não substituídas (fallback)
-    message = message.replace(/\{\{[^}]+\}\}/g, 'N/A');
+    const remainingVars = message.match(/\{\{[^}]+\}\}/g);
+    if (remainingVars) {
+      console.log('⚠️ Variáveis não substituídas encontradas:', remainingVars);
+      message = message.replace(/\{\{[^}]+\}\}/g, '');
+    }
 
-    console.log('✅ Mensagem formatada com dados reais. Enviando para destinatários...');
+    console.log('✅ Mensagem formatada com dados reais. Tamanho:', message.length);
+    console.log('📝 Preview da mensagem:', message.substring(0, 500) + '...');
+    console.log('🚀 Enviando para destinatários...');
 
     // Enviar mensagem para cada destinatário
     const results = [];
