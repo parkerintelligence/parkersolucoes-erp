@@ -113,8 +113,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`📝 [SEND] Template encontrado: ${template.name} (tipo: ${template.template_type})`);
 
-    // Gerar conteúdo baseado no template
-    const message = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings);
+    // Gerar conteúdo baseado no template com autenticação correta
+    const authHeader = req.headers.get('authorization') || '';
+    const message = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings, authHeader);
     console.log(`💬 [SEND] Mensagem gerada (${message.length} caracteres)`);
 
     // Atualizar log com conteúdo da mensagem
@@ -815,7 +816,7 @@ async function getGLPIData(userId: string, settings: any) {
 }
 
 // Função para obter dados do Bacula (Robusta com múltiplas estratégias)
-async function getBaculaData(userId: string, settings: any) {
+async function getBaculaData(userId: string, settings: any, authHeader: string = '') {
   try {
     console.log('🔍 [BACULA] Buscando dados de jobs Bacula para usuário:', userId);
     
@@ -889,15 +890,31 @@ async function getBaculaData(userId: string, settings: any) {
         console.log(`🔄 [BACULA] Tentando estratégia: ${strategy.description}`);
         
         const baculaResponse = await retryWithBackoff(async () => {
-          return await supabase.functions.invoke('bacula-proxy', {
-            body: {
+          // Fazer chamada direta ao bacula-proxy com autenticação correta
+          const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/bacula-proxy`, {
+            method: 'POST',
+            headers: {
+              'Authorization': authHeader || `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+              'Content-Type': 'application/json',
+              'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
+            },
+            body: JSON.stringify({
               endpoint: strategy.endpoint,
               params: strategy.params
-            },
-            headers: {
-              'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
-            }
+            })
           });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const result = await response.json();
+          
+          if (result.error) {
+            throw new Error(result.error);
+          }
+
+          return { data: result.data || result, error: null };
         }, 3);
 
         if (baculaResponse.error) {
