@@ -1,66 +1,68 @@
 
-import * as React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from '@/contexts/AuthContext';
-
-// Temporarily import only essential pages to isolate the issue
-import Login from '@/pages/Login';
-import Backups from '@/pages/Backups';
-import Passwords from '@/pages/Passwords';
-import Annotations from '@/pages/Annotations';
-import Links from '@/pages/Links';
-import WhatsApp from '@/pages/WhatsApp';
-import WhatsAppTemplates from '@/pages/WhatsAppTemplates';
-import Wasabi from '@/pages/Wasabi';
-import Schedule from '@/pages/Schedule';
-import Automation from '@/pages/Automation';
-import Zabbix from '@/pages/Zabbix';
-import Services from '@/pages/Services';
-import Budgets from '@/pages/Budgets';
-import Contracts from '@/pages/Contracts';
-import Financial from '@/pages/Financial';
-import Companies from '@/pages/Companies';
-import Bacula from '@/pages/Bacula';
-import ReportsDashboard from '@/pages/ReportsDashboard';
-import ActionPlan from '@/pages/ActionPlan';
-import Alertas from '@/pages/Alertas';
-import Security from '@/pages/Security';
-import UniFi from '@/pages/UniFi';
-import { Layout } from '@/components/Layout';
 
 // Create a single QueryClient instance
 const queryClient = new QueryClient();
 
+// Simple test component
+const TestPage = () => {
+  const [count, setCount] = React.useState(0);
+  
+  return (
+    <div className="p-8 max-w-md mx-auto mt-8">
+      <h1 className="text-2xl font-bold mb-4">React Test</h1>
+      <p className="mb-4">Count: {count}</p>
+      <button 
+        onClick={() => setCount(c => c + 1)}
+        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+      >
+        Increment
+      </button>
+    </div>
+  );
+};
+
+// Simple Login component
+const Login = () => {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6">
+        <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
+        <div className="space-y-4">
+          <input 
+            type="email" 
+            placeholder="Email" 
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <input 
+            type="password" 
+            placeholder="Password" 
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors">
+            Login
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <div className="min-h-screen bg-background">
-            <Routes>
-              <Route path="/" element={<Login />} />
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/test"
-                element={
-                  <div className="p-4">
-                    <h1>Test Page - React is working!</h1>
-                  </div>
-                }
-              />
-              <Route
-                path="/links"
-                element={
-                  <Layout>
-                    <Links />
-                  </Layout>
-                }
-              />
-            </Routes>
-          </div>
-        </BrowserRouter>
-      </AuthProvider>
+      <BrowserRouter>
+        <div className="min-h-screen bg-gray-50">
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/test" element={<TestPage />} />
+            <Route path="/links" element={<TestPage />} />
+          </Routes>
+        </div>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }
