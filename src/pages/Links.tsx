@@ -5,9 +5,7 @@ import { useLinksExport } from '@/hooks/useLinksExport';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link, ExternalLink, Search, Building, Globe, Shield, Mail, Server, Database, Cloud, Code, Monitor, Settings, Filter, Grid, List, Copy, Eye, EyeOff, Download, TreePine } from 'lucide-react';
 import { LinksTreeView } from '@/components/LinksTreeView';
 import { toast } from '@/hooks/use-toast';
@@ -148,46 +146,54 @@ const Links: React.FC = () => {
             <Input placeholder="Buscar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-7 h-7 text-xs bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
           </div>
           
-          <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-            <SelectTrigger className="h-7 w-32 text-xs bg-slate-700 border-slate-600 text-white">
-              <SelectValue placeholder="Empresa" />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-700 border-slate-600">
-              <SelectItem value="all" className="text-xs text-white">Todas</SelectItem>
-              {companies.map(company => <SelectItem key={company.id} value={company.id} className="text-xs text-white">{company.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          
+          <select 
+            value={selectedCompany} 
+            onChange={(e) => setSelectedCompany(e.target.value)}
+            className="h-7 w-32 text-xs bg-slate-700 border-slate-600 text-white rounded px-2"
+          >
+            <option value="all">Todas</option>
+            {companies.map(company => (
+              <option key={company.id} value={company.id}>{company.name}</option>
+            ))}
+          </select>
 
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="h-7 w-28 text-xs bg-slate-700 border-slate-600 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-700 border-slate-600">
-              <SelectItem value="name" className="text-xs text-white">Nome</SelectItem>
-              <SelectItem value="company" className="text-xs text-white">Empresa</SelectItem>
-              <SelectItem value="service" className="text-xs text-white">Serviço</SelectItem>
-            </SelectContent>
-          </Select>
+          <select 
+            value={sortBy} 
+            onChange={(e) => setSortBy(e.target.value)}
+            className="h-7 w-28 text-xs bg-slate-700 border-slate-600 text-white rounded px-2"
+          >
+            <option value="name">Nome</option>
+            <option value="company">Empresa</option>
+            <option value="service">Serviço</option>
+          </select>
         </div>
       </div>
 
       {/* Abas por Serviço */}
-      <Tabs value={activeServiceTab} onValueChange={setActiveServiceTab} className="w-full">
-        <TabsList className="grid w-full bg-slate-800 border-slate-700" style={{
-        gridTemplateColumns: `repeat(${uniqueServices.length + 1}, 1fr)`
-      }}>
-          <TabsTrigger value="all" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs">
+      <div className="w-full">
+        <div className="flex w-full bg-slate-800 border-slate-700 rounded-lg p-1 gap-1">
+          <button 
+            onClick={() => setActiveServiceTab('all')}
+            className={`flex-1 text-xs py-2 px-3 rounded ${activeServiceTab === 'all' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:text-white'}`}
+          >
             Todos ({links.length})
-          </TabsTrigger>
+          </button>
           {uniqueServices.map(service => {
-          const serviceLinks = links.filter(link => link.service === service);
-          return <TabsTrigger key={service} value={service} className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs">
+            const serviceLinks = links.filter(link => link.service === service);
+            return (
+              <button 
+                key={service}
+                onClick={() => setActiveServiceTab(service)}
+                className={`flex-1 text-xs py-2 px-3 rounded ${activeServiceTab === service ? 'bg-blue-600 text-white' : 'text-slate-300 hover:text-white'}`}
+              >
                 {service} ({serviceLinks.length})
-              </TabsTrigger>;
-        })}
-        </TabsList>
+              </button>
+            );
+          })}
+        </div>
 
-        <TabsContent value={activeServiceTab} className="mt-4">
+        <div className="mt-4">
           {/* Grid/Lista/Árvore de Links */}
           {viewMode === 'tree' ? (
             <LinksTreeView />
@@ -305,8 +311,8 @@ const Links: React.FC = () => {
                 </div>
               </CardContent>
             </Card>}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>;
 };
 export default Links;
