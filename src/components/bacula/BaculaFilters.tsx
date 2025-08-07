@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -35,7 +35,7 @@ export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
   jobsCount,
   allJobs
 }) => {
-  const [customDateRange, setCustomDateRange] = React.useState<{start: Date | null, end: Date | null}>({start: null, end: null});
+  const [customDateRange, setCustomDateRange] = useState<{start: Date | null, end: Date | null}>({start: null, end: null});
 
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

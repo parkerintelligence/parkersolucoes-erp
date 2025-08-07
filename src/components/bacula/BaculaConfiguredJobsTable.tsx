@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -13,8 +13,8 @@ interface ConfiguredJobsTableProps {
 }
 
 export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () => {
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [typeFilter, setTypeFilter] = React.useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
 
   const { 
     data: configuredJobsData, 

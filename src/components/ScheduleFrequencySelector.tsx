@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -30,14 +30,14 @@ const DAYS_OF_WEEK = [
 ];
 
 export const ScheduleFrequencySelector = ({ value, onChange, className }: ScheduleFrequencySelectorProps) => {
-  const [frequency, setFrequency] = React.useState('daily');
-  const [hour, setHour] = React.useState(9);
-  const [minute, setMinute] = React.useState(0);
-  const [selectedDays, setSelectedDays] = React.useState<string[]>(['1', '2', '3', '4', '5']);
-  const [dayOfMonth, setDayOfMonth] = React.useState(1);
-  const [customCron, setCustomCron] = React.useState('');
+  const [frequency, setFrequency] = useState('daily');
+  const [hour, setHour] = useState(9);
+  const [minute, setMinute] = useState(0);
+  const [selectedDays, setSelectedDays] = useState<string[]>(['1', '2', '3', '4', '5']);
+  const [dayOfMonth, setDayOfMonth] = useState(1);
+  const [customCron, setCustomCron] = useState('');
 
-  const generateCronExpression = React.useCallback(() => {
+  const generateCronExpression = useCallback(() => {
     switch (frequency) {
       case 'once':
         // Para execução única, usamos uma data específica (pode ser ajustado)
@@ -56,7 +56,7 @@ export const ScheduleFrequencySelector = ({ value, onChange, className }: Schedu
     }
   }, [frequency, hour, minute, selectedDays, dayOfMonth, customCron]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const cronExpr = generateCronExpression();
     onChange(cronExpr);
   }, [generateCronExpression, onChange]);
