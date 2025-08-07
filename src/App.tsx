@@ -2,12 +2,10 @@
 import * as React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { AuthProvider } from '@/contexts/AuthContext';
+
+// Temporarily import only essential pages to isolate the issue
 import Login from '@/pages/Login';
-import VPS from '@/pages/VPS';
-import Admin from '@/pages/Admin';
-import GLPI from '@/pages/GLPI';
-import Guacamole from '@/pages/Guacamole';
 import Backups from '@/pages/Backups';
 import Passwords from '@/pages/Passwords';
 import Annotations from '@/pages/Annotations';
@@ -44,204 +42,12 @@ function App() {
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
               <Route
-                path="/alertas"
+                path="/test"
                 element={
-                  <Layout>
-                    <Alertas />
-                  </Layout>
+                  <div className="p-4">
+                    <h1>Test Page - React is working!</h1>
+                  </div>
                 }
-              />
-              <Route
-                path="/links"
-                element={
-                  <Layout>
-                    <Links />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/vps"
-                element={
-                  <Layout>
-                    <VPS />
-                  </Layout>
-                }
-               />
-              <Route
-                path="/admin"
-                element={
-                  <Layout>
-                    <Admin />
-                  </Layout>
-                }
-              />
-               <Route
-                 path="/glpi"
-                 element={
-                   <Layout>
-                     <GLPI />
-                   </Layout>
-                 }
-               />
-               <Route
-                 path="/conexao-remota"
-                 element={
-                   <Layout>
-                     <Guacamole />
-                   </Layout>
-                 }
-               />
-               <Route
-                 path="/backups"
-                element={
-                  <Layout>
-                    <Backups />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/passwords"
-                element={
-                  <Layout>
-                    <Passwords />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/annotations"
-                element={
-                  <Layout>
-                    <Annotations />
-                  </Layout>
-                }
-               />
-              <Route
-                path="/whatsapp"
-                element={
-                  <Layout>
-                    <WhatsApp />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/whatsapp-templates"
-                element={
-                  <Layout>
-                    <WhatsAppTemplates />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/wasabi"
-                element={
-                  <Layout>
-                    <Wasabi />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/schedule"
-                element={
-                  <Layout>
-                    <Schedule />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/automation"
-                element={
-                  <Layout>
-                    <Automation />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/zabbix"
-                element={
-                  <Layout>
-                    <Zabbix />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/services"
-                element={
-                  <Layout>
-                    <Services />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/budgets"
-                element={
-                  <Layout>
-                    <Budgets />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/contracts"
-                element={
-                  <Layout>
-                    <Contracts />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/financial"
-                element={
-                  <Layout>
-                    <Financial />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/companies"
-                element={
-                  <Layout>
-                    <Companies />
-                  </Layout>
-                }
-              />
-              <Route 
-                path="/bacula" 
-                element={
-                  <Layout>
-                    <Bacula />
-                  </Layout>
-                } 
-              />
-              <Route 
-                path="/reports" 
-                element={
-                  <Layout>
-                    <ReportsDashboard />
-                  </Layout>
-                } 
-              />
-              <Route 
-                path="/plano-de-acao" 
-                element={
-                  <Layout>
-                    <ActionPlan />
-                  </Layout>
-                } 
-              />
-              <Route 
-                path="/security" 
-                element={
-                  <Layout>
-                    <Security />
-                  </Layout>
-                } 
-              />
-              <Route 
-                path="/unifi" 
-                element={
-                  <Layout>
-                    <UniFi />
-                  </Layout>
-                } 
               />
             </Routes>
           </div>
