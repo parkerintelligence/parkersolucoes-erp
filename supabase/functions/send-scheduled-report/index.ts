@@ -788,7 +788,7 @@ async function getGLPIData(userId: string, settings: any, isPerformanceReport: b
 
     if (!glpiIntegration) {
       console.log('⚠️ [GLPI] Integração não encontrada, usando dados mock');
-      return isPerformanceReport ? getGLPIPerformanceMockData() : getGLPIStandardMockData();
+    return isPerformanceReport ? getGLPIPerformanceMockData() : getGLPIDailyMockData();
     }
 
     console.log(`🔌 [GLPI] Integração encontrada: ${glpiIntegration.name}`);
@@ -801,7 +801,7 @@ async function getGLPIData(userId: string, settings: any, isPerformanceReport: b
 
   } catch (error) {
     console.error('❌ [GLPI] Erro na função getGLPIData:', error);
-    return isPerformanceReport ? getGLPIPerformanceMockData() : getGLPIStandardMockData();
+    return isPerformanceReport ? getGLPIPerformanceMockData() : getGLPIDailyMockData();
   }
 }
 
@@ -914,12 +914,20 @@ async function getGLPIPerformanceData(glpiIntegration: any) {
   }
 }
 
-// Função para obter dados padrão do GLPI
+// Função aprimorada para obter dados diários do GLPI com foco em chamados em aberto
 async function getGLPIStandardData(glpiIntegration: any) {
   try {
-    console.log('📋 [GLPI] Coletando dados padrão de tickets');
+    console.log('📋 [GLPI] Coletando dados diários de tickets em aberto');
     
-    // Fazer chamada para buscar tickets ativos via GLPI proxy
+    // Calcular período do dia anterior (para relatório diário)
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+    
+    const dayEnd = new Date(yesterday);
+    dayEnd.setHours(23, 59, 59, 999);
+    
+    // Buscar todos os tickets em aberto (status 1-5: Novo, Em andamento, Planejado, Pendente, Em espera)
     const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/glpi-proxy`, {
       method: 'POST',
       headers: {
@@ -932,61 +940,194 @@ async function getGLPIStandardData(glpiIntegration: any) {
         endpoint: 'Ticket',
         method: 'GET',
         data: {
-          range: '0-50',
+          range: '0-100',
           'searchText[0][field]': 12, // status
-          'searchText[0][searchtype]': 'equals',
-          'searchText[0][value]': '^(1|2|3|4|5)$' // Status ativos (não resolvidos)
+          'searchText[0][searchtype]': 'contains',
+          'searchText[0][value]': '1|2|3|4|5' // Status em aberto
         }
       })
     });
 
     if (!response.ok) {
-      console.error(`❌ [GLPI] Erro HTTP ${response.status} ao buscar tickets`);
-      return getGLPIStandardMockData();
+      console.error(`❌ [GLPI] Erro HTTP ${response.status} ao buscar tickets em aberto`);
+      return getGLPIDailyMockData();
     }
 
     const glpiData = await response.json();
     
     if (glpiData.error) {
       console.error('❌ [GLPI] Erro da API:', glpiData.error);
-      return getGLPIStandardMockData();
+      return getGLPIDailyMockData();
     }
 
-    const tickets = Array.isArray(glpiData) ? glpiData : (glpiData.data || []);
-    console.log(`📊 [GLPI] ${tickets.length} tickets ativos encontrados`);
+    const allTickets = Array.isArray(glpiData) ? glpiData : (glpiData.data || []);
+    console.log(`📊 [GLPI] ${allTickets.length} tickets em aberto encontrados`);
 
-    const openTickets = tickets.filter(t => [1, 2, 3].includes(t.status || 1)).length;
-    const criticalTickets = tickets.filter(t => (t.priority || 1) >= 4).length;
-    const pendingTickets = tickets.filter(t => t.status === 4).length;
+    // Filtrar e categorizar tickets
+    const openTickets = allTickets.filter(t => [1, 2, 3].includes(t.status || 1));
+    const criticalTickets = allTickets.filter(t => (t.priority || 1) >= 4);
+    const pendingTickets = allTickets.filter(t => t.status === 4);
+    const newTickets = allTickets.filter(t => t.status === 1);
+    
+    // Calcular tickets vencidos (exemplo: > 3 dias em aberto)
+    const now = new Date();
+    const overdueTickets = allTickets.filter(ticket => {
+      if (ticket.date) {
+        const ticketDate = new Date(ticket.date);
+        const daysDiff = (now.getTime() - ticketDate.getTime()) / (1000 * 60 * 60 * 24);
+        return daysDiff > 3; // Considera vencido após 3 dias
+      }
+      return false;
+    });
 
-    const urgentTickets = tickets
-      .filter(t => (t.priority || 1) >= 4)
-      .slice(0, 5)
+    // Calcular tempo médio em aberto para tickets ativos
+    const avgTimeOpen = calculateAverageTimeOpen(openTickets, now);
+
+    // Organizar tickets por prioridade (críticos primeiro)
+    const sortedTickets = [...allTickets].sort((a, b) => {
+      const priorityA = a.priority || 1;
+      const priorityB = b.priority || 1;
+      return priorityB - priorityA; // Ordem decrescente (maior prioridade primeiro)
+    });
+
+    // Criar lista detalhada dos tickets em aberto (top 5)
+    const detailedOpenTickets = sortedTickets
+      .slice(0, 8)
       .map(ticket => {
-        const priority = (ticket.priority || 1) >= 5 ? '🔴' : '🟡';
-        return `${priority} ${ticket.name || `Ticket #${ticket.id}`}`;
+        const priority = getPriorityIcon(ticket.priority || 1);
+        const status = getStatusText(ticket.status || 1);
+        const timeOpen = ticket.date ? getTimeOpenText(new Date(ticket.date), now) : 'N/A';
+        const assignee = ticket.users_id_recipient ? `(#${ticket.users_id_recipient})` : '(Não atribuído)';
+        const category = ticket.itilcategories_id ? `Cat: ${ticket.itilcategories_id}` : 'Sem categoria';
+        
+        return `${priority} *${ticket.name || `Ticket #${ticket.id}`}*\n   ↳ ${status} • ${timeOpen} • ${category}\n   ↳ ${assignee}`;
+      })
+      .join('\n\n');
+
+    // Criar resumo dos tickets críticos
+    const criticalSummary = criticalTickets
+      .slice(0, 3)
+      .map(ticket => {
+        const timeOpen = ticket.date ? getTimeOpenText(new Date(ticket.date), now) : 'N/A';
+        return `🔴 ${ticket.name || `Ticket #${ticket.id}`} (${timeOpen})`;
       })
       .join('\n');
 
+    // Buscar novos tickets criados no dia anterior
+    const newTicketsResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/glpi-proxy`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+        'Content-Type': 'application/json',
+        'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
+      },
+      body: JSON.stringify({
+        integrationId: glpiIntegration.id,
+        endpoint: 'Ticket',
+        method: 'GET',
+        data: {
+          range: '0-20',
+          'searchText[0][field]': 15, // data de criação
+          'searchText[0][searchtype]': 'contains',
+          'searchText[0][value]': yesterday.toISOString().split('T')[0]
+        }
+      })
+    });
+
+    let dailyNewTickets = 0;
+    if (newTicketsResponse.ok) {
+      const newTicketsData = await newTicketsResponse.json();
+      const newTicketsArray = Array.isArray(newTicketsData) ? newTicketsData : (newTicketsData.data || []);
+      dailyNewTickets = newTicketsArray.length;
+    }
+
     return {
-      open: openTickets,
-      critical: criticalTickets,
-      pending: pendingTickets,
-      list: urgentTickets || '✅ Nenhum ticket urgente',
-      // Dados adicionais para outros templates
-      new_tickets: Math.floor(tickets.length * 0.3), // Estimativa
-      resolved_tickets: Math.floor(tickets.length * 0.6), // Estimativa
-      avg_resolution_time: '2.5 horas',
-      critical_tickets_list: urgentTickets || 'Nenhum ticket crítico',
-      open_tickets_list: tickets.slice(0, 3).map(t => `• ${t.name || `Ticket #${t.id}`}`).join('\n') || 'Nenhum ticket em aberto',
-      productivity_summary: `${tickets.length} tickets processados`,
-      critical_tickets_detailed: urgentTickets || 'Nenhum ticket crítico encontrado'
+      // Contadores básicos
+      open: openTickets.length,
+      critical: criticalTickets.length,
+      pending: pendingTickets.length,
+      new_today: dailyNewTickets,
+      overdue: overdueTickets.length,
+      
+      // Listas detalhadas
+      open_tickets_detailed: detailedOpenTickets || '✅ Nenhum ticket em aberto',
+      critical_tickets_list: criticalSummary || '✅ Nenhum ticket crítico',
+      
+      // Métricas adicionais
+      avg_time_open: avgTimeOpen,
+      total_active: allTickets.length,
+      
+      // Dados para compatibilidade com outros templates
+      list: criticalSummary || '✅ Nenhum ticket urgente',
+      new_tickets: dailyNewTickets,
+      resolved_tickets: 0, // Para relatório diário, seria 0 pois foca em abertos
+      avg_resolution_time: '2.5 horas', // Mock
+      open_tickets_list: detailedOpenTickets || 'Nenhum ticket em aberto',
+      productivity_summary: `${allTickets.length} tickets ativos • ${dailyNewTickets} novos ontem`,
+      critical_tickets_detailed: criticalSummary || 'Nenhum ticket crítico encontrado',
+      
+      // Data do relatório
+      report_date: yesterday.toLocaleDateString('pt-BR'),
+      isRealData: true
     };
 
   } catch (error) {
-    console.error('❌ [GLPI] Erro ao buscar dados padrão:', error);
-    return getGLPIStandardMockData();
+    console.error('❌ [GLPI] Erro ao buscar dados diários:', error);
+    return getGLPIDailyMockData();
   }
+}
+
+// Funções auxiliares para formatação
+function getPriorityIcon(priority: number): string {
+  if (priority >= 5) return '🔴'; // Muito alta
+  if (priority >= 4) return '🟡'; // Alta
+  if (priority >= 3) return '🟠'; // Média
+  return '🟢'; // Baixa/Muito baixa
+}
+
+function getStatusText(status: number): string {
+  const statusMap = {
+    1: 'Novo',
+    2: 'Em andamento',
+    3: 'Planejado', 
+    4: 'Pendente',
+    5: 'Em espera',
+    6: 'Resolvido'
+  };
+  return statusMap[status] || 'Desconhecido';
+}
+
+function getTimeOpenText(createdDate: Date, now: Date): string {
+  const diffMs = now.getTime() - createdDate.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  
+  if (diffDays > 0) {
+    return `${diffDays}d${diffHours > 0 ? ` ${diffHours}h` : ''}`;
+  }
+  return `${diffHours}h`;
+}
+
+function calculateAverageTimeOpen(tickets: any[], now: Date): string {
+  if (tickets.length === 0) return '0h';
+  
+  const totalHours = tickets.reduce((sum, ticket) => {
+    if (ticket.date) {
+      const ticketDate = new Date(ticket.date);
+      const diffHours = (now.getTime() - ticketDate.getTime()) / (1000 * 60 * 60);
+      return sum + diffHours;
+    }
+    return sum;
+  }, 0);
+  
+  const avgHours = Math.round(totalHours / tickets.length);
+  const days = Math.floor(avgHours / 24);
+  const hours = avgHours % 24;
+  
+  if (days > 0) {
+    return `${days}d ${hours}h`;
+  }
+  return `${hours}h`;
 }
 
 // Dados mock para performance semanal
@@ -1007,17 +1148,60 @@ function getGLPIPerformanceMockData() {
   };
 }
 
-// Dados mock para relatórios padrão
-function getGLPIStandardMockData() {
+// Dados mock para relatório diário melhorado
+function getGLPIDailyMockData() {
   return {
+    // Contadores básicos
     open: 12,
-    critical: 3,
-    pending: 8,
-    list: '🔴 Problema crítico de rede - Ticket #1234\n🟡 Solicitação de nova impressora - Ticket #1235\n🟡 Backup não funcionando - Ticket #1236',
-    new_tickets: 5,
-    resolved_tickets: 15,
-    avg_resolution_time: '2.3 horas',
-    critical_tickets_list: '🔴 Servidor principal offline\n🔴 Falha no sistema de backup\n🟡 Lentidão na rede',
+    critical: 4,
+    pending: 6,
+    new_today: 3,
+    overdue: 2,
+    
+    // Listas detalhadas
+    open_tickets_detailed: `🔴 *Sistema de e-mail corporativo inoperante*
+   ↳ Em andamento • 2d 6h • Cat: Infraestrutura
+   ↳ (Técnico #1001)
+
+🟡 *Lentidão extrema na rede do setor financeiro*
+   ↳ Pendente • 1d 4h • Cat: Redes
+   ↳ (Técnico #1002)
+
+🟠 *Impressoras offline após atualização*
+   ↳ Planejado • 8h • Cat: Hardware
+   ↳ (Não atribuído)
+
+🔴 *Backup automático falhando há 3 dias*
+   ↳ Novo • 3d 2h • Cat: Backup
+   ↳ (Técnico #1003)`,
+    
+    critical_tickets_list: `🔴 Sistema de e-mail corporativo inoperante (2d 6h)
+🔴 Backup automático falhando há 3 dias (3d 2h)
+🔴 Servidor de aplicações com erro crítico (5h)`,
+    
+    // Métricas adicionais
+    avg_time_open: '1d 8h',
+    total_active: 12,
+    
+    // Dados para compatibilidade
+    list: `🔴 Sistema de e-mail corporativo inoperante
+🔴 Backup automático falhando há 3 dias
+🟡 Lentidão extrema na rede do setor financeiro`,
+    
+    new_tickets: 3,
+    resolved_tickets: 0,
+    avg_resolution_time: '6.5 horas',
+    open_tickets_list: `🔴 Sistema de e-mail corporativo inoperante (2d 6h)
+🟡 Lentidão extrema na rede do setor financeiro (1d 4h)
+🟠 Impressoras offline após atualização (8h)`,
+    
+    productivity_summary: '12 tickets ativos • 3 novos ontem',
+    critical_tickets_detailed: `🔴 Sistema de e-mail corporativo inoperante (2d 6h)
+🔴 Backup automático falhando há 3 dias (3d 2h)
+🔴 Servidor de aplicações com erro crítico (5h)`,
+    
+    report_date: new Date(Date.now() - 24*60*60*1000).toLocaleDateString('pt-BR'),
+    isRealData: false
     open_tickets_list: '• Solicitação de acesso ao sistema\n• Problema com impressora\n• Atualização de software',
     productivity_summary: '18 tickets processados hoje',
     critical_tickets_detailed: '🔴 Servidor principal offline - Ticket #1001\n🔴 Falha no sistema de backup - Ticket #1002\n🟡 Lentidão na rede - Ticket #1003'
