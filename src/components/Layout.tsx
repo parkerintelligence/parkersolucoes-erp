@@ -30,18 +30,17 @@ export const Layout = ({ children }: LayoutProps) => {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-primary">
-        <AppSidebar />
-        <SidebarInset className="flex-1 min-w-0 flex flex-col transition-all duration-200 md:ml-0">
-          <TopHeader />
-          <main className="flex-1 overflow-auto bg-slate-900">
-            <div className="container-responsive py-4 sm:py-6 lg:py-8 bg-slate-900">
-              {children}
-            </div>
-          </main>
-        </SidebarInset>
+    <div className="min-h-screen flex w-full bg-primary">
+      <div className="flex-1 min-w-0 flex flex-col">
+        <div className="h-12 bg-slate-800 border-b border-slate-700 flex items-center px-4">
+          <h1 className="text-white">Sistema</h1>
+        </div>
+        <main className="flex-1 overflow-auto bg-slate-900">
+          <div className="container-responsive py-4 sm:py-6 lg:py-8 bg-slate-900">
+            {children}
+          </div>
+        </main>
       </div>
-    </SidebarProvider>
+    </div>
   );
 };
