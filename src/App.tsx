@@ -49,6 +49,14 @@ function App() {
                   </div>
                 }
               />
+              <Route
+                path="/links"
+                element={
+                  <Layout>
+                    <Links />
+                  </Layout>
+                }
+              />
             </Routes>
           </div>
         </BrowserRouter>
