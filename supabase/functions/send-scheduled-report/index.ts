@@ -310,76 +310,102 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
 
     case 'bacula_daily':
       const baculaData = await getBaculaData(userId, settings);
+      console.log('📊 [BACULA] Dados obtidos para processamento:', JSON.stringify(baculaData, null, 2));
       
-      // Substituições básicas
-      messageContent = messageContent
-        .replace(/\{\{date\}\}/g, baculaData.date || currentDate)
-        .replace(/\{\{totalJobs\}\}/g, baculaData.totalJobs.toString())
-        .replace(/\{\{successJobs\}\}/g, baculaData.successJobs.toString())
-        .replace(/\{\{errorJobs\}\}/g, baculaData.errorJobs.toString())
-        .replace(/\{\{cancelledJobs\}\}/g, baculaData.cancelledJobs.toString())
-        .replace(/\{\{runningJobs\}\}/g, baculaData.runningJobs.toString())
-        .replace(/\{\{blockedJobs\}\}/g, baculaData.blockedJobs.toString())
-        .replace(/\{\{otherJobs\}\}/g, baculaData.otherJobs.toString())
-        .replace(/\{\{successRate\}\}/g, baculaData.successRate.toString())
-        .replace(/\{\{errorRate\}\}/g, baculaData.errorRate.toString())
-        .replace(/\{\{totalBytes\}\}/g, baculaData.totalBytes || '0 B')
-        .replace(/\{\{totalFiles\}\}/g, baculaData.totalFiles || '0')
-        .replace(/\{\{avgDuration\}\}/g, baculaData.avgDuration || 'N/A')
-        .replace(/\{\{criticalProblems\}\}/g, baculaData.criticalProblems.toString())
-        .replace(/\{\{affectedClients\}\}/g, baculaData.affectedClients.toString())
-        .replace(/\{\{totalClients\}\}/g, baculaData.totalClients.toString())
-        .replace(/\{\{period\}\}/g, baculaData.period || 'N/A')
-        .replace(/\{\{generatedAt\}\}/g, baculaData.generatedAt || currentTime)
-        .replace(/\{\{successJobsList\}\}/g, baculaData.successJobsList || 'Nenhum job com sucesso')
-        .replace(/\{\{errorJobsList\}\}/g, baculaData.errorJobsList || 'Nenhum job com erro')
-        .replace(/\{\{cancelledJobsList\}\}/g, baculaData.cancelledJobsList || 'Nenhum job cancelado')
-        .replace(/\{\{runningJobsList\}\}/g, baculaData.runningJobsList || 'Nenhum job em execução')
-        .replace(/\{\{blockedJobsList\}\}/g, baculaData.blockedJobsList || 'Nenhum job bloqueado')
-        .replace(/\{\{otherJobsList\}\}/g, baculaData.otherJobsList || 'Nenhum outro job')
-        // Compatibilidade com template antigo
-        .replace(/\{\{errorCount\}\}/g, baculaData.errorCount.toString());
+      // Mapear todas as variáveis do template corretamente
+      const templateVars = {
+        // Básicas
+        date: baculaData.date || currentDate,
+        current_time: baculaData.current_time || new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+        start_date: baculaData.start_date || 'N/A',
+        end_date: baculaData.end_date || 'N/A',
+        period: baculaData.period || 'N/A',
+        
+        // Estatísticas de jobs
+        total_jobs: baculaData.total_jobs || 0,
+        success_jobs: baculaData.success_jobs || 0,
+        error_jobs: baculaData.error_jobs || 0,
+        cancelled_jobs: baculaData.cancelled_jobs || 0,
+        running_jobs: baculaData.running_jobs || 0,
+        blocked_jobs: baculaData.blocked_jobs || 0,
+        other_jobs: baculaData.other_jobs || 0,
+        
+        // Taxas
+        success_rate: baculaData.success_rate || 0,
+        error_rate: baculaData.error_rate || 0,
+        
+        // Dados processados
+        total_bytes: baculaData.total_bytes || '0 B',
+        total_files: baculaData.total_files || '0',
+        avg_duration: baculaData.avg_duration || 'N/A',
+        
+        // Problemas e clientes
+        has_issues: baculaData.has_issues || false,
+        total_issues: baculaData.total_issues || 0,
+        affected_clients: baculaData.affected_clients || 0,
+        total_clients: baculaData.total_clients || 0,
+        
+        // Listas detalhadas
+        success_jobs_details: baculaData.success_jobs_details || '',
+        error_jobs_details: baculaData.error_jobs_details || '',
+        cancelled_jobs_details: baculaData.cancelled_jobs_details || '',
+        running_jobs_details: baculaData.running_jobs_details || '',
+        blocked_jobs_details: baculaData.blocked_jobs_details || '',
+        other_jobs_details: baculaData.other_jobs_details || ''
+      };
+
+      // Substituir todas as variáveis no template
+      Object.entries(templateVars).forEach(([key, value]) => {
+        const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+        messageContent = messageContent.replace(regex, value.toString());
+      });
       
-      // Processar blocos condicionais avançados
-      const processConditionalBlocks = (message, data) => {
+      // Processar blocos condicionais com melhor lógica
+      const processConditionalBlocks = (message: string, data: any): string => {
+        let processedMessage = message;
+        
         // Processar blocos {{#if condition}}...{{else}}...{{/if}}
-        const ifElseBlocks = message.match(/\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/g);
-        if (ifElseBlocks) {
-          ifElseBlocks.forEach(block => {
-            const match = block.match(/\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/);
-            if (match) {
-              const [fullMatch, condition, ifContent, elseContent] = match;
-              const conditionValue = data[condition];
-              const shouldShow = conditionValue && (typeof conditionValue === 'number' ? conditionValue > 0 : !!conditionValue);
-              message = message.replace(fullMatch, shouldShow ? ifContent : elseContent);
-            }
-          });
+        const ifElsePattern = /\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/g;
+        let match;
+        while ((match = ifElsePattern.exec(message)) !== null) {
+          const [fullMatch, condition, ifContent, elseContent] = match;
+          const conditionValue = data[condition];
+          const shouldShow = evaluateCondition(conditionValue);
+          processedMessage = processedMessage.replace(fullMatch, shouldShow ? ifContent : elseContent);
+          console.log(`🔄 [TEMPLATE] Processando if-else: ${condition} = ${conditionValue} -> ${shouldShow ? 'true' : 'false'}`);
         }
         
         // Processar blocos {{#if condition}}...{{/if}} (sem else)
-        const ifBlocks = message.match(/\{\{#if\s+(\w+)\}\}(.*?)\{\{\/if\}\}/gs);
-        if (ifBlocks) {
-          ifBlocks.forEach(block => {
-            const match = block.match(/\{\{#if\s+(\w+)\}\}(.*?)\{\{\/if\}\}/s);
-            if (match) {
-              const [fullMatch, condition, content] = match;
-              const conditionValue = data[condition];
-              const shouldShow = conditionValue && (typeof conditionValue === 'number' ? conditionValue > 0 : !!conditionValue);
-              message = message.replace(fullMatch, shouldShow ? content : '');
-            }
-          });
+        const ifPattern = /\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g;
+        while ((match = ifPattern.exec(processedMessage)) !== null) {
+          const [fullMatch, condition, content] = match;
+          const conditionValue = data[condition];
+          const shouldShow = evaluateCondition(conditionValue);
+          processedMessage = processedMessage.replace(fullMatch, shouldShow ? content : '');
+          console.log(`🔄 [TEMPLATE] Processando if: ${condition} = ${conditionValue} -> ${shouldShow ? 'true' : 'false'}`);
         }
         
-        return message;
+        return processedMessage;
       };
       
-      messageContent = processConditionalBlocks(messageContent, baculaData);
+      const evaluateCondition = (value: any): boolean => {
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'number') return value > 0;
+        if (typeof value === 'string') return value.trim().length > 0 && value !== 'N/A' && value !== '0';
+        return !!value;
+      };
       
-      // Cleanup any remaining template variables
+      messageContent = processConditionalBlocks(messageContent, templateVars);
+      
+      // Limpeza final
       messageContent = messageContent
-        .replace(/\{\{[^}]+\}\}/g, '') // Remove any remaining template variables
-        .replace(/\n\s*\n\s*\n/g, '\n\n') // Clean up multiple newlines
+        .replace(/\{\{[^}]+\}\}/g, '') // Remove variáveis não processadas
+        .replace(/\n\s*\n\s*\n/g, '\n\n') // Remove linhas múltiplas
+        .replace(/^\s+|\s+$/gm, '') // Remove espaços no início/fim das linhas
+        .replace(/\n{3,}/g, '\n\n') // Máximo 2 quebras de linha
         .trim();
+      
+      console.log('📝 [BACULA] Template processado com sucesso');
       break;
   }
 
@@ -1094,46 +1120,49 @@ async function getBaculaData(userId: string, settings: any) {
     const periodEnd = getBrasiliaTime(brasiliaEndTime);
 
     return {
-      // Estatísticas básicas
-      totalJobs,
-      successJobs,
-      errorJobs: errorJobs,
-      cancelledJobs,
-      runningJobs,
-      blockedJobs,
-      otherJobs,
-      successRate,
-      errorRate,
-      hasErrors: errorJobs > 0,
-      hasCancelled: cancelledJobs > 0,
-      hasRunning: runningJobs > 0,
-      hasBlocked: blockedJobs > 0,
-      hasOther: otherJobs > 0,
+      // Estatísticas básicas (mapeamento correto para template)
+      total_jobs: totalJobs,
+      success_jobs: successJobs,
+      error_jobs: errorJobs,
+      cancelled_jobs: cancelledJobs,
+      running_jobs: runningJobs,
+      blocked_jobs: blockedJobs,
+      other_jobs: otherJobs,
+      success_rate: successRate,
+      error_rate: errorRate,
       
-      // Listas detalhadas
-      successJobsList,
-      errorJobsList,
-      cancelledJobsList,
-      runningJobsList,
-      blockedJobsList,
-      otherJobsList,
+      // Condições para blocos condicionais
+      has_issues: errorJobs > 0 || cancelledJobs > 0 || blockedJobs > 0,
+      total_issues: errorJobs + cancelledJobs + blockedJobs,
+      
+      // Listas detalhadas para blocos condicionais
+      success_jobs_details: successJobs > 0 ? successJobsList : '',
+      error_jobs_details: errorJobs > 0 ? errorJobsList : '',
+      cancelled_jobs_details: cancelledJobs > 0 ? cancelledJobsList : '',
+      running_jobs_details: runningJobs > 0 ? runningJobsList : '',
+      blocked_jobs_details: blockedJobs > 0 ? blockedJobsList : '',
+      other_jobs_details: otherJobs > 0 ? otherJobsList : '',
       
       // Estatísticas adicionais
-      totalBytes: formatBytes(totalBytes),
-      totalFiles: totalFiles.toLocaleString('pt-BR'),
-      avgDuration,
-      criticalProblems,
-      affectedClients,
-      totalClients,
+      total_bytes: formatBytes(totalBytes),
+      total_files: totalFiles.toLocaleString('pt-BR'),
+      avg_duration: avgDuration,
+      affected_clients: affectedClients,
+      total_clients: totalClients,
       
-      // Período e tempo
+      // Período e tempo (mapeamento correto)
       date: yesterdayFormatted,
+      current_time: currentBrasiliaTime,
+      start_date: periodStart,
+      end_date: periodEnd,
       period: `${periodStart} até ${periodEnd}`,
-      generatedAt: currentBrasiliaTime,
       
       // Para compatibilidade com template antigo
       errorCount: errorJobs,
-      errorJobs: errorJobsList
+      totalJobs: totalJobs,
+      successJobs: successJobs,
+      errorJobs: errorJobsList,
+      generatedAt: currentBrasiliaTime
     };
 
   } catch (error) {
@@ -1188,46 +1217,49 @@ function getEnhancedMockBaculaData() {
   ];
 
   return {
-    // Estatísticas básicas
-    totalJobs: 15,
-    successJobs: 11,
-    errorJobs: 2,
-    cancelledJobs: 1,
-    runningJobs: 0,
-    blockedJobs: 1,
-    otherJobs: 0,
-    successRate: '73.3',
-    errorRate: '13.3',
-    hasErrors: true,
-    hasCancelled: true,
-    hasRunning: false,
-    hasBlocked: true,
-    hasOther: false,
+    // Estatísticas básicas (mapeamento correto para template)
+    total_jobs: 15,
+    success_jobs: 11,
+    error_jobs: 2,
+    cancelled_jobs: 1,
+    running_jobs: 0,
+    blocked_jobs: 1,
+    other_jobs: 0,
+    success_rate: '73.3',
+    error_rate: '13.3',
     
-    // Listas detalhadas
-    successJobsList: mockSuccessJobs.join('\n'),
-    errorJobsList: mockErrorJobs.join('\n'),
-    cancelledJobsList: 'BackupJob-Archive (archive-server) - 06/08/2025 01:15:00 - Cancelado pelo usuário - 0 B',
-    runningJobsList: 'Nenhum job em execução encontrado',
-    blockedJobsList: 'BackupJob-Remote (remote-server) - 06/08/2025 05:00:00 - Bloqueado - 0 B',
-    otherJobsList: 'Nenhum job com outros status encontrado',
+    // Condições para blocos condicionais
+    has_issues: true,
+    total_issues: 4, // error_jobs + cancelled_jobs + blocked_jobs
+    
+    // Listas detalhadas para blocos condicionais
+    success_jobs_details: mockSuccessJobs.join('\n'),
+    error_jobs_details: mockErrorJobs.join('\n'),
+    cancelled_jobs_details: 'BackupJob-Archive (archive-server) - 06/08/2025 01:15:00 - Cancelado pelo usuário - 0 B',
+    running_jobs_details: '',
+    blocked_jobs_details: 'BackupJob-Remote (remote-server) - 06/08/2025 05:00:00 - Bloqueado - 0 B',
+    other_jobs_details: '',
     
     // Estatísticas adicionais
-    totalBytes: '12.8 GB',
-    totalFiles: '45.628',
-    avgDuration: '18 min',
-    criticalProblems: 3,
-    affectedClients: 5,
-    totalClients: 8,
+    total_bytes: '12.8 GB',
+    total_files: '45.628',
+    avg_duration: '18 min',
+    affected_clients: 5,
+    total_clients: 8,
     
-    // Período e tempo
+    // Período e tempo (mapeamento correto)
     date: yesterdayFormatted,
+    current_time: currentBrasiliaTime,
+    start_date: periodStart,
+    end_date: periodEnd,
     period: `${periodStart} até ${periodEnd}`,
-    generatedAt: currentBrasiliaTime,
     
     // Para compatibilidade com template antigo
     errorCount: 2,
-    errorJobs: mockErrorJobs.join('\n')
+    totalJobs: 15,
+    successJobs: 11,
+    errorJobs: mockErrorJobs.join('\n'),
+    generatedAt: currentBrasiliaTime
   };
 }
 
