@@ -16,8 +16,11 @@ import {
   TrendingDown,
   FileText,
   Calendar,
-  Server
+  Server,
+  Grid3x3,
+  List
 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 
 interface BaculaJob {
   name: string;
@@ -51,6 +54,7 @@ interface BaculaReportViewerProps {
 
 export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageContent }) => {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['summary']));
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   const toggleSection = (section: string) => {
     const newExpanded = new Set(expandedSections);
@@ -249,6 +253,69 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
     );
   };
 
+  const BaculaJobsTable = ({ jobs, sectionType }: { jobs: BaculaJob[]; sectionType: 'success' | 'error' | 'canceled' }) => {
+    const sectionColors = {
+      success: "bg-green-50 dark:bg-green-950",
+      error: "bg-red-50 dark:bg-red-950",
+      canceled: "bg-orange-50 dark:bg-orange-950"
+    };
+
+    return (
+      <div className={`rounded-lg border ${sectionColors[sectionType]} p-4`}>
+        <Table>
+          <TableBody>
+            {jobs.map((job, jobIndex) => (
+              <React.Fragment key={jobIndex}>
+                <TableRow className="border-b-0">
+                  <TableCell className="font-medium w-32 py-2">Status</TableCell>
+                  <TableCell className="py-2">{getStatusBadge(job.status)}</TableCell>
+                </TableRow>
+                <TableRow className="border-b-0">
+                  <TableCell className="font-medium py-2">Job Name</TableCell>
+                  <TableCell className="font-bold text-lg py-2 text-foreground">{job.name}</TableCell>
+                </TableRow>
+                <TableRow className="border-b-0">
+                  <TableCell className="font-medium py-2">Cliente</TableCell>
+                  <TableCell className="py-2">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-blue-500" />
+                      <span className="font-semibold">{job.client}</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+                <TableRow className="border-b-0">
+                  <TableCell className="font-medium py-2">Data/Hora</TableCell>
+                  <TableCell className="py-2">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-purple-500" />
+                      <span className="font-semibold">{job.datetime}</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+                <TableRow className={jobIndex < jobs.length - 1 ? "border-b-2 border-dashed border-gray-400" : "border-b-0"}>
+                  <TableCell className="font-medium py-2">Tamanho</TableCell>
+                  <TableCell className="py-2">
+                    <div className="flex items-center gap-2">
+                      <HardDrive className="h-4 w-4 text-green-500" />
+                      <span className="font-semibold">{formatBytes(job.bytes)}</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+                {jobIndex < jobs.length - 1 && (
+                  <TableRow>
+                    <TableCell colSpan={2} className="p-0">
+                      <div className="my-4 border-t-2 border-dashed border-gray-300 dark:border-gray-600"></div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </React.Fragment>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
+
   const JobCard = ({ job, sectionType }: { job: BaculaJob; sectionType: 'success' | 'error' | 'canceled' }) => {
     const cardStyles = {
       success: "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800",
@@ -341,15 +408,39 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-4">
-        <Database className="h-5 w-5 text-blue-400" />
-        <h3 className="text-lg font-semibold text-white">Relatório Diário Bacula - {data.date}</h3>
-        {data.fallbackData && (
-          <Badge variant="outline" className="bg-orange-600 text-white border-orange-500">
-            <AlertTriangle className="h-3 w-3 mr-1" />
-            Dados Fallback
-          </Badge>
-        )}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Database className="h-5 w-5 text-blue-400" />
+          <h3 className="text-lg font-semibold text-white">Relatório Diário Bacula - {data.date}</h3>
+          {data.fallbackData && (
+            <Badge variant="outline" className="bg-orange-600 text-white border-orange-500">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              Dados Fallback
+            </Badge>
+          )}
+        </div>
+        
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-2 bg-gray-800 rounded-lg p-1">
+          <Button
+            variant={viewMode === 'cards' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('cards')}
+            className="flex items-center gap-2"
+          >
+            <Grid3x3 className="h-4 w-4" />
+            Cards
+          </Button>
+          <Button
+            variant={viewMode === 'table' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('table')}
+            className="flex items-center gap-2"
+          >
+            <List className="h-4 w-4" />
+            Tabela
+          </Button>
+        </div>
       </div>
 
       {/* Executive Summary */}
@@ -457,11 +548,15 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
           </CardHeader>
           {expandedSections.has('error') && (
             <CardContent className="pt-0">
-              <div className="space-y-0">
-                {data.errorJobs_list.map((job, index) => (
-                  <JobCard key={index} job={job} sectionType="error" />
-                ))}
-              </div>
+              {viewMode === 'cards' ? (
+                <div className="space-y-0">
+                  {data.errorJobs_list.map((job, index) => (
+                    <JobCard key={index} job={job} sectionType="error" />
+                  ))}
+                </div>
+              ) : (
+                <BaculaJobsTable jobs={data.errorJobs_list} sectionType="error" />
+              )}
             </CardContent>
           )}
         </Card>
@@ -488,11 +583,15 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
           </CardHeader>
           {expandedSections.has('success') && (
             <CardContent className="pt-0">
-              <div className="space-y-0">
-                {data.successJobs_list.map((job, index) => (
-                  <JobCard key={index} job={job} sectionType="success" />
-                ))}
-              </div>
+              {viewMode === 'cards' ? (
+                <div className="space-y-0">
+                  {data.successJobs_list.map((job, index) => (
+                    <JobCard key={index} job={job} sectionType="success" />
+                  ))}
+                </div>
+              ) : (
+                <BaculaJobsTable jobs={data.successJobs_list} sectionType="success" />
+              )}
             </CardContent>
           )}
         </Card>
@@ -519,11 +618,15 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
           </CardHeader>
           {expandedSections.has('canceled') && (
             <CardContent className="pt-0">
-              <div className="space-y-0">
-                {data.canceledJobs_list.map((job, index) => (
-                  <JobCard key={index} job={job} sectionType="canceled" />
-                ))}
-              </div>
+              {viewMode === 'cards' ? (
+                <div className="space-y-0">
+                  {data.canceledJobs_list.map((job, index) => (
+                    <JobCard key={index} job={job} sectionType="canceled" />
+                  ))}
+                </div>
+              ) : (
+                <BaculaJobsTable jobs={data.canceledJobs_list} sectionType="canceled" />
+              )}
             </CardContent>
           )}
         </Card>
