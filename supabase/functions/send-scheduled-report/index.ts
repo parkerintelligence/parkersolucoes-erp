@@ -303,7 +303,10 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
     case 'glpi_summary':
       // Determinar se é performance semanal baseado no nome do template
       const isPerformanceReport = template.name && template.name.toLowerCase().includes('performance');
+      console.log(`📋 [GLPI] Template: "${template.name}" - isPerformanceReport: ${isPerformanceReport}`);
+      
       const glpiData = await getGLPIData(userId, settings, isPerformanceReport);
+      console.log(`📊 [GLPI] Dados retornados - isRealData: ${glpiData.isRealData || 'undefined'}, total tickets: ${glpiData.total_active || glpiData.open || 'N/A'}`);
       
       if (isPerformanceReport) {
         // Substituir variáveis do relatório de performance semanal
@@ -788,14 +791,18 @@ async function getGLPIData(userId: string, settings: any, isPerformanceReport: b
 
     if (!glpiIntegration) {
       console.log('⚠️ [GLPI] Integração não encontrada, usando dados mock');
-    return isPerformanceReport ? getGLPIPerformanceMockData() : getGLPIDailyMockData();
+      return isPerformanceReport ? getGLPIPerformanceMockData() : getGLPIDailyMockData();
     }
 
     console.log(`🔌 [GLPI] Integração encontrada: ${glpiIntegration.name}`);
+    console.log(`🔗 [GLPI] Base URL: ${glpiIntegration.base_url}`);
+    console.log(`🔑 [GLPI] API Token presente: ${!!glpiIntegration.api_token}`);
 
     if (isPerformanceReport) {
+      console.log('📊 [GLPI] Executando relatório de PERFORMANCE semanal');
       return await getGLPIPerformanceData(glpiIntegration);
     } else {
+      console.log('📋 [GLPI] Executando relatório DIÁRIO padrão');
       return await getGLPIStandardData(glpiIntegration);
     }
 
@@ -918,6 +925,7 @@ async function getGLPIPerformanceData(glpiIntegration: any) {
 async function getGLPIStandardData(glpiIntegration: any) {
   try {
     console.log('📋 [GLPI] Coletando dados diários de tickets em aberto');
+    console.log('🔌 [GLPI] Usando integração ID:', glpiIntegration.id);
     
     // Calcular período do dia anterior (para relatório diário)
     const yesterday = new Date();
@@ -928,6 +936,8 @@ async function getGLPIStandardData(glpiIntegration: any) {
     dayEnd.setHours(23, 59, 59, 999);
     
     // Buscar todos os tickets em aberto (status 1-5: Novo, Em andamento, Planejado, Pendente, Em espera)
+    console.log('🔄 [GLPI] Fazendo chamada para buscar tickets em aberto...');
+    
     const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/glpi-proxy`, {
       method: 'POST',
       headers: {
@@ -948,12 +958,17 @@ async function getGLPIStandardData(glpiIntegration: any) {
       })
     });
 
+    console.log(`📡 [GLPI] Response status: ${response.status}`);
+
     if (!response.ok) {
       console.error(`❌ [GLPI] Erro HTTP ${response.status} ao buscar tickets em aberto`);
+      const errorText = await response.text();
+      console.error(`❌ [GLPI] Error response: ${errorText}`);
       return getGLPIDailyMockData();
     }
 
     const glpiData = await response.json();
+    console.log(`📋 [GLPI] Raw API response received:`, JSON.stringify(glpiData).substring(0, 500) + '...');
     
     if (glpiData.error) {
       console.error('❌ [GLPI] Erro da API:', glpiData.error);
@@ -962,6 +977,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
 
     const allTickets = Array.isArray(glpiData) ? glpiData : (glpiData.data || []);
     console.log(`📊 [GLPI] ${allTickets.length} tickets em aberto encontrados`);
+    console.log(`📋 [GLPI] Primeiros tickets:`, allTickets.slice(0, 3).map(t => ({ id: t.id, name: t.name, status: t.status, priority: t.priority })));
 
     // Filtrar e categorizar tickets
     const openTickets = allTickets.filter(t => [1, 2, 3].includes(t.status || 1));
@@ -1069,10 +1085,12 @@ async function getGLPIStandardData(glpiIntegration: any) {
       // Data do relatório
       report_date: yesterday.toLocaleDateString('pt-BR'),
       isRealData: true
-    };
+    console.log(`✅ [GLPI] Dados diários coletados com sucesso - isRealData: true, total: ${allTickets.length} tickets`);
+    return dataResponse;
 
   } catch (error) {
     console.error('❌ [GLPI] Erro ao buscar dados diários:', error);
+    console.log('🔄 [GLPI] Fallback para dados mock devido a erro');
     return getGLPIDailyMockData();
   }
 }
