@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import { usePasswords } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useLinksExport } from '@/hooks/useLinksExport';
@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link, ExternalLink, Search, Building, Globe, Shield, Mail, Server, Database, Cloud, Code, Monitor, Settings, Filter, Grid, List, Copy, Eye, EyeOff, Download, TreePine } from 'lucide-react';
 import { LinksTreeView } from '@/components/LinksTreeView';
 import { toast } from '@/hooks/use-toast';
-const Links = () => {
+
+const Links: React.FC = () => {
   const {
     data: passwords = [],
     isLoading
@@ -20,12 +21,12 @@ const Links = () => {
     data: companies = []
   } = useCompanies();
   const exportToPDF = useLinksExport();
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [selectedCompany, setSelectedCompany] = React.useState('');
-  const [activeServiceTab, setActiveServiceTab] = React.useState('all');
-  const [viewMode, setViewMode] = React.useState<'grid' | 'list' | 'tree'>('tree');
-  const [sortBy, setSortBy] = React.useState('name');
-  const [visibleCards, setVisibleCards] = React.useState<Record<string, boolean>>({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCompany, setSelectedCompany] = useState('');
+  const [activeServiceTab, setActiveServiceTab] = useState('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'tree'>('tree');
+  const [sortBy, setSortBy] = useState('name');
+  const [visibleCards, setVisibleCards] = useState<Record<string, boolean>>({});
 
   // Filtrar apenas senhas que têm gera_link = true
   const links = passwords.filter(password => password.gera_link);
