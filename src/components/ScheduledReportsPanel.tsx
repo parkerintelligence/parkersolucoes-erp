@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import * as React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,8 +14,8 @@ import { useScheduledReports, useDeleteScheduledReport, useToggleScheduledReport
 import type { ScheduledReport } from '@/hooks/useScheduledReports';
 
 export const ScheduledReportsPanel = () => {
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingReport, setEditingReport] = useState<ScheduledReport | null>(null);
+  const [formOpen, setFormOpen] = React.useState(false);
+  const [editingReport, setEditingReport] = React.useState<ScheduledReport | null>(null);
   const { data: scheduledReports = [], isLoading, error } = useScheduledReports();
   const deleteReport = useDeleteScheduledReport();
   const toggleActive = useToggleScheduledReportActive();
