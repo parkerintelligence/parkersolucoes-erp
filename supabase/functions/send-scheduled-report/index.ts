@@ -1202,9 +1202,6 @@ function getGLPIDailyMockData() {
     
     report_date: new Date(Date.now() - 24*60*60*1000).toLocaleDateString('pt-BR'),
     isRealData: false
-    open_tickets_list: '• Solicitação de acesso ao sistema\n• Problema com impressora\n• Atualização de software',
-    productivity_summary: '18 tickets processados hoje',
-    critical_tickets_detailed: '🔴 Servidor principal offline - Ticket #1001\n🔴 Falha no sistema de backup - Ticket #1002\n🟡 Lentidão na rede - Ticket #1003'
   };
 }
 
