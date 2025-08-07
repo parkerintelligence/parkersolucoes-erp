@@ -13,18 +13,6 @@ const CACHE_TTL = 10 * 60 * 1000; // 10 minutos
 // Configuração de retry
 const RETRY_CONFIG = { maxRetries: 3, backoffMs: 1000 };
 
-// Níveis de erro
-const ERROR_LEVELS = {
-  'E': { level: 'critical', label: 'Crítico', priority: 1 },
-  'F': { level: 'critical', label: 'Falha', priority: 1 },
-  'f': { level: 'critical', label: 'Falha Fatal', priority: 1 },
-  'A': { level: 'warning', label: 'Cancelado', priority: 2 },
-  'T': { level: 'info', label: 'Finalizado', priority: 3 },
-  'R': { level: 'info', label: 'Executando', priority: 4 },
-  'C': { level: 'info', label: 'Criado', priority: 4 },
-  'c': { level: 'info', label: 'Aguardando', priority: 4 },
-};
-
 // Função de retry com backoff exponencial
 async function retryWithBackoff(fn: Function, retries: number): Promise<any> {
   try {
@@ -53,8 +41,9 @@ function setCache(key: string, data: any): void {
 }
 
 // Função para obter horário de Brasília
-function getBrasiliaTime(): string {
-  return new Date().toLocaleString('pt-BR', { 
+function getBrasiliaTime(date?: Date): string {
+  const dateToUse = date || new Date();
+  return dateToUse.toLocaleString('pt-BR', { 
     timeZone: 'America/Sao_Paulo',
     year: 'numeric',
     month: '2-digit',
@@ -62,11 +51,6 @@ function getBrasiliaTime(): string {
     hour: '2-digit',
     minute: '2-digit'
   });
-}
-
-// Função para determinar nível de erro
-function getErrorLevel(status: string): { level: string, label: string, priority: number } {
-  return ERROR_LEVELS[status] || { level: 'unknown', label: 'Desconhecido', priority: 5 };
 }
 
 // Função auxiliar para formatBytes
@@ -78,6 +62,25 @@ function formatBytes(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+// Função para processar blocos condicionais
+function processConditionalBlocks(message: string, data: any): string {
+  // Processar blocos condicionais {{#if condition}}...{{/if}}
+  const ifBlocks = message.match(/\{\{#if\s+(\w+)\}\}(.*?)\{\{\/if\}\}/gs);
+  if (ifBlocks) {
+    ifBlocks.forEach(block => {
+      const match = block.match(/\{\{#if\s+(\w+)\}\}(.*?)\{\{\/if\}\}/s);
+      if (match) {
+        const [fullMatch, condition, content] = match;
+        const conditionValue = data[condition];
+        const shouldShow = conditionValue && (typeof conditionValue === 'number' ? conditionValue > 0 : !!conditionValue);
+        message = message.replace(fullMatch, shouldShow ? content : '');
+      }
+    });
+  }
+  
+  return message;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -85,7 +88,7 @@ serve(async (req) => {
   }
 
   const startTime = Date.now();
-  console.log(`[${getBrasiliaTime()}] Iniciando execução do relatório diário Bacula`);
+  console.log(`[${getBrasiliaTime()}] 🚀 [BACULA-DAILY] Iniciando relatório diário Bacula expandido`);
 
   try {
     const supabase = createClient(
@@ -97,7 +100,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { test_mode = false, phone_number = null, report_id = null } = body;
 
-    console.log('Parâmetros recebidos:', { test_mode, phone_number, report_id });
+    console.log('📋 [BACULA-DAILY] Parâmetros recebidos:', { test_mode, phone_number, report_id });
 
     // Buscar template de mensagem
     let template;
@@ -124,14 +127,13 @@ serve(async (req) => {
       throw new Error('Template de relatório diário não encontrado ou inativo');
     }
 
-    console.log('Template encontrado:', template.name);
+    console.log('📝 [BACULA-DAILY] Template encontrado:', template.name);
 
     // Determinar destinatários
     let recipients: string[] = [];
     if (test_mode && phone_number) {
       recipients = [phone_number];
     } else {
-      // Buscar destinatários dos relatórios agendados
       const { data: scheduledReports } = await supabase
         .from('scheduled_reports')
         .select('phone_number')
@@ -144,7 +146,7 @@ serve(async (req) => {
     }
 
     if (recipients.length === 0) {
-      console.log('Nenhum destinatário encontrado para o relatório');
+      console.log('⚠️ [BACULA-DAILY] Nenhum destinatário encontrado');
       return new Response(JSON.stringify({ 
         success: false, 
         message: 'Nenhum destinatário configurado para o relatório' 
@@ -154,9 +156,9 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Destinatários encontrados: ${recipients.length}`);
+    console.log(`👥 [BACULA-DAILY] Destinatários encontrados: ${recipients.length}`);
 
-    // Buscar integração Evolution API
+    // Buscar integrações
     const { data: evolutionIntegration } = await supabase
       .from('integrations')
       .select('*')
@@ -168,7 +170,6 @@ serve(async (req) => {
       throw new Error('Integração Evolution API não encontrada');
     }
 
-    // Buscar integração Bacula
     const { data: baculaIntegration } = await supabase
       .from('integrations')
       .select('*')
@@ -180,35 +181,37 @@ serve(async (req) => {
       throw new Error('Integração Bacula não encontrada');
     }
 
-    console.log('Integrações encontradas - Evolution API e Bacula');
+    console.log('🔌 [BACULA-DAILY] Integrações encontradas - Evolution API e Bacula');
 
-    // Calcular período do dia anterior em Brasília
-    const now = new Date();
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
+    // Definir período de análise (apenas dia anterior completo)
+    const brasiliaTime = new Date();
+    const brasiliaYesterday = new Date(brasiliaTime);
+    brasiliaYesterday.setDate(brasiliaYesterday.getDate() - 1);
     
-    // Início e fim do dia anterior em Brasília
-    const startOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0);
-    const endOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
+    const brasiliaStartTime = new Date(brasiliaYesterday);
+    brasiliaStartTime.setHours(0, 0, 0, 0);
     
-    // Converter para UTC para a consulta
-    const startTimeUTC = startOfYesterday.toISOString();
-    const endTimeUTC = endOfYesterday.toISOString();
+    const brasiliaEndTime = new Date(brasiliaYesterday);
+    brasiliaEndTime.setHours(23, 59, 59, 999);
     
-    console.log(`Período de análise: ${startOfYesterday.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} até ${endOfYesterday.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`);
+    const yesterdayFormatted = brasiliaYesterday.toLocaleDateString('pt-BR');
+    console.log(`🕐 [BACULA-DAILY] Analisando dia anterior completo: ${yesterdayFormatted}`);
+    console.log(`🕐 [BACULA-DAILY] Período: ${brasiliaStartTime.toISOString()} até ${brasiliaEndTime.toISOString()}`);
+    
+    const startTimeUTC = brasiliaStartTime.toISOString();
+    const endTimeUTC = brasiliaEndTime.toISOString();
 
-    // Buscar dados do Bacula com múltiplas tentativas e endpoints
+    // Buscar dados do Bacula
     let baculaData;
     const cacheKey = `bacula_jobs_${startTimeUTC}_${endTimeUTC}`;
     const cachedData = getCached(cacheKey);
 
     if (cachedData) {
-      console.log('✅ Usando dados do cache');
+      console.log('✅ [BACULA-DAILY] Usando dados do cache');
       baculaData = cachedData;
     } else {
-      console.log('🔍 Buscando dados do Bacula via API...');
+      console.log('🔍 [BACULA-DAILY] Buscando dados do Bacula via API...');
       
-      // Configurar múltiplas estratégias de busca
       const searchStrategies = [
         {
           endpoint: 'jobs/last24h',
@@ -217,8 +220,8 @@ serve(async (req) => {
         },
         {
           endpoint: 'jobs',
-          params: { limit: 1000, age: 86400, order_by: 'starttime', order_direction: 'desc' },
-          description: 'Jobs com filtro de idade'
+          params: { limit: 1000, age: 172800, order_by: 'starttime', order_direction: 'desc' },
+          description: 'Jobs com filtro de 48h'
         },
         {
           endpoint: 'jobs/all',
@@ -232,7 +235,7 @@ serve(async (req) => {
 
       for (const strategy of searchStrategies) {
         try {
-          console.log(`🔄 Tentando estratégia: ${strategy.description}`);
+          console.log(`🔄 [BACULA-DAILY] Tentando estratégia: ${strategy.description}`);
           
           const baculaResponse = await retryWithBackoff(async () => {
             return await supabase.functions.invoke('bacula-proxy', {
@@ -247,7 +250,7 @@ serve(async (req) => {
           }, RETRY_CONFIG.maxRetries);
 
           if (baculaResponse.error) {
-            console.error(`❌ Erro na estratégia ${strategy.description}:`, baculaResponse.error.message);
+            console.error(`❌ [BACULA-DAILY] Erro na estratégia ${strategy.description}:`, baculaResponse.error.message);
             lastError = baculaResponse.error;
             continue;
           }
@@ -256,16 +259,11 @@ serve(async (req) => {
             baculaData = baculaResponse.data;
             successfulStrategy = strategy.description;
             setCache(cacheKey, baculaData);
-            console.log(`✅ Dados obtidos com sucesso via ${successfulStrategy}:`, {
-              endpoint: strategy.endpoint,
-              totalJobs: baculaData.jobs?.length || baculaData.output?.length || (Array.isArray(baculaData) ? baculaData.length : 0),
-              stats: baculaData.stats,
-              structure: Object.keys(baculaData || {})
-            });
+            console.log(`✅ [BACULA-DAILY] Dados obtidos via ${successfulStrategy}`);
             break;
           }
         } catch (error) {
-          console.error(`❌ Falha na estratégia ${strategy.description}:`, error);
+          console.error(`❌ [BACULA-DAILY] Falha na estratégia ${strategy.description}:`, error);
           lastError = error;
           continue;
         }
@@ -273,24 +271,16 @@ serve(async (req) => {
 
       // Se todas as estratégias falharam
       if (!baculaData && lastError) {
-        console.error('🚨 TODAS as estratégias falharam. Erro crítico no Bacula:', lastError);
+        console.error('🚨 [BACULA-DAILY] TODAS as estratégias falharam');
         
-        // Enviar notificação de erro crítico
         const errorMessage = `🚨 *ERRO CRÍTICO - BACULA INDISPONÍVEL*\n\n` +
           `❌ **Sistema Bacula fora do ar**\n` +
           `⏰ **Data/Hora**: ${getBrasiliaTime()}\n` +
-          `🔧 **Últimos erros**:\n${lastError.message || 'Conexão recusada'}\n\n` +
-          `⚠️ **Ação necessária**: Verificar servidor Bacula (${baculaIntegration.base_url})\n\n` +
-          `🔍 **Diagnóstico**:\n` +
-          `• Conectividade de rede\n` +
-          `• Status do serviço BaculaWeb\n` +
-          `• Credenciais de autenticação\n` +
-          `• Configuração de firewall`;
+          `🔧 **Erro**: ${lastError.message || 'Conexão recusada'}\n\n` +
+          `⚠️ **Ação necessária**: Verificar servidor Bacula`;
 
-        // Enviar para todos os destinatários
         for (const recipient of recipients) {
           try {
-            console.log(`📤 Enviando alerta crítico para: ${recipient}`);
             await supabase.functions.invoke('send-whatsapp-message', {
               body: {
                 instanceName: evolutionIntegration.instance_name,
@@ -298,17 +288,14 @@ serve(async (req) => {
                 message: errorMessage
               }
             });
-            console.log(`✅ Alerta enviado para ${recipient}`);
           } catch (msgError) {
-            console.error(`❌ Erro ao enviar alerta para ${recipient}:`, msgError);
+            console.error(`❌ [BACULA-DAILY] Erro ao enviar alerta para ${recipient}:`, msgError);
           }
         }
 
         return new Response(JSON.stringify({ 
           success: false, 
-          error: 'Sistema Bacula indisponível',
-          details: lastError.message,
-          tested_strategies: searchStrategies.map(s => s.description)
+          error: 'Sistema Bacula indisponível'
         }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -316,19 +303,11 @@ serve(async (req) => {
       }
     }
 
-    // Processar dados do Bacula com múltiplas estruturas
+    // Processar dados do Bacula
     let jobs = [];
     let dataSource = 'unknown';
     
-    // Analisar estrutura dos dados recebidos
     if (baculaData && typeof baculaData === 'object') {
-      console.log('🔍 Analisando estrutura dos dados Bacula:', {
-        isArray: Array.isArray(baculaData),
-        keys: Object.keys(baculaData),
-        type: typeof baculaData
-      });
-
-      // Tentar diferentes estruturas de resposta da API Bacula
       if (Array.isArray(baculaData)) {
         jobs = baculaData;
         dataSource = 'array_direct';
@@ -341,35 +320,21 @@ serve(async (req) => {
       } else if (baculaData.data && Array.isArray(baculaData.data)) {
         jobs = baculaData.data;
         dataSource = 'object_data';
-      } else if (baculaData.result && Array.isArray(baculaData.result)) {
-        jobs = baculaData.result;
-        dataSource = 'object_result';
       } else {
-        // Tentar extrair jobs de qualquer propriedade que seja array
         for (const [key, value] of Object.entries(baculaData)) {
           if (Array.isArray(value) && value.length > 0) {
             jobs = value;
             dataSource = `fallback_${key}`;
-            console.log(`📋 Usando dados de propriedade: ${key}`);
             break;
           }
         }
       }
     }
 
-    console.log(`📊 Dados processados: ${jobs.length} jobs encontrados (fonte: ${dataSource})`);
+    console.log(`📊 [BACULA-DAILY] Dados processados: ${jobs.length} jobs encontrados (fonte: ${dataSource})`);
 
-    // Validar se temos dados válidos
-    if (jobs.length === 0) {
-      console.log('⚠️ Nenhum job encontrado - verificando se é problema de dados ou período');
-      
-      // Log detalhado para diagnóstico
-      console.log('🔍 Estrutura completa dos dados recebidos:', JSON.stringify(baculaData, null, 2).substring(0, 1000));
-    }
-
-    // Filtrar apenas jobs do período especificado (double-check com múltiplos campos de data)
+    // Filtrar jobs do dia anterior
     const filteredJobs = jobs.filter(job => {
-      // Tentar múltiplos campos de data
       const possibleDates = [
         job.starttime,
         job.schedtime, 
@@ -379,251 +344,258 @@ serve(async (req) => {
         job.timestamp
       ].filter(Boolean);
 
-      if (possibleDates.length === 0) {
-        console.log('⚠️ Job sem data válida:', job.jobid || job.id || job.name || 'unnamed');
-        return false;
-      }
+      if (possibleDates.length === 0) return false;
 
-      // Verificar se alguma data está no período
       for (const dateStr of possibleDates) {
         try {
           const jobTime = new Date(dateStr);
-          if (!isNaN(jobTime.getTime()) && jobTime >= startOfYesterday && jobTime <= endOfYesterday) {
+          if (!isNaN(jobTime.getTime()) && jobTime >= brasiliaStartTime && jobTime <= brasiliaEndTime) {
             return true;
           }
         } catch (error) {
-          console.log('⚠️ Data inválida encontrada:', dateStr, error.message);
+          continue;
         }
       }
       
       return false;
     });
 
-    console.log(`🎯 Jobs filtrados para o período: ${filteredJobs.length} de ${jobs.length} total`);
+    console.log(`🎯 [BACULA-DAILY] Jobs filtrados do dia anterior (${yesterdayFormatted}): ${filteredJobs.length} de ${jobs.length} total`);
 
-    // Log de amostra dos jobs filtrados
-    if (filteredJobs.length > 0) {
-      console.log('📋 Amostra de jobs válidos:', filteredJobs.slice(0, 3).map(job => ({
-        id: job.jobid || job.id,
-        name: job.job || job.name,
-        client: job.client,
-        status: job.jobstatus,
-        starttime: job.starttime,
-        bytes: job.jobbytes
-      })));
+    if (filteredJobs.length === 0) {
+      console.log('⚠️ [BACULA-DAILY] Nenhum job encontrado no dia anterior');
+      const errorMessage = `⚠️ *ALERTA BACULA - SEM JOBS*\n\n` +
+        `📅 **Dia analisado**: ${yesterdayFormatted}\n` +
+        `❌ **Nenhum job encontrado no período**\n\n` +
+        `🔍 **Ação necessária**: Verificar configuração dos jobs`;
+
+      for (const recipient of recipients) {
+        try {
+          await supabase.functions.invoke('send-whatsapp-message', {
+            body: {
+              instanceName: evolutionIntegration.instance_name,
+              phoneNumber: recipient,
+              message: errorMessage
+            }
+          });
+        } catch (msgError) {
+          console.error(`❌ [BACULA-DAILY] Erro ao enviar alerta para ${recipient}:`, msgError);
+        }
+      }
+
+      return new Response(JSON.stringify({ 
+        success: false, 
+        message: `Nenhum job encontrado no dia anterior (${yesterdayFormatted})` 
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    // Análise dos jobs
-    const errorJobs = filteredJobs.filter(job => {
-      const status = job.jobstatus || job.status || 'U';
-      const errorLevel = getErrorLevel(status);
-      return errorLevel.level === 'critical';
-    });
-
-    const successJobs = filteredJobs.filter(job => {
-      const status = job.jobstatus || job.status || 'U';
-      return status === 'T'; // Terminated normally
-    });
-
-    const warningJobs = filteredJobs.filter(job => {
-      const status = job.jobstatus || job.status || 'U';
-      const errorLevel = getErrorLevel(status);
-      return errorLevel.level === 'warning';
-    });
-
-    // Análise detalhada por cliente e tipo
-    const clientAnalysis = {};
-    const typeAnalysis = {};
-
-    filteredJobs.forEach(job => {
-      const client = job.client || job.clientname || 'Desconhecido';
-      const type = job.type || job.level || 'Backup';
-      const status = job.jobstatus || job.status || 'U';
-      const errorLevel = getErrorLevel(status);
-
-      // Análise por cliente
-      if (!clientAnalysis[client]) {
-        clientAnalysis[client] = { total: 0, errors: 0, success: 0, warnings: 0 };
-      }
-      clientAnalysis[client].total++;
-      if (errorLevel.level === 'critical') clientAnalysis[client].errors++;
-      else if (errorLevel.level === 'warning') clientAnalysis[client].warnings++;
-      else if (status === 'T') clientAnalysis[client].success++;
-
-      // Análise por tipo
-      if (!typeAnalysis[type]) {
-        typeAnalysis[type] = { total: 0, errors: 0, success: 0, warnings: 0 };
-      }
-      typeAnalysis[type].total++;
-      if (errorLevel.level === 'critical') typeAnalysis[type].errors++;
-      else if (errorLevel.level === 'warning') typeAnalysis[type].warnings++;
-      else if (status === 'T') typeAnalysis[type].success++;
-    });
-
-    // Preparar dados para o template
-    const reportData = {
-      date: yesterday.toLocaleDateString('pt-BR'),
-      time: getBrasiliaTime(),
-      total_jobs: filteredJobs.length,
-      error_jobs: errorJobs.length,
-      success_jobs: successJobs.length,
-      warning_jobs: warningJobs.length,
-      error_rate: filteredJobs.length > 0 ? Math.round((errorJobs.length / filteredJobs.length) * 100) : 0,
-      success_rate: filteredJobs.length > 0 ? Math.round((successJobs.length / filteredJobs.length) * 100) : 0,
-      clients_with_errors: Object.keys(clientAnalysis).filter(client => clientAnalysis[client].errors > 0).length,
-      total_clients: Object.keys(clientAnalysis).length,
-      error_details: errorJobs.slice(0, 10).map(job => ({
-        name: job.job || job.jobname || job.name || 'Job sem nome',
-        client: job.client || job.clientname || 'Cliente desconhecido',
-        status: getErrorLevel(job.jobstatus || job.status || 'U').label,
-        time: job.starttime || job.schedtime || job.endtime || 'Hora desconhecida',
-        level: job.level || 'Full',
-        bytes: job.jobbytes ? formatBytes(job.jobbytes) : '0 B',
-        files: job.jobfiles || 0,
-        duration: job.duration || 'N/A',
-        errors: job.joberrors || 0
-      })),
-      client_analysis: Object.entries(clientAnalysis)
-        .filter(([_, data]) => data.errors > 0)
-        .slice(0, 5)
-        .map(([client, data]) => ({
-          name: client,
-          total: data.total,
-          errors: data.errors,
-          error_rate: Math.round((data.errors / data.total) * 100)
-        })),
-      // Dados adicionais para diagnóstico
-      data_source: dataSource,
-      successful_strategy: successfulStrategy || 'cache',
-      raw_jobs_count: jobs.length,
-      period_start: startOfYesterday.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-      period_end: endOfYesterday.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+    // Mapear todos os status possíveis do Bacula
+    const statusMap = {
+      'T': 'Concluído com Sucesso',
+      'E': 'Erro (com diferenças)',
+      'f': 'Erro Fatal',
+      'A': 'Cancelado pelo usuário',
+      'R': 'Executando',
+      'C': 'Criado (aguardando)',
+      'c': 'Aguardando recurso',
+      'B': 'Bloqueado',
+      'D': 'Verificação com diferenças',
+      'I': 'Incompleto',
+      'F': 'Aguardando no File Daemon',
+      'S': 'Aguardando no Storage Daemon',
+      'M': 'Aguardando nova mídia',
+      'Q': 'Na fila (aguardando dispositivo)',
+      'W': 'Aguardando'
     };
 
-    console.log('Dados do relatório preparados:', {
-      total_jobs: reportData.total_jobs,
-      error_jobs: reportData.error_jobs,
-      success_rate: reportData.success_rate
-    });
+    // Categorizar jobs por status
+    const jobsByStatus = {
+      success: [],     // T
+      errors: [],      // E, f
+      cancelled: [],   // A
+      running: [],     // R, C, c
+      blocked: [],     // B, Q, W, F, S, M
+      other: []        // D, I, outros
+    };
 
-    // Formatar mensagem usando o template melhorado
-    let message = template.body;
-    
-    // Substituir variáveis básicas com dados reais
-    message = message.replace(/\{\{date\}\}/g, reportData.date);
-    message = message.replace(/\{\{time\}\}/g, reportData.time);
-    message = message.replace(/\{\{totalJobs\}\}/g, reportData.total_jobs.toString());
-    message = message.replace(/\{\{total_jobs\}\}/g, reportData.total_jobs.toString());
-    message = message.replace(/\{\{errorJobs\}\}/g, reportData.error_jobs.toString());
-    message = message.replace(/\{\{error_jobs\}\}/g, reportData.error_jobs.toString());
-    message = message.replace(/\{\{successJobs\}\}/g, reportData.success_jobs.toString());
-    message = message.replace(/\{\{success_jobs\}\}/g, reportData.success_jobs.toString());
-    message = message.replace(/\{\{warningJobs\}\}/g, reportData.warning_jobs.toString());
-    message = message.replace(/\{\{warning_jobs\}\}/g, reportData.warning_jobs.toString());
-    message = message.replace(/\{\{errorRate\}\}/g, reportData.error_rate.toString());
-    message = message.replace(/\{\{error_rate\}\}/g, reportData.error_rate.toString());
-    message = message.replace(/\{\{successRate\}\}/g, reportData.success_rate.toString());
-    message = message.replace(/\{\{success_rate\}\}/g, reportData.success_rate.toString());
-    message = message.replace(/\{\{clientsWithErrors\}\}/g, reportData.clients_with_errors.toString());
-    message = message.replace(/\{\{clients_with_errors\}\}/g, reportData.clients_with_errors.toString());
-    message = message.replace(/\{\{totalClients\}\}/g, reportData.total_clients.toString());
-    message = message.replace(/\{\{total_clients\}\}/g, reportData.total_clients.toString());
+    let totalBytes = 0;
+    let totalFiles = 0;
 
-    // Adicionar informações de diagnóstico se necessário
-    message = message.replace(/\{\{dataSource\}\}/g, dataSource);
-    message = message.replace(/\{\{data_source\}\}/g, dataSource);
-    message = message.replace(/\{\{rawDataJobs\}\}/g, jobs.length.toString());
-    message = message.replace(/\{\{raw_jobs_count\}\}/g, jobs.length.toString());
-    message = message.replace(/\{\{successfulStrategy\}\}/g, successfulStrategy || 'cache');
-    message = message.replace(/\{\{successful_strategy\}\}/g, successfulStrategy || 'cache');
-    message = message.replace(/\{\{period_start\}\}/g, reportData.period_start);
-    message = message.replace(/\{\{period_end\}\}/g, reportData.period_end);
-
-    // Processar seções condicionais com múltiplas variações
-    const conditionalPatterns = [
-      { pattern: /\{\{#if error_jobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.error_jobs > 0 },
-      { pattern: /\{\{#if errorJobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.error_jobs > 0 },
-      { pattern: /\{\{#if hasErrors\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.error_jobs > 0 },
-      { pattern: /\{\{#if hasCriticalErrors\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.error_jobs > 5 },
-      { pattern: /\{\{#if total_jobs\}\}(.*?)\{\{\/if\}\}/gs, condition: reportData.total_jobs > 0 }
-    ];
-
-    conditionalPatterns.forEach(({ pattern, condition }) => {
-      message = message.replace(pattern, (match, content) => {
-        return condition ? content : '';
-      });
-    });
-
-    // Processar loops de detalhes de erro com múltiplas variações
-    const errorLoopPatterns = [
-      /\{\{#each error_details\}\}(.*?)\{\{\/each\}\}/gs,
-      /\{\{#each errorJobs\}\}(.*?)\{\{\/each\}\}/gs
-    ];
-
-    errorLoopPatterns.forEach(pattern => {
-      if (reportData.error_details.length > 0) {
-        message = message.replace(pattern, (match, content) => {
-          return reportData.error_details.map(error => {
-            let errorContent = content;
-            // Múltiplas variações de variáveis
-            errorContent = errorContent.replace(/\{\{name\}\}/g, error.name);
-            errorContent = errorContent.replace(/\{\{jobname\}\}/g, error.name);
-            errorContent = errorContent.replace(/\{\{client\}\}/g, error.client);
-            errorContent = errorContent.replace(/\{\{status\}\}/g, error.status);
-            errorContent = errorContent.replace(/\{\{time\}\}/g, error.time);
-            errorContent = errorContent.replace(/\{\{startTime\}\}/g, error.time);
-            errorContent = errorContent.replace(/\{\{level\}\}/g, error.level || 'Full');
-            errorContent = errorContent.replace(/\{\{bytes\}\}/g, error.bytes || '0 B');
-            errorContent = errorContent.replace(/\{\{files\}\}/g, error.files || '0');
-            errorContent = errorContent.replace(/\{\{errors\}\}/g, error.errors || '0');
-            return errorContent;
-          }).join('');
-        });
+    filteredJobs.forEach(job => {
+      const jobStatus = job.jobstatus || job.status || 'U';
+      
+      // Calcular estatísticas
+      if (job.jobbytes) totalBytes += parseInt(job.jobbytes) || 0;
+      if (job.jobfiles) totalFiles += parseInt(job.jobfiles) || 0;
+      
+      // Categorizar por status
+      if (jobStatus === 'T') {
+        jobsByStatus.success.push(job);
+      } else if (jobStatus === 'f' || jobStatus === 'E') {
+        jobsByStatus.errors.push(job);
+      } else if (jobStatus === 'A') {
+        jobsByStatus.cancelled.push(job);
+      } else if (jobStatus === 'R' || jobStatus === 'C' || jobStatus === 'c') {
+        jobsByStatus.running.push(job);
+      } else if (['B', 'Q', 'W', 'F', 'S', 'M'].includes(jobStatus)) {
+        jobsByStatus.blocked.push(job);
       } else {
-        message = message.replace(pattern, '');
+        jobsByStatus.other.push(job);
       }
     });
 
-    // Processar loops de análise de cliente
-    const clientLoopPatterns = [
-      /\{\{#each client_analysis\}\}(.*?)\{\{\/each\}\}/gs,
-      /\{\{#each clientAnalysis\}\}(.*?)\{\{\/each\}\}/gs
-    ];
+    // Função para formatar detalhes do job
+    const formatJobDetails = (job) => ({
+      name: job.job || job.jobname || job.name || 'Job desconhecido',
+      client: job.client || job.clientname || 'Cliente desconhecido',
+      level: job.level || 'N/A',
+      starttime: job.starttime ? getBrasiliaTime(new Date(job.starttime)) : 'N/A',
+      endtime: job.endtime ? getBrasiliaTime(new Date(job.endtime)) : 'N/A',
+      duration: job.starttime && job.endtime ? 
+        Math.round((new Date(job.endtime) - new Date(job.starttime)) / 60000) + ' min' : 'N/A',
+      jobbytes: job.jobbytes ? formatBytes(parseInt(job.jobbytes)) : '0',
+      jobfiles: job.jobfiles ? parseInt(job.jobfiles).toLocaleString('pt-BR') : '0',
+      jobstatus: job.jobstatus || 'N/A',
+      jobstatus_desc: statusMap[job.jobstatus] || `Status ${job.jobstatus}`,
+      jobstatus_emoji: getStatusEmoji(job.jobstatus)
+    });
 
-    clientLoopPatterns.forEach(pattern => {
-      if (reportData.client_analysis.length > 0) {
-        message = message.replace(pattern, (match, content) => {
-          return reportData.client_analysis.map(client => {
-            let clientContent = content;
-            clientContent = clientContent.replace(/\{\{name\}\}/g, client.name);
-            clientContent = clientContent.replace(/\{\{total\}\}/g, client.total.toString());
-            clientContent = clientContent.replace(/\{\{errors\}\}/g, client.errors.toString());
-            clientContent = clientContent.replace(/\{\{error_rate\}\}/g, client.error_rate.toString());
-            clientContent = clientContent.replace(/\{\{errorRate\}\}/g, client.error_rate.toString());
-            return clientContent;
-          }).join('');
-        });
-      } else {
-        message = message.replace(pattern, '');
+    // Função para obter emoji do status
+    function getStatusEmoji(status) {
+      switch (status) {
+        case 'T': return '✅';
+        case 'f': return '❌';
+        case 'E': return '⚠️';
+        case 'A': return '🚫';
+        case 'R': return '🔄';
+        case 'C': case 'c': return '⏳';
+        case 'B': case 'Q': case 'W': case 'F': case 'S': case 'M': return '⏸️';
+        default: return '❓';
+      }
+    }
+
+    // Estatísticas gerais
+    const totalJobs = filteredJobs.length;
+    const successJobs = jobsByStatus.success.length;
+    const errorJobs = jobsByStatus.errors.length;
+    const cancelledJobs = jobsByStatus.cancelled.length;
+    const runningJobs = jobsByStatus.running.length;
+    const blockedJobs = jobsByStatus.blocked.length;
+    const otherJobs = jobsByStatus.other.length;
+    const criticalJobs = errorJobs + cancelledJobs;
+
+    console.log(`📈 [BACULA-DAILY] Estatísticas completas:`);
+    console.log(`   Total: ${totalJobs} jobs do dia ${yesterdayFormatted}`);
+    console.log(`   Sucessos: ${successJobs}`);
+    console.log(`   Erros: ${errorJobs}`);
+    console.log(`   Cancelados: ${cancelledJobs}`);
+    console.log(`   Executando: ${runningJobs}`);
+    console.log(`   Bloqueados: ${blockedJobs}`);
+    console.log(`   Outros: ${otherJobs}`);
+
+    // Preparar dados para o template
+    const templateData = {
+      analysis_date: yesterdayFormatted,
+      report_time: getBrasiliaTime(),
+      
+      // Estatísticas gerais
+      total_jobs: totalJobs,
+      success_jobs: successJobs,
+      error_jobs: errorJobs,
+      cancelled_jobs: cancelledJobs,
+      running_jobs: runningJobs,
+      blocked_jobs: blockedJobs,
+      other_jobs: otherJobs,
+      critical_jobs: criticalJobs,
+      success_rate: totalJobs > 0 ? Math.round((successJobs / totalJobs) * 100) : 0,
+      
+      // Dados processados
+      total_bytes: formatBytes(totalBytes),
+      total_files: totalFiles.toLocaleString('pt-BR'),
+      
+      // Detalhes dos jobs por categoria
+      success_details: jobsByStatus.success.map(formatJobDetails),
+      error_details: jobsByStatus.errors.map(formatJobDetails),
+      cancelled_details: jobsByStatus.cancelled.map(formatJobDetails),
+      running_details: jobsByStatus.running.map(formatJobDetails),
+      blocked_details: jobsByStatus.blocked.map(formatJobDetails),
+      other_details: jobsByStatus.other.map(formatJobDetails),
+      
+      // Manter compatibilidade com template antigo
+      fatal_jobs: errorJobs,
+      fatal_details: jobsByStatus.errors.map(formatJobDetails)
+    };
+
+    console.log('📋 [BACULA-DAILY] Dados estruturados para template:', {
+      analysis_date: templateData.analysis_date,
+      total_jobs: templateData.total_jobs,
+      success_jobs: templateData.success_jobs,
+      error_jobs: templateData.error_jobs,
+      cancelled_jobs: templateData.cancelled_jobs,
+      critical_jobs: templateData.critical_jobs,
+      success_rate: templateData.success_rate
+    });
+
+    // Processar template da mensagem
+    let finalMessage = template.body;
+
+    // Substituir variáveis básicas
+    Object.entries(templateData).forEach(([key, value]) => {
+      const placeholder = `{{${key}}}`;
+      if (typeof value === 'string' || typeof value === 'number') {
+        finalMessage = finalMessage.replace(new RegExp(placeholder, 'g'), value);
       }
     });
 
-    // Limpar variáveis não substituídas (fallback)
-    message = message.replace(/\{\{[^}]+\}\}/g, 'N/A');
+    // Função para formatar lista de jobs
+    const formatJobsList = (jobs, showDuration = false) => {
+      if (!jobs || jobs.length === 0) return '• Nenhum job encontrado';
+      
+      return jobs.map(job => {
+        let jobText = `${job.jobstatus_emoji} *${job.name}*\n  🏢 ${job.client} • 📊 ${job.level} • 🕐 ${job.starttime}`;
+        if (showDuration && job.duration !== 'N/A') {
+          jobText += ` • ⏱️ ${job.duration}`;
+        }
+        jobText += `\n  💾 ${job.jobbytes} • 📁 ${job.jobfiles} arquivos • Status: ${job.jobstatus_desc}`;
+        return jobText;
+      }).join('\n  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    };
 
-    console.log('✅ Mensagem formatada com dados reais. Enviando para destinatários...');
+    // Processar listas de jobs por categoria
+    finalMessage = finalMessage.replace(/\{\{success_jobs_details\}\}/g, formatJobsList(templateData.success_details, true));
+    finalMessage = finalMessage.replace(/\{\{error_jobs_details\}\}/g, formatJobsList(templateData.error_details, true));
+    finalMessage = finalMessage.replace(/\{\{cancelled_jobs_details\}\}/g, formatJobsList(templateData.cancelled_details, true));
+    finalMessage = finalMessage.replace(/\{\{running_jobs_details\}\}/g, formatJobsList(templateData.running_details));
+    finalMessage = finalMessage.replace(/\{\{blocked_jobs_details\}\}/g, formatJobsList(templateData.blocked_details));
+    finalMessage = finalMessage.replace(/\{\{other_jobs_details\}\}/g, formatJobsList(templateData.other_details, true));
+
+    // Manter compatibilidade com template antigo
+    finalMessage = finalMessage.replace(/\{\{fatal_jobs_details\}\}/g, formatJobsList(templateData.error_details, true));
+
+    // Processar blocos condicionais
+    finalMessage = processConditionalBlocks(finalMessage, templateData);
+
+    console.log(`💬 [BACULA-DAILY] Mensagem final gerada (${finalMessage.length} caracteres)`);
+    console.log(`📊 [BACULA-DAILY] Resumo: ${totalJobs} jobs do dia ${yesterdayFormatted}`);
+    console.log(`   ✅ ${successJobs} sucessos (${templateData.success_rate}%)`);
+    console.log(`   ❌ ${errorJobs} erros`);
+    console.log(`   🚫 ${cancelledJobs} cancelados`);
+    console.log(`   🔄 ${runningJobs} executando`);
 
     // Enviar mensagem para cada destinatário
     const results = [];
     for (const recipient of recipients) {
       try {
-        console.log(`Enviando relatório para: ${recipient}`);
+        console.log(`📤 [BACULA-DAILY] Enviando relatório para: ${recipient}`);
         
         const whatsappResponse = await supabase.functions.invoke('send-whatsapp-message', {
           body: {
             instanceName: evolutionIntegration.instance_name,
             phoneNumber: recipient,
-            message: message
+            message: finalMessage
           }
         });
 
@@ -637,9 +609,9 @@ serve(async (req) => {
           response: whatsappResponse.data
         });
 
-        console.log(`✅ Relatório enviado com sucesso para ${recipient}`);
+        console.log(`✅ [BACULA-DAILY] Relatório enviado com sucesso para ${recipient}`);
       } catch (error) {
-        console.error(`❌ Erro ao enviar relatório para ${recipient}:`, error);
+        console.error(`❌ [BACULA-DAILY] Erro ao enviar relatório para ${recipient}:`, error);
         results.push({
           phone_number: recipient,
           success: false,
@@ -652,12 +624,12 @@ serve(async (req) => {
     const executionTime = Date.now() - startTime;
     const successfulSends = results.filter(r => r.success).length;
     
-    console.log(`[${getBrasiliaTime()}] Relatório concluído:`, {
+    console.log(`[${getBrasiliaTime()}] 📊 [BACULA-DAILY] Relatório concluído:`, {
       execution_time_ms: executionTime,
       recipients_total: recipients.length,
       recipients_success: successfulSends,
       jobs_analyzed: filteredJobs.length,
-      jobs_with_errors: reportData.error_jobs
+      jobs_with_errors: templateData.error_jobs
     });
 
     // Salvar log do relatório
@@ -665,16 +637,16 @@ serve(async (req) => {
       await supabase.from('scheduled_reports_logs').insert({
         report_id: template.id,
         user_id: template.user_id,
-        phone_number: recipients[0], // Usar primeiro destinatário como referência
+        phone_number: recipients[0],
         status: successfulSends > 0 ? 'success' : 'failed',
         message_sent: successfulSends > 0,
-        message_content: message,
+        message_content: finalMessage,
         execution_time_ms: executionTime,
         whatsapp_response: { results },
         error_details: successfulSends === 0 ? 'Falha no envio para todos os destinatários' : null
       });
     } catch (logError) {
-      console.error('Erro ao salvar log:', logError);
+      console.error('❌ [BACULA-DAILY] Erro ao salvar log:', logError);
     }
 
     return new Response(JSON.stringify({
@@ -684,7 +656,9 @@ serve(async (req) => {
         recipients_total: recipients.length,
         recipients_success: successfulSends,
         execution_time_ms: executionTime,
-        report_data: reportData
+        analysis_date: yesterdayFormatted,
+        total_jobs: totalJobs,
+        success_rate: templateData.success_rate
       },
       results
     }), {
@@ -694,7 +668,7 @@ serve(async (req) => {
 
   } catch (error) {
     const executionTime = Date.now() - startTime;
-    console.error(`[${getBrasiliaTime()}] Erro na execução do relatório:`, error);
+    console.error(`[${getBrasiliaTime()}] ❌ [BACULA-DAILY] Erro na execução:`, error);
 
     return new Response(JSON.stringify({
       success: false,
