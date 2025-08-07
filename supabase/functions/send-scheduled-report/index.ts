@@ -1085,6 +1085,8 @@ async function getGLPIStandardData(glpiIntegration: any) {
       // Data do relatório
       report_date: yesterday.toLocaleDateString('pt-BR'),
       isRealData: true
+    };
+
     console.log(`✅ [GLPI] Dados diários coletados com sucesso - isRealData: true, total: ${allTickets.length} tickets`);
     return dataResponse;
 
