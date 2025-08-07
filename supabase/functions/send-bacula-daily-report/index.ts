@@ -580,6 +580,14 @@ serve(async (req) => {
     // Processar blocos condicionais
     finalMessage = processConditionalBlocks(finalMessage, templateData);
 
+    // Garantir quebras de linha específicas solicitadas pelo usuário
+    finalMessage = finalMessage.replace(/📅 \*Período\*: ([^\n]+)📊/g, '📅 *Período*: $1\n\n📊');
+    finalMessage = finalMessage.replace(/• Taxa de Sucesso: ([0-9.]+)%✅/g, '• Taxa de Sucesso: $1%\n\n✅');
+    finalMessage = finalMessage.replace(/• Taxa de Sucesso: ([0-9.]+)%❌/g, '• Taxa de Sucesso: $1%\n\n❌');
+    finalMessage = finalMessage.replace(/• Taxa de Sucesso: ([0-9.]+)%⚠️/g, '• Taxa de Sucesso: $1%\n\n⚠️');
+    finalMessage = finalMessage.replace(/• Taxa de Sucesso: ([0-9.]+)%🔄/g, '• Taxa de Sucesso: $1%\n\n🔄');
+    finalMessage = finalMessage.replace(/• Taxa de Sucesso: ([0-9.]+)%🚫/g, '• Taxa de Sucesso: $1%\n\n🚫');
+
     console.log(`💬 [BACULA-DAILY] Mensagem final gerada (${finalMessage.length} caracteres)`);
     console.log(`📊 [BACULA-DAILY] Resumo: ${totalJobs} jobs do dia ${yesterdayFormatted}`);
     console.log(`   ✅ ${successJobs} sucessos (${templateData.success_rate}%)`);

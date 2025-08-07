@@ -398,6 +398,16 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
       
       messageContent = processConditionalBlocks(messageContent, templateVars);
       
+      // Garantir quebras de linha específicas para formatação Bacula antes da limpeza final
+      if (template.template_type === 'bacula_daily') {
+        messageContent = messageContent.replace(/📅 \*Período\*: ([^\n]+)📊/g, '📅 *Período*: $1\n\n📊');
+        messageContent = messageContent.replace(/• Taxa de Sucesso: ([0-9.]+)%✅/g, '• Taxa de Sucesso: $1%\n\n✅');
+        messageContent = messageContent.replace(/• Taxa de Sucesso: ([0-9.]+)%❌/g, '• Taxa de Sucesso: $1%\n\n❌');
+        messageContent = messageContent.replace(/• Taxa de Sucesso: ([0-9.]+)%⚠️/g, '• Taxa de Sucesso: $1%\n\n⚠️');
+        messageContent = messageContent.replace(/• Taxa de Sucesso: ([0-9.]+)%🔄/g, '• Taxa de Sucesso: $1%\n\n🔄');
+        messageContent = messageContent.replace(/• Taxa de Sucesso: ([0-9.]+)%🚫/g, '• Taxa de Sucesso: $1%\n\n🚫');
+      }
+      
       // Limpeza final
       messageContent = messageContent
         .replace(/\{\{[^}]+\}\}/g, '') // Remove variáveis não processadas
