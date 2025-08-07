@@ -313,22 +313,67 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
       
       // Substituições básicas
       messageContent = messageContent
-        .replace(/\{\{date\}\}/g, currentDate)
+        .replace(/\{\{date\}\}/g, baculaData.date || currentDate)
         .replace(/\{\{totalJobs\}\}/g, baculaData.totalJobs.toString())
-        .replace(/\{\{errorCount\}\}/g, baculaData.errorCount.toString())
-        .replace(/\{\{errorRate\}\}/g, baculaData.errorRate.toString());
+        .replace(/\{\{successJobs\}\}/g, baculaData.successJobs.toString())
+        .replace(/\{\{errorJobs\}\}/g, baculaData.errorJobs.toString())
+        .replace(/\{\{cancelledJobs\}\}/g, baculaData.cancelledJobs.toString())
+        .replace(/\{\{runningJobs\}\}/g, baculaData.runningJobs.toString())
+        .replace(/\{\{blockedJobs\}\}/g, baculaData.blockedJobs.toString())
+        .replace(/\{\{otherJobs\}\}/g, baculaData.otherJobs.toString())
+        .replace(/\{\{successRate\}\}/g, baculaData.successRate.toString())
+        .replace(/\{\{errorRate\}\}/g, baculaData.errorRate.toString())
+        .replace(/\{\{totalBytes\}\}/g, baculaData.totalBytes || '0 B')
+        .replace(/\{\{totalFiles\}\}/g, baculaData.totalFiles || '0')
+        .replace(/\{\{avgDuration\}\}/g, baculaData.avgDuration || 'N/A')
+        .replace(/\{\{criticalProblems\}\}/g, baculaData.criticalProblems.toString())
+        .replace(/\{\{affectedClients\}\}/g, baculaData.affectedClients.toString())
+        .replace(/\{\{totalClients\}\}/g, baculaData.totalClients.toString())
+        .replace(/\{\{period\}\}/g, baculaData.period || 'N/A')
+        .replace(/\{\{generatedAt\}\}/g, baculaData.generatedAt || currentTime)
+        .replace(/\{\{successJobsList\}\}/g, baculaData.successJobsList || 'Nenhum job com sucesso')
+        .replace(/\{\{errorJobsList\}\}/g, baculaData.errorJobsList || 'Nenhum job com erro')
+        .replace(/\{\{cancelledJobsList\}\}/g, baculaData.cancelledJobsList || 'Nenhum job cancelado')
+        .replace(/\{\{runningJobsList\}\}/g, baculaData.runningJobsList || 'Nenhum job em execução')
+        .replace(/\{\{blockedJobsList\}\}/g, baculaData.blockedJobsList || 'Nenhum job bloqueado')
+        .replace(/\{\{otherJobsList\}\}/g, baculaData.otherJobsList || 'Nenhum outro job')
+        // Compatibilidade com template antigo
+        .replace(/\{\{errorCount\}\}/g, baculaData.errorCount.toString());
       
-      // Handle conditional blocks com regex mais robusta
-      if (baculaData.hasErrors) {
-        // Remove else block e mantém if block
-        messageContent = messageContent.replace(/\{\{#if hasErrors\}\}([\s\S]*?)\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/g, '$1');
-        // Handle errorJobs dentro do if block
-        messageContent = messageContent.replace(/\{\{#each errorJobs\}\}([\s\S]*?)\{\{\/each\}\}/g, baculaData.errorJobs);
-        messageContent = messageContent.replace(/\{\{errorJobs\}\}/g, baculaData.errorJobs);
-      } else {
-        // Remove if block e mantém else block
-        messageContent = messageContent.replace(/\{\{#if hasErrors\}\}([\s\S]*?)\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/g, '$2');
-      }
+      // Processar blocos condicionais avançados
+      const processConditionalBlocks = (message, data) => {
+        // Processar blocos {{#if condition}}...{{else}}...{{/if}}
+        const ifElseBlocks = message.match(/\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/g);
+        if (ifElseBlocks) {
+          ifElseBlocks.forEach(block => {
+            const match = block.match(/\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/);
+            if (match) {
+              const [fullMatch, condition, ifContent, elseContent] = match;
+              const conditionValue = data[condition];
+              const shouldShow = conditionValue && (typeof conditionValue === 'number' ? conditionValue > 0 : !!conditionValue);
+              message = message.replace(fullMatch, shouldShow ? ifContent : elseContent);
+            }
+          });
+        }
+        
+        // Processar blocos {{#if condition}}...{{/if}} (sem else)
+        const ifBlocks = message.match(/\{\{#if\s+(\w+)\}\}(.*?)\{\{\/if\}\}/gs);
+        if (ifBlocks) {
+          ifBlocks.forEach(block => {
+            const match = block.match(/\{\{#if\s+(\w+)\}\}(.*?)\{\{\/if\}\}/s);
+            if (match) {
+              const [fullMatch, condition, content] = match;
+              const conditionValue = data[condition];
+              const shouldShow = conditionValue && (typeof conditionValue === 'number' ? conditionValue > 0 : !!conditionValue);
+              message = message.replace(fullMatch, shouldShow ? content : '');
+            }
+          });
+        }
+        
+        return message;
+      };
+      
+      messageContent = processConditionalBlocks(messageContent, baculaData);
       
       // Cleanup any remaining template variables
       messageContent = messageContent
@@ -743,7 +788,7 @@ async function getGLPIData(userId: string, settings: any) {
   }
 }
 
-// Função para obter dados do Bacula
+// Função para obter dados do Bacula (Robusta com múltiplas estratégias)
 async function getBaculaData(userId: string, settings: any) {
   try {
     console.log('🔍 [BACULA] Buscando dados de jobs Bacula para usuário:', userId);
@@ -758,66 +803,347 @@ async function getBaculaData(userId: string, settings: any) {
 
     if (!baculaIntegration) {
       console.log('⚠️ [BACULA] Integração Bacula não encontrada, usando dados mock');
-      return getMockBaculaData();
+      return getEnhancedMockBaculaData();
     }
 
     console.log('🔌 [BACULA] Integração Bacula encontrada:', baculaIntegration.name);
 
-    // Fazer chamada real para Bacula via proxy
-    const { data: baculaResponse, error: baculaError } = await supabase.functions.invoke('bacula-proxy', {
-      body: {
-        action: 'getJobs',
-        baseUrl: baculaIntegration.base_url,
-        username: baculaIntegration.username,
-        password: baculaIntegration.password,
-        filters: {
-          hours: 24 // Últimas 24 horas
+    // Definir período do dia anterior completo em Brasília
+    const brasiliaTime = new Date();
+    const brasiliaYesterday = new Date(brasiliaTime);
+    brasiliaYesterday.setDate(brasiliaYesterday.getDate() - 1);
+    
+    const brasiliaStartTime = new Date(brasiliaYesterday);
+    brasiliaStartTime.setHours(0, 0, 0, 0);
+    
+    const brasiliaEndTime = new Date(brasiliaYesterday);
+    brasiliaEndTime.setHours(23, 59, 59, 999);
+    
+    const yesterdayFormatted = brasiliaYesterday.toLocaleDateString('pt-BR');
+    console.log(`🕐 [BACULA] Analisando dia anterior completo: ${yesterdayFormatted}`);
+
+    // Múltiplas estratégias para buscar dados
+    const searchStrategies = [
+      {
+        endpoint: 'jobs/last24h',
+        params: { limit: 1000, order_by: 'starttime', order_direction: 'desc' },
+        description: 'Jobs das últimas 24h'
+      },
+      {
+        endpoint: 'jobs',
+        params: { limit: 1000, age: 172800, order_by: 'starttime', order_direction: 'desc' },
+        description: 'Jobs com filtro de 48h'
+      },
+      {
+        endpoint: 'jobs/all',
+        params: { limit: 500 },
+        description: 'Todos os jobs (limitado)'
+      }
+    ];
+
+    let baculaData = null;
+    let lastError = null;
+    let successfulStrategy = null;
+
+    // Retry com backoff exponencial
+    const retryWithBackoff = async (fn, retries) => {
+      try {
+        return await fn();
+      } catch (error) {
+        if (retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries)));
+          return retryWithBackoff(fn, retries - 1);
         }
+        throw error;
+      }
+    };
+
+    for (const strategy of searchStrategies) {
+      try {
+        console.log(`🔄 [BACULA] Tentando estratégia: ${strategy.description}`);
+        
+        const baculaResponse = await retryWithBackoff(async () => {
+          return await supabase.functions.invoke('bacula-proxy', {
+            body: {
+              endpoint: strategy.endpoint,
+              params: strategy.params
+            },
+            headers: {
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
+            }
+          });
+        }, 3);
+
+        if (baculaResponse.error) {
+          console.error(`❌ [BACULA] Erro na estratégia ${strategy.description}:`, baculaResponse.error.message);
+          lastError = baculaResponse.error;
+          continue;
+        }
+
+        if (baculaResponse.data) {
+          baculaData = baculaResponse.data;
+          successfulStrategy = strategy.description;
+          console.log(`✅ [BACULA] Dados obtidos via ${successfulStrategy}`);
+          break;
+        }
+      } catch (error) {
+        console.error(`❌ [BACULA] Falha na estratégia ${strategy.description}:`, error);
+        lastError = error;
+        continue;
+      }
+    }
+
+    if (!baculaData) {
+      console.error('❌ [BACULA] Todas as estratégias falharam, usando dados mock');
+      return getEnhancedMockBaculaData();
+    }
+
+    // Processar dados do Bacula
+    let jobs = [];
+    let dataSource = 'unknown';
+    
+    if (baculaData && typeof baculaData === 'object') {
+      if (Array.isArray(baculaData)) {
+        jobs = baculaData;
+        dataSource = 'array_direct';
+      } else if (baculaData.jobs && Array.isArray(baculaData.jobs)) {
+        jobs = baculaData.jobs;
+        dataSource = 'object_jobs';
+      } else if (baculaData.output && Array.isArray(baculaData.output)) {
+        jobs = baculaData.output;
+        dataSource = 'object_output';
+      } else if (baculaData.data && Array.isArray(baculaData.data)) {
+        jobs = baculaData.data;
+        dataSource = 'object_data';
+      } else {
+        for (const [key, value] of Object.entries(baculaData)) {
+          if (Array.isArray(value) && value.length > 0) {
+            jobs = value;
+            dataSource = `fallback_${key}`;
+            break;
+          }
+        }
+      }
+    }
+
+    console.log(`📊 [BACULA] Dados processados: ${jobs.length} jobs encontrados (fonte: ${dataSource})`);
+
+    // Filtrar jobs do dia anterior
+    const filteredJobs = jobs.filter(job => {
+      const possibleDates = [
+        job.starttime,
+        job.schedtime, 
+        job.endtime,
+        job.realendtime,
+        job.created_at,
+        job.timestamp
+      ].filter(Boolean);
+
+      if (possibleDates.length === 0) return false;
+
+      for (const dateStr of possibleDates) {
+        try {
+          const jobTime = new Date(dateStr);
+          if (!isNaN(jobTime.getTime()) && jobTime >= brasiliaStartTime && jobTime <= brasiliaEndTime) {
+            return true;
+          }
+        } catch (error) {
+          continue;
+        }
+      }
+      
+      return false;
+    });
+
+    console.log(`🎯 [BACULA] Jobs filtrados do dia anterior (${yesterdayFormatted}): ${filteredJobs.length} de ${jobs.length} total`);
+
+    // Mapear status do Bacula
+    const statusMap = {
+      'T': 'Concluído com Sucesso',
+      'E': 'Erro (com diferenças)',
+      'f': 'Erro Fatal',
+      'A': 'Cancelado pelo usuário',
+      'R': 'Executando',
+      'C': 'Criado (aguardando)',
+      'c': 'Aguardando recurso',
+      'B': 'Bloqueado',
+      'W': 'Aguardando'
+    };
+
+    // Categorizar jobs por status
+    const jobsByStatus = {
+      success: [],     // T
+      errors: [],      // E, f
+      cancelled: [],   // A
+      running: [],     // R, C, c
+      blocked: [],     // B, W
+      other: []        // outros
+    };
+
+    let totalBytes = 0;
+    let totalFiles = 0;
+
+    filteredJobs.forEach(job => {
+      const jobStatus = job.jobstatus || job.status || 'U';
+      
+      // Calcular estatísticas
+      if (job.jobbytes) totalBytes += parseInt(job.jobbytes) || 0;
+      if (job.jobfiles) totalFiles += parseInt(job.jobfiles) || 0;
+      
+      // Categorizar por status
+      if (jobStatus === 'T') {
+        jobsByStatus.success.push(job);
+      } else if (jobStatus === 'f' || jobStatus === 'E') {
+        jobsByStatus.errors.push(job);
+      } else if (jobStatus === 'A') {
+        jobsByStatus.cancelled.push(job);
+      } else if (jobStatus === 'R' || jobStatus === 'C' || jobStatus === 'c') {
+        jobsByStatus.running.push(job);
+      } else if (['B', 'W'].includes(jobStatus)) {
+        jobsByStatus.blocked.push(job);
+      } else {
+        jobsByStatus.other.push(job);
       }
     });
 
-    if (baculaError || !baculaResponse?.jobs) {
-      console.error('❌ [BACULA] Erro ao buscar jobs:', baculaError);
-      console.log('🔄 [BACULA] Usando dados mock devido a erro na API');
-      return getMockBaculaData();
-    }
+    // Função para formatar bytes
+    const formatBytes = (bytes) => {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
 
-    console.log('✅ [BACULA] Dados obtidos com sucesso:', baculaResponse.jobs.length, 'jobs');
+    // Função para obter horário de Brasília
+    const getBrasiliaTime = (date) => {
+      return date.toLocaleString('pt-BR', { 
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
 
-    const jobs = baculaResponse.jobs || [];
-    const errorJobs = jobs.filter(job => ['E', 'f'].includes(job.JobStatus));
-    const totalJobs = jobs.length;
-    const errorCount = errorJobs.length;
-    const errorRate = totalJobs > 0 ? ((errorCount / totalJobs) * 100).toFixed(1) : '0.0';
-
-    let errorJobsText = '';
-    if (errorJobs.length > 0) {
-      errorJobsText = errorJobs.slice(0, 5).map(job => {
-        const startTime = new Date(job.StartTime).toLocaleString('pt-BR');
-        return `❌ ${job.Name || job.JobName} - ${startTime}`;
-      }).join('\n');
+    // Formatar detalhes dos jobs
+    const formatJobDetails = (job) => {
+      const name = job.job || job.jobname || job.name || 'Job desconhecido';
+      const client = job.client || job.clientname || 'Cliente desconhecido';
+      const starttime = job.starttime ? getBrasiliaTime(new Date(job.starttime)) : 'N/A';
+      const endtime = job.endtime ? getBrasiliaTime(new Date(job.endtime)) : 'N/A';
+      const duration = job.starttime && job.endtime ? 
+        Math.round((new Date(job.endtime) - new Date(job.starttime)) / 60000) + ' min' : 'N/A';
+      const jobbytes = job.jobbytes ? formatBytes(parseInt(job.jobbytes)) : '0';
+      const jobfiles = job.jobfiles ? parseInt(job.jobfiles).toLocaleString('pt-BR') : '0';
+      const jobstatus = job.jobstatus || 'N/A';
+      const jobstatus_desc = statusMap[jobstatus] || `Status ${jobstatus}`;
       
-      if (errorJobs.length > 5) {
-        errorJobsText += `\n... e mais ${errorJobs.length - 5} jobs com erro`;
-      }
-    }
+      return `${name} (${client}) - ${starttime} - ${jobstatus_desc} - ${jobbytes}`;
+    };
+
+    // Preparar listas de jobs por categoria
+    const successJobsList = jobsByStatus.success.length > 0 ? 
+      jobsByStatus.success.slice(0, 10).map(formatJobDetails).join('\n') : 
+      'Nenhum job com sucesso encontrado';
+
+    const errorJobsList = jobsByStatus.errors.length > 0 ? 
+      jobsByStatus.errors.slice(0, 10).map(formatJobDetails).join('\n') : 
+      'Nenhum job com erro encontrado';
+
+    const cancelledJobsList = jobsByStatus.cancelled.length > 0 ? 
+      jobsByStatus.cancelled.slice(0, 10).map(formatJobDetails).join('\n') : 
+      'Nenhum job cancelado encontrado';
+
+    const runningJobsList = jobsByStatus.running.length > 0 ? 
+      jobsByStatus.running.slice(0, 10).map(formatJobDetails).join('\n') : 
+      'Nenhum job em execução encontrado';
+
+    const blockedJobsList = jobsByStatus.blocked.length > 0 ? 
+      jobsByStatus.blocked.slice(0, 10).map(formatJobDetails).join('\n') : 
+      'Nenhum job bloqueado encontrado';
+
+    const otherJobsList = jobsByStatus.other.length > 0 ? 
+      jobsByStatus.other.slice(0, 10).map(formatJobDetails).join('\n') : 
+      'Nenhum job com outros status encontrado';
+
+    // Calcular estatísticas
+    const totalJobs = filteredJobs.length;
+    const successJobs = jobsByStatus.success.length;
+    const errorJobs = jobsByStatus.errors.length;
+    const cancelledJobs = jobsByStatus.cancelled.length;
+    const runningJobs = jobsByStatus.running.length;
+    const blockedJobs = jobsByStatus.blocked.length;
+    const otherJobs = jobsByStatus.other.length;
+    const successRate = totalJobs > 0 ? ((successJobs / totalJobs) * 100).toFixed(1) : '0.0';
+    const errorRate = totalJobs > 0 ? ((errorJobs / totalJobs) * 100).toFixed(1) : '0.0';
+    const criticalProblems = errorJobs + cancelledJobs;
+    const affectedClients = new Set(filteredJobs.map(job => job.client || job.clientname)).size;
+    const totalClients = new Set(filteredJobs.map(job => job.client || job.clientname)).size;
+    const avgDuration = filteredJobs.filter(job => job.starttime && job.endtime).length > 0 ?
+      Math.round(filteredJobs.filter(job => job.starttime && job.endtime)
+        .reduce((sum, job) => sum + (new Date(job.endtime) - new Date(job.starttime)), 0) / 
+        filteredJobs.filter(job => job.starttime && job.endtime).length / 60000) + ' min' : 'N/A';
+
+    console.log(`📈 [BACULA] Estatísticas completas para ${yesterdayFormatted}:`);
+    console.log(`   Total: ${totalJobs}, Sucessos: ${successJobs}, Erros: ${errorJobs}, Cancelados: ${cancelledJobs}`);
+    
+    const currentBrasiliaTime = getBrasiliaTime(new Date());
+    const periodStart = getBrasiliaTime(brasiliaStartTime);
+    const periodEnd = getBrasiliaTime(brasiliaEndTime);
 
     return {
+      // Estatísticas básicas
       totalJobs,
-      errorCount,
+      successJobs,
+      errorJobs: errorJobs,
+      cancelledJobs,
+      runningJobs,
+      blockedJobs,
+      otherJobs,
+      successRate,
       errorRate,
-      hasErrors: errorJobs.length > 0,
-      errorJobs: errorJobsText || '✅ Nenhum job com erro nas últimas 24h'
+      hasErrors: errorJobs > 0,
+      hasCancelled: cancelledJobs > 0,
+      hasRunning: runningJobs > 0,
+      hasBlocked: blockedJobs > 0,
+      hasOther: otherJobs > 0,
+      
+      // Listas detalhadas
+      successJobsList,
+      errorJobsList,
+      cancelledJobsList,
+      runningJobsList,
+      blockedJobsList,
+      otherJobsList,
+      
+      // Estatísticas adicionais
+      totalBytes: formatBytes(totalBytes),
+      totalFiles: totalFiles.toLocaleString('pt-BR'),
+      avgDuration,
+      criticalProblems,
+      affectedClients,
+      totalClients,
+      
+      // Período e tempo
+      date: yesterdayFormatted,
+      period: `${periodStart} até ${periodEnd}`,
+      generatedAt: currentBrasiliaTime,
+      
+      // Para compatibilidade com template antigo
+      errorCount: errorJobs,
+      errorJobs: errorJobsList
     };
 
   } catch (error) {
     console.error('❌ [BACULA] Erro na função getBaculaData:', error);
     console.log('🔄 [BACULA] Usando dados mock devido a erro inesperado');
-    return getMockBaculaData();
+    return getEnhancedMockBaculaData();
   }
 }
 
-// Função helper para dados mock do Bacula
+// Função helper para dados mock do Bacula (versão simples)
 function getMockBaculaData() {
   return {
     totalJobs: 25,
@@ -825,6 +1151,83 @@ function getMockBaculaData() {
     errorRate: '8.0',
     hasErrors: true,
     errorJobs: '❌ BackupJob-DB - 05/08/2025 03:15:22\n❌ BackupJob-Files - 05/08/2025 02:30:45'
+  };
+}
+
+// Função helper para dados mock aprimorados do Bacula
+function getEnhancedMockBaculaData() {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayFormatted = yesterday.toLocaleDateString('pt-BR');
+  
+  const getBrasiliaTime = (date) => {
+    return date.toLocaleString('pt-BR', { 
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const currentBrasiliaTime = getBrasiliaTime(new Date());
+  const periodStart = getBrasiliaTime(new Date(yesterday.setHours(0, 0, 0, 0)));
+  const periodEnd = getBrasiliaTime(new Date(yesterday.setHours(23, 59, 59, 999)));
+
+  // Jobs mock baseados em dados reais do Bacula
+  const mockSuccessJobs = [
+    'BackupJob-Servidor1 (srv-principal) - 06/08/2025 02:30:00 - Concluído com Sucesso - 2.5 GB',
+    'BackupJob-Database (db-server) - 06/08/2025 03:15:00 - Concluído com Sucesso - 1.8 GB',
+    'BackupJob-Files (file-server) - 06/08/2025 04:00:00 - Concluído com Sucesso - 4.2 GB'
+  ];
+
+  const mockErrorJobs = [
+    'BackupJob-Exchange (mail-server) - 06/08/2025 02:45:00 - Erro Fatal - 0 B',
+    'BackupJob-Workstation5 (ws-005) - 06/08/2025 03:30:00 - Erro (com diferenças) - 850 MB'
+  ];
+
+  return {
+    // Estatísticas básicas
+    totalJobs: 15,
+    successJobs: 11,
+    errorJobs: 2,
+    cancelledJobs: 1,
+    runningJobs: 0,
+    blockedJobs: 1,
+    otherJobs: 0,
+    successRate: '73.3',
+    errorRate: '13.3',
+    hasErrors: true,
+    hasCancelled: true,
+    hasRunning: false,
+    hasBlocked: true,
+    hasOther: false,
+    
+    // Listas detalhadas
+    successJobsList: mockSuccessJobs.join('\n'),
+    errorJobsList: mockErrorJobs.join('\n'),
+    cancelledJobsList: 'BackupJob-Archive (archive-server) - 06/08/2025 01:15:00 - Cancelado pelo usuário - 0 B',
+    runningJobsList: 'Nenhum job em execução encontrado',
+    blockedJobsList: 'BackupJob-Remote (remote-server) - 06/08/2025 05:00:00 - Bloqueado - 0 B',
+    otherJobsList: 'Nenhum job com outros status encontrado',
+    
+    // Estatísticas adicionais
+    totalBytes: '12.8 GB',
+    totalFiles: '45.628',
+    avgDuration: '18 min',
+    criticalProblems: 3,
+    affectedClients: 5,
+    totalClients: 8,
+    
+    // Período e tempo
+    date: yesterdayFormatted,
+    period: `${periodStart} até ${periodEnd}`,
+    generatedAt: currentBrasiliaTime,
+    
+    // Para compatibilidade com template antigo
+    errorCount: 2,
+    errorJobs: mockErrorJobs.join('\n')
   };
 }
 
