@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import { usePasswords } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,12 +26,12 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-export const LinksTreeView = () => {
+export const LinksTreeView: React.FC = () => {
   const { data: passwords = [] } = usePasswords();
   const { data: companies = [] } = useCompanies();
-  const [expandedCompanies, setExpandedCompanies] = React.useState<Set<string>>(new Set());
-  const [expandedServices, setExpandedServices] = React.useState<Set<string>>(new Set());
-  const [visiblePasswords, setVisiblePasswords] = React.useState<Set<string>>(new Set());
+  const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
+  const [expandedServices, setExpandedServices] = useState<Set<string>>(new Set());
+  const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
 
   // Filtrar apenas senhas que têm gera_link = true
   const links = passwords.filter(password => password.gera_link);
