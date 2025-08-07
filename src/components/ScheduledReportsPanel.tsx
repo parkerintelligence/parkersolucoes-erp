@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Calendar, FileText, BarChart3 } from 'lucide-react';
@@ -14,6 +13,7 @@ import { useScheduledReports, useDeleteScheduledReport, useToggleScheduledReport
 import type { ScheduledReport } from '@/hooks/useScheduledReports';
 
 export const ScheduledReportsPanel = () => {
+  const [activeTab, setActiveTab] = useState('reports');
   const [formOpen, setFormOpen] = useState(false);
   const [editingReport, setEditingReport] = useState<ScheduledReport | null>(null);
   const { data: scheduledReports = [], isLoading, error } = useScheduledReports();
@@ -81,27 +81,57 @@ export const ScheduledReportsPanel = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="reports" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-gray-800 border-gray-700">
-            <TabsTrigger value="reports" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+        <div className="space-y-6">
+          {/* Custom Tab Navigation */}
+          <div className="grid w-full grid-cols-4 bg-gray-800 border-gray-700 rounded-lg p-1 gap-1">
+            <button
+              onClick={() => setActiveTab('reports')}
+              className={`flex items-center justify-center gap-2 py-3 px-4 rounded text-sm font-medium transition-colors ${
+                activeTab === 'reports' 
+                  ? 'bg-gray-700 text-white' 
+                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+              }`}
+            >
               <Calendar className="h-4 w-4" />
               Agendamentos
-            </TabsTrigger>
-            <TabsTrigger value="status" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+            </button>
+            <button
+              onClick={() => setActiveTab('status')}
+              className={`flex items-center justify-center gap-2 py-3 px-4 rounded text-sm font-medium transition-colors ${
+                activeTab === 'status' 
+                  ? 'bg-gray-700 text-white' 
+                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+              }`}
+            >
               <BarChart3 className="h-4 w-4" />
               Status & Próximos
-            </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+            </button>
+            <button
+              onClick={() => setActiveTab('logs')}
+              className={`flex items-center justify-center gap-2 py-3 px-4 rounded text-sm font-medium transition-colors ${
+                activeTab === 'logs' 
+                  ? 'bg-gray-700 text-white' 
+                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+              }`}
+            >
               <FileText className="h-4 w-4" />
               Logs de Execução
-            </TabsTrigger>
-            <TabsTrigger value="stats" className="flex items-center gap-2 text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+            </button>
+            <button
+              onClick={() => setActiveTab('stats')}
+              className={`flex items-center justify-center gap-2 py-3 px-4 rounded text-sm font-medium transition-colors ${
+                activeTab === 'stats' 
+                  ? 'bg-gray-700 text-white' 
+                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+              }`}
+            >
               <BarChart3 className="h-4 w-4" />
               Estatísticas
-            </TabsTrigger>
-          </TabsList>
+            </button>
+          </div>
 
-          <TabsContent value="reports" className="space-y-6">
+          {/* Tab Content */}
+          {activeTab === 'reports' && (
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -126,17 +156,17 @@ export const ScheduledReportsPanel = () => {
                 />
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
-          <TabsContent value="status">
+          {activeTab === 'status' && (
             <ReportsStatusPanel />
-          </TabsContent>
+          )}
 
-          <TabsContent value="logs">
+          {activeTab === 'logs' && (
             <ReportsLogsPanel />
-          </TabsContent>
+          )}
 
-          <TabsContent value="stats">
+          {activeTab === 'stats' && (
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-white">
@@ -148,8 +178,8 @@ export const ScheduledReportsPanel = () => {
                 <AutomationStats />
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
 
         <ScheduledReportForm
           open={formOpen}
