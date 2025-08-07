@@ -1,19 +1,24 @@
-import * as React from "react"
-
+// Simple mobile detection without React hooks to avoid hook resolution issues
 const MOBILE_BREAKPOINT = 768
 
+let isMobileCache: boolean | undefined = undefined
+
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  // Simple implementation that doesn't rely on React hooks
+  if (typeof window === 'undefined') {
+    return false
+  }
+  
+  if (isMobileCache === undefined) {
+    isMobileCache = window.innerWidth < MOBILE_BREAKPOINT
+  }
+  
+  return isMobileCache
+}
 
-  React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    }
-    mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener("change", onChange)
-  }, [])
-
-  return !!isMobile
+// Update cache when window resizes
+if (typeof window !== 'undefined') {
+  window.addEventListener('resize', () => {
+    isMobileCache = window.innerWidth < MOBILE_BREAKPOINT
+  })
 }
