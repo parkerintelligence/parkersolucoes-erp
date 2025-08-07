@@ -23,6 +23,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
+import { BaculaReportViewer } from './BaculaReportViewer';
 
 interface ReportLog {
   id: string;
@@ -261,10 +262,16 @@ export const ReportsLogsPanel = () => {
                       </div>
 
                       {log.message_content && (
-                        <div className="bg-gray-700 p-3 rounded-lg mb-3">
-                          <p className="text-sm text-gray-300 whitespace-pre-wrap">
-                            {log.message_content}
-                          </p>
+                        <div className="mb-3">
+                          {log.message_content.includes('RELATÓRIO DIÁRIO BACULA') ? (
+                            <BaculaReportViewer messageContent={log.message_content} />
+                          ) : (
+                            <div className="bg-gray-700 p-3 rounded-lg">
+                              <p className="text-sm text-gray-300 whitespace-pre-wrap">
+                                {log.message_content}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
 
