@@ -447,9 +447,16 @@ serve(async (req) => {
       }
     });
 
+    // Função para limpar nome do job (remove timestamp)
+    const cleanJobName = (jobName) => {
+      if (!jobName) return 'Job desconhecido';
+      // Remove padrão .YYYY-MM-DD_HH.MM.SS_XX
+      return jobName.replace(/\.\d{4}-\d{2}-\d{2}_\d{2}\.\d{2}\.\d{2}_\d+$/, '');
+    };
+
     // Função para formatar detalhes do job
     const formatJobDetails = (job) => ({
-      name: job.job || job.jobname || job.name || 'Job desconhecido',
+      name: cleanJobName(job.job || job.jobname || job.name),
       client: job.client || job.clientname || 'Cliente desconhecido',
       level: job.level || 'N/A',
       starttime: job.starttime ? getBrasiliaTime(new Date(job.starttime)) : 'N/A',
@@ -555,13 +562,8 @@ serve(async (req) => {
       if (!jobs || jobs.length === 0) return '• Nenhum job encontrado';
       
       return jobs.map(job => {
-        let jobText = `${job.jobstatus_emoji} *${job.name}*\n  🏢 ${job.client} • 📊 ${job.level} • 🕐 ${job.starttime}`;
-        if (showDuration && job.duration !== 'N/A') {
-          jobText += ` • ⏱️ ${job.duration}`;
-        }
-        jobText += `\n  💾 ${job.jobbytes} • 📁 ${job.jobfiles} arquivos • Status: ${job.jobstatus_desc}`;
-        return jobText;
-      }).join('\n  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+        return `${job.name} (${job.client}) - ${job.starttime} - ${job.jobstatus_desc} - ${job.jobbytes}`;
+      }).join('\n');
     };
 
     // Processar listas de jobs por categoria

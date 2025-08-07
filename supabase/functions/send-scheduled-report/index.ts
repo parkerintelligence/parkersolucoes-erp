@@ -1070,9 +1070,16 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
       });
     };
 
+    // Função para limpar nome do job (remove timestamp)
+    const cleanJobName = (jobName) => {
+      if (!jobName) return 'Job desconhecido';
+      // Remove padrão .YYYY-MM-DD_HH.MM.SS_XX
+      return jobName.replace(/\.\d{4}-\d{2}-\d{2}_\d{2}\.\d{2}\.\d{2}_\d+$/, '');
+    };
+
     // Formatar detalhes dos jobs
     const formatJobDetails = (job) => {
-      const name = job.job || job.jobname || job.name || 'Job desconhecido';
+      const name = cleanJobName(job.job || job.jobname || job.name);
       const client = job.client || job.clientname || 'Cliente desconhecido';
       const starttime = job.starttime ? getBrasiliaTime(new Date(job.starttime)) : 'N/A';
       const endtime = job.endtime ? getBrasiliaTime(new Date(job.endtime)) : 'N/A';
