@@ -15,16 +15,9 @@ import {
   Users,
   TrendingDown,
   FileText,
-  Calendar
+  Calendar,
+  Server
 } from 'lucide-react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
 
 interface BaculaJob {
   name: string;
@@ -33,6 +26,7 @@ interface BaculaJob {
   datetime: string;
   bytes: number;
   files: number;
+  jobId?: string;
 }
 
 interface BaculaData {
@@ -69,12 +63,10 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
   };
 
   const parseBaculaReport = (content: string): BaculaData | null => {
-    if (!content.includes('RELATÓRIO DIÁRIO BACULA')) {
-      return null;
-    }
-
+    const lines = content.split('\n').filter(line => line.trim());
+    
     const data: BaculaData = {
-      date: '',
+      date: new Date().toLocaleDateString('pt-BR'),
       totalJobs: 0,
       successJobs: 0,
       errorJobs: 0,
@@ -89,80 +81,86 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
       fallbackData: false
     };
 
-    // Extract date
-    const dateMatch = content.match(/RELATÓRIO DIÁRIO BACULA.*?(\d{2}\/\d{2}\/\d{4})/);
-    if (dateMatch) {
-      data.date = dateMatch[1];
-    }
-
-    // Extract summary numbers
-    const totalJobsMatch = content.match(/Total de Jobs:\s*(\d+)/);
-    if (totalJobsMatch) {
-      data.totalJobs = parseInt(totalJobsMatch[1]);
-    }
-
-    const errorJobsMatch = content.match(/Jobs com Erro:\s*(\d+)/);
-    if (errorJobsMatch) {
-      data.errorJobs = parseInt(errorJobsMatch[1]);
-    }
-
-    // Parse individual jobs - improved pattern for the actual format
-    const lines = content.split('\n');
-    let currentStatus = '';
+    let currentSection = '';
+    let successRate = 0;
     
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      
-      // Detect status headers
-      if (line.includes('REALIZADO COM SUCESSO')) {
-        currentStatus = 'Success';
+    for (const line of lines) {
+      // Extract success rate if present
+      const successRateMatch = line.match(/Taxa de Sucesso:\s*(\d+\.?\d*)%/);
+      if (successRateMatch) {
+        successRate = parseFloat(successRateMatch[1]);
         continue;
-      } else if (line.includes('COM ERRO') || line.includes('FALHOU')) {
-        currentStatus = 'Error';
-        continue;
-      } else if (line.includes('CANCELADO')) {
-        currentStatus = 'Canceled';
-        continue;
-      } else if (line.includes('EM EXECUÇÃO')) {
-        currentStatus = 'Running';
+      }
+
+      // Detect sections by emojis and keywords
+      if (line.includes('✅') && (line.includes('SUCESSO') || line.includes('SUCCESS'))) {
+        currentSection = 'success';
+        const match = line.match(/\((\d+)\)/);
+        if (match) {
+          data.successJobs = parseInt(match[1]);
+        }
         continue;
       }
       
-      // Parse job details - looking for the format from the example
-      // TAVARES_SARTORI_-SRVDB004-_UAU_E_ANEXOS (TAVARES-SARTORI-SRVDB004) - 06/08/2025, 20:05 - 323.72 KB
-      const jobMatch = line.match(/^([A-Z_\-\d]+)\s*\(([^)]+)\)\s*-\s*(\d{2}\/\d{2}\/\d{4}),?\s*(\d{2}:\d{2})\s*-\s*(.+)$/);
+      if (line.includes('❌') && (line.includes('ERRO') || line.includes('ERROR'))) {
+        currentSection = 'error';
+        const match = line.match(/\((\d+)\)/);
+        if (match) {
+          data.errorJobs = parseInt(match[1]);
+        }
+        continue;
+      }
       
-      if (jobMatch && currentStatus) {
-        const [, jobName, client, date, time, sizeStr] = jobMatch;
+      if (line.includes('⚠') && (line.includes('CANCELADO') || line.includes('CANCELED'))) {
+        currentSection = 'canceled';
+        const match = line.match(/\((\d+)\)/);
+        if (match) {
+          // Handle canceled jobs count
+        }
+        continue;
+      }
+
+      // Parse job lines - New format: JobName.ID (Client) - Date, Time - Status - Size
+      const jobMatch = line.match(/^(.+?)\s+\((.+?)\)\s+-\s+(\d{2}\/\d{2}\/\d{4}),\s+(\d{2}:\d{2})\s+-\s+(.+?)\s+-\s+(.+)$/);
+      
+      if (jobMatch && currentSection) {
+        const [, jobNameWithId, client, date, time, status, sizeStr] = jobMatch;
+        
+        // Extract job name and ID
+        const jobParts = jobNameWithId.split('.');
+        const jobName = jobParts.slice(0, -1).join('.') || jobNameWithId;
+        const jobId = jobParts[jobParts.length - 1] || '';
         
         const job: BaculaJob = {
           name: jobName.trim(),
-          status: currentStatus,
+          status: status.trim(),
           client: client.trim(),
           datetime: `${date}, ${time}`,
           bytes: parseSizeString(sizeStr.trim()),
-          files: 0 // This format doesn't include file count
+          files: 0,
+          jobId: jobId
         };
 
-        data.totalBytes += job.bytes;
-
-        if (['Error', 'Fatal'].includes(job.status)) {
-          data.errorJobs_list.push(job);
-        } else if (job.status === 'Success') {
+        if (currentSection === 'success') {
           data.successJobs_list.push(job);
-        } else if (job.status === 'Canceled') {
+        } else if (currentSection === 'error') {
+          data.errorJobs_list.push(job);
+        } else if (currentSection === 'canceled') {
           data.canceledJobs_list.push(job);
-        } else if (job.status === 'Running') {
-          data.runningJobs_list.push(job);
         }
+        
+        data.totalBytes += job.bytes;
       }
     }
 
-    data.successJobs = data.successJobs_list.length;
-    data.errorJobs = data.errorJobs_list.length;
-    data.affectedClients = new Set([...data.errorJobs_list, ...data.successJobs_list, ...data.canceledJobs_list, ...data.runningJobs_list].map(j => j.client)).size;
-    data.recurringFailures = content.includes('FALHAS RECORRENTES');
-    data.fallbackData = content.includes('fallback');
+    // Calculate totals
+    data.totalJobs = data.successJobs + data.errorJobs + data.canceledJobs_list.length;
+    data.affectedClients = new Set([...data.errorJobs_list, ...data.successJobs_list, ...data.canceledJobs_list].map(j => j.client)).size;
+    
+    // If no jobs were parsed, try fallback for raw content
+    if (data.totalJobs === 0) {
+      data.fallbackData = true;
+    }
 
     return data;
   };
@@ -205,23 +203,124 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      'Success': { variant: 'default', className: 'bg-green-600 text-white', icon: CheckCircle },
-      'Error': { variant: 'destructive', className: 'bg-red-600 text-white', icon: XCircle },
-      'Fatal': { variant: 'destructive', className: 'bg-red-800 text-white', icon: XCircle },
-      'Warning': { variant: 'secondary', className: 'bg-yellow-600 text-white', icon: AlertTriangle },
-      'Running': { variant: 'outline', className: 'bg-blue-600 text-white', icon: Clock },
-      'Canceled': { variant: 'outline', className: 'bg-gray-600 text-white', icon: XCircle }
-    };
-
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.Error;
-    const Icon = config.icon;
-
+    const statusLower = status.toLowerCase();
+    
+    if (statusLower.includes('ok') || statusLower.includes('success') || statusLower.includes('concluído') || statusLower.includes('sucesso')) {
+      return (
+        <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200">
+          <CheckCircle className="mr-1 h-3 w-3" />
+          Sucesso
+        </Badge>
+      );
+    }
+    
+    if (statusLower.includes('error') || statusLower.includes('failed') || statusLower.includes('erro')) {
+      return (
+        <Badge className="bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-200">
+          <XCircle className="mr-1 h-3 w-3" />
+          Erro
+        </Badge>
+      );
+    }
+    
+    if (statusLower.includes('warning') || statusLower.includes('aviso')) {
+      return (
+        <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-200">
+          <AlertTriangle className="mr-1 h-3 w-3" />
+          Aviso
+        </Badge>
+      );
+    }
+    
+    if (statusLower.includes('canceled') || statusLower.includes('cancelado')) {
+      return (
+        <Badge className="bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900 dark:text-orange-200">
+          <Clock className="mr-1 h-3 w-3" />
+          Cancelado
+        </Badge>
+      );
+    }
+    
     return (
-      <Badge className={config.className}>
-        <Icon className="h-3 w-3 mr-1" />
+      <Badge variant="secondary">
+        <Clock className="mr-1 h-3 w-3" />
         {status}
       </Badge>
+    );
+  };
+
+  const JobCard = ({ job, sectionType }: { job: BaculaJob; sectionType: 'success' | 'error' | 'canceled' }) => {
+    const cardStyles = {
+      success: "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800",
+      error: "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800", 
+      canceled: "bg-orange-50 border-orange-200 dark:bg-orange-950 dark:border-orange-800"
+    };
+
+    const statusLabels = {
+      success: "REALIZADO COM SUCESSO",
+      error: "FALHOU",
+      canceled: "CANCELADO"
+    };
+
+    const statusColors = {
+      success: "text-green-700 dark:text-green-300",
+      error: "text-red-700 dark:text-red-300",
+      canceled: "text-orange-700 dark:text-orange-300"
+    };
+
+    return (
+      <Card className={`${cardStyles[sectionType]} border-2 mb-6 transition-all hover:shadow-lg`}>
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between mb-4">
+            <Badge className={`px-3 py-1 text-sm font-semibold ${statusColors[sectionType]}`}>
+              {sectionType === 'success' ? '✅' : sectionType === 'error' ? '❌' : '⚠️'} {statusLabels[sectionType]}
+            </Badge>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-xl font-bold text-foreground mb-2 leading-tight">
+                📋 {job.name}
+              </h3>
+              {job.jobId && (
+                <p className="text-sm text-muted-foreground">
+                  🆔 Job ID: {job.jobId}
+                </p>
+              )}
+            </div>
+            
+            <div className="space-y-3 pt-2">
+              <div className="flex items-start gap-3">
+                <Users className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="text-sm font-medium text-muted-foreground block">Cliente:</span>
+                  <span className="text-base font-semibold text-foreground">{job.client}</span>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <Calendar className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="text-sm font-medium text-muted-foreground block">Data/Hora:</span>
+                  <span className="text-base font-semibold text-foreground">{job.datetime}</span>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <HardDrive className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="text-sm font-medium text-muted-foreground block">Tamanho:</span>
+                  <span className="text-base font-semibold text-foreground">{formatBytes(job.bytes)}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="h-0.5 bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent"></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     );
   };
 
@@ -337,66 +436,30 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
         )}
       </Card>
 
-      {/* Jobs Cards Layout */}
+      {/* Jobs com Erro */}
       {data.errorJobs_list.length > 0 && (
-        <Card className="bg-red-900/10 border-red-800">
-          <CardHeader 
-            className="cursor-pointer" 
-            onClick={() => toggleSection('errors')}
-          >
-            <CardTitle className="flex items-center justify-between text-white">
-              <div className="flex items-center gap-2">
-                <XCircle className="h-4 w-4 text-red-400" />
+        <Card className="bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center text-red-700 dark:text-red-300">
+                <XCircle className="mr-2 h-5 w-5" />
                 Jobs com Erro ({data.errorJobs_list.length})
-              </div>
-              {expandedSections.has('errors') ? 
-                <ChevronUp className="h-4 w-4" /> : 
-                <ChevronDown className="h-4 w-4" />
-              }
-            </CardTitle>
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => toggleSection('error')}
+                className="text-red-600 hover:text-red-700"
+              >
+                {expandedSections.has('error') ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </div>
           </CardHeader>
-          {expandedSections.has('errors') && (
-            <CardContent>
-              <div className="space-y-4">
+          {expandedSections.has('error') && (
+            <CardContent className="pt-0">
+              <div className="space-y-0">
                 {data.errorJobs_list.map((job, index) => (
-                  <div key={index} className="bg-red-900/20 border border-red-800 rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(job.status)}
-                        <span className="text-sm font-medium text-red-300">FALHOU</span>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h4 className="text-lg font-bold text-white leading-tight">
-                        {job.name}
-                      </h4>
-                    </div>
-                    
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <Users className="h-4 w-4 text-blue-400" />
-                        <span className="font-medium">Cliente:</span>
-                        <span>{job.client}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <Calendar className="h-4 w-4 text-green-400" />
-                        <span className="font-medium">Data/Hora:</span>
-                        <span>{job.datetime}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <HardDrive className="h-4 w-4 text-purple-400" />
-                        <span className="font-medium">Tamanho:</span>
-                        <span>{formatBytes(job.bytes)}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="border-t border-red-800/50 mt-3 pt-3">
-                      <div className="h-px bg-gradient-to-r from-red-800/50 via-red-600/30 to-red-800/50"></div>
-                    </div>
-                  </div>
+                  <JobCard key={index} job={job} sectionType="error" />
                 ))}
               </div>
             </CardContent>
@@ -404,65 +467,61 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
         </Card>
       )}
 
+      {/* Jobs com Sucesso */}
       {data.successJobs_list.length > 0 && (
-        <Card className="bg-green-900/10 border-green-800">
-          <CardHeader 
-            className="cursor-pointer" 
-            onClick={() => toggleSection('success')}
-          >
-            <CardTitle className="flex items-center justify-between text-white">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-400" />
+        <Card className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center text-green-700 dark:text-green-300">
+                <CheckCircle className="mr-2 h-5 w-5" />
                 Jobs com Sucesso ({data.successJobs_list.length})
-              </div>
-              {expandedSections.has('success') ? 
-                <ChevronUp className="h-4 w-4" /> : 
-                <ChevronDown className="h-4 w-4" />
-              }
-            </CardTitle>
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => toggleSection('success')}
+                className="text-green-600 hover:text-green-700"
+              >
+                {expandedSections.has('success') ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </div>
           </CardHeader>
           {expandedSections.has('success') && (
-            <CardContent>
-              <div className="space-y-4">
+            <CardContent className="pt-0">
+              <div className="space-y-0">
                 {data.successJobs_list.map((job, index) => (
-                  <div key={index} className="bg-green-900/20 border border-green-800 rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(job.status)}
-                        <span className="text-sm font-medium text-green-300">REALIZADO COM SUCESSO</span>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h4 className="text-lg font-bold text-white leading-tight">
-                        {job.name}
-                      </h4>
-                    </div>
-                    
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <Users className="h-4 w-4 text-blue-400" />
-                        <span className="font-medium">Cliente:</span>
-                        <span>{job.client}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <Calendar className="h-4 w-4 text-green-400" />
-                        <span className="font-medium">Data/Hora:</span>
-                        <span>{job.datetime}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <HardDrive className="h-4 w-4 text-purple-400" />
-                        <span className="font-medium">Tamanho:</span>
-                        <span>{formatBytes(job.bytes)}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="border-t border-green-800/50 mt-3 pt-3">
-                      <div className="h-px bg-gradient-to-r from-green-800/50 via-green-600/30 to-green-800/50"></div>
-                    </div>
-                  </div>
+                  <JobCard key={index} job={job} sectionType="success" />
+                ))}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
+      {/* Jobs Cancelados */}
+      {data.canceledJobs_list.length > 0 && (
+        <Card className="bg-orange-50 border-orange-200 dark:bg-orange-950 dark:border-orange-800">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center text-orange-700 dark:text-orange-300">
+                <Clock className="mr-2 h-5 w-5" />
+                Jobs Cancelados ({data.canceledJobs_list.length})
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => toggleSection('canceled')}
+                className="text-orange-600 hover:text-orange-700"
+              >
+                {expandedSections.has('canceled') ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </div>
+          </CardHeader>
+          {expandedSections.has('canceled') && (
+            <CardContent className="pt-0">
+              <div className="space-y-0">
+                {data.canceledJobs_list.map((job, index) => (
+                  <JobCard key={index} job={job} sectionType="canceled" />
                 ))}
               </div>
             </CardContent>
