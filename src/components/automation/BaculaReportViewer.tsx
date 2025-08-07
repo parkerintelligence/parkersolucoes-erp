@@ -106,31 +106,55 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
       data.errorJobs = parseInt(errorJobsMatch[1]);
     }
 
-    // Extract jobs from details section
-    const jobPattern = /•\s*([^-]+)\s*-\s*(Error|Fatal|Success|Warning|Running|Canceled)\s*📂\s*Cliente:\s*([^\n]+)\s*⏰\s*Horário:\s*([^\n]+)\s*💾\s*Bytes:\s*([^\n]+)\s*📄\s*Arquivos:\s*([^\n]+)/g;
+    // Parse individual jobs - improved pattern for the actual format
+    const lines = content.split('\n');
+    let currentStatus = '';
     
-    let match;
-    while ((match = jobPattern.exec(content)) !== null) {
-      const job: BaculaJob = {
-        name: match[1].trim(),
-        status: match[2].trim(),
-        client: match[3].trim(),
-        datetime: match[4].trim(),
-        bytes: parseBytes(match[5].trim()),
-        files: parseInt(match[6].trim().replace(/[,.]/g, '')) || 0
-      };
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Detect status headers
+      if (line.includes('REALIZADO COM SUCESSO')) {
+        currentStatus = 'Success';
+        continue;
+      } else if (line.includes('COM ERRO') || line.includes('FALHOU')) {
+        currentStatus = 'Error';
+        continue;
+      } else if (line.includes('CANCELADO')) {
+        currentStatus = 'Canceled';
+        continue;
+      } else if (line.includes('EM EXECUÇÃO')) {
+        currentStatus = 'Running';
+        continue;
+      }
+      
+      // Parse job details - looking for the format from the example
+      // TAVARES_SARTORI_-SRVDB004-_UAU_E_ANEXOS (TAVARES-SARTORI-SRVDB004) - 06/08/2025, 20:05 - 323.72 KB
+      const jobMatch = line.match(/^([A-Z_\-\d]+)\s*\(([^)]+)\)\s*-\s*(\d{2}\/\d{2}\/\d{4}),?\s*(\d{2}:\d{2})\s*-\s*(.+)$/);
+      
+      if (jobMatch && currentStatus) {
+        const [, jobName, client, date, time, sizeStr] = jobMatch;
+        
+        const job: BaculaJob = {
+          name: jobName.trim(),
+          status: currentStatus,
+          client: client.trim(),
+          datetime: `${date}, ${time}`,
+          bytes: parseSizeString(sizeStr.trim()),
+          files: 0 // This format doesn't include file count
+        };
 
-      data.totalBytes += job.bytes;
-      data.totalFiles += job.files;
+        data.totalBytes += job.bytes;
 
-      if (['Error', 'Fatal'].includes(job.status)) {
-        data.errorJobs_list.push(job);
-      } else if (job.status === 'Success') {
-        data.successJobs_list.push(job);
-      } else if (job.status === 'Canceled') {
-        data.canceledJobs_list.push(job);
-      } else if (job.status === 'Running') {
-        data.runningJobs_list.push(job);
+        if (['Error', 'Fatal'].includes(job.status)) {
+          data.errorJobs_list.push(job);
+        } else if (job.status === 'Success') {
+          data.successJobs_list.push(job);
+        } else if (job.status === 'Canceled') {
+          data.canceledJobs_list.push(job);
+        } else if (job.status === 'Running') {
+          data.runningJobs_list.push(job);
+        }
       }
     }
 
@@ -141,6 +165,26 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
     data.fallbackData = content.includes('fallback');
 
     return data;
+  };
+
+  const parseSizeString = (sizeStr: string): number => {
+    const cleaned = sizeStr.replace(/[,.]/g, '').toLowerCase();
+    const match = cleaned.match(/(\d+(?:\.\d+)?)\s*(b|kb|mb|gb|tb)?/);
+    
+    if (!match) return 0;
+    
+    const value = parseFloat(match[1]);
+    const unit = match[2] || 'b';
+    
+    const multipliers = {
+      'b': 1,
+      'kb': 1024,
+      'mb': 1024 * 1024,
+      'gb': 1024 * 1024 * 1024,
+      'tb': 1024 * 1024 * 1024 * 1024
+    };
+    
+    return Math.round(value * (multipliers[unit as keyof typeof multipliers] || 1));
   };
 
   const parseBytes = (bytesStr: string): number => {
@@ -293,9 +337,9 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
         )}
       </Card>
 
-      {/* Jobs Tables */}
+      {/* Jobs Cards Layout */}
       {data.errorJobs_list.length > 0 && (
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-red-900/10 border-red-800">
           <CardHeader 
             className="cursor-pointer" 
             onClick={() => toggleSection('errors')}
@@ -313,37 +357,55 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
           </CardHeader>
           {expandedSections.has('errors') && (
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-700">
-                    <TableHead className="text-gray-300">Job</TableHead>
-                    <TableHead className="text-gray-300">Status</TableHead>
-                    <TableHead className="text-gray-300">Cliente</TableHead>
-                    <TableHead className="text-gray-300">Data/Hora</TableHead>
-                    <TableHead className="text-gray-300 text-right">Volume</TableHead>
-                    <TableHead className="text-gray-300 text-right">Arquivos</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.errorJobs_list.map((job, index) => (
-                    <TableRow key={index} className="border-gray-700 hover:bg-gray-750">
-                      <TableCell className="font-medium text-white">{job.name}</TableCell>
-                      <TableCell>{getStatusBadge(job.status)}</TableCell>
-                      <TableCell className="text-gray-300">{job.client}</TableCell>
-                      <TableCell className="text-gray-300">{job.datetime}</TableCell>
-                      <TableCell className="text-right text-gray-300">{formatBytes(job.bytes)}</TableCell>
-                      <TableCell className="text-right text-gray-300">{formatNumber(job.files)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="space-y-4">
+                {data.errorJobs_list.map((job, index) => (
+                  <div key={index} className="bg-red-900/20 border border-red-800 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(job.status)}
+                        <span className="text-sm font-medium text-red-300">FALHOU</span>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-lg font-bold text-white leading-tight">
+                        {job.name}
+                      </h4>
+                    </div>
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2 text-gray-300">
+                        <Users className="h-4 w-4 text-blue-400" />
+                        <span className="font-medium">Cliente:</span>
+                        <span>{job.client}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-gray-300">
+                        <Calendar className="h-4 w-4 text-green-400" />
+                        <span className="font-medium">Data/Hora:</span>
+                        <span>{job.datetime}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-gray-300">
+                        <HardDrive className="h-4 w-4 text-purple-400" />
+                        <span className="font-medium">Tamanho:</span>
+                        <span>{formatBytes(job.bytes)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="border-t border-red-800/50 mt-3 pt-3">
+                      <div className="h-px bg-gradient-to-r from-red-800/50 via-red-600/30 to-red-800/50"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           )}
         </Card>
       )}
 
       {data.successJobs_list.length > 0 && (
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-green-900/10 border-green-800">
           <CardHeader 
             className="cursor-pointer" 
             onClick={() => toggleSection('success')}
@@ -361,30 +423,48 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
           </CardHeader>
           {expandedSections.has('success') && (
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-700">
-                    <TableHead className="text-gray-300">Job</TableHead>
-                    <TableHead className="text-gray-300">Status</TableHead>
-                    <TableHead className="text-gray-300">Cliente</TableHead>
-                    <TableHead className="text-gray-300">Data/Hora</TableHead>
-                    <TableHead className="text-gray-300 text-right">Volume</TableHead>
-                    <TableHead className="text-gray-300 text-right">Arquivos</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.successJobs_list.map((job, index) => (
-                    <TableRow key={index} className="border-gray-700 hover:bg-gray-750">
-                      <TableCell className="font-medium text-white">{job.name}</TableCell>
-                      <TableCell>{getStatusBadge(job.status)}</TableCell>
-                      <TableCell className="text-gray-300">{job.client}</TableCell>
-                      <TableCell className="text-gray-300">{job.datetime}</TableCell>
-                      <TableCell className="text-right text-gray-300">{formatBytes(job.bytes)}</TableCell>
-                      <TableCell className="text-right text-gray-300">{formatNumber(job.files)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="space-y-4">
+                {data.successJobs_list.map((job, index) => (
+                  <div key={index} className="bg-green-900/20 border border-green-800 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(job.status)}
+                        <span className="text-sm font-medium text-green-300">REALIZADO COM SUCESSO</span>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-lg font-bold text-white leading-tight">
+                        {job.name}
+                      </h4>
+                    </div>
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2 text-gray-300">
+                        <Users className="h-4 w-4 text-blue-400" />
+                        <span className="font-medium">Cliente:</span>
+                        <span>{job.client}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-gray-300">
+                        <Calendar className="h-4 w-4 text-green-400" />
+                        <span className="font-medium">Data/Hora:</span>
+                        <span>{job.datetime}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-gray-300">
+                        <HardDrive className="h-4 w-4 text-purple-400" />
+                        <span className="font-medium">Tamanho:</span>
+                        <span>{formatBytes(job.bytes)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="border-t border-green-800/50 mt-3 pt-3">
+                      <div className="h-px bg-gradient-to-r from-green-800/50 via-green-600/30 to-green-800/50"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           )}
         </Card>
