@@ -241,7 +241,7 @@ const handler = async (req: Request): Promise<Response> => {
 };
 
 // Função para gerar mensagem baseada em template
-async function generateMessageFromTemplate(template: any, reportType: string, userId: string, settings: any): Promise<string> {
+async function generateMessageFromTemplate(template: any, reportType: string, userId: string, settings: any, authHeader: string = ''): Promise<string> {
   const currentDate = new Date().toLocaleDateString('pt-BR');
   const currentTime = new Date().toLocaleTimeString('pt-BR');
   let messageContent = template.body;
@@ -310,7 +310,7 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
       break;
 
     case 'bacula_daily':
-      const baculaData = await getBaculaData(userId, settings);
+      const baculaData = await getBaculaData(userId, settings, authHeader);
       console.log('📊 [BACULA] Dados obtidos para processamento:', JSON.stringify(baculaData, null, 2));
       
       // Mapear todas as variáveis do template corretamente
