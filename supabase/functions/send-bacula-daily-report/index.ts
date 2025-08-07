@@ -562,7 +562,7 @@ serve(async (req) => {
       if (!jobs || jobs.length === 0) return '• Nenhum job encontrado';
       
       return jobs.map(job => {
-        return `${job.name} (${job.client}) - ${job.starttime} - ${job.jobstatus_desc} - ${job.jobbytes}`;
+        return `${job.jobstatus_emoji} ${job.name}\n(${job.client})\n${job.starttime}\n${job.jobstatus_desc} - ${job.jobbytes}\n__________________________________________________________`;
       }).join('\n');
     };
 
