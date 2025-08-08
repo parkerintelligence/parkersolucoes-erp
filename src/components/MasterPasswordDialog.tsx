@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, KeyboardEvent } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -21,13 +21,13 @@ interface MasterPasswordDialogProps {
   description?: string;
 }
 
-export const MasterPasswordDialog: React.FC<MasterPasswordDialogProps> = ({
+export const MasterPasswordDialog = ({
   open,
   onOpenChange,
   onSuccess,
   title = "Autorização Master Necessária",
   description = "Para continuar com esta ação, insira sua senha de usuário master:"
-}) => {
+}: MasterPasswordDialogProps) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -81,7 +81,7 @@ export const MasterPasswordDialog: React.FC<MasterPasswordDialogProps> = ({
     onOpenChange(false);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleValidate();
     }

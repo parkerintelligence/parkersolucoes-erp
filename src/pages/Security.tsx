@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -45,7 +45,7 @@ const Security = () => {
   const isLoadingData = agentsLoading || alertsLoading || statsLoading || managerInfoLoading || rulesLoading;
 
   // Use real data if available, otherwise use mock data
-  const hasRealData = React.useMemo(() => {
+  const hasRealData = useMemo(() => {
     if (!wazuhIntegration || isLoadingData) return false;
     
     // Check if we have successful data from any of the queries

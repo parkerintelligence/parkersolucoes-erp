@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import { useRealFtp } from '@/hooks/useRealFtp';
 import { toast } from '@/hooks/use-toast';
 import BackupsEmptyState from '@/components/BackupsEmptyState';
@@ -34,7 +34,7 @@ const Backups = () => {
   const backupFiles = ftpFiles.filter(file => !file.isDirectory && (file.name.includes('backup') || file.name.includes('.sql') || file.name.includes('.tar') || file.name.includes('.zip') || file.name.includes('.gz')));
 
   // Verificar disponibilidade do host
-  React.useEffect(() => {
+  useEffect(() => {
     const checkHostAvailability = async () => {
       if (!ftpIntegration) return;
       setHostAvailability('checking');
@@ -56,7 +56,7 @@ const Backups = () => {
     }
   }, [ftpIntegration, ftpFiles.length]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     setUploadingFile(file);

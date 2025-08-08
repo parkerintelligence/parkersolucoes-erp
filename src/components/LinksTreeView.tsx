@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { usePasswords } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-export const LinksTreeView: React.FC = () => {
+export const LinksTreeView = () => {
   const { data: passwords = [] } = usePasswords();
   const { data: companies = [] } = useCompanies();
   const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
