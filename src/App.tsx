@@ -10,7 +10,6 @@ import GLPI from '@/pages/GLPI';
 import Guacamole from '@/pages/Guacamole';
 import Backups from '@/pages/Backups';
 import Passwords from '@/pages/Passwords';
-import TestLinks from '@/pages/TestLinks';
 import Annotations from '@/pages/Annotations';
 import Links from '@/pages/Links';
 import WhatsApp from '@/pages/WhatsApp';
@@ -57,14 +56,6 @@ function App() {
                 element={
                   <Layout>
                     <Links />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/test-links"
-                element={
-                  <Layout>
-                    <TestLinks />
                   </Layout>
                 }
               />
