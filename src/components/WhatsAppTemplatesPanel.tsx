@@ -61,7 +61,12 @@ const WhatsAppTemplatesPanel = () => {
       name: 'Resumo GLPI', 
       icon: ExternalLink, 
       color: 'bg-blue-600 text-white',
-      variables: ['{{date}}', '{{open_tickets}}', '{{critical_tickets}}', '{{pending_tickets}}', '{{ticket_list}}']
+      variables: [
+        '{{date}}', '{{open_tickets}}', '{{critical_tickets}}', '{{pending_tickets}}', 
+        '{{ticket_list}}', '{{open_tickets_list}}', '{{open_tickets_detailed}}', 
+        '{{critical_tickets_list}}', '{{critical_tickets_detailed}}', '{{overdue}}', 
+        '{{total_active}}', '{{new_today}}', '{{avg_time_open}}'
+      ]
     }
   };
 

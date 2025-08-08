@@ -127,8 +127,16 @@ const handler = async (req: Request): Promise<Response> => {
           continue;
         }
 
+        // Normalizar base URL para evitar duplicação de /apirest.php
+        let baseUrl = glpiIntegration.base_url;
+        if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+          baseUrl = `http://${baseUrl}`;
+        }
+        // Remove /apirest.php se já estiver presente para evitar duplicação
+        baseUrl = baseUrl.replace(/\/apirest\.php\/?$/, '');
+        
         // Primeiro fazer login no GLPI para obter Session-Token válido
-        const loginResponse = await fetch(`${glpiIntegration.base_url}/apirest.php/initSession`, {
+        const loginResponse = await fetch(`${baseUrl}/apirest.php/initSession`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -165,7 +173,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.log(`📤 [GLPI-CRON] Enviando chamado para GLPI:`, ticketData);
 
         // Criar chamado no GLPI usando session token válido
-        const glpiResponse = await fetch(`${glpiIntegration.base_url}/apirest.php/Ticket`, {
+        const glpiResponse = await fetch(`${baseUrl}/apirest.php/Ticket`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -221,7 +229,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         // Fazer logout do GLPI para limpar a sessão
         try {
-          await fetch(`${glpiIntegration.base_url}/apirest.php/killSession`, {
+          await fetch(`${baseUrl}/apirest.php/killSession`, {
             method: 'POST',
             headers: {
               'App-Token': glpiIntegration.api_token || '',

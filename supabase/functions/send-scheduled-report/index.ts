@@ -959,7 +959,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
           range: '0-100',
           'searchText[0][field]': 12, // status
           'searchText[0][searchtype]': 'contains',
-          'searchText[0][value]': '1|2|3|4|5' // Status em aberto
+          'searchText[0][value]': '1|2|3|4' // Status em aberto (excluindo 5=resolved)
         }
       })
     });
@@ -986,7 +986,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
     console.log(`📋 [GLPI] Primeiros tickets:`, allTickets.slice(0, 3).map(t => ({ id: t.id, name: t.name, status: t.status, priority: t.priority })));
 
     // Filtrar e categorizar tickets
-    const openTickets = allTickets.filter(t => [1, 2, 3].includes(t.status || 1));
+    const openTickets = allTickets.filter(t => [1, 2, 3, 4].includes(t.status || 1));
     const criticalTickets = allTickets.filter(t => (t.priority || 1) >= 4);
     const pendingTickets = allTickets.filter(t => t.status === 4);
     const newTickets = allTickets.filter(t => t.status === 1);
@@ -1012,9 +1012,9 @@ async function getGLPIStandardData(glpiIntegration: any) {
       return priorityB - priorityA; // Ordem decrescente (maior prioridade primeiro)
     });
 
-    // Criar lista detalhada dos tickets em aberto (top 5)
+    // Criar lista detalhada dos tickets em aberto (top 10)
     const detailedOpenTickets = sortedTickets
-      .slice(0, 8)
+      .slice(0, 10)
       .map(ticket => {
         const priority = getPriorityIcon(ticket.priority || 1);
         const status = getStatusText(ticket.status || 1);
@@ -1080,7 +1080,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
       total_active: allTickets.length,
       
       // Dados para compatibilidade com outros templates
-      list: criticalSummary || '✅ Nenhum ticket urgente',
+      list: detailedOpenTickets || '✅ Nenhum ticket em aberto',
       new_tickets: dailyNewTickets,
       resolved_tickets: 0, // Para relatório diário, seria 0 pois foca em abertos
       avg_resolution_time: '2.5 horas', // Mock
