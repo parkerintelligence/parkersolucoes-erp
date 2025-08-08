@@ -1,5 +1,5 @@
 
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -25,11 +25,11 @@ const CRON_PRESETS = [
 ];
 
 export const TimeSelector = ({ value, onChange, onCustomCron }: TimeSelectorProps) => {
-  const [customMode, setCustomMode] = React.useState(false);
-  const [hour, setHour] = React.useState('9');
-  const [minute, setMinute] = React.useState('0');
-  const [frequency, setFrequency] = React.useState('daily');
-  const [customCron, setCustomCron] = React.useState('');
+  const [customMode, setCustomMode] = useState(false);
+  const [hour, setHour] = useState('9');
+  const [minute, setMinute] = useState('0');
+  const [frequency, setFrequency] = useState('daily');
+  const [customCron, setCustomCron] = useState('');
 
   const generateCronFromTime = () => {
     const cronMap: Record<string, string> = {
@@ -62,7 +62,7 @@ export const TimeSelector = ({ value, onChange, onCustomCron }: TimeSelectorProp
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!customMode && hour && minute && frequency) {
       handleTimeChange();
     }

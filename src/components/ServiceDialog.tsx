@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,7 +56,7 @@ export const ServiceDialog = ({ isOpen, onOpenChange, onSave, editingService, on
     color: 'blue'
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (editingService) {
       setFormData(editingService);
     } else {

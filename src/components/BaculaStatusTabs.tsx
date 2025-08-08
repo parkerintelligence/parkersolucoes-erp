@@ -1,23 +1,23 @@
-import React from 'react';
+import { ReactElement, ReactNode, cloneElement } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, AlertCircle, XCircle, Clock, RefreshCw } from 'lucide-react';
 interface BaculaStatusTabsProps {
   jobs: any[];
-  children: React.ReactNode;
+  children: ReactNode;
   startDate: string;
   endDate: string;
   statusFilter: string;
   clientFilter: string;
 }
-export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
+export const BaculaStatusTabs = ({
   jobs,
   children,
   startDate,
   endDate,
   statusFilter,
   clientFilter
-}) => {
+}: BaculaStatusTabsProps) => {
   // Aplicar filtros aos jobs baseado nas datas e filtros ativos
   const applyFilters = (jobsList: any[]) => {
     return jobsList.filter((job: any) => {
@@ -114,7 +114,7 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
       </TabsList>
       
       <TabsContent value="all" className="mt-6">
-        {React.cloneElement(children as React.ReactElement, {
+        {cloneElement(children as ReactElement, {
         filteredJobs: getJobsByStatus('all'),
         startDate,
         endDate,
@@ -123,7 +123,7 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
       })}
       </TabsContent>
       <TabsContent value="T" className="mt-6">
-        {React.cloneElement(children as React.ReactElement, {
+        {cloneElement(children as ReactElement, {
         filteredJobs: getJobsByStatus('T').concat(getJobsByStatus('W')),
         startDate,
         endDate,
@@ -132,7 +132,7 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
       })}
       </TabsContent>
       <TabsContent value="E" className="mt-6">
-        {React.cloneElement(children as React.ReactElement, {
+        {cloneElement(children as ReactElement, {
         filteredJobs: getJobsByStatus('E').concat(getJobsByStatus('f')),
         startDate,
         endDate,
@@ -141,7 +141,7 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
       })}
       </TabsContent>
       <TabsContent value="R" className="mt-6">
-        {React.cloneElement(children as React.ReactElement, {
+        {cloneElement(children as ReactElement, {
         filteredJobs: getJobsByStatus('R'),
         startDate,
         endDate,
@@ -150,7 +150,7 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
       })}
       </TabsContent>
       <TabsContent value="W" className="mt-6">
-        {React.cloneElement(children as React.ReactElement, {
+        {cloneElement(children as ReactElement, {
         filteredJobs: getJobsByStatus('W'),
         startDate,
         endDate,
@@ -159,7 +159,7 @@ export const BaculaStatusTabs: React.FC<BaculaStatusTabsProps> = ({
       })}
       </TabsContent>
       <TabsContent value="pending" className="mt-6">
-        {React.cloneElement(children as React.ReactElement, {
+        {cloneElement(children as ReactElement, {
         filteredJobs: getJobsByStatus('C').concat(getJobsByStatus('c')),
         startDate,
         endDate,

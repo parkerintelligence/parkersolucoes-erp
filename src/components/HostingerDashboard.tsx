@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +32,7 @@ export const HostingerDashboard = () => {
     isLoading: vpsLoading,
     refetch: refetchVPS
   } = useHostingerVPS(selectedIntegration || integrations?.[0]?.id);
-  React.useEffect(() => {
+  useEffect(() => {
     if (integrations && integrations.length > 0 && !selectedIntegration) {
       setSelectedIntegration(integrations[0].id);
     }
@@ -234,14 +234,14 @@ interface VPSCardProps {
   restarting: boolean;
   snapshotting: boolean;
 }
-const VPSCard: React.FC<VPSCardProps> = ({
+const VPSCard = ({
   vps,
   integrationId,
   onRestart,
   onSnapshot,
   restarting,
   snapshotting
-}) => {
+}: VPSCardProps) => {
   const safeValue = (value: any, fallback: any = 'N/A') => {
     if (typeof value === 'object' && value !== null) {
       if (Array.isArray(value) && value.length > 0) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,7 @@ const SnapshotsGrid = () => {
   } = useHostingerSnapshots(selectedIntegration);
 
   // Auto-select first integration
-  React.useEffect(() => {
+  useEffect(() => {
     if (integrations && integrations.length > 0 && !selectedIntegration) {
       setSelectedIntegration(integrations[0].id);
     }
@@ -40,7 +40,7 @@ const SnapshotsGrid = () => {
     refetchSnapshots();
   };
 
-  const filteredSnapshots = React.useMemo(() => {
+  const filteredSnapshots = useMemo(() => {
     if (!snapshots) return [];
     
     let filtered = snapshots.filter((snapshot: any) =>

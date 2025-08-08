@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,7 +50,7 @@ export const RecurringScheduleDialog = ({ isOpen, onOpenChange, editingSchedule 
     color: '#3b82f6'
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (editingSchedule) {
       setFormData({
         name: editingSchedule.name,
