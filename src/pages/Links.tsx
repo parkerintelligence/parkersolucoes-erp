@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { usePasswords } from '@/hooks/usePasswords';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useLinksExport } from '@/hooks/useLinksExport';
@@ -10,7 +10,7 @@ import { Link, ExternalLink, Search, Building, Globe, Shield, Mail, Server, Data
 import { LinksTreeView } from '@/components/LinksTreeView';
 import { toast } from '@/hooks/use-toast';
 
-const Links: React.FC = () => {
+const Links = () => {
   const {
     data: passwords = [],
     isLoading
