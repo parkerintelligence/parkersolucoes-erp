@@ -327,13 +327,19 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
           .replace(/\{\{pending_tickets\}\}/g, glpiData.pending?.toString() || '0')
           .replace(/\{\{ticket_list\}\}/g, glpiData.list || 'Nenhum ticket encontrado')
           .replace(/\{\{new_tickets\}\}/g, glpiData.new_tickets?.toString() || '0')
+          .replace(/\{\{new_today\}\}/g, glpiData.new_today?.toString() || '0')
           .replace(/\{\{resolved_tickets\}\}/g, glpiData.resolved_tickets?.toString() || '0')
           .replace(/\{\{avg_resolution_time\}\}/g, glpiData.avg_resolution_time || 'N/A')
+          .replace(/\{\{avg_time_open\}\}/g, glpiData.avg_time_open || 'N/A')
           .replace(/\{\{critical_tickets_list\}\}/g, glpiData.critical_tickets_list || 'Nenhum ticket crítico')
           .replace(/\{\{open_tickets_list\}\}/g, glpiData.open_tickets_list || 'Nenhum ticket em aberto')
+          .replace(/\{\{open_tickets_detailed\}\}/g, glpiData.open_tickets_detailed || 'Nenhum ticket em aberto')
           .replace(/\{\{productivity_summary\}\}/g, glpiData.productivity_summary || 'Dados não disponíveis')
           .replace(/\{\{critical_count\}\}/g, glpiData.critical?.toString() || '0')
-          .replace(/\{\{critical_tickets_detailed\}\}/g, glpiData.critical_tickets_detailed || 'Nenhum ticket crítico encontrado');
+          .replace(/\{\{critical_tickets_detailed\}\}/g, glpiData.critical_tickets_detailed || 'Nenhum ticket crítico encontrado')
+          .replace(/\{\{total_active\}\}/g, glpiData.total_active?.toString() || '0')
+          .replace(/\{\{overdue\}\}/g, glpiData.overdue?.toString() || '0')
+          .replace(/\{\{report_date\}\}/g, glpiData.report_date || currentDate);
       }
       break;
 
@@ -1057,7 +1063,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
       dailyNewTickets = newTicketsArray.length;
     }
 
-    return {
+    const dataResponse = {
       // Contadores básicos
       open: openTickets.length,
       critical: criticalTickets.length,
