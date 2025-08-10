@@ -27,7 +27,7 @@ interface StatCard {
   };
 }
 
-export const AutomationStats: React.FC = () => {
+export const AutomationStats = () => {
   const { data: reports = [], isLoading } = useScheduledReports();
   const { data: templates = [] } = useWhatsAppTemplates();
 

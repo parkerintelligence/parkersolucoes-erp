@@ -8,43 +8,18 @@ import { ScheduledReportForm } from './automation/ScheduledReportForm';
 import { ReportsLogsPanel } from './automation/ReportsLogsPanel';
 import { ReportsStatusPanel } from './automation/ReportsStatusPanel';
 import { AutomationStats } from './automation/AutomationStats';
-import { ScheduleManagementPanel } from './automation/ScheduleManagementPanel';
-import { BaculaStatusAlert } from './automation/BaculaStatusAlert';
 import { useToast } from "@/hooks/use-toast"
 import { useScheduledReports, useDeleteScheduledReport, useToggleScheduledReportActive, useTestScheduledReport } from '@/hooks/useScheduledReports';
 import type { ScheduledReport } from '@/hooks/useScheduledReports';
 
-export const ScheduledReportsPanel: React.FC = () => {
+export const ScheduledReportsPanel = () => {
   const [activeTab, setActiveTab] = useState('reports');
   const [formOpen, setFormOpen] = useState(false);
   const [editingReport, setEditingReport] = useState<ScheduledReport | null>(null);
-  
-  // Add error boundary for React Query hooks
-  let scheduledReportsQuery;
-  let deleteReport;
-  let toggleActive;
-  let testReport;
-  
-  try {
-    scheduledReportsQuery = useScheduledReports();
-    deleteReport = useDeleteScheduledReport();
-    toggleActive = useToggleScheduledReportActive();
-    testReport = useTestScheduledReport();
-  } catch (error) {
-    console.error('React Query context error:', error);
-    return (
-      <div className="min-h-screen bg-slate-900 text-white p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-400 mb-4">Erro ao inicializar componente</div>
-          <div className="text-gray-400 text-sm">
-            Problema com o contexto do React Query. Recarregue a página.
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
-  const { data: scheduledReports = [], isLoading, error } = scheduledReportsQuery;
+  const { data: scheduledReports = [], isLoading, error } = useScheduledReports();
+  const deleteReport = useDeleteScheduledReport();
+  const toggleActive = useToggleScheduledReportActive();
+  const testReport = useTestScheduledReport();
   const { toast } = useToast();
 
   const handleEdit = (report: ScheduledReport) => {
@@ -96,24 +71,6 @@ export const ScheduledReportsPanel: React.FC = () => {
     setEditingReport(null);
   };
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-white p-6 flex items-center justify-center">
-        <div className="text-gray-300">Carregando...</div>
-      </div>
-    );
-  }
-
-  // Show error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-white p-6 flex items-center justify-center">
-        <div className="text-red-400">Erro ao carregar dados: {(error as Error).message}</div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-slate-900 text-white p-6">
       <div className="max-w-7xl mx-auto">
@@ -124,11 +81,9 @@ export const ScheduledReportsPanel: React.FC = () => {
           </p>
         </div>
 
-        {scheduledReports && <BaculaStatusAlert />}
-
         <div className="space-y-6">
           {/* Custom Tab Navigation */}
-          <div className="grid w-full grid-cols-5 bg-gray-800 border-gray-700 rounded-lg p-1 gap-1">
+          <div className="grid w-full grid-cols-4 bg-gray-800 border-gray-700 rounded-lg p-1 gap-1">
             <button
               onClick={() => setActiveTab('reports')}
               className={`flex items-center justify-center gap-2 py-3 px-4 rounded text-sm font-medium transition-colors ${
@@ -161,17 +116,6 @@ export const ScheduledReportsPanel: React.FC = () => {
             >
               <FileText className="h-4 w-4" />
               Logs de Execução
-            </button>
-            <button
-              onClick={() => setActiveTab('manage')}
-              className={`flex items-center justify-center gap-2 py-3 px-4 rounded text-sm font-medium transition-colors ${
-                activeTab === 'manage' 
-                  ? 'bg-gray-700 text-white' 
-                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-              }`}
-            >
-              <Calendar className="h-4 w-4" />
-              Gerenciar
             </button>
             <button
               onClick={() => setActiveTab('stats')}
@@ -220,10 +164,6 @@ export const ScheduledReportsPanel: React.FC = () => {
 
           {activeTab === 'logs' && (
             <ReportsLogsPanel />
-          )}
-
-          {activeTab === 'manage' && (
-            <ScheduleManagementPanel />
           )}
 
           {activeTab === 'stats' && (

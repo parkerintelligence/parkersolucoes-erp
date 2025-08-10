@@ -38,7 +38,7 @@ interface ReportLog {
   whatsapp_response?: any;
 }
 
-export const ReportsLogsPanel: React.FC = () => {
+export const ReportsLogsPanel = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('7days');

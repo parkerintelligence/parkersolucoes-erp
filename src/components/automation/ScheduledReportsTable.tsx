@@ -26,14 +26,14 @@ const templateTypeIcons = {
   custom: MessageCircle
 };
 
-export const ScheduledReportsTable: React.FC<ScheduledReportsTableProps> = ({ 
+export const ScheduledReportsTable = ({ 
   reports, 
   onEdit, 
   onDelete, 
   onToggleActive, 
   onTest, 
   isTestingReport 
-}) => {
+}: ScheduledReportsTableProps) => {
   const { data: templates = [] } = useWhatsAppTemplates();
 
   const getTemplateInfo = (reportType: string) => {

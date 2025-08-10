@@ -1306,13 +1306,11 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
         console.log(`🔄 [BACULA] Tentando estratégia: ${strategy.description}`);
         
         const baculaResponse = await retryWithBackoff(async () => {
-          // Use the stored user token from Bacula integration for authentication
-          const authToken = baculaIntegration.user_token || authHeader || `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`;
-          
+          // Fazer chamada direta ao bacula-proxy com autenticação correta
           const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/bacula-proxy`, {
             method: 'POST',
             headers: {
-              'Authorization': authToken.startsWith('Bearer ') ? authToken : `Bearer ${authToken}`,
+              'Authorization': authHeader || `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
               'Content-Type': 'application/json',
               'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
             },
