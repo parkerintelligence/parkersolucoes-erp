@@ -2,13 +2,14 @@ import React, { ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { ReactSafeWrapper } from './ReactSafeWrapper';
 
 interface QuerySafeWrapperProps {
   children: ReactNode;
   fallback?: ReactNode;
 }
 
-export const QuerySafeWrapper: React.FC<QuerySafeWrapperProps> = ({ 
+const QueryContextChecker: React.FC<QuerySafeWrapperProps> = ({ 
   children, 
   fallback 
 }) => {
@@ -46,4 +47,17 @@ export const QuerySafeWrapper: React.FC<QuerySafeWrapperProps> = ({
       </Card>
     );
   }
+};
+
+export const QuerySafeWrapper: React.FC<QuerySafeWrapperProps> = ({ 
+  children, 
+  fallback 
+}) => {
+  return (
+    <ReactSafeWrapper fallback={fallback}>
+      <QueryContextChecker fallback={fallback}>
+        {children}
+      </QueryContextChecker>
+    </ReactSafeWrapper>
+  );
 };
