@@ -18,7 +18,8 @@ export const ScheduledReportsPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState('reports');
   const [formOpen, setFormOpen] = useState(false);
   const [editingReport, setEditingReport] = useState<ScheduledReport | null>(null);
-  const { data: scheduledReports = [], isLoading, error } = useScheduledReports();
+  const scheduledReportsQuery = useScheduledReports();
+  const { data: scheduledReports = [], isLoading, error } = scheduledReportsQuery;
   const deleteReport = useDeleteScheduledReport();
   const toggleActive = useToggleScheduledReportActive();
   const testReport = useTestScheduledReport();
@@ -73,6 +74,24 @@ export const ScheduledReportsPanel: React.FC = () => {
     setEditingReport(null);
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white p-6 flex items-center justify-center">
+        <div className="text-gray-300">Carregando...</div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white p-6 flex items-center justify-center">
+        <div className="text-red-400">Erro ao carregar dados: {(error as Error).message}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-900 text-white p-6">
       <div className="max-w-7xl mx-auto">
@@ -83,7 +102,7 @@ export const ScheduledReportsPanel: React.FC = () => {
           </p>
         </div>
 
-        <BaculaStatusAlert />
+        {scheduledReports && <BaculaStatusAlert />}
 
         <div className="space-y-6">
           {/* Custom Tab Navigation */}
