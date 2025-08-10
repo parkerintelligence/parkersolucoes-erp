@@ -4,9 +4,9 @@ import { ReactSafeWrapper } from '@/components/ReactSafeWrapper';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 
-const ScheduledReportsPanelLazy = React.lazy(() => 
-  import('@/components/ScheduledReportsPanel').then(module => ({
-    default: module.ScheduledReportsPanel
+const SafeScheduledReportsPanelLazy = React.lazy(() => 
+  import('@/components/SafeScheduledReportsPanel').then(module => ({
+    default: module.SafeScheduledReportsPanel
   }))
 );
 
@@ -27,11 +27,9 @@ const Automation = () => {
   return (
     <div className="min-h-screen bg-slate-900 text-white">
       <div className="container mx-auto p-6">
-        <ReactSafeWrapper fallback={<LoadingFallback />}>
-          <Suspense fallback={<LoadingFallback />}>
-            <ScheduledReportsPanelLazy />
-          </Suspense>
-        </ReactSafeWrapper>
+        <Suspense fallback={<LoadingFallback />}>
+          <SafeScheduledReportsPanelLazy />
+        </Suspense>
       </div>
     </div>
   );
