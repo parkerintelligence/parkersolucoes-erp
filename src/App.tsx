@@ -1,9 +1,7 @@
-
-
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import * as React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import Login from '@/pages/Login';
 import VPS from '@/pages/VPS';
 import Admin from '@/pages/Admin';
@@ -36,219 +34,127 @@ import { Layout } from '@/components/Layout';
 const queryClient = new QueryClient();
 
 function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <div className="min-h-screen bg-background">
-            <Routes>
-              <Route path="/" element={<Login />} />
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/alertas"
-                element={
-                  <Layout>
-                    <Alertas />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/links"
-                element={
-                  <Layout>
-                    <Links />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/vps"
-                element={
-                  <Layout>
-                    <VPS />
-                  </Layout>
-                }
-               />
-              <Route
-                path="/admin"
-                element={
-                  <Layout>
-                    <Admin />
-                  </Layout>
-                }
-              />
-               <Route
-                 path="/glpi"
-                 element={
-                   <Layout>
-                     <GLPI />
-                   </Layout>
-                 }
-               />
-               <Route
-                 path="/conexao-remota"
-                 element={
-                   <Layout>
-                     <Guacamole />
-                   </Layout>
-                 }
-               />
-               <Route
-                 path="/backups"
-                element={
-                  <Layout>
-                    <Backups />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/passwords"
-                element={
-                  <Layout>
-                    <Passwords />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/annotations"
-                element={
-                  <Layout>
-                    <Annotations />
-                  </Layout>
-                }
-               />
-              <Route
-                path="/whatsapp"
-                element={
-                  <Layout>
-                    <WhatsApp />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/whatsapp-templates"
-                element={
-                  <Layout>
-                    <WhatsAppTemplates />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/wasabi"
-                element={
-                  <Layout>
-                    <Wasabi />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/schedule"
-                element={
-                  <Layout>
-                    <Schedule />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/automation"
-                element={
-                  <Layout>
-                    <Automation />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/zabbix"
-                element={
-                  <Layout>
-                    <Zabbix />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/services"
-                element={
-                  <Layout>
-                    <Services />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/budgets"
-                element={
-                  <Layout>
-                    <Budgets />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/contracts"
-                element={
-                  <Layout>
-                    <Contracts />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/financial"
-                element={
-                  <Layout>
-                    <Financial />
-                  </Layout>
-                }
-              />
-              <Route
-                path="/companies"
-                element={
-                  <Layout>
-                    <Companies />
-                  </Layout>
-                }
-              />
-              <Route 
-                path="/bacula" 
-                element={
-                  <Layout>
-                    <Bacula />
-                  </Layout>
-                } 
-              />
-              <Route 
-                path="/reports" 
-                element={
-                  <Layout>
-                    <ReportsDashboard />
-                  </Layout>
-                } 
-              />
-              <Route 
-                path="/plano-de-acao" 
-                element={
-                  <Layout>
-                    <ActionPlan />
-                  </Layout>
-                } 
-              />
-              <Route 
-                path="/security" 
-                element={
-                  <Layout>
-                    <Security />
-                  </Layout>
-                } 
-              />
-              <Route 
-                path="/unifi" 
-                element={
-                  <Layout>
-                    <UniFi />
-                  </Layout>
-                } 
-              />
-            </Routes>
-          </div>
-        </BrowserRouter>
-      </AuthProvider>
-    </QueryClientProvider>
+  return React.createElement(
+    QueryClientProvider,
+    { client: queryClient },
+    React.createElement(
+      AuthProvider,
+      null,
+      React.createElement(
+        BrowserRouter,
+        null,
+        React.createElement(
+          'div',
+          { className: "min-h-screen bg-background" },
+          React.createElement(
+            Routes,
+            null,
+            React.createElement(Route, { path: "/", element: React.createElement(Login) }),
+            React.createElement(Route, { path: "/login", element: React.createElement(Login) }),
+            React.createElement(Route, {
+              path: "/alertas",
+              element: React.createElement(Layout, null, React.createElement(Alertas))
+            }),
+            React.createElement(Route, {
+              path: "/links",
+              element: React.createElement(Layout, null, React.createElement(Links))
+            }),
+            React.createElement(Route, {
+              path: "/vps",
+              element: React.createElement(Layout, null, React.createElement(VPS))
+            }),
+            React.createElement(Route, {
+              path: "/admin",
+              element: React.createElement(Layout, null, React.createElement(Admin))
+            }),
+            React.createElement(Route, {
+              path: "/glpi",
+              element: React.createElement(Layout, null, React.createElement(GLPI))
+            }),
+            React.createElement(Route, {
+              path: "/conexao-remota",
+              element: React.createElement(Layout, null, React.createElement(Guacamole))
+            }),
+            React.createElement(Route, {
+              path: "/backups",
+              element: React.createElement(Layout, null, React.createElement(Backups))
+            }),
+            React.createElement(Route, {
+              path: "/passwords",
+              element: React.createElement(Layout, null, React.createElement(Passwords))
+            }),
+            React.createElement(Route, {
+              path: "/annotations",
+              element: React.createElement(Layout, null, React.createElement(Annotations))
+            }),
+            React.createElement(Route, {
+              path: "/whatsapp",
+              element: React.createElement(Layout, null, React.createElement(WhatsApp))
+            }),
+            React.createElement(Route, {
+              path: "/whatsapp-templates",
+              element: React.createElement(Layout, null, React.createElement(WhatsAppTemplates))
+            }),
+            React.createElement(Route, {
+              path: "/wasabi",
+              element: React.createElement(Layout, null, React.createElement(Wasabi))
+            }),
+            React.createElement(Route, {
+              path: "/schedule",
+              element: React.createElement(Layout, null, React.createElement(Schedule))
+            }),
+            React.createElement(Route, {
+              path: "/automation",
+              element: React.createElement(Layout, null, React.createElement(Automation))
+            }),
+            React.createElement(Route, {
+              path: "/zabbix",
+              element: React.createElement(Layout, null, React.createElement(Zabbix))
+            }),
+            React.createElement(Route, {
+              path: "/services",
+              element: React.createElement(Layout, null, React.createElement(Services))
+            }),
+            React.createElement(Route, {
+              path: "/budgets",
+              element: React.createElement(Layout, null, React.createElement(Budgets))
+            }),
+            React.createElement(Route, {
+              path: "/contracts",
+              element: React.createElement(Layout, null, React.createElement(Contracts))
+            }),
+            React.createElement(Route, {
+              path: "/financial",
+              element: React.createElement(Layout, null, React.createElement(Financial))
+            }),
+            React.createElement(Route, {
+              path: "/companies",
+              element: React.createElement(Layout, null, React.createElement(Companies))
+            }),
+            React.createElement(Route, {
+              path: "/bacula",
+              element: React.createElement(Layout, null, React.createElement(Bacula))
+            }),
+            React.createElement(Route, {
+              path: "/reports",
+              element: React.createElement(Layout, null, React.createElement(ReportsDashboard))
+            }),
+            React.createElement(Route, {
+              path: "/plano-de-acao",
+              element: React.createElement(Layout, null, React.createElement(ActionPlan))
+            }),
+            React.createElement(Route, {
+              path: "/security",
+              element: React.createElement(Layout, null, React.createElement(Security))
+            }),
+            React.createElement(Route, {
+              path: "/unifi",
+              element: React.createElement(Layout, null, React.createElement(UniFi))
+            })
+          )
+        )
+      )
+    )
   );
 }
 
