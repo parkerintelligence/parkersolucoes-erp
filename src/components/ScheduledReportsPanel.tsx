@@ -7,7 +7,7 @@ import { ScheduledReportsTable } from './automation/ScheduledReportsTable';
 import { ScheduledReportForm } from './automation/ScheduledReportForm';
 import { ReportsLogsPanel } from './automation/ReportsLogsPanel';
 import { ReportsStatusPanel } from './automation/ReportsStatusPanel';
-import { AutomationStats } from './automation/AutomationStats';
+import { LazyAutomationStats } from './LazyAutomationStats';
 import { useToast } from "@/hooks/use-toast"
 import { useScheduledReports, useDeleteScheduledReport, useToggleScheduledReportActive, useTestScheduledReport } from '@/hooks/useScheduledReports';
 import type { ScheduledReport } from '@/hooks/useScheduledReports';
@@ -175,7 +175,7 @@ export const ScheduledReportsPanel = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <AutomationStats />
+                <LazyAutomationStats />
               </CardContent>
             </Card>
           )}
