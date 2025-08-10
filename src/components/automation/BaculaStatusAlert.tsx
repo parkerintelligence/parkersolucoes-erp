@@ -5,7 +5,7 @@ import { CheckCircle, AlertTriangle, Info } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useScheduledReports } from '@/hooks/useScheduledReports';
 
-export const BaculaStatusAlert = () => {
+export const BaculaStatusAlert: React.FC = () => {
   const { data: integrations = [] } = useIntegrations();
   const { data: reports = [] } = useScheduledReports();
   

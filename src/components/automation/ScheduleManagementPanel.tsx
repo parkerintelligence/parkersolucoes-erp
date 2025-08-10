@@ -8,7 +8,7 @@ import { Clock, Settings, Trash2, Play, Square } from 'lucide-react';
 import { useScheduledReports, useUpdateScheduledReport, useDeleteScheduledReport } from '@/hooks/useScheduledReports';
 import { toast } from '@/hooks/use-toast';
 
-export const ScheduleManagementPanel = () => {
+export const ScheduleManagementPanel: React.FC = () => {
   const { data: reports = [] } = useScheduledReports();
   const updateReport = useUpdateScheduledReport();
   const deleteReport = useDeleteScheduledReport();
