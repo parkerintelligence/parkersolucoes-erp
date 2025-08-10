@@ -18,11 +18,33 @@ export const ScheduledReportsPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState('reports');
   const [formOpen, setFormOpen] = useState(false);
   const [editingReport, setEditingReport] = useState<ScheduledReport | null>(null);
-  const scheduledReportsQuery = useScheduledReports();
+  
+  // Add error boundary for React Query hooks
+  let scheduledReportsQuery;
+  let deleteReport;
+  let toggleActive;
+  let testReport;
+  
+  try {
+    scheduledReportsQuery = useScheduledReports();
+    deleteReport = useDeleteScheduledReport();
+    toggleActive = useToggleScheduledReportActive();
+    testReport = useTestScheduledReport();
+  } catch (error) {
+    console.error('React Query context error:', error);
+    return (
+      <div className="min-h-screen bg-slate-900 text-white p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-400 mb-4">Erro ao inicializar componente</div>
+          <div className="text-gray-400 text-sm">
+            Problema com o contexto do React Query. Recarregue a página.
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   const { data: scheduledReports = [], isLoading, error } = scheduledReportsQuery;
-  const deleteReport = useDeleteScheduledReport();
-  const toggleActive = useToggleScheduledReportActive();
-  const testReport = useTestScheduledReport();
   const { toast } = useToast();
 
   const handleEdit = (report: ScheduledReport) => {
