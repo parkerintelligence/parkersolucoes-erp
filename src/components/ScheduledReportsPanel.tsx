@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useScheduledReports, useDeleteScheduledReport, useToggleScheduledReportActive, useTestScheduledReport } from '@/hooks/useScheduledReports';
 import type { ScheduledReport } from '@/hooks/useScheduledReports';
 
-export const ScheduledReportsPanel = () => {
+export const ScheduledReportsPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState('reports');
   const [formOpen, setFormOpen] = useState(false);
   const [editingReport, setEditingReport] = useState<ScheduledReport | null>(null);
