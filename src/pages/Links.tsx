@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Link, ExternalLink, Search, Eye, EyeOff, Download } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-const Links = () => {
+const Links: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
   const [visibleCards, setVisibleCards] = useState<Record<string, boolean>>({});
