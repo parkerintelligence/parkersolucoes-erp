@@ -215,11 +215,15 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     // Buscar relatórios que devem ser executados agora
+    // Adicionar margem de 1 minuto para evitar problemas de precisão de segundos
+    const checkTime = new Date(currentTime.getTime() + 60000); // +1 minuto
+    console.log(`🔍 [UNIFIED-CRON] Buscando relatórios com next_execution <= ${checkTime.toISOString()}`);
+    
     const { data: dueReports, error: reportsError } = await supabase
       .from('scheduled_reports')
       .select('*')
       .eq('is_active', true)
-      .lte('next_execution', currentTime.toISOString());
+      .lte('next_execution', checkTime.toISOString());
 
     if (reportsError) {
       console.error('❌ [UNIFIED-CRON] Erro ao buscar relatórios:', reportsError);
@@ -231,7 +235,7 @@ const handler = async (req: Request): Promise<Response> => {
       .from('glpi_scheduled_tickets')
       .select('*')
       .eq('is_active', true)
-      .lte('next_execution', currentTime.toISOString());
+      .lte('next_execution', checkTime.toISOString());
 
     if (ticketsError) {
       console.error('❌ [UNIFIED-CRON] Erro ao buscar tickets GLPI:', ticketsError);
@@ -239,6 +243,31 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log(`📋 [UNIFIED-CRON] Encontrados ${dueReports?.length || 0} relatórios e ${dueTickets?.length || 0} tickets GLPI para executar`);
+    
+    // Log detalhado dos relatórios encontrados
+    if (dueReports && dueReports.length > 0) {
+      console.log('📝 [UNIFIED-CRON] Relatórios a executar:');
+      dueReports.forEach(report => {
+        console.log(`  - ${report.name}: next_execution=${report.next_execution}, cron=${report.cron_expression}`);
+      });
+    } else {
+      console.log('📝 [UNIFIED-CRON] Nenhum relatório devido encontrado');
+      
+      // Verificar todos os relatórios ativos para debug
+      const { data: allReports } = await supabase
+        .from('scheduled_reports')
+        .select('name, next_execution, cron_expression, is_active')
+        .eq('is_active', true);
+      
+      if (allReports && allReports.length > 0) {
+        console.log('🔍 [UNIFIED-CRON] Todos os relatórios ativos:');
+        allReports.forEach(report => {
+          const nextExec = new Date(report.next_execution);
+          const diff = nextExec.getTime() - currentTime.getTime();
+          console.log(`  - ${report.name}: next_execution=${report.next_execution} (diff: ${Math.round(diff/1000/60)}min), cron=${report.cron_expression}`);
+        });
+      }
+    }
     
     const results = [];
     
