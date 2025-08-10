@@ -43,7 +43,7 @@ const templateTypeIcons = {
   custom: MessageCircle
 };
 
-export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSuccess }: ScheduledReportFormProps) => {
+export const ScheduledReportForm: React.FC<ScheduledReportFormProps> = ({ open, onOpenChange, editingReport, onSuccess }) => {
   const { data: templates = [], isLoading: templatesLoading, refetch: refetchTemplates } = useWhatsAppTemplates();
   const createReport = useCreateScheduledReport();
   const updateReport = useUpdateScheduledReport();

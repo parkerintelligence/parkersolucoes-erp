@@ -15,7 +15,7 @@ import { useScheduledReports, useTestScheduledReport } from '@/hooks/useSchedule
 import { useWhatsAppTemplates } from '@/hooks/useWhatsAppTemplates';
 import { toast } from '@/hooks/use-toast';
 
-export const ReportsStatusPanel = () => {
+export const ReportsStatusPanel: React.FC = () => {
   const { data: reports = [], isLoading } = useScheduledReports();
   const { data: templates = [] } = useWhatsAppTemplates();
   const testReport = useTestScheduledReport();
