@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Database, Plus, Pencil, Trash2, Check, X } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export const BaculaAdminConfig = () => {
   const { data: integrations } = useIntegrations();
@@ -24,7 +25,9 @@ export const BaculaAdminConfig = () => {
     username: '',
     password: '',
     is_active: true,
+    user_token: '',
   });
+  const [userToken, setUserToken] = useState<string>('');
 
   const baculaIntegrations = integrations?.filter(integration => integration.type === 'bacula') || [];
 
@@ -35,10 +38,23 @@ export const BaculaAdminConfig = () => {
       username: '',
       password: '',
       is_active: true,
+      user_token: '',
     });
     setIsCreating(false);
     setEditingId(null);
   };
+
+  // Get current user token
+  useEffect(() => {
+    const getCurrentUserToken = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        setUserToken(session.access_token);
+        setFormData(prev => ({ ...prev, user_token: session.access_token }));
+      }
+    };
+    getCurrentUserToken();
+  }, []);
 
   const handleCreate = async () => {
     if (!formData.name || !formData.base_url || !formData.username || !formData.password) {
@@ -51,9 +67,17 @@ export const BaculaAdminConfig = () => {
     }
 
     try {
-      await createIntegration.mutateAsync({
+      // Ensure user token is included
+      const integrationData = {
         ...formData,
         type: 'bacula',
+        user_token: userToken || formData.user_token,
+      };
+      
+      await createIntegration.mutateAsync(integrationData);
+      toast({
+        title: "Sucesso",
+        description: "Integração Bacula criada com token de autenticação para relatórios automáticos.",
       });
       resetForm();
     } catch (error) {
@@ -72,9 +96,19 @@ export const BaculaAdminConfig = () => {
     }
 
     try {
+      // Ensure user token is updated
+      const updateData = {
+        ...formData,
+        user_token: userToken || formData.user_token,
+      };
+      
       await updateIntegration.mutateAsync({ 
         id, 
-        updates: formData 
+        updates: updateData 
+      });
+      toast({
+        title: "Sucesso",
+        description: "Integração Bacula atualizada com token de autenticação.",
       });
       resetForm();
     } catch (error) {
@@ -89,6 +123,7 @@ export const BaculaAdminConfig = () => {
       username: integration.username || '',
       password: integration.password || '',
       is_active: integration.is_active,
+      user_token: integration.user_token || userToken || '',
     });
     setEditingId(integration.id);
     setIsCreating(false);

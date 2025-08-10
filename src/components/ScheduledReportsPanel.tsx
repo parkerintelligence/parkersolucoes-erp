@@ -8,6 +8,8 @@ import { ScheduledReportForm } from './automation/ScheduledReportForm';
 import { ReportsLogsPanel } from './automation/ReportsLogsPanel';
 import { ReportsStatusPanel } from './automation/ReportsStatusPanel';
 import { AutomationStats } from './automation/AutomationStats';
+import { ScheduleManagementPanel } from './automation/ScheduleManagementPanel';
+import { BaculaStatusAlert } from './automation/BaculaStatusAlert';
 import { useToast } from "@/hooks/use-toast"
 import { useScheduledReports, useDeleteScheduledReport, useToggleScheduledReportActive, useTestScheduledReport } from '@/hooks/useScheduledReports';
 import type { ScheduledReport } from '@/hooks/useScheduledReports';
@@ -81,9 +83,11 @@ export const ScheduledReportsPanel = () => {
           </p>
         </div>
 
+        <BaculaStatusAlert />
+
         <div className="space-y-6">
           {/* Custom Tab Navigation */}
-          <div className="grid w-full grid-cols-4 bg-gray-800 border-gray-700 rounded-lg p-1 gap-1">
+          <div className="grid w-full grid-cols-5 bg-gray-800 border-gray-700 rounded-lg p-1 gap-1">
             <button
               onClick={() => setActiveTab('reports')}
               className={`flex items-center justify-center gap-2 py-3 px-4 rounded text-sm font-medium transition-colors ${
@@ -116,6 +120,17 @@ export const ScheduledReportsPanel = () => {
             >
               <FileText className="h-4 w-4" />
               Logs de Execução
+            </button>
+            <button
+              onClick={() => setActiveTab('manage')}
+              className={`flex items-center justify-center gap-2 py-3 px-4 rounded text-sm font-medium transition-colors ${
+                activeTab === 'manage' 
+                  ? 'bg-gray-700 text-white' 
+                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+              }`}
+            >
+              <Calendar className="h-4 w-4" />
+              Gerenciar
             </button>
             <button
               onClick={() => setActiveTab('stats')}
@@ -164,6 +179,10 @@ export const ScheduledReportsPanel = () => {
 
           {activeTab === 'logs' && (
             <ReportsLogsPanel />
+          )}
+
+          {activeTab === 'manage' && (
+            <ScheduleManagementPanel />
           )}
 
           {activeTab === 'stats' && (
