@@ -1288,13 +1288,20 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
     let lastError = null;
     let successfulStrategy = null;
 
+    // Cache com TTL
+    const cacheKey = `bacula_jobs_${brasiliaStartTime.toISOString()}_${brasiliaEndTime.toISOString()}`;
+    const CACHE_TTL = 10 * 60 * 1000; // 10 minutos
+    
+    // Retry config
+    const RETRY_CONFIG = { maxRetries: 3, backoffMs: 1000 };
+
     // Retry com backoff exponencial
     const retryWithBackoff = async (fn, retries) => {
       try {
         return await fn();
       } catch (error) {
         if (retries > 0) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries)));
+          await new Promise(resolve => setTimeout(resolve, RETRY_CONFIG.backoffMs * (RETRY_CONFIG.maxRetries - retries + 1)));
           return retryWithBackoff(fn, retries - 1);
         }
         throw error;
@@ -1306,32 +1313,16 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
         console.log(`🔄 [BACULA] Tentando estratégia: ${strategy.description}`);
         
         const baculaResponse = await retryWithBackoff(async () => {
-          // Fazer chamada direta ao bacula-proxy com autenticação correta
-          const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/bacula-proxy`, {
-            method: 'POST',
-            headers: {
-              'Authorization': authHeader || `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-              'Content-Type': 'application/json',
-              'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
-            },
-            body: JSON.stringify({
+          return await supabase.functions.invoke('bacula-proxy', {
+            body: {
               endpoint: strategy.endpoint,
               params: strategy.params
-            })
+            },
+            headers: {
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
+            }
           });
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-
-          const result = await response.json();
-          
-          if (result.error) {
-            throw new Error(result.error);
-          }
-
-          return { data: result.data || result, error: null };
-        }, 3);
+        }, RETRY_CONFIG.maxRetries);
 
         if (baculaResponse.error) {
           console.error(`❌ [BACULA] Erro na estratégia ${strategy.description}:`, baculaResponse.error.message);
@@ -1346,7 +1337,7 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
           break;
         }
       } catch (error) {
-        console.error(`❌ [BACULA] Falha na estratégia ${strategy.description}:`, error);
+        console.error(`❌ [BACULA] Erro na estratégia ${strategy.description}:`, error.message);
         lastError = error;
         continue;
       }
