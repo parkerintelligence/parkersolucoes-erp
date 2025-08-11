@@ -20,10 +20,8 @@ const LoadingFallback = () => (
 
 export const SafeScheduledReportsPanel = () => {
   return (
-    <ReactSafeWrapper fallback={<LoadingFallback />}>
-      <QuerySafeWrapper fallback={<LoadingFallback />}>
-        <ScheduledReportsPanel />
-      </QuerySafeWrapper>
-    </ReactSafeWrapper>
+    <QuerySafeWrapper fallback={<LoadingFallback />}>
+      <ScheduledReportsPanel />
+    </QuerySafeWrapper>
   );
 };
