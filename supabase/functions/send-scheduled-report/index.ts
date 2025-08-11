@@ -1288,50 +1288,20 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
     let lastError = null;
     let successfulStrategy = null;
 
-    // Retry com backoff exponencial
-    const retryWithBackoff = async (fn, retries) => {
-      try {
-        return await fn();
-      } catch (error) {
-        if (retries > 0) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries)));
-          return retryWithBackoff(fn, retries - 1);
-        }
-        throw error;
-      }
-    };
-
     for (const strategy of searchStrategies) {
       try {
         console.log(`🔄 [BACULA] Tentando estratégia: ${strategy.description}`);
         
-        const baculaResponse = await retryWithBackoff(async () => {
-          // Fazer chamada direta ao bacula-proxy com autenticação correta
-          const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/bacula-proxy`, {
-            method: 'POST',
-            headers: {
-              'Authorization': authHeader || `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-              'Content-Type': 'application/json',
-              'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
-            },
-            body: JSON.stringify({
-              endpoint: strategy.endpoint,
-              params: strategy.params
-            })
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Usar supabase.functions.invoke como na função test-bacula-report que funciona
+        const baculaResponse = await supabase.functions.invoke('bacula-proxy', {
+          body: {
+            endpoint: strategy.endpoint,
+            params: strategy.params
+          },
+          headers: {
+            'Authorization': authHeader || `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
           }
-
-          const result = await response.json();
-          
-          if (result.error) {
-            throw new Error(result.error);
-          }
-
-          return { data: result.data || result, error: null };
-        }, 3);
+        });
 
         if (baculaResponse.error) {
           console.error(`❌ [BACULA] Erro na estratégia ${strategy.description}:`, baculaResponse.error.message);
