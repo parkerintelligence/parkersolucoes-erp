@@ -247,20 +247,13 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`🚀 [CRON] Processando relatório: ${report.name} (${report.id})`);
       
       try {
-        // Buscar dados do usuário para passar autenticação correta
-        const { data: userProfile } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('id', report.user_id)
-          .single();
+        // Usar ANON_KEY para consistência com teste manual
+        const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+        const authHeader = `Bearer ${anonKey}`;
 
-        // Criar token de autorização com service role para chamadas automáticas
-        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-        const authHeader = `Bearer ${serviceRoleKey}`;
+        console.log(`🔐 [CRON] Invocando send-scheduled-report para ${report.name} com ANON_KEY (consistência)`);
 
-        console.log(`🔐 [CRON] Invocando send-scheduled-report para ${report.name} com autenticação adequada`);
-
-        // Invocar a função de envio de relatório com autenticação adequada
+        // Invocar a função de envio de relatório com autenticação consistente
         const { data: result, error: functionError } = await supabase.functions.invoke('send-scheduled-report', {
           body: { report_id: report.id, user_id: report.user_id, is_automated: true },
           headers: {

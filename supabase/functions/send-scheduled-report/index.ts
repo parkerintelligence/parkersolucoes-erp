@@ -127,7 +127,9 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`🔑 [SEND] Autorização presente: ${!!authHeader}`);
 
     // Gerar conteúdo baseado no template com autenticação correta
-    const message = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings, authHeader, isAutomated);
+    // Garantir que usamos ANON_KEY para consistência
+    const finalAuthHeader = `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`;
+    const message = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings, finalAuthHeader, isAutomated);
     console.log(`💬 [SEND] Mensagem gerada (${message.length} caracteres)`);
 
     // Atualizar log com conteúdo da mensagem
@@ -1326,23 +1328,17 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
         console.log(`🔄 [BACULA] Tentando estratégia: ${strategy.description}`);
         
         const baculaResponse = await retryWithBackoff(async () => {
-          // Criar headers de autenticação apropriados
-          let authToUse = authHeader;
-          if (!authToUse || authToUse === '' || (!authToUse.includes('Bearer') && isAutomated)) {
-            // Para modo automático, usar service role
-            authToUse = `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`;
-            console.log('🔐 [BACULA] Usando service role para requisição automática');
-          }
+          // Usar sempre ANON_KEY para consistência com teste manual
+          const authToUse = `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`;
+          console.log('🔐 [BACULA] Usando ANON_KEY para consistência com teste manual');
 
-          // Criar objeto com user_id para o proxy identificar o usuário
+          // Criar objeto para o proxy
           const requestBody = {
             endpoint: strategy.endpoint,
-            params: strategy.params,
-            user_id: userId,  // Importante: passar user_id para o proxy
-            integration_type: 'bacula'
+            params: strategy.params
           };
 
-          console.log(`🔄 [BACULA] Fazendo chamada para bacula-proxy com auth: ${authToUse.substring(0, 20)}...`);
+          console.log(`🔄 [BACULA] Fazendo chamada para bacula-proxy com ANON_KEY`);
 
           // Fazer chamada direta ao bacula-proxy com autenticação correta
           const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/bacula-proxy`, {
@@ -1357,12 +1353,15 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
           });
 
           if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error(`❌ [BACULA] Erro HTTP ${response.status}: ${errorText}`);
+            throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
           }
 
           const result = await response.json();
           
           if (result.error) {
+            console.error(`❌ [BACULA] Erro no resultado:`, result.error);
             throw new Error(result.error);
           }
 

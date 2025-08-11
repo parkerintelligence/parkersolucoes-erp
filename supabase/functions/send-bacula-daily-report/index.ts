@@ -238,15 +238,35 @@ serve(async (req) => {
           console.log(`🔄 [BACULA-DAILY] Tentando estratégia: ${strategy.description}`);
           
           const baculaResponse = await retryWithBackoff(async () => {
-            return await supabase.functions.invoke('bacula-proxy', {
-              body: {
+            // Usar a mesma autenticação que funciona no teste manual
+            console.log('🔐 [BACULA-DAILY] Usando autenticação ANON_KEY para bacula-proxy');
+            
+            // Fazer chamada direta ao bacula-proxy com autenticação correta
+            const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/bacula-proxy`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+                'Content-Type': 'application/json',
+                'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
+                'x-automated-execution': 'true'
+              },
+              body: JSON.stringify({
                 endpoint: strategy.endpoint,
                 params: strategy.params
-              },
-              headers: {
-                'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
-              }
+              })
             });
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.error) {
+              throw new Error(result.error);
+            }
+
+            return { data: result.data || result, error: null };
           }, RETRY_CONFIG.maxRetries);
 
           if (baculaResponse.error) {
