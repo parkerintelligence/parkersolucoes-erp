@@ -113,100 +113,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`📝 [SEND] Template encontrado: ${template.name} (tipo: ${template.template_type})`);
 
-    // Detectar se é execução automática e ajustar autenticação
-    const isAutomated = req.headers.get('x-automated-execution') === 'true';
-    let authHeader = req.headers.get('authorization') || '';
-    
-    if (isAutomated && (!authHeader || !authHeader.includes('Bearer'))) {
-      // Para execuções automáticas, usar service role se necessário
-      authHeader = `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`;
-      console.log('🔐 [SEND] Usando service role para execução automática');
-    }
-
-    console.log(`🎭 [SEND] Modo de execução: ${isAutomated ? 'AUTOMÁTICO' : 'MANUAL'}`);
-    console.log(`🔑 [SEND] Autorização presente: ${!!authHeader}`);
-
-    // For bacula_daily reports, use the same routine as the manual test
-    if (template.template_type === 'bacula_daily') {
-      console.log('🔄 [SEND] Detectado relatório bacula_daily, usando rotina do teste manual');
-      
-      // Call send-bacula-daily-report directly (same as manual test)
-      const baculaResponse = await supabase.functions.invoke('send-bacula-daily-report', {
-        body: {
-          phone_number: report.phone_number,
-          test_mode: false, // Real send, not test
-          report_id: report_id
-        },
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-          'x-automated-execution': 'true'
-        }
-      });
-
-      if (baculaResponse.error) {
-        console.error('❌ [SEND] Erro ao chamar send-bacula-daily-report:', baculaResponse.error);
-        
-        // Log the error
-        await supabase.from('scheduled_reports_logs').insert({
-          report_id: report_id,
-          status: 'error',
-          details: {
-            error: baculaResponse.error.message || 'Erro desconhecido',
-            template_name: template.name,
-            phone_number: report.phone_number,
-            execution_time_ms: Date.now() - startTime
-          }
-        });
-
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: baculaResponse.error.message || 'Erro ao enviar relatório Bacula'
-          }), 
-          { 
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      }
-
-      console.log('✅ [SEND] Relatório Bacula enviado com sucesso via rotina manual');
-      
-      // Log success
-      await supabase.from('scheduled_reports_logs').insert({
-        report_id: report_id,
-        status: 'success',
-        details: {
-          message: 'Relatório enviado com sucesso via rotina do teste manual',
-          template_name: template.name,
-          phone_number: report.phone_number,
-          execution_time_ms: Date.now() - startTime,
-          bacula_response: baculaResponse.data
-        }
-      });
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Relatório Bacula enviado com sucesso',
-          template_name: template.name,
-          template_type: template.template_type,
-          phone_number: report.phone_number,
-          execution_time_ms: Date.now() - startTime,
-          whatsapp_response: baculaResponse.data?.whatsapp_response || baculaResponse.data
-        }), 
-        { 
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // For other report types, use the existing logic
     // Gerar conteúdo baseado no template com autenticação correta
-    // Garantir que usamos ANON_KEY para consistência
-    const finalAuthHeader = `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`;
-    const message = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings, finalAuthHeader, isAutomated);
+    const authHeader = req.headers.get('authorization') || '';
+    const message = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings, authHeader);
     console.log(`💬 [SEND] Mensagem gerada (${message.length} caracteres)`);
 
     // Atualizar log com conteúdo da mensagem
@@ -332,7 +241,7 @@ const handler = async (req: Request): Promise<Response> => {
 };
 
 // Função para gerar mensagem baseada em template
-async function generateMessageFromTemplate(template: any, reportType: string, userId: string, settings: any, authHeader: string = '', isAutomated: boolean = false): Promise<string> {
+async function generateMessageFromTemplate(template: any, reportType: string, userId: string, settings: any, authHeader: string = ''): Promise<string> {
   const currentDate = new Date().toLocaleDateString('pt-BR');
   const currentTime = new Date().toLocaleTimeString('pt-BR');
   let messageContent = template.body;
@@ -381,7 +290,6 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
       } else {
         messageContent += '\n\n⚠️ Dados obtidos via fallback devido a erro no FTP';
       }
-      break;
       break;
 
     case 'schedule_critical':
@@ -436,7 +344,7 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
       break;
 
     case 'bacula_daily':
-      const baculaData = await getBaculaData(userId, settings, authHeader, isAutomated);
+      const baculaData = await getBaculaData(userId, settings, authHeader);
       console.log('📊 [BACULA] Dados obtidos para processamento:', JSON.stringify(baculaData, null, 2));
       
       // Mapear todas as variáveis do template corretamente
@@ -486,13 +394,6 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
         const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
         messageContent = messageContent.replace(regex, value.toString());
       });
-      
-      // Adicionar informações de verificação para Bacula
-      if (baculaData.isRealData) {
-        messageContent += `\n\n✅ *Dados verificados em tempo real*\n📡 Fonte: ${baculaData.dataSource}\n🎯 Estratégia: ${baculaData.strategy}\n📊 Jobs processados: ${baculaData.filteredJobsCount}/${baculaData.originalJobsCount}\n⏰ Verificação: ${currentTime}`;
-      } else {
-        messageContent += `\n\n⚠️ *Dados obtidos via fallback*\n📋 Motivo: ${baculaData.lastError || 'Erro na comunicação com Bacula'}\n🔄 Fonte: ${baculaData.dataSource || 'dados mock'}\n⏰ Verificação: ${currentTime}`;
-      }
       
       // Processar blocos condicionais com melhor lógica
       const processConditionalBlocks = (message: string, data: any): string => {
@@ -1331,9 +1232,9 @@ function getGLPIDailyMockData() {
 }
 
 // Função para obter dados do Bacula (Robusta com múltiplas estratégias)
-async function getBaculaData(userId: string, settings: any, authHeader: string = '', isAutomated: boolean = false) {
+async function getBaculaData(userId: string, settings: any, authHeader: string = '') {
   try {
-    console.log(`🔍 [BACULA] Buscando dados de jobs Bacula para usuário: ${userId} (modo: ${isAutomated ? 'AUTOMÁTICO' : 'MANUAL'})`);
+    console.log('🔍 [BACULA] Buscando dados de jobs Bacula para usuário:', userId);
     
     const { data: baculaIntegration } = await supabase
       .from('integrations')
@@ -1405,40 +1306,27 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
         console.log(`🔄 [BACULA] Tentando estratégia: ${strategy.description}`);
         
         const baculaResponse = await retryWithBackoff(async () => {
-          // Usar sempre ANON_KEY para consistência com teste manual
-          const authToUse = `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`;
-          console.log('🔐 [BACULA] Usando ANON_KEY para consistência com teste manual');
-
-          // Criar objeto para o proxy
-          const requestBody = {
-            endpoint: strategy.endpoint,
-            params: strategy.params
-          };
-
-          console.log(`🔄 [BACULA] Fazendo chamada para bacula-proxy com ANON_KEY`);
-
           // Fazer chamada direta ao bacula-proxy com autenticação correta
           const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/bacula-proxy`, {
             method: 'POST',
             headers: {
-              'Authorization': authToUse,
+              'Authorization': authHeader || `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
               'Content-Type': 'application/json',
-              'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
-              'x-automated-execution': isAutomated ? 'true' : 'false'
+              'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify({
+              endpoint: strategy.endpoint,
+              params: strategy.params
+            })
           });
 
           if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`❌ [BACULA] Erro HTTP ${response.status}: ${errorText}`);
-            throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
 
           const result = await response.json();
           
           if (result.error) {
-            console.error(`❌ [BACULA] Erro no resultado:`, result.error);
             throw new Error(result.error);
           }
 
@@ -1466,11 +1354,7 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
 
     if (!baculaData) {
       console.error('❌ [BACULA] Todas as estratégias falharam, usando dados mock');
-      const mockData = getEnhancedMockBaculaData();
-      mockData.isRealData = false;
-      mockData.dataSource = 'mock_fallback';
-      mockData.lastError = lastError?.message || 'Erro desconhecido';
-      return mockData;
+      return getEnhancedMockBaculaData();
     }
 
     // Processar dados do Bacula
@@ -1720,14 +1604,7 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
       totalJobs: totalJobs,
       successJobs: successJobs,
       errorJobs: errorJobsList,
-      generatedAt: currentBrasiliaTime,
-      
-      // Metadados para verificação
-      isRealData: true,
-      dataSource: `real_data_via_${successfulStrategy}`,
-      strategy: successfulStrategy,
-      filteredJobsCount: filteredJobs.length,
-      originalJobsCount: jobs.length
+      generatedAt: currentBrasiliaTime
     };
 
   } catch (error) {

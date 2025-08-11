@@ -1,13 +1,6 @@
-import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-
-// Ensure React is available for React Query
-if (!React || !React.useContext) {
-  console.error('❌ React hooks not available in useScheduledReports');
-  throw new Error('React hooks are not available');
-}
 
 export interface ScheduledReport {
   id: string;

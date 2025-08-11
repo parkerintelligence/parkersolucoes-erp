@@ -1,35 +1,6 @@
-import React, { useState, useEffect, useContext, createContext, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
-
-// CRITICAL: Ensure React is available globally and force all hooks to exist
-if (typeof window !== 'undefined') {
-  (window as any).React = React;
-}
-(globalThis as any).React = React;
-
-// Defensive check to ensure React hooks are available
-if (!React || !React.useState || !React.useEffect || !React.useContext || !React.createContext) {
-  console.error('❌ CRITICAL: React hooks not available in AuthContext');
-  throw new Error('React hooks are not available - application cannot start');
-}
-
-// Force inclusion of all hooks in bundle
-const requiredHooks = {
-  useState: React.useState,
-  useEffect: React.useEffect, 
-  useContext: React.useContext,
-  createContext: React.createContext
-};
-
-console.log('🔧 AuthContext - React hooks validation:', {
-  React: !!React,
-  useState: !!useState,
-  useEffect: !!useEffect,
-  useContext: !!useContext,
-  createContext: !!createContext,
-  requiredHooks: Object.keys(requiredHooks).every(key => !!requiredHooks[key as keyof typeof requiredHooks])
-});
 
 interface UserProfile {
   id: string;
@@ -59,13 +30,6 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  console.log('AuthProvider initializing, React available:', typeof React);
-  
-  // Use React hooks with defensive checks
-  if (!useState) {
-    throw new Error('useState is not available');
-  }
-  
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);

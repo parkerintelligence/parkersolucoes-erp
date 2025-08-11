@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useCallback, useEffect, useMemo, forwardRef, ComponentProps, CSSProperties, ElementRef, ComponentPropsWithoutRef } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, forwardRef, ComponentProps, CSSProperties, ElementRef, ComponentPropsWithoutRef } from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { VariantProps, cva } from "class-variance-authority";
 import { PanelLeft } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,8 +46,7 @@ const SidebarProvider = forwardRef<HTMLDivElement, ComponentProps<"div"> & {
   children,
   ...props
 }, ref) => {
-  // Simple mobile detection without hooks to avoid React bundling issues
-  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+  const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = useState(false);
 
   // This is the internal state of the sidebar.
