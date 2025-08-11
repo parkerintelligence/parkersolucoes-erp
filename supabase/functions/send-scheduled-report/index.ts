@@ -126,6 +126,83 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`🎭 [SEND] Modo de execução: ${isAutomated ? 'AUTOMÁTICO' : 'MANUAL'}`);
     console.log(`🔑 [SEND] Autorização presente: ${!!authHeader}`);
 
+    // For bacula_daily reports, use the same routine as the manual test
+    if (template.template_type === 'bacula_daily') {
+      console.log('🔄 [SEND] Detectado relatório bacula_daily, usando rotina do teste manual');
+      
+      // Call send-bacula-daily-report directly (same as manual test)
+      const baculaResponse = await supabase.functions.invoke('send-bacula-daily-report', {
+        body: {
+          phone_number: report.phone_number,
+          test_mode: false, // Real send, not test
+          report_id: reportId
+        },
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          'x-automated-execution': 'true'
+        }
+      });
+
+      if (baculaResponse.error) {
+        console.error('❌ [SEND] Erro ao chamar send-bacula-daily-report:', baculaResponse.error);
+        
+        // Log the error
+        await supabase.from('scheduled_reports_logs').insert({
+          report_id: reportId,
+          status: 'error',
+          details: {
+            error: baculaResponse.error.message || 'Erro desconhecido',
+            template_name: template.name,
+            phone_number: report.phone_number,
+            execution_time_ms: Date.now() - startTime
+          }
+        });
+
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: baculaResponse.error.message || 'Erro ao enviar relatório Bacula'
+          }), 
+          { 
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
+      console.log('✅ [SEND] Relatório Bacula enviado com sucesso via rotina manual');
+      
+      // Log success
+      await supabase.from('scheduled_reports_logs').insert({
+        report_id: reportId,
+        status: 'success',
+        details: {
+          message: 'Relatório enviado com sucesso via rotina do teste manual',
+          template_name: template.name,
+          phone_number: report.phone_number,
+          execution_time_ms: Date.now() - startTime,
+          bacula_response: baculaResponse.data
+        }
+      });
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Relatório Bacula enviado com sucesso',
+          template_name: template.name,
+          template_type: template.template_type,
+          phone_number: report.phone_number,
+          execution_time_ms: Date.now() - startTime,
+          whatsapp_response: baculaResponse.data?.whatsapp_response || baculaResponse.data
+        }), 
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // For other report types, use the existing logic
     // Gerar conteúdo baseado no template com autenticação correta
     // Garantir que usamos ANON_KEY para consistência
     const finalAuthHeader = `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`;
