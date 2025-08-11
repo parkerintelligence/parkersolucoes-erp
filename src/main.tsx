@@ -3,7 +3,13 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
 
-console.log('Main.tsx initializing, React available:', typeof React);
+// Ensure React is globally available before any other imports
+if (typeof window !== 'undefined') {
+  (window as any).React = React;
+  (globalThis as any).React = React;
+}
+
+console.log('Main.tsx initializing, React available:', typeof React, 'React.useContext:', typeof React.useContext);
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {

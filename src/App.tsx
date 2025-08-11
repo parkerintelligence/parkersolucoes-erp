@@ -30,8 +30,13 @@ import Security from '@/pages/Security';
 import UniFi from '@/pages/UniFi';
 import { Layout } from '@/components/Layout';
 
-// Ensure React is available globally
-(globalThis as any).React = React;
+// Ensure React is available globally for all libraries
+if (typeof window !== 'undefined') {
+  (window as any).React = React;
+  (globalThis as any).React = React;
+}
+
+console.log('App.tsx - React available:', typeof React, 'useContext:', typeof React.useContext);
 
 // Create a single QueryClient instance
 const queryClient = new QueryClient();
