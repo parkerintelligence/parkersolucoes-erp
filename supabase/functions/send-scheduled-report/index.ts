@@ -1306,31 +1306,15 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
         console.log(`🔄 [BACULA] Tentando estratégia: ${strategy.description}`);
         
         const baculaResponse = await retryWithBackoff(async () => {
-          // Fazer chamada direta ao bacula-proxy com autenticação correta
-          const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/bacula-proxy`, {
-            method: 'POST',
-            headers: {
-              'Authorization': authHeader || `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-              'Content-Type': 'application/json',
-              'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
-            },
-            body: JSON.stringify({
+          return await supabase.functions.invoke('bacula-proxy', {
+            body: {
               endpoint: strategy.endpoint,
               params: strategy.params
-            })
+            },
+            headers: {
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
+            }
           });
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-
-          const result = await response.json();
-          
-          if (result.error) {
-            throw new Error(result.error);
-          }
-
-          return { data: result.data || result, error: null };
         }, 3);
 
         if (baculaResponse.error) {
@@ -1346,7 +1330,7 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
           break;
         }
       } catch (error) {
-        console.error(`❌ [BACULA] Falha na estratégia ${strategy.description}:`, error);
+        console.error(`❌ [BACULA] Erro na estratégia ${strategy.description}:`, error);
         lastError = error;
         continue;
       }
