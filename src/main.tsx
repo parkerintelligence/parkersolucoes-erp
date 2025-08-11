@@ -1,9 +1,12 @@
-import React, { StrictMode } from 'react';
+import * as React from 'react';
+import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
 
-console.log('Main.tsx initializing, React available:', typeof StrictMode);
+// Ensure React is available globally before any components load
+(globalThis as any).React = React;
+console.log('Main.tsx initializing, React available:', typeof React.StrictMode);
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {
