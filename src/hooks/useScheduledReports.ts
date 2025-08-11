@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useQueryClientSafe } from './useQueryClientSafe';
 
 export interface ScheduledReport {
   id: string;
@@ -19,6 +20,8 @@ export interface ScheduledReport {
 }
 
 export const useScheduledReports = () => {
+  const { isReady, error: contextError } = useQueryClientSafe();
+
   return useQuery({
     queryKey: ['scheduled-reports'],
     queryFn: async () => {
@@ -36,6 +39,9 @@ export const useScheduledReports = () => {
       console.log('Relatórios encontrados:', data?.length || 0);
       return data as ScheduledReport[];
     },
+    enabled: isReady && !contextError,
+    retry: 3,
+    staleTime: 30000,
   });
 };
 
