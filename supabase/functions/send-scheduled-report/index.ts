@@ -135,7 +135,7 @@ const handler = async (req: Request): Promise<Response> => {
         body: {
           phone_number: report.phone_number,
           test_mode: false, // Real send, not test
-          report_id: reportId
+          report_id: report_id
         },
         headers: {
           'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
@@ -148,7 +148,7 @@ const handler = async (req: Request): Promise<Response> => {
         
         // Log the error
         await supabase.from('scheduled_reports_logs').insert({
-          report_id: reportId,
+          report_id: report_id,
           status: 'error',
           details: {
             error: baculaResponse.error.message || 'Erro desconhecido',
@@ -174,7 +174,7 @@ const handler = async (req: Request): Promise<Response> => {
       
       // Log success
       await supabase.from('scheduled_reports_logs').insert({
-        report_id: reportId,
+        report_id: report_id,
         status: 'success',
         details: {
           message: 'Relatório enviado com sucesso via rotina do teste manual',
