@@ -15,76 +15,6 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// Função para gerar token JWT válido para um usuário específico
-async function generateUserToken(userId: string): Promise<string> {
-  try {
-    console.log(`🔑 [AUTH] Gerando token para usuário: ${userId}`);
-    
-    // Usar o admin para gerar um token de acesso para o usuário
-    const { data, error } = await supabase.auth.admin.generateLink({
-      type: 'magiclink',
-      email: 'temp@placeholder.com', // Email temporário
-      options: {
-        redirectTo: 'https://placeholder.com'
-      }
-    });
-
-    if (error) {
-      console.error('❌ [AUTH] Erro ao gerar link:', error);
-      // Fallback: criar token simples mas válido usando service role
-      return `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`;
-    }
-
-    // Alternativa mais segura: usar o createUser temporário
-    const tempEmail = `temp_${userId}_${Date.now()}@automation.internal`;
-    
-    const { data: userData, error: userError } = await supabase.auth.admin.createUser({
-      email: tempEmail,
-      email_confirm: true,
-      user_metadata: { 
-        temp_user: true, 
-        automation_user_id: userId,
-        created_for_automation: true 
-      }
-    });
-
-    if (userError || !userData.user) {
-      console.error('❌ [AUTH] Erro ao criar usuário temporário:', userError);
-      // Fallback final: usar service role com user context
-      return `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`;
-    }
-
-    // Gerar token de acesso para esse usuário
-    const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
-      type: 'magiclink',
-      email: tempEmail
-    });
-
-    // Cleanup: remover usuário temporário após um breve delay
-    setTimeout(async () => {
-      try {
-        await supabase.auth.admin.deleteUser(userData.user.id);
-        console.log(`🗑️ [AUTH] Usuário temporário removido: ${userData.user.id}`);
-      } catch (cleanupError) {
-        console.warn('⚠️ [AUTH] Erro ao limpar usuário temporário:', cleanupError);
-      }
-    }, 30000); // 30 segundos
-
-    if (sessionError || !sessionData.properties?.access_token) {
-      console.error('❌ [AUTH] Erro ao gerar sessão:', sessionError);
-      return `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`;
-    }
-
-    console.log(`✅ [AUTH] Token gerado com sucesso para usuário: ${userId}`);
-    return `Bearer ${sessionData.properties.access_token}`;
-
-  } catch (authError) {
-    console.error('❌ [AUTH] Erro geral na autenticação:', authError);
-    // Fallback: usar service role com header personalizado para identificar o usuário
-    return `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`;
-  }
-}
-
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -183,12 +113,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`📝 [SEND] Template encontrado: ${template.name} (tipo: ${template.template_type})`);
 
-    // Gerar token JWT válido para o usuário do relatório
-    const userToken = await generateUserToken(report.user_id);
-    console.log(`🔑 [SEND] Token JWT gerado para usuário: ${report.user_id}`);
-    
     // Gerar conteúdo baseado no template com autenticação correta
-    const message = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings, userToken);
+    const authHeader = req.headers.get('authorization') || '';
+    const message = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings, authHeader);
     console.log(`💬 [SEND] Mensagem gerada (${message.length} caracteres)`);
 
     // Atualizar log com conteúdo da mensagem
@@ -1361,20 +1288,50 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
     let lastError = null;
     let successfulStrategy = null;
 
+    // Retry com backoff exponencial
+    const retryWithBackoff = async (fn, retries) => {
+      try {
+        return await fn();
+      } catch (error) {
+        if (retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries)));
+          return retryWithBackoff(fn, retries - 1);
+        }
+        throw error;
+      }
+    };
+
     for (const strategy of searchStrategies) {
       try {
         console.log(`🔄 [BACULA] Tentando estratégia: ${strategy.description}`);
         
-        // Usar supabase.functions.invoke como na função test-bacula-report que funciona
-        const baculaResponse = await supabase.functions.invoke('bacula-proxy', {
-          body: {
-            endpoint: strategy.endpoint,
-            params: strategy.params
-          },
-          headers: {
-            'Authorization': authHeader
+        const baculaResponse = await retryWithBackoff(async () => {
+          // Fazer chamada direta ao bacula-proxy com autenticação correta
+          const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/bacula-proxy`, {
+            method: 'POST',
+            headers: {
+              'Authorization': authHeader || `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+              'Content-Type': 'application/json',
+              'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
+            },
+            body: JSON.stringify({
+              endpoint: strategy.endpoint,
+              params: strategy.params
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
-        });
+
+          const result = await response.json();
+          
+          if (result.error) {
+            throw new Error(result.error);
+          }
+
+          return { data: result.data || result, error: null };
+        }, 3);
 
         if (baculaResponse.error) {
           console.error(`❌ [BACULA] Erro na estratégia ${strategy.description}:`, baculaResponse.error.message);
