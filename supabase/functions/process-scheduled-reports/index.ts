@@ -247,9 +247,26 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`🚀 [CRON] Processando relatório: ${report.name} (${report.id})`);
       
       try {
-        // Invocar a função de envio de relatório
+        // Buscar dados do usuário para passar autenticação correta
+        const { data: userProfile } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', report.user_id)
+          .single();
+
+        // Criar token de autorização com service role para chamadas automáticas
+        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        const authHeader = `Bearer ${serviceRoleKey}`;
+
+        console.log(`🔐 [CRON] Invocando send-scheduled-report para ${report.name} com autenticação adequada`);
+
+        // Invocar a função de envio de relatório com autenticação adequada
         const { data: result, error: functionError } = await supabase.functions.invoke('send-scheduled-report', {
-          body: { report_id: report.id }
+          body: { report_id: report.id, user_id: report.user_id, is_automated: true },
+          headers: {
+            'Authorization': authHeader,
+            'x-automated-execution': 'true'
+          }
         });
 
         if (functionError) {

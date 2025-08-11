@@ -113,9 +113,21 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`📝 [SEND] Template encontrado: ${template.name} (tipo: ${template.template_type})`);
 
+    // Detectar se é execução automática e ajustar autenticação
+    const isAutomated = req.headers.get('x-automated-execution') === 'true';
+    let authHeader = req.headers.get('authorization') || '';
+    
+    if (isAutomated && (!authHeader || !authHeader.includes('Bearer'))) {
+      // Para execuções automáticas, usar service role se necessário
+      authHeader = `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`;
+      console.log('🔐 [SEND] Usando service role para execução automática');
+    }
+
+    console.log(`🎭 [SEND] Modo de execução: ${isAutomated ? 'AUTOMÁTICO' : 'MANUAL'}`);
+    console.log(`🔑 [SEND] Autorização presente: ${!!authHeader}`);
+
     // Gerar conteúdo baseado no template com autenticação correta
-    const authHeader = req.headers.get('authorization') || '';
-    const message = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings, authHeader);
+    const message = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings, authHeader, isAutomated);
     console.log(`💬 [SEND] Mensagem gerada (${message.length} caracteres)`);
 
     // Atualizar log com conteúdo da mensagem
@@ -241,7 +253,7 @@ const handler = async (req: Request): Promise<Response> => {
 };
 
 // Função para gerar mensagem baseada em template
-async function generateMessageFromTemplate(template: any, reportType: string, userId: string, settings: any, authHeader: string = ''): Promise<string> {
+async function generateMessageFromTemplate(template: any, reportType: string, userId: string, settings: any, authHeader: string = '', isAutomated: boolean = false): Promise<string> {
   const currentDate = new Date().toLocaleDateString('pt-BR');
   const currentTime = new Date().toLocaleTimeString('pt-BR');
   let messageContent = template.body;
@@ -290,6 +302,7 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
       } else {
         messageContent += '\n\n⚠️ Dados obtidos via fallback devido a erro no FTP';
       }
+      break;
       break;
 
     case 'schedule_critical':
@@ -344,7 +357,7 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
       break;
 
     case 'bacula_daily':
-      const baculaData = await getBaculaData(userId, settings, authHeader);
+      const baculaData = await getBaculaData(userId, settings, authHeader, isAutomated);
       console.log('📊 [BACULA] Dados obtidos para processamento:', JSON.stringify(baculaData, null, 2));
       
       // Mapear todas as variáveis do template corretamente
@@ -394,6 +407,13 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
         const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
         messageContent = messageContent.replace(regex, value.toString());
       });
+      
+      // Adicionar informações de verificação para Bacula
+      if (baculaData.isRealData) {
+        messageContent += `\n\n✅ *Dados verificados em tempo real*\n📡 Fonte: ${baculaData.dataSource}\n🎯 Estratégia: ${baculaData.strategy}\n📊 Jobs processados: ${baculaData.filteredJobsCount}/${baculaData.originalJobsCount}\n⏰ Verificação: ${currentTime}`;
+      } else {
+        messageContent += `\n\n⚠️ *Dados obtidos via fallback*\n📋 Motivo: ${baculaData.lastError || 'Erro na comunicação com Bacula'}\n🔄 Fonte: ${baculaData.dataSource || 'dados mock'}\n⏰ Verificação: ${currentTime}`;
+      }
       
       // Processar blocos condicionais com melhor lógica
       const processConditionalBlocks = (message: string, data: any): string => {
@@ -1232,9 +1252,9 @@ function getGLPIDailyMockData() {
 }
 
 // Função para obter dados do Bacula (Robusta com múltiplas estratégias)
-async function getBaculaData(userId: string, settings: any, authHeader: string = '') {
+async function getBaculaData(userId: string, settings: any, authHeader: string = '', isAutomated: boolean = false) {
   try {
-    console.log('🔍 [BACULA] Buscando dados de jobs Bacula para usuário:', userId);
+    console.log(`🔍 [BACULA] Buscando dados de jobs Bacula para usuário: ${userId} (modo: ${isAutomated ? 'AUTOMÁTICO' : 'MANUAL'})`);
     
     const { data: baculaIntegration } = await supabase
       .from('integrations')
@@ -1306,18 +1326,34 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
         console.log(`🔄 [BACULA] Tentando estratégia: ${strategy.description}`);
         
         const baculaResponse = await retryWithBackoff(async () => {
+          // Criar headers de autenticação apropriados
+          let authToUse = authHeader;
+          if (!authToUse || authToUse === '' || (!authToUse.includes('Bearer') && isAutomated)) {
+            // Para modo automático, usar service role
+            authToUse = `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`;
+            console.log('🔐 [BACULA] Usando service role para requisição automática');
+          }
+
+          // Criar objeto com user_id para o proxy identificar o usuário
+          const requestBody = {
+            endpoint: strategy.endpoint,
+            params: strategy.params,
+            user_id: userId,  // Importante: passar user_id para o proxy
+            integration_type: 'bacula'
+          };
+
+          console.log(`🔄 [BACULA] Fazendo chamada para bacula-proxy com auth: ${authToUse.substring(0, 20)}...`);
+
           // Fazer chamada direta ao bacula-proxy com autenticação correta
           const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/bacula-proxy`, {
             method: 'POST',
             headers: {
-              'Authorization': authHeader || `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+              'Authorization': authToUse,
               'Content-Type': 'application/json',
-              'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
+              'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
+              'x-automated-execution': isAutomated ? 'true' : 'false'
             },
-            body: JSON.stringify({
-              endpoint: strategy.endpoint,
-              params: strategy.params
-            })
+            body: JSON.stringify(requestBody)
           });
 
           if (!response.ok) {
@@ -1354,7 +1390,11 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
 
     if (!baculaData) {
       console.error('❌ [BACULA] Todas as estratégias falharam, usando dados mock');
-      return getEnhancedMockBaculaData();
+      const mockData = getEnhancedMockBaculaData();
+      mockData.isRealData = false;
+      mockData.dataSource = 'mock_fallback';
+      mockData.lastError = lastError?.message || 'Erro desconhecido';
+      return mockData;
     }
 
     // Processar dados do Bacula
@@ -1604,7 +1644,14 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
       totalJobs: totalJobs,
       successJobs: successJobs,
       errorJobs: errorJobsList,
-      generatedAt: currentBrasiliaTime
+      generatedAt: currentBrasiliaTime,
+      
+      // Metadados para verificação
+      isRealData: true,
+      dataSource: `real_data_via_${successfulStrategy}`,
+      strategy: successfulStrategy,
+      filteredJobsCount: filteredJobs.length,
+      originalJobsCount: jobs.length
     };
 
   } catch (error) {
