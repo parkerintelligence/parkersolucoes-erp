@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useZabbixAPI } from '@/hooks/useZabbixAPI';
 import { RefreshCw, Wifi, WifiOff, Server, AlertTriangle, Cpu, HardDrive, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { QuerySafeWrapper } from '@/components/QuerySafeWrapper';
 
 interface DeviceStatus {
   id: string;
@@ -16,7 +17,7 @@ interface DeviceStatus {
   lastSeen?: string;
 }
 
-export default function Alertas() {
+function Alertas() {
   const { useHosts, useProblems, useItems } = useZabbixAPI();
   
   const { data: hosts = [], isLoading: hostsLoading, refetch: refetchHosts } = useHosts({}, {
@@ -562,3 +563,13 @@ export default function Alertas() {
     </div>
   );
 }
+
+const SafeAlertas = () => {
+  return (
+    <QuerySafeWrapper>
+      <Alertas />
+    </QuerySafeWrapper>
+  );
+};
+
+export default SafeAlertas;
