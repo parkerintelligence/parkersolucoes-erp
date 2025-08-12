@@ -473,10 +473,35 @@ export type Database = {
           },
         ]
       }
+      cron_execution_locks: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          lock_name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          lock_name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          lock_name?: string
+        }
+        Relationships: []
+      }
       cron_job_logs: {
         Row: {
           created_at: string
           details: Json | null
+          execution_id: string | null
           id: string
           job_name: string
           status: string
@@ -484,6 +509,7 @@ export type Database = {
         Insert: {
           created_at?: string
           details?: Json | null
+          execution_id?: string | null
           id?: string
           job_name: string
           status: string
@@ -491,6 +517,7 @@ export type Database = {
         Update: {
           created_at?: string
           details?: Json | null
+          execution_id?: string | null
           id?: string
           job_name?: string
           status?: string
