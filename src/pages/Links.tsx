@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Link, ExternalLink, Search, Eye, EyeOff, Download } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { QuerySafeWrapper } from '@/components/QuerySafeWrapper';
 
 const Links = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -207,4 +208,12 @@ const Links = () => {
   );
 };
 
-export default Links;
+const SafeLinks = () => {
+  return (
+    <QuerySafeWrapper>
+      <Links />
+    </QuerySafeWrapper>
+  );
+};
+
+export default SafeLinks;
