@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ReactSafeWrapper } from '@/components/ReactSafeWrapper';
 import Login from '@/pages/Login';
 import VPS from '@/pages/VPS';
 import Admin from '@/pages/Admin';
@@ -30,48 +31,64 @@ import Security from '@/pages/Security';
 import UniFi from '@/pages/UniFi';
 import { Layout } from '@/components/Layout';
 
-// Create a single QueryClient instance
-const queryClient = new QueryClient();
+// Create a single QueryClient instance with better error handling
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error: any) => {
+        // Don't retry on auth errors
+        if (error?.status === 401 || error?.status === 403) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+    },
+  },
+});
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <div className="min-h-screen bg-background">
-            <Routes>
-              <Route path="/" element={<Login />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/alertas" element={<Layout><Alertas /></Layout>} />
-              <Route path="/links" element={<Layout><Links /></Layout>} />
-              <Route path="/vps" element={<Layout><VPS /></Layout>} />
-              <Route path="/admin" element={<Layout><Admin /></Layout>} />
-              <Route path="/glpi" element={<Layout><GLPI /></Layout>} />
-              <Route path="/conexao-remota" element={<Layout><Guacamole /></Layout>} />
-              <Route path="/backups" element={<Layout><Backups /></Layout>} />
-              <Route path="/passwords" element={<Layout><Passwords /></Layout>} />
-              <Route path="/annotations" element={<Layout><Annotations /></Layout>} />
-              <Route path="/whatsapp" element={<Layout><WhatsApp /></Layout>} />
-              <Route path="/whatsapp-templates" element={<Layout><WhatsAppTemplates /></Layout>} />
-              <Route path="/wasabi" element={<Layout><Wasabi /></Layout>} />
-              <Route path="/schedule" element={<Layout><Schedule /></Layout>} />
-              <Route path="/automation" element={<Layout><Automation /></Layout>} />
-              <Route path="/zabbix" element={<Layout><Zabbix /></Layout>} />
-              <Route path="/services" element={<Layout><Services /></Layout>} />
-              <Route path="/budgets" element={<Layout><Budgets /></Layout>} />
-              <Route path="/contracts" element={<Layout><Contracts /></Layout>} />
-              <Route path="/financial" element={<Layout><Financial /></Layout>} />
-              <Route path="/companies" element={<Layout><Companies /></Layout>} />
-              <Route path="/bacula" element={<Layout><Bacula /></Layout>} />
-              <Route path="/reports" element={<Layout><ReportsDashboard /></Layout>} />
-              <Route path="/plano-de-acao" element={<Layout><ActionPlan /></Layout>} />
-              <Route path="/security" element={<Layout><Security /></Layout>} />
-              <Route path="/unifi" element={<Layout><UniFi /></Layout>} />
-            </Routes>
-          </div>
-        </BrowserRouter>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ReactSafeWrapper>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <BrowserRouter>
+            <div className="min-h-screen bg-background">
+              <Routes>
+                <Route path="/" element={<Login />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/alertas" element={<Layout><Alertas /></Layout>} />
+                <Route path="/links" element={<Layout><Links /></Layout>} />
+                <Route path="/vps" element={<Layout><VPS /></Layout>} />
+                <Route path="/admin" element={<Layout><Admin /></Layout>} />
+                <Route path="/glpi" element={<Layout><GLPI /></Layout>} />
+                <Route path="/conexao-remota" element={<Layout><Guacamole /></Layout>} />
+                <Route path="/backups" element={<Layout><Backups /></Layout>} />
+                <Route path="/passwords" element={<Layout><Passwords /></Layout>} />
+                <Route path="/annotations" element={<Layout><Annotations /></Layout>} />
+                <Route path="/whatsapp" element={<Layout><WhatsApp /></Layout>} />
+                <Route path="/whatsapp-templates" element={<Layout><WhatsAppTemplates /></Layout>} />
+                <Route path="/wasabi" element={<Layout><Wasabi /></Layout>} />
+                <Route path="/schedule" element={<Layout><Schedule /></Layout>} />
+                <Route path="/automation" element={<Layout><Automation /></Layout>} />
+                <Route path="/zabbix" element={<Layout><Zabbix /></Layout>} />
+                <Route path="/services" element={<Layout><Services /></Layout>} />
+                <Route path="/budgets" element={<Layout><Budgets /></Layout>} />
+                <Route path="/contracts" element={<Layout><Contracts /></Layout>} />
+                <Route path="/financial" element={<Layout><Financial /></Layout>} />
+                <Route path="/companies" element={<Layout><Companies /></Layout>} />
+                <Route path="/bacula" element={<Layout><Bacula /></Layout>} />
+                <Route path="/reports" element={<Layout><ReportsDashboard /></Layout>} />
+                <Route path="/plano-de-acao" element={<Layout><ActionPlan /></Layout>} />
+                <Route path="/security" element={<Layout><Security /></Layout>} />
+                <Route path="/unifi" element={<Layout><UniFi /></Layout>} />
+              </Routes>
+            </div>
+          </BrowserRouter>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ReactSafeWrapper>
   );
 }
 
