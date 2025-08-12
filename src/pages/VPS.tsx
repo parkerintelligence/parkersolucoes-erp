@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HostingerDashboard } from '@/components/HostingerDashboard';
 import { SnapshotsGrid } from '@/components/SnapshotsGrid';
 import { Server, Camera } from 'lucide-react';
+import { QuerySafeWrapper } from '@/components/QuerySafeWrapper';
 
 const VPS = () => {
   return (
@@ -59,4 +60,12 @@ const VPS = () => {
   );
 };
 
-export default VPS;
+const SafeVPS = () => {
+  return (
+    <QuerySafeWrapper>
+      <VPS />
+    </QuerySafeWrapper>
+  );
+};
+
+export default SafeVPS;
