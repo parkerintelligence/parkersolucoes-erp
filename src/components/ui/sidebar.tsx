@@ -2,7 +2,6 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { VariantProps, cva } from "class-variance-authority";
 import { PanelLeft } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,11 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+// Custom mobile hook that doesn't use React hooks initially
+function useIsMobileInternal() {
+  return window.innerWidth < 768;
+}
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -55,7 +59,7 @@ const SidebarProvider = React.forwardRef<
   children,
   ...props
 }, ref) => {
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobileInternal();
   const [openMobile, setOpenMobile] = React.useState(false);
   const [_open, _setOpen] = React.useState(defaultOpen);
   const open = openProp ?? _open;
