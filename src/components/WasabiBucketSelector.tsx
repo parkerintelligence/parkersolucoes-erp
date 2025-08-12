@@ -19,6 +19,11 @@ export const WasabiBucketSelector = ({
   isLoading = false,
   className 
 }: WasabiBucketSelectorProps) => {
+  // Ensure component only renders when React is ready
+  if (typeof React === 'undefined' || !React.useState) {
+    return null;
+  }
+
   return (
     <div className={className}>
       <Label htmlFor="bucket-selector" className="text-white flex items-center gap-2 mb-2">
@@ -40,7 +45,7 @@ export const WasabiBucketSelector = ({
               : "Escolha um bucket para visualizar arquivos..."
           } />
         </SelectTrigger>
-        <SelectContent className="bg-gray-800 border-gray-700">
+        <SelectContent className="bg-gray-800 border-gray-700 z-50">
           {buckets.map((bucket) => (
             <SelectItem 
               key={bucket.name} 

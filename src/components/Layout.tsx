@@ -1,8 +1,10 @@
+
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { TopHeader } from '@/components/TopHeader';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,6 +12,8 @@ interface LayoutProps {
 
 export const Layout = ({ children }: LayoutProps) => {
   const { isAuthenticated, isLoading } = useAuth();
+
+  console.log('Layout - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
 
   if (isLoading) {
     return (
@@ -20,14 +24,15 @@ export const Layout = ({ children }: LayoutProps) => {
   }
 
   if (!isAuthenticated) {
+    console.log('Usuário não autenticado, redirecionando para login');
     return <Navigate to="/login" replace />;
   }
 
   return (
-    <SidebarProvider defaultOpen={true}>
+    <SidebarProvider>
       <div className="min-h-screen flex w-full bg-primary">
         <AppSidebar />
-        <SidebarInset>
+        <SidebarInset className="flex-1 min-w-0 flex flex-col transition-all duration-200 md:ml-0">
           <TopHeader />
           <main className="flex-1 overflow-auto bg-slate-900">
             <div className="container-responsive py-4 sm:py-6 lg:py-8 bg-slate-900">

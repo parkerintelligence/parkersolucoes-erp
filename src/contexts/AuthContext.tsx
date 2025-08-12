@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -30,9 +30,6 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  console.log('AuthProvider rendering, React available:', !!React);
-  console.log('useState available:', !!React.useState);
-  
   const [user, setUser] = React.useState<User | null>(null);
   const [session, setSession] = React.useState<Session | null>(null);
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);

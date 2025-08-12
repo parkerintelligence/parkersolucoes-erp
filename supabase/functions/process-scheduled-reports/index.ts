@@ -215,13 +215,15 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     // Buscar relatórios que devem ser executados agora
-    console.log(`🔍 [UNIFIED-CRON] Buscando relatórios com next_execution <= ${currentTime.toISOString()}`);
+    // Adicionar margem de 1 minuto para evitar problemas de precisão de segundos
+    const checkTime = new Date(currentTime.getTime() + 60000); // +1 minuto
+    console.log(`🔍 [UNIFIED-CRON] Buscando relatórios com next_execution <= ${checkTime.toISOString()}`);
     
     const { data: dueReports, error: reportsError } = await supabase
       .from('scheduled_reports')
       .select('*')
       .eq('is_active', true)
-      .lte('next_execution', currentTime.toISOString());
+      .lte('next_execution', checkTime.toISOString());
 
     if (reportsError) {
       console.error('❌ [UNIFIED-CRON] Erro ao buscar relatórios:', reportsError);
@@ -233,7 +235,7 @@ const handler = async (req: Request): Promise<Response> => {
       .from('glpi_scheduled_tickets')
       .select('*')
       .eq('is_active', true)
-      .lte('next_execution', currentTime.toISOString());
+      .lte('next_execution', checkTime.toISOString());
 
     if (ticketsError) {
       console.error('❌ [UNIFIED-CRON] Erro ao buscar tickets GLPI:', ticketsError);
@@ -308,7 +310,7 @@ const handler = async (req: Request): Promise<Response> => {
             console.log(`⏰ [CRON] Próxima execução calculada: ${nextExecData}`);
           }
 
-          // Atualizar o registro do relatório IMEDIATAMENTE para evitar execuções duplicadas
+          // Atualizar o registro do relatório
           const { error: updateError } = await supabase
             .from('scheduled_reports')
             .update({

@@ -2,20 +2,20 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar } from '@/components/ui/sidebar';
-
+// import { useSystemSettings } from '@/hooks/useSystemSettings';
 const menuItems = [{
   title: 'Alertas',
   url: '/alertas',
   icon: AlertTriangle,
   role: 'user'
 }, {
-  title: 'Links',
+  title: 'Links de acesso',
   url: '/links',
   icon: Link,
   role: 'user'
 }, {
-  title: 'VPS',
-  url: '/vps',
+  title: 'Conexão Remota',
+  url: '/conexao-remota',
   icon: Monitor,
   role: 'user'
 }, {
@@ -24,14 +24,9 @@ const menuItems = [{
   icon: Headphones,
   role: 'user'
 }, {
-  title: 'Conexão Remota',
-  url: '/conexao-remota',
-  icon: Monitor,
-  role: 'user'
-}, {
-  title: 'Backups',
-  url: '/backups',
-  icon: HardDrive,
+  title: 'Plano de Ação',
+  url: '/plano-de-acao',
+  icon: Kanban,
   role: 'user'
 }, {
   title: 'Senhas',
@@ -44,14 +39,19 @@ const menuItems = [{
   icon: Notebook,
   role: 'user'
 }, {
-  title: 'WhatsApp',
-  url: '/whatsapp',
+  title: 'Agenda',
+  url: '/schedule',
+  icon: Calendar,
+  role: 'user'
+}, {
+  title: 'Modelos WhatsApp',
+  url: '/whatsapp-templates',
   icon: MessageCircle,
   role: 'user'
 }, {
-  title: 'Templates WhatsApp',
-  url: '/whatsapp-templates',
-  icon: FileText,
+  title: 'Backups FTP',
+  url: '/backups',
+  icon: HardDrive,
   role: 'user'
 }, {
   title: 'Wasabi',
@@ -59,14 +59,9 @@ const menuItems = [{
   icon: Cloud,
   role: 'user'
 }, {
-  title: 'Agenda',
-  url: '/schedule',
-  icon: Calendar,
-  role: 'user'
-}, {
   title: 'Automação',
   url: '/automation',
-  icon: Activity,
+  icon: Settings,
   role: 'user'
 }, {
   title: 'Zabbix',
@@ -74,54 +69,14 @@ const menuItems = [{
   icon: Activity,
   role: 'user'
 }, {
-  title: 'Serviços',
-  url: '/services',
-  icon: Settings,
-  role: 'user'
-}, {
-  title: 'Orçamentos',
-  url: '/budgets',
-  icon: Calculator,
-  role: 'user'
-}, {
-  title: 'Contratos',
-  url: '/contracts',
-  icon: FileText,
-  role: 'user'
-}, {
-  title: 'Financeiro',
-  url: '/financial',
-  icon: Calculator,
-  role: 'user'
-}, {
-  title: 'Empresas',
-  url: '/companies',
-  icon: LayoutDashboard,
-  role: 'user'
-}, {
   title: 'Bacula',
   url: '/bacula',
   icon: Database,
   role: 'user'
 }, {
-  title: 'Relatórios',
-  url: '/reports',
-  icon: FileText,
-  role: 'user'
-}, {
-  title: 'Plano de Ação',
-  url: '/plano-de-acao',
-  icon: Kanban,
-  role: 'user'
-}, {
-  title: 'Segurança',
-  url: '/security',
-  icon: Shield,
-  role: 'user'
-}, {
-  title: 'UniFi',
-  url: '/unifi',
-  icon: Monitor,
+  title: 'VPS',
+  url: '/vps',
+  icon: LayoutDashboard,
   role: 'user'
 }, {
   title: 'Admin',
@@ -129,67 +84,67 @@ const menuItems = [{
   icon: Settings,
   role: 'master'
 }];
-
 export function AppSidebar() {
-  const { userProfile, isMaster } = useAuth();
+  const {
+    state
+  } = useSidebar();
+  const {
+    isMaster
+  } = useAuth();
   const location = useLocation();
-  const { collapsed } = useSidebar();
+  const currentPath = location.pathname;
+  // Temporarily remove useSystemSettings to fix the startup issue
+  // const { data: companyLogoSettings } = useSystemSettings('branding');
+  const companyLogoSettings = null;
   
-  const visibleMenuItems = menuItems.filter(item => {
-    if (item.role === 'master' && !isMaster) {
-      return false;
-    }
-    return true;
-  });
-
-  const getNavClass = (url: string) => {
-    const isActive = location.pathname === url;
-    return isActive;
-  };
-
-  return (
-    <Sidebar className="border-r bg-slate-900 border-slate-700" collapsible="icon">
-      <SidebarHeader className="border-b border-slate-700 p-4">
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <Shield className="h-8 w-8 text-blue-400" />
-            <div>
-              <h2 className="text-lg font-semibold text-white">Sistema</h2>
-              <p className="text-xs text-slate-400">Gestão de TI</p>
-            </div>
-          </div>
-        )}
-        {collapsed && (
-          <div className="flex justify-center">
-            <Shield className="h-8 w-8 text-blue-400" />
-          </div>
-        )}
+  const isActive = (path: string) => currentPath === path;
+  const isCollapsed = state === 'collapsed';
+  const filteredMainItems = menuItems.filter(item => item.role === 'user' || item.role === 'master' && isMaster);
+  
+  // const companyLogo = companyLogoSettings?.find(setting => setting.setting_key === 'company_logo_url')?.setting_value;
+  // const companyName = companyLogoSettings?.find(setting => setting.setting_key === 'company_name')?.setting_value;
+  const companyLogo = null;
+  const companyName = 'Parker Soluções ERP';
+  return <Sidebar className="border-r border-primary-foreground/20 bg-slate-900" collapsible="icon">
+      <SidebarHeader className="p-2 sm:p-4 border-b border-primary-foreground/20 bg-slate-900">
+        <div className="flex items-center justify-center">
+          {companyLogo ? (
+            <img 
+              src={companyLogo} 
+              alt={companyName || "Logo"} 
+              className={`object-contain ${isCollapsed ? 'h-8 w-8' : 'h-12 w-auto max-w-full'} transition-all duration-200`}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          ) : companyName && !isCollapsed ? (
+            <h2 className="text-white font-semibold text-sm sm:text-base text-center truncate">
+              {companyName}
+            </h2>
+          ) : null}
+        </div>
       </SidebarHeader>
-      
-      <SidebarContent>
+
+      <SidebarContent className="bg-slate-900">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-400 text-xs uppercase tracking-wider">
-            {!collapsed && "Menu Principal"}
+          <SidebarGroupLabel className="text-white font-medium text-xs sm:text-sm px-2 sm:px-0">
+            {!isCollapsed && <span className="hidden sm:inline">Menu Principal</span>}
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {visibleMenuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={getNavClass(item.url)}>
-                    <NavLink 
-                      to={item.url} 
-                      className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-slate-800 data-[active=true]:bg-blue-600 data-[active=true]:text-white"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span className="text-sm">{item.title}</span>}
+            <SidebarMenu className="space-y-1 px-1 sm:px-0">
+              {filteredMainItems.map(item => <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <NavLink to={item.url} className={({
+                  isActive
+                }) => `flex items-center gap-2 sm:gap-3 rounded-lg px-2 sm:px-3 py-2 text-xs sm:text-sm transition-all text-white hover:text-white ${isActive ? 'bg-secondary text-secondary-foreground font-medium' : 'hover:bg-primary-foreground/10'}`}>
+                      <item.icon className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                      {!isCollapsed && <span className="hidden sm:inline truncate">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+                </SidebarMenuItem>)}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-    </Sidebar>
-  );
+    </Sidebar>;
 }
