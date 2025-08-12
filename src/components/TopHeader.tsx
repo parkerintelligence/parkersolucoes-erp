@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Shield } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
 export const TopHeader = () => {
   const { user, userProfile, logout, isMaster } = useAuth();
@@ -19,6 +20,7 @@ export const TopHeader = () => {
     <header className="sticky top-0 z-40 border-b border-border bg-slate-900 text-primary-foreground shadow-lg">
       <div className="flex items-center justify-between w-full px-6 py-4">
         <div className="flex items-center gap-3">
+          <SidebarTrigger />
           <div className="bg-secondary p-2 rounded-xl">
             <Shield className="h-6 w-6 text-secondary-foreground" />
           </div>
