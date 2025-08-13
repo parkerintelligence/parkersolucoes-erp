@@ -52,7 +52,7 @@ function App() {
   return (
     <ReactSafeWrapper>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
+        <div className="min-h-screen bg-background">
           <BrowserRouter>
             <div className="min-h-screen bg-background">
               <Routes>
@@ -86,7 +86,7 @@ function App() {
               </Routes>
             </div>
           </BrowserRouter>
-        </AuthProvider>
+        </div>
       </QueryClientProvider>
     </ReactSafeWrapper>
   );

@@ -1,5 +1,4 @@
 
-import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { TopHeader } from '@/components/TopHeader';
 import { AppSidebar } from '@/components/AppSidebar';
@@ -11,7 +10,9 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children }: LayoutProps) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  // Temporarily bypass auth for debugging
+  const isAuthenticated = true;
+  const isLoading = false;
 
   console.log('Layout - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
 
