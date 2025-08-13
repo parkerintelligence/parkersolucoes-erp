@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -29,7 +29,7 @@ export const useAuth = (): AuthContextType => {
   return context;
 };
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+const AuthProviderComponent: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -92,17 +92,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    let mounted = true;
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
           // Fetch user profile after successful authentication
           setTimeout(async () => {
+            if (!mounted) return;
             const profile = await fetchUserProfile(session.user.id);
-            setUserProfile(profile);
+            if (mounted) {
+              setUserProfile(profile);
+            }
           }, 0);
         } else {
           setUserProfile(null);
@@ -114,17 +121,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchUserProfile(session.user.id).then(setUserProfile);
+        fetchUserProfile(session.user.id).then((profile) => {
+          if (mounted) {
+            setUserProfile(profile);
+          }
+        });
       }
       
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const value: AuthContextType = {
@@ -139,4 +155,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
+};
+
+// Wrap with error boundary to catch any hook issues
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  try {
+    return <AuthProviderComponent>{children}</AuthProviderComponent>;
+  } catch (error) {
+    console.error('AuthProvider Error:', error);
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <h2 className="text-lg font-semibold text-foreground mb-2">
+            Erro de Autenticação
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Recarregue a página para tentar novamente.
+          </p>
+        </div>
+      </div>
+    );
+  }
+};
