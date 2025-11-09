@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BomControleAdminConfig } from "@/components/BomControleAdminConfig";
-import { ChatwootAdminConfig } from "@/components/ChatwootAdminConfig";
+import { ChatwootSimpleConfig } from "@/components/ChatwootSimpleConfig";
 import { EvolutionAPIAdminConfig } from "@/components/EvolutionAPIAdminConfig";
 import { WasabiAdminConfig } from "@/components/WasabiAdminConfig";
 import { GrafanaAdminConfig } from "@/components/GrafanaAdminConfig";
@@ -43,7 +43,7 @@ const Admin = () => {
       id: "chatwoot",
       label: "Chatwoot",
       icon: <MessageCircle className="h-5 w-5" />,
-      component: ChatwootAdminConfig
+      component: ChatwootSimpleConfig
     },
     {
       id: "evolution",
