@@ -7,10 +7,11 @@ import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, MessageSquare, AlertTriangle, CheckCircle, Zap, ExternalLink } from 'lucide-react';
+import { Loader2, MessageSquare, AlertTriangle, CheckCircle, Zap, ExternalLink, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useChatwootAPI } from '@/hooks/useChatwootAPI';
 import { Badge } from '@/components/ui/badge';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 export const ChatwootAdminConfig = () => {
   console.log('🔷 ChatwootAdminConfig - Componente renderizado');
@@ -34,6 +35,7 @@ export const ChatwootAdminConfig = () => {
   });
 
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [errorDetails, setErrorDetails] = useState<any>(null);
 
   // Sincronizar formData com dados carregados
   useEffect(() => {
@@ -137,10 +139,12 @@ export const ChatwootAdminConfig = () => {
     }
 
     setConnectionStatus('testing');
+    setErrorDetails(null);
     
     try {
       const result = await testConnection.mutateAsync();
       setConnectionStatus('success');
+      setErrorDetails(null);
       
       // Show which URL format worked
       const baseUrl = chatwootIntegration.base_url;
@@ -153,8 +157,10 @@ export const ChatwootAdminConfig = () => {
       });
       
       setTimeout(() => setConnectionStatus('idle'), 5000);
-    } catch (error) {
+    } catch (error: any) {
       setConnectionStatus('error');
+      setErrorDetails(error.details || null);
+      console.error('Erro no teste de conexão:', error);
       setTimeout(() => setConnectionStatus('idle'), 5000);
     }
   };
@@ -294,6 +300,91 @@ export const ChatwootAdminConfig = () => {
             </Button>
           )}
         </div>
+
+        {connectionStatus === 'error' && errorDetails && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <div className="space-y-2">
+                <p className="font-semibold">{errorDetails.error || 'Erro ao conectar'}</p>
+                <div className="text-sm space-y-1">
+                  <p><strong>Status HTTP:</strong> {errorDetails.status}</p>
+                  <p><strong>Content-Type:</strong> {errorDetails.contentType}</p>
+                  <p><strong>URL:</strong> {errorDetails.url}</p>
+                  <p><strong>Token:</strong> {errorDetails.tokenMasked}</p>
+                </div>
+                
+                {errorDetails.possibleCauses && errorDetails.possibleCauses.length > 0 && (
+                  <div className="mt-3">
+                    <p className="font-semibold text-sm mb-1">Possíveis Causas:</p>
+                    <ul className="text-sm space-y-0.5 list-disc list-inside">
+                      {errorDetails.possibleCauses.map((cause: string, idx: number) => (
+                        <li key={idx}>{cause}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="diagnostics">
+            <AccordionTrigger>
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                <span>Diagnóstico e Soluções</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="space-y-4">
+              <div>
+                <h4 className="font-semibold text-sm mb-2">Resolvendo Erro 406 (Not Acceptable):</h4>
+                <ol className="text-sm space-y-2 list-decimal list-inside">
+                  <li>
+                    <strong>Verifique o tipo de token:</strong>
+                    <ul className="ml-6 mt-1 space-y-1 list-disc list-inside">
+                      <li>Acesse Chatwoot → Profile Settings → Access Token</li>
+                      <li>Gere um novo "Access Token" (não use Platform App Token)</li>
+                      <li>Copie e cole o token exatamente como gerado</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Verifique as permissões:</strong>
+                    <ul className="ml-6 mt-1 space-y-1 list-disc list-inside">
+                      <li>Sua conta deve ter permissão "Administrator" ou "Agent"</li>
+                      <li>Verifique se a conta não está bloqueada</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Teste manualmente a URL:</strong>
+                    <ul className="ml-6 mt-1 space-y-1 list-disc list-inside">
+                      <li>Abra o terminal e teste: <code className="bg-muted px-1 py-0.5 rounded text-xs">curl -H "api_access_token: SEU_TOKEN" {chatwootIntegration?.base_url}/api/v1/accounts</code></li>
+                      <li>Deve retornar JSON, não HTML</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Alternativas:</strong>
+                    <ul className="ml-6 mt-1 space-y-1 list-disc list-inside">
+                      <li>Tente com /api/v2 em vez de /api/v1</li>
+                      <li>Regenere o token de acesso</li>
+                      <li>Verifique a versão do Chatwoot (requer ≥ 2.0)</li>
+                    </ul>
+                  </li>
+                </ol>
+              </div>
+
+              {errorDetails && errorDetails.preview && (
+                <div className="border-t pt-3">
+                  <h4 className="font-semibold text-sm mb-2">Resposta do Servidor (preview):</h4>
+                  <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
+                    {errorDetails.preview}
+                  </pre>
+                </div>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
         <Alert>
           <AlertTriangle className="h-4 w-4" />

@@ -220,18 +220,35 @@ serve(async (req) => {
       const textResponse = await chatwootResponse.text();
       console.error('Chatwoot API returned non-JSON response:', textResponse.substring(0, 500));
       
+      // Generate detailed error information
+      const possibleCauses = [];
+      if (chatwootResponse.status === 401) {
+        possibleCauses.push('Token de API inválido ou expirado');
+        possibleCauses.push('Token sem permissões de Administrator ou Agent');
+      } else if (chatwootResponse.status === 404) {
+        possibleCauses.push('URL do endpoint incorreta');
+        possibleCauses.push('Versão da API incorreta (tente /api/v2)');
+      } else if (chatwootResponse.status === 406) {
+        possibleCauses.push('Token inválido ou tipo incorreto');
+        possibleCauses.push('Use o Access Token do Profile Settings (não Platform App Token)');
+        possibleCauses.push('Verifique se o token tem permissões corretas');
+        possibleCauses.push('Tente regenerar o token de acesso');
+      } else {
+        possibleCauses.push('Verifique a URL e credenciais do Chatwoot');
+        possibleCauses.push('Verifique se o servidor Chatwoot está acessível');
+      }
+      
       return new Response(
         JSON.stringify({
-          error: `Chatwoot retornou ${contentType || 'tipo desconhecido'} ao invés de JSON`,
+          error: `Erro ${chatwootResponse.status}: Chatwoot retornou ${contentType || 'tipo desconhecido'} ao invés de JSON`,
           details: {
             status: chatwootResponse.status,
-            contentType: contentType,
+            contentType: contentType || 'unknown',
             preview: textResponse.substring(0, 200),
-            possibleCause: chatwootResponse.status === 401 
-              ? 'Token de API inválido ou expirado' 
-              : chatwootResponse.status === 404
-              ? 'URL do endpoint incorreta. Verifique se a URL base está correta.'
-              : 'Verifique a URL e credenciais do Chatwoot'
+            url: fullUrl,
+            authMethod: 'api_access_token',
+            tokenMasked: integration.api_token.substring(0, 3) + '...' + integration.api_token.substring(integration.api_token.length - 4),
+            possibleCauses: possibleCauses
           }
         }),
         {

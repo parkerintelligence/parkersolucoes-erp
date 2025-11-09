@@ -97,13 +97,12 @@ const makeChatwootRequest = async (integrationId: string, endpoint: string, opti
       const errorData = await response.json();
       console.error('Erro do Proxy Chatwoot:', errorData);
       
-      if (response.status === 401) {
-        throw new Error('Não autorizado. Faça login novamente.');
-      } else if (response.status === 404) {
-        throw new Error('Integração Chatwoot não encontrada.');
-      } else {
-        throw new Error(errorData.error || `Erro do Proxy ${response.status}`);
-      }
+      // Create detailed error object
+      const error: any = new Error(errorData.error || `Erro do Proxy ${response.status}`);
+      error.details = errorData.details;
+      error.status = response.status;
+      
+      throw error;
     }
 
     const data = await response.json();
