@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, MessageSquare } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar } from '@/components/ui/sidebar';
 // import { useSystemSettings } from '@/hooks/useSystemSettings';
 const menuItems = [{
@@ -77,6 +77,11 @@ const menuItems = [{
   title: 'VPS',
   url: '/vps',
   icon: LayoutDashboard,
+  role: 'user'
+}, {
+  title: 'Chatwoot',
+  url: '/chatwoot',
+  icon: MessageSquare,
   role: 'user'
 }, {
   title: 'Admin',

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactSafeWrapper } from '@/components/ReactSafeWrapper';
 import Login from '@/pages/Login';
 import VPS from '@/pages/VPS';
+import Chatwoot from '@/pages/Chatwoot';
 import Admin from '@/pages/Admin';
 import GLPI from '@/pages/GLPI';
 import Guacamole from '@/pages/Guacamole';
@@ -60,8 +61,9 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/alertas" element={<Layout><Alertas /></Layout>} />
                 <Route path="/links" element={<Layout><Links /></Layout>} />
-                <Route path="/vps" element={<Layout><VPS /></Layout>} />
-                <Route path="/admin" element={<Layout><Admin /></Layout>} />
+          <Route path="/vps" element={<Layout><VPS /></Layout>} />
+          <Route path="/chatwoot" element={<Layout><Chatwoot /></Layout>} />
+          <Route path="/admin" element={<Layout><Admin /></Layout>} />
                 <Route path="/glpi" element={<Layout><GLPI /></Layout>} />
                 <Route path="/conexao-remota" element={<Layout><Guacamole /></Layout>} />
                 <Route path="/backups" element={<Layout><Backups /></Layout>} />
