@@ -100,14 +100,13 @@ serve(async (req) => {
     const isMaster = !!userRole;
     console.log('User is master:', isMaster);
 
-    // Fetch integration from database
+    // Fetch integration from database with cache bypass
     // Masters can access all integrations, regular users only their own
     let query = supabaseClient
       .from('integrations')
       .select('base_url, api_token')
       .eq('id', integrationId)
-      .eq('type', 'chatwoot')
-      .eq('is_active', true);
+      .eq('type', 'chatwoot');
 
     // Only filter by user_id if not master
     if (!isMaster) {
@@ -115,6 +114,12 @@ serve(async (req) => {
     }
 
     const { data: integration, error: integrationError } = await query.single();
+    
+    console.log('Integration fetched from DB:', {
+      id: integrationId,
+      base_url: integration?.base_url,
+      has_token: !!integration?.api_token
+    });
 
     if (integrationError || !integration) {
       console.error('Integration not found:', integrationError);
