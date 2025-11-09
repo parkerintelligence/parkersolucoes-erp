@@ -83,12 +83,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     try {
       setIsLoading(true);
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Logout error:', error);
+        throw error;
+      }
+      
+      // Limpar estados
       setUser(null);
       setSession(null);
       setUserProfile(null);
+      
+      // Redirecionar para login
+      window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
+      // Mesmo com erro, limpar estados e redirecionar
+      setUser(null);
+      setSession(null);
+      setUserProfile(null);
+      window.location.href = '/login';
     } finally {
       setIsLoading(false);
     }

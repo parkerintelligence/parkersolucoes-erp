@@ -26,7 +26,13 @@ export const TopHeader = () => {
   const companyName = 'Sistema de Gestão de TI'; // Hardcoded temporarily
   const logoUrl = null; // Hardcoded temporarily
   const handleLogout = async () => {
-    await logout();
+    try {
+      console.log('🔴 Logout iniciado...');
+      await logout();
+      console.log('✅ Logout concluído');
+    } catch (error) {
+      console.error('Erro no logout:', error);
+    }
   };
   const handleFinancialAccess = () => {
     navigate('/financial');
