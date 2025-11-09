@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ export const ChatwootSimpleConfig = () => {
   
   const chatwootIntegration = integrations?.find(integration => integration.type === 'chatwoot');
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = React.useState({
     name: 'Chatwoot Atendimento',
     base_url: '',
     api_token: '',
@@ -28,10 +28,10 @@ export const ChatwootSimpleConfig = () => {
     is_active: true,
   });
 
-  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
-  const [errorDetails, setErrorDetails] = useState<any>(null);
+  const [connectionStatus, setConnectionStatus] = React.useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [errorDetails, setErrorDetails] = React.useState<any>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (chatwootIntegration) {
       setFormData({
         name: chatwootIntegration.name,
