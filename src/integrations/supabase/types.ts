@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -619,7 +619,7 @@ export type Database = {
           type: string
           updated_at: string
           use_ssl: boolean | null
-          user_id: string
+          user_id: string | null
           user_token: string | null
           username: string | null
           webhook_url: string | null
@@ -643,7 +643,7 @@ export type Database = {
           type: string
           updated_at?: string
           use_ssl?: boolean | null
-          user_id: string
+          user_id?: string | null
           user_token?: string | null
           username?: string | null
           webhook_url?: string | null
@@ -667,7 +667,7 @@ export type Database = {
           type?: string
           updated_at?: string
           use_ssl?: boolean | null
-          user_id?: string
+          user_id?: string | null
           user_token?: string | null
           username?: string | null
           webhook_url?: string | null
@@ -1259,18 +1259,9 @@ export type Database = {
         Args: { schedule_type_id_param: string }
         Returns: string
       }
-      get_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      is_master: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
-      is_master_user: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      get_user_role: { Args: never; Returns: string }
+      is_master: { Args: { user_id: string }; Returns: boolean }
+      is_master_user: { Args: never; Returns: boolean }
     }
     Enums: {
       integration_type:

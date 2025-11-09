@@ -25,7 +25,7 @@ export interface Integration {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  user_id: string;
+  user_id?: string; // Agora opcional
 }
 
 export const useIntegrations = () => {
@@ -53,25 +53,10 @@ export const useCreateIntegration = () => {
   return useMutation({
     mutationFn: async (integration: Omit<Integration, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
       console.log('🚀 [useCreateIntegration] Iniciando criação de integração:', integration);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error('❌ [useCreateIntegration] Usuário não autenticado');
-        throw new Error('User not authenticated');
-      }
-
-      console.log('✅ [useCreateIntegration] Usuário autenticado:', user.id);
-
-      const integrationWithUser = {
-        ...integration,
-        user_id: user.id
-      };
-
-      console.log('📝 [useCreateIntegration] Dados completos para inserção:', integrationWithUser);
 
       const { data, error } = await supabase
         .from('integrations')
-        .insert([integrationWithUser])
+        .insert([integration])
         .select()
         .single();
 
