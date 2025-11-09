@@ -7,8 +7,10 @@ import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, MessageSquare, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Loader2, MessageSquare, AlertTriangle, CheckCircle, Zap, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useChatwootAPI } from '@/hooks/useChatwootAPI';
+import { Badge } from '@/components/ui/badge';
 
 export const ChatwootAdminConfig = () => {
   console.log('🔷 ChatwootAdminConfig - Componente renderizado');
@@ -16,6 +18,7 @@ export const ChatwootAdminConfig = () => {
   const { data: integrations } = useIntegrations();
   const createIntegration = useCreateIntegration();
   const updateIntegration = useUpdateIntegration();
+  const { testConnection } = useChatwootAPI();
   
   const chatwootIntegration = integrations?.find(integration => integration.type === 'chatwoot');
   
@@ -29,6 +32,8 @@ export const ChatwootAdminConfig = () => {
     webhook_url: '',
     is_active: true,
   });
+
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
 
   // Sincronizar formData com dados carregados
   useEffect(() => {
@@ -121,16 +126,47 @@ export const ChatwootAdminConfig = () => {
     }
   };
 
+  const handleTestConnection = async () => {
+    if (!chatwootIntegration?.id) {
+      toast({
+        title: "Configuração necessária",
+        description: "Salve a configuração antes de testar a conexão.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setConnectionStatus('testing');
+    
+    try {
+      await testConnection.mutateAsync();
+      setConnectionStatus('success');
+      setTimeout(() => setConnectionStatus('idle'), 5000);
+    } catch (error) {
+      setConnectionStatus('error');
+      setTimeout(() => setConnectionStatus('idle'), 5000);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MessageSquare className="h-6 w-6" />
-          Configuração do Chatwoot
-        </CardTitle>
-        <CardDescription>
-          Configure a integração com o Chatwoot para atendimento ao cliente.
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-6 w-6" />
+              Configuração do Chatwoot
+            </CardTitle>
+            <CardDescription>
+              Configure a integração com o Chatwoot para atendimento ao cliente.
+            </CardDescription>
+          </div>
+          {chatwootIntegration && (
+            <Badge variant={chatwootIntegration.is_active ? "default" : "secondary"}>
+              {chatwootIntegration.is_active ? "Ativa" : "Inativa"}
+            </Badge>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
@@ -190,33 +226,90 @@ export const ChatwootAdminConfig = () => {
           </div>
         </div>
 
-        <Button
-          onClick={handleSave}
-          disabled={createIntegration.isPending || updateIntegration.isPending}
-          className="w-full"
-        >
-          {createIntegration.isPending || updateIntegration.isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Salvando...
-            </>
-          ) : chatwootIntegration ? (
-            'Atualizar Configuração'
-          ) : (
-            'Salvar Configuração'
+        <div className="flex gap-2">
+          <Button
+            onClick={handleSave}
+            disabled={createIntegration.isPending || updateIntegration.isPending}
+            className="flex-1"
+          >
+            {createIntegration.isPending || updateIntegration.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Salvando...
+              </>
+            ) : chatwootIntegration ? (
+              'Atualizar Configuração'
+            ) : (
+              'Salvar Configuração'
+            )}
+          </Button>
+
+          {chatwootIntegration && (
+            <Button
+              onClick={handleTestConnection}
+              disabled={connectionStatus === 'testing'}
+              variant="outline"
+              className="flex-1"
+            >
+              {connectionStatus === 'testing' ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Testando...
+                </>
+              ) : connectionStatus === 'success' ? (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                  Conectado!
+                </>
+              ) : connectionStatus === 'error' ? (
+                <>
+                  <AlertTriangle className="mr-2 h-4 w-4 text-destructive" />
+                  Erro na Conexão
+                </>
+              ) : (
+                <>
+                  <Zap className="mr-2 h-4 w-4" />
+                  Testar Conexão
+                </>
+              )}
+            </Button>
           )}
-        </Button>
+        </div>
 
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Como configurar:</strong>
-            <ul className="mt-2 space-y-1 text-sm">
-              <li>• Acesse o Chatwoot como administrador</li>
-              <li>• Vá em Profile Settings → Access Token</li>
-              <li>• Gere um novo token de acesso</li>
-              <li>• Configure webhooks se necessário</li>
-            </ul>
+            <div className="space-y-3">
+              <div>
+                <strong>Como configurar:</strong>
+                <ul className="mt-2 space-y-1 text-sm">
+                  <li>• Acesse o Chatwoot como administrador</li>
+                  <li>• Vá em Profile Settings → Access Token</li>
+                  <li>• Gere um novo token de acesso</li>
+                  <li>• Configure webhooks se necessário</li>
+                </ul>
+              </div>
+              
+              <div className="pt-2 border-t">
+                <strong>Verificação de Conectividade:</strong>
+                <ul className="mt-2 space-y-1 text-sm">
+                  <li>• A URL deve ser acessível publicamente pela internet</li>
+                  <li>• Verifique se não há firewall bloqueando o acesso</li>
+                  <li>• Use HTTPS com certificado válido quando possível</li>
+                  <li>• Para ambientes internos, considere usar um túnel (Ngrok, Cloudflare Tunnel)</li>
+                </ul>
+              </div>
+
+              <a 
+                href="https://developers.chatwoot.com/api-reference/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Ver Documentação da API do Chatwoot
+              </a>
+            </div>
           </AlertDescription>
         </Alert>
       </CardContent>

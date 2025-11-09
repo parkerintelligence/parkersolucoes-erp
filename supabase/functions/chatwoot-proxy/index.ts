@@ -140,15 +140,38 @@ serve(async (req) => {
 
     console.log('Chatwoot Proxy - Full URL:', fullUrl);
 
-    // Make request to Chatwoot API
-    const chatwootResponse = await fetch(fullUrl, {
+    // Try first with api_access_token header (Chatwoot standard)
+    let chatwootResponse = await fetch(fullUrl, {
       method,
       headers: {
         'Content-Type': 'application/json',
         'api_access_token': integration.api_token,
       },
       body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(15000), // 15 second timeout
+    }).catch(error => {
+      console.error('Chatwoot API - Network error:', error.message);
+      throw error;
     });
+
+    console.log('Chatwoot Proxy - First attempt status:', chatwootResponse.status);
+
+    // If 401, try with Authorization Bearer header as fallback
+    if (chatwootResponse.status === 401) {
+      console.log('Chatwoot Proxy - Trying Authorization Bearer header as fallback...');
+      
+      chatwootResponse = await fetch(fullUrl, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${integration.api_token}`,
+        },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(15000),
+      });
+
+      console.log('Chatwoot Proxy - Second attempt status:', chatwootResponse.status);
+    }
 
     const chatwootData = await chatwootResponse.json();
 
