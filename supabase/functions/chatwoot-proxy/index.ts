@@ -127,18 +127,39 @@ serve(async (req) => {
       );
     }
 
-    // Build Chatwoot API URL
+    // Build Chatwoot API URL with intelligent path detection
     let apiUrl = integration.base_url.replace(/\/$/, '');
-    apiUrl = apiUrl.replace(/\/app\/login$/, '');
-    apiUrl = apiUrl.replace(/\/app$/, '');
     
-    if (!apiUrl.includes('/api/v1')) {
+    // Remove /login suffix if present but preserve /app path
+    apiUrl = apiUrl.replace(/\/login$/, '');
+    apiUrl = apiUrl.replace(/\/app\/login$/, '/app');
+    
+    // Remove /dashboard or /accounts paths but preserve /app
+    apiUrl = apiUrl.replace(/\/(dashboard|accounts).*$/, '');
+    
+    // Detect if we need /app in the path
+    // If URL contains /app/ or ends with /app, we should use /app/api/v1
+    const needsAppPath = apiUrl.includes('/app');
+    
+    // Build the final API URL
+    if (needsAppPath) {
+      // For self-hosted with /app path
+      if (!apiUrl.endsWith('/app')) {
+        apiUrl = apiUrl + '/app';
+      }
       apiUrl = apiUrl + '/api/v1';
+    } else {
+      // For cloud or self-hosted without /app
+      if (!apiUrl.includes('/api/v1')) {
+        apiUrl = apiUrl + '/api/v1';
+      }
     }
     
     const fullUrl = `${apiUrl}${endpoint}`;
 
-    console.log('Chatwoot Proxy - Full URL:', fullUrl);
+    console.log('Chatwoot Proxy - Base URL original:', integration.base_url);
+    console.log('Chatwoot Proxy - Needs /app path:', needsAppPath);
+    console.log('Chatwoot Proxy - Full URL construída:', fullUrl);
 
     // Try first with api_access_token header (Chatwoot standard)
     let chatwootResponse = await fetch(fullUrl, {

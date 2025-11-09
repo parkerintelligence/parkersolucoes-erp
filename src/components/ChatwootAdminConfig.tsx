@@ -139,8 +139,19 @@ export const ChatwootAdminConfig = () => {
     setConnectionStatus('testing');
     
     try {
-      await testConnection.mutateAsync();
+      const result = await testConnection.mutateAsync();
       setConnectionStatus('success');
+      
+      // Show which URL format worked
+      const baseUrl = chatwootIntegration.base_url;
+      const needsApp = baseUrl.includes('/app');
+      const urlType = needsApp ? 'self-hosted com /app' : baseUrl.includes('app.chatwoot.com') ? 'cloud' : 'self-hosted';
+      
+      toast({
+        title: "Conexão bem-sucedida!",
+        description: `Conectado ao Chatwoot (${urlType}). Contas encontradas: ${result?.length || 0}`,
+      });
+      
       setTimeout(() => setConnectionStatus('idle'), 5000);
     } catch (error) {
       setConnectionStatus('error');
@@ -186,8 +197,16 @@ export const ChatwootAdminConfig = () => {
               id="base_url"
               value={formData.base_url}
               onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
-              placeholder="https://app.chatwoot.com"
+              placeholder="https://chat.parkerintelligence.com.br/app"
             />
+            <p className="text-xs text-muted-foreground mt-1.5">
+              <strong>Exemplos:</strong>
+            </p>
+            <ul className="text-xs text-muted-foreground space-y-0.5 mt-1">
+              <li>• Self-hosted com /app: <code className="bg-muted px-1 py-0.5 rounded">https://chat.seudominio.com.br/app</code></li>
+              <li>• Self-hosted sem /app: <code className="bg-muted px-1 py-0.5 rounded">https://chatwoot.seudominio.com.br</code></li>
+              <li>• Cloud: <code className="bg-muted px-1 py-0.5 rounded">https://app.chatwoot.com</code></li>
+            </ul>
           </div>
 
           <div>
