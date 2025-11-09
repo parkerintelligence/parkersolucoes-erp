@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, MessageSquare, AlertTriangle, CheckCircle, Zap, ExternalLink, Info } from 'lucide-react';
@@ -12,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useChatwootAPI } from '@/hooks/useChatwootAPI';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ChatwootConnectionTest } from './ChatwootConnectionTest';
 
 export const ChatwootAdminConfig = () => {
   console.log('🔷 ChatwootAdminConfig - Componente renderizado');
@@ -186,6 +188,17 @@ export const ChatwootAdminConfig = () => {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        <Tabs defaultValue="config" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="config">Configuração</TabsTrigger>
+            <TabsTrigger value="test">Testar Conexão Direta</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="test" className="mt-4">
+            <ChatwootConnectionTest />
+          </TabsContent>
+
+          <TabsContent value="config" className="space-y-6 mt-4">
         <div className="space-y-4">
           <div>
             <Label htmlFor="name">Nome da Integração</Label>
@@ -422,6 +435,8 @@ export const ChatwootAdminConfig = () => {
             </div>
           </AlertDescription>
         </Alert>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
