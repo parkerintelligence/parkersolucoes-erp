@@ -171,59 +171,75 @@ export const useChatwootAPI = () => {
 
       console.log('Fetching Chatwoot conversations via proxy...');
       
-      // First get accounts to get the account ID
-      const accounts = await makeChatwootRequest(
-        chatwootIntegration.id,
-        '/accounts'
-      );
+      try {
+        // First get accounts to get the account ID
+        const accounts = await makeChatwootRequest(
+          chatwootIntegration.id,
+          '/accounts'
+        );
 
-      if (!accounts || accounts.length === 0) {
-        throw new Error('Nenhuma conta encontrada no Chatwoot');
+        if (!accounts || accounts.length === 0) {
+          throw new Error('Nenhuma conta encontrada no Chatwoot');
+        }
+
+        const accountId = accounts[0].id;
+        console.log('Using account ID:', accountId);
+
+        // Get conversations for the account
+        const conversations = await makeChatwootRequest(
+          chatwootIntegration.id,
+          `/accounts/${accountId}/conversations?status=all&page=1`
+        );
+
+        return conversations.data as ChatwootConversation[];
+      } catch (error: any) {
+        console.error('Erro ao buscar conversas Chatwoot:', error);
+        
+        // Transform error to simple string message to avoid serialization issues
+        const errorMessage = error?.details?.possibleCauses?.length > 0
+          ? `${error.message || 'Erro ao conectar com Chatwoot'}\n\nPossíveis causas:\n${error.details.possibleCauses.join('\n')}`
+          : error.message || 'Erro ao conectar com Chatwoot. Verifique as configurações.';
+        
+        throw new Error(errorMessage);
       }
-
-      const accountId = accounts[0].id;
-      console.log('Using account ID:', accountId);
-
-      // Get conversations for the account
-      const conversations = await makeChatwootRequest(
-        chatwootIntegration.id,
-        `/accounts/${accountId}/conversations?status=all&page=1`
-      );
-
-      return conversations.data as ChatwootConversation[];
     },
     enabled: !!chatwootIntegration,
-    refetchInterval: 30000,
-    retry: 1,
+    refetchInterval: false, // Disable auto-refetch on error
+    retry: false, // Don't retry on 406 errors
     staleTime: 10000,
   });
 
   const sendMessage = useMutation({
-    mutationFn: async ({ conversationId, content }: { conversationId: number; content: string }) => {
+    mutationFn: async ({ conversationId, content }: { conversationId: string; content: string }) => {
       if (!chatwootIntegration?.id) {
         throw new Error('Chatwoot não configurado');
       }
 
-      const accounts = await makeChatwootRequest(
-        chatwootIntegration.id,
-        '/accounts'
-      );
+      try {
+        const accounts = await makeChatwootRequest(
+          chatwootIntegration.id,
+          '/accounts'
+        );
 
-      const accountId = accounts[0].id;
+        const accountId = accounts[0].id;
 
-      const message = await makeChatwootRequest(
-        chatwootIntegration.id,
-        `/accounts/${accountId}/conversations/${conversationId}/messages`,
-        {
-          method: 'POST',
-          body: {
-            content: content,
-            message_type: 'outgoing'
+        const message = await makeChatwootRequest(
+          chatwootIntegration.id,
+          `/accounts/${accountId}/conversations/${conversationId}/messages`,
+          {
+            method: 'POST',
+            body: {
+              content: content,
+              message_type: 'outgoing'
+            }
           }
-        }
-      );
+        );
 
-      return message;
+        return message;
+      } catch (error: any) {
+        console.error('Erro ao enviar mensagem:', error);
+        throw new Error(error.message || 'Erro ao enviar mensagem');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chatwoot-conversations'] });
@@ -243,30 +259,35 @@ export const useChatwootAPI = () => {
   });
 
   const updateConversationStatus = useMutation({
-    mutationFn: async ({ conversationId, status }: { conversationId: number; status: 'open' | 'resolved' | 'pending' }) => {
+    mutationFn: async ({ conversationId, status }: { conversationId: string; status: 'open' | 'resolved' | 'pending' }) => {
       if (!chatwootIntegration?.id) {
         throw new Error('Chatwoot não configurado');
       }
 
-      const accounts = await makeChatwootRequest(
-        chatwootIntegration.id,
-        '/accounts'
-      );
+      try {
+        const accounts = await makeChatwootRequest(
+          chatwootIntegration.id,
+          '/accounts'
+        );
 
-      const accountId = accounts[0].id;
+        const accountId = accounts[0].id;
 
-      const conversation = await makeChatwootRequest(
-        chatwootIntegration.id,
-        `/accounts/${accountId}/conversations/${conversationId}`,
-        {
-          method: 'PATCH',
-          body: {
-            status: status
+        const conversation = await makeChatwootRequest(
+          chatwootIntegration.id,
+          `/accounts/${accountId}/conversations/${conversationId}`,
+          {
+            method: 'PATCH',
+            body: {
+              status: status
+            }
           }
-        }
-      );
+        );
 
-      return conversation;
+        return conversation;
+      } catch (error: any) {
+        console.error('Erro ao atualizar status:', error);
+        throw new Error(error.message || 'Erro ao atualizar status da conversa');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chatwoot-conversations'] });

@@ -21,7 +21,7 @@ export const ChatwootMessageDialog = ({ conversation, open, onOpenChange }: Chat
 
     try {
       await sendMessage.mutateAsync({
-        conversationId: conversation.id,
+        conversationId: conversation.id.toString(),
         content: message.trim()
       });
       setMessage('');
