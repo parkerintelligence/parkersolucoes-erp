@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -473,10 +473,35 @@ export type Database = {
           },
         ]
       }
+      cron_execution_locks: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          lock_name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          lock_name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          lock_name?: string
+        }
+        Relationships: []
+      }
       cron_job_logs: {
         Row: {
           created_at: string
           details: Json | null
+          execution_id: string | null
           id: string
           job_name: string
           status: string
@@ -484,6 +509,7 @@ export type Database = {
         Insert: {
           created_at?: string
           details?: Json | null
+          execution_id?: string | null
           id?: string
           job_name: string
           status: string
@@ -491,6 +517,7 @@ export type Database = {
         Update: {
           created_at?: string
           details?: Json | null
+          execution_id?: string | null
           id?: string
           job_name?: string
           status?: string
@@ -1232,18 +1259,9 @@ export type Database = {
         Args: { schedule_type_id_param: string }
         Returns: string
       }
-      get_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      is_master: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
-      is_master_user: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      get_user_role: { Args: never; Returns: string }
+      is_master: { Args: { user_id: string }; Returns: boolean }
+      is_master_user: { Args: never; Returns: boolean }
     }
     Enums: {
       integration_type:
