@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { TopHeader } from '@/components/TopHeader';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { useAuth } from '@/contexts/AuthContext';
 
 
 interface LayoutProps {
@@ -10,9 +11,7 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children }: LayoutProps) => {
-  // Temporarily bypass auth for debugging
-  const isAuthenticated = true;
-  const isLoading = false;
+  const { isAuthenticated, isLoading } = useAuth();
 
   console.log('Layout - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
 
