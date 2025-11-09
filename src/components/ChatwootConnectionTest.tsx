@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { CheckCircle2, XCircle, AlertCircle, Loader2 } from "lucide-react";
 
 export function ChatwootConnectionTest() {
@@ -156,61 +156,60 @@ export function ChatwootConnectionTest() {
                 )}
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="summary">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="summary">Resumo</TabsTrigger>
-                  <TabsTrigger value="details">Detalhes</TabsTrigger>
-                </TabsList>
-                <TabsContent value="summary" className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <p className="font-semibold">Status:</p>
-                      <p>{result.status} {result.statusText}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Método:</p>
-                      <p>{result.method}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">Content-Type:</p>
-                      <p>{result.contentType || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">URL:</p>
-                      <p className="truncate">{result.url}</p>
-                    </div>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm">Resumo</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="font-semibold">Status:</p>
+                    <p>{result.status} {result.statusText}</p>
                   </div>
+                  <div>
+                    <p className="font-semibold">Método:</p>
+                    <p>{result.method}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Content-Type:</p>
+                    <p>{result.contentType || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">URL:</p>
+                    <p className="truncate">{result.url}</p>
+                  </div>
+                </div>
 
-                  {!result.success && (
-                    <Alert variant="destructive">
-                      <AlertDescription>
-                        {result.status === 406 && (
-                          <div className="space-y-1">
-                            <p className="font-semibold">Erro 406: Possíveis causas</p>
-                            <ul className="list-disc list-inside text-sm">
-                              <li>Token inválido ou expirado</li>
-                              <li>Token sem permissões adequadas (precisa ser Administrator ou Agent)</li>
-                              <li>Token do tipo incorreto (use Access Token, não Platform App)</li>
-                            </ul>
-                          </div>
-                        )}
-                        {result.status === 401 && (
-                          <p>Token não autorizado. Verifique se o token está correto.</p>
-                        )}
-                        {result.error && (
-                          <p>Erro de rede: {result.error}</p>
-                        )}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </TabsContent>
-                <TabsContent value="details">
-                  <pre className="bg-muted p-4 rounded-lg overflow-auto text-xs">
-                    {JSON.stringify(result, null, 2)}
-                  </pre>
-                </TabsContent>
-              </Tabs>
+                {!result.success && (
+                  <Alert variant="destructive">
+                    <AlertDescription>
+                      {result.status === 406 && (
+                        <div className="space-y-1">
+                          <p className="font-semibold">Erro 406: Possíveis causas</p>
+                          <ul className="list-disc list-inside text-sm">
+                            <li>Token inválido ou expirado</li>
+                            <li>Token sem permissões adequadas (precisa ser Administrator ou Agent)</li>
+                            <li>Token do tipo incorreto (use Access Token, não Platform App)</li>
+                          </ul>
+                        </div>
+                      )}
+                      {result.status === 401 && (
+                        <p>Token não autorizado. Verifique se o token está correto.</p>
+                      )}
+                      {result.error && (
+                        <p>Erro de rede: {result.error}</p>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm">Detalhes Técnicos</h4>
+                <pre className="bg-muted p-4 rounded-lg overflow-auto text-xs max-h-64">
+                  {JSON.stringify(result, null, 2)}
+                </pre>
+              </div>
             </CardContent>
           </Card>
         )}
