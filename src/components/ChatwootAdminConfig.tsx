@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,12 +17,25 @@ export const ChatwootAdminConfig = () => {
   const chatwootIntegration = integrations?.find(integration => integration.type === 'chatwoot');
 
   const [formData, setFormData] = useState({
-    name: chatwootIntegration?.name || 'Chatwoot Atendimento',
-    base_url: chatwootIntegration?.base_url || '',
-    api_token: chatwootIntegration?.api_token || '',
-    webhook_url: chatwootIntegration?.webhook_url || '',
-    is_active: chatwootIntegration?.is_active ?? true,
+    name: 'Chatwoot Atendimento',
+    base_url: '',
+    api_token: '',
+    webhook_url: '',
+    is_active: true,
   });
+
+  // Sincronizar formData com dados carregados
+  useEffect(() => {
+    if (chatwootIntegration) {
+      setFormData({
+        name: chatwootIntegration.name,
+        base_url: chatwootIntegration.base_url || '',
+        api_token: chatwootIntegration.api_token || '',
+        webhook_url: chatwootIntegration.webhook_url || '',
+        is_active: chatwootIntegration.is_active,
+      });
+    }
+  }, [chatwootIntegration]);
 
   const handleSave = async () => {
     if (!formData.base_url || !formData.api_token) {
