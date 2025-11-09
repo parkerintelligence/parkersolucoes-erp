@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,16 +23,16 @@ export const HostingerDashboard = () => {
     restartVPS,
     createSnapshot
   } = useHostingerActions();
-  const [selectedIntegration, setSelectedIntegration] = useState<string>('');
-  const [showMasterPasswordDialog, setShowMasterPasswordDialog] = useState(false);
-  const [pendingRestartVpsId, setPendingRestartVpsId] = useState<string | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [selectedIntegration, setSelectedIntegration] = React.useState<string>('');
+  const [showMasterPasswordDialog, setShowMasterPasswordDialog] = React.useState(false);
+  const [pendingRestartVpsId, setPendingRestartVpsId] = React.useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date());
   const {
     data: vpsList,
     isLoading: vpsLoading,
     refetch: refetchVPS
   } = useHostingerVPS(selectedIntegration || integrations?.[0]?.id);
-  useEffect(() => {
+  React.useEffect(() => {
     if (integrations && integrations.length > 0 && !selectedIntegration) {
       setSelectedIntegration(integrations[0].id);
     }
