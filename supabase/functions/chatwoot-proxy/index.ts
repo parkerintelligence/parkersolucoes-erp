@@ -209,6 +209,39 @@ serve(async (req) => {
       });
 
       console.log('Chatwoot Proxy - Second attempt status:', chatwootResponse.status);
+      
+      // If still 406, try alternative URL without /app
+      if (chatwootResponse.status === 406) {
+        console.log('Chatwoot Proxy - Trying alternative URL without /app...');
+        
+        let alternativeUrl = integration.base_url.replace(/\/$/, '');
+        alternativeUrl = alternativeUrl.replace(/\/app.*$/, ''); // Remove everything after /app
+        alternativeUrl = alternativeUrl + '/api/v1' + endpoint;
+        
+        console.log('Chatwoot Proxy - Alternative URL:', alternativeUrl);
+        
+        // Try with api_access_token
+        chatwootResponse = await fetch(alternativeUrl, {
+          method,
+          headers: headers1,
+          body: body ? JSON.stringify(body) : undefined,
+          signal: AbortSignal.timeout(15000),
+        });
+        
+        console.log('Chatwoot Proxy - Third attempt (no /app) status:', chatwootResponse.status);
+        
+        // If still not working, try Bearer with alternative URL
+        if (chatwootResponse.status === 406 || chatwootResponse.status === 401) {
+          console.log('Chatwoot Proxy - Trying Bearer with alternative URL...');
+          chatwootResponse = await fetch(alternativeUrl, {
+            method,
+            headers: headers2,
+            body: body ? JSON.stringify(body) : undefined,
+            signal: AbortSignal.timeout(15000),
+          });
+          console.log('Chatwoot Proxy - Fourth attempt (Bearer + no /app) status:', chatwootResponse.status);
+        }
+      }
     }
 
     console.log('Chatwoot Proxy - Response status:', chatwootResponse.status);
