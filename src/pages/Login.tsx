@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,10 @@ import { toast } from '@/hooks/use-toast';
 // import { useSystemSettings } from '@/hooks/useSystemSettings';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   // Temporarily remove useSystemSettings to fix the startup issue
@@ -38,7 +38,7 @@ const Login = () => {
     />
   ));
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (isAuthenticated && !authLoading) {
       navigate('/links', { replace: true });
     }
