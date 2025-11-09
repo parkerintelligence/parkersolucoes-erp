@@ -173,7 +173,11 @@ serve(async (req) => {
       'api_access_token': integration.api_token,
     };
     
-    console.log('Chatwoot Proxy - Sending headers:', Object.keys(headers1));
+    console.log('🔑 Headers enviados (tentativa 1):', {
+      url: fullUrl,
+      headers: headers1,
+      tokenLength: integration.api_token.length
+    });
     
     let chatwootResponse = await fetch(fullUrl, {
       method,
