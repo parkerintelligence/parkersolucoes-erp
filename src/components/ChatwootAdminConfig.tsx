@@ -38,12 +38,7 @@ export const ChatwootAdminConfig = () => {
   }, [chatwootIntegration]);
 
   const handleSave = async () => {
-    console.log('🔵 [ChatwootConfig] handleSave iniciado');
-    console.log('🔵 [ChatwootConfig] formData:', formData);
-    console.log('🔵 [ChatwootConfig] chatwootIntegration:', chatwootIntegration);
-    
     if (!formData.base_url || !formData.api_token) {
-      console.log('❌ [ChatwootConfig] Campos obrigatórios faltando');
       toast({
         title: "Campos obrigatórios",
         description: "Preencha todos os campos obrigatórios.",
@@ -71,17 +66,11 @@ export const ChatwootAdminConfig = () => {
       keep_logged: null,
     };
 
-    console.log('🔵 [ChatwootConfig] integrationData preparado:', integrationData);
-
     try {
       if (chatwootIntegration) {
-        console.log('🔵 [ChatwootConfig] Atualizando integração existente...');
         await updateIntegration.mutateAsync({ id: chatwootIntegration.id, updates: integrationData });
-        console.log('✅ [ChatwootConfig] Integração atualizada com sucesso');
       } else {
-        console.log('🔵 [ChatwootConfig] Criando nova integração...');
         await createIntegration.mutateAsync(integrationData);
-        console.log('✅ [ChatwootConfig] Integração criada com sucesso');
       }
 
       toast({
@@ -89,7 +78,7 @@ export const ChatwootAdminConfig = () => {
         description: "A configuração do Chatwoot foi salva com sucesso.",
       });
     } catch (error) {
-      console.error('❌ [ChatwootConfig] Erro ao salvar integração:', error);
+      console.error('Error saving integration:', error);
       toast({
         title: "Erro ao salvar",
         description: "Ocorreu um erro ao salvar a configuração.",

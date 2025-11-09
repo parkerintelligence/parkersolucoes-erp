@@ -43,79 +43,79 @@ const Admin = () => {
       id: "chatwoot",
       label: "Chatwoot",
       icon: <MessageCircle className="h-5 w-5" />,
-      component: <ChatwootAdminConfig />
+      component: ChatwootAdminConfig
     },
     {
       id: "evolution",
       label: "Evolution API",
       icon: <MessageCircle className="h-5 w-5" />,
-      component: <EvolutionAPIAdminConfig />
+      component: EvolutionAPIAdminConfig
     },
     {
       id: "wasabi",
       label: "Wasabi",
       icon: <Cloud className="h-5 w-5" />,
-      component: <WasabiAdminConfig />
+      component: WasabiAdminConfig
     },
     {
       id: "grafana",
       label: "Grafana",
       icon: <BarChart3 className="h-5 w-5" />,
-      component: <GrafanaAdminConfig />
+      component: GrafanaAdminConfig
     },
     {
       id: "zabbix",
       label: "Zabbix",
       icon: <Shield className="h-5 w-5" />,
-      component: <ZabbixAdminConfig />
+      component: ZabbixAdminConfig
     },
     {
       id: "wazuh",
       label: "Wazuh",
       icon: <Shield className="h-5 w-5 text-orange-500" />,
-      component: <WazuhAdminConfig />
+      component: WazuhAdminConfig
     },
     {
       id: "ftp",
       label: "FTP",
       icon: <HardDrive className="h-5 w-5" />,
-      component: <FtpAdminConfig />
+      component: FtpAdminConfig
     },
     {
       id: "glpi",
       label: "GLPI",
       icon: <Database className="h-5 w-5" />,
-      component: <GLPIConfig />
+      component: GLPIConfig
     },
     {
       id: "guacamole",
       label: "Guacamole",
       icon: <Server className="h-5 w-5" />,
-      component: <GuacamoleAdminConfig />
+      component: GuacamoleAdminConfig
     },
     {
       id: "bacula",
       label: "Bacula",
       icon: <Archive className="h-5 w-5" />,
-      component: <BaculaAdminConfig />
+      component: BaculaAdminConfig
     },
     {
       id: "hostinger",
       label: "Hostinger",
       icon: <Server className="h-5 w-5 text-orange-500" />,
-      component: <HostingerAdminConfig />
+      component: HostingerAdminConfig
     },
     {
       id: "bomcontrole",
       label: "BomControle",
       icon: <Activity className="h-5 w-5" />,
-      component: <BomControleAdminConfig />
+      component: BomControleAdminConfig
     },
     {
       id: "unifi",
       label: "UniFi",
       icon: <Wifi className="h-5 w-5 text-blue-400" />,
-      component: <UniFiAdminConfig />
+      component: UniFiAdminConfig
     }
   ];
 
@@ -124,26 +124,29 @@ const Admin = () => {
       id: "companies",
       label: "Empresas",
       icon: <Building className="h-5 w-5" />,
-      component: <AdminCompaniesPanel />
+      component: AdminCompaniesPanel
     },
     {
       id: "settings",
       label: "Configurações",
       icon: <Settings className="h-5 w-5" />,
-      component: <SystemSettingsPanel />
+      component: SystemSettingsPanel
     },
     {
       id: "branding",
       label: "Visual",
       icon: <Palette className="h-5 w-5" />,
-      component: <BrandingSettingsPanel />
+      component: BrandingSettingsPanel
     }
   ];
 
   const getActiveComponent = () => {
     const allButtons = [...integrationButtons, ...systemButtons];
     const activeButton = allButtons.find(button => button.id === activePanel);
-    return activeButton ? activeButton.component : null;
+    if (!activeButton) return null;
+    
+    const Component = activeButton.component as React.ComponentType;
+    return <Component />;
   };
 
   return (
