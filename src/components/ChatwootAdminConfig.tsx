@@ -8,13 +8,19 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, MessageSquare, AlertTriangle, CheckCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export const ChatwootAdminConfig = () => {
+  console.log('🔷 ChatwootAdminConfig - Componente renderizado');
+  
   const { data: integrations } = useIntegrations();
   const createIntegration = useCreateIntegration();
   const updateIntegration = useUpdateIntegration();
   
   const chatwootIntegration = integrations?.find(integration => integration.type === 'chatwoot');
+  
+  console.log('🔷 ChatwootAdminConfig - Integrations:', integrations);
+  console.log('🔷 ChatwootAdminConfig - Chatwoot Integration:', chatwootIntegration);
 
   const [formData, setFormData] = useState({
     name: 'Chatwoot Atendimento',
@@ -26,19 +32,36 @@ export const ChatwootAdminConfig = () => {
 
   // Sincronizar formData com dados carregados
   useEffect(() => {
+    console.log('🔶 useEffect - Sincronizando formData com chatwootIntegration:', chatwootIntegration);
     if (chatwootIntegration) {
-      setFormData({
+      const newFormData = {
         name: chatwootIntegration.name,
         base_url: chatwootIntegration.base_url || '',
         api_token: chatwootIntegration.api_token || '',
         webhook_url: chatwootIntegration.webhook_url || '',
         is_active: chatwootIntegration.is_active,
-      });
+      };
+      console.log('🔶 useEffect - Novo formData:', newFormData);
+      setFormData(newFormData);
     }
   }, [chatwootIntegration]);
 
   const handleSave = async () => {
+    console.log('🔵 handleSave - Iniciando...');
+    console.log('🔵 handleSave - formData:', formData);
+    
+    // Toast imediato para confirmar que o botão foi clicado
+    toast({
+      title: "Processando...",
+      description: "Salvando configuração do Chatwoot.",
+    });
+    
+    // Verificar usuário logado
+    const { data: { user } } = await supabase.auth.getUser();
+    console.log('🔵 handleSave - Usuário logado:', user?.id, user?.email);
+    
     if (!formData.base_url || !formData.api_token) {
+      console.log('🔴 handleSave - Validação falhou: campos obrigatórios vazios');
       toast({
         title: "Campos obrigatórios",
         description: "Preencha todos os campos obrigatórios.",
@@ -46,6 +69,8 @@ export const ChatwootAdminConfig = () => {
       });
       return;
     }
+    
+    console.log('✅ handleSave - Validação passou');
 
     const integrationData = {
       type: 'chatwoot' as const,
@@ -67,21 +92,30 @@ export const ChatwootAdminConfig = () => {
     };
 
     try {
+      console.log('🔵 handleSave - Tentando salvar...');
+      console.log('🔵 handleSave - Existe integração?', !!chatwootIntegration);
+      console.log('🔵 handleSave - Integration Data:', integrationData);
+      
       if (chatwootIntegration) {
+        console.log('🔵 handleSave - Atualizando integração existente ID:', chatwootIntegration.id);
         await updateIntegration.mutateAsync({ id: chatwootIntegration.id, updates: integrationData });
+        console.log('✅ handleSave - Update concluído');
       } else {
+        console.log('🔵 handleSave - Criando nova integração');
         await createIntegration.mutateAsync(integrationData);
+        console.log('✅ handleSave - Create concluído');
       }
 
       toast({
         title: "Configuração salva",
         description: "A configuração do Chatwoot foi salva com sucesso.",
       });
+      console.log('✅ handleSave - Toast de sucesso exibido');
     } catch (error) {
-      console.error('Error saving integration:', error);
+      console.error('🔴 handleSave - Erro ao salvar:', error);
       toast({
         title: "Erro ao salvar",
-        description: "Ocorreu um erro ao salvar a configuração.",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar a configuração.",
         variant: "destructive"
       });
     }
