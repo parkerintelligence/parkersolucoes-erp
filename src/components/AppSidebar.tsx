@@ -4,11 +4,6 @@ import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, 
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar } from '@/components/ui/sidebar';
 // import { useSystemSettings } from '@/hooks/useSystemSettings';
 const menuItems = [{
-  title: 'Atendimentos',
-  url: '/chatwoot',
-  icon: MessageSquare,
-  role: 'user'
-}, {
   title: 'Alertas',
   url: '/alertas',
   icon: AlertTriangle,
@@ -83,7 +78,14 @@ const menuItems = [{
   url: '/vps',
   icon: LayoutDashboard,
   role: 'user'
-}, {
+}, 
+{
+  title: 'Chatwoot',
+  url: '/chatwoot',
+  icon: MessageSquare,
+  role: 'user'
+}, 
+{
   title: 'Admin',
   url: '/admin',
   icon: Settings,
