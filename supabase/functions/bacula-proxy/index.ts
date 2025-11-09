@@ -305,14 +305,31 @@ serve(async (req) => {
 
     console.log(`✅ Usuário autenticado: ${user.email}`)
 
+    // Check if user is master using the new user_roles table
+    const { data: userRole } = await userSupabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'master')
+      .single();
+
+    const isMaster = !!userRole;
+    console.log('User is master:', isMaster);
+
     // Get Bacula integration
-    const { data: integrations, error: integrationError } = await userSupabaseClient
+    // Masters can access all integrations, regular users only their own
+    let query = userSupabaseClient
       .from('integrations')
       .select('*')
       .eq('type', 'bacula')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .limit(1)
+      .eq('is_active', true);
+
+    // Only filter by user_id if not master
+    if (!isMaster) {
+      query = query.eq('user_id', user.id);
+    }
+
+    const { data: integrations, error: integrationError } = await query.limit(1)
 
     if (integrationError) {
       console.error('❌ Erro na consulta de integração:', integrationError)
