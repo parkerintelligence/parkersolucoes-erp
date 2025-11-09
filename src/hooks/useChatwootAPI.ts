@@ -66,7 +66,12 @@ const makeChatwootRequest = async (baseUrl: string, token: string, endpoint: str
   
   const fullUrl = `${apiUrl}${endpoint}`;
   
-  console.log('Fazendo requisição Chatwoot:', { fullUrl, method: options.method || 'GET' });
+  console.log('=== CHATWOOT REQUEST ===');
+  console.log('URL Base original:', baseUrl);
+  console.log('URL API processada:', apiUrl);
+  console.log('Endpoint:', endpoint);
+  console.log('URL Completa:', fullUrl);
+  console.log('Método:', options.method || 'GET');
 
   try {
     const response = await fetch(fullUrl, {
@@ -124,7 +129,10 @@ export const useChatwootAPI = () => {
     integration.type === 'chatwoot' && integration.is_active
   );
 
-  console.log('Integração Chatwoot encontrada:', chatwootIntegration);
+  console.log('=== CHATWOOT INTEGRAÇÃO ===');
+  console.log('Integração encontrada:', chatwootIntegration);
+  console.log('URL Base configurada:', chatwootIntegration?.base_url);
+  console.log('Token:', chatwootIntegration?.api_token ? '***' + chatwootIntegration.api_token.slice(-4) : 'não configurado');
 
   const testConnection = useMutation({
     mutationFn: async ({ base_url, api_token }: { base_url: string; api_token: string }) => {
