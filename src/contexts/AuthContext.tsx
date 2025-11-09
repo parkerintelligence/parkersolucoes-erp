@@ -110,6 +110,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, !!session);
+        
         setSession(session);
         setUser(session?.user ?? null);
 
@@ -127,17 +129,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchUserProfile(session.user.id).then(setUserProfile);
-      }
-      
-      setIsLoading(false);
-    });
+    // Check for existing session with error handling for corrupted tokens
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          console.error('Error getting session, clearing corrupted tokens:', error);
+          // Clear corrupted tokens
+          localStorage.removeItem('sb-mpvxppgoyadwukkfoccs-auth-token');
+          localStorage.removeItem('supabase.auth.token');
+          setSession(null);
+          setUser(null);
+          setUserProfile(null);
+          setIsLoading(false);
+          return;
+        }
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          fetchUserProfile(session.user.id).then(setUserProfile);
+        }
+        
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.error('Fatal error getting session:', error);
+        // Clear all auth data on fatal error
+        localStorage.clear();
+        setSession(null);
+        setUser(null);
+        setUserProfile(null);
+        setIsLoading(false);
+      });
 
     return () => subscription.unsubscribe();
   }, []);
