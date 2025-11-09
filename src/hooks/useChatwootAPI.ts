@@ -51,58 +51,51 @@ export interface ChatwootMessage {
   } | null;
 }
 
-const makeChatwootRequest = async (baseUrl: string, token: string, endpoint: string, options: RequestInit = {}) => {
-  // Limpar a URL e garantir que não termine com barra
-  let apiUrl = baseUrl.replace(/\/$/, '');
-  
-  // Remover qualquer path de login que possa estar na URL base
-  apiUrl = apiUrl.replace(/\/app\/login$/, '');
-  apiUrl = apiUrl.replace(/\/app$/, '');
-  
-  // Adicionar /api/v1 se não estiver presente
-  if (!apiUrl.includes('/api/v1')) {
-    apiUrl = apiUrl + '/api/v1';
-  }
-  
-  const fullUrl = `${apiUrl}${endpoint}`;
-  
-  console.log('=== CHATWOOT REQUEST ===');
-  console.log('URL Base original:', baseUrl);
-  console.log('URL API processada:', apiUrl);
+const makeChatwootRequest = async (integrationId: string, endpoint: string, options: { method?: string; body?: any } = {}) => {
+  console.log('=== CHATWOOT PROXY REQUEST ===');
+  console.log('Integration ID:', integrationId);
   console.log('Endpoint:', endpoint);
-  console.log('URL Completa:', fullUrl);
   console.log('Método:', options.method || 'GET');
 
   try {
-    const response = await fetch(fullUrl, {
-      ...options,
-      mode: 'cors', // Permitir CORS
-      headers: {
-        'Content-Type': 'application/json',
-        'api_access_token': token,
-        ...options.headers,
-      },
-    });
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    // Get auth session
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      throw new Error('Usuário não autenticado');
+    }
 
-    console.log('Status da resposta Chatwoot:', response.status);
+    const response = await fetch(
+      'https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/chatwoot-proxy',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          integrationId,
+          endpoint,
+          method: options.method || 'GET',
+          body: options.body,
+        }),
+      }
+    );
+
+    console.log('Status da resposta Chatwoot Proxy:', response.status);
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Erro da API Chatwoot:', {
-        status: response.status,
-        statusText: response.statusText,
-        responseText: errorText,
-        url: fullUrl
-      });
+      const errorData = await response.json();
+      console.error('Erro do Proxy Chatwoot:', errorData);
       
       if (response.status === 401) {
-        throw new Error('Token de API inválido. Verifique o token de acesso do Chatwoot.');
+        throw new Error('Não autorizado. Faça login novamente.');
       } else if (response.status === 404) {
-        throw new Error('Endpoint não encontrado. Verifique se a URL base está correta.');
-      } else if (response.status === 403) {
-        throw new Error('Acesso negado. Verifique as permissões do token de API.');
+        throw new Error('Integração Chatwoot não encontrada.');
       } else {
-        throw new Error(`Erro da API Chatwoot ${response.status}: ${response.statusText}`);
+        throw new Error(errorData.error || `Erro do Proxy ${response.status}`);
       }
     }
 
@@ -112,11 +105,6 @@ const makeChatwootRequest = async (baseUrl: string, token: string, endpoint: str
     return data;
   } catch (error) {
     console.error('Erro de requisição Chatwoot:', error);
-    
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      throw new Error(`Erro de conexão com Chatwoot. Verifique se a URL está acessível: ${fullUrl}`);
-    }
-    
     throw error;
   }
 };
@@ -135,11 +123,15 @@ export const useChatwootAPI = () => {
   console.log('Token:', chatwootIntegration?.api_token ? '***' + chatwootIntegration.api_token.slice(-4) : 'não configurado');
 
   const testConnection = useMutation({
-    mutationFn: async ({ base_url, api_token }: { base_url: string; api_token: string }) => {
-      console.log('Testando conexão Chatwoot...');
+    mutationFn: async () => {
+      if (!chatwootIntegration?.id) {
+        throw new Error('Nenhuma integração Chatwoot configurada');
+      }
+      
+      console.log('Testando conexão Chatwoot via proxy...');
       
       try {
-        const result = await makeChatwootRequest(base_url, api_token, '/accounts');
+        const result = await makeChatwootRequest(chatwootIntegration.id, '/accounts');
         console.log('Teste de conexão Chatwoot bem-sucedido:', result);
         return result;
       } catch (error) {
@@ -165,18 +157,17 @@ export const useChatwootAPI = () => {
   });
 
   const conversationsQuery = useQuery({
-    queryKey: ['chatwoot-conversations'],
+    queryKey: ['chatwoot-conversations', chatwootIntegration?.id],
     queryFn: async () => {
-      if (!chatwootIntegration?.base_url || !chatwootIntegration?.api_token) {
+      if (!chatwootIntegration?.id) {
         throw new Error('Chatwoot não configurado');
       }
 
-      console.log('Fetching Chatwoot conversations...');
+      console.log('Fetching Chatwoot conversations via proxy...');
       
       // First get accounts to get the account ID
       const accounts = await makeChatwootRequest(
-        chatwootIntegration.base_url,
-        chatwootIntegration.api_token,
+        chatwootIntegration.id,
         '/accounts'
       );
 
@@ -189,8 +180,7 @@ export const useChatwootAPI = () => {
 
       // Get conversations for the account
       const conversations = await makeChatwootRequest(
-        chatwootIntegration.base_url,
-        chatwootIntegration.api_token,
+        chatwootIntegration.id,
         `/accounts/${accountId}/conversations?status=all&page=1`
       );
 
@@ -204,28 +194,26 @@ export const useChatwootAPI = () => {
 
   const sendMessage = useMutation({
     mutationFn: async ({ conversationId, content }: { conversationId: number; content: string }) => {
-      if (!chatwootIntegration?.base_url || !chatwootIntegration?.api_token) {
+      if (!chatwootIntegration?.id) {
         throw new Error('Chatwoot não configurado');
       }
 
       const accounts = await makeChatwootRequest(
-        chatwootIntegration.base_url,
-        chatwootIntegration.api_token,
+        chatwootIntegration.id,
         '/accounts'
       );
 
       const accountId = accounts[0].id;
 
       const message = await makeChatwootRequest(
-        chatwootIntegration.base_url,
-        chatwootIntegration.api_token,
+        chatwootIntegration.id,
         `/accounts/${accountId}/conversations/${conversationId}/messages`,
         {
           method: 'POST',
-          body: JSON.stringify({
+          body: {
             content: content,
             message_type: 'outgoing'
-          })
+          }
         }
       );
 
@@ -250,27 +238,25 @@ export const useChatwootAPI = () => {
 
   const updateConversationStatus = useMutation({
     mutationFn: async ({ conversationId, status }: { conversationId: number; status: 'open' | 'resolved' | 'pending' }) => {
-      if (!chatwootIntegration?.base_url || !chatwootIntegration?.api_token) {
+      if (!chatwootIntegration?.id) {
         throw new Error('Chatwoot não configurado');
       }
 
       const accounts = await makeChatwootRequest(
-        chatwootIntegration.base_url,
-        chatwootIntegration.api_token,
+        chatwootIntegration.id,
         '/accounts'
       );
 
       const accountId = accounts[0].id;
 
       const conversation = await makeChatwootRequest(
-        chatwootIntegration.base_url,
-        chatwootIntegration.api_token,
+        chatwootIntegration.id,
         `/accounts/${accountId}/conversations/${conversationId}`,
         {
           method: 'PATCH',
-          body: JSON.stringify({
+          body: {
             status: status
-          })
+          }
         }
       );
 

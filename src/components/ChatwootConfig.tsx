@@ -30,25 +30,11 @@ export const ChatwootConfig = () => {
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
 
   const handleTestConnection = async () => {
-    if (!config.base_url || !config.api_token) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Preencha a URL base e o token da API para testar a conexão.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setTestStatus('testing');
-    try {
-      await testConnection.mutateAsync({
-        base_url: config.base_url,
-        api_token: config.api_token
-      });
-      setTestStatus('success');
-    } catch (error) {
-      setTestStatus('error');
-    }
+    toast({
+      title: "Teste de Conexão",
+      description: "Salve a configuração primeiro. Depois você pode testar na página Atendimentos.",
+      variant: "default"
+    });
   };
 
   const handleSave = async () => {
