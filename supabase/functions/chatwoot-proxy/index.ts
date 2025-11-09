@@ -39,23 +39,16 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     console.log('Token extracted, length:', token.length);
 
-    const supabaseClient = createClient(
+    // Create admin client for user verification
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    console.log('Authenticating user...');
+    console.log('Authenticating user with JWT...');
     
-    // Verify user is authenticated
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
+    // Verify the JWT token
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
     if (userError) {
       console.error('❌ Auth error:', userError.message);
@@ -80,6 +73,17 @@ serve(async (req) => {
     }
 
     console.log('✅ User authenticated:', user.email);
+
+    // Now create client with user context for database queries
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      }
+    );
 
     const { integrationId, endpoint, method = 'GET', body } = await req.json() as ChatwootProxyRequest;
 
