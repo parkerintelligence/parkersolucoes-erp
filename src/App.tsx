@@ -23,7 +23,7 @@ import Financial from '@/pages/Financial';
 import Companies from '@/pages/Companies';
 import { SafeBacula } from '@/components/SafeBacula';
 import ReportsDashboard from '@/pages/ReportsDashboard';
-import ActionPlan from '@/pages/ActionPlan';
+import { SafeActionPlan } from '@/components/SafeActionPlan';
 import { SafeAlertas } from '@/components/SafeAlertas';
 import { SafeAtendimentos } from '@/components/SafeAtendimentos';
 import Security from '@/pages/Security';
@@ -65,7 +65,7 @@ function App() {
               <Route path="/companies" element={<Layout><Companies /></Layout>} />
               <Route path="/bacula" element={<Layout><SafeBacula /></Layout>} />
               <Route path="/reports" element={<Layout><ReportsDashboard /></Layout>} />
-              <Route path="/plano-de-acao" element={<Layout><ActionPlan /></Layout>} />
+              <Route path="/plano-de-acao" element={<Layout><SafeActionPlan /></Layout>} />
               <Route path="/security" element={<Layout><Security /></Layout>} />
               <Route path="/unifi" element={<Layout><SafeUniFi /></Layout>} />
             </Routes>
