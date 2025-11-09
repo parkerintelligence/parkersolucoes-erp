@@ -171,6 +171,15 @@ function toast({ ...props }: Toast) {
 }
 
 function useToast() {
+  // Check if React is available before calling hooks
+  if (!React || typeof React.useState !== 'function') {
+    return {
+      toasts: [],
+      toast: () => ({ id: '', dismiss: () => {}, update: () => {} }),
+      dismiss: () => {}
+    }
+  }
+
   const [state, setState] = useState<State>(memoryState)
 
   useEffect(() => {

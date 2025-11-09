@@ -1,101 +1,94 @@
-import React, { Component, ReactNode } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error?: Error;
-  errorInfo?: React.ErrorInfo;
-}
+import { Loader2, AlertCircle } from 'lucide-react';
 
 interface ReactSafeWrapperProps {
   children: ReactNode;
   fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
 }
 
-const DefaultErrorFallback = ({ error, retry }: { error?: Error; retry: () => void }) => (
-  <div className="min-h-screen bg-background flex items-center justify-center p-4">
-    <Card className="w-full max-w-md">
-      <CardContent className="p-6">
-        <div className="flex flex-col items-center space-y-4 text-center">
-          <AlertTriangle className="h-12 w-12 text-destructive" />
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold text-foreground">
-              Erro na Aplicação
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Ocorreu um erro inesperado. Por favor, tente recarregar a página.
-            </p>
-            {error && (
-              <details className="text-xs text-muted-foreground">
-                <summary className="cursor-pointer hover:text-foreground">
-                  Detalhes do erro
-                </summary>
-                <pre className="mt-2 text-left bg-muted p-2 rounded">
-                  {error.message}
-                </pre>
-              </details>
-            )}
-          </div>
-          <Button onClick={retry} className="w-full">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Tentar Novamente
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  </div>
-);
+export const ReactSafeWrapper: React.FC<ReactSafeWrapperProps> = ({ 
+  children, 
+  fallback 
+}) => {
+  const [isReady, setIsReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-export class ReactSafeWrapper extends Component<ReactSafeWrapperProps, ErrorBoundaryState> {
-  constructor(props: ReactSafeWrapperProps) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ReactSafeWrapper caught an error:', error, errorInfo);
+  useEffect(() => {
+    let mounted = true;
     
-    // Call custom error handler if provided
-    if (this.props.onError) {
-      this.props.onError(error, errorInfo);
-    }
-    
-    this.setState({
-      hasError: true,
-      error,
-      errorInfo
-    });
-  }
-
-  handleRetry = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
-    // Force a re-render by triggering a location change
-    window.location.reload();
-  };
-
-  render() {
-    if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback;
+    const initializeReact = async () => {
+      try {
+        // Ensure React is fully loaded
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
+        if (mounted && typeof React !== 'undefined' && React.useState) {
+          setIsReady(true);
+          setError(null);
+        } else {
+          throw new Error('React not fully initialized');
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err instanceof Error ? err.message : 'Unknown error');
+        }
       }
-      
-      return (
-        <DefaultErrorFallback 
-          error={this.state.error}
-          retry={this.handleRetry}
-        />
-      );
+    };
+
+    initializeReact();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (error) {
+    if (fallback) {
+      return <>{fallback}</>;
     }
 
-    return this.props.children;
+    return (
+      <Card className="bg-gray-800 border-gray-700">
+        <CardContent className="p-6">
+          <div className="flex flex-col items-center justify-center space-y-4 text-center">
+            <AlertCircle className="h-8 w-8 text-red-400" />
+            <div>
+              <h3 className="text-lg font-medium text-white mb-2">
+                Erro de inicialização
+              </h3>
+              <p className="text-gray-400 text-sm">
+                {error}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
-}
 
-export default ReactSafeWrapper;
+  if (!isReady) {
+    if (fallback) {
+      return <>{fallback}</>;
+    }
+
+    return (
+      <Card className="bg-gray-800 border-gray-700">
+        <CardContent className="p-6">
+          <div className="flex flex-col items-center justify-center space-y-4 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+            <div>
+              <h3 className="text-lg font-medium text-white mb-2">
+                Carregando sistema...
+              </h3>
+              <p className="text-gray-400 text-sm">
+                Aguarde enquanto inicializamos os componentes
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return <>{children}</>;
+};

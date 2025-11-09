@@ -26,56 +26,6 @@ interface GLPITicketData {
   entity_id: number;
 }
 
-// Sistema de controle de concorrência para evitar execuções simultâneas
-const LOCK_TABLE = 'cron_execution_locks';
-const LOCK_TTL_MINUTES = 10; // TTL para locks órfãos
-
-const acquireLock = async (lockName: string): Promise<boolean> => {
-  try {
-    const now = new Date();
-    const ttlTime = new Date(now.getTime() - (LOCK_TTL_MINUTES * 60 * 1000));
-    
-    // Limpar locks expirados primeiro
-    await supabase
-      .from(LOCK_TABLE)
-      .delete()
-      .lt('created_at', ttlTime.toISOString());
-    
-    // Tentar criar um novo lock
-    const { error } = await supabase
-      .from(LOCK_TABLE)
-      .insert({
-        lock_name: lockName,
-        created_at: now.toISOString(),
-        expires_at: new Date(now.getTime() + (LOCK_TTL_MINUTES * 60 * 1000)).toISOString()
-      });
-    
-    if (error) {
-      // Se já existe um lock ativo, não podemos executar
-      console.log(`🔒 [LOCK] Lock já existe para ${lockName}, pulando execução`);
-      return false;
-    }
-    
-    console.log(`🔓 [LOCK] Lock adquirido para ${lockName}`);
-    return true;
-  } catch (error) {
-    console.error('❌ [LOCK] Erro ao adquirir lock:', error);
-    return false;
-  }
-};
-
-const releaseLock = async (lockName: string) => {
-  try {
-    await supabase
-      .from(LOCK_TABLE)
-      .delete()
-      .eq('lock_name', lockName);
-    console.log(`🔓 [LOCK] Lock liberado para ${lockName}`);
-  } catch (error) {
-    console.error('❌ [LOCK] Erro ao liberar lock:', error);
-  }
-};
-
 const logCronExecution = async (jobName: string, status: string, details: any) => {
   try {
     await supabase
@@ -83,8 +33,7 @@ const logCronExecution = async (jobName: string, status: string, details: any) =
       .insert({
         job_name: jobName,
         status,
-        details,
-        execution_id: crypto.randomUUID() // Identificador único para cada execução
+        details
       });
   } catch (error) {
     console.error('❌ [CRON-LOG] Erro ao salvar log:', error);
@@ -253,8 +202,6 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   const startTime = Date.now();
-  const lockName = 'unified-cron-scheduler';
-  let lockAcquired = false;
 
   try {
     const currentTime = new Date();
@@ -262,37 +209,19 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('🕐 [UNIFIED-CRON] Horário atual (UTC):', currentTime.toISOString());
     console.log('🕐 [UNIFIED-CRON] Horário atual (Brasília):', currentTime.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
     
-    // Tentar adquirir lock para evitar execuções simultâneas
-    lockAcquired = await acquireLock(lockName);
-    if (!lockAcquired) {
-      console.log('🔒 [UNIFIED-CRON] Execução pulada - já existe uma em andamento');
-      return new Response(JSON.stringify({ 
-        success: true,
-        skipped: true,
-        message: 'Execução pulada - já existe uma em andamento',
-        timestamp: currentTime.toISOString()
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
-    
     // Log da execução do cron
     await logCronExecution('unified-cron-scheduler', 'started', {
-      timestamp: currentTime.toISOString(),
-      lock_acquired: true
+      timestamp: currentTime.toISOString()
     });
 
     // Buscar relatórios que devem ser executados agora
-    // Reduzir margem para 30 segundos para melhor precisão
-    const checkTime = new Date(currentTime.getTime() + 30000); // +30 segundos
-    console.log(`🔍 [UNIFIED-CRON] Buscando relatórios com next_execution <= ${checkTime.toISOString()}`);
+    console.log(`🔍 [UNIFIED-CRON] Buscando relatórios com next_execution <= ${currentTime.toISOString()}`);
     
     const { data: dueReports, error: reportsError } = await supabase
       .from('scheduled_reports')
       .select('*')
       .eq('is_active', true)
-      .lte('next_execution', checkTime.toISOString());
+      .lte('next_execution', currentTime.toISOString());
 
     if (reportsError) {
       console.error('❌ [UNIFIED-CRON] Erro ao buscar relatórios:', reportsError);
@@ -304,7 +233,7 @@ const handler = async (req: Request): Promise<Response> => {
       .from('glpi_scheduled_tickets')
       .select('*')
       .eq('is_active', true)
-      .lte('next_execution', checkTime.toISOString());
+      .lte('next_execution', currentTime.toISOString());
 
     if (ticketsError) {
       console.error('❌ [UNIFIED-CRON] Erro ao buscar tickets GLPI:', ticketsError);
@@ -379,7 +308,7 @@ const handler = async (req: Request): Promise<Response> => {
             console.log(`⏰ [CRON] Próxima execução calculada: ${nextExecData}`);
           }
 
-          // Atualizar o registro do relatório
+          // Atualizar o registro do relatório IMEDIATAMENTE para evitar execuções duplicadas
           const { error: updateError } = await supabase
             .from('scheduled_reports')
             .update({
@@ -451,14 +380,8 @@ const handler = async (req: Request): Promise<Response> => {
       failed: failureCount,
       execution_time_ms: executionTime,
       results,
-      timestamp: currentTime.toISOString(),
-      lock_acquired: lockAcquired
+      timestamp: currentTime.toISOString()
     });
-
-    // Liberar lock antes de retornar
-    if (lockAcquired) {
-      await releaseLock(lockName);
-    }
 
     return new Response(JSON.stringify({ 
       success: true,
@@ -485,14 +408,8 @@ const handler = async (req: Request): Promise<Response> => {
     await logCronExecution('unified-cron-scheduler', 'critical_error', {
       error: error.message,
       execution_time_ms: executionTime,
-      timestamp: new Date().toISOString(),
-      lock_acquired: lockAcquired
+      timestamp: new Date().toISOString()
     });
-    
-    // Liberar lock em caso de erro
-    if (lockAcquired) {
-      await releaseLock(lockName);
-    }
     
     return new Response(JSON.stringify({ 
       success: false,

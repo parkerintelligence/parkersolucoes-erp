@@ -49,7 +49,7 @@ export const useIntegrations = () => {
 
 export const useCreateIntegration = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (integration: Omit<Integration, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
       console.log('🚀 [useCreateIntegration] Iniciando criação de integração:', integration);

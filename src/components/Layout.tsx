@@ -1,9 +1,9 @@
 
+import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { TopHeader } from '@/components/TopHeader';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { useAuth } from '@/contexts/AuthContext';
 
 
 interface LayoutProps {

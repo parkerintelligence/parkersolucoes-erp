@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import * as React from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -6,8 +6,6 @@ interface UserProfile {
   id: string;
   email: string;
   role: string;
-  created_at?: string;
-  updated_at?: string;
 }
 
 interface AuthContextType {
@@ -17,28 +15,28 @@ interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   session: Session | null;
-  login: (email: string, password: string) => Promise<{ error?: string }>;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  isAuthenticated: false,
-  isLoading: true,
-  isMaster: false,
-  user: null,
-  userProfile: null,
-  session: null,
-  login: async () => ({ error: 'Not implemented' }),
-  logout: async () => {},
-});
+const AuthContext = React.createContext<AuthContextType | null>(null);
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = React.useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  console.log('AuthProvider rendering, React available:', !!React);
+  console.log('useState available:', !!React.useState);
+  
+  const [user, setUser] = React.useState<User | null>(null);
+  const [session, setSession] = React.useState<Session | null>(null);
+  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -55,52 +53,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       return data;
     } catch (error) {
-      console.error('Error in fetchUserProfile:', error);
+      console.error('Error fetching user profile:', error);
       return null;
     }
   };
 
-  useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          setTimeout(async () => {
-            const profile = await fetchUserProfile(session.user.id);
-            setUserProfile(profile);
-            setIsLoading(false);
-          }, 0);
-        } else {
-          setUserProfile(null);
-          setIsLoading(false);
-        }
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        fetchUserProfile(session.user.id).then(profile => {
-          setUserProfile(profile);
-          setIsLoading(false);
-        });
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      setIsLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -108,49 +68,78 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) {
         console.error('Login error:', error);
-        return { error: error.message };
+        return false;
       }
 
-      if (data.user) {
-        const profile = await fetchUserProfile(data.user.id);
-        setUserProfile(profile);
-      }
-
-      return {};
-    } catch (error: any) {
-      console.error('Login exception:', error);
-      return { error: error.message || 'Erro ao fazer login' };
+      return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const logout = async () => {
     try {
+      setIsLoading(true);
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
       setUserProfile(null);
     } catch (error) {
       console.error('Logout error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const isAuthenticated = !!user && !!session;
-  const isMaster = userProfile?.role === 'master';
+  React.useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        isLoading,
-        isMaster,
-        user,
-        userProfile,
-        session,
-        login,
-        logout,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+        if (session?.user) {
+          // Fetch user profile after successful authentication
+          setTimeout(async () => {
+            const profile = await fetchUserProfile(session.user.id);
+            setUserProfile(profile);
+          }, 0);
+        } else {
+          setUserProfile(null);
+        }
+        
+        setIsLoading(false);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchUserProfile(session.user.id).then(setUserProfile);
+      }
+      
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const value: AuthContextType = {
+    isAuthenticated: !!session && !!user,
+    isLoading,
+    isMaster: userProfile?.role === 'master',
+    user,
+    userProfile,
+    session,
+    login,
+    logout,
+  };
+
+  return React.createElement(AuthContext.Provider, { value }, children);
 };

@@ -61,20 +61,20 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      const result = await login(email, password);
+      const success = await login(email, password);
       
-      if (result.error) {
-        toast({
-          title: "Erro no login",
-          description: result.error,
-          variant: "destructive",
-        });
-        setIsLoading(false);
-      } else {
+      if (success) {
         toast({
           title: "Login realizado com sucesso!",
           description: "Redirecionando para o sistema...",
         });
+      } else {
+        toast({
+          title: "Erro no login",
+          description: "Email ou senha incorretos. Verifique suas credenciais.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
       }
     } catch (error) {
       toast({

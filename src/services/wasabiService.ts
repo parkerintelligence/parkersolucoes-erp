@@ -269,7 +269,7 @@ export class WasabiService {
       chunks.push(value);
     }
 
-    return new Blob(chunks as BlobPart[]);
+    return new Blob(chunks);
   }
 
   private formatFileSize(bytes: number): string {
