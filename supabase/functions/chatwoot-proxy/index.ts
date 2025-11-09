@@ -48,17 +48,33 @@ serve(async (req) => {
 
     const { integrationId, endpoint, method = 'GET', body } = await req.json() as ChatwootProxyRequest;
 
-    console.log('Chatwoot Proxy - Request:', { integrationId, endpoint, method });
+    console.log('Chatwoot Proxy - Request:', { integrationId, endpoint, method, userId: user.id });
+
+    // Check if user is master
+    const { data: userProfile } = await supabaseClient
+      .from('user_profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const isMaster = userProfile?.role === 'master';
+    console.log('User is master:', isMaster);
 
     // Fetch integration from database
-    const { data: integration, error: integrationError } = await supabaseClient
+    // Masters can access all integrations, regular users only their own
+    let query = supabaseClient
       .from('integrations')
       .select('base_url, api_token')
       .eq('id', integrationId)
       .eq('type', 'chatwoot')
-      .eq('is_active', true)
-      .eq('user_id', user.id)
-      .single();
+      .eq('is_active', true);
+
+    // Only filter by user_id if not master
+    if (!isMaster) {
+      query = query.eq('user_id', user.id);
+    }
+
+    const { data: integration, error: integrationError } = await query.single();
 
     if (integrationError || !integration) {
       console.error('Integration not found:', integrationError);
