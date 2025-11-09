@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,9 +23,9 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
 
 const Atendimentos = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedConversation, setSelectedConversation] = useState<any>(null);
-  const [messageText, setMessageText] = useState('');
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [selectedConversation, setSelectedConversation] = React.useState<any>(null);
+  const [messageText, setMessageText] = React.useState('');
   
   const { 
     isConfigured,
