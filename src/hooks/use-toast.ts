@@ -1,4 +1,4 @@
-import * as React from "react"
+import { useState, useEffect } from "react"
 import type { ReactNode } from "react"
 
 import type {
@@ -170,18 +170,9 @@ function toast({ ...props }: Toast) {
 }
 
 function useToast() {
-  // Check if React is available before calling hooks
-  if (!React || typeof React.useState !== 'function') {
-    return {
-      toasts: [],
-      toast: () => ({ id: '', dismiss: () => {}, update: () => {} }),
-      dismiss: () => {}
-    }
-  }
+  const [state, setState] = useState<State>(memoryState)
 
-  const [state, setState] = React.useState<State>(memoryState)
-
-  React.useEffect(() => {
+  useEffect(() => {
     listeners.push(setState)
     return () => {
       const index = listeners.indexOf(setState)
