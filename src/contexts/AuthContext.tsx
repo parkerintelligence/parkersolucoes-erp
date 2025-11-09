@@ -1,5 +1,5 @@
 // Simple auth context without useState hooks
-import { createContext, useContext } from 'react';
+import { createContext, useContext, ReactNode } from 'react';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -26,6 +26,6 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 // No AuthProvider component needed - just export a simple hook
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return <>{children}</>;
 };
