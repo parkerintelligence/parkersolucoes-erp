@@ -166,59 +166,98 @@ serve(async (req) => {
     console.log('Chatwoot Proxy - Needs /app path:', needsAppPath);
     console.log('Chatwoot Proxy - Full URL construída:', fullUrl);
 
-    // Try with api_access_token header (Chatwoot standard)
-    // For GET requests, don't include Content-Type header as it may cause 406
+    // Try multiple authentication approaches
+    let chatwootResponse: Response | null = null;
+    let lastError: string | null = null;
+    
+    // Attempt 1: api_access_token header (most common for Chatwoot)
     const headers1: Record<string, string> = {
       'Accept': 'application/json',
       'api_access_token': integration.api_token,
+      'User-Agent': 'Lovable-Chatwoot-Proxy/1.0',
     };
     
-    // Only add Content-Type for non-GET requests
     if (method !== 'GET') {
       headers1['Content-Type'] = 'application/json';
     }
     
-    console.log('🔑 Headers enviados (tentativa 1):', {
+    console.log('🔑 Attempt 1 - api_access_token:', {
       url: fullUrl,
       method,
-      headers: headers1,
       tokenLength: integration.api_token.length
     });
     
-    let chatwootResponse = await fetch(fullUrl, {
-      method,
-      headers: headers1,
-      body: body ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.timeout(15000), // 15 second timeout
-    }).catch(error => {
-      console.error('Chatwoot API - Network error:', error.message);
-      throw error;
-    });
+    try {
+      chatwootResponse = await fetch(fullUrl, {
+        method,
+        headers: headers1,
+        body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(15000),
+      });
+      console.log('Attempt 1 status:', chatwootResponse.status);
+    } catch (error) {
+      lastError = `Attempt 1 failed: ${error.message}`;
+      console.error(lastError);
+    }
 
-    console.log('Chatwoot Proxy - First attempt status:', chatwootResponse.status);
-
-    // If 401 or 406, try with Authorization Bearer header as fallback
-    if (chatwootResponse.status === 401 || chatwootResponse.status === 406) {
-      console.log('Chatwoot Proxy - Trying Authorization Bearer header as fallback...');
+    // Attempt 2: Authorization Bearer (alternative method)
+    if (!chatwootResponse || chatwootResponse.status === 401 || chatwootResponse.status === 406) {
+      console.log('🔑 Attempt 2 - Authorization Bearer...');
       
       const headers2: Record<string, string> = {
         'Accept': 'application/json',
         'Authorization': `Bearer ${integration.api_token}`,
+        'User-Agent': 'Lovable-Chatwoot-Proxy/1.0',
       };
       
-      // Only add Content-Type for non-GET requests
       if (method !== 'GET') {
         headers2['Content-Type'] = 'application/json';
       }
       
-      chatwootResponse = await fetch(fullUrl, {
-        method,
-        headers: headers2,
-        body: body ? JSON.stringify(body) : undefined,
-        signal: AbortSignal.timeout(15000),
-      });
+      try {
+        chatwootResponse = await fetch(fullUrl, {
+          method,
+          headers: headers2,
+          body: body ? JSON.stringify(body) : undefined,
+          signal: AbortSignal.timeout(15000),
+        });
+        console.log('Attempt 2 status:', chatwootResponse.status);
+      } catch (error) {
+        lastError = `Attempt 2 failed: ${error.message}`;
+        console.error(lastError);
+      }
+    }
 
-      console.log('Chatwoot Proxy - Second attempt status:', chatwootResponse.status);
+    // Attempt 3: Without Accept header (some servers are strict about this)
+    if (!chatwootResponse || chatwootResponse.status === 401 || chatwootResponse.status === 406) {
+      console.log('🔑 Attempt 3 - Without Accept header...');
+      
+      const headers3: Record<string, string> = {
+        'api_access_token': integration.api_token,
+        'User-Agent': 'Lovable-Chatwoot-Proxy/1.0',
+      };
+      
+      if (method !== 'GET') {
+        headers3['Content-Type'] = 'application/json';
+      }
+      
+      try {
+        chatwootResponse = await fetch(fullUrl, {
+          method,
+          headers: headers3,
+          body: body ? JSON.stringify(body) : undefined,
+          signal: AbortSignal.timeout(15000),
+        });
+        console.log('Attempt 3 status:', chatwootResponse.status);
+      } catch (error) {
+        lastError = `Attempt 3 failed: ${error.message}`;
+        console.error(lastError);
+      }
+    }
+
+    // If all attempts failed, throw error
+    if (!chatwootResponse) {
+      throw new Error(lastError || 'All authentication attempts failed');
     }
 
     console.log('Chatwoot Proxy - Response status:', chatwootResponse.status);
@@ -230,35 +269,51 @@ serve(async (req) => {
       const textResponse = await chatwootResponse.text();
       console.error('Chatwoot API returned non-JSON response:', textResponse.substring(0, 500));
       
-      // Generate detailed error information
+      // Generate detailed error information with specific guidance
       const possibleCauses = [];
+      const actionSteps = [];
+      
       if (chatwootResponse.status === 401) {
         possibleCauses.push('Token de API inválido ou expirado');
         possibleCauses.push('Token sem permissões de Administrator ou Agent');
+        actionSteps.push('1. Faça login no Chatwoot');
+        actionSteps.push('2. Vá em Profile Settings > Access Token');
+        actionSteps.push('3. Gere um NOVO token');
+        actionSteps.push('4. Atualize o token na configuração');
       } else if (chatwootResponse.status === 404) {
         possibleCauses.push('URL do endpoint incorreta');
-        possibleCauses.push('Versão da API incorreta (tente /api/v2)');
+        possibleCauses.push('Versão da API incorreta');
+        actionSteps.push('Verifique se a URL base está correta');
       } else if (chatwootResponse.status === 406) {
-        possibleCauses.push('Token inválido ou tipo incorreto');
-        possibleCauses.push('Use o Access Token do Profile Settings (não Platform App Token)');
-        possibleCauses.push('Verifique se o token tem permissões corretas');
-        possibleCauses.push('Tente regenerar o token de acesso');
+        possibleCauses.push('⚠️ O token NÃO está sendo aceito pelo Chatwoot');
+        possibleCauses.push('Tipo de token incorreto (usando Platform App ao invés de Access Token)');
+        possibleCauses.push('Token sem permissões adequadas');
+        actionSteps.push('1. Faça login no Chatwoot');
+        actionSteps.push('2. Clique no seu perfil (canto superior direito)');
+        actionSteps.push('3. Vá em Profile Settings > Access Token');
+        actionSteps.push('4. Copie o Access Token (NÃO use Platform App Token)');
+        actionSteps.push('5. Cole o novo token na configuração e salve');
+        actionSteps.push('6. Teste a conexão novamente');
       } else {
         possibleCauses.push('Verifique a URL e credenciais do Chatwoot');
         possibleCauses.push('Verifique se o servidor Chatwoot está acessível');
+        actionSteps.push('Verifique conectividade com o servidor');
       }
       
       return new Response(
         JSON.stringify({
           error: `Erro ${chatwootResponse.status}: Chatwoot retornou ${contentType || 'tipo desconhecido'} ao invés de JSON`,
+          message: chatwootResponse.status === 406 
+            ? '🔴 O token Access Token está sendo rejeitado. Você precisa gerar um NOVO token no Chatwoot.'
+            : 'Erro ao conectar com Chatwoot',
           details: {
             status: chatwootResponse.status,
             contentType: contentType || 'unknown',
             preview: textResponse.substring(0, 200),
             url: fullUrl,
-            authMethod: 'api_access_token',
             tokenMasked: integration.api_token.substring(0, 3) + '...' + integration.api_token.substring(integration.api_token.length - 4),
-            possibleCauses: possibleCauses
+            possibleCauses,
+            actionSteps
           }
         }),
         {

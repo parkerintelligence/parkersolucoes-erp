@@ -337,6 +337,17 @@ export const ChatwootAdminConfig = () => {
                     </ul>
                   </div>
                 )}
+                
+                {errorDetails.actionSteps && errorDetails.actionSteps.length > 0 && (
+                  <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-md border border-blue-200 dark:border-blue-800">
+                    <p className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-100">✅ Como Resolver:</p>
+                    <ol className="text-sm space-y-1 list-none">
+                      {errorDetails.actionSteps.map((step: string, idx: number) => (
+                        <li key={idx} className="text-blue-800 dark:text-blue-200">{step}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
               </div>
             </AlertDescription>
           </Alert>
