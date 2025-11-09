@@ -20,7 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🔄 Chatwoot proxy request:', req.method, req.url);
+    console.log('🔄 Chatwoot proxy v2.0 - WITH ACCEPT HEADER:', req.method, req.url);
     console.log('Authorization header present:', !!req.headers.get('Authorization'));
     
     // Extract token from Authorization header
