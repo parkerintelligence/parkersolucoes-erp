@@ -166,7 +166,7 @@ export const useChatwootAPI = () => {
     queryKey: ['chatwoot-conversations', chatwootIntegration?.id],
     queryFn: async () => {
       if (!chatwootIntegration?.id) {
-        throw new Error('Chatwoot não configurado');
+        return []; // Return empty array instead of throwing
       }
 
       console.log('Fetching Chatwoot conversations via proxy...');
@@ -179,7 +179,8 @@ export const useChatwootAPI = () => {
         );
 
         if (!accounts || accounts.length === 0) {
-          throw new Error('Nenhuma conta encontrada no Chatwoot');
+          console.warn('Nenhuma conta encontrada no Chatwoot');
+          return [];
         }
 
         const accountId = accounts[0].id;
@@ -194,18 +195,13 @@ export const useChatwootAPI = () => {
         return conversations.data as ChatwootConversation[];
       } catch (error: any) {
         console.error('Erro ao buscar conversas Chatwoot:', error);
-        
-        // Transform error to simple string message to avoid serialization issues
-        const errorMessage = error?.details?.possibleCauses?.length > 0
-          ? `${error.message || 'Erro ao conectar com Chatwoot'}\n\nPossíveis causas:\n${error.details.possibleCauses.join('\n')}`
-          : error.message || 'Erro ao conectar com Chatwoot. Verifique as configurações.';
-        
-        throw new Error(errorMessage);
+        // Return empty array on error to prevent blank screen
+        return [];
       }
     },
     enabled: !!chatwootIntegration,
-    refetchInterval: false, // Disable auto-refetch on error
-    retry: false, // Don't retry on 406 errors
+    refetchInterval: false,
+    retry: false,
     staleTime: 10000,
   });
 
