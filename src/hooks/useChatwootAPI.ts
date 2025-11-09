@@ -60,12 +60,19 @@ const makeChatwootRequest = async (integrationId: string, endpoint: string, opti
   try {
     const { supabase } = await import('@/integrations/supabase/client');
     
-    // Get auth session
-    const { data: { session } } = await supabase.auth.getSession();
+    // Refresh session to ensure we have a valid token
+    const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+    
+    if (sessionError) {
+      console.error('Erro ao renovar sessão:', sessionError);
+      throw new Error('Sessão expirada. Por favor, faça login novamente.');
+    }
     
     if (!session) {
-      throw new Error('Usuário não autenticado');
+      throw new Error('Usuário não autenticado. Por favor, faça login.');
     }
+
+    console.log('✅ Token renovado com sucesso');
 
     const response = await fetch(
       'https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/chatwoot-proxy',
