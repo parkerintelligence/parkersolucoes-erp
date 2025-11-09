@@ -167,12 +167,17 @@ serve(async (req) => {
     console.log('Chatwoot Proxy - Full URL construída:', fullUrl);
 
     // Try first with api_access_token header (Chatwoot standard)
+    const headers1 = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'api_access_token': integration.api_token,
+    };
+    
+    console.log('Chatwoot Proxy - Sending headers:', Object.keys(headers1));
+    
     let chatwootResponse = await fetch(fullUrl, {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        'api_access_token': integration.api_token,
-      },
+      headers: headers1,
       body: body ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(15000), // 15 second timeout
     }).catch(error => {
@@ -182,16 +187,19 @@ serve(async (req) => {
 
     console.log('Chatwoot Proxy - First attempt status:', chatwootResponse.status);
 
-    // If 401, try with Authorization Bearer header as fallback
-    if (chatwootResponse.status === 401) {
+    // If 401 or 406, try with Authorization Bearer header as fallback
+    if (chatwootResponse.status === 401 || chatwootResponse.status === 406) {
       console.log('Chatwoot Proxy - Trying Authorization Bearer header as fallback...');
+      
+      const headers2 = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${integration.api_token}`,
+      };
       
       chatwootResponse = await fetch(fullUrl, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${integration.api_token}`,
-        },
+        headers: headers2,
         body: body ? JSON.stringify(body) : undefined,
         signal: AbortSignal.timeout(15000),
       });
