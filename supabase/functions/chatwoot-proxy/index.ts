@@ -50,14 +50,15 @@ serve(async (req) => {
 
     console.log('Chatwoot Proxy - Request:', { integrationId, endpoint, method, userId: user.id });
 
-    // Check if user is master
-    const { data: userProfile } = await supabaseClient
-      .from('user_profiles')
+    // Check if user is master using the new user_roles table
+    const { data: userRole } = await supabaseClient
+      .from('user_roles')
       .select('role')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
+      .eq('role', 'master')
       .single();
 
-    const isMaster = userProfile?.role === 'master';
+    const isMaster = !!userRole;
     console.log('User is master:', isMaster);
 
     // Fetch integration from database

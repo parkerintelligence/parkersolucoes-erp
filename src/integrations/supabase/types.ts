@@ -1118,6 +1118,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_conversations: {
         Row: {
           contact_name: string
@@ -1260,10 +1278,18 @@ export type Database = {
         Returns: string
       }
       get_user_role: { Args: never; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_master: { Args: { user_id: string }; Returns: boolean }
       is_master_user: { Args: never; Returns: boolean }
     }
     Enums: {
+      app_role: "master" | "admin" | "user"
       integration_type:
         | "chatwoot"
         | "evolution_api"
@@ -1406,6 +1432,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["master", "admin", "user"],
       integration_type: [
         "chatwoot",
         "evolution_api",
