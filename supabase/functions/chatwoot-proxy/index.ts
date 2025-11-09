@@ -173,9 +173,37 @@ serve(async (req) => {
       console.log('Chatwoot Proxy - Second attempt status:', chatwootResponse.status);
     }
 
-    const chatwootData = await chatwootResponse.json();
-
     console.log('Chatwoot Proxy - Response status:', chatwootResponse.status);
+    console.log('Chatwoot Proxy - Response headers:', Object.fromEntries(chatwootResponse.headers.entries()));
+
+    // Check if response is JSON
+    const contentType = chatwootResponse.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const textResponse = await chatwootResponse.text();
+      console.error('Chatwoot API returned non-JSON response:', textResponse.substring(0, 500));
+      
+      return new Response(
+        JSON.stringify({
+          error: `Chatwoot retornou ${contentType || 'tipo desconhecido'} ao invés de JSON`,
+          details: {
+            status: chatwootResponse.status,
+            contentType: contentType,
+            preview: textResponse.substring(0, 200),
+            possibleCause: chatwootResponse.status === 401 
+              ? 'Token de API inválido ou expirado' 
+              : chatwootResponse.status === 404
+              ? 'URL do endpoint incorreta. Verifique se a URL base está correta.'
+              : 'Verifique a URL e credenciais do Chatwoot'
+          }
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const chatwootData = await chatwootResponse.json();
 
     if (!chatwootResponse.ok) {
       console.error('Chatwoot API error:', chatwootData);
