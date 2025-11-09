@@ -619,7 +619,7 @@ export type Database = {
           type: string
           updated_at: string
           use_ssl: boolean | null
-          user_id: string | null
+          user_id: string
           user_token: string | null
           username: string | null
           webhook_url: string | null
@@ -643,7 +643,7 @@ export type Database = {
           type: string
           updated_at?: string
           use_ssl?: boolean | null
-          user_id?: string | null
+          user_id: string
           user_token?: string | null
           username?: string | null
           webhook_url?: string | null
@@ -667,7 +667,7 @@ export type Database = {
           type?: string
           updated_at?: string
           use_ssl?: boolean | null
-          user_id?: string | null
+          user_id?: string
           user_token?: string | null
           username?: string | null
           webhook_url?: string | null
