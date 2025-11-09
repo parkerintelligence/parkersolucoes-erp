@@ -24,7 +24,7 @@ import Companies from '@/pages/Companies';
 import Bacula from '@/pages/Bacula';
 import ReportsDashboard from '@/pages/ReportsDashboard';
 import ActionPlan from '@/pages/ActionPlan';
-import Alertas from '@/pages/Alertas';
+import { SafeAlertas } from '@/components/SafeAlertas';
 import Atendimentos from '@/pages/Atendimentos';
 import Security from '@/pages/Security';
 import UniFi from '@/pages/UniFi';
@@ -43,7 +43,7 @@ function App() {
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
               <Route path="/atendimentos" element={<Layout><Atendimentos /></Layout>} />
-              <Route path="/alertas" element={<Layout><Alertas /></Layout>} />
+              <Route path="/alertas" element={<Layout><SafeAlertas /></Layout>} />
               <Route path="/links" element={<Layout><Links /></Layout>} />
               <Route path="/vps" element={<Layout><VPS /></Layout>} />
               <Route path="/admin" element={<Layout><Admin /></Layout>} />
