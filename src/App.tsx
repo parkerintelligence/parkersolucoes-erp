@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
 import Login from '@/pages/Login';
 import VPS from '@/pages/VPS';
-import Admin from '@/pages/Admin';
+import { SafeAdmin } from '@/components/SafeAdmin';
 import { SafeGLPI } from '@/components/SafeGLPI';
 import { SafeGuacamole } from '@/components/SafeGuacamole';
 import Backups from '@/pages/Backups';
@@ -46,7 +46,7 @@ function App() {
               <Route path="/alertas" element={<Layout><SafeAlertas /></Layout>} />
               <Route path="/links" element={<Layout><Links /></Layout>} />
               <Route path="/vps" element={<Layout><VPS /></Layout>} />
-              <Route path="/admin" element={<Layout><Admin /></Layout>} />
+              <Route path="/admin" element={<Layout><SafeAdmin /></Layout>} />
               <Route path="/glpi" element={<Layout><SafeGLPI /></Layout>} />
               <Route path="/conexao-remota" element={<Layout><SafeGuacamole /></Layout>} />
               <Route path="/backups" element={<Layout><Backups /></Layout>} />
