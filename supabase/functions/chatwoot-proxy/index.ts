@@ -166,15 +166,21 @@ serve(async (req) => {
     console.log('Chatwoot Proxy - Needs /app path:', needsAppPath);
     console.log('Chatwoot Proxy - Full URL construída:', fullUrl);
 
-    // Try first with api_access_token header (Chatwoot standard)
-    const headers1 = {
+    // Try with api_access_token header (Chatwoot standard)
+    // For GET requests, don't include Content-Type header as it may cause 406
+    const headers1: Record<string, string> = {
       'Accept': 'application/json',
-      'Content-Type': 'application/json',
       'api_access_token': integration.api_token,
     };
     
+    // Only add Content-Type for non-GET requests
+    if (method !== 'GET') {
+      headers1['Content-Type'] = 'application/json';
+    }
+    
     console.log('🔑 Headers enviados (tentativa 1):', {
       url: fullUrl,
+      method,
       headers: headers1,
       tokenLength: integration.api_token.length
     });
@@ -195,11 +201,15 @@ serve(async (req) => {
     if (chatwootResponse.status === 401 || chatwootResponse.status === 406) {
       console.log('Chatwoot Proxy - Trying Authorization Bearer header as fallback...');
       
-      const headers2 = {
+      const headers2: Record<string, string> = {
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${integration.api_token}`,
       };
+      
+      // Only add Content-Type for non-GET requests
+      if (method !== 'GET') {
+        headers2['Content-Type'] = 'application/json';
+      }
       
       chatwootResponse = await fetch(fullUrl, {
         method,
@@ -209,39 +219,6 @@ serve(async (req) => {
       });
 
       console.log('Chatwoot Proxy - Second attempt status:', chatwootResponse.status);
-      
-      // If still 406, try alternative URL without /app
-      if (chatwootResponse.status === 406) {
-        console.log('Chatwoot Proxy - Trying alternative URL without /app...');
-        
-        let alternativeUrl = integration.base_url.replace(/\/$/, '');
-        alternativeUrl = alternativeUrl.replace(/\/app.*$/, ''); // Remove everything after /app
-        alternativeUrl = alternativeUrl + '/api/v1' + endpoint;
-        
-        console.log('Chatwoot Proxy - Alternative URL:', alternativeUrl);
-        
-        // Try with api_access_token
-        chatwootResponse = await fetch(alternativeUrl, {
-          method,
-          headers: headers1,
-          body: body ? JSON.stringify(body) : undefined,
-          signal: AbortSignal.timeout(15000),
-        });
-        
-        console.log('Chatwoot Proxy - Third attempt (no /app) status:', chatwootResponse.status);
-        
-        // If still not working, try Bearer with alternative URL
-        if (chatwootResponse.status === 406 || chatwootResponse.status === 401) {
-          console.log('Chatwoot Proxy - Trying Bearer with alternative URL...');
-          chatwootResponse = await fetch(alternativeUrl, {
-            method,
-            headers: headers2,
-            body: body ? JSON.stringify(body) : undefined,
-            signal: AbortSignal.timeout(15000),
-          });
-          console.log('Chatwoot Proxy - Fourth attempt (Bearer + no /app) status:', chatwootResponse.status);
-        }
-      }
     }
 
     console.log('Chatwoot Proxy - Response status:', chatwootResponse.status);
