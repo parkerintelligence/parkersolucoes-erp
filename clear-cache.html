@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Limpar Cache - Parker ERP</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: white;
+    }
+    .container {
+      text-align: center;
+      max-width: 600px;
+      padding: 2rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 1rem;
+      backdrop-filter: blur(10px);
+    }
+    button {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      margin: 0.5rem;
+      font-weight: 600;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: scale(1.05);
+    }
+    .status {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 0.5rem;
+      min-height: 100px;
+    }
+    .success { color: #10b981; }
+    .error { color: #ef4444; }
+    .info { color: #3b82f6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Ferramenta de Limpeza de Cache</h1>
+    <p>Se você está tendo problemas com o React (erro de useContext), use os botões abaixo:</p>
+    
+    <div>
+      <button onclick="clearEverything()">🗑️ Limpar TUDO</button>
+      <button onclick="clearViteCache()">⚡ Limpar Cache Vite</button>
+      <button onclick="hardReload()">🔄 Hard Refresh</button>
+    </div>
+    
+    <div class="status" id="status">
+      <p class="info">Pronto para limpar o cache...</p>
+    </div>
+  </div>
+
+  <script>
+    function log(message, type = 'info') {
+      const status = document.getElementById('status');
+      const p = document.createElement('p');
+      p.className = type;
+      p.textContent = message;
+      status.appendChild(p);
+      console.log(message);
+    }
+
+    async function clearEverything() {
+      const status = document.getElementById('status');
+      status.innerHTML = '<p class="info">Iniciando limpeza completa...</p>';
+      
+      try {
+        // Clear localStorage
+        localStorage.clear();
+        log('✅ localStorage limpo', 'success');
+        
+        // Clear sessionStorage
+        sessionStorage.clear();
+        log('✅ sessionStorage limpo', 'success');
+        
+        // Clear Service Workers
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (let registration of registrations) {
+            await registration.unregister();
+          }
+          log('✅ Service Workers removidos', 'success');
+        }
+        
+        // Clear Cache Storage
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+          log('✅ Cache Storage limpo', 'success');
+        }
+        
+        // Clear IndexedDB
+        if (window.indexedDB) {
+          const dbs = await window.indexedDB.databases();
+          dbs.forEach(db => {
+            if (db.name) window.indexedDB.deleteDatabase(db.name);
+          });
+          log('✅ IndexedDB limpo', 'success');
+        }
+        
+        log('🎉 Tudo limpo! Redirecionando em 2 segundos...', 'success');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+        
+      } catch (error) {
+        log('❌ Erro: ' + error.message, 'error');
+      }
+    }
+
+    async function clearViteCache() {
+      const status = document.getElementById('status');
+      status.innerHTML = '<p class="info">Limpando cache do Vite...</p>';
+      
+      try {
+        // Clear Vite specific caches
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          const viteCaches = cacheNames.filter(name => 
+            name.includes('vite') || name.includes('deps')
+          );
+          await Promise.all(viteCaches.map(name => caches.delete(name)));
+          log('✅ Cache do Vite limpo: ' + viteCaches.length + ' caches', 'success');
+        }
+        
+        // Clear Vite related items from localStorage
+        for (let key in localStorage) {
+          if (key.includes('vite') || key.includes('deps')) {
+            localStorage.removeItem(key);
+          }
+        }
+        log('✅ localStorage do Vite limpo', 'success');
+        
+        log('🎉 Cache do Vite limpo! Faça um Hard Refresh agora (Ctrl+Shift+R)', 'success');
+        
+      } catch (error) {
+        log('❌ Erro: ' + error.message, 'error');
+      }
+    }
+
+    function hardReload() {
+      const status = document.getElementById('status');
+      status.innerHTML = '<p class="info">Forçando recarga...</p>';
+      log('🔄 Forçando hard reload...', 'info');
+      setTimeout(() => {
+        window.location.reload(true);
+      }, 500);
+    }
+  </script>
+</body>
+</html>
