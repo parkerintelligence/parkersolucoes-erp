@@ -38,7 +38,10 @@ const Atendimentos = () => {
     refetchConversations
   } = useChatwootAPI();
 
-  const filteredConversations = conversations.filter(conv =>
+  // Garantir que conversations é sempre um array
+  const safeConversations = Array.isArray(conversations) ? conversations : [];
+
+  const filteredConversations = safeConversations.filter(conv =>
     conv.messages?.[0]?.sender?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     conv.id?.toString().includes(searchTerm)
   );
@@ -217,7 +220,7 @@ const Atendimentos = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{conversations.length}</div>
+            <div className="text-2xl font-bold">{safeConversations.length}</div>
             <p className="text-xs text-muted-foreground">
               Conversas registradas
             </p>
@@ -231,7 +234,7 @@ const Atendimentos = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {conversations.filter(c => c.status === 'open').length}
+              {safeConversations.filter(c => c.status === 'open').length}
             </div>
             <p className="text-xs text-muted-foreground">
               Em andamento
@@ -246,7 +249,7 @@ const Atendimentos = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {conversations.filter(c => c.status === 'resolved').length}
+              {safeConversations.filter(c => c.status === 'resolved').length}
             </div>
             <p className="text-xs text-muted-foreground">
               Finalizadas

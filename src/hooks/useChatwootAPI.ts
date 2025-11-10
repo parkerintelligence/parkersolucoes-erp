@@ -193,7 +193,19 @@ export const useChatwootAPI = () => {
           `/accounts/${accountId}/conversations?status=all&page=1`
         );
 
-        return conversations.data as ChatwootConversation[];
+        // Ensure we return an array
+        if (!conversations) {
+          console.warn('Resposta vazia ao buscar conversas');
+          return [];
+        }
+
+        // Handle both formats: conversations.data or conversations being the array
+        const conversationsData = Array.isArray(conversations) 
+          ? conversations 
+          : (conversations.data || []);
+
+        console.log('Conversas carregadas:', conversationsData.length);
+        return conversationsData as ChatwootConversation[];
       } catch (error: any) {
         console.error('Erro ao buscar conversas Chatwoot:', error);
         // Return empty array on error to prevent blank screen
