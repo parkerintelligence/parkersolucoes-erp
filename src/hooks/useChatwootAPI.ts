@@ -213,9 +213,10 @@ export const useChatwootAPI = () => {
           ? conversations 
           : (conversations.data?.payload || conversations.payload || conversations.data || []);
 
-        // Map the conversations to include assignee at root level
+        // Map the conversations to preserve all properties including status
         const mappedConversations = conversationsData.map((conv: any) => ({
           ...conv,
+          status: conv.status, // Explicitly preserve status
           assignee: conv.meta?.assignee || conv.assignee || null
         }));
 
@@ -230,7 +231,7 @@ export const useChatwootAPI = () => {
     enabled: !!chatwootIntegration,
     refetchInterval: false,
     retry: false,
-    staleTime: 10000,
+    staleTime: 0, // Always fetch fresh data after invalidation
   });
 
   const sendMessage = useMutation({
@@ -321,16 +322,28 @@ export const useChatwootAPI = () => {
       }
     },
     onSuccess: (data, variables) => {
-      // Invalidate both conversations and messages to refresh the data
+      console.log('Status atualizado com sucesso:', data.status);
+      
+      // Update cache directly with new status for immediate visual feedback
+      queryClient.setQueryData(
+        ['chatwoot-conversations', chatwootIntegration?.id], 
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          return oldData.map((conv: any) => 
+            conv.id.toString() === variables.conversationId 
+              ? { ...conv, status: data.status } 
+              : conv
+          );
+        }
+      );
+      
+      // Invalidate to ensure synchronization with API
       queryClient.invalidateQueries({ queryKey: ['chatwoot-conversations'] });
       queryClient.invalidateQueries({ queryKey: ['chatwoot-messages'] });
       
-      // Force immediate refetch
-      queryClient.refetchQueries({ queryKey: ['chatwoot-conversations'] });
-      
       toast({
         title: "Status atualizado!",
-        description: "O status da conversa foi atualizado com sucesso.",
+        description: `Conversa marcada como ${data.status === 'resolved' ? 'resolvida' : data.status === 'pending' ? 'pendente' : 'aberta'}.`,
       });
     },
     onError: (error: Error) => {
