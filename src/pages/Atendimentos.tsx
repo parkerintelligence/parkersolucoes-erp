@@ -21,7 +21,8 @@ import {
   MessageCircle,
   X,
   ChevronRight,
-  User
+  User,
+  TrendingUp
 } from 'lucide-react';
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
@@ -37,6 +38,7 @@ import { ChatwootMessageStatus } from '@/components/chatwoot/ChatwootMessageStat
 import { ChatwootFileUpload } from '@/components/chatwoot/ChatwootFileUpload';
 import { ChatwootLabelManager } from '@/components/chatwoot/ChatwootLabelManager';
 import { ChatwootStatusHistory } from '@/components/chatwoot/ChatwootStatusHistory';
+import { ChatwootAgentMetrics } from '@/components/chatwoot/ChatwootAgentMetrics';
 
 const Atendimentos = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,6 +48,7 @@ const Atendimentos = () => {
   const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'mine' | 'unassigned'>('all');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [showContactPanel, setShowContactPanel] = useState(false);
+  const [viewMode, setViewMode] = useState<'conversations' | 'metrics'>('conversations');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { 
@@ -374,8 +377,34 @@ const Atendimentos = () => {
         </div>
       </div>
 
-      {/* Statistics Dashboard */}
-      <ChatwootStats />
+      {/* View Mode Selector */}
+      <Card className="bg-slate-800 border-slate-700">
+        <CardContent className="p-4">
+          <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'conversations' | 'metrics')}>
+            <TabsList className="w-full grid grid-cols-2 bg-slate-700">
+              <TabsTrigger 
+                value="conversations" 
+                className="text-sm text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Conversas
+              </TabsTrigger>
+              <TabsTrigger 
+                value="metrics" 
+                className="text-sm text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white"
+              >
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Métricas por Agente
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {viewMode === 'conversations' && (
+        <>
+          {/* Statistics Dashboard */}
+          <ChatwootStats />
 
       {/* Assignment Filter */}
       <Card className="bg-slate-800 border-slate-700">
@@ -791,6 +820,12 @@ const Atendimentos = () => {
           </div>
         )}
       </div>
+        </>
+      )}
+
+      {viewMode === 'metrics' && (
+        <ChatwootAgentMetrics />
+      )}
       </div>
     </div>
   );
