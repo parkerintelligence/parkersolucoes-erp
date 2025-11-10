@@ -1,7 +1,8 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
+import { ChatwootMessage } from './useChatwootAPI';
 
 interface ChatwootEvent {
   id: string;
@@ -10,6 +11,117 @@ interface ChatwootEvent {
   event_data: any;
   created_at: string;
 }
+
+// Hook para detectar novas mensagens e notificar
+export const useChatwootMessageNotifications = (
+  messages: ChatwootMessage[] | undefined,
+  conversationId: string | null,
+  enabled: boolean = true
+) => {
+  const previousMessagesRef = useRef<ChatwootMessage[]>([]);
+
+  const playNotificationSound = useCallback(() => {
+    // Criar som de notificação usando Web Audio API
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      // Configurar som (tipo WhatsApp)
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+
+      // Segunda nota
+      const oscillator2 = audioContext.createOscillator();
+      const gainNode2 = audioContext.createGain();
+      
+      oscillator2.connect(gainNode2);
+      gainNode2.connect(audioContext.destination);
+      
+      oscillator2.frequency.value = 600;
+      oscillator2.type = 'sine';
+      
+      gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.1);
+      gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
+      
+      oscillator2.start(audioContext.currentTime + 0.1);
+      oscillator2.stop(audioContext.currentTime + 0.6);
+
+    } catch (error) {
+      console.log('Não foi possível tocar o som:', error);
+    }
+  }, []);
+
+  const showMessageNotification = useCallback((message: ChatwootMessage) => {
+    const isIncoming = message.message_type === 0; // 0 = incoming, 1 = outgoing
+    
+    if (!isIncoming) return; // Só notifica mensagens recebidas
+
+    // Notificação do navegador
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const sender = message.sender?.name || 'Cliente';
+      const content = message.content || 'Nova mensagem';
+      
+      new Notification(`💬 ${sender}`, {
+        body: content.substring(0, 100),
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        tag: `chatwoot-msg-${message.id}`,
+        requireInteraction: false
+      });
+    }
+
+    // Toast
+    toast({
+      title: '💬 Nova mensagem',
+      description: `${message.sender?.name || 'Cliente'}: ${(message.content || '').substring(0, 80)}...`,
+    });
+
+    // Som
+    playNotificationSound();
+  }, [playNotificationSound]);
+
+  // Detectar novas mensagens
+  useEffect(() => {
+    if (!enabled || !messages || !conversationId) return;
+
+    const previousMessages = previousMessagesRef.current;
+    
+    // Se temos mensagens anteriores, comparar
+    if (previousMessages.length > 0 && messages.length > previousMessages.length) {
+      // Encontrar mensagens novas
+      const newMessages = messages.filter(
+        msg => !previousMessages.some(prev => prev.id === msg.id)
+      );
+
+      // Notificar cada mensagem nova
+      newMessages.forEach(msg => {
+        showMessageNotification(msg);
+      });
+    }
+
+    // Atualizar referência
+    previousMessagesRef.current = messages;
+  }, [messages, conversationId, enabled, showMessageNotification]);
+
+  // Solicitar permissão para notificações
+  useEffect(() => {
+    if (enabled && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        console.log('📱 Notification permission:', permission);
+      });
+    }
+  }, [enabled]);
+};
 
 export const useChatwootRealtime = (integrationId: string | undefined, enabled: boolean = true) => {
   const queryClient = useQueryClient();
