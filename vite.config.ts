@@ -21,6 +21,11 @@ export default defineConfig(({ mode }) => ({
     dedupe: ['react', 'react-dom', 'react/jsx-runtime']
   },
   optimizeDeps: {
-    include: ['react', 'react-dom']
+    include: ['react', 'react-dom'],
+    force: true // Force re-optimization on every start
+  },
+  build: {
+    // Clear output dir to prevent stale chunks
+    emptyOutDir: true,
   },
 }));

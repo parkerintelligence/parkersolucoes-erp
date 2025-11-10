@@ -1,35 +1,21 @@
-import { useState, useEffect, ReactNode } from 'react';
+import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 interface QueryProviderProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
-export const QueryProvider = ({ children }: QueryProviderProps) => {
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 60 * 1000,
-        retry: 1,
-      },
+// Create QueryClient outside component to ensure single instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000,
+      retry: 1,
     },
-  }));
+  },
+});
 
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    // Ensure React is fully initialized before rendering children
-    setIsReady(true);
-  }, []);
-
-  if (!isReady) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-muted-foreground">Carregando...</div>
-      </div>
-    );
-  }
-
+export const QueryProvider = ({ children }: QueryProviderProps) => {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
