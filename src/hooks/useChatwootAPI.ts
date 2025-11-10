@@ -213,8 +213,14 @@ export const useChatwootAPI = () => {
           ? conversations 
           : (conversations.data?.payload || conversations.payload || conversations.data || []);
 
-        console.log('Conversas extraídas:', conversationsData.length, 'conversas');
-        return conversationsData as ChatwootConversation[];
+        // Map the conversations to include assignee at root level
+        const mappedConversations = conversationsData.map((conv: any) => ({
+          ...conv,
+          assignee: conv.meta?.assignee || conv.assignee || null
+        }));
+
+        console.log('Conversas extraídas:', mappedConversations.length, 'conversas');
+        return mappedConversations as ChatwootConversation[];
       } catch (error: any) {
         console.error('Erro ao buscar conversas Chatwoot:', error);
         // Return empty array on error to prevent blank screen
@@ -311,7 +317,10 @@ export const useChatwootAPI = () => {
       }
     },
     onSuccess: () => {
+      // Invalidate both conversations and messages to refresh the data
       queryClient.invalidateQueries({ queryKey: ['chatwoot-conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['chatwoot-messages'] });
+      
       toast({
         title: "Status atualizado!",
         description: "O status da conversa foi atualizado com sucesso.",

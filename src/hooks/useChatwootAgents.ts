@@ -76,7 +76,7 @@ export const useChatwootAgents = () => {
       const profile = await makeChatwootRequest(chatwootIntegration.id, '/profile');
       const accountId = profile.account_id;
 
-      await makeChatwootRequest(
+      const result = await makeChatwootRequest(
         chatwootIntegration.id,
         `/accounts/${accountId}/conversations/${conversationId}/assignments`,
         {
@@ -84,9 +84,14 @@ export const useChatwootAgents = () => {
           body: { assignee_id: agentId }
         }
       );
+
+      return result;
     },
     onSuccess: () => {
+      // Invalidate both conversations and messages
       queryClient.invalidateQueries({ queryKey: ['chatwoot-conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['chatwoot-messages'] });
+      
       toast({
         title: "Agente atribuído!",
         description: "O agente foi atribuído à conversa com sucesso.",

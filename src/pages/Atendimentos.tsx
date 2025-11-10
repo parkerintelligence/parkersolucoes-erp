@@ -188,12 +188,17 @@ const Atendimentos = () => {
         status
       });
       
-      toast({
-        title: "Sucesso",
-        description: `Conversa marcada como ${status === 'open' ? 'aberta' : status === 'resolved' ? 'resolvida' : 'pendente'}!`
+      // Update local state immediately
+      setSelectedConversation({
+        ...selectedConversation,
+        status
       });
       
-      setTimeout(() => refetchConversations?.(), 500);
+      // Refetch conversations to update the list
+      setTimeout(() => {
+        refetchConversations?.();
+        refetchMessages?.();
+      }, 500);
     } catch (error) {
       console.error('Error updating status:', error);
     }
