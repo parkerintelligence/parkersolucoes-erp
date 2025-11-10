@@ -195,27 +195,26 @@ const Atendimentos = () => {
     if (!selectedConversation) return;
 
     try {
-      // Optimistic update - update selected conversation immediately
-      setSelectedConversation({
-        ...selectedConversation,
-        status
-      });
+      console.log('🔄 Alterando status da conversa', selectedConversation.id, 'para:', status);
       
-      // Make API call
+      // Make API call (mutation já faz update otimista no cache)
       await updateConversationStatus.mutateAsync({
         conversationId: selectedConversation.id.toString(),
         status
       });
       
-      // Force immediate refetch without delay
+      // Update selected conversation locally
+      setSelectedConversation({
+        ...selectedConversation,
+        status
+      });
+      
+      console.log('✅ Status alterado com sucesso!');
+    } catch (error) {
+      console.error('❌ Erro ao atualizar status:', error);
+      // Revert on error
       refetchConversations?.();
       refetchMessages?.();
-    } catch (error) {
-      console.error('Error updating status:', error);
-      // Revert optimistic update on error
-      if (selectedConversation) {
-        refetchConversations?.();
-      }
     }
   };
 

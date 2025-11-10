@@ -322,24 +322,42 @@ export const useChatwootAPI = () => {
       }
     },
     onSuccess: (data, variables) => {
-      console.log('Status atualizado com sucesso:', data.status);
+      console.log('✅ Status atualizado com sucesso:', data.status);
+      console.log('📝 Atualizando conversa ID:', variables.conversationId);
       
       // Update cache directly with new status for immediate visual feedback
       queryClient.setQueryData(
         ['chatwoot-conversations', chatwootIntegration?.id], 
         (oldData: any) => {
-          if (!oldData) return oldData;
-          return oldData.map((conv: any) => 
-            conv.id.toString() === variables.conversationId 
-              ? { ...conv, status: data.status } 
-              : conv
-          );
+          if (!oldData) {
+            console.log('⚠️ Nenhum dado anterior no cache');
+            return oldData;
+          }
+          
+          console.log('📊 Conversas no cache antes da atualização:', oldData.length);
+          
+          const updatedData = oldData.map((conv: any) => {
+            // Comparar tanto como string quanto como número
+            const convId = conv.id.toString();
+            const targetId = variables.conversationId.toString();
+            
+            if (convId === targetId) {
+              console.log('🔄 Atualizando conversa:', convId, 'de', conv.status, 'para', data.status);
+              return { ...conv, status: data.status };
+            }
+            return conv;
+          });
+          
+          console.log('✅ Cache atualizado com sucesso');
+          return updatedData;
         }
       );
       
-      // Invalidate to ensure synchronization with API
-      queryClient.invalidateQueries({ queryKey: ['chatwoot-conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['chatwoot-messages'] });
+      // Force refetch to ensure UI is updated
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['chatwoot-conversations', chatwootIntegration?.id] });
+        queryClient.invalidateQueries({ queryKey: ['chatwoot-messages'] });
+      }, 100);
       
       toast({
         title: "Status atualizado!",
