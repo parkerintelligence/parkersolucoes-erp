@@ -326,8 +326,23 @@ export const useChatwootAPI = () => {
     queryClient.invalidateQueries({ queryKey: ['chatwoot-conversations'] });
   };
 
+  const getConversationDetails = async (conversationId: string) => {
+    if (!chatwootIntegration?.id) {
+      throw new Error('Chatwoot não configurado');
+    }
+
+    const profile = await makeChatwootRequest(chatwootIntegration.id, '/profile');
+    const accountId = profile.account_id;
+
+    return await makeChatwootRequest(
+      chatwootIntegration.id,
+      `/accounts/${accountId}/conversations/${conversationId}`
+    );
+  };
+
   return {
     isConfigured: !!chatwootIntegration,
+    integrationId: chatwootIntegration?.id,
     conversations: conversationsQuery?.data || [],
     isLoading: conversationsQuery?.isLoading || false,
     error: conversationsQuery?.error,
@@ -335,5 +350,6 @@ export const useChatwootAPI = () => {
     sendMessage,
     updateConversationStatus,
     refetchConversations,
+    getConversationDetails,
   };
 };

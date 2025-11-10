@@ -12,33 +12,40 @@ import {
   MessageSquare, 
   Search, 
   RefreshCw, 
-  Users, 
-  Clock, 
   Send,
   AlertCircle,
   Loader2,
   CheckCircle2,
   AlertTriangle,
-  User,
-  Phone,
-  Mail,
+  Clock,
   MessageCircle,
-  X
+  X,
+  ChevronRight
 } from 'lucide-react';
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
-import { formatDistanceToNow, format } from 'date-fns';
+import { useConversationMessages } from '@/hooks/useConversationMessages';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
+import { ChatwootStats } from '@/components/chatwoot/ChatwootStats';
+import { ChatwootAgentSelector } from '@/components/chatwoot/ChatwootAgentSelector';
+import { ChatwootContactPanel } from '@/components/chatwoot/ChatwootContactPanel';
+import { ChatwootQuickReplies } from '@/components/chatwoot/ChatwootQuickReplies';
+import { ChatwootMessageStatus } from '@/components/chatwoot/ChatwootMessageStatus';
+import { ChatwootFileUpload } from '@/components/chatwoot/ChatwootFileUpload';
+import { ChatwootLabelManager } from '@/components/chatwoot/ChatwootLabelManager';
 
 const Atendimentos = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConversation, setSelectedConversation] = useState<ChatwootConversation | null>(null);
   const [messageText, setMessageText] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'pending' | 'resolved'>('all');
+  const [showContactPanel, setShowContactPanel] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { 
     isConfigured,
+    integrationId,
     conversations = [], 
     isLoading, 
     error,
@@ -48,7 +55,14 @@ const Atendimentos = () => {
     refetchConversations
   } = useChatwootAPI();
 
-  // Auto-refresh conversas a cada 30 segundos
+  // Load messages for selected conversation
+  const {
+    messages: conversationMessages,
+    isLoading: messagesLoading,
+    refetch: refetchMessages
+  } = useConversationMessages(integrationId, selectedConversation?.id.toString() || null);
+
+  // Auto-refresh conversations every 30 seconds
   useEffect(() => {
     if (isConfigured && !error) {
       const interval = setInterval(() => {
@@ -58,15 +72,20 @@ const Atendimentos = () => {
     }
   }, [isConfigured, error, refetchConversations]);
 
-  // Scroll automático para última mensagem
+  // Auto-scroll to last message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [selectedConversation?.messages]);
+  }, [conversationMessages]);
 
-  // Garantir que conversations é sempre um array
+  // Auto-refresh messages when conversation is selected
+  useEffect(() => {
+    if (selectedConversation) {
+      refetchMessages?.();
+    }
+  }, [selectedConversation]);
+
   const safeConversations = Array.isArray(conversations) ? conversations : [];
 
-  // Filtrar conversas por busca e status
   const filteredConversations = safeConversations
     .filter(conv => {
       const matchesSearch = 
@@ -97,13 +116,12 @@ const Atendimentos = () => {
       });
       
       setMessageText('');
-      toast({
-        title: "Sucesso",
-        description: "Mensagem enviada!"
-      });
       
-      // Atualizar conversas após enviar mensagem
-      setTimeout(() => refetchConversations?.(), 1000);
+      // Refresh messages immediately after sending
+      setTimeout(() => {
+        refetchMessages?.();
+        refetchConversations?.();
+      }, 500);
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -123,7 +141,6 @@ const Atendimentos = () => {
         description: `Conversa marcada como ${status === 'open' ? 'aberta' : status === 'resolved' ? 'resolvida' : 'pendente'}!`
       });
       
-      // Atualizar conversas
       setTimeout(() => refetchConversations?.(), 500);
     } catch (error) {
       console.error('Error updating status:', error);
@@ -266,10 +283,13 @@ const Atendimentos = () => {
         </div>
       </div>
 
+      {/* Statistics Dashboard */}
+      <ChatwootStats />
+
       {/* Main Content */}
       <div className="flex-1 grid grid-cols-12 gap-4 min-h-0">
         {/* Conversations List */}
-        <Card className="col-span-12 lg:col-span-4 flex flex-col">
+        <Card className="col-span-12 lg:col-span-3 flex flex-col">
           <CardHeader className="pb-3">
             <div className="space-y-3">
               <div className="relative">
@@ -384,7 +404,7 @@ const Atendimentos = () => {
         </Card>
 
         {/* Chat Area */}
-        <Card className="col-span-12 lg:col-span-8 flex flex-col">
+        <Card className={`${showContactPanel ? 'col-span-12 lg:col-span-6' : 'col-span-12 lg:col-span-9'} flex flex-col`}>
           {selectedConversation ? (
             <>
               {/* Chat Header */}
@@ -400,25 +420,22 @@ const Atendimentos = () => {
                       <h3 className="font-semibold text-lg">
                         {selectedConversation.meta?.sender?.name || 'Cliente'}
                       </h3>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        {selectedConversation.meta?.sender?.phone_number && (
-                          <span className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {selectedConversation.meta.sender.phone_number}
-                          </span>
-                        )}
-                        {selectedConversation.meta?.sender?.email && (
-                          <span className="flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {selectedConversation.meta.sender.email}
-                          </span>
-                        )}
-                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {selectedConversation.meta?.sender?.phone_number}
+                      </p>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-2">
                     {getStatusBadge(selectedConversation.status)}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowContactPanel(!showContactPanel)}
+                      className="hidden lg:flex"
+                    >
+                      <ChevronRight className={`h-4 w-4 transition-transform ${showContactPanel ? 'rotate-180' : ''}`} />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -429,6 +446,19 @@ const Atendimentos = () => {
                     </Button>
                   </div>
                 </div>
+                
+                {/* Agent Selector */}
+                <div className="mt-3">
+                  <ChatwootAgentSelector 
+                    conversationId={selectedConversation.id.toString()}
+                  />
+                </div>
+
+                {/* Labels */}
+                <ChatwootLabelManager 
+                  conversationId={selectedConversation.id.toString()}
+                  currentLabels={[]}
+                />
                 
                 {/* Status Actions */}
                 <div className="flex gap-2 mt-3">
@@ -464,51 +494,70 @@ const Atendimentos = () => {
               
               {/* Messages */}
               <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4">
-                  {selectedConversation.messages && selectedConversation.messages.length > 0 ? (
-                    selectedConversation.messages.map((message) => {
-                      const isOutgoing = message.message_type === 1;
-                      
-                      return (
-                        <div
-                          key={message.id}
-                          className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div className={`max-w-[70%] ${isOutgoing ? 'order-2' : 'order-1'}`}>
-                            <div
-                              className={`rounded-lg p-3 ${
-                                isOutgoing
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'bg-accent text-accent-foreground'
-                              }`}
-                            >
-                              {!isOutgoing && message.sender?.name && (
-                                <p className="text-xs font-medium mb-1 opacity-70">
-                                  {message.sender.name}
-                                </p>
-                              )}
-                              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                              <p className={`text-xs mt-1 ${isOutgoing ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                                {formatMessageTime(message.created_at)}
-                              </p>
+                {messagesLoading ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+                    <p className="text-sm text-muted-foreground">Carregando mensagens...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {conversationMessages && conversationMessages.length > 0 ? (
+                      conversationMessages.map((message) => {
+                        const isOutgoing = message.message_type === 1;
+                        
+                        return (
+                          <div
+                            key={message.id}
+                            className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div className={`max-w-[70%] ${isOutgoing ? 'order-2' : 'order-1'}`}>
+                              <div
+                                className={`rounded-lg p-3 ${
+                                  isOutgoing
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-accent text-accent-foreground'
+                                }`}
+                              >
+                                {!isOutgoing && message.sender?.name && (
+                                  <p className="text-xs font-medium mb-1 opacity-70">
+                                    {message.sender.name}
+                                  </p>
+                                )}
+                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                <div className="flex items-center justify-between mt-1">
+                                  <p className={`text-xs ${isOutgoing ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                                    {formatMessageTime(message.created_at)}
+                                  </p>
+                                  <ChatwootMessageStatus 
+                                    status={message.status}
+                                    messageType={message.message_type}
+                                  />
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Nenhuma mensagem ainda</p>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
+                        );
+                      })
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>Nenhuma mensagem ainda</p>
+                      </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
               </ScrollArea>
               
               {/* Message Input */}
               <div className="p-4 border-t">
+                <div className="mb-2">
+                  <ChatwootQuickReplies onSelectReply={setMessageText} />
+                </div>
                 <div className="flex gap-2">
+                  <ChatwootFileUpload 
+                    conversationId={selectedConversation.id.toString()}
+                  />
                   <Textarea
                     placeholder="Digite sua mensagem..."
                     value={messageText}
@@ -556,6 +605,13 @@ const Atendimentos = () => {
             </CardContent>
           )}
         </Card>
+
+        {/* Contact Panel */}
+        {showContactPanel && (
+          <div className="col-span-12 lg:col-span-3 hidden lg:block">
+            <ChatwootContactPanel conversation={selectedConversation} />
+          </div>
+        )}
       </div>
     </div>
   );
