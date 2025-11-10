@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -57,8 +57,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   console.log('[AuthProvider] State initialized, isLoading:', isLoading);
+
+  const INACTIVITY_TIMEOUT = 60 * 60 * 1000; // 1 hour in milliseconds
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -105,6 +108,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     try {
       setIsLoading(true);
+      
+      // Clear inactivity timer
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
+      }
+      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -131,11 +141,60 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Reset inactivity timer on user activity
+  const resetInactivityTimer = useCallback(() => {
+    // Only reset if user is authenticated
+    if (!session || !user) return;
+
+    // Clear existing timer
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+
+    // Set new timer
+    inactivityTimerRef.current = setTimeout(() => {
+      console.log('User inactive for 1 hour, logging out...');
+      logout();
+    }, INACTIVITY_TIMEOUT);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, user, INACTIVITY_TIMEOUT]);
+
+  // Set up activity listeners
+  useEffect(() => {
+    if (!session || !user) return;
+
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    
+    // Reset timer on any activity
+    events.forEach(event => {
+      window.addEventListener(event, resetInactivityTimer);
+    });
+
+    // Initialize timer
+    resetInactivityTimer();
+
+    // Cleanup
+    return () => {
+      events.forEach(event => {
+        window.removeEventListener(event, resetInactivityTimer);
+      });
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+    };
+  }, [session, user, resetInactivityTimer]);
+
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, !!session);
+        
+        // Ignore token refresh events to prevent unnecessary updates
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('Token refreshed, maintaining current session');
+          return;
+        }
         
         setSession(session);
         setUser(session?.user ?? null);
@@ -146,7 +205,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const profile = await fetchUserProfile(session.user.id);
             setUserProfile(profile);
           }, 0);
-        } else {
+        } else if (event === 'SIGNED_OUT') {
+          // Only clear profile on explicit sign out
           setUserProfile(null);
         }
         
@@ -154,17 +214,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Check for existing session with error handling for corrupted tokens
+    // Check for existing session
     supabase.auth.getSession()
       .then(({ data: { session }, error }) => {
         if (error) {
-          console.error('Error getting session, clearing corrupted tokens:', error);
-          // Clear corrupted tokens
-          localStorage.removeItem('sb-mpvxppgoyadwukkfoccs-auth-token');
-          localStorage.removeItem('supabase.auth.token');
-          setSession(null);
-          setUser(null);
-          setUserProfile(null);
+          console.error('Error getting session:', error);
+          // Don't clear tokens on network errors or temporary issues
+          // Only set loading to false and let the user retry
           setIsLoading(false);
           return;
         }
@@ -179,12 +235,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
       })
       .catch((error) => {
-        console.error('Fatal error getting session:', error);
-        // Clear all auth data on fatal error
-        localStorage.clear();
-        setSession(null);
-        setUser(null);
-        setUserProfile(null);
+        console.error('Error getting session:', error);
+        // Don't clear localStorage on errors - this is too aggressive
+        // Just set loading to false
         setIsLoading(false);
       });
 
