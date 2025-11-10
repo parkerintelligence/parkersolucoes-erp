@@ -285,6 +285,44 @@ export const useChatwootAPI = () => {
     },
   });
 
+  // Função para salvar histórico de mudanças de status
+  const saveStatusHistory = async (
+    conversationId: string,
+    previousStatus: string,
+    newStatus: string
+  ) => {
+    if (!chatwootIntegration?.id) return;
+    
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from('chatwoot_status_history')
+        .insert({
+          integration_id: chatwootIntegration.id,
+          conversation_id: parseInt(conversationId),
+          user_id: user?.id,
+          previous_status: previousStatus,
+          new_status: newStatus,
+          changed_by_name: user?.user_metadata?.name || user?.email || 'Sistema',
+          changed_by_email: user?.email,
+          metadata: {
+            timestamp: new Date().toISOString(),
+            source: 'web_interface'
+          }
+        });
+      
+      if (error) {
+        console.error('❌ Erro ao salvar histórico de status:', error);
+      } else {
+        console.log('✅ Histórico de status salvo com sucesso');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao salvar histórico:', error);
+    }
+  };
+
   const updateConversationStatus = useMutation({
     mutationFn: async ({ conversationId, status }: { conversationId: string; status: 'open' | 'resolved' | 'pending' }) => {
       if (!chatwootIntegration?.id) {
@@ -302,6 +340,11 @@ export const useChatwootAPI = () => {
 
         console.log('Updating conversation status:', { conversationId, status, accountId });
 
+        // Pegar status anterior antes de atualizar
+        const oldData: any = queryClient.getQueryData(['chatwoot-conversations', chatwootIntegration?.id]);
+        const conversationData = oldData?.find((c: any) => c.id.toString() === conversationId);
+        const previousStatus = conversationData?.status || 'open';
+
         const conversation = await makeChatwootRequest(
           chatwootIntegration.id,
           `/accounts/${accountId}/conversations/${conversationId}`,
@@ -314,6 +357,9 @@ export const useChatwootAPI = () => {
         );
 
         console.log('Conversation updated, new status:', conversation.status);
+
+        // Salvar no histórico após sucesso da API
+        await saveStatusHistory(conversationId, previousStatus, status);
 
         return conversation;
       } catch (error: any) {

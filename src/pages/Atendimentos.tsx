@@ -36,6 +36,7 @@ import { ChatwootQuickReplies } from '@/components/chatwoot/ChatwootQuickReplies
 import { ChatwootMessageStatus } from '@/components/chatwoot/ChatwootMessageStatus';
 import { ChatwootFileUpload } from '@/components/chatwoot/ChatwootFileUpload';
 import { ChatwootLabelManager } from '@/components/chatwoot/ChatwootLabelManager';
+import { ChatwootStatusHistory } from '@/components/chatwoot/ChatwootStatusHistory';
 
 const Atendimentos = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -737,8 +738,16 @@ const Atendimentos = () => {
 
         {/* Contact Panel */}
         {showContactPanel && (
-          <div className="col-span-12 lg:col-span-3 hidden lg:block">
+          <div className="col-span-12 lg:col-span-3 hidden lg:block space-y-4">
             <ChatwootContactPanel conversation={selectedConversation} />
+            
+            {/* Histórico de Status */}
+            {selectedConversation && (
+              <ChatwootStatusHistory 
+                integrationId={integrationId}
+                conversationId={selectedConversation.id.toString()}
+              />
+            )}
           </div>
         )}
       </div>

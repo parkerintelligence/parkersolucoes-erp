@@ -362,6 +362,53 @@ export type Database = {
           },
         ]
       }
+      chatwoot_status_history: {
+        Row: {
+          changed_by_email: string | null
+          changed_by_name: string | null
+          conversation_id: number
+          created_at: string | null
+          id: string
+          integration_id: string
+          metadata: Json | null
+          new_status: string
+          previous_status: string
+          user_id: string | null
+        }
+        Insert: {
+          changed_by_email?: string | null
+          changed_by_name?: string | null
+          conversation_id: number
+          created_at?: string | null
+          id?: string
+          integration_id: string
+          metadata?: Json | null
+          new_status: string
+          previous_status: string
+          user_id?: string | null
+        }
+        Update: {
+          changed_by_email?: string | null
+          changed_by_name?: string | null
+          conversation_id?: number
+          created_at?: string | null
+          id?: string
+          integration_id?: string
+          metadata?: Json | null
+          new_status?: string
+          previous_status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatwoot_status_history_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
