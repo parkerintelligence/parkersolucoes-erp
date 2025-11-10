@@ -72,3 +72,6 @@ verify_jwt = true
 [functions.wazuh-proxy]
 verify_jwt = true
 
+[functions.chatwoot-webhook]
+verify_jwt = false
+

@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
+import { useChatwootRealtime } from '@/hooks/useChatwootRealtime';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
@@ -64,6 +65,9 @@ const Atendimentos = () => {
     isLoading: messagesLoading,
     refetch: refetchMessages
   } = useConversationMessages(integrationId, selectedConversation?.id.toString() || null);
+
+  // Ativar notificações em tempo real
+  useChatwootRealtime(integrationId, isConfigured);
 
   // Get current user ID from Chatwoot
   useEffect(() => {

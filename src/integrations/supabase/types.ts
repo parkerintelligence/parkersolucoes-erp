@@ -321,6 +321,47 @@ export type Database = {
           },
         ]
       }
+      chatwoot_events: {
+        Row: {
+          account_id: number
+          conversation_id: number
+          created_at: string | null
+          event_data: Json
+          event_type: string
+          id: string
+          integration_id: string
+          processed: boolean | null
+        }
+        Insert: {
+          account_id: number
+          conversation_id: number
+          created_at?: string | null
+          event_data: Json
+          event_type: string
+          id?: string
+          integration_id: string
+          processed?: boolean | null
+        }
+        Update: {
+          account_id?: number
+          conversation_id?: number
+          created_at?: string | null
+          event_data?: Json
+          event_type?: string
+          id?: string
+          integration_id?: string
+          processed?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatwoot_events_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
