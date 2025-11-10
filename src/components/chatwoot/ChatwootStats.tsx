@@ -27,36 +27,41 @@ export const ChatwootStats = () => {
       title: 'Total',
       value: stats.total,
       icon: MessageSquare,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
+      color: 'text-blue-400',
+      bgColor: 'bg-blue-900/20',
+      borderColor: 'border-blue-600/30',
     },
     {
       title: 'Abertas',
       value: stats.open,
       icon: AlertTriangle,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
+      color: 'text-green-400',
+      bgColor: 'bg-green-900/20',
+      borderColor: 'border-green-600/30',
     },
     {
       title: 'Pendentes',
       value: stats.pending,
       icon: Clock,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-100',
+      color: 'text-yellow-400',
+      bgColor: 'bg-yellow-900/20',
+      borderColor: 'border-yellow-600/30',
     },
     {
       title: 'Resolvidas',
       value: stats.resolved,
       icon: CheckCircle,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
+      color: 'text-purple-400',
+      bgColor: 'bg-purple-900/20',
+      borderColor: 'border-purple-600/30',
     },
     {
       title: 'Tempo Médio',
       value: `${stats.avgResponseTime}min`,
       icon: TrendingUp,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
+      color: 'text-orange-400',
+      bgColor: 'bg-orange-900/20',
+      borderColor: 'border-orange-600/30',
     },
   ];
 
@@ -65,23 +70,17 @@ export const ChatwootStats = () => {
       {statCards.map((stat) => {
         const Icon = stat.icon;
         return (
-          <Card key={stat.title} className="border-l-4 border-l-primary">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    {stat.title}
-                  </p>
-                  <h3 className="text-3xl font-bold text-foreground">
-                    {stat.value}
-                  </h3>
-                </div>
-                <div className={`p-3 rounded-full ${stat.bgColor}`}>
-                  <Icon className={`h-6 w-6 ${stat.color}`} />
-                </div>
+          <Card key={stat.title} className={`${stat.bgColor} border ${stat.borderColor} bg-slate-800`}>
+            <CardContent className="p-6 text-center">
+              <Icon className={`h-8 w-8 mx-auto mb-3 ${stat.color}`} />
+              <div className={`text-3xl font-bold mb-1 ${stat.color}`}>
+                {stat.value}
+              </div>
+              <div className="text-sm text-slate-300 font-medium">
+                {stat.title}
               </div>
               {stat.title === 'Resolvidas' && stats.resolutionRate > 0 && (
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-slate-400 mt-2">
                   Taxa: {stats.resolutionRate}%
                 </p>
               )}

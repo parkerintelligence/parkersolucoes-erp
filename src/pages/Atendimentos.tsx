@@ -221,9 +221,9 @@ const Atendimentos = () => {
 
   const getStatusBadge = (status: string) => {
     const configs = {
-      open: { color: 'bg-green-500', icon: Clock, label: 'Aberta' },
-      resolved: { color: 'bg-blue-500', icon: CheckCircle2, label: 'Resolvida' },
-      pending: { color: 'bg-yellow-500', icon: AlertTriangle, label: 'Pendente' }
+      open: { color: 'bg-green-600 hover:bg-green-700', icon: Clock, label: 'Aberta', textColor: 'text-green-400' },
+      resolved: { color: 'bg-blue-600 hover:bg-blue-700', icon: CheckCircle2, label: 'Resolvida', textColor: 'text-blue-400' },
+      pending: { color: 'bg-yellow-600 hover:bg-yellow-700', icon: AlertTriangle, label: 'Pendente', textColor: 'text-yellow-400' }
     };
     
     const config = configs[status as keyof typeof configs] || configs.open;
@@ -327,18 +327,19 @@ const Atendimentos = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col gap-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <MessageSquare className="h-6 w-6 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Atendimentos</h1>
-            <p className="text-sm text-muted-foreground">
-              {filteredConversations.length} conversas • {safeConversations.filter(c => c.status === 'open').length} abertas
-            </p>
+    <div className="min-h-screen bg-slate-900 text-white p-6">
+      <div className="h-[calc(100vh-8rem)] flex flex-col gap-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <MessageSquare className="h-6 w-6 text-blue-400" />
+            <div>
+              <h1 className="text-2xl font-bold text-white">Atendimentos</h1>
+              <p className="text-sm text-slate-400">
+                {filteredConversations.length} conversas • {safeConversations.filter(c => c.status === 'open').length} abertas
+              </p>
+            </div>
           </div>
-        </div>
         <div className="flex gap-2">
           <Button 
             onClick={() => refetchConversations?.()} 
@@ -359,10 +360,10 @@ const Atendimentos = () => {
       <ChatwootStats />
 
       {/* Assignment Filter */}
-      <Card>
+      <Card className="bg-slate-800 border-slate-700">
         <CardContent className="p-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground mr-2">
+            <span className="text-sm font-medium text-slate-300 mr-2">
               Filtrar por:
             </span>
             <Button
@@ -405,8 +406,8 @@ const Atendimentos = () => {
       {/* Main Content */}
       <div className="flex-1 grid grid-cols-12 gap-4 min-h-0">
         {/* Conversations List */}
-        <Card className="col-span-12 lg:col-span-3 flex flex-col">
-          <CardHeader className="pb-3">
+        <Card className="col-span-12 lg:col-span-3 flex flex-col bg-slate-800 border-slate-700">
+          <CardHeader className="pb-3 border-b border-slate-700">
             <div className="space-y-3">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -414,33 +415,33 @@ const Atendimentos = () => {
                   placeholder="Buscar conversas..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
+                  className="pl-8 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
                 />
               </div>
               
               <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-                <TabsList className="w-full grid grid-cols-4">
-                  <TabsTrigger value="all" className="text-xs">
+                <TabsList className="w-full grid grid-cols-4 bg-slate-700">
+                  <TabsTrigger value="all" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white">
                     Todas
-                    <Badge variant="secondary" className="ml-1 h-5 px-1">
+                    <Badge variant="secondary" className="ml-1 h-5 px-1 bg-slate-600 text-slate-200">
                       {safeConversations.length}
                     </Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="open" className="text-xs">
+                  <TabsTrigger value="open" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white">
                     Abertas
-                    <Badge variant="secondary" className="ml-1 h-5 px-1 bg-green-100">
+                    <Badge variant="secondary" className="ml-1 h-5 px-1 bg-green-900/30 text-green-400">
                       {safeConversations.filter(c => c.status === 'open').length}
                     </Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="pending" className="text-xs">
+                  <TabsTrigger value="pending" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white">
                     Pendentes
-                    <Badge variant="secondary" className="ml-1 h-5 px-1 bg-yellow-100">
+                    <Badge variant="secondary" className="ml-1 h-5 px-1 bg-yellow-900/30 text-yellow-400">
                       {safeConversations.filter(c => c.status === 'pending').length}
                     </Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="resolved" className="text-xs">
+                  <TabsTrigger value="resolved" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white">
                     Resolvidas
-                    <Badge variant="secondary" className="ml-1 h-5 px-1 bg-blue-100">
+                    <Badge variant="secondary" className="ml-1 h-5 px-1 bg-blue-900/30 text-blue-400">
                       {safeConversations.filter(c => c.status === 'resolved').length}
                     </Badge>
                   </TabsTrigger>
@@ -453,12 +454,12 @@ const Atendimentos = () => {
             <CardContent className="p-2">
               {isLoading ? (
                 <div className="text-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-                  <p className="text-sm text-muted-foreground">Carregando conversas...</p>
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
+                  <p className="text-sm text-slate-300">Carregando conversas...</p>
                 </div>
               ) : filteredConversations.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <div className="text-center py-8 text-slate-400">
+                  <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50 text-slate-500" />
                   <p className="text-sm">Nenhuma conversa encontrada</p>
                 </div>
               ) : (
@@ -472,38 +473,38 @@ const Atendimentos = () => {
                         key={conversation.id}
                         className={`p-3 rounded-lg cursor-pointer transition-all ${
                           isSelected
-                            ? 'bg-primary/10 border-2 border-primary'
-                            : 'hover:bg-accent border-2 border-transparent'
+                            ? 'bg-blue-900/30 border-2 border-blue-600'
+                            : 'hover:bg-slate-700/50 border-2 border-transparent'
                         }`}
                         onClick={() => setSelectedConversation(conversation)}
                       >
                         <div className="flex items-start gap-3">
                           <Avatar className="h-10 w-10 flex-shrink-0">
-                            <AvatarFallback className="bg-primary text-primary-foreground">
+                            <AvatarFallback className="bg-blue-600 text-white">
                               {getInitials(conversation.meta?.sender?.name || 'Cliente')}
                             </AvatarFallback>
                           </Avatar>
                           
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2 mb-1">
-                              <h3 className="font-medium text-sm truncate">
+                              <h3 className="font-medium text-sm truncate text-white">
                                 {conversation.meta?.sender?.name || 'Cliente'}
                               </h3>
                               {getStatusBadge(conversation.status)}
                             </div>
                             
                             {lastMessage && (
-                              <p className="text-xs text-muted-foreground line-clamp-2">
+                              <p className="text-xs text-slate-400 line-clamp-2">
                                 {lastMessage.content}
                               </p>
                             )}
                             
                             <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-xs text-slate-500">
                                 {formatMessageTime(conversation.last_activity_at)}
                               </span>
                               {conversation.unread_count > 0 && (
-                                <Badge variant="destructive" className="h-4 px-1 text-xs">
+                                <Badge variant="destructive" className="h-4 px-1 text-xs bg-red-600">
                                   {conversation.unread_count}
                                 </Badge>
                               )}
@@ -520,23 +521,23 @@ const Atendimentos = () => {
         </Card>
 
         {/* Chat Area */}
-        <Card className={`${showContactPanel ? 'col-span-12 lg:col-span-6' : 'col-span-12 lg:col-span-9'} flex flex-col`}>
+        <Card className={`${showContactPanel ? 'col-span-12 lg:col-span-6' : 'col-span-12 lg:col-span-9'} flex flex-col bg-slate-800 border-slate-700`}>
           {selectedConversation ? (
             <>
               {/* Chat Header */}
-              <CardHeader className="pb-3 border-b">
+              <CardHeader className="pb-3 border-b border-slate-700">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-primary text-primary-foreground">
+                      <AvatarFallback className="bg-blue-600 text-white">
                         {getInitials(selectedConversation.meta?.sender?.name || 'Cliente')}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <h3 className="font-semibold text-lg">
+                      <h3 className="font-semibold text-lg text-white">
                         {selectedConversation.meta?.sender?.name || 'Cliente'}
                       </h3>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-slate-400">
                         {selectedConversation.meta?.sender?.phone_number}
                       </p>
                     </div>
@@ -584,6 +585,9 @@ const Atendimentos = () => {
                     variant={selectedConversation.status === 'open' ? 'default' : 'outline'}
                     onClick={() => handleStatusChange('open')}
                     disabled={updateConversationStatus.isPending || selectedConversation.status === 'open'}
+                    className={selectedConversation.status === 'open' 
+                      ? 'bg-green-600 hover:bg-green-700 text-white' 
+                      : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}
                   >
                     <Clock className="h-3 w-3 mr-1" />
                     Abrir
@@ -593,6 +597,9 @@ const Atendimentos = () => {
                     variant={selectedConversation.status === 'pending' ? 'default' : 'outline'}
                     onClick={() => handleStatusChange('pending')}
                     disabled={updateConversationStatus.isPending || selectedConversation.status === 'pending'}
+                    className={selectedConversation.status === 'pending' 
+                      ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
+                      : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}
                   >
                     <AlertTriangle className="h-3 w-3 mr-1" />
                     Pendente
@@ -602,6 +609,9 @@ const Atendimentos = () => {
                     variant={selectedConversation.status === 'resolved' ? 'default' : 'outline'}
                     onClick={() => handleStatusChange('resolved')}
                     disabled={updateConversationStatus.isPending || selectedConversation.status === 'resolved'}
+                    className={selectedConversation.status === 'resolved' 
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                      : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}
                   >
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     Resolver
@@ -626,8 +636,8 @@ const Atendimentos = () => {
               <ScrollArea className="flex-1 p-4">
                 {messagesLoading ? (
                   <div className="text-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-                    <p className="text-sm text-muted-foreground">Carregando mensagens...</p>
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
+                    <p className="text-sm text-slate-300">Carregando mensagens...</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -669,8 +679,8 @@ const Atendimentos = () => {
                         );
                       })
                     ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <div className="text-center py-8 text-slate-400">
+                        <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50 text-slate-500" />
                         <p>Nenhuma mensagem ainda</p>
                       </div>
                     )}
@@ -680,7 +690,7 @@ const Atendimentos = () => {
               </ScrollArea>
               
               {/* Message Input */}
-              <div className="p-4 border-t">
+              <div className="p-4 border-t border-slate-700">
                 <div className="mb-2">
                   <ChatwootQuickReplies onSelectReply={setMessageText} />
                 </div>
@@ -698,13 +708,13 @@ const Atendimentos = () => {
                         handleSendMessage();
                       }
                     }}
-                    className="min-h-[60px] max-h-[120px] resize-none"
+                    className="min-h-[60px] max-h-[120px] resize-none bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
                     disabled={!selectedConversation.can_reply}
                   />
                   <Button 
                     onClick={handleSendMessage}
                     disabled={sendMessage.isPending || !messageText.trim() || !selectedConversation.can_reply}
-                    className="px-6"
+                    className="px-6 bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     {sendMessage.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -714,20 +724,20 @@ const Atendimentos = () => {
                   </Button>
                 </div>
                 {!selectedConversation.can_reply && (
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-xs text-slate-400 mt-2">
                     Esta conversa não permite resposta
                   </p>
                 )}
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-slate-400 mt-2">
                   Pressione Enter para enviar, Shift+Enter para quebrar linha
                 </p>
               </div>
             </>
           ) : (
             <CardContent className="flex-1 flex items-center justify-center">
-              <div className="text-center text-muted-foreground">
-                <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-medium mb-2">Nenhuma conversa selecionada</h3>
+              <div className="text-center text-slate-400">
+                <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-50 text-slate-500" />
+                <h3 className="text-lg font-medium mb-2 text-slate-300">Nenhuma conversa selecionada</h3>
                 <p className="text-sm">
                   Selecione uma conversa da lista para começar
                 </p>
@@ -750,6 +760,7 @@ const Atendimentos = () => {
             )}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

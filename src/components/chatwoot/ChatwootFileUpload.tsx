@@ -22,7 +22,7 @@ export const ChatwootFileUpload = ({ conversationId, onUploadComplete }: Chatwoo
       variant="ghost"
       size="icon"
       onClick={handleFileSelect}
-      className="h-9 w-9"
+      className="h-9 w-9 text-slate-300 hover:bg-slate-700 hover:text-white"
       title="Anexar arquivo"
     >
       <Paperclip className="h-4 w-4" />

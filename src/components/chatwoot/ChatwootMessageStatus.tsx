@@ -12,12 +12,12 @@ export const ChatwootMessageStatus = ({ status, messageType }: ChatwootMessageSt
   const getStatusIcon = () => {
     switch (status) {
       case 'read':
-        return <CheckCheck className="h-3 w-3 text-blue-500" />;
+        return <CheckCheck className="h-3 w-3 text-blue-400" />;
       case 'delivered':
-        return <CheckCheck className="h-3 w-3 text-gray-500" />;
+        return <CheckCheck className="h-3 w-3 text-slate-400" />;
       case 'sent':
       default:
-        return <Check className="h-3 w-3 text-gray-500" />;
+        return <Check className="h-3 w-3 text-slate-400" />;
     }
   };
 

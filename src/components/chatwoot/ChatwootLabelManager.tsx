@@ -17,9 +17,9 @@ export const ChatwootLabelManager = ({ conversationId, currentLabels = [] }: Cha
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <Tag className="h-4 w-4 text-muted-foreground" />
+      <Tag className="h-4 w-4 text-slate-400" />
       {currentLabels.map((label, index) => (
-        <Badge key={index} variant="outline" className="text-xs">
+        <Badge key={index} variant="outline" className="text-xs bg-slate-700 border-slate-600 text-slate-300">
           {label}
         </Badge>
       ))}

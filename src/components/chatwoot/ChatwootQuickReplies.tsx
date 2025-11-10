@@ -26,15 +26,15 @@ export const ChatwootQuickReplies = ({ onSelectReply }: ChatwootQuickRepliesProp
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2">
+        <Button variant="ghost" size="sm" className="gap-2 text-slate-300 hover:bg-slate-700 hover:text-white">
           <Zap className="h-4 w-4" />
           Respostas Rápidas
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="start">
+      <PopoverContent className="w-80 p-0 bg-slate-800 border-slate-700" align="start">
         <ScrollArea className="h-80">
           <div className="p-2">
-            <p className="text-xs font-medium text-muted-foreground mb-2 px-2">
+            <p className="text-xs font-medium text-slate-400 mb-2 px-2">
               Selecione uma resposta rápida:
             </p>
             <div className="space-y-1">
@@ -42,12 +42,12 @@ export const ChatwootQuickReplies = ({ onSelectReply }: ChatwootQuickRepliesProp
                 <Button
                   key={index}
                   variant="ghost"
-                  className="w-full justify-start text-left h-auto py-2 px-2"
+                  className="w-full justify-start text-left h-auto py-2 px-2 text-white hover:bg-slate-700"
                   onClick={() => onSelectReply(reply.text)}
                 >
                   <div>
-                    <p className="text-sm font-medium">{reply.label}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-1">
+                    <p className="text-sm font-medium text-white">{reply.label}</p>
+                    <p className="text-xs text-slate-400 line-clamp-1">
                       {reply.text}
                     </p>
                   </div>
