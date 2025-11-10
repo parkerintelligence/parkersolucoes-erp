@@ -299,6 +299,8 @@ export const useChatwootAPI = () => {
 
         const accountId = profile.account_id;
 
+        console.log('Updating conversation status:', { conversationId, status, accountId });
+
         const conversation = await makeChatwootRequest(
           chatwootIntegration.id,
           `/accounts/${accountId}/conversations/${conversationId}`,
@@ -310,16 +312,21 @@ export const useChatwootAPI = () => {
           }
         );
 
+        console.log('Conversation updated, new status:', conversation.status);
+
         return conversation;
       } catch (error: any) {
         console.error('Erro ao atualizar status:', error);
         throw new Error(error.message || 'Erro ao atualizar status da conversa');
       }
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       // Invalidate both conversations and messages to refresh the data
       queryClient.invalidateQueries({ queryKey: ['chatwoot-conversations'] });
       queryClient.invalidateQueries({ queryKey: ['chatwoot-messages'] });
+      
+      // Force immediate refetch
+      queryClient.refetchQueries({ queryKey: ['chatwoot-conversations'] });
       
       toast({
         title: "Status atualizado!",

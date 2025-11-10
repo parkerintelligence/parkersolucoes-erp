@@ -184,24 +184,27 @@ const Atendimentos = () => {
     if (!selectedConversation) return;
 
     try {
-      await updateConversationStatus.mutateAsync({
-        conversationId: selectedConversation.id.toString(),
-        status
-      });
-      
-      // Update local state immediately
+      // Optimistic update - update selected conversation immediately
       setSelectedConversation({
         ...selectedConversation,
         status
       });
       
-      // Refetch conversations to update the list
-      setTimeout(() => {
-        refetchConversations?.();
-        refetchMessages?.();
-      }, 500);
+      // Make API call
+      await updateConversationStatus.mutateAsync({
+        conversationId: selectedConversation.id.toString(),
+        status
+      });
+      
+      // Force immediate refetch without delay
+      refetchConversations?.();
+      refetchMessages?.();
     } catch (error) {
       console.error('Error updating status:', error);
+      // Revert optimistic update on error
+      if (selectedConversation) {
+        refetchConversations?.();
+      }
     }
   };
 
