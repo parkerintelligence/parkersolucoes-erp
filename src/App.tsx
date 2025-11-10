@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryProvider } from '@/components/QueryProvider';
 import { AuthProvider } from '@/contexts/AuthContext';
 import Login from '@/pages/Login';
 import VPS from '@/pages/VPS';
@@ -30,12 +30,9 @@ import Security from '@/pages/Security';
 import { SafeUniFi } from '@/components/SafeUniFi';
 import { Layout } from '@/components/Layout';
 
-// Create a single QueryClient instance
-const queryClient = new QueryClient();
-
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
+    <QueryProvider>
       <AuthProvider>
         <BrowserRouter>
           <div className="min-h-screen bg-background">
@@ -72,7 +69,7 @@ function App() {
           </div>
         </BrowserRouter>
       </AuthProvider>
-    </QueryClientProvider>
+    </QueryProvider>
   );
 }
 
