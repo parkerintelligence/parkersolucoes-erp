@@ -193,18 +193,21 @@ export const useChatwootAPI = () => {
           `/accounts/${accountId}/conversations?status=all&page=1`
         );
 
+        console.log('Estrutura completa da resposta:', JSON.stringify(conversations, null, 2).substring(0, 1000));
+
         // Ensure we return an array
         if (!conversations) {
           console.warn('Resposta vazia ao buscar conversas');
           return [];
         }
 
-        // Handle both formats: conversations.data or conversations being the array
+        // Handle the Chatwoot API response structure:
+        // { data: { meta: {...}, payload: [...] } }
         const conversationsData = Array.isArray(conversations) 
           ? conversations 
-          : (conversations.data || []);
+          : (conversations.data?.payload || conversations.payload || conversations.data || []);
 
-        console.log('Conversas carregadas:', conversationsData.length);
+        console.log('Conversas extraídas:', conversationsData.length, 'conversas');
         return conversationsData as ChatwootConversation[];
       } catch (error: any) {
         console.error('Erro ao buscar conversas Chatwoot:', error);
