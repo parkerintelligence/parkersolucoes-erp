@@ -207,7 +207,7 @@ serve(async (req) => {
     try {
       chatwootResponse = await tryRequest(primaryUrl, headers1);
       console.log('Attempt 1 status:', chatwootResponse.status);
-      if (chatwootResponse.ok || (chatwootResponse.status !== 401 && chatwootResponse.status !== 406)) {
+      if (chatwootResponse.ok || (chatwootResponse.status !== 401 && chatwootResponse.status !== 406 && chatwootResponse.status !== 404)) {
         successfulUrl = primaryUrl;
       }
     } catch (error) {
