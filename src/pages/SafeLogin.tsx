@@ -1,15 +1,14 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
-
-const Login = lazy(() => import('./Login'));
+import { useState, useEffect } from 'react';
+import Login from './Login';
 
 const SafeLogin = () => {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Ensure React is fully initialized
+    // Wait longer to ensure React context is fully initialized
     const timer = setTimeout(() => {
       setIsReady(true);
-    }, 100);
+    }, 200);
     return () => clearTimeout(timer);
   }, []);
 
@@ -26,15 +25,7 @@ const SafeLogin = () => {
     );
   }
 
-  return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-muted-foreground">Carregando...</div>
-      </div>
-    }>
-      <Login />
-    </Suspense>
-  );
+  return <Login />;
 };
 
 export default SafeLogin;
