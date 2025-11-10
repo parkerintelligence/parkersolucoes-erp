@@ -323,8 +323,29 @@ export const ChatwootAdminConfig = () => {
                 <div className="text-sm space-y-1">
                   <p><strong>Status HTTP:</strong> {errorDetails.status}</p>
                   <p><strong>Content-Type:</strong> {errorDetails.contentType}</p>
-                  <p><strong>URL:</strong> {errorDetails.url}</p>
-                  <p><strong>Token:</strong> {errorDetails.tokenMasked}</p>
+                  
+                  {errorDetails.triedUrls && errorDetails.triedUrls.length > 0 && (
+                    <div className="mt-2 p-2 bg-muted/50 rounded text-xs">
+                      <p className="font-semibold mb-1">🔍 URLs testadas automaticamente:</p>
+                      {errorDetails.triedUrls.map((url: string, idx: number) => (
+                        <p key={idx} className="font-mono text-[10px] break-all">
+                          {idx + 1}. {url}
+                        </p>
+                      ))}
+                      {errorDetails.baseUrl && (
+                        <p className="mt-1 text-muted-foreground">
+                          Base: <span className="font-mono">{errorDetails.baseUrl}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {!errorDetails.triedUrls && (
+                    <>
+                      <p><strong>URL:</strong> {errorDetails.url}</p>
+                      <p><strong>Token:</strong> {errorDetails.tokenMasked}</p>
+                    </>
+                  )}
                 </div>
                 
                 {errorDetails.possibleCauses && errorDetails.possibleCauses.length > 0 && (
