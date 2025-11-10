@@ -18,7 +18,7 @@ export function ChatwootConnectionTest() {
     setResult(null);
 
     try {
-      const url = `${baseUrl}/api/v1/accounts`;
+      const url = `${baseUrl}/api/v1/profile`;
       const headers: Record<string, string> = {
         'Accept': 'application/json',
       };

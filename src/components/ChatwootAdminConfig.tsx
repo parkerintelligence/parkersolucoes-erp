@@ -404,7 +404,7 @@ export const ChatwootAdminConfig = () => {
                   <li>
                     <strong>Teste manualmente a URL:</strong>
                     <ul className="ml-6 mt-1 space-y-1 list-disc list-inside">
-                      <li>Abra o terminal e teste: <code className="bg-muted px-1 py-0.5 rounded text-xs">curl -H "api_access_token: SEU_TOKEN" {chatwootIntegration?.base_url}/api/v1/accounts</code></li>
+                      <li>Abra o terminal e teste: <code className="bg-muted px-1 py-0.5 rounded text-xs">curl -H "api_access_token: SEU_TOKEN" {chatwootIntegration?.base_url}/api/v1/profile</code></li>
                       <li>Deve retornar JSON, não HTML</li>
                     </ul>
                   </li>

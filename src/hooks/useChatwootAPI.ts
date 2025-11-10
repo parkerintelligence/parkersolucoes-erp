@@ -137,7 +137,8 @@ export const useChatwootAPI = () => {
       console.log('Testando conexão Chatwoot via proxy...');
       
       try {
-        const result = await makeChatwootRequest(chatwootIntegration.id, '/accounts');
+        // Use /profile endpoint which is more reliable than /accounts
+        const result = await makeChatwootRequest(chatwootIntegration.id, '/profile');
         console.log('Teste de conexão Chatwoot bem-sucedido:', result);
         return result;
       } catch (error) {
@@ -172,19 +173,19 @@ export const useChatwootAPI = () => {
       console.log('Fetching Chatwoot conversations via proxy...');
       
       try {
-        // First get accounts to get the account ID
-        const accounts = await makeChatwootRequest(
+        // Get profile to get the account ID
+        const profile = await makeChatwootRequest(
           chatwootIntegration.id,
-          '/accounts'
+          '/profile'
         );
 
-        if (!accounts || accounts.length === 0) {
-          console.warn('Nenhuma conta encontrada no Chatwoot');
+        if (!profile || !profile.account_id) {
+          console.warn('Nenhuma conta encontrada no perfil Chatwoot');
           return [];
         }
 
-        const accountId = accounts[0].id;
-        console.log('Using account ID:', accountId);
+        const accountId = profile.account_id;
+        console.log('Using account ID from profile:', accountId);
 
         // Get conversations for the account
         const conversations = await makeChatwootRequest(
@@ -212,12 +213,13 @@ export const useChatwootAPI = () => {
       }
 
       try {
-        const accounts = await makeChatwootRequest(
+        // Get profile to get the account ID
+        const profile = await makeChatwootRequest(
           chatwootIntegration.id,
-          '/accounts'
+          '/profile'
         );
 
-        const accountId = accounts[0].id;
+        const accountId = profile.account_id;
 
         const message = await makeChatwootRequest(
           chatwootIntegration.id,
@@ -261,12 +263,13 @@ export const useChatwootAPI = () => {
       }
 
       try {
-        const accounts = await makeChatwootRequest(
+        // Get profile to get the account ID
+        const profile = await makeChatwootRequest(
           chatwootIntegration.id,
-          '/accounts'
+          '/profile'
         );
 
-        const accountId = accounts[0].id;
+        const accountId = profile.account_id;
 
         const conversation = await makeChatwootRequest(
           chatwootIntegration.id,
