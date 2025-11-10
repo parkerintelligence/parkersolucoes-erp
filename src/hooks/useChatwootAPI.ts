@@ -19,6 +19,12 @@ export interface ChatwootConversation {
   identifier: string | null;
   last_activity_at: string;
   messages: ChatwootMessage[];
+  assignee?: {
+    id: number;
+    name: string;
+    email?: string;
+    available_name?: string;
+  } | null;
   meta: {
     sender: {
       id: number;

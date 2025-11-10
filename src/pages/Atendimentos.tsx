@@ -40,6 +40,8 @@ const Atendimentos = () => {
   const [selectedConversation, setSelectedConversation] = useState<ChatwootConversation | null>(null);
   const [messageText, setMessageText] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'pending' | 'resolved'>('all');
+  const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'mine' | 'unassigned'>('all');
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [showContactPanel, setShowContactPanel] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -61,6 +63,44 @@ const Atendimentos = () => {
     isLoading: messagesLoading,
     refetch: refetchMessages
   } = useConversationMessages(integrationId, selectedConversation?.id.toString() || null);
+
+  // Get current user ID from Chatwoot
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      if (!integrationId) return;
+      
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data: { session } } = await supabase.auth.refreshSession();
+        if (!session) return;
+
+        const response = await fetch(
+          'https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/chatwoot-proxy',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              integrationId,
+              endpoint: '/profile',
+              method: 'GET',
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const profile = await response.json();
+          setCurrentUserId(profile.id);
+        }
+      } catch (error) {
+        console.error('Error fetching current user:', error);
+      }
+    };
+
+    fetchCurrentUser();
+  }, [integrationId]);
 
   // Auto-refresh conversations every 30 seconds
   useEffect(() => {
@@ -95,9 +135,21 @@ const Atendimentos = () => {
       
       const matchesStatus = statusFilter === 'all' || conv.status === statusFilter;
       
-      return matchesSearch && matchesStatus;
+      // Assignment filter
+      let matchesAssignment = true;
+      if (assignmentFilter === 'mine') {
+        matchesAssignment = conv.assignee?.id === currentUserId;
+      } else if (assignmentFilter === 'unassigned') {
+        matchesAssignment = !conv.assignee || conv.assignee === null;
+      }
+      
+      return matchesSearch && matchesStatus && matchesAssignment;
     })
     .sort((a, b) => new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime());
+
+  // Calculate counts for assignment filter
+  const myConversationsCount = safeConversations.filter(c => c.assignee?.id === currentUserId).length;
+  const unassignedCount = safeConversations.filter(c => !c.assignee || c.assignee === null).length;
 
   const handleSendMessage = async () => {
     if (!selectedConversation || !messageText.trim()) {
@@ -286,6 +338,50 @@ const Atendimentos = () => {
       {/* Statistics Dashboard */}
       <ChatwootStats />
 
+      {/* Assignment Filter */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground mr-2">
+              Filtrar por:
+            </span>
+            <Button
+              variant={assignmentFilter === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setAssignmentFilter('all')}
+              className="gap-2"
+            >
+              Todas
+              <Badge variant={assignmentFilter === 'all' ? 'secondary' : 'outline'} className="h-5 px-2">
+                {safeConversations.length}
+              </Badge>
+            </Button>
+            <Button
+              variant={assignmentFilter === 'mine' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setAssignmentFilter('mine')}
+              className="gap-2"
+            >
+              Minhas
+              <Badge variant={assignmentFilter === 'mine' ? 'secondary' : 'outline'} className="h-5 px-2">
+                {myConversationsCount}
+              </Badge>
+            </Button>
+            <Button
+              variant={assignmentFilter === 'unassigned' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setAssignmentFilter('unassigned')}
+              className="gap-2"
+            >
+              Não Atribuídas
+              <Badge variant={assignmentFilter === 'unassigned' ? 'secondary' : 'outline'} className="h-5 px-2">
+                {unassignedCount}
+              </Badge>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Main Content */}
       <div className="flex-1 grid grid-cols-12 gap-4 min-h-0">
         {/* Conversations List */}
@@ -451,6 +547,7 @@ const Atendimentos = () => {
                 <div className="mt-3">
                   <ChatwootAgentSelector 
                     conversationId={selectedConversation.id.toString()}
+                    currentAgentId={selectedConversation.assignee?.id}
                   />
                 </div>
 
