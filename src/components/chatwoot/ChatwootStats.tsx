@@ -71,14 +71,14 @@ export const ChatwootStats = () => {
         const Icon = stat.icon;
         return (
           <Card key={stat.title} className={`${stat.bgColor} border ${stat.borderColor} bg-slate-800`}>
-            <CardContent className="p-6 text-center">
-              <Icon className={`h-8 w-8 mx-auto mb-3 ${stat.color}`} />
-              <div className={`text-3xl font-bold mb-1 ${stat.color}`}>
-                {stat.value}
-              </div>
-              <div className="text-sm text-slate-300 font-medium">
-                {stat.title}
-              </div>
+        <CardContent className="p-4 text-center">
+          <Icon className={`h-6 w-6 mx-auto mb-2 ${stat.color}`} />
+          <div className={`text-2xl font-bold mb-0.5 ${stat.color}`}>
+            {stat.value}
+          </div>
+          <div className="text-sm text-slate-300 font-medium">
+            {stat.title}
+          </div>
               {stat.title === 'Resolvidas' && stats.resolutionRate > 0 && (
                 <p className="text-xs text-slate-400 mt-2">
                   Taxa: {stats.resolutionRate}%

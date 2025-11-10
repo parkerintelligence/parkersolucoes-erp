@@ -196,26 +196,44 @@ const Atendimentos = () => {
     if (!selectedConversation) return;
 
     try {
-      console.log('🔄 Alterando status da conversa', selectedConversation.id, 'para:', status);
-      
-      // Make API call (mutation já faz update otimista no cache)
-      await updateConversationStatus.mutateAsync({
-        conversationId: selectedConversation.id.toString(),
-        status
+      console.log('🔄 Iniciando mudança de status:', {
+        conversationId: selectedConversation.id,
+        statusAtual: selectedConversation.status,
+        novoStatus: status
       });
       
-      // Update selected conversation locally
+      // Update local state IMEDIATAMENTE (optimistic update)
       setSelectedConversation({
         ...selectedConversation,
         status
       });
       
+      // Make API call (mutation já atualiza o cache)
+      await updateConversationStatus.mutateAsync({
+        conversationId: selectedConversation.id.toString(),
+        status
+      });
+      
       console.log('✅ Status alterado com sucesso!');
+      
+      // Sincronizar selectedConversation com o cache atualizado
+      const updatedConversation = conversations?.find(
+        c => c.id === selectedConversation.id
+      );
+      
+      if (updatedConversation) {
+        setSelectedConversation(updatedConversation);
+        console.log('🔄 Estado local sincronizado com cache');
+      }
+      
     } catch (error) {
       console.error('❌ Erro ao atualizar status:', error);
-      // Revert on error
+      
+      // Revert local state on error
+      setSelectedConversation(selectedConversation);
+      
+      // Force refetch to get correct state
       refetchConversations?.();
-      refetchMessages?.();
     }
   };
 
@@ -589,7 +607,11 @@ const Atendimentos = () => {
                       ? 'bg-green-600 hover:bg-green-700 text-white' 
                       : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}
                   >
-                    <Clock className="h-3 w-3 mr-1" />
+                    {updateConversationStatus.isPending ? (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    ) : (
+                      <Clock className="h-3 w-3 mr-1" />
+                    )}
                     Abrir
                   </Button>
                   <Button 
@@ -601,7 +623,11 @@ const Atendimentos = () => {
                       ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
                       : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}
                   >
-                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    {updateConversationStatus.isPending ? (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    ) : (
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                    )}
                     Pendente
                   </Button>
                   <Button 
@@ -613,7 +639,11 @@ const Atendimentos = () => {
                       ? 'bg-blue-600 hover:bg-blue-700 text-white' 
                       : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}
                   >
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    {updateConversationStatus.isPending ? (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                    )}
                     Resolver
                   </Button>
                   

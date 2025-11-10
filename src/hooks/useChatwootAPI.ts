@@ -368,50 +368,76 @@ export const useChatwootAPI = () => {
       }
     },
     onSuccess: (data, variables) => {
-      console.log('✅ Status atualizado com sucesso:', data.status);
+      console.log('✅ Status atualizado com sucesso na API:', data.status);
       console.log('📝 Atualizando conversa ID:', variables.conversationId);
       
-      // Update cache directly with new status for immediate visual feedback
+      // Update cache IMEDIATAMENTE para resposta visual instantânea
       queryClient.setQueryData(
         ['chatwoot-conversations', chatwootIntegration?.id], 
         (oldData: any) => {
           if (!oldData) {
-            console.log('⚠️ Nenhum dado anterior no cache');
+            console.warn('⚠️ Nenhum dado no cache para atualizar');
             return oldData;
           }
           
-          console.log('📊 Conversas no cache antes da atualização:', oldData.length);
+          console.log('📊 Total de conversas no cache:', oldData.length);
           
           const updatedData = oldData.map((conv: any) => {
-            // Comparar tanto como string quanto como número
-            const convId = conv.id.toString();
-            const targetId = variables.conversationId.toString();
+            // Garantir comparação correta convertendo ambos para string
+            const convIdStr = String(conv.id);
+            const targetIdStr = String(variables.conversationId);
             
-            if (convId === targetId) {
-              console.log('🔄 Atualizando conversa:', convId, 'de', conv.status, 'para', data.status);
-              return { ...conv, status: data.status };
+            if (convIdStr === targetIdStr) {
+              console.log(`🔄 Conversa ${convIdStr}: ${conv.status} → ${data.status}`);
+              return { 
+                ...conv, 
+                status: data.status,
+                updated_at: new Date().toISOString() // Atualizar timestamp
+              };
             }
             return conv;
           });
           
-          console.log('✅ Cache atualizado com sucesso');
+          const wasUpdated = oldData.some((conv: any) => 
+            String(conv.id) === String(variables.conversationId)
+          );
+          
+          if (!wasUpdated) {
+            console.error('❌ Conversa não encontrada no cache!', variables.conversationId);
+          } else {
+            console.log('✅ Cache atualizado com sucesso!');
+          }
+          
           return updatedData;
         }
       );
       
-      // Force refetch to ensure UI is updated
+      // Sincronização em segundo plano (não bloqueia a UI)
       setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['chatwoot-conversations', chatwootIntegration?.id] });
-        queryClient.invalidateQueries({ queryKey: ['chatwoot-messages'] });
-      }, 100);
+        console.log('🔄 Sincronizando dados em segundo plano...');
+        queryClient.refetchQueries({ 
+          queryKey: ['chatwoot-conversations', chatwootIntegration?.id],
+          type: 'active'
+        });
+      }, 2000); // 2 segundos, não interfere com a atualização visual
       
       toast({
         title: "Status atualizado!",
-        description: `Conversa marcada como ${data.status === 'resolved' ? 'resolvida' : data.status === 'pending' ? 'pendente' : 'aberta'}.`,
+        description: `Conversa marcada como ${
+          data.status === 'resolved' ? 'resolvida' : 
+          data.status === 'pending' ? 'pendente' : 
+          'aberta'
+        }.`,
       });
     },
-    onError: (error: Error) => {
-      console.error('Error updating conversation status:', error);
+    onError: (error: Error, variables) => {
+      console.error('❌ Erro ao atualizar status:', error);
+      
+      // Revert otimistic update
+      queryClient.invalidateQueries({ 
+        queryKey: ['chatwoot-conversations', chatwootIntegration?.id] 
+      });
+      
       toast({
         title: "Erro ao atualizar status",
         description: error.message,
