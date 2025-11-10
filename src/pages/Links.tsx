@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,9 +9,9 @@ import { Link, ExternalLink, Search, Eye, EyeOff, Download } from 'lucide-react'
 import { toast } from '@/hooks/use-toast';
 
 const Links = () => {
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [selectedCompany, setSelectedCompany] = React.useState('');
-  const [visibleCards, setVisibleCards] = React.useState<Record<string, boolean>>({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCompany, setSelectedCompany] = useState('');
+  const [visibleCards, setVisibleCards] = useState<Record<string, boolean>>({});
 
   // Buscar senhas que geram links
   const { data: passwords = [], isLoading: passwordsLoading } = useQuery({

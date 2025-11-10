@@ -1,4 +1,4 @@
-import React from "react";
+import { useState } from "react";
 import { Plus, Settings, Trash2, MoreHorizontal } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,9 @@ import { ActionBoard } from "@/components/ActionBoard";
 import { BoardDialog } from "@/components/BoardDialog";
 import { useActionPlan } from "@/hooks/useActionPlan";
 export default function ActionPlan() {
-  const [isCreateBoardOpen, setIsCreateBoardOpen] = React.useState(false);
-  const [isEditBoardOpen, setIsEditBoardOpen] = React.useState(false);
-  const [editingBoard, setEditingBoard] = React.useState<any>(null);
+  const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
+  const [isEditBoardOpen, setIsEditBoardOpen] = useState(false);
+  const [editingBoard, setEditingBoard] = useState<any>(null);
   const {
     boards,
     columns,
