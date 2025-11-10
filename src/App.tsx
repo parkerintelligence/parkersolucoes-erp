@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryProvider } from '@/components/QueryProvider';
 import { SafeAuthProvider } from '@/components/SafeAuthProvider';
-import Login from '@/pages/Login';
+import SafeLogin from '@/pages/SafeLogin';
 import VPS from '@/pages/VPS';
 import { SafeAdmin } from '@/components/SafeAdmin';
 import { SafeGLPI } from '@/components/SafeGLPI';
@@ -37,8 +37,8 @@ function App() {
         <BrowserRouter>
           <div className="min-h-screen bg-background">
             <Routes>
-              <Route path="/" element={<Login />} />
-              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<SafeLogin />} />
+              <Route path="/login" element={<SafeLogin />} />
               <Route path="/atendimentos" element={<Layout><SafeAtendimentos /></Layout>} />
               <Route path="/alertas" element={<Layout><SafeAlertas /></Layout>} />
               <Route path="/links" element={<Layout><Links /></Layout>} />
