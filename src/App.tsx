@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryProvider } from '@/components/QueryProvider';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { SafeAuthProvider } from '@/components/SafeAuthProvider';
 import Login from '@/pages/Login';
 import VPS from '@/pages/VPS';
 import { SafeAdmin } from '@/components/SafeAdmin';
@@ -33,7 +33,7 @@ import { Layout } from '@/components/Layout';
 function App() {
   return (
     <QueryProvider>
-      <AuthProvider>
+      <SafeAuthProvider>
         <BrowserRouter>
           <div className="min-h-screen bg-background">
             <Routes>
@@ -68,7 +68,7 @@ function App() {
             </Routes>
           </div>
         </BrowserRouter>
-      </AuthProvider>
+      </SafeAuthProvider>
     </QueryProvider>
   );
 }
