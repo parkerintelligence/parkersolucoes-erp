@@ -215,14 +215,14 @@ serve(async (req) => {
       console.error(lastError);
     }
 
-    // Attempt 2: api_access_token header with alternative URL (if primary failed with 406)
-    if (!chatwootResponse || chatwootResponse.status === 406) {
+    // Attempt 2: api_access_token header with alternative URL (if primary failed with 406 or 404)
+    if (!chatwootResponse || chatwootResponse.status === 406 || chatwootResponse.status === 404) {
       console.log('🔑 Attempt 2 - api_access_token (alternative URL):', alternativeUrl);
       
       try {
         chatwootResponse = await tryRequest(alternativeUrl, headers1);
         console.log('Attempt 2 status:', chatwootResponse.status);
-        if (chatwootResponse.ok || (chatwootResponse.status !== 401 && chatwootResponse.status !== 406)) {
+        if (chatwootResponse.ok || (chatwootResponse.status !== 401 && chatwootResponse.status !== 406 && chatwootResponse.status !== 404)) {
           successfulUrl = alternativeUrl;
         }
       } catch (error) {
@@ -232,7 +232,7 @@ serve(async (req) => {
     }
 
     // Attempt 3: Authorization Bearer with primary URL
-    if (!chatwootResponse || chatwootResponse.status === 401 || chatwootResponse.status === 406) {
+    if (!chatwootResponse || chatwootResponse.status === 401 || chatwootResponse.status === 406 || chatwootResponse.status === 404) {
       console.log('🔑 Attempt 3 - Authorization Bearer (primary URL)...');
       
       const headers2: Record<string, string> = {
@@ -248,7 +248,7 @@ serve(async (req) => {
       try {
         chatwootResponse = await tryRequest(primaryUrl, headers2);
         console.log('Attempt 3 status:', chatwootResponse.status);
-        if (chatwootResponse.ok || (chatwootResponse.status !== 401 && chatwootResponse.status !== 406)) {
+        if (chatwootResponse.ok || (chatwootResponse.status !== 401 && chatwootResponse.status !== 406 && chatwootResponse.status !== 404)) {
           successfulUrl = primaryUrl;
         }
       } catch (error) {
@@ -258,7 +258,7 @@ serve(async (req) => {
     }
 
     // Attempt 4: Authorization Bearer with alternative URL
-    if (!chatwootResponse || chatwootResponse.status === 406) {
+    if (!chatwootResponse || chatwootResponse.status === 406 || chatwootResponse.status === 404) {
       console.log('🔑 Attempt 4 - Authorization Bearer (alternative URL)...');
       
       const headers2: Record<string, string> = {
@@ -274,7 +274,7 @@ serve(async (req) => {
       try {
         chatwootResponse = await tryRequest(alternativeUrl, headers2);
         console.log('Attempt 4 status:', chatwootResponse.status);
-        if (chatwootResponse.ok || (chatwootResponse.status !== 401 && chatwootResponse.status !== 406)) {
+        if (chatwootResponse.ok || (chatwootResponse.status !== 401 && chatwootResponse.status !== 406 && chatwootResponse.status !== 404)) {
           successfulUrl = alternativeUrl;
         }
       } catch (error) {
@@ -284,7 +284,7 @@ serve(async (req) => {
     }
 
     // Attempt 5: Without Accept header with primary URL
-    if (!chatwootResponse || chatwootResponse.status === 401 || chatwootResponse.status === 406) {
+    if (!chatwootResponse || chatwootResponse.status === 401 || chatwootResponse.status === 406 || chatwootResponse.status === 404) {
       console.log('🔑 Attempt 5 - Without Accept header (primary URL)...');
       
       const headers3: Record<string, string> = {
@@ -299,7 +299,7 @@ serve(async (req) => {
       try {
         chatwootResponse = await tryRequest(primaryUrl, headers3);
         console.log('Attempt 5 status:', chatwootResponse.status);
-        if (chatwootResponse.ok || (chatwootResponse.status !== 401 && chatwootResponse.status !== 406)) {
+        if (chatwootResponse.ok || (chatwootResponse.status !== 401 && chatwootResponse.status !== 406 && chatwootResponse.status !== 404)) {
           successfulUrl = primaryUrl;
         }
       } catch (error) {
@@ -309,7 +309,7 @@ serve(async (req) => {
     }
 
     // Attempt 6: Without Accept header with alternative URL
-    if (!chatwootResponse || chatwootResponse.status === 406) {
+    if (!chatwootResponse || chatwootResponse.status === 406 || chatwootResponse.status === 404) {
       console.log('🔑 Attempt 6 - Without Accept header (alternative URL)...');
       
       const headers3: Record<string, string> = {

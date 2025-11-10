@@ -243,7 +243,8 @@ export const useChatwootAPI = () => {
             method: 'POST',
             body: {
               content: content,
-              message_type: 'outgoing'
+              message_type: 1, // 0 = incoming, 1 = outgoing
+              private: false
             }
           }
         );
