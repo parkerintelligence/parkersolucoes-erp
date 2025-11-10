@@ -20,7 +20,8 @@ import {
   Clock,
   MessageCircle,
   X,
-  ChevronRight
+  ChevronRight,
+  User
 } from 'lucide-react';
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
@@ -42,7 +43,7 @@ const Atendimentos = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'pending' | 'resolved'>('all');
   const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'mine' | 'unassigned'>('all');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [showContactPanel, setShowContactPanel] = useState(true);
+  const [showContactPanel, setShowContactPanel] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { 
@@ -590,6 +591,19 @@ const Atendimentos = () => {
                   >
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     Resolver
+                  </Button>
+                  
+                  <Separator orientation="vertical" className="h-8" />
+                  
+                  <Button
+                    size="sm"
+                    variant={showContactPanel ? 'default' : 'outline'}
+                    onClick={() => setShowContactPanel(!showContactPanel)}
+                    className="ml-auto"
+                    title={showContactPanel ? 'Ocultar informações do contato' : 'Mostrar informações do contato'}
+                  >
+                    <User className="h-3 w-3 mr-1" />
+                    Contato
                   </Button>
                 </div>
               </CardHeader>
