@@ -611,8 +611,8 @@ const Atendimentos = () => {
                               <div
                                 className={`rounded-lg p-3 ${
                                   isOutgoing
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-accent text-accent-foreground'
+                                    ? 'bg-accent text-accent-foreground'
+                                    : 'bg-primary text-primary-foreground'
                                 }`}
                               >
                                 {!isOutgoing && message.sender?.name && (
@@ -622,7 +622,7 @@ const Atendimentos = () => {
                                 )}
                                 <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                                 <div className="flex items-center justify-between mt-1">
-                                  <p className={`text-xs ${isOutgoing ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                                  <p className={`text-xs ${isOutgoing ? 'text-accent-foreground/70' : 'text-primary-foreground/70'}`}>
                                     {formatMessageTime(message.created_at)}
                                   </p>
                                   <ChatwootMessageStatus 
