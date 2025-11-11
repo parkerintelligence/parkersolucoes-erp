@@ -281,17 +281,51 @@ const Atendimentos = () => {
       .slice(0, 2) || '??';
   };
 
-  const formatMessageTime = (timestamp: string) => {
-    const date = new Date(timestamp);
+  const formatMessageTime = (timestamp: string | number) => {
+    if (!timestamp) {
+      return '--:--';
+    }
+
+    let date: Date;
+    
+    // Se for um número (Unix timestamp)
+    if (typeof timestamp === 'number') {
+      // Se for em segundos (menor que um bilhão significa que é timestamp antigo)
+      // Unix timestamps em milissegundos são maiores que 1000000000000
+      date = timestamp < 10000000000 
+        ? new Date(timestamp * 1000) // converter segundos para milissegundos
+        : new Date(timestamp);
+    } else {
+      // Se for string, tentar parsear
+      date = new Date(timestamp);
+    }
+    
+    // Verificar se a data é válida
+    if (isNaN(date.getTime())) {
+      console.error('Data inválida:', timestamp);
+      return '--:--';
+    }
+    
+    // Se a data for antes de 2000, provavelmente é um erro
+    if (date.getFullYear() < 2000) {
+      console.error('Data suspeita (antes de 2000):', timestamp, date);
+      return '--:--';
+    }
+
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
     
-    if (diffInHours < 24) {
-      return format(date, 'HH:mm');
-    } else if (diffInHours < 48) {
-      return 'Ontem ' + format(date, 'HH:mm');
-    } else {
-      return format(date, 'dd/MM/yyyy HH:mm');
+    try {
+      if (diffInHours < 24) {
+        return format(date, 'HH:mm', { locale: ptBR });
+      } else if (diffInHours < 48) {
+        return 'Ontem ' + format(date, 'HH:mm', { locale: ptBR });
+      } else {
+        return format(date, 'dd/MM/yyyy HH:mm', { locale: ptBR });
+      }
+    } catch (error) {
+      console.error('Erro ao formatar data:', error, timestamp);
+      return '--:--';
     }
   };
 
@@ -718,52 +752,64 @@ const Atendimentos = () => {
                     <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
                     <p className="text-sm text-slate-300">Carregando mensagens...</p>
                   </div>
-                ) : (
+                ) : conversationMessages && conversationMessages.length > 0 ? (
                   <div className="space-y-4">
-                    {conversationMessages && conversationMessages.length > 0 ? (
-                      conversationMessages.map((message) => {
-                        const isOutgoing = message.message_type === 1;
-                        
-                        return (
-                          <div
-                            key={message.id}
-                            className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'}`}
-                          >
-                            <div className={`max-w-[70%] ${isOutgoing ? 'order-2' : 'order-1'}`}>
-                              <div
-                                className={`rounded-lg p-3 ${
-                                  isOutgoing
-                                    ? 'bg-accent text-accent-foreground'
-                                    : 'bg-primary text-primary-foreground'
-                                }`}
-                              >
-                                {!isOutgoing && message.sender?.name && (
-                                  <p className="text-xs font-medium mb-1 opacity-70">
-                                    {message.sender.name}
-                                  </p>
-                                )}
-                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                                <div className="flex items-center justify-between mt-1">
-                                  <p className={`text-xs ${isOutgoing ? 'text-accent-foreground/70' : 'text-primary-foreground/70'}`}>
-                                    {formatMessageTime(message.created_at)}
-                                  </p>
-                                  <ChatwootMessageStatus 
-                                    status={message.status}
-                                    messageType={message.message_type}
-                                  />
-                                </div>
+                    {conversationMessages.map((message, index) => {
+                      const isOutgoing = message.message_type === 1;
+                      const showSenderName = !isOutgoing && message.sender?.name;
+                      
+                      console.log(`Mensagem ${index + 1}/${conversationMessages.length}:`, {
+                        id: message.id,
+                        content: message.content.substring(0, 50),
+                        created_at: message.created_at,
+                        timestamp_type: typeof message.created_at,
+                        sender: message.sender?.name
+                      });
+                      
+                      return (
+                        <div
+                          key={`${message.id}-${index}`}
+                          className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-200`}
+                        >
+                          <div className={`max-w-[70%] ${isOutgoing ? 'order-2' : 'order-1'}`}>
+                            <div
+                              className={`rounded-lg p-3 shadow-sm ${
+                                isOutgoing
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-slate-700 text-slate-100'
+                              }`}
+                            >
+                              {showSenderName && (
+                                <p className="text-xs font-semibold mb-1 opacity-80">
+                                  {message.sender.name}
+                                </p>
+                              )}
+                              <p className="text-sm whitespace-pre-wrap break-words">
+                                {message.content}
+                              </p>
+                              <div className="flex items-center justify-between gap-2 mt-1.5">
+                                <p className={`text-xs ${isOutgoing ? 'text-blue-100' : 'text-slate-400'}`}>
+                                  {formatMessageTime(message.created_at)}
+                                </p>
+                                <ChatwootMessageStatus 
+                                  status={message.status}
+                                  messageType={message.message_type}
+                                />
                               </div>
                             </div>
                           </div>
-                        );
-                      })
-                    ) : (
-                      <div className="text-center py-8 text-slate-400">
-                        <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50 text-slate-500" />
-                        <p>Nenhuma mensagem ainda</p>
-                      </div>
-                    )}
+                        </div>
+                      );
+                    })}
                     <div ref={messagesEndRef} />
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-slate-400">
+                    <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50 text-slate-500" />
+                    <p>Nenhuma mensagem nesta conversa</p>
+                    <p className="text-xs text-slate-500 mt-2">
+                      As mensagens aparecerão aqui quando forem enviadas ou recebidas
+                    </p>
                   </div>
                 )}
               </ScrollArea>
