@@ -767,20 +767,15 @@ const Atendimentos = () => {
                     const isSelected = selectedConversation?.id === conversation.id;
                     return <div key={conversation.id} className={`p-2 rounded-lg cursor-pointer transition-all ${isSelected ? 'bg-blue-900/30 border-2 border-blue-600' : 'hover:bg-slate-700/50 border-2 border-transparent'}`} onClick={() => setSelectedConversation(conversation)}>
                         <div className="flex items-start gap-2">
-                          <div className="relative">
-                            <Avatar className="h-8 w-8 flex-shrink-0">
-                              <AvatarImage 
-                                src={conversation.meta?.sender?.avatar_url || conversation.meta?.sender?.thumbnail} 
-                                alt={conversation.meta?.sender?.name || 'Cliente'} 
-                              />
-                              <AvatarFallback className="bg-blue-600 text-white text-xs">
-                                {getInitials(conversation.meta?.sender?.name || 'Cliente')}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="absolute -bottom-0.5 -right-0.5 bg-slate-800 rounded-full p-0.5 border border-slate-700">
-                              {getChannelIcon(conversation.channel || conversation.meta?.channel)}
-                            </div>
-                          </div>
+                          <Avatar className="h-8 w-8 flex-shrink-0">
+                            <AvatarImage 
+                              src={conversation.meta?.sender?.avatar_url || conversation.meta?.sender?.thumbnail} 
+                              alt={conversation.meta?.sender?.name || 'Cliente'} 
+                            />
+                            <AvatarFallback className="bg-blue-600 text-white text-xs">
+                              {getInitials(conversation.meta?.sender?.name || 'Cliente')}
+                            </AvatarFallback>
+                          </Avatar>
                           
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-1 mb-0.5">
@@ -823,27 +818,19 @@ const Atendimentos = () => {
               <CardHeader className="pb-2 pt-2 px-3 border-b border-slate-700">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage 
-                          src={selectedConversation.meta?.sender?.avatar_url || selectedConversation.meta?.sender?.thumbnail} 
-                          alt={selectedConversation.meta?.sender?.name || 'Cliente'} 
-                        />
-                        <AvatarFallback className="bg-blue-600 text-white text-xs">
-                          {getInitials(selectedConversation.meta?.sender?.name || 'Cliente')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="absolute -bottom-0.5 -right-0.5 bg-slate-800 rounded-full p-0.5 border border-slate-700">
-                        {getChannelIcon(selectedConversation.channel || selectedConversation.meta?.channel)}
-                      </div>
-                    </div>
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage 
+                        src={selectedConversation.meta?.sender?.avatar_url || selectedConversation.meta?.sender?.thumbnail} 
+                        alt={selectedConversation.meta?.sender?.name || 'Cliente'} 
+                      />
+                      <AvatarFallback className="bg-blue-600 text-white text-xs">
+                        {getInitials(selectedConversation.meta?.sender?.name || 'Cliente')}
+                      </AvatarFallback>
+                    </Avatar>
                     <div>
-                      <div className="flex items-center gap-1.5">
-                        <h3 className="font-semibold text-sm text-white">
-                          {selectedConversation.meta?.sender?.name || 'Cliente'}
-                        </h3>
-                        {getChannelIcon(selectedConversation.channel || selectedConversation.meta?.channel)}
-                      </div>
+                      <h3 className="font-semibold text-sm text-white">
+                        {selectedConversation.meta?.sender?.name || 'Cliente'}
+                      </h3>
                       <p className="text-[10px] text-slate-400">
                         {selectedConversation.meta?.sender?.phone_number}
                       </p>
