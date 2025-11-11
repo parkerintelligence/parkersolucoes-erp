@@ -310,8 +310,8 @@ export const useChatwootAPI = () => {
         const assignee = conversationData?.meta?.assignee || conversationData?.assignee;
         const agentName = assignee?.name || assignee?.available_name || profile.name;
 
-        // Adicionar nome do agente no início da mensagem
-        const messageWithAgent = `*${agentName}:*\n${content}`;
+        // Adicionar nome do agente em negrito no início da mensagem
+        const messageWithAgent = `*${agentName}*\n\n${content}`;
 
         const message = await makeChatwootRequest(
           chatwootIntegration.id,
