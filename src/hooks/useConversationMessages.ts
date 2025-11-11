@@ -59,8 +59,41 @@ export const useConversationMessages = (integrationId: string | undefined, conve
       // O endpoint retorna { payload: [...mensagens], meta: {...} }
       const messages = (messagesResponse.payload || messagesResponse || []) as ChatwootMessage[];
       
+      // Buscar dados da conversa para pegar o assignee
+      const conversationData = await makeChatwootRequest(
+        integrationId,
+        `/accounts/${accountId}/conversations/${conversationId}`
+      );
+      
+      const assignee = conversationData?.meta?.assignee || conversationData?.assignee;
+      const inbox = conversationData?.meta?.inbox || conversationData?.inbox;
+      
+      console.log('👤 Agente atribuído:', assignee?.name || 'Nenhum');
+      console.log('📥 Caixa de entrada:', inbox?.name || 'N/A');
+      
+      // Enriquecer mensagens outgoing com dados do agente ou inbox
+      const enrichedMessages = messages.map(msg => {
+        if (msg.message_type === 1) { // Mensagem outgoing (enviada)
+          // Se não tem sender ou sender está incompleto, usar dados do agente ou inbox
+          if (!msg.sender || !msg.sender.name) {
+            return {
+              ...msg,
+              sender: assignee ? {
+                id: assignee.id,
+                name: assignee.name || assignee.available_name,
+                email: assignee.email,
+              } : inbox ? {
+                id: inbox.id,
+                name: inbox.name,
+              } : msg.sender
+            };
+          }
+        }
+        return msg;
+      });
+      
       // Ordenar por data (mais antiga primeiro)
-      const sortedMessages = messages.sort((a, b) => {
+      const sortedMessages = enrichedMessages.sort((a, b) => {
         const dateA = new Date(a.created_at).getTime();
         const dateB = new Date(b.created_at).getTime();
         return dateA - dateB;
