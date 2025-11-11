@@ -27,7 +27,7 @@ import {
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
 import { useChatwootRealtime, useChatwootMessageNotifications } from '@/hooks/useChatwootRealtime';
-import { format } from 'date-fns';
+import { format, isSameDay, isYesterday, isThisWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
 import { ChatwootStats } from '@/components/chatwoot/ChatwootStats';
@@ -310,16 +310,20 @@ const Atendimentos = () => {
     }
 
     const now = new Date();
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
     
     try {
-      if (diffInHours < 24) {
+      // Usar funções do date-fns para comparação precisa de dias
+      if (isSameDay(date, now)) {
+        // Mesmo dia = Hoje
         return 'Hoje às ' + format(date, 'HH:mm', { locale: ptBR });
-      } else if (diffInHours < 48) {
+      } else if (isYesterday(date)) {
+        // Dia anterior = Ontem
         return 'Ontem às ' + format(date, 'HH:mm', { locale: ptBR });
-      } else if (diffInHours < 168) {
+      } else if (isThisWeek(date, { weekStartsOn: 0 })) {
+        // Esta semana = Nome do dia
         return format(date, "EEEE', 'HH:mm", { locale: ptBR });
       } else {
+        // Mais antigo = Data completa
         return format(date, "dd/MM/yyyy', 'HH:mm", { locale: ptBR });
       }
     } catch (error) {

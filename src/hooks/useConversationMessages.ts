@@ -40,17 +40,35 @@ export const useConversationMessages = (integrationId: string | undefined, conve
     queryFn: async () => {
       if (!integrationId || !conversationId) return [];
 
+      console.log('🔍 Buscando mensagens da conversa:', conversationId);
+
       // Get profile to get account ID
       const profile = await makeChatwootRequest(integrationId, '/profile');
       const accountId = profile.account_id;
+      
+      console.log('✅ AccountId:', accountId);
 
-      // Get full conversation details including all messages
-      const conversation = await makeChatwootRequest(
+      // Usar endpoint específico de mensagens que retorna TODAS as mensagens
+      const messagesResponse = await makeChatwootRequest(
         integrationId,
-        `/accounts/${accountId}/conversations/${conversationId}`
+        `/accounts/${accountId}/conversations/${conversationId}/messages`
       );
 
-      return (conversation.messages || []) as ChatwootMessage[];
+      console.log(`✅ Mensagens encontradas: ${messagesResponse.payload?.length || messagesResponse.length || 0}`);
+      
+      // O endpoint retorna { payload: [...mensagens], meta: {...} }
+      const messages = (messagesResponse.payload || messagesResponse || []) as ChatwootMessage[];
+      
+      // Ordenar por data (mais antiga primeiro)
+      const sortedMessages = messages.sort((a, b) => {
+        const dateA = new Date(a.created_at).getTime();
+        const dateB = new Date(b.created_at).getTime();
+        return dateA - dateB;
+      });
+      
+      console.log('📊 Total de mensagens ordenadas:', sortedMessages.length);
+      
+      return sortedMessages;
     },
     enabled: !!integrationId && !!conversationId,
     refetchInterval: 5000, // Auto-refresh every 5 seconds

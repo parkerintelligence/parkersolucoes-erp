@@ -231,7 +231,7 @@ export const useChatwootAPI = () => {
     enabled: !!chatwootIntegration,
     refetchInterval: false,
     retry: false,
-    staleTime: 30000, // 30 segundos - dados são considerados "frescos"
+    staleTime: 60000, // 60 segundos - evitar refetch prematuro
   });
 
   const sendMessage = useMutation({
@@ -350,35 +350,61 @@ export const useChatwootAPI = () => {
         const previousStatus = conversationData?.status || 'open';
 
         let conversation;
+        let successMethod = '';
+
         try {
-          console.log('🔄 Tentando PATCH para atualizar status...');
+          // Tentativa 1: PATCH no endpoint padrão
+          console.log('🔄 Tentando PATCH /conversations/:id...');
           conversation = await makeChatwootRequest(
             chatwootIntegration.id,
             `/accounts/${accountId}/conversations/${conversationId}`,
             {
               method: 'PATCH',
-              body: {
-                status: status
-              }
+              body: { status }
             }
           );
-          console.log('✅ PATCH bem-sucedido:', conversation);
+          successMethod = 'PATCH /conversations/:id';
+          console.log('✅ PATCH bem-sucedido');
         } catch (patchError) {
-          console.warn('⚠️ PATCH falhou, tentando POST como fallback:', patchError);
+          console.warn('⚠️ PATCH falhou:', patchError);
           
-          // Tentar POST como fallback
-          conversation = await makeChatwootRequest(
-            chatwootIntegration.id,
-            `/accounts/${accountId}/conversations/${conversationId}/toggle_status`,
-            {
-              method: 'POST',
-              body: {
-                status: status
+          try {
+            // Tentativa 2: POST no toggle_status (mais comum)
+            console.log('🔄 Tentando POST /conversations/:id/toggle_status...');
+            conversation = await makeChatwootRequest(
+              chatwootIntegration.id,
+              `/accounts/${accountId}/conversations/${conversationId}/toggle_status`,
+              {
+                method: 'POST',
+                body: { status }
               }
+            );
+            successMethod = 'POST /conversations/:id/toggle_status';
+            console.log('✅ POST toggle_status bem-sucedido');
+          } catch (toggleError) {
+            console.warn('⚠️ POST toggle_status falhou:', toggleError);
+            
+            try {
+              // Tentativa 3: POST direto (algumas versões antigas)
+              console.log('🔄 Tentando POST /conversations/:id...');
+              conversation = await makeChatwootRequest(
+                chatwootIntegration.id,
+                `/accounts/${accountId}/conversations/${conversationId}`,
+                {
+                  method: 'POST',
+                  body: { status }
+                }
+              );
+              successMethod = 'POST /conversations/:id';
+              console.log('✅ POST bem-sucedido');
+            } catch (postError) {
+              console.error('❌ Todos os métodos falharam');
+              throw new Error('Não foi possível atualizar o status. Endpoint não suportado.');
             }
-          );
-          console.log('✅ POST bem-sucedido:', conversation);
+          }
         }
+
+        console.log('✅ Status atualizado via:', successMethod);
 
         console.log('✅ Conversation updated, new status:', conversation.status);
 
@@ -437,28 +463,6 @@ export const useChatwootAPI = () => {
           return updatedData;
         }
       );
-      
-      // Sincronização em segundo plano (não bloqueia a UI)
-      setTimeout(async () => {
-        const cachedData: any = queryClient.getQueryData([
-          'chatwoot-conversations', 
-          chatwootIntegration?.id
-        ]);
-        
-        const cachedConv = cachedData?.find(
-          (c: any) => String(c.id) === String(variables.conversationId)
-        );
-        
-        if (cachedConv?.status === data.status) {
-          console.log('✅ Status no cache correto, sincronizando...');
-          queryClient.refetchQueries({ 
-            queryKey: ['chatwoot-conversations', chatwootIntegration?.id],
-            type: 'active'
-          });
-        } else {
-          console.log('⚠️ Status no cache divergente, não fazendo refetch');
-        }
-      }, 5000);
       
       toast({
         title: "Status atualizado!",
