@@ -71,8 +71,8 @@ export const useConversationMessages = (integrationId: string | undefined, conve
       return sortedMessages;
     },
     enabled: !!integrationId && !!conversationId,
-    refetchInterval: 5000, // Auto-refresh every 5 seconds
-    staleTime: 3000,
+    refetchInterval: 10000, // Aumentado para 10 segundos para reduzir chamadas
+    staleTime: 8000, // Aumentado para 8 segundos
   });
 
   const refetch = () => {

@@ -66,19 +66,20 @@ const makeChatwootRequest = async (integrationId: string, endpoint: string, opti
   try {
     const { supabase } = await import('@/integrations/supabase/client');
     
-    // Refresh session to ensure we have a valid token
-    const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+    // Usar sessão existente ao invés de refresh para evitar rate limiting
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
-      console.error('Erro ao renovar sessão:', sessionError);
-      throw new Error('Sessão expirada. Por favor, faça login novamente.');
+      console.error('❌ Erro ao obter sessão:', sessionError);
+      throw new Error('Erro ao obter sessão de autenticação.');
     }
     
     if (!session) {
+      console.warn('⚠️ Nenhuma sessão encontrada');
       throw new Error('Usuário não autenticado. Por favor, faça login.');
     }
 
-    console.log('✅ Token renovado com sucesso');
+    console.log('✅ Sessão obtida com sucesso');
 
     const response = await fetch(
       'https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/chatwoot-proxy',
@@ -99,23 +100,56 @@ const makeChatwootRequest = async (integrationId: string, endpoint: string, opti
 
     console.log('Status da resposta Chatwoot Proxy:', response.status);
 
+    // Se receber 401, tentar refresh uma única vez
+    if (response.status === 401) {
+      console.log('🔄 Token expirado (401), tentando renovar sessão...');
+      
+      const { data: { session: newSession }, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError || !newSession) {
+        console.error('❌ Erro ao renovar sessão após 401:', refreshError);
+        throw new Error('Sessão expirada. Por favor, faça login novamente.');
+      }
+      
+      console.log('✅ Sessão renovada, tentando requisição novamente...');
+      
+      // Retry com novo token
+      const retryResponse = await fetch(
+        'https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/chatwoot-proxy',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${newSession.access_token}`,
+          },
+          body: JSON.stringify({
+            integrationId,
+            endpoint,
+            method: options.method || 'GET',
+            body: options.body,
+          }),
+        }
+      );
+      
+      if (!retryResponse.ok) {
+        const errorData = await retryResponse.json();
+        throw new Error(errorData.error || `Erro ${retryResponse.status}`);
+      }
+      
+      return retryResponse.json();
+    }
+
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Erro do Proxy Chatwoot:', errorData);
-      
-      // Create detailed error object
-      const error: any = new Error(errorData.error || `Erro do Proxy ${response.status}`);
-      error.details = errorData.details;
-      error.status = response.status;
-      
-      throw error;
+      console.error('Erro da resposta Chatwoot:', errorData);
+      throw new Error(errorData.error || `Erro ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('Dados da resposta Chatwoot:', data);
-    
+    console.log('✅ Requisição bem-sucedida');
     return data;
-  } catch (error) {
+    
+  } catch (error: any) {
     console.error('Erro de requisição Chatwoot:', error);
     throw error;
   }

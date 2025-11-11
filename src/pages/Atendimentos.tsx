@@ -141,11 +141,19 @@ const Atendimentos = () => {
     }
   }, [selectedConversation]);
 
-  // Marcar conversa como lida quando selecionada
+  // Marcar conversa como lida quando selecionada (com proteção contra erros)
   useEffect(() => {
     if (selectedConversation && integrationId && markConversationAsRead) {
-      console.log('📖 Nova conversa selecionada, marcando como lida:', selectedConversation.id);
-      markConversationAsRead(selectedConversation.id.toString());
+      // Usar timeout para evitar múltiplas chamadas simultâneas
+      const timer = setTimeout(() => {
+        console.log('📖 Marcando conversa como lida:', selectedConversation.id);
+        markConversationAsRead(selectedConversation.id.toString()).catch(err => {
+          console.warn('⚠️ Não foi possível marcar como lida (não crítico):', err);
+          // Não fazer nada - é esperado que algumas vezes falhe
+        });
+      }, 1000); // Delay de 1 segundo para evitar chamadas excessivas
+      
+      return () => clearTimeout(timer);
     }
   }, [selectedConversation?.id, integrationId, markConversationAsRead]);
 
