@@ -50,30 +50,29 @@ export const ChatwootLabelManager = ({
     return label?.color || '#64748b';
   };
 
-  // Compact mode - apenas visualização
+  // Compact mode - apenas visualização com dots coloridos
   if (mode === 'compact') {
     if (currentLabels.length === 0) return null;
     
-    const visibleLabels = currentLabels.slice(0, 2);
-    const remainingCount = currentLabels.length - 2;
+    const maxVisibleDots = 4;
+    const visibleLabels = currentLabels.slice(0, maxVisibleDots);
+    const remainingCount = currentLabels.length - maxVisibleDots;
 
     return (
       <div className="flex items-center gap-1 flex-wrap">
-        {visibleLabels.map((label, index) => (
-          <Badge 
-            key={index} 
-            variant="outline" 
-            className="text-[9px] h-4 px-1.5 border-0"
-            style={{ 
-              backgroundColor: `${getLabelColor(label)}20`,
-              color: getLabelColor(label)
-            }}
-          >
-            {label}
-          </Badge>
-        ))}
+        {visibleLabels.map((label, index) => {
+          const color = getLabelColor(label);
+          return (
+            <div
+              key={index}
+              className="w-3 h-3 rounded-full shadow-sm ring-1 ring-black/10"
+              style={{ backgroundColor: color }}
+              title={label}
+            />
+          );
+        })}
         {remainingCount > 0 && (
-          <Badge variant="outline" className="text-[9px] h-4 px-1.5">
+          <Badge variant="outline" className="text-[9px] h-4 px-1 bg-slate-700/80 border-slate-600">
             +{remainingCount}
           </Badge>
         )}
@@ -81,30 +80,45 @@ export const ChatwootLabelManager = ({
     );
   }
 
-  // Full mode - com edição
+  // Full mode - com edição e cores fortes
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <Tag className="h-4 w-4 text-muted-foreground" />
-      {currentLabels.map((label, index) => (
-        <Badge 
-          key={index} 
-          variant="outline" 
-          className="text-xs h-5 px-2 gap-1 border-0"
-          style={{ 
-            backgroundColor: `${getLabelColor(label)}20`,
-            color: getLabelColor(label)
-          }}
-        >
-          {label}
-          <button
-            onClick={() => handleRemoveLabel(label)}
-            className="ml-1 hover:opacity-70"
-            disabled={removeLabel.isPending}
+      {currentLabels.map((label, index) => {
+        const color = getLabelColor(label);
+        // Calcular se a cor é escura ou clara para definir cor do texto
+        const r = parseInt(color.slice(1, 3), 16);
+        const g = parseInt(color.slice(3, 5), 16);
+        const b = parseInt(color.slice(5, 7), 16);
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        const textColor = luminance > 0.5 ? '#000000' : '#FFFFFF';
+        
+        return (
+          <Badge 
+            key={index} 
+            variant="outline" 
+            className="text-xs h-6 px-2 gap-1.5 border-0 shadow-sm"
+            style={{ 
+              backgroundColor: `${color}60`,
+              color: textColor,
+              borderLeft: `3px solid ${color}`
+            }}
           >
-            <X className="h-3 w-3" />
-          </button>
-        </Badge>
-      ))}
+            <div 
+              className="w-2 h-2 rounded-full" 
+              style={{ backgroundColor: color }}
+            />
+            {label}
+            <button
+              onClick={() => handleRemoveLabel(label)}
+              className="ml-1 hover:opacity-70 transition-opacity"
+              disabled={removeLabel.isPending}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        );
+      })}
       
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>

@@ -646,9 +646,9 @@ const Atendimentos = () => {
                     <Badge
                       key={label.id}
                       variant="outline"
-                      className="h-5 px-2 text-[10px] cursor-pointer transition-all border-0"
+                      className="h-5 px-2 text-[10px] cursor-pointer transition-all border-0 shadow-sm gap-1.5"
                       style={{
-                        backgroundColor: isSelected ? label.color : `${label.color}20`,
+                        backgroundColor: isSelected ? label.color : `${label.color}30`,
                         color: isSelected ? '#fff' : label.color,
                       }}
                       onClick={() => {
@@ -659,6 +659,10 @@ const Atendimentos = () => {
                         );
                       }}
                     >
+                      <div 
+                        className="w-2 h-2 rounded-full" 
+                        style={{ backgroundColor: label.color }}
+                      />
                       {label.title}
                     </Badge>
                   );
