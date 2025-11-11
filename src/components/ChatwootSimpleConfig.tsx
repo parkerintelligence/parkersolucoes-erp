@@ -26,6 +26,7 @@ export const ChatwootSimpleConfig = () => {
     api_token: '',
     webhook_url: '',
     is_active: true,
+    enable_popup_notifications: true,
   });
 
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
@@ -39,6 +40,7 @@ export const ChatwootSimpleConfig = () => {
         api_token: chatwootIntegration.api_token || '',
         webhook_url: chatwootIntegration.webhook_url || '',
         is_active: chatwootIntegration.is_active,
+        enable_popup_notifications: (chatwootIntegration as any).enable_popup_notifications ?? true,
       });
     }
   }, [chatwootIntegration]);
@@ -67,6 +69,7 @@ export const ChatwootSimpleConfig = () => {
       api_token: formData.api_token,
       webhook_url: formData.webhook_url || null,
       is_active: formData.is_active,
+      enable_popup_notifications: formData.enable_popup_notifications,
       username: null,
       password: null,
       phone_number: null,
@@ -213,6 +216,23 @@ export const ChatwootSimpleConfig = () => {
               id="is_active"
               checked={formData.is_active}
               onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-4 rounded-lg border bg-blue-50 dark:bg-blue-900/20">
+            <div>
+              <Label htmlFor="enable_popup_notifications" className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Notificações Popup
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Exibir popup no canto inferior direito ao receber nova conversa
+              </p>
+            </div>
+            <Switch
+              id="enable_popup_notifications"
+              checked={formData.enable_popup_notifications}
+              onCheckedChange={(checked) => setFormData({ ...formData, enable_popup_notifications: checked })}
             />
           </div>
         </div>

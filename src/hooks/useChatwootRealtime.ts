@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { ChatwootMessage } from './useChatwootAPI';
 
 interface ChatwootEvent {
@@ -81,9 +81,10 @@ export const useChatwootMessageNotifications = (
     }
 
     // Toast
-    toast({
-      title: '💬 Nova mensagem',
+    toast('💬 Nova mensagem', {
       description: `${message.sender?.name || 'Cliente'}: ${(message.content || '').substring(0, 80)}...`,
+      duration: 5000,
+      position: 'bottom-right',
     });
 
     // Som
@@ -123,11 +124,18 @@ export const useChatwootMessageNotifications = (
   }, [enabled]);
 };
 
-export const useChatwootRealtime = (integrationId: string | undefined, enabled: boolean = true) => {
+export const useChatwootRealtime = (
+  integrationId: string | undefined, 
+  enabled: boolean = true,
+  enablePopupNotifications: boolean = true
+) => {
   const queryClient = useQueryClient();
+  const previousConversationsCount = useRef<number>(0);
 
   const showNotification = useCallback((event: ChatwootEvent) => {
-    // Verificar se o usuário deu permissão para notificações
+    if (!enablePopupNotifications) return;
+
+    // Verificar se o usuário deu permissão para notificações do navegador
     if ('Notification' in window && Notification.permission === 'granted') {
       const data = event.event_data;
       
@@ -162,19 +170,26 @@ export const useChatwootRealtime = (integrationId: string | undefined, enabled: 
       });
     }
 
-    // Toast notification sempre aparece
-    const eventTypeLabels: Record<string, string> = {
-      'message_created': '💬 Nova mensagem',
-      'conversation_created': '🆕 Nova conversa',
-      'conversation_status_changed': '🔄 Status alterado',
-      'conversation_updated': '📝 Conversa atualizada'
+    // Toast popup estilo WhatsApp no canto inferior direito
+    const eventTypeData: Record<string, { icon: string, title: string }> = {
+      'message_created': { icon: '💬', title: 'Nova mensagem' },
+      'conversation_created': { icon: '🆕', title: 'Nova conversa' },
+      'conversation_status_changed': { icon: '🔄', title: 'Status alterado' },
+      'conversation_updated': { icon: '📝', title: 'Conversa atualizada' }
     };
 
-    toast({
-      title: eventTypeLabels[event.event_type] || '🔔 Nova atividade',
-      description: `Conversa #${event.conversation_id} foi atualizada`,
+    const eventInfo = eventTypeData[event.event_type] || { icon: '🔔', title: 'Nova atividade' };
+    const data = event.event_data;
+    const sender = data.sender?.name || data.meta?.sender?.name || 'Cliente';
+
+    toast(`${eventInfo.icon} ${eventInfo.title}`, {
+      description: event.event_type === 'conversation_created' 
+        ? `Nova conversa de ${sender}`
+        : `Conversa #${event.conversation_id} foi atualizada`,
+      duration: 5000,
+      position: 'bottom-right',
     });
-  }, []);
+  }, [enablePopupNotifications]);
 
   useEffect(() => {
     if (!enabled || !integrationId) return;

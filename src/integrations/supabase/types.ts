@@ -694,6 +694,7 @@ export type Database = {
           bucket_name: string | null
           created_at: string
           directory: string | null
+          enable_popup_notifications: boolean | null
           id: string
           instance_name: string | null
           is_active: boolean | null
@@ -718,6 +719,7 @@ export type Database = {
           bucket_name?: string | null
           created_at?: string
           directory?: string | null
+          enable_popup_notifications?: boolean | null
           id?: string
           instance_name?: string | null
           is_active?: boolean | null
@@ -742,6 +744,7 @@ export type Database = {
           bucket_name?: string | null
           created_at?: string
           directory?: string | null
+          enable_popup_notifications?: boolean | null
           id?: string
           instance_name?: string | null
           is_active?: boolean | null

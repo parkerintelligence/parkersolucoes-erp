@@ -27,6 +27,7 @@ import {
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
 import { useChatwootRealtime, useChatwootMessageNotifications } from '@/hooks/useChatwootRealtime';
+import { useIntegrations } from '@/hooks/useIntegrations';
 import { format, isSameDay, isYesterday, isThisWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
@@ -70,6 +71,10 @@ const Atendimentos = () => {
   // Get agents list
   const { agents, isLoading: agentsLoading } = useChatwootAgents();
 
+  // Get integration settings for popup notifications
+  const { data: integrations } = useIntegrations();
+  const chatwootIntegration = integrations?.find(int => int.type === 'chatwoot');
+
   // Load messages for selected conversation
   const {
     messages: conversationMessages,
@@ -78,7 +83,8 @@ const Atendimentos = () => {
   } = useConversationMessages(integrationId, selectedConversation?.id.toString() || null);
 
   // Ativar notificações em tempo real (webhooks)
-  useChatwootRealtime(integrationId, isConfigured);
+  const enablePopupNotifications = (chatwootIntegration as any)?.enable_popup_notifications ?? true;
+  useChatwootRealtime(integrationId, isConfigured, enablePopupNotifications);
   
   // Detectar novas mensagens via polling (funciona sempre)
   useChatwootMessageNotifications(

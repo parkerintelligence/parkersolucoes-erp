@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { Toaster } from '@/components/ui/sonner';
 import Login from '@/pages/Login';
 import VPS from '@/pages/VPS';
 import { SafeAdmin } from '@/components/SafeAdmin';
@@ -77,6 +78,7 @@ function App() {
               <Route path="/unifi" element={<Layout><SafeUniFi /></Layout>} />
             </Routes>
           </div>
+          <Toaster position="bottom-right" />
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
