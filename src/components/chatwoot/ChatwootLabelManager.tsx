@@ -50,29 +50,34 @@ export const ChatwootLabelManager = ({
     return label?.color || '#64748b';
   };
 
-  // Compact mode - apenas visualização com dots coloridos
+  // Compact mode - badges com cores vibrantes
   if (mode === 'compact') {
     if (currentLabels.length === 0) return null;
     
-    const maxVisibleDots = 4;
-    const visibleLabels = currentLabels.slice(0, maxVisibleDots);
-    const remainingCount = currentLabels.length - maxVisibleDots;
+    const maxVisibleLabels = 3;
+    const visibleLabels = currentLabels.slice(0, maxVisibleLabels);
+    const remainingCount = currentLabels.length - maxVisibleLabels;
 
     return (
       <div className="flex items-center gap-1 flex-wrap">
         {visibleLabels.map((label, index) => {
           const color = getLabelColor(label);
           return (
-            <div
+            <Badge
               key={index}
-              className="w-3 h-3 rounded-full shadow-sm ring-1 ring-black/10"
-              style={{ backgroundColor: color }}
-              title={label}
-            />
+              variant="outline"
+              className="text-[9px] h-4 px-1.5 border-0 shadow-sm"
+              style={{ 
+                backgroundColor: color,
+                color: '#fff'
+              }}
+            >
+              {label}
+            </Badge>
           );
         })}
         {remainingCount > 0 && (
-          <Badge variant="outline" className="text-[9px] h-4 px-1 bg-slate-700/80 border-slate-600">
+          <Badge variant="outline" className="text-[9px] h-4 px-1 bg-slate-700/80 border-slate-600 text-slate-200">
             +{remainingCount}
           </Badge>
         )}
