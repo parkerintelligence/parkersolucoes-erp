@@ -130,13 +130,27 @@ export const useChatwootLabels = (integrationId: string | undefined) => {
       const profile = await makeChatwootRequest(integrationId, '/profile');
       const accountId = profile.account_id;
 
-      // Chatwoot API expects DELETE with labels array in body
+      // Buscar labels atuais da conversa
+      const conversation = await makeChatwootRequest(
+        integrationId,
+        `/accounts/${accountId}/conversations/${conversationId}`
+      );
+
+      const currentLabels = conversation.labels || [];
+      console.log('🏷️ Labels atuais:', currentLabels);
+      
+      // Filtrar a label que queremos remover
+      const updatedLabels = currentLabels.filter((l: string) => l !== label);
+      console.log('🏷️ Labels após remoção:', updatedLabels);
+
+      // Chatwoot API: POST substitui todas as labels (não há endpoint DELETE)
+      // Enviamos a lista atualizada sem a label removida
       const result = await makeChatwootRequest(
         integrationId,
         `/accounts/${accountId}/conversations/${conversationId}/labels`,
         {
-          method: 'DELETE',
-          body: { labels: [label] }
+          method: 'POST',
+          body: { labels: updatedLabels }
         }
       );
 
