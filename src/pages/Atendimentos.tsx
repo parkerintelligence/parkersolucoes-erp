@@ -39,6 +39,8 @@ import { ChatwootFileUpload } from '@/components/chatwoot/ChatwootFileUpload';
 import { ChatwootLabelManager } from '@/components/chatwoot/ChatwootLabelManager';
 import { ChatwootStatusHistory } from '@/components/chatwoot/ChatwootStatusHistory';
 import { ChatwootAgentMetrics } from '@/components/chatwoot/ChatwootAgentMetrics';
+import { useChatwootAgents } from '@/hooks/useChatwootAgents';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const Atendimentos = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,6 +48,7 @@ const Atendimentos = () => {
   const [messageText, setMessageText] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'pending' | 'resolved'>('all');
   const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'mine' | 'unassigned'>('all');
+  const [selectedAgentId, setSelectedAgentId] = useState<string>('all');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [showContactPanel, setShowContactPanel] = useState(false);
   const [viewMode, setViewMode] = useState<'conversations' | 'metrics'>('conversations');
@@ -63,6 +66,9 @@ const Atendimentos = () => {
     refetchConversations,
     markConversationAsRead
   } = useChatwootAPI();
+
+  // Get agents list
+  const { agents, isLoading: agentsLoading } = useChatwootAgents();
 
   // Load messages for selected conversation
   const {
@@ -176,7 +182,17 @@ const Atendimentos = () => {
         matchesAssignment = !conv.assignee || conv.assignee === null;
       }
       
-      return matchesSearch && matchesStatus && matchesAssignment;
+      // Agent filter
+      let matchesAgent = true;
+      if (selectedAgentId !== 'all') {
+        if (selectedAgentId === 'unassigned') {
+          matchesAgent = !conv.assignee || conv.assignee === null;
+        } else {
+          matchesAgent = conv.assignee?.id?.toString() === selectedAgentId;
+        }
+      }
+      
+      return matchesSearch && matchesStatus && matchesAssignment && matchesAgent;
     })
     .sort((a, b) => new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime());
 
@@ -477,43 +493,80 @@ const Atendimentos = () => {
       {/* Assignment Filter */}
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="p-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-slate-300 mr-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-sm font-medium text-slate-300">
               Filtrar por:
             </span>
-            <Button
-              variant={assignmentFilter === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setAssignmentFilter('all')}
-              className="gap-2"
-            >
-              Todas
-              <Badge variant={assignmentFilter === 'all' ? 'secondary' : 'outline'} className="h-5 px-2">
-                {safeConversations.length}
-              </Badge>
-            </Button>
-            <Button
-              variant={assignmentFilter === 'mine' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setAssignmentFilter('mine')}
-              className="gap-2"
-            >
-              Minhas
-              <Badge variant={assignmentFilter === 'mine' ? 'secondary' : 'outline'} className="h-5 px-2">
-                {myConversationsCount}
-              </Badge>
-            </Button>
-            <Button
-              variant={assignmentFilter === 'unassigned' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setAssignmentFilter('unassigned')}
-              className="gap-2"
-            >
-              Não Atribuídas
-              <Badge variant={assignmentFilter === 'unassigned' ? 'secondary' : 'outline'} className="h-5 px-2">
-                {unassignedCount}
-              </Badge>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={assignmentFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setAssignmentFilter('all')}
+                className="gap-2"
+              >
+                Todas
+                <Badge variant={assignmentFilter === 'all' ? 'secondary' : 'outline'} className="h-5 px-2">
+                  {safeConversations.length}
+                </Badge>
+              </Button>
+              <Button
+                variant={assignmentFilter === 'mine' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setAssignmentFilter('mine')}
+                className="gap-2"
+              >
+                Minhas
+                <Badge variant={assignmentFilter === 'mine' ? 'secondary' : 'outline'} className="h-5 px-2">
+                  {myConversationsCount}
+                </Badge>
+              </Button>
+              <Button
+                variant={assignmentFilter === 'unassigned' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setAssignmentFilter('unassigned')}
+                className="gap-2"
+              >
+                Não Atribuídas
+                <Badge variant={assignmentFilter === 'unassigned' ? 'secondary' : 'outline'} className="h-5 px-2">
+                  {unassignedCount}
+                </Badge>
+              </Button>
+            </div>
+            
+            <Separator orientation="vertical" className="h-8 bg-slate-600" />
+            
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-slate-400" />
+              <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
+                <SelectTrigger className="w-[200px] bg-slate-700 border-slate-600 text-white">
+                  <SelectValue placeholder="Selecionar agente..." />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600">
+                  <SelectItem value="all" className="text-white hover:bg-slate-600">
+                    Todos os agentes
+                  </SelectItem>
+                  <SelectItem value="unassigned" className="text-white hover:bg-slate-600">
+                    Sem agente
+                  </SelectItem>
+                  <Separator className="my-1 bg-slate-600" />
+                  {agentsLoading ? (
+                    <div className="p-2 text-sm text-slate-400 text-center">
+                      <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                    </div>
+                  ) : (
+                    agents.map((agent) => (
+                      <SelectItem 
+                        key={agent.id} 
+                        value={agent.id.toString()}
+                        className="text-white hover:bg-slate-600"
+                      >
+                        {agent.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
