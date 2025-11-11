@@ -646,10 +646,12 @@ const Atendimentos = () => {
                     <Badge
                       key={label.id}
                       variant="outline"
-                      className="h-5 px-2 text-[10px] cursor-pointer transition-all border-0 shadow-sm gap-1.5"
+                      className={`h-5 px-2 text-[10px] cursor-pointer transition-all shadow-sm gap-1.5 ${
+                        isSelected ? 'ring-2 ring-white/30 border-0' : 'border-0'
+                      }`}
                       style={{
-                        backgroundColor: isSelected ? label.color : `${label.color}30`,
-                        color: isSelected ? '#fff' : label.color,
+                        backgroundColor: label.color,
+                        color: '#fff',
                       }}
                       onClick={() => {
                         setSelectedLabels(prev =>
@@ -660,8 +662,7 @@ const Atendimentos = () => {
                       }}
                     >
                       <div 
-                        className="w-2 h-2 rounded-full" 
-                        style={{ backgroundColor: label.color }}
+                        className="w-2 h-2 rounded-full bg-white/40" 
                       />
                       {label.title}
                     </Badge>
