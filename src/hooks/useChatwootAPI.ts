@@ -34,6 +34,11 @@ export interface ChatwootConversation {
     email?: string;
     available_name?: string;
   } | null;
+  inbox?: {
+    id: number;
+    name: string;
+    channel_type: string;
+  } | null;
   meta: {
     sender: {
       id: number;
@@ -263,7 +268,8 @@ export const useChatwootAPI = () => {
           ...conv,
           status: conv.status, // Explicitly preserve status
           labels: conv.labels || [], // Preserve labels
-          assignee: conv.meta?.assignee || conv.assignee || null
+          assignee: conv.meta?.assignee || conv.assignee || null,
+          inbox: conv.meta?.inbox || conv.inbox || null
         }));
 
         console.log('Conversas extraídas:', mappedConversations.length, 'conversas');
