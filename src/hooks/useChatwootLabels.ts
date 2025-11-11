@@ -130,12 +130,13 @@ export const useChatwootLabels = (integrationId: string | undefined) => {
       const profile = await makeChatwootRequest(integrationId, '/profile');
       const accountId = profile.account_id;
 
-      // Chatwoot requires label to be in the URL for DELETE, not in body
+      // Chatwoot API expects DELETE with labels array in body
       const result = await makeChatwootRequest(
         integrationId,
-        `/accounts/${accountId}/conversations/${conversationId}/labels/${encodeURIComponent(label)}`,
+        `/accounts/${accountId}/conversations/${conversationId}/labels`,
         {
-          method: 'DELETE'
+          method: 'DELETE',
+          body: { labels: [label] }
         }
       );
 
