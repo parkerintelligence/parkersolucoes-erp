@@ -345,25 +345,19 @@ const Atendimentos = () => {
       }
     }
   };
-
   const getChannelIcon = (channel: string) => {
     const channelLower = channel?.toLowerCase() || '';
-    
     if (channelLower.includes('whatsapp') || channelLower === 'channel::whatsapp') {
       return <MessageSquare className="h-3 w-3 text-green-500" />;
     }
-    
     if (channelLower.includes('telegram')) {
       return <Send className="h-3 w-3 text-blue-500" />;
     }
-    
     if (channelLower.includes('email')) {
       return <Mail className="h-3 w-3 text-slate-400" />;
     }
-    
     return <MessageCircle className="h-3 w-3 text-slate-400" />;
   };
-
   const getStatusBadge = (status: string) => {
     const configs = {
       open: {
@@ -512,12 +506,7 @@ const Atendimentos = () => {
           </div>
         <div className="flex gap-2 items-center">
           {/* Notification Toggle Button */}
-          <Button 
-            onClick={() => setNotificationsEnabled(!notificationsEnabled)}
-            variant="outline" 
-            size="sm" 
-            className="h-7 gap-1.5"
-          >
+          <Button onClick={() => setNotificationsEnabled(!notificationsEnabled)} variant="outline" size="sm" className="h-7 gap-1.5">
             {notificationsEnabled ? <>
                 <Bell className="h-3 w-3 text-green-400" />
                 <span className="text-xs text-green-400">Notificações ativas</span>
@@ -754,7 +743,7 @@ const Atendimentos = () => {
           </CardHeader>
           
            <ScrollArea className="h-[calc(100vh-400px)]">
-            <CardContent className="p-1">
+            <CardContent className="p-1 bg-indigo-950">
               {isLoading ? <div className="text-center py-4">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-400" />
                   <p className="text-xs text-slate-300">Carregando conversas...</p>
@@ -768,10 +757,7 @@ const Atendimentos = () => {
                     return <div key={conversation.id} className={`p-2 rounded-lg cursor-pointer transition-all ${isSelected ? 'bg-blue-900/30 border-2 border-blue-600' : 'hover:bg-slate-700/50 border-2 border-transparent'}`} onClick={() => setSelectedConversation(conversation)}>
                         <div className="flex items-start gap-2">
                           <Avatar className="h-8 w-8 flex-shrink-0">
-                            <AvatarImage 
-                              src={conversation.meta?.sender?.avatar_url || conversation.meta?.sender?.thumbnail} 
-                              alt={conversation.meta?.sender?.name || 'Cliente'} 
-                            />
+                            <AvatarImage src={conversation.meta?.sender?.avatar_url || conversation.meta?.sender?.thumbnail} alt={conversation.meta?.sender?.name || 'Cliente'} />
                             <AvatarFallback className="bg-blue-600 text-white text-xs">
                               {getInitials(conversation.meta?.sender?.name || 'Cliente')}
                             </AvatarFallback>
@@ -819,10 +805,7 @@ const Atendimentos = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage 
-                        src={selectedConversation.meta?.sender?.avatar_url || selectedConversation.meta?.sender?.thumbnail} 
-                        alt={selectedConversation.meta?.sender?.name || 'Cliente'} 
-                      />
+                      <AvatarImage src={selectedConversation.meta?.sender?.avatar_url || selectedConversation.meta?.sender?.thumbnail} alt={selectedConversation.meta?.sender?.name || 'Cliente'} />
                       <AvatarFallback className="bg-blue-600 text-white text-xs">
                         {getInitials(selectedConversation.meta?.sender?.name || 'Cliente')}
                       </AvatarFallback>
