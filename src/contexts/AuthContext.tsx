@@ -141,16 +141,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Reset inactivity timer on user activity
+  // Reset inactivity timer on user activity (com throttle para evitar rate limiting)
   const resetInactivityTimer = useCallback(() => {
     if (!session || !user) return;
 
     const now = Date.now();
     const lastActivity = localStorage.getItem('lastActivity');
     
+    // Aumentar intervalo para 30 segundos para evitar rate limiting
     if (lastActivity) {
       const timeSinceActivity = now - parseInt(lastActivity);
-      if (timeSinceActivity < 1000) {
+      if (timeSinceActivity < 30000) { // 30 segundos ao invés de 1 segundo
         return;
       }
     }
@@ -162,21 +163,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     inactivityTimerRef.current = setTimeout(() => {
-      console.log('Usuário inativo por 4 horas, fazendo logout...');
+      console.log('⏰ Usuário inativo por 4 horas, fazendo logout automático...');
       logout();
     }, INACTIVITY_TIMEOUT);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, user, INACTIVITY_TIMEOUT]);
 
-  // Set up activity listeners
+  // Set up activity listeners (apenas eventos essenciais para evitar rate limiting)
   useEffect(() => {
     if (!session || !user) return;
 
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    // Usar apenas eventos essenciais (remover mousemove e scroll que são muito frequentes)
+    const events = ['mousedown', 'keypress', 'touchstart', 'click'];
     
     // Reset timer on any activity
     events.forEach(event => {
-      window.addEventListener(event, resetInactivityTimer);
+      window.addEventListener(event, resetInactivityTimer, { passive: true });
     });
 
     // Initialize timer
@@ -197,25 +199,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, !!session);
+        console.log('🔐 Auth state changed:', event, !!session);
         
-        // Ignore token refresh events to prevent unnecessary updates
+        // Ignorar eventos de refresh de token e erros de rate limit
         if (event === 'TOKEN_REFRESHED') {
-          console.log('Token refreshed, maintaining current session');
+          console.log('✅ Token refreshed, mantendo sessão atual');
+          // Atualizar session mas não fazer outras operações
+          setSession(session);
+          return;
+        }
+        
+        // Não fazer logout em erros de rate limiting
+        if (!session && event !== 'SIGNED_OUT') {
+          console.warn('⚠️ Evento de auth sem sessão mas não é sign out:', event);
+          // Manter o usuário logado em caso de erros temporários
           return;
         }
         
         setSession(session);
         setUser(session?.user ?? null);
 
-        if (session?.user) {
-          // Fetch user profile after successful authentication
+        if (session?.user && event === 'SIGNED_IN') {
+          // Fetch user profile apenas em login explícito
+          console.log('👤 Buscando perfil do usuário...');
           setTimeout(async () => {
             const profile = await fetchUserProfile(session.user.id);
             setUserProfile(profile);
           }, 0);
         } else if (event === 'SIGNED_OUT') {
-          // Only clear profile on explicit sign out
+          // Limpar perfil apenas em logout explícito
+          console.log('🚪 Usuário deslogado, limpando perfil');
           setUserProfile(null);
         }
         
@@ -227,13 +240,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession()
       .then(({ data: { session }, error }) => {
         if (error) {
-          console.error('Error getting session:', error);
-          // Don't clear tokens on network errors or temporary issues
-          // Only set loading to false and let the user retry
+          console.error('❌ Erro ao obter sessão:', error);
+          // Não limpar tokens em erros de rede ou rate limiting
           setIsLoading(false);
           return;
         }
         
+        console.log('✅ Sessão verificada:', !!session);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -244,9 +257,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
       })
       .catch((error) => {
-        console.error('Error getting session:', error);
-        // Don't clear localStorage on errors - this is too aggressive
-        // Just set loading to false
+        console.error('❌ Erro ao obter sessão (catch):', error);
+        // Não limpar localStorage em erros
         setIsLoading(false);
       });
 
