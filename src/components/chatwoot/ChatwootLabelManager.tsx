@@ -66,7 +66,7 @@ export const ChatwootLabelManager = ({
             <Badge
               key={index}
               variant="outline"
-              className="text-[9px] h-4 px-1.5 border-0 shadow-sm"
+              className="text-[10px] h-5 px-2 border-0 shadow-sm"
               style={{ 
                 backgroundColor: color,
                 color: '#fff'
@@ -77,7 +77,7 @@ export const ChatwootLabelManager = ({
           );
         })}
         {remainingCount > 0 && (
-          <Badge variant="outline" className="text-[9px] h-4 px-1 bg-slate-700/80 border-slate-600 text-slate-200">
+          <Badge variant="outline" className="text-[10px] h-5 px-1.5 bg-slate-700/80 border-slate-600 text-slate-200">
             +{remainingCount}
           </Badge>
         )}

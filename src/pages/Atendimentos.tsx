@@ -536,7 +536,7 @@ const Atendimentos = () => {
                 className="gap-1 h-7 text-xs"
               >
                 Todas
-                <Badge variant={assignmentFilter === 'all' ? 'secondary' : 'outline'} className="h-3 px-1 text-[10px]">
+                <Badge variant={assignmentFilter === 'all' ? 'secondary' : 'outline'} className="h-4 px-1.5 text-xs">
                   {safeConversations.length}
                 </Badge>
               </Button>
@@ -547,7 +547,7 @@ const Atendimentos = () => {
                 className="gap-1 h-7 text-xs"
               >
                 Minhas
-                <Badge variant={assignmentFilter === 'mine' ? 'secondary' : 'outline'} className="h-3 px-1 text-[10px]">
+                <Badge variant={assignmentFilter === 'mine' ? 'secondary' : 'outline'} className="h-4 px-1.5 text-xs">
                   {myConversationsCount}
                 </Badge>
               </Button>
@@ -558,7 +558,7 @@ const Atendimentos = () => {
                 className="gap-1 h-7 text-xs"
               >
                 Não Atribuídas
-                <Badge variant={assignmentFilter === 'unassigned' ? 'secondary' : 'outline'} className="h-3 px-1 text-[10px]">
+                <Badge variant={assignmentFilter === 'unassigned' ? 'secondary' : 'outline'} className="h-4 px-1.5 text-xs">
                   {unassignedCount}
                 </Badge>
               </Button>
@@ -615,21 +615,21 @@ const Atendimentos = () => {
             <Separator orientation="vertical" className="h-6 bg-slate-600" />
             
             {/* Compact Statistics */}
-            <div className="flex items-center gap-1.5 text-[10px]">
+            <div className="flex items-center gap-1.5 text-xs">
               <span className="text-slate-400">Total:</span>
-              <Badge variant="secondary" className="h-4 px-1.5 bg-slate-700 text-slate-200 text-[10px]">
+              <Badge variant="secondary" className="h-5 px-2 bg-slate-700 text-slate-200 text-xs">
                 {safeConversations.length}
               </Badge>
               <span className="text-slate-400">Abertas:</span>
-              <Badge variant="secondary" className="h-4 px-1.5 bg-green-900/50 text-green-300 text-[10px]">
+              <Badge variant="secondary" className="h-5 px-2 bg-green-900/50 text-green-300 text-xs">
                 {safeConversations.filter(c => c.status === 'open').length}
               </Badge>
               <span className="text-slate-400">Pendentes:</span>
-              <Badge variant="secondary" className="h-4 px-1.5 bg-yellow-900/50 text-yellow-300 text-[10px]">
+              <Badge variant="secondary" className="h-5 px-2 bg-yellow-900/50 text-yellow-300 text-xs">
                 {safeConversations.filter(c => c.status === 'pending').length}
               </Badge>
               <span className="text-slate-400">Resolvidas:</span>
-              <Badge variant="secondary" className="h-4 px-1.5 bg-blue-900/50 text-blue-300 text-[10px]">
+              <Badge variant="secondary" className="h-5 px-2 bg-blue-900/50 text-blue-300 text-xs">
                 {safeConversations.filter(c => c.status === 'resolved').length}
               </Badge>
             </div>
@@ -639,14 +639,14 @@ const Atendimentos = () => {
           {availableLabels.length > 0 && (
             <div className="px-2 py-1.5 border-t border-slate-700">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] text-slate-400">Etiquetas:</span>
+                <span className="text-xs text-slate-400">Etiquetas:</span>
                 {availableLabels.map((label) => {
                   const isSelected = selectedLabels.includes(label.title);
                   return (
                     <Badge
                       key={label.id}
                       variant="outline"
-                      className={`h-5 px-2 text-[10px] cursor-pointer transition-all shadow-sm gap-1.5 ${
+                      className={`h-6 px-2 text-xs cursor-pointer transition-all shadow-sm gap-1.5 ${
                         isSelected ? 'ring-2 ring-white/30 border-0' : 'border-0'
                       }`}
                       style={{
@@ -672,7 +672,7 @@ const Atendimentos = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-5 px-2 text-[10px]"
+                    className="h-6 px-2 text-xs"
                     onClick={() => setSelectedLabels([])}
                   >
                     <X className="h-3 w-3 mr-1" />
@@ -692,27 +692,27 @@ const Atendimentos = () => {
           <CardHeader className="pb-1 pt-2 px-2 border-b border-slate-700">
             <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
               <TabsList className="w-full grid grid-cols-4 gap-0.5 bg-slate-700 p-0.5 h-auto">
-                <TabsTrigger value="all" className="text-[10px] text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-1 py-1 h-auto">
+                <TabsTrigger value="all" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1 h-auto">
                   <span>Todas</span>
-                  <Badge variant="secondary" className="h-3 px-1 text-[9px] bg-slate-600 text-slate-100 font-semibold mt-0.5">
+                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-slate-600 text-slate-100 font-semibold mt-0.5">
                     {safeConversations.length}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="open" className="text-[10px] text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-1 py-1 h-auto">
+                <TabsTrigger value="open" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1 h-auto">
                   <span>Abertas</span>
-                  <Badge variant="secondary" className="h-3 px-1 text-[9px] bg-green-900/50 text-green-300 font-semibold mt-0.5">
+                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-green-900/50 text-green-300 font-semibold mt-0.5">
                     {safeConversations.filter(c => c.status === 'open').length}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="pending" className="text-[10px] text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-1 py-1 h-auto">
+                <TabsTrigger value="pending" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1 h-auto">
                   <span>Pendentes</span>
-                  <Badge variant="secondary" className="h-3 px-1 text-[9px] bg-yellow-900/50 text-yellow-300 font-semibold mt-0.5">
+                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-yellow-900/50 text-yellow-300 font-semibold mt-0.5">
                     {safeConversations.filter(c => c.status === 'pending').length}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="resolved" className="text-[10px] text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-1 py-1 h-auto">
+                <TabsTrigger value="resolved" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1 h-auto">
                   <span>Resolvidas</span>
-                  <Badge variant="secondary" className="h-3 px-1 text-[9px] bg-blue-900/50 text-blue-300 font-semibold mt-0.5">
+                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-blue-900/50 text-blue-300 font-semibold mt-0.5">
                     {safeConversations.filter(c => c.status === 'resolved').length}
                   </Badge>
                 </TabsTrigger>
@@ -764,7 +764,7 @@ const Atendimentos = () => {
                             </div>
                             
                             {lastMessage && (
-                              <p className="text-[10px] text-slate-400 line-clamp-1">
+                              <p className="text-xs text-slate-400 line-clamp-1">
                                 {lastMessage.content}
                               </p>
                             )}
@@ -782,11 +782,11 @@ const Atendimentos = () => {
                             )}
                             
                             <div className="flex items-center gap-1 mt-0.5">
-                              <span className="text-[10px] text-slate-500">
+                              <span className="text-xs text-slate-500">
                                 {formatMessageTime(conversation.last_activity_at)}
                               </span>
                               {conversation.unread_count > 0 && (
-                                <Badge variant="destructive" className="h-3 px-1 text-[9px] bg-red-600">
+                                <Badge variant="destructive" className="h-4 px-1.5 text-[10px] bg-red-600">
                                   {conversation.unread_count}
                                 </Badge>
                               )}
@@ -968,7 +968,7 @@ const Atendimentos = () => {
                               }`}
                             >
                               {showSenderName && (
-                                <p className="text-[10px] font-semibold mb-1 opacity-80">
+                                <p className="text-xs font-semibold mb-1 opacity-80">
                                   {message.sender.name}
                                 </p>
                               )}
@@ -976,7 +976,7 @@ const Atendimentos = () => {
                                 {message.content}
                               </p>
                               <div className="flex items-center justify-between gap-2 mt-1">
-                                <p className={`text-[10px] ${isOutgoing ? 'text-blue-100' : 'text-slate-400'}`}>
+                                <p className={`text-xs ${isOutgoing ? 'text-blue-100' : 'text-slate-400'}`}>
                                   {formatMessageTime(message.created_at)}
                                 </p>
                                 <ChatwootMessageStatus 
@@ -995,7 +995,7 @@ const Atendimentos = () => {
                   <div className="text-center py-4 text-slate-400">
                     <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50 text-slate-500" />
                     <p className="text-xs">Nenhuma mensagem nesta conversa</p>
-                    <p className="text-[10px] text-slate-500 mt-1">
+                    <p className="text-xs text-slate-500 mt-1">
                       As mensagens aparecerão aqui quando forem enviadas ou recebidas
                     </p>
                   </div>
@@ -1048,11 +1048,11 @@ const Atendimentos = () => {
                   </Button>
                 </div>
                 {!selectedConversation.can_reply && (
-                  <p className="text-[10px] text-slate-400 mt-1">
+                  <p className="text-xs text-slate-400 mt-1">
                     Esta conversa não permite resposta
                   </p>
                 )}
-                <p className="text-[10px] text-slate-400 mt-1">
+                <p className="text-xs text-slate-400 mt-1">
                   Pressione Enter para enviar, Shift+Enter para quebrar linha
                 </p>
               </div>
