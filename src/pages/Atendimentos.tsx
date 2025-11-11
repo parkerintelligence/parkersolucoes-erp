@@ -494,7 +494,7 @@ const Atendimentos = () => {
         <>
       {/* Assignment Filter */}
       <Card className="bg-slate-800 border-slate-700">
-        <CardContent className="p-4">
+        <CardContent className="p-3">
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-sm font-medium text-slate-300">
               Filtrar por:
@@ -504,10 +504,10 @@ const Atendimentos = () => {
                 variant={assignmentFilter === 'all' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setAssignmentFilter('all')}
-                className="gap-2"
+                className="gap-2 h-8"
               >
                 Todas
-                <Badge variant={assignmentFilter === 'all' ? 'secondary' : 'outline'} className="h-5 px-2">
+                <Badge variant={assignmentFilter === 'all' ? 'secondary' : 'outline'} className="h-4 px-1.5 text-xs">
                   {safeConversations.length}
                 </Badge>
               </Button>
@@ -515,10 +515,10 @@ const Atendimentos = () => {
                 variant={assignmentFilter === 'mine' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setAssignmentFilter('mine')}
-                className="gap-2"
+                className="gap-2 h-8"
               >
                 Minhas
-                <Badge variant={assignmentFilter === 'mine' ? 'secondary' : 'outline'} className="h-5 px-2">
+                <Badge variant={assignmentFilter === 'mine' ? 'secondary' : 'outline'} className="h-4 px-1.5 text-xs">
                   {myConversationsCount}
                 </Badge>
               </Button>
@@ -526,10 +526,10 @@ const Atendimentos = () => {
                 variant={assignmentFilter === 'unassigned' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setAssignmentFilter('unassigned')}
-                className="gap-2"
+                className="gap-2 h-8"
               >
                 Não Atribuídas
-                <Badge variant={assignmentFilter === 'unassigned' ? 'secondary' : 'outline'} className="h-5 px-2">
+                <Badge variant={assignmentFilter === 'unassigned' ? 'secondary' : 'outline'} className="h-4 px-1.5 text-xs">
                   {unassignedCount}
                 </Badge>
               </Button>
@@ -540,7 +540,7 @@ const Atendimentos = () => {
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-slate-400" />
               <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
-                <SelectTrigger className="w-[200px] bg-slate-700 border-slate-600 text-white">
+                <SelectTrigger className="w-[180px] h-8 bg-slate-700 border-slate-600 text-white text-sm">
                   <SelectValue placeholder="Selecionar agente..." />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-700 border-slate-600">
@@ -572,6 +572,19 @@ const Atendimentos = () => {
 
             <Separator orientation="vertical" className="h-8 bg-slate-600" />
             
+            {/* Buscar conversas */}
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-2 top-2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Buscar conversas..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8 h-8 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 text-sm"
+              />
+            </div>
+
+            <Separator orientation="vertical" className="h-8 bg-slate-600" />
+            
             {/* Compact Statistics */}
             <div className="flex items-center gap-2 text-xs">
               <span className="text-slate-400">Total:</span>
@@ -599,47 +612,35 @@ const Atendimentos = () => {
       <div className="flex-1 grid grid-cols-12 gap-4 min-h-0">
         {/* Conversations List */}
         <Card className="col-span-12 lg:col-span-3 flex flex-col bg-slate-800 border-slate-700">
-          <CardHeader className="pb-3 border-b border-slate-700">
-            <div className="space-y-3">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar conversas..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
-                />
-              </div>
-              
-              <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-                <TabsList className="w-full flex flex-col gap-2 bg-slate-700 p-2 h-auto">
-                  <TabsTrigger value="all" className="w-full text-sm text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex items-center justify-between px-4 py-3">
-                    <span>Todas</span>
-                    <Badge variant="secondary" className="h-6 min-w-[32px] px-2.5 bg-slate-600 text-slate-100 font-semibold text-sm">
-                      {safeConversations.length}
-                    </Badge>
-                  </TabsTrigger>
-                  <TabsTrigger value="open" className="w-full text-sm text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex items-center justify-between px-4 py-3">
-                    <span>Abertas</span>
-                    <Badge variant="secondary" className="h-6 min-w-[32px] px-2.5 bg-green-900/50 text-green-300 font-semibold text-sm">
-                      {safeConversations.filter(c => c.status === 'open').length}
-                    </Badge>
-                  </TabsTrigger>
-                  <TabsTrigger value="pending" className="w-full text-sm text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex items-center justify-between px-4 py-3">
-                    <span>Pendentes</span>
-                    <Badge variant="secondary" className="h-6 min-w-[32px] px-2.5 bg-yellow-900/50 text-yellow-300 font-semibold text-sm">
-                      {safeConversations.filter(c => c.status === 'pending').length}
-                    </Badge>
-                  </TabsTrigger>
-                  <TabsTrigger value="resolved" className="w-full text-sm text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex items-center justify-between px-4 py-3">
-                    <span>Resolvidas</span>
-                    <Badge variant="secondary" className="h-6 min-w-[32px] px-2.5 bg-blue-900/50 text-blue-300 font-semibold text-sm">
-                      {safeConversations.filter(c => c.status === 'resolved').length}
-                    </Badge>
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
+          <CardHeader className="pb-2 border-b border-slate-700">
+            <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+              <TabsList className="w-full grid grid-cols-4 gap-1 bg-slate-700 p-1 h-auto">
+                <TabsTrigger value="all" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1.5 h-auto">
+                  <span>Todas</span>
+                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-slate-600 text-slate-100 font-semibold mt-0.5">
+                    {safeConversations.length}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="open" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1.5 h-auto">
+                  <span>Abertas</span>
+                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-green-900/50 text-green-300 font-semibold mt-0.5">
+                    {safeConversations.filter(c => c.status === 'open').length}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="pending" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1.5 h-auto">
+                  <span>Pendentes</span>
+                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-yellow-900/50 text-yellow-300 font-semibold mt-0.5">
+                    {safeConversations.filter(c => c.status === 'pending').length}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="resolved" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1.5 h-auto">
+                  <span>Resolvidas</span>
+                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-blue-900/50 text-blue-300 font-semibold mt-0.5">
+                    {safeConversations.filter(c => c.status === 'resolved').length}
+                  </Badge>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </CardHeader>
           
           <ScrollArea className="flex-1">
