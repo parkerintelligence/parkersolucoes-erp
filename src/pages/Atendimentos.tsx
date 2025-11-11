@@ -43,6 +43,8 @@ import { ChatwootStatusHistory } from '@/components/chatwoot/ChatwootStatusHisto
 import { ChatwootAgentMetrics } from '@/components/chatwoot/ChatwootAgentMetrics';
 import { useChatwootAgents } from '@/hooks/useChatwootAgents';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useChatwootLabelStats } from '@/hooks/useChatwootLabelStats';
+import { ChatwootLabelStats } from '@/components/chatwoot/ChatwootLabelStats';
 
 const Atendimentos = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,7 +56,7 @@ const Atendimentos = () => {
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [showContactPanel, setShowContactPanel] = useState(false);
-  const [viewMode, setViewMode] = useState<'conversations' | 'metrics'>('conversations');
+  const [viewMode, setViewMode] = useState<'conversations' | 'metrics' | 'stats'>('conversations');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { 
@@ -75,6 +77,9 @@ const Atendimentos = () => {
   
   // Get labels list
   const { labels: availableLabels } = useChatwootLabels(integrationId);
+  
+  // Get label statistics
+  const { labelStats, isLoading: isLoadingLabelStats } = useChatwootLabelStats(conversations, integrationId);
 
   // Get integration settings for popup notifications
   const { data: integrations } = useIntegrations();
@@ -483,8 +488,8 @@ const Atendimentos = () => {
       {/* View Mode Selector */}
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="p-2">
-          <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'conversations' | 'metrics')}>
-            <TabsList className="w-full grid grid-cols-2 bg-slate-700 h-8">
+          <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'conversations' | 'metrics' | 'stats')}>
+            <TabsList className="w-full grid grid-cols-3 bg-slate-700 h-8">
               <TabsTrigger 
                 value="conversations" 
                 className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white h-7"
@@ -497,7 +502,14 @@ const Atendimentos = () => {
                 className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white h-7"
               >
                 <TrendingUp className="h-3 w-3 mr-1" />
-                Métricas por Agente
+                Métricas
+              </TabsTrigger>
+              <TabsTrigger 
+                value="stats" 
+                className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white h-7"
+              >
+                <Tag className="h-3 w-3 mr-1" />
+                Estatísticas
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -1059,6 +1071,17 @@ const Atendimentos = () => {
 
       {viewMode === 'metrics' && (
         <ChatwootAgentMetrics />
+      )}
+
+      {viewMode === 'stats' && (
+        <ChatwootLabelStats 
+          labelStats={labelStats}
+          isLoading={isLoadingLabelStats}
+          onLabelClick={(label) => {
+            setViewMode('conversations');
+            setSelectedLabels([label]);
+          }}
+        />
       )}
       </div>
     </div>
