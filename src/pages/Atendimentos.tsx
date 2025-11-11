@@ -732,22 +732,14 @@ const Atendimentos = () => {
                   </div>
                 </div>
                 
-                {/* Agent Selector */}
-                <div className="mt-3">
-                  <ChatwootAgentSelector 
-                    conversationId={selectedConversation.id.toString()}
-                    currentAgentId={selectedConversation.assignee?.id}
-                  />
-                </div>
-
                 {/* Labels */}
                 <ChatwootLabelManager 
                   conversationId={selectedConversation.id.toString()}
                   currentLabels={[]}
                 />
                 
-                {/* Status Actions */}
-                <div className="flex gap-2 mt-3">
+                {/* Status Actions + Agent Selector */}
+                <div className="flex items-center gap-2 mt-3 flex-wrap">
                   <Button 
                     size="sm" 
                     variant={selectedConversation.status === 'open' ? 'default' : 'outline'}
@@ -805,11 +797,18 @@ const Atendimentos = () => {
                   
                   <Separator orientation="vertical" className="h-8" />
                   
+                  {/* Agent Selector inline */}
+                  <div className="flex-1 min-w-[200px]">
+                    <ChatwootAgentSelector 
+                      conversationId={selectedConversation.id.toString()}
+                      currentAgentId={selectedConversation.assignee?.id}
+                    />
+                  </div>
+                  
                   <Button
                     size="sm"
                     variant={showContactPanel ? 'default' : 'outline'}
                     onClick={() => setShowContactPanel(!showContactPanel)}
-                    className="ml-auto"
                     title={showContactPanel ? 'Ocultar informações do contato' : 'Mostrar informações do contato'}
                   >
                     <User className="h-3 w-3 mr-1" />
