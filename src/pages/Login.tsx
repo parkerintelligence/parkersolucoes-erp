@@ -40,7 +40,7 @@ const Login = () => {
 
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
-      navigate('/links', { replace: true });
+      navigate('/atendimentos', { replace: true });
     }
   }, [isAuthenticated, authLoading, navigate]);
 

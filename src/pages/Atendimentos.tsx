@@ -437,15 +437,15 @@ const Atendimentos = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-6">
-      <div className="h-[calc(100vh-8rem)] flex flex-col gap-4">
+    <div className="min-h-screen bg-slate-900 text-white p-3">
+      <div className="h-[calc(100vh-4rem)] flex flex-col gap-2">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <MessageSquare className="h-6 w-6 text-blue-400" />
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-blue-400" />
             <div>
-              <h1 className="text-2xl font-bold text-white">Atendimentos</h1>
-              <p className="text-sm text-slate-400">
+              <h1 className="text-xl font-bold text-white">Atendimentos</h1>
+              <p className="text-xs text-slate-400">
                 {filteredConversations.length} conversas • {safeConversations.filter(c => c.status === 'open').length} abertas
               </p>
             </div>
@@ -456,11 +456,12 @@ const Atendimentos = () => {
             disabled={isLoading}
             variant="outline"
             size="sm"
+            className="h-7"
           >
             {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-3 w-3" />
             )}
           </Button>
         </div>
@@ -468,21 +469,21 @@ const Atendimentos = () => {
 
       {/* View Mode Selector */}
       <Card className="bg-slate-800 border-slate-700">
-        <CardContent className="p-4">
+        <CardContent className="p-2">
           <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'conversations' | 'metrics')}>
-            <TabsList className="w-full grid grid-cols-2 bg-slate-700">
+            <TabsList className="w-full grid grid-cols-2 bg-slate-700 h-8">
               <TabsTrigger 
                 value="conversations" 
-                className="text-sm text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white"
+                className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white h-7"
               >
-                <MessageSquare className="h-4 w-4 mr-2" />
+                <MessageSquare className="h-3 w-3 mr-1" />
                 Conversas
               </TabsTrigger>
               <TabsTrigger 
                 value="metrics" 
-                className="text-sm text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white"
+                className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white h-7"
               >
-                <TrendingUp className="h-4 w-4 mr-2" />
+                <TrendingUp className="h-3 w-3 mr-1" />
                 Métricas por Agente
               </TabsTrigger>
             </TabsList>
@@ -494,20 +495,20 @@ const Atendimentos = () => {
         <>
       {/* Assignment Filter */}
       <Card className="bg-slate-800 border-slate-700">
-        <CardContent className="p-3">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-sm font-medium text-slate-300">
+        <CardContent className="p-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-medium text-slate-300">
               Filtrar por:
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <Button
                 variant={assignmentFilter === 'all' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setAssignmentFilter('all')}
-                className="gap-2 h-8"
+                className="gap-1 h-7 text-xs"
               >
                 Todas
-                <Badge variant={assignmentFilter === 'all' ? 'secondary' : 'outline'} className="h-4 px-1.5 text-xs">
+                <Badge variant={assignmentFilter === 'all' ? 'secondary' : 'outline'} className="h-3 px-1 text-[10px]">
                   {safeConversations.length}
                 </Badge>
               </Button>
@@ -515,10 +516,10 @@ const Atendimentos = () => {
                 variant={assignmentFilter === 'mine' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setAssignmentFilter('mine')}
-                className="gap-2 h-8"
+                className="gap-1 h-7 text-xs"
               >
                 Minhas
-                <Badge variant={assignmentFilter === 'mine' ? 'secondary' : 'outline'} className="h-4 px-1.5 text-xs">
+                <Badge variant={assignmentFilter === 'mine' ? 'secondary' : 'outline'} className="h-3 px-1 text-[10px]">
                   {myConversationsCount}
                 </Badge>
               </Button>
@@ -526,41 +527,41 @@ const Atendimentos = () => {
                 variant={assignmentFilter === 'unassigned' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setAssignmentFilter('unassigned')}
-                className="gap-2 h-8"
+                className="gap-1 h-7 text-xs"
               >
                 Não Atribuídas
-                <Badge variant={assignmentFilter === 'unassigned' ? 'secondary' : 'outline'} className="h-4 px-1.5 text-xs">
+                <Badge variant={assignmentFilter === 'unassigned' ? 'secondary' : 'outline'} className="h-3 px-1 text-[10px]">
                   {unassignedCount}
                 </Badge>
               </Button>
             </div>
             
-            <Separator orientation="vertical" className="h-8 bg-slate-600" />
+            <Separator orientation="vertical" className="h-6 bg-slate-600" />
             
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-slate-400" />
+            <div className="flex items-center gap-1">
+              <User className="h-3 w-3 text-slate-400" />
               <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
-                <SelectTrigger className="w-[180px] h-8 bg-slate-700 border-slate-600 text-white text-sm">
+                <SelectTrigger className="w-[160px] h-7 bg-slate-700 border-slate-600 text-white text-xs">
                   <SelectValue placeholder="Selecionar agente..." />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-700 border-slate-600">
-                  <SelectItem value="all" className="text-white hover:bg-slate-600">
+                  <SelectItem value="all" className="text-white hover:bg-slate-600 text-xs">
                     Todos os agentes
                   </SelectItem>
-                  <SelectItem value="unassigned" className="text-white hover:bg-slate-600">
+                  <SelectItem value="unassigned" className="text-white hover:bg-slate-600 text-xs">
                     Sem agente
                   </SelectItem>
                   <Separator className="my-1 bg-slate-600" />
                   {agentsLoading ? (
-                    <div className="p-2 text-sm text-slate-400 text-center">
-                      <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                    <div className="p-2 text-xs text-slate-400 text-center">
+                      <Loader2 className="h-3 w-3 animate-spin mx-auto" />
                     </div>
                   ) : (
                     agents.map((agent) => (
                       <SelectItem 
                         key={agent.id} 
                         value={agent.id.toString()}
-                        className="text-white hover:bg-slate-600"
+                        className="text-white hover:bg-slate-600 text-xs"
                       >
                         {agent.name}
                       </SelectItem>
@@ -570,37 +571,37 @@ const Atendimentos = () => {
               </Select>
             </div>
 
-            <Separator orientation="vertical" className="h-8 bg-slate-600" />
+            <Separator orientation="vertical" className="h-6 bg-slate-600" />
             
             {/* Buscar conversas */}
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-2 top-2 h-4 w-4 text-slate-400" />
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="absolute left-2 top-1.5 h-3 w-3 text-slate-400" />
               <Input
                 placeholder="Buscar conversas..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 h-8 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 text-sm"
+                className="pl-7 h-7 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 text-xs"
               />
             </div>
 
-            <Separator orientation="vertical" className="h-8 bg-slate-600" />
+            <Separator orientation="vertical" className="h-6 bg-slate-600" />
             
             {/* Compact Statistics */}
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-1.5 text-[10px]">
               <span className="text-slate-400">Total:</span>
-              <Badge variant="secondary" className="h-5 px-2 bg-slate-700 text-slate-200">
+              <Badge variant="secondary" className="h-4 px-1.5 bg-slate-700 text-slate-200 text-[10px]">
                 {safeConversations.length}
               </Badge>
               <span className="text-slate-400">Abertas:</span>
-              <Badge variant="secondary" className="h-5 px-2 bg-green-900/50 text-green-300">
+              <Badge variant="secondary" className="h-4 px-1.5 bg-green-900/50 text-green-300 text-[10px]">
                 {safeConversations.filter(c => c.status === 'open').length}
               </Badge>
               <span className="text-slate-400">Pendentes:</span>
-              <Badge variant="secondary" className="h-5 px-2 bg-yellow-900/50 text-yellow-300">
+              <Badge variant="secondary" className="h-4 px-1.5 bg-yellow-900/50 text-yellow-300 text-[10px]">
                 {safeConversations.filter(c => c.status === 'pending').length}
               </Badge>
               <span className="text-slate-400">Resolvidas:</span>
-              <Badge variant="secondary" className="h-5 px-2 bg-blue-900/50 text-blue-300">
+              <Badge variant="secondary" className="h-4 px-1.5 bg-blue-900/50 text-blue-300 text-[10px]">
                 {safeConversations.filter(c => c.status === 'resolved').length}
               </Badge>
             </div>
@@ -609,33 +610,33 @@ const Atendimentos = () => {
       </Card>
 
       {/* Main Content */}
-      <div className="flex-1 grid grid-cols-12 gap-4 min-h-0">
+      <div className="flex-1 grid grid-cols-12 gap-2 min-h-0">
         {/* Conversations List */}
         <Card className="col-span-12 lg:col-span-3 flex flex-col bg-slate-800 border-slate-700">
-          <CardHeader className="pb-2 border-b border-slate-700">
+          <CardHeader className="pb-1 pt-2 px-2 border-b border-slate-700">
             <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-              <TabsList className="w-full grid grid-cols-4 gap-1 bg-slate-700 p-1 h-auto">
-                <TabsTrigger value="all" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1.5 h-auto">
+              <TabsList className="w-full grid grid-cols-4 gap-0.5 bg-slate-700 p-0.5 h-auto">
+                <TabsTrigger value="all" className="text-[10px] text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-1 py-1 h-auto">
                   <span>Todas</span>
-                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-slate-600 text-slate-100 font-semibold mt-0.5">
+                  <Badge variant="secondary" className="h-3 px-1 text-[9px] bg-slate-600 text-slate-100 font-semibold mt-0.5">
                     {safeConversations.length}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="open" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1.5 h-auto">
+                <TabsTrigger value="open" className="text-[10px] text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-1 py-1 h-auto">
                   <span>Abertas</span>
-                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-green-900/50 text-green-300 font-semibold mt-0.5">
+                  <Badge variant="secondary" className="h-3 px-1 text-[9px] bg-green-900/50 text-green-300 font-semibold mt-0.5">
                     {safeConversations.filter(c => c.status === 'open').length}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="pending" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1.5 h-auto">
+                <TabsTrigger value="pending" className="text-[10px] text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-1 py-1 h-auto">
                   <span>Pendentes</span>
-                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-yellow-900/50 text-yellow-300 font-semibold mt-0.5">
+                  <Badge variant="secondary" className="h-3 px-1 text-[9px] bg-yellow-900/50 text-yellow-300 font-semibold mt-0.5">
                     {safeConversations.filter(c => c.status === 'pending').length}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="resolved" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1.5 h-auto">
+                <TabsTrigger value="resolved" className="text-[10px] text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-1 py-1 h-auto">
                   <span>Resolvidas</span>
-                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-blue-900/50 text-blue-300 font-semibold mt-0.5">
+                  <Badge variant="secondary" className="h-3 px-1 text-[9px] bg-blue-900/50 text-blue-300 font-semibold mt-0.5">
                     {safeConversations.filter(c => c.status === 'resolved').length}
                   </Badge>
                 </TabsTrigger>
@@ -643,20 +644,20 @@ const Atendimentos = () => {
             </Tabs>
           </CardHeader>
           
-          <ScrollArea className="flex-1">
-            <CardContent className="p-2">
+           <ScrollArea className="flex-1">
+            <CardContent className="p-1">
               {isLoading ? (
-                <div className="text-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
-                  <p className="text-sm text-slate-300">Carregando conversas...</p>
+                <div className="text-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-400" />
+                  <p className="text-xs text-slate-300">Carregando conversas...</p>
                 </div>
               ) : filteredConversations.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">
-                  <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50 text-slate-500" />
-                  <p className="text-sm">Nenhuma conversa encontrada</p>
+                <div className="text-center py-4 text-slate-400">
+                  <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50 text-slate-500" />
+                  <p className="text-xs">Nenhuma conversa encontrada</p>
                 </div>
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {filteredConversations.map((conversation) => {
                     const lastMessage = conversation.messages?.[conversation.messages.length - 1];
                     const isSelected = selectedConversation?.id === conversation.id;
@@ -664,40 +665,40 @@ const Atendimentos = () => {
                     return (
                       <div
                         key={conversation.id}
-                        className={`p-3 rounded-lg cursor-pointer transition-all ${
+                        className={`p-2 rounded-lg cursor-pointer transition-all ${
                           isSelected
                             ? 'bg-blue-900/30 border-2 border-blue-600'
                             : 'hover:bg-slate-700/50 border-2 border-transparent'
                         }`}
                         onClick={() => setSelectedConversation(conversation)}
                       >
-                        <div className="flex items-start gap-3">
-                          <Avatar className="h-10 w-10 flex-shrink-0">
-                            <AvatarFallback className="bg-blue-600 text-white">
+                        <div className="flex items-start gap-2">
+                          <Avatar className="h-8 w-8 flex-shrink-0">
+                            <AvatarFallback className="bg-blue-600 text-white text-xs">
                               {getInitials(conversation.meta?.sender?.name || 'Cliente')}
                             </AvatarFallback>
                           </Avatar>
                           
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                              <h3 className="font-medium text-sm truncate text-white">
+                            <div className="flex items-center justify-between gap-1 mb-0.5">
+                              <h3 className="font-medium text-xs truncate text-white">
                                 {conversation.meta?.sender?.name || 'Cliente'}
                               </h3>
                               {getStatusBadge(conversation.status)}
                             </div>
                             
                             {lastMessage && (
-                              <p className="text-xs text-slate-400 line-clamp-2">
+                              <p className="text-[10px] text-slate-400 line-clamp-1">
                                 {lastMessage.content}
                               </p>
                             )}
                             
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs text-slate-500">
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <span className="text-[10px] text-slate-500">
                                 {formatMessageTime(conversation.last_activity_at)}
                               </span>
                               {conversation.unread_count > 0 && (
-                                <Badge variant="destructive" className="h-4 px-1 text-xs bg-red-600">
+                                <Badge variant="destructive" className="h-3 px-1 text-[9px] bg-red-600">
                                   {conversation.unread_count}
                                 </Badge>
                               )}
@@ -718,19 +719,19 @@ const Atendimentos = () => {
           {selectedConversation ? (
             <>
               {/* Chat Header */}
-              <CardHeader className="pb-3 border-b border-slate-700">
+              <CardHeader className="pb-2 pt-2 px-3 border-b border-slate-700">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-blue-600 text-white">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-blue-600 text-white text-xs">
                         {getInitials(selectedConversation.meta?.sender?.name || 'Cliente')}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <h3 className="font-semibold text-lg text-white">
+                      <h3 className="font-semibold text-sm text-white">
                         {selectedConversation.meta?.sender?.name || 'Cliente'}
                       </h3>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-[10px] text-slate-400">
                         {selectedConversation.meta?.sender?.phone_number}
                       </p>
                     </div>
@@ -742,17 +743,17 @@ const Atendimentos = () => {
                       variant="ghost"
                       size="icon"
                       onClick={() => setShowContactPanel(!showContactPanel)}
-                      className="hidden lg:flex"
+                      className="hidden lg:flex h-7 w-7"
                     >
-                      <ChevronRight className={`h-4 w-4 transition-transform ${showContactPanel ? 'rotate-180' : ''}`} />
+                      <ChevronRight className={`h-3 w-3 transition-transform ${showContactPanel ? 'rotate-180' : ''}`} />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => setSelectedConversation(null)}
-                      className="lg:hidden"
+                      className="lg:hidden h-7 w-7"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>
@@ -764,15 +765,15 @@ const Atendimentos = () => {
                 />
                 
                 {/* Status Actions + Agent Selector */}
-                <div className="flex items-center gap-2 mt-3 flex-wrap">
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                   <Button 
                     size="sm" 
                     variant={selectedConversation.status === 'open' ? 'default' : 'outline'}
                     onClick={() => handleStatusChange('open')}
                     disabled={updateConversationStatus.isPending || selectedConversation.status === 'open'}
-                    className={selectedConversation.status === 'open' 
+                    className={`h-7 text-xs ${selectedConversation.status === 'open' 
                       ? 'bg-green-600 hover:bg-green-700 text-white' 
-                      : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}
+                      : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}
                   >
                     {updateConversationStatus.isPending ? (
                       <Loader2 className="h-3 w-3 mr-1 animate-spin" />
@@ -789,9 +790,9 @@ const Atendimentos = () => {
                       handleStatusChange('pending');
                     }}
                     disabled={updateConversationStatus.isPending || selectedConversation.status === 'pending'}
-                    className={selectedConversation.status === 'pending' 
+                    className={`h-7 text-xs ${selectedConversation.status === 'pending' 
                       ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-                      : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}
+                      : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}
                   >
                     {updateConversationStatus.isPending ? (
                       <Loader2 className="h-3 w-3 mr-1 animate-spin" />
@@ -808,9 +809,9 @@ const Atendimentos = () => {
                       handleStatusChange('resolved');
                     }}
                     disabled={updateConversationStatus.isPending || selectedConversation.status === 'resolved'}
-                    className={selectedConversation.status === 'resolved' 
+                    className={`h-7 text-xs ${selectedConversation.status === 'resolved' 
                       ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                      : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}
+                      : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}
                   >
                     {updateConversationStatus.isPending ? (
                       <Loader2 className="h-3 w-3 mr-1 animate-spin" />
@@ -820,10 +821,10 @@ const Atendimentos = () => {
                     Resolver
                   </Button>
                   
-                  <Separator orientation="vertical" className="h-8" />
+                  <Separator orientation="vertical" className="h-6" />
                   
                   {/* Agent Selector inline */}
-                  <div className="flex-1 min-w-[200px]">
+                  <div className="flex-1 min-w-[180px]">
                     <ChatwootAgentSelector 
                       conversationId={selectedConversation.id.toString()}
                       currentAgentId={selectedConversation.assignee?.id}
@@ -835,6 +836,7 @@ const Atendimentos = () => {
                     variant={showContactPanel ? 'default' : 'outline'}
                     onClick={() => setShowContactPanel(!showContactPanel)}
                     title={showContactPanel ? 'Ocultar informações do contato' : 'Mostrar informações do contato'}
+                    className="h-7 text-xs"
                   >
                     <User className="h-3 w-3 mr-1" />
                     Contato
@@ -843,14 +845,14 @@ const Atendimentos = () => {
               </CardHeader>
               
               {/* Messages */}
-              <ScrollArea className="h-[calc(100vh-450px)] min-h-[400px] max-h-[600px] p-4">
+              <ScrollArea className="h-[calc(100vh-350px)] min-h-[300px] max-h-[500px] p-2">
                 {messagesLoading ? (
-                  <div className="text-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
-                    <p className="text-sm text-slate-300">Carregando mensagens...</p>
+                  <div className="text-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-400" />
+                    <p className="text-xs text-slate-300">Carregando mensagens...</p>
                   </div>
                 ) : conversationMessages && conversationMessages.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     {conversationMessages.map((message, index) => {
                       const isOutgoing = message.message_type === 1;
                       const showSenderName = !isOutgoing && message.sender?.name;
@@ -870,22 +872,22 @@ const Atendimentos = () => {
                         >
                           <div className={`max-w-[70%] ${isOutgoing ? 'order-2' : 'order-1'}`}>
                             <div
-                              className={`rounded-lg p-3 shadow-sm ${
+                              className={`rounded-lg p-2 shadow-sm ${
                                 isOutgoing
                                   ? 'bg-blue-600 text-white'
                                   : 'bg-slate-700 text-slate-100'
                               }`}
                             >
                               {showSenderName && (
-                                <p className="text-xs font-semibold mb-1 opacity-80">
+                                <p className="text-[10px] font-semibold mb-1 opacity-80">
                                   {message.sender.name}
                                 </p>
                               )}
-                              <p className="text-sm whitespace-pre-wrap break-words">
+                              <p className="text-xs whitespace-pre-wrap break-words">
                                 {message.content}
                               </p>
-                              <div className="flex items-center justify-between gap-2 mt-1.5">
-                                <p className={`text-xs ${isOutgoing ? 'text-blue-100' : 'text-slate-400'}`}>
+                              <div className="flex items-center justify-between gap-2 mt-1">
+                                <p className={`text-[10px] ${isOutgoing ? 'text-blue-100' : 'text-slate-400'}`}>
                                   {formatMessageTime(message.created_at)}
                                 </p>
                                 <ChatwootMessageStatus 
@@ -901,10 +903,10 @@ const Atendimentos = () => {
                     <div ref={messagesEndRef} />
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-slate-400">
-                    <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50 text-slate-500" />
-                    <p>Nenhuma mensagem nesta conversa</p>
-                    <p className="text-xs text-slate-500 mt-2">
+                  <div className="text-center py-4 text-slate-400">
+                    <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50 text-slate-500" />
+                    <p className="text-xs">Nenhuma mensagem nesta conversa</p>
+                    <p className="text-[10px] text-slate-500 mt-1">
                       As mensagens aparecerão aqui quando forem enviadas ou recebidas
                     </p>
                   </div>
@@ -912,11 +914,11 @@ const Atendimentos = () => {
               </ScrollArea>
               
               {/* Message Input */}
-              <div className="p-4 border-t border-slate-700">
-                <div className="mb-2">
+              <div className="p-2 border-t border-slate-700">
+                <div className="mb-1">
                   <ChatwootQuickReplies onSelectReply={setMessageText} />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   <ChatwootFileUpload 
                     conversationId={selectedConversation.id.toString()}
                   />
@@ -930,27 +932,27 @@ const Atendimentos = () => {
                         handleSendMessage();
                       }
                     }}
-                    className="min-h-[60px] max-h-[120px] resize-none bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                    className="min-h-[50px] max-h-[100px] resize-none bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 text-xs"
                     disabled={!selectedConversation.can_reply}
                   />
                   <Button 
                     onClick={handleSendMessage}
                     disabled={sendMessage.isPending || !messageText.trim() || !selectedConversation.can_reply}
-                    className="px-6 bg-blue-600 hover:bg-blue-700 text-white"
+                    className="px-4 bg-blue-600 hover:bg-blue-700 text-white h-[50px]"
                   >
                     {sendMessage.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-3 w-3 animate-spin" />
                     ) : (
-                      <Send className="h-4 w-4" />
+                      <Send className="h-3 w-3" />
                     )}
                   </Button>
                 </div>
                 {!selectedConversation.can_reply && (
-                  <p className="text-xs text-slate-400 mt-2">
+                  <p className="text-[10px] text-slate-400 mt-1">
                     Esta conversa não permite resposta
                   </p>
                 )}
-                <p className="text-xs text-slate-400 mt-2">
+                <p className="text-[10px] text-slate-400 mt-1">
                   Pressione Enter para enviar, Shift+Enter para quebrar linha
                 </p>
               </div>
@@ -958,9 +960,9 @@ const Atendimentos = () => {
           ) : (
             <CardContent className="flex-1 flex items-center justify-center">
               <div className="text-center text-slate-400">
-                <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-50 text-slate-500" />
-                <h3 className="text-lg font-medium mb-2 text-slate-300">Nenhuma conversa selecionada</h3>
-                <p className="text-sm">
+                <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-50 text-slate-500" />
+                <h3 className="text-base font-medium mb-1 text-slate-300">Nenhuma conversa selecionada</h3>
+                <p className="text-xs">
                   Selecione uma conversa da lista para começar
                 </p>
               </div>
