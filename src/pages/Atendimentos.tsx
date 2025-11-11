@@ -60,7 +60,8 @@ const Atendimentos = () => {
     testConnection,
     sendMessage,
     updateConversationStatus,
-    refetchConversations
+    refetchConversations,
+    markConversationAsRead
   } = useChatwootAPI();
 
   // Load messages for selected conversation
@@ -139,6 +140,14 @@ const Atendimentos = () => {
       refetchMessages?.();
     }
   }, [selectedConversation]);
+
+  // Marcar conversa como lida quando selecionada
+  useEffect(() => {
+    if (selectedConversation && integrationId && markConversationAsRead) {
+      console.log('📖 Nova conversa selecionada, marcando como lida:', selectedConversation.id);
+      markConversationAsRead(selectedConversation.id.toString());
+    }
+  }, [selectedConversation?.id, integrationId, markConversationAsRead]);
 
   const safeConversations = Array.isArray(conversations) ? conversations : [];
 

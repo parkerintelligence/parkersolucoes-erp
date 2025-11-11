@@ -325,7 +325,7 @@ export const useChatwootAPI = () => {
 
   const updateConversationStatus = useMutation({
     mutationFn: async ({ conversationId, status }: { conversationId: string; status: 'open' | 'resolved' | 'pending' }) => {
-      console.log('🚀 MUTATION INICIADA!', { conversationId, status });
+      console.log('🚀 MUTATION STATUS INICIADA!', { conversationId, status });
       
       if (!chatwootIntegration?.id) {
         console.error('❌ Sem integração Chatwoot configurada');
@@ -334,7 +334,6 @@ export const useChatwootAPI = () => {
 
       try {
         console.log('🔍 Buscando profile...');
-        // Get profile to get the account ID
         const profile = await makeChatwootRequest(
           chatwootIntegration.id,
           '/profile'
@@ -342,76 +341,80 @@ export const useChatwootAPI = () => {
 
         const accountId = profile.account_id;
         console.log('✅ Profile obtido, accountId:', accountId);
-        console.log('🔄 Atualizando conversa:', { conversationId, status, accountId });
 
         // Pegar status anterior antes de atualizar
         const oldData: any = queryClient.getQueryData(['chatwoot-conversations', chatwootIntegration?.id]);
         const conversationData = oldData?.find((c: any) => c.id.toString() === conversationId);
         const previousStatus = conversationData?.status || 'open';
 
-        let conversation;
-        let successMethod = '';
+        let conversation = null;
+        let lastError = null;
 
+        // Tentativa 1: POST no /toggle_status (mais comum e confiável)
         try {
-          // Tentativa 1: PATCH no endpoint padrão
-          console.log('🔄 Tentando PATCH /conversations/:id...');
+          console.log('🔄 [1/3] Tentando POST /toggle_status...');
           conversation = await makeChatwootRequest(
             chatwootIntegration.id,
-            `/accounts/${accountId}/conversations/${conversationId}`,
+            `/accounts/${accountId}/conversations/${conversationId}/toggle_status`,
             {
-              method: 'PATCH',
+              method: 'POST',
               body: { status }
             }
           );
-          successMethod = 'PATCH /conversations/:id';
-          console.log('✅ PATCH bem-sucedido');
-        } catch (patchError) {
-          console.warn('⚠️ PATCH falhou:', patchError);
+          console.log('✅ POST /toggle_status bem-sucedido!');
+        } catch (error1) {
+          console.warn('⚠️ [1/3] POST /toggle_status falhou:', error1);
+          lastError = error1;
           
+          // Tentativa 2: PATCH no endpoint padrão
           try {
-            // Tentativa 2: POST no toggle_status (mais comum)
-            console.log('🔄 Tentando POST /conversations/:id/toggle_status...');
+            console.log('🔄 [2/3] Tentando PATCH /conversations/:id...');
             conversation = await makeChatwootRequest(
               chatwootIntegration.id,
-              `/accounts/${accountId}/conversations/${conversationId}/toggle_status`,
+              `/accounts/${accountId}/conversations/${conversationId}`,
               {
-                method: 'POST',
+                method: 'PATCH',
                 body: { status }
               }
             );
-            successMethod = 'POST /conversations/:id/toggle_status';
-            console.log('✅ POST toggle_status bem-sucedido');
-          } catch (toggleError) {
-            console.warn('⚠️ POST toggle_status falhou:', toggleError);
+            console.log('✅ PATCH bem-sucedido!');
+          } catch (error2) {
+            console.warn('⚠️ [2/3] PATCH falhou:', error2);
+            lastError = error2;
             
+            // Tentativa 3: PUT no endpoint padrão
             try {
-              // Tentativa 3: POST direto (algumas versões antigas)
-              console.log('🔄 Tentando POST /conversations/:id...');
+              console.log('🔄 [3/3] Tentando PUT /conversations/:id...');
               conversation = await makeChatwootRequest(
                 chatwootIntegration.id,
                 `/accounts/${accountId}/conversations/${conversationId}`,
                 {
-                  method: 'POST',
+                  method: 'PUT',
                   body: { status }
                 }
               );
-              successMethod = 'POST /conversations/:id';
-              console.log('✅ POST bem-sucedido');
-            } catch (postError) {
-              console.error('❌ Todos os métodos falharam');
-              throw new Error('Não foi possível atualizar o status. Endpoint não suportado.');
+              console.log('✅ PUT bem-sucedido!');
+            } catch (error3) {
+              console.error('❌ [3/3] PUT falhou:', error3);
+              throw new Error(`Todos os métodos falharam. Último erro: ${lastError}`);
             }
           }
         }
 
-        console.log('✅ Status atualizado via:', successMethod);
+        if (!conversation) {
+          throw new Error('Nenhuma resposta da API do Chatwoot');
+        }
 
-        console.log('✅ Conversation updated, new status:', conversation.status);
+        console.log('✅ Status atualizado com sucesso:', conversation.status);
 
         // Salvar no histórico após sucesso da API
-        console.log('💾 Salvando histórico de status...');
-        await saveStatusHistory(conversationId, previousStatus, status);
-        console.log('✅ Histórico salvo!');
+        try {
+          console.log('💾 Salvando histórico de status...');
+          await saveStatusHistory(conversationId, previousStatus, status);
+          console.log('✅ Histórico salvo!');
+        } catch (historyError) {
+          console.warn('⚠️ Erro ao salvar histórico (não crítico):', historyError);
+        }
 
         return conversation;
       } catch (error: any) {
@@ -494,6 +497,63 @@ export const useChatwootAPI = () => {
     queryClient.invalidateQueries({ queryKey: ['chatwoot-conversations'] });
   };
 
+  // Nova função para marcar conversa como lida
+  const markConversationAsRead = async (conversationId: string) => {
+    if (!chatwootIntegration?.id) {
+      console.warn('⚠️ Chatwoot não configurado, não é possível marcar como lida');
+      return;
+    }
+
+    try {
+      console.log('📖 Marcando conversa como lida:', conversationId);
+      
+      const profile = await makeChatwootRequest(
+        chatwootIntegration.id,
+        '/profile'
+      );
+
+      const accountId = profile.account_id;
+      
+      // Marcar todas as mensagens da conversa como lidas
+      await makeChatwootRequest(
+        chatwootIntegration.id,
+        `/accounts/${accountId}/conversations/${conversationId}/update_last_seen`,
+        {
+          method: 'POST',
+          body: {}
+        }
+      );
+      
+      console.log('✅ Conversa marcada como lida!');
+      
+      // Atualizar o cache local para refletir unread_count = 0
+      queryClient.setQueryData(
+        ['chatwoot-conversations', chatwootIntegration.id],
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          
+          return oldData.map((conv: any) => {
+            if (String(conv.id) === String(conversationId)) {
+              return { ...conv, unread_count: 0 };
+            }
+            return conv;
+          });
+        }
+      );
+      
+      // Forçar refresh após 2 segundos para garantir sincronização
+      setTimeout(() => {
+        queryClient.invalidateQueries({ 
+          queryKey: ['chatwoot-conversations', chatwootIntegration.id] 
+        });
+      }, 2000);
+      
+    } catch (error) {
+      console.error('❌ Erro ao marcar conversa como lida:', error);
+      // Não bloquear a interface se falhar
+    }
+  };
+
   const getConversationDetails = async (conversationId: string) => {
     if (!chatwootIntegration?.id) {
       throw new Error('Chatwoot não configurado');
@@ -519,5 +579,6 @@ export const useChatwootAPI = () => {
     updateConversationStatus,
     refetchConversations,
     getConversationDetails,
+    markConversationAsRead,
   };
 };
