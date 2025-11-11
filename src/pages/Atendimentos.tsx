@@ -45,6 +45,7 @@ const Atendimentos = () => {
   const [showContactPanel, setShowContactPanel] = useState(false);
   const [viewMode, setViewMode] = useState<'conversations' | 'metrics' | 'stats'>('conversations');
   const [isGLPIDialogOpen, setIsGLPIDialogOpen] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const {
     isConfigured,
@@ -99,7 +100,7 @@ const Atendimentos = () => {
   // Notificações desktop para todas as conversas abertas
   const {
     isNotificationPermissionGranted
-  } = useDesktopNotifications(conversations, isConfigured);
+  } = useDesktopNotifications(conversations, notificationsEnabled && isConfigured);
 
   // Get current user ID from Chatwoot
   useEffect(() => {
@@ -491,16 +492,21 @@ const Atendimentos = () => {
             </div>
           </div>
         <div className="flex gap-2 items-center">
-          {/* Notification Status Indicator */}
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-800 rounded-md border border-slate-700">
-            {isNotificationPermissionGranted ? <>
+          {/* Notification Toggle Button */}
+          <Button 
+            onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+            variant="outline" 
+            size="sm" 
+            className="h-7 gap-1.5"
+          >
+            {notificationsEnabled ? <>
                 <Bell className="h-3 w-3 text-green-400" />
                 <span className="text-xs text-green-400">Notificações ativas</span>
               </> : <>
                 <BellOff className="h-3 w-3 text-slate-500" />
                 <span className="text-xs text-slate-500">Notificações desativadas</span>
               </>}
-          </div>
+          </Button>
           
           <Button onClick={() => refetchConversations?.()} disabled={isLoading} variant="outline" size="sm" className="h-7">
             {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
