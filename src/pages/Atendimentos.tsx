@@ -24,14 +24,16 @@ import {
   User,
   TrendingUp,
   Tag,
-  Ticket
+  Ticket,
+  Bell,
+  BellOff
 } from 'lucide-react';
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
 import { useChatwootRealtime, useChatwootMessageNotifications } from '@/hooks/useChatwootRealtime';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useChatwootLabels } from '@/hooks/useChatwootLabels';
-import { format, isSameDay, isYesterday, isThisWeek } from 'date-fns';
+import { format, isSameDay, isYesterday, isThisWeek, isToday, startOfWeek, startOfMonth, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
 import { ChatwootAgentSelector } from '@/components/chatwoot/ChatwootAgentSelector';
@@ -47,6 +49,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useChatwootLabelStats } from '@/hooks/useChatwootLabelStats';
 import { ChatwootLabelStats } from '@/components/chatwoot/ChatwootLabelStats';
 import { GLPINewTicketDialog } from '@/components/GLPINewTicketDialog';
+import { useDesktopNotifications } from '@/hooks/useDesktopNotifications';
 
 const Atendimentos = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,6 +60,7 @@ const Atendimentos = () => {
   const [selectedAgentId, setSelectedAgentId] = useState<string>('all');
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'date' | 'priority' | 'labels'>('date');
+  const [periodFilter, setPeriodFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [showContactPanel, setShowContactPanel] = useState(false);
   const [viewMode, setViewMode] = useState<'conversations' | 'metrics' | 'stats'>('conversations');
@@ -106,6 +110,9 @@ const Atendimentos = () => {
     selectedConversation?.id.toString() || null,
     isConfigured
   );
+
+  // Notificações desktop para todas as conversas abertas
+  const { isNotificationPermissionGranted } = useDesktopNotifications(conversations, isConfigured);
 
   // Get current user ID from Chatwoot
   useEffect(() => {
@@ -194,6 +201,25 @@ const Atendimentos = () => {
       
       const matchesStatus = statusFilter === 'all' || conv.status === statusFilter;
       
+      // Period filter
+      let matchesPeriod = true;
+      if (periodFilter !== 'all' && conv.last_activity_at) {
+        const activityDate = new Date(conv.last_activity_at);
+        const now = new Date();
+        
+        switch (periodFilter) {
+          case 'today':
+            matchesPeriod = isToday(activityDate);
+            break;
+          case 'week':
+            matchesPeriod = isAfter(activityDate, startOfWeek(now, { weekStartsOn: 0 }));
+            break;
+          case 'month':
+            matchesPeriod = isAfter(activityDate, startOfMonth(now));
+            break;
+        }
+      }
+      
       // Assignment filter
       let matchesAssignment = true;
       if (assignmentFilter === 'mine') {
@@ -219,7 +245,7 @@ const Atendimentos = () => {
         matchesLabel = selectedLabels.some(label => convLabels.includes(label));
       }
       
-      return matchesSearch && matchesStatus && matchesAssignment && matchesAgent && matchesLabel;
+      return matchesSearch && matchesStatus && matchesAssignment && matchesAgent && matchesLabel && matchesPeriod;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -507,7 +533,22 @@ const Atendimentos = () => {
               </p>
             </div>
           </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {/* Notification Status Indicator */}
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-800 rounded-md border border-slate-700">
+            {isNotificationPermissionGranted ? (
+              <>
+                <Bell className="h-3 w-3 text-green-400" />
+                <span className="text-xs text-green-400">Notificações ativas</span>
+              </>
+            ) : (
+              <>
+                <BellOff className="h-3 w-3 text-slate-500" />
+                <span className="text-xs text-slate-500">Notificações desativadas</span>
+              </>
+            )}
+          </div>
+          
           <Button 
             onClick={() => refetchConversations?.()} 
             disabled={isLoading}
@@ -631,6 +672,32 @@ const Atendimentos = () => {
                       </SelectItem>
                     ))
                   )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Separator orientation="vertical" className="h-6 bg-slate-600" />
+            
+            {/* Period Filter */}
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3 text-slate-400" />
+              <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as any)}>
+                <SelectTrigger className="w-[140px] h-7 bg-slate-700 border-slate-600 text-white text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600">
+                  <SelectItem value="all" className="text-white hover:bg-slate-600 text-xs">
+                    Todas as datas
+                  </SelectItem>
+                  <SelectItem value="today" className="text-white hover:bg-slate-600 text-xs">
+                    Hoje
+                  </SelectItem>
+                  <SelectItem value="week" className="text-white hover:bg-slate-600 text-xs">
+                    Esta semana
+                  </SelectItem>
+                  <SelectItem value="month" className="text-white hover:bg-slate-600 text-xs">
+                    Este mês
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
