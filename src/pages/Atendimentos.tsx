@@ -8,27 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  MessageSquare, 
-  Search, 
-  RefreshCw, 
-  Send,
-  AlertCircle,
-  Loader2,
-  CheckCircle2,
-  AlertTriangle,
-  Clock,
-  MessageCircle,
-  X,
-  ChevronRight,
-  User,
-  TrendingUp,
-  Tag,
-  Ticket,
-  Bell,
-  BellOff,
-  BarChart3
-} from 'lucide-react';
+import { MessageSquare, Search, RefreshCw, Send, AlertCircle, Loader2, CheckCircle2, AlertTriangle, Clock, MessageCircle, X, ChevronRight, User, TrendingUp, Tag, Ticket, Bell, BellOff, BarChart3 } from 'lucide-react';
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
 import { useChatwootRealtime, useChatwootMessageNotifications } from '@/hooks/useChatwootRealtime';
@@ -51,7 +31,6 @@ import { useChatwootLabelStats } from '@/hooks/useChatwootLabelStats';
 import { ChatwootLabelStats } from '@/components/chatwoot/ChatwootLabelStats';
 import { GLPINewTicketDialog } from '@/components/GLPINewTicketDialog';
 import { useDesktopNotifications } from '@/hooks/useDesktopNotifications';
-
 const Atendimentos = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConversation, setSelectedConversation] = useState<ChatwootConversation | null>(null);
@@ -67,12 +46,11 @@ const Atendimentos = () => {
   const [viewMode, setViewMode] = useState<'conversations' | 'metrics' | 'stats'>('conversations');
   const [isGLPIDialogOpen, setIsGLPIDialogOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  const { 
+  const {
     isConfigured,
     integrationId,
-    conversations = [], 
-    isLoading, 
+    conversations = [],
+    isLoading,
     error,
     testConnection,
     sendMessage,
@@ -82,16 +60,26 @@ const Atendimentos = () => {
   } = useChatwootAPI();
 
   // Get agents list
-  const { agents, isLoading: agentsLoading } = useChatwootAgents();
-  
+  const {
+    agents,
+    isLoading: agentsLoading
+  } = useChatwootAgents();
+
   // Get labels list
-  const { labels: availableLabels } = useChatwootLabels(integrationId);
-  
+  const {
+    labels: availableLabels
+  } = useChatwootLabels(integrationId);
+
   // Get label statistics
-  const { labelStats, isLoading: isLoadingLabelStats } = useChatwootLabelStats(conversations, integrationId);
+  const {
+    labelStats,
+    isLoading: isLoadingLabelStats
+  } = useChatwootLabelStats(conversations, integrationId);
 
   // Get integration settings for popup notifications
-  const { data: integrations } = useIntegrations();
+  const {
+    data: integrations
+  } = useIntegrations();
   const chatwootIntegration = integrations?.find(int => int.type === 'chatwoot');
 
   // Load messages for selected conversation
@@ -104,43 +92,41 @@ const Atendimentos = () => {
   // Ativar notificações em tempo real (webhooks)
   const enablePopupNotifications = (chatwootIntegration as any)?.enable_popup_notifications ?? true;
   useChatwootRealtime(integrationId, isConfigured, enablePopupNotifications);
-  
+
   // Detectar novas mensagens via polling (funciona sempre)
-  useChatwootMessageNotifications(
-    conversationMessages,
-    selectedConversation?.id.toString() || null,
-    isConfigured
-  );
+  useChatwootMessageNotifications(conversationMessages, selectedConversation?.id.toString() || null, isConfigured);
 
   // Notificações desktop para todas as conversas abertas
-  const { isNotificationPermissionGranted } = useDesktopNotifications(conversations, isConfigured);
+  const {
+    isNotificationPermissionGranted
+  } = useDesktopNotifications(conversations, isConfigured);
 
   // Get current user ID from Chatwoot
   useEffect(() => {
     const fetchCurrentUser = async () => {
       if (!integrationId) return;
-      
       try {
-        const { supabase } = await import('@/integrations/supabase/client');
-        const { data: { session } } = await supabase.auth.refreshSession();
-        if (!session) return;
-
-        const response = await fetch(
-          'https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/chatwoot-proxy',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({
-              integrationId,
-              endpoint: '/profile',
-              method: 'GET',
-            }),
+        const {
+          supabase
+        } = await import('@/integrations/supabase/client');
+        const {
+          data: {
+            session
           }
-        );
-
+        } = await supabase.auth.refreshSession();
+        if (!session) return;
+        const response = await fetch('https://mpvxppgoyadwukkfoccs.supabase.co/functions/v1/chatwoot-proxy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            integrationId,
+            endpoint: '/profile',
+            method: 'GET'
+          })
+        });
         if (response.ok) {
           const profile = await response.json();
           setCurrentUserId(profile.id);
@@ -149,7 +135,6 @@ const Atendimentos = () => {
         console.error('Error fetching current user:', error);
       }
     };
-
     fetchCurrentUser();
   }, [integrationId]);
 
@@ -165,7 +150,9 @@ const Atendimentos = () => {
 
   // Auto-scroll to last message
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({
+      behavior: 'smooth'
+    });
   }, [conversationMessages]);
 
   // Auto-refresh messages when conversation is selected
@@ -186,74 +173,66 @@ const Atendimentos = () => {
           // Não fazer nada - é esperado que algumas vezes falhe
         });
       }, 1000); // Delay de 1 segundo para evitar chamadas excessivas
-      
+
       return () => clearTimeout(timer);
     }
   }, [selectedConversation?.id, integrationId, markConversationAsRead]);
-
   const safeConversations = Array.isArray(conversations) ? conversations : [];
+  const filteredConversations = safeConversations.filter(conv => {
+    const matchesSearch = conv.meta?.sender?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || conv.meta?.sender?.phone_number?.includes(searchTerm) || conv.id?.toString().includes(searchTerm);
+    const matchesStatus = statusFilter === 'all' || conv.status === statusFilter;
 
-  const filteredConversations = safeConversations
-    .filter(conv => {
-      const matchesSearch = 
-        conv.meta?.sender?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        conv.meta?.sender?.phone_number?.includes(searchTerm) ||
-        conv.id?.toString().includes(searchTerm);
-      
-      const matchesStatus = statusFilter === 'all' || conv.status === statusFilter;
-      
-      // Period filter
-      let matchesPeriod = true;
-      if (periodFilter !== 'all' && conv.last_activity_at) {
-        const activityDate = new Date(conv.last_activity_at);
-        const now = new Date();
-        
-        switch (periodFilter) {
-          case 'today':
-            matchesPeriod = isToday(activityDate);
-            break;
-          case 'week':
-            matchesPeriod = isAfter(activityDate, startOfWeek(now, { weekStartsOn: 0 }));
-            break;
-          case 'month':
-            matchesPeriod = isAfter(activityDate, startOfMonth(now));
-            break;
-        }
+    // Period filter
+    let matchesPeriod = true;
+    if (periodFilter !== 'all' && conv.last_activity_at) {
+      const activityDate = new Date(conv.last_activity_at);
+      const now = new Date();
+      switch (periodFilter) {
+        case 'today':
+          matchesPeriod = isToday(activityDate);
+          break;
+        case 'week':
+          matchesPeriod = isAfter(activityDate, startOfWeek(now, {
+            weekStartsOn: 0
+          }));
+          break;
+        case 'month':
+          matchesPeriod = isAfter(activityDate, startOfMonth(now));
+          break;
       }
-      
-      // Assignment filter
-      let matchesAssignment = true;
-      if (assignmentFilter === 'mine') {
-        matchesAssignment = conv.assignee?.id === currentUserId;
-      } else if (assignmentFilter === 'unassigned') {
-        matchesAssignment = !conv.assignee || conv.assignee === null;
+    }
+
+    // Assignment filter
+    let matchesAssignment = true;
+    if (assignmentFilter === 'mine') {
+      matchesAssignment = conv.assignee?.id === currentUserId;
+    } else if (assignmentFilter === 'unassigned') {
+      matchesAssignment = !conv.assignee || conv.assignee === null;
+    }
+
+    // Agent filter
+    let matchesAgent = true;
+    if (selectedAgentId !== 'all') {
+      if (selectedAgentId === 'unassigned') {
+        matchesAgent = !conv.assignee || conv.assignee === null;
+      } else {
+        matchesAgent = conv.assignee?.id?.toString() === selectedAgentId;
       }
-      
-      // Agent filter
-      let matchesAgent = true;
-      if (selectedAgentId !== 'all') {
-        if (selectedAgentId === 'unassigned') {
-          matchesAgent = !conv.assignee || conv.assignee === null;
-        } else {
-          matchesAgent = conv.assignee?.id?.toString() === selectedAgentId;
-        }
-      }
-      
-      // Label filter
-      let matchesLabel = true;
-      if (selectedLabels.length > 0) {
-        const convLabels = conv.labels || [];
-        matchesLabel = selectedLabels.some(label => convLabels.includes(label));
-      }
-      
-      return matchesSearch && matchesStatus && matchesAssignment && matchesAgent && matchesLabel && matchesPeriod;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'date':
-          return new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime();
-        
-        case 'priority': {
+    }
+
+    // Label filter
+    let matchesLabel = true;
+    if (selectedLabels.length > 0) {
+      const convLabels = conv.labels || [];
+      matchesLabel = selectedLabels.some(label => convLabels.includes(label));
+    }
+    return matchesSearch && matchesStatus && matchesAssignment && matchesAgent && matchesLabel && matchesPeriod;
+  }).sort((a, b) => {
+    switch (sortBy) {
+      case 'date':
+        return new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime();
+      case 'priority':
+        {
           const getPriority = (conv: ChatwootConversation) => {
             if (!conv.assignee) return 4;
             if (conv.status === 'open') return 3;
@@ -261,34 +240,30 @@ const Atendimentos = () => {
             if (conv.status === 'resolved') return 1;
             return 0;
           };
-          
           const priorityDiff = getPriority(b) - getPriority(a);
           if (priorityDiff === 0) {
             return new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime();
           }
           return priorityDiff;
         }
-        
-        case 'labels': {
-          const labelA = (a.labels && a.labels.length > 0) ? a.labels[0] : 'zzz';
-          const labelB = (b.labels && b.labels.length > 0) ? b.labels[0] : 'zzz';
-          
+      case 'labels':
+        {
+          const labelA = a.labels && a.labels.length > 0 ? a.labels[0] : 'zzz';
+          const labelB = b.labels && b.labels.length > 0 ? b.labels[0] : 'zzz';
           const labelCompare = labelA.localeCompare(labelB, 'pt-BR');
           if (labelCompare === 0) {
             return new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime();
           }
           return labelCompare;
         }
-        
-        default:
-          return new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime();
-      }
-    });
+      default:
+        return new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime();
+    }
+  });
 
   // Calculate counts for assignment filter
   const myConversationsCount = safeConversations.filter(c => c.assignee?.id === currentUserId).length;
   const unassignedCount = safeConversations.filter(c => !c.assignee || c.assignee === null).length;
-
   const handleSendMessage = async () => {
     if (!selectedConversation || !messageText.trim()) {
       toast({
@@ -298,15 +273,13 @@ const Atendimentos = () => {
       });
       return;
     }
-
     try {
       await sendMessage.mutateAsync({
         conversationId: selectedConversation.id.toString(),
         content: messageText
       });
-      
       setMessageText('');
-      
+
       // Refresh messages immediately after sending
       setTimeout(() => {
         refetchMessages?.();
@@ -316,11 +289,11 @@ const Atendimentos = () => {
       console.error('Error sending message:', error);
     }
   };
-
   const handleStatusChange = async (status: 'open' | 'resolved' | 'pending') => {
-    console.log('🟢 handleStatusChange CHAMADO!', { status });
+    console.log('🟢 handleStatusChange CHAMADO!', {
+      status
+    });
     console.log('🟢 selectedConversation:', selectedConversation);
-    
     if (!selectedConversation) {
       console.error('❌ selectedConversation é null!');
       toast({
@@ -330,47 +303,40 @@ const Atendimentos = () => {
       });
       return;
     }
-
     console.log('🟢 Passando verificação de selectedConversation');
     console.log('🟢 updateConversationStatus:', updateConversationStatus);
-
     try {
       console.log('🔄 Iniciando mudança de status:', {
         conversationId: selectedConversation.id,
         statusAtual: selectedConversation.status,
         novoStatus: status
       });
-      
+
       // Update local state IMEDIATAMENTE (optimistic update)
       setSelectedConversation({
         ...selectedConversation,
         status
       });
-      
+
       // Make API call (mutation já atualiza o cache)
       await updateConversationStatus.mutateAsync({
         conversationId: selectedConversation.id.toString(),
         status
       });
-      
       console.log('✅ Status alterado com sucesso!');
-      
+
       // Sincronizar selectedConversation com o cache atualizado
-      const updatedConversation = conversations?.find(
-        c => c.id === selectedConversation.id
-      );
-      
+      const updatedConversation = conversations?.find(c => c.id === selectedConversation.id);
       if (updatedConversation) {
         setSelectedConversation(updatedConversation);
         console.log('🔄 Estado local sincronizado com cache');
       }
-      
     } catch (error) {
       console.error('❌ ERRO CAPTURADO em handleStatusChange:', error);
-      
+
       // Revert local state on error
       setSelectedConversation(selectedConversation);
-      
+
       // Only force refetch if conversation not found in cache
       if (!conversations?.find(c => c.id === selectedConversation.id)) {
         console.log('⚠️ Conversa não encontrada no cache, forçando refetch');
@@ -378,85 +344,88 @@ const Atendimentos = () => {
       }
     }
   };
-
   const getStatusBadge = (status: string) => {
     const configs = {
-      open: { color: 'bg-green-600 hover:bg-green-700', icon: Clock, label: 'Aberta', textColor: 'text-green-400' },
-      resolved: { color: 'bg-blue-600 hover:bg-blue-700', icon: CheckCircle2, label: 'Resolvida', textColor: 'text-blue-400' },
-      pending: { color: 'bg-yellow-600 hover:bg-yellow-700', icon: AlertTriangle, label: 'Pendente', textColor: 'text-yellow-400' }
+      open: {
+        color: 'bg-green-600 hover:bg-green-700',
+        icon: Clock,
+        label: 'Aberta',
+        textColor: 'text-green-400'
+      },
+      resolved: {
+        color: 'bg-blue-600 hover:bg-blue-700',
+        icon: CheckCircle2,
+        label: 'Resolvida',
+        textColor: 'text-blue-400'
+      },
+      pending: {
+        color: 'bg-yellow-600 hover:bg-yellow-700',
+        icon: AlertTriangle,
+        label: 'Pendente',
+        textColor: 'text-yellow-400'
+      }
     };
-    
     const config = configs[status as keyof typeof configs] || configs.open;
     const Icon = config.icon;
-    
-    return (
-      <Badge className={`${config.color} text-white`}>
+    return <Badge className={`${config.color} text-white`}>
         <Icon className="h-3 w-3 mr-1" />
         {config.label}
-      </Badge>
-    );
+      </Badge>;
   };
-
   const getInitials = (name: string) => {
-    return name
-      ?.split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2) || '??';
+    return name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '??';
   };
-
   const formatMessageTime = (timestamp: string | number) => {
     if (!timestamp) {
       return '--:--';
     }
-
     let date: Date;
-    
     if (typeof timestamp === 'number') {
-      date = timestamp < 10000000000 
-        ? new Date(timestamp * 1000)
-        : new Date(timestamp);
+      date = timestamp < 10000000000 ? new Date(timestamp * 1000) : new Date(timestamp);
     } else {
       date = new Date(timestamp);
     }
-    
     if (isNaN(date.getTime())) {
       console.error('Data inválida:', timestamp);
       return '--:--';
     }
-    
     if (date.getFullYear() < 2000) {
       console.error('Data suspeita (antes de 2000):', timestamp, date);
       return '--:--';
     }
-
     const now = new Date();
-    
     try {
       // Usar funções do date-fns para comparação precisa de dias
       if (isSameDay(date, now)) {
         // Mesmo dia = Hoje
-        return 'Hoje às ' + format(date, 'HH:mm', { locale: ptBR });
+        return 'Hoje às ' + format(date, 'HH:mm', {
+          locale: ptBR
+        });
       } else if (isYesterday(date)) {
         // Dia anterior = Ontem
-        return 'Ontem às ' + format(date, 'HH:mm', { locale: ptBR });
-      } else if (isThisWeek(date, { weekStartsOn: 0 })) {
+        return 'Ontem às ' + format(date, 'HH:mm', {
+          locale: ptBR
+        });
+      } else if (isThisWeek(date, {
+        weekStartsOn: 0
+      })) {
         // Esta semana = Nome do dia
-        return format(date, "EEEE', 'HH:mm", { locale: ptBR });
+        return format(date, "EEEE', 'HH:mm", {
+          locale: ptBR
+        });
       } else {
         // Mais antigo = Data completa
-        return format(date, "dd/MM/yyyy', 'HH:mm", { locale: ptBR });
+        return format(date, "dd/MM/yyyy', 'HH:mm", {
+          locale: ptBR
+        });
       }
     } catch (error) {
       console.error('Erro ao formatar data:', error, timestamp);
       return '--:--';
     }
   };
-
   if (!isConfigured) {
-    return (
-      <div className="space-y-6">
+    return <div className="space-y-6">
         <div className="flex items-center gap-3">
           <MessageSquare className="h-6 w-6 text-primary" />
           <div>
@@ -477,13 +446,10 @@ const Atendimentos = () => {
             </Button>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
   if (error) {
-    return (
-      <div className="space-y-6">
+    return <div className="space-y-6">
         <div className="flex items-center gap-3">
           <MessageSquare className="h-6 w-6 text-primary" />
           <div>
@@ -502,26 +468,16 @@ const Atendimentos = () => {
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Tentar Novamente
               </Button>
-              <Button 
-                onClick={() => testConnection?.mutate(undefined)} 
-                disabled={testConnection?.isPending}
-              >
-                {testConnection?.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <AlertCircle className="mr-2 h-4 w-4" />
-                )}
+              <Button onClick={() => testConnection?.mutate(undefined)} disabled={testConnection?.isPending}>
+                {testConnection?.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <AlertCircle className="mr-2 h-4 w-4" />}
                 Testar Conexão
               </Button>
             </div>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-slate-900 text-white p-3">
+  return <div className="min-h-screen bg-slate-900 text-white p-3">
       <div className="h-[calc(100vh-4rem)] flex flex-col gap-2">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -537,64 +493,24 @@ const Atendimentos = () => {
         <div className="flex gap-2 items-center">
           {/* Notification Status Indicator */}
           <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-800 rounded-md border border-slate-700">
-            {isNotificationPermissionGranted ? (
-              <>
+            {isNotificationPermissionGranted ? <>
                 <Bell className="h-3 w-3 text-green-400" />
                 <span className="text-xs text-green-400">Notificações ativas</span>
-              </>
-            ) : (
-              <>
+              </> : <>
                 <BellOff className="h-3 w-3 text-slate-500" />
                 <span className="text-xs text-slate-500">Notificações desativadas</span>
-              </>
-            )}
+              </>}
           </div>
           
-          <Button 
-            onClick={() => refetchConversations?.()} 
-            disabled={isLoading}
-            variant="outline"
-            size="sm"
-            className="h-7"
-          >
-            {isLoading ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <RefreshCw className="h-3 w-3" />
-            )}
+          <Button onClick={() => refetchConversations?.()} disabled={isLoading} variant="outline" size="sm" className="h-7">
+            {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
           </Button>
         </div>
       </div>
 
       {/* View Mode Selector */}
       <Card className="bg-slate-800 border-slate-700">
-        <CardContent className="p-2">
-          <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'conversations' | 'metrics' | 'stats')}>
-            <TabsList className="w-full grid grid-cols-3 bg-slate-700 h-8">
-              <TabsTrigger 
-                value="conversations" 
-                className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white h-7"
-              >
-                <MessageSquare className="h-3 w-3 mr-1" />
-                Conversas
-              </TabsTrigger>
-              <TabsTrigger 
-                value="metrics" 
-                className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white h-7"
-              >
-                <TrendingUp className="h-3 w-3 mr-1" />
-                Métricas
-              </TabsTrigger>
-              <TabsTrigger 
-                value="stats" 
-                className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white h-7"
-              >
-                <Tag className="h-3 w-3 mr-1" />
-                Estatísticas
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </CardContent>
+        
       </Card>
 
       {/* Assignment Filter */}
@@ -605,34 +521,19 @@ const Atendimentos = () => {
               Filtrar por:
             </span>
             <div className="flex items-center gap-1">
-              <Button
-                variant={assignmentFilter === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setAssignmentFilter('all')}
-                className="gap-1 h-7 text-xs"
-              >
+              <Button variant={assignmentFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setAssignmentFilter('all')} className="gap-1 h-7 text-xs">
                 Todas
                 <Badge variant={assignmentFilter === 'all' ? 'secondary' : 'outline'} className="h-4 px-1.5 text-xs">
                   {safeConversations.length}
                 </Badge>
               </Button>
-              <Button
-                variant={assignmentFilter === 'mine' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setAssignmentFilter('mine')}
-                className="gap-1 h-7 text-xs"
-              >
+              <Button variant={assignmentFilter === 'mine' ? 'default' : 'outline'} size="sm" onClick={() => setAssignmentFilter('mine')} className="gap-1 h-7 text-xs">
                 Minhas
                 <Badge variant={assignmentFilter === 'mine' ? 'secondary' : 'outline'} className="h-4 px-1.5 text-xs">
                   {myConversationsCount}
                 </Badge>
               </Button>
-              <Button
-                variant={assignmentFilter === 'unassigned' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setAssignmentFilter('unassigned')}
-                className="gap-1 h-7 text-xs"
-              >
+              <Button variant={assignmentFilter === 'unassigned' ? 'default' : 'outline'} size="sm" onClick={() => setAssignmentFilter('unassigned')} className="gap-1 h-7 text-xs">
                 Não Atribuídas
                 <Badge variant={assignmentFilter === 'unassigned' ? 'secondary' : 'outline'} className="h-4 px-1.5 text-xs">
                   {unassignedCount}
@@ -656,21 +557,11 @@ const Atendimentos = () => {
                     Sem agente
                   </SelectItem>
                   <Separator className="my-1 bg-slate-600" />
-                  {agentsLoading ? (
-                    <div className="p-2 text-xs text-slate-400 text-center">
+                  {agentsLoading ? <div className="p-2 text-xs text-slate-400 text-center">
                       <Loader2 className="h-3 w-3 animate-spin mx-auto" />
-                    </div>
-                  ) : (
-                    agents.map((agent) => (
-                      <SelectItem 
-                        key={agent.id} 
-                        value={agent.id.toString()}
-                        className="text-white hover:bg-slate-600 text-xs"
-                      >
+                    </div> : agents.map(agent => <SelectItem key={agent.id} value={agent.id.toString()} className="text-white hover:bg-slate-600 text-xs">
                         {agent.name}
-                      </SelectItem>
-                    ))
-                  )}
+                      </SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -680,7 +571,7 @@ const Atendimentos = () => {
             {/* Period Filter */}
             <div className="flex items-center gap-1">
               <Clock className="h-3 w-3 text-slate-400" />
-              <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as any)}>
+              <Select value={periodFilter} onValueChange={v => setPeriodFilter(v as any)}>
                 <SelectTrigger className="w-[140px] h-7 bg-slate-700 border-slate-600 text-white text-xs">
                   <SelectValue />
                 </SelectTrigger>
@@ -706,12 +597,7 @@ const Atendimentos = () => {
             {/* Buscar conversas */}
             <div className="relative flex-1 min-w-[180px]">
               <Search className="absolute left-2 top-1.5 h-3 w-3 text-slate-400" />
-              <Input
-                placeholder="Buscar conversas..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-7 h-7 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 text-xs"
-              />
+              <Input placeholder="Buscar conversas..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-7 h-7 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 text-xs" />
             </div>
 
             <Separator orientation="vertical" className="h-6 bg-slate-600" />
@@ -738,90 +624,46 @@ const Atendimentos = () => {
           </div>
           
           {/* Label Filter */}
-          {availableLabels.length > 0 && (
-            <div className="px-2 py-1.5 border-t border-slate-700">
+          {availableLabels.length > 0 && <div className="px-2 py-1.5 border-t border-slate-700">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 flex-wrap flex-1">
                   <span className="text-xs text-slate-400">Etiquetas:</span>
-                  {availableLabels.map((label) => {
-                    const isSelected = selectedLabels.includes(label.title);
-                    return (
-                      <Badge
-                        key={label.id}
-                        variant="outline"
-                        className={`h-6 px-2 text-xs cursor-pointer transition-all shadow-sm gap-1.5 ${
-                          isSelected ? 'ring-2 ring-white/30 border-0' : 'border-0'
-                        }`}
-                        style={{
-                          backgroundColor: label.color,
-                          color: '#fff',
-                        }}
-                        onClick={() => {
-                          setSelectedLabels(prev =>
-                            prev.includes(label.title)
-                              ? prev.filter(l => l !== label.title)
-                              : [...prev, label.title]
-                          );
-                        }}
-                      >
-                        <div 
-                          className="w-2 h-2 rounded-full bg-white/40" 
-                        />
+                  {availableLabels.map(label => {
+                  const isSelected = selectedLabels.includes(label.title);
+                  return <Badge key={label.id} variant="outline" className={`h-6 px-2 text-xs cursor-pointer transition-all shadow-sm gap-1.5 ${isSelected ? 'ring-2 ring-white/30 border-0' : 'border-0'}`} style={{
+                    backgroundColor: label.color,
+                    color: '#fff'
+                  }} onClick={() => {
+                    setSelectedLabels(prev => prev.includes(label.title) ? prev.filter(l => l !== label.title) : [...prev, label.title]);
+                  }}>
+                        <div className="w-2 h-2 rounded-full bg-white/40" />
                         {label.title}
-                      </Badge>
-                    );
-                  })}
-                  {selectedLabels.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2 text-xs"
-                      onClick={() => setSelectedLabels([])}
-                    >
+                      </Badge>;
+                })}
+                  {selectedLabels.length > 0 && <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setSelectedLabels([])}>
                       <X className="h-3 w-3 mr-1" />
                       Limpar
-                    </Button>
-                  )}
+                    </Button>}
                 </div>
                 
                 {/* Navigation buttons */}
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  <Button
-                    variant={viewMode === "conversations" ? "default" : "ghost"}
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={() => setViewMode("conversations")}
-                    title="Conversas"
-                  >
+                  <Button variant={viewMode === "conversations" ? "default" : "ghost"} size="sm" className="h-7 w-7 p-0" onClick={() => setViewMode("conversations")} title="Conversas">
                     <MessageSquare className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant={viewMode === "metrics" ? "default" : "ghost"}
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={() => setViewMode("metrics")}
-                    title="Métricas"
-                  >
+                  <Button variant={viewMode === "metrics" ? "default" : "ghost"} size="sm" className="h-7 w-7 p-0" onClick={() => setViewMode("metrics")} title="Métricas">
                     <TrendingUp className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant={viewMode === "stats" ? "default" : "ghost"}
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={() => setViewMode("stats")}
-                    title="Estatísticas"
-                  >
+                  <Button variant={viewMode === "stats" ? "default" : "ghost"} size="sm" className="h-7 w-7 p-0" onClick={() => setViewMode("stats")} title="Estatísticas">
                     <BarChart3 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
-            </div>
-          )}
+            </div>}
         </CardContent>
       </Card>
 
-      {viewMode === 'conversations' && (
-        <>
+      {viewMode === 'conversations' && <>
       <div className="flex-1 grid grid-cols-12 gap-2 min-h-0">
         {/* Conversations List */}
         <Card className="col-span-12 lg:col-span-3 flex flex-col bg-slate-800 border-slate-700">
@@ -829,7 +671,7 @@ const Atendimentos = () => {
             {/* Sort Selector */}
             <div className="flex items-center justify-between px-1 py-1 border-b border-slate-700/50 bg-slate-800/50 rounded">
               <span className="text-xs text-slate-400 font-medium">Ordenar por:</span>
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+              <Select value={sortBy} onValueChange={v => setSortBy(v as any)}>
                 <SelectTrigger className="h-7 w-[140px] text-xs bg-slate-700 border-slate-600">
                   <SelectValue />
                 </SelectTrigger>
@@ -856,7 +698,7 @@ const Atendimentos = () => {
               </Select>
             </div>
             
-            <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+            <Tabs value={statusFilter} onValueChange={v => setStatusFilter(v as any)}>
               <TabsList className="w-full grid grid-cols-4 gap-0.5 bg-slate-700 p-0.5 h-auto">
                 <TabsTrigger value="all" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1 h-auto">
                   <span>Todas</span>
@@ -888,32 +730,17 @@ const Atendimentos = () => {
           
            <ScrollArea className="flex-1">
             <CardContent className="p-1">
-              {isLoading ? (
-                <div className="text-center py-4">
+              {isLoading ? <div className="text-center py-4">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-400" />
                   <p className="text-xs text-slate-300">Carregando conversas...</p>
-                </div>
-              ) : filteredConversations.length === 0 ? (
-                <div className="text-center py-4 text-slate-400">
+                </div> : filteredConversations.length === 0 ? <div className="text-center py-4 text-slate-400">
                   <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50 text-slate-500" />
                   <p className="text-xs">Nenhuma conversa encontrada</p>
-                </div>
-              ) : (
-                <div className="space-y-0.5">
-                  {filteredConversations.map((conversation) => {
+                </div> : <div className="space-y-0.5">
+                  {filteredConversations.map(conversation => {
                     const lastMessage = conversation.messages?.[conversation.messages.length - 1];
                     const isSelected = selectedConversation?.id === conversation.id;
-                    
-                    return (
-                      <div
-                        key={conversation.id}
-                        className={`p-2 rounded-lg cursor-pointer transition-all ${
-                          isSelected
-                            ? 'bg-blue-900/30 border-2 border-blue-600'
-                            : 'hover:bg-slate-700/50 border-2 border-transparent'
-                        }`}
-                        onClick={() => setSelectedConversation(conversation)}
-                      >
+                    return <div key={conversation.id} className={`p-2 rounded-lg cursor-pointer transition-all ${isSelected ? 'bg-blue-900/30 border-2 border-blue-600' : 'hover:bg-slate-700/50 border-2 border-transparent'}`} onClick={() => setSelectedConversation(conversation)}>
                         <div className="flex items-start gap-2">
                           <Avatar className="h-8 w-8 flex-shrink-0">
                             <AvatarFallback className="bg-blue-600 text-white text-xs">
@@ -929,49 +756,35 @@ const Atendimentos = () => {
                               {getStatusBadge(conversation.status)}
                             </div>
                             
-                            {lastMessage && (
-                              <p className="text-xs text-slate-400 line-clamp-1">
+                            {lastMessage && <p className="text-xs text-slate-400 line-clamp-1">
                                 {lastMessage.content}
-                              </p>
-                            )}
+                              </p>}
                             
                             {/* Labels */}
-                            {conversation.labels && conversation.labels.length > 0 && (
-                              <div className="mt-1">
-                                <ChatwootLabelManager 
-                                  conversationId={conversation.id.toString()}
-                                  currentLabels={conversation.labels}
-                                  integrationId={integrationId}
-                                  mode="compact"
-                                />
-                              </div>
-                            )}
+                            {conversation.labels && conversation.labels.length > 0 && <div className="mt-1">
+                                <ChatwootLabelManager conversationId={conversation.id.toString()} currentLabels={conversation.labels} integrationId={integrationId} mode="compact" />
+                              </div>}
                             
                             <div className="flex items-center gap-1 mt-0.5">
                               <span className="text-xs text-slate-500">
                                 {formatMessageTime(conversation.last_activity_at)}
                               </span>
-                              {conversation.unread_count > 0 && (
-                                <Badge variant="destructive" className="h-4 px-1.5 text-[10px] bg-red-600">
+                              {conversation.unread_count > 0 && <Badge variant="destructive" className="h-4 px-1.5 text-[10px] bg-red-600">
                                   {conversation.unread_count}
-                                </Badge>
-                              )}
+                                </Badge>}
                             </div>
                           </div>
                         </div>
-                      </div>
-                    );
+                      </div>;
                   })}
-                </div>
-              )}
+                </div>}
             </CardContent>
           </ScrollArea>
         </Card>
 
         {/* Chat Area */}
         <Card className={`${showContactPanel ? 'col-span-12 lg:col-span-6' : 'col-span-12 lg:col-span-9'} flex flex-col bg-slate-800 border-slate-700`}>
-          {selectedConversation ? (
-            <>
+          {selectedConversation ? <>
               {/* Chat Header */}
               <CardHeader className="pb-2 pt-2 px-3 border-b border-slate-700">
                 <div className="flex items-center justify-between">
@@ -993,86 +806,36 @@ const Atendimentos = () => {
                   
                   <div className="flex items-center gap-2">
                     {getStatusBadge(selectedConversation.status)}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setShowContactPanel(!showContactPanel)}
-                      className="hidden lg:flex h-7 w-7"
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => setShowContactPanel(!showContactPanel)} className="hidden lg:flex h-7 w-7">
                       <ChevronRight className={`h-3 w-3 transition-transform ${showContactPanel ? 'rotate-180' : ''}`} />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setSelectedConversation(null)}
-                      className="lg:hidden h-7 w-7"
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => setSelectedConversation(null)} className="lg:hidden h-7 w-7">
                       <X className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>
                 
                 {/* Labels */}
-                <ChatwootLabelManager 
-                  conversationId={selectedConversation.id.toString()}
-                  currentLabels={selectedConversation.labels || []}
-                  integrationId={integrationId}
-                />
+                <ChatwootLabelManager conversationId={selectedConversation.id.toString()} currentLabels={selectedConversation.labels || []} integrationId={integrationId} />
                 
                 {/* Status Actions + Agent Selector */}
                 <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                  <Button 
-                    size="sm" 
-                    variant={selectedConversation.status === 'open' ? 'default' : 'outline'}
-                    onClick={() => handleStatusChange('open')}
-                    disabled={updateConversationStatus.isPending || selectedConversation.status === 'open'}
-                    className={`h-7 text-xs ${selectedConversation.status === 'open' 
-                      ? 'bg-green-600 hover:bg-green-700 text-white' 
-                      : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}
-                  >
-                    {updateConversationStatus.isPending ? (
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    ) : (
-                      <Clock className="h-3 w-3 mr-1" />
-                    )}
+                  <Button size="sm" variant={selectedConversation.status === 'open' ? 'default' : 'outline'} onClick={() => handleStatusChange('open')} disabled={updateConversationStatus.isPending || selectedConversation.status === 'open'} className={`h-7 text-xs ${selectedConversation.status === 'open' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}>
+                    {updateConversationStatus.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Clock className="h-3 w-3 mr-1" />}
                     Abrir
                   </Button>
-                  <Button 
-                    size="sm" 
-                    variant={selectedConversation.status === 'pending' ? 'default' : 'outline'}
-                    onClick={() => {
-                      console.log('🟢 BOTÃO PENDENTE CLICADO!');
-                      handleStatusChange('pending');
-                    }}
-                    disabled={updateConversationStatus.isPending || selectedConversation.status === 'pending'}
-                    className={`h-7 text-xs ${selectedConversation.status === 'pending' 
-                      ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-                      : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}
-                  >
-                    {updateConversationStatus.isPending ? (
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    ) : (
-                      <AlertTriangle className="h-3 w-3 mr-1" />
-                    )}
+                  <Button size="sm" variant={selectedConversation.status === 'pending' ? 'default' : 'outline'} onClick={() => {
+                    console.log('🟢 BOTÃO PENDENTE CLICADO!');
+                    handleStatusChange('pending');
+                  }} disabled={updateConversationStatus.isPending || selectedConversation.status === 'pending'} className={`h-7 text-xs ${selectedConversation.status === 'pending' ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}>
+                    {updateConversationStatus.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <AlertTriangle className="h-3 w-3 mr-1" />}
                     Pendente
                   </Button>
-                  <Button 
-                    size="sm" 
-                    variant={selectedConversation.status === 'resolved' ? 'default' : 'outline'}
-                    onClick={() => {
-                      console.log('🟢 BOTÃO RESOLVER CLICADO!');
-                      handleStatusChange('resolved');
-                    }}
-                    disabled={updateConversationStatus.isPending || selectedConversation.status === 'resolved'}
-                    className={`h-7 text-xs ${selectedConversation.status === 'resolved' 
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                      : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}
-                  >
-                    {updateConversationStatus.isPending ? (
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                    )}
+                  <Button size="sm" variant={selectedConversation.status === 'resolved' ? 'default' : 'outline'} onClick={() => {
+                    console.log('🟢 BOTÃO RESOLVER CLICADO!');
+                    handleStatusChange('resolved');
+                  }} disabled={updateConversationStatus.isPending || selectedConversation.status === 'resolved'} className={`h-7 text-xs ${selectedConversation.status === 'resolved' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}>
+                    {updateConversationStatus.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
                     Resolver
                   </Button>
                   
@@ -1080,19 +843,10 @@ const Atendimentos = () => {
                   
                   {/* Agent Selector inline */}
                   <div className="flex-1 min-w-[180px]">
-                    <ChatwootAgentSelector 
-                      conversationId={selectedConversation.id.toString()}
-                      currentAgentId={selectedConversation.assignee?.id}
-                    />
+                    <ChatwootAgentSelector conversationId={selectedConversation.id.toString()} currentAgentId={selectedConversation.assignee?.id} />
                   </div>
                   
-                  <Button
-                    size="sm"
-                    variant={showContactPanel ? 'default' : 'outline'}
-                    onClick={() => setShowContactPanel(!showContactPanel)}
-                    title={showContactPanel ? 'Ocultar informações do contato' : 'Mostrar informações do contato'}
-                    className="h-7 text-xs"
-                  >
+                  <Button size="sm" variant={showContactPanel ? 'default' : 'outline'} onClick={() => setShowContactPanel(!showContactPanel)} title={showContactPanel ? 'Ocultar informações do contato' : 'Mostrar informações do contato'} className="h-7 text-xs">
                     <User className="h-3 w-3 mr-1" />
                     Contato
                   </Button>
@@ -1101,43 +855,26 @@ const Atendimentos = () => {
               
               {/* Messages */}
               <ScrollArea className="h-[calc(100vh-350px)] min-h-[300px] max-h-[500px] p-2">
-                {messagesLoading ? (
-                  <div className="text-center py-4">
+                {messagesLoading ? <div className="text-center py-4">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-400" />
                     <p className="text-xs text-slate-300">Carregando mensagens...</p>
-                  </div>
-                ) : conversationMessages && conversationMessages.length > 0 ? (
-                  <div className="space-y-2">
+                  </div> : conversationMessages && conversationMessages.length > 0 ? <div className="space-y-2">
                     {conversationMessages.map((message, index) => {
-                      const isOutgoing = message.message_type === 1;
-                      const showSenderName = !isOutgoing && message.sender?.name;
-                      
-                      console.log(`Mensagem ${index + 1}/${conversationMessages.length}:`, {
-                        id: message.id,
-                        content: message.content.substring(0, 50),
-                        created_at: message.created_at,
-                        timestamp_type: typeof message.created_at,
-                        sender: message.sender?.name
-                      });
-                      
-                      return (
-                        <div
-                          key={`${message.id}-${index}`}
-                          className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-200`}
-                        >
+                    const isOutgoing = message.message_type === 1;
+                    const showSenderName = !isOutgoing && message.sender?.name;
+                    console.log(`Mensagem ${index + 1}/${conversationMessages.length}:`, {
+                      id: message.id,
+                      content: message.content.substring(0, 50),
+                      created_at: message.created_at,
+                      timestamp_type: typeof message.created_at,
+                      sender: message.sender?.name
+                    });
+                    return <div key={`${message.id}-${index}`} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-200`}>
                           <div className={`max-w-[70%] ${isOutgoing ? 'order-2' : 'order-1'}`}>
-                            <div
-                              className={`rounded-lg p-2 shadow-sm ${
-                                isOutgoing
-                                  ? 'bg-blue-600 text-white'
-                                  : 'bg-slate-700 text-slate-100'
-                              }`}
-                            >
-                              {showSenderName && (
-                                <p className="text-xs font-semibold mb-1 opacity-80">
+                            <div className={`rounded-lg p-2 shadow-sm ${isOutgoing ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-100'}`}>
+                              {showSenderName && <p className="text-xs font-semibold mb-1 opacity-80">
                                   {message.sender.name}
-                                </p>
-                              )}
+                                </p>}
                               <p className="text-xs whitespace-pre-wrap break-words">
                                 {message.content}
                               </p>
@@ -1145,27 +882,20 @@ const Atendimentos = () => {
                                 <p className={`text-xs ${isOutgoing ? 'text-blue-100' : 'text-slate-400'}`}>
                                   {formatMessageTime(message.created_at)}
                                 </p>
-                                <ChatwootMessageStatus 
-                                  status={message.status}
-                                  messageType={message.message_type}
-                                />
+                                <ChatwootMessageStatus status={message.status} messageType={message.message_type} />
                               </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        </div>;
+                  })}
                     <div ref={messagesEndRef} />
-                  </div>
-                ) : (
-                  <div className="text-center py-4 text-slate-400">
+                  </div> : <div className="text-center py-4 text-slate-400">
                     <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50 text-slate-500" />
                     <p className="text-xs">Nenhuma mensagem nesta conversa</p>
                     <p className="text-xs text-slate-500 mt-1">
                       As mensagens aparecerão aqui quando forem enviadas ou recebidas
                     </p>
-                  </div>
-                )}
+                  </div>}
               </ScrollArea>
               
               {/* Message Input */}
@@ -1174,57 +904,31 @@ const Atendimentos = () => {
                   <div className="flex-1">
                     <ChatwootQuickReplies onSelectReply={setMessageText} />
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsGLPIDialogOpen(true)}
-                    className="h-7 px-3 bg-orange-600/20 border-orange-600 text-orange-200 hover:bg-orange-600 hover:text-white transition-colors whitespace-nowrap"
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setIsGLPIDialogOpen(true)} className="h-7 px-3 bg-orange-600/20 border-orange-600 text-orange-200 hover:bg-orange-600 hover:text-white transition-colors whitespace-nowrap">
                     <Ticket className="h-3.5 w-3.5 mr-1.5" />
                     Abrir Chamado
                   </Button>
                 </div>
                 <div className="flex gap-1.5">
-                  <ChatwootFileUpload 
-                    conversationId={selectedConversation.id.toString()}
-                  />
-                  <Textarea
-                    placeholder="Digite sua mensagem..."
-                    value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                    className="min-h-[50px] max-h-[100px] resize-none bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 text-xs"
-                    disabled={!selectedConversation.can_reply}
-                  />
-                  <Button 
-                    onClick={handleSendMessage}
-                    disabled={sendMessage.isPending || !messageText.trim() || !selectedConversation.can_reply}
-                    className="px-4 bg-blue-600 hover:bg-blue-700 text-white h-[50px]"
-                  >
-                    {sendMessage.isPending ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Send className="h-3 w-3" />
-                    )}
+                  <ChatwootFileUpload conversationId={selectedConversation.id.toString()} />
+                  <Textarea placeholder="Digite sua mensagem..." value={messageText} onChange={e => setMessageText(e.target.value)} onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }} className="min-h-[50px] max-h-[100px] resize-none bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 text-xs" disabled={!selectedConversation.can_reply} />
+                  <Button onClick={handleSendMessage} disabled={sendMessage.isPending || !messageText.trim() || !selectedConversation.can_reply} className="px-4 bg-blue-600 hover:bg-blue-700 text-white h-[50px]">
+                    {sendMessage.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
                   </Button>
                 </div>
-                {!selectedConversation.can_reply && (
-                  <p className="text-xs text-slate-400 mt-1">
+                {!selectedConversation.can_reply && <p className="text-xs text-slate-400 mt-1">
                     Esta conversa não permite resposta
-                  </p>
-                )}
+                  </p>}
                 <p className="text-xs text-slate-400 mt-1">
                   Pressione Enter para enviar, Shift+Enter para quebrar linha
                 </p>
               </div>
-            </>
-          ) : (
-            <CardContent className="flex-1 flex items-center justify-center">
+            </> : <CardContent className="flex-1 flex items-center justify-center">
               <div className="text-center text-slate-400">
                 <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-50 text-slate-500" />
                 <h3 className="text-base font-medium mb-1 text-slate-300">Nenhuma conversa selecionada</h3>
@@ -1232,53 +936,29 @@ const Atendimentos = () => {
                   Selecione uma conversa da lista para começar
                 </p>
               </div>
-            </CardContent>
-          )}
+            </CardContent>}
         </Card>
 
         {/* GLPI New Ticket Dialog */}
-        {selectedConversation && (
-          <GLPINewTicketDialog 
-            open={isGLPIDialogOpen}
-            onOpenChange={setIsGLPIDialogOpen}
-          />
-        )}
+        {selectedConversation && <GLPINewTicketDialog open={isGLPIDialogOpen} onOpenChange={setIsGLPIDialogOpen} />}
 
         {/* Contact Panel */}
-        {showContactPanel && (
-          <div className="col-span-12 lg:col-span-3 hidden lg:block space-y-4">
+        {showContactPanel && <div className="col-span-12 lg:col-span-3 hidden lg:block space-y-4">
             <ChatwootContactPanel conversation={selectedConversation} />
             
             {/* Histórico de Status */}
-            {selectedConversation && (
-              <ChatwootStatusHistory 
-                integrationId={integrationId}
-                conversationId={selectedConversation.id.toString()}
-              />
-            )}
-          </div>
-        )}
+            {selectedConversation && <ChatwootStatusHistory integrationId={integrationId} conversationId={selectedConversation.id.toString()} />}
+          </div>}
       </div>
-        </>
-      )}
+        </>}
 
-      {viewMode === 'metrics' && (
-        <ChatwootAgentMetrics />
-      )}
+      {viewMode === 'metrics' && <ChatwootAgentMetrics />}
 
-      {viewMode === 'stats' && (
-        <ChatwootLabelStats 
-          labelStats={labelStats}
-          isLoading={isLoadingLabelStats}
-          onLabelClick={(label) => {
-            setViewMode('conversations');
-            setSelectedLabels([label]);
-          }}
-        />
-      )}
+      {viewMode === 'stats' && <ChatwootLabelStats labelStats={labelStats} isLoading={isLoadingLabelStats} onLabelClick={label => {
+        setViewMode('conversations');
+        setSelectedLabels([label]);
+      }} />}
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Atendimentos;
