@@ -26,7 +26,8 @@ import {
   Tag,
   Ticket,
   Bell,
-  BellOff
+  BellOff,
+  BarChart3
 } from 'lucide-react';
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
@@ -596,8 +597,6 @@ const Atendimentos = () => {
         </CardContent>
       </Card>
 
-      {viewMode === 'conversations' && (
-        <>
       {/* Assignment Filter */}
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="p-2">
@@ -741,54 +740,88 @@ const Atendimentos = () => {
           {/* Label Filter */}
           {availableLabels.length > 0 && (
             <div className="px-2 py-1.5 border-t border-slate-700">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-slate-400">Etiquetas:</span>
-                {availableLabels.map((label) => {
-                  const isSelected = selectedLabels.includes(label.title);
-                  return (
-                    <Badge
-                      key={label.id}
-                      variant="outline"
-                      className={`h-6 px-2 text-xs cursor-pointer transition-all shadow-sm gap-1.5 ${
-                        isSelected ? 'ring-2 ring-white/30 border-0' : 'border-0'
-                      }`}
-                      style={{
-                        backgroundColor: label.color,
-                        color: '#fff',
-                      }}
-                      onClick={() => {
-                        setSelectedLabels(prev =>
-                          prev.includes(label.title)
-                            ? prev.filter(l => l !== label.title)
-                            : [...prev, label.title]
-                        );
-                      }}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-wrap flex-1">
+                  <span className="text-xs text-slate-400">Etiquetas:</span>
+                  {availableLabels.map((label) => {
+                    const isSelected = selectedLabels.includes(label.title);
+                    return (
+                      <Badge
+                        key={label.id}
+                        variant="outline"
+                        className={`h-6 px-2 text-xs cursor-pointer transition-all shadow-sm gap-1.5 ${
+                          isSelected ? 'ring-2 ring-white/30 border-0' : 'border-0'
+                        }`}
+                        style={{
+                          backgroundColor: label.color,
+                          color: '#fff',
+                        }}
+                        onClick={() => {
+                          setSelectedLabels(prev =>
+                            prev.includes(label.title)
+                              ? prev.filter(l => l !== label.title)
+                              : [...prev, label.title]
+                          );
+                        }}
+                      >
+                        <div 
+                          className="w-2 h-2 rounded-full bg-white/40" 
+                        />
+                        {label.title}
+                      </Badge>
+                    );
+                  })}
+                  {selectedLabels.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => setSelectedLabels([])}
                     >
-                      <div 
-                        className="w-2 h-2 rounded-full bg-white/40" 
-                      />
-                      {label.title}
-                    </Badge>
-                  );
-                })}
-                {selectedLabels.length > 0 && (
+                      <X className="h-3 w-3 mr-1" />
+                      Limpar
+                    </Button>
+                  )}
+                </div>
+                
+                {/* Navigation buttons */}
+                <div className="flex items-center gap-1 flex-shrink-0">
                   <Button
-                    variant="ghost"
+                    variant={viewMode === "conversations" ? "default" : "ghost"}
                     size="sm"
-                    className="h-6 px-2 text-xs"
-                    onClick={() => setSelectedLabels([])}
+                    className="h-7 w-7 p-0"
+                    onClick={() => setViewMode("conversations")}
+                    title="Conversas"
                   >
-                    <X className="h-3 w-3 mr-1" />
-                    Limpar
+                    <MessageSquare className="h-4 w-4" />
                   </Button>
-                )}
+                  <Button
+                    variant={viewMode === "metrics" ? "default" : "ghost"}
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => setViewMode("metrics")}
+                    title="Métricas"
+                  >
+                    <TrendingUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "stats" ? "default" : "ghost"}
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => setViewMode("stats")}
+                    title="Estatísticas"
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Main Content */}
+      {viewMode === 'conversations' && (
+        <>
       <div className="flex-1 grid grid-cols-12 gap-2 min-h-0">
         {/* Conversations List */}
         <Card className="col-span-12 lg:col-span-3 flex flex-col bg-slate-800 border-slate-700">
