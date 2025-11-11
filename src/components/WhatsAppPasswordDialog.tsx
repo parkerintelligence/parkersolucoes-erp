@@ -8,8 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { MessageCircle, Copy } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
-import { EvolutionApiService } from '@/utils/evolutionApiService';
+import { supabase } from '@/integrations/supabase/client';
 import { WhatsAppErrorDialog } from './WhatsAppErrorDialog';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 interface WhatsAppPasswordDialogProps {
   open: boolean;
@@ -128,7 +130,6 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
         hasToken: !!evolutionApiIntegration.api_token
       });
 
-      // Validar se api_token e instance_name existem
       if (!evolutionApiIntegration.api_token || !evolutionApiIntegration.instance_name) {
         console.error('❌ Configuração incompleta da Evolution API');
         toast({
@@ -141,13 +142,33 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
 
       setIsLoading(true);
       
-      // Usar a integração completa diretamente
-      const evolutionService = new EvolutionApiService(evolutionApiIntegration);
       const formattedPhone = formatPhoneForDisplay(phoneNumber);
       
-      console.log('🚀 Iniciando envio da senha para:', formattedPhone);
+      console.log('🚀 Enviando via Edge Function para:', formattedPhone);
       
-      const result = await evolutionService.sendMessage(formattedPhone, formatMessage());
+      // Usar edge function como proxy (igual automação e outras integrações)
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Sessão não encontrada');
+      }
+
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp-message`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          integrationId: evolutionApiIntegration.id,
+          phoneNumber: formattedPhone,
+          message: formatMessage(),
+        }),
+      });
+
+      const result = await response.json();
+      
+      console.log('📥 Resposta da Edge Function:', result);
 
       if (result.success) {
         toast({
@@ -161,7 +182,11 @@ export const WhatsAppPasswordDialog = ({ open, onOpenChange, password }: WhatsAp
         console.error('❌ Falha no envio:', result.error);
         setErrorDialog({
           open: true,
-          error: result.error
+          error: {
+            message: result.error || 'Erro ao enviar mensagem',
+            details: result.details || 'Verifique a configuração da Evolution API',
+            logs: []
+          }
         });
       }
     } catch (error) {

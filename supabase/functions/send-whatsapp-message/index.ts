@@ -1,82 +1,147 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-function getBrasiliaTime(): string {
-  return new Date().toLocaleString('pt-BR', { 
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+interface WhatsAppMessageRequest {
+  integrationId: string;
+  phoneNumber: string;
+  message: string;
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const body = await req.json();
-    const { instanceName, phoneNumber, message } = body;
-
-    console.log(`[${getBrasiliaTime()}] Enviando mensagem WhatsApp:`, {
-      instanceName,
-      phoneNumber: phoneNumber ? `${phoneNumber.substring(0, 4)}****` : 'N/A',
-      messageLength: message?.length || 0
-    });
-
-    // Validar parâmetros obrigatórios
-    if (!instanceName || !phoneNumber || !message) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Parâmetros obrigatórios: instanceName, phoneNumber, message'
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    console.log('📱 WhatsApp Message Proxy - Start');
+    
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('❌ No authorization header');
+      return new Response(
+        JSON.stringify({ success: false, error: 'No authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Buscar configuração da Evolution API no Supabase (se necessário)
-    // Por enquanto, simular o envio bem-sucedido
+    const token = authHeader.replace('Bearer ', '');
     
-    // Aqui você integraria com a Evolution API real
-    // Por enquanto, vamos simular um envio bem-sucedido
-    const response = {
-      success: true,
-      messageId: `msg_${Date.now()}`,
-      timestamp: getBrasiliaTime(),
-      instance: instanceName,
-      recipient: phoneNumber
-    };
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    );
 
-    console.log(`✅ Mensagem WhatsApp enviada com sucesso para ${phoneNumber}`);
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: response,
-      message: 'Mensagem enviada com sucesso'
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    if (userError || !user) {
+      console.error('❌ Authentication failed:', userError?.message);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Authentication failed' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('✅ User authenticated:', user.email);
+
+    const { integrationId, phoneNumber, message } = await req.json() as WhatsAppMessageRequest;
+
+    console.log('📋 Request:', { integrationId, phoneNumber: phoneNumber.substring(0, 4) + '****' });
+
+    if (!integrationId || !phoneNumber || !message) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Parâmetros obrigatórios: integrationId, phoneNumber, message' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    );
+
+    const { data: integration, error: integrationError } = await supabaseClient
+      .from('integrations')
+      .select('base_url, api_token, instance_name')
+      .eq('id', integrationId)
+      .eq('type', 'evolution_api')
+      .eq('is_active', true)
+      .single();
+
+    if (integrationError || !integration) {
+      console.error('❌ Integration not found:', integrationError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Integração Evolution API não encontrada ou inativa' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('✅ Integration found:', {
+      base_url: integration.base_url,
+      instance_name: integration.instance_name,
+      has_token: !!integration.api_token
     });
+
+    const evolutionUrl = `${integration.base_url.replace(/\/$/, '')}/message/sendText/${integration.instance_name}`;
+    
+    console.log('🚀 Sending to Evolution API:', evolutionUrl);
+
+    const evolutionResponse = await fetch(evolutionUrl, {
+      method: 'POST',
+      headers: {
+        'apikey': integration.api_token,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        number: phoneNumber,
+        text: message,
+      }),
+    });
+
+    const responseText = await evolutionResponse.text();
+    console.log('Evolution API response status:', evolutionResponse.status);
+    console.log('Evolution API response:', responseText.substring(0, 200));
+
+    if (!evolutionResponse.ok) {
+      console.error('❌ Evolution API error:', evolutionResponse.status, responseText);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Evolution API retornou erro ${evolutionResponse.status}`,
+          details: responseText.substring(0, 500)
+        }),
+        { status: evolutionResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    let evolutionData;
+    try {
+      evolutionData = JSON.parse(responseText);
+    } catch {
+      evolutionData = { raw: responseText };
+    }
+
+    console.log('✅ Message sent successfully');
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: evolutionData,
+        message: 'Mensagem enviada com sucesso'
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
-    console.error(`❌ Erro ao enviar mensagem WhatsApp:`, error);
-    
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message,
-      timestamp: getBrasiliaTime()
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    console.error('❌ Error:', error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message || 'Erro interno' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
