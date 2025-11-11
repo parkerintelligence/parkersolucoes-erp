@@ -536,27 +536,27 @@ const Atendimentos = () => {
               
               <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
                 <TabsList className="w-full grid grid-cols-4 bg-slate-700">
-                  <TabsTrigger value="all" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white">
-                    Todas
-                    <Badge variant="secondary" className="ml-1 h-5 px-1 bg-slate-600 text-slate-200">
+                  <TabsTrigger value="all" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex items-center justify-center gap-2">
+                    <span>Todas</span>
+                    <Badge variant="secondary" className="h-5 min-w-[28px] px-2 bg-slate-600 text-slate-100 font-semibold text-xs">
                       {safeConversations.length}
                     </Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="open" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white">
-                    Abertas
-                    <Badge variant="secondary" className="ml-1 h-5 px-1 bg-green-900/30 text-green-400">
+                  <TabsTrigger value="open" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex items-center justify-center gap-2">
+                    <span>Abertas</span>
+                    <Badge variant="secondary" className="h-5 min-w-[28px] px-2 bg-green-900/50 text-green-300 font-semibold text-xs">
                       {safeConversations.filter(c => c.status === 'open').length}
                     </Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="pending" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white">
-                    Pendentes
-                    <Badge variant="secondary" className="ml-1 h-5 px-1 bg-yellow-900/30 text-yellow-400">
+                  <TabsTrigger value="pending" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex items-center justify-center gap-2">
+                    <span>Pendentes</span>
+                    <Badge variant="secondary" className="h-5 min-w-[28px] px-2 bg-yellow-900/50 text-yellow-300 font-semibold text-xs">
                       {safeConversations.filter(c => c.status === 'pending').length}
                     </Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="resolved" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white">
-                    Resolvidas
-                    <Badge variant="secondary" className="ml-1 h-5 px-1 bg-blue-900/30 text-blue-400">
+                  <TabsTrigger value="resolved" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex items-center justify-center gap-2">
+                    <span>Resolvidas</span>
+                    <Badge variant="secondary" className="h-5 min-w-[28px] px-2 bg-blue-900/50 text-blue-300 font-semibold text-xs">
                       {safeConversations.filter(c => c.status === 'resolved').length}
                     </Badge>
                   </TabsTrigger>
