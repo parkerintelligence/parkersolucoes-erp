@@ -50,7 +50,7 @@ export const ChatwootLabelManager = ({
     return label?.color || '#64748b';
   };
 
-  // Compact mode - badges com cores vibrantes
+  // Compact mode - badges com cores vibrantes (mesmas cores da barra de filtros)
   if (mode === 'compact') {
     if (currentLabels.length === 0) return null;
     
@@ -60,8 +60,9 @@ export const ChatwootLabelManager = ({
 
     return (
       <div className="flex items-center gap-1 flex-wrap">
-        {visibleLabels.map((label, index) => {
-          const color = getLabelColor(label);
+        {visibleLabels.map((labelTitle, index) => {
+          const label = availableLabels.find(l => l.title === labelTitle);
+          const color = label?.color || '#64748b';
           return (
             <Badge
               key={index}
@@ -72,7 +73,7 @@ export const ChatwootLabelManager = ({
                 color: '#fff'
               }}
             >
-              {label}
+              {labelTitle}
             </Badge>
           );
         })}
@@ -85,12 +86,13 @@ export const ChatwootLabelManager = ({
     );
   }
 
-  // Full mode - com edição e cores fortes
+  // Full mode - com edição e cores fortes (mesmas cores da barra de filtros)
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <Tag className="h-4 w-4 text-muted-foreground" />
-      {currentLabels.map((label, index) => {
-        const color = getLabelColor(label);
+      {currentLabels.map((labelTitle, index) => {
+        const label = availableLabels.find(l => l.title === labelTitle);
+        const color = label?.color || '#64748b';
         // Calcular se a cor é escura ou clara para definir cor do texto
         const r = parseInt(color.slice(1, 3), 16);
         const g = parseInt(color.slice(3, 5), 16);
@@ -113,9 +115,9 @@ export const ChatwootLabelManager = ({
               className="w-2 h-2 rounded-full" 
               style={{ backgroundColor: color }}
             />
-            {label}
+            {labelTitle}
             <button
-              onClick={() => handleRemoveLabel(label)}
+              onClick={() => handleRemoveLabel(labelTitle)}
               className="ml-1 hover:opacity-70 transition-opacity"
               disabled={removeLabel.isPending}
             >
