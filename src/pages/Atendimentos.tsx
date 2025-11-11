@@ -23,7 +23,8 @@ import {
   ChevronRight,
   User,
   TrendingUp,
-  Tag
+  Tag,
+  Ticket
 } from 'lucide-react';
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
@@ -45,6 +46,7 @@ import { useChatwootAgents } from '@/hooks/useChatwootAgents';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useChatwootLabelStats } from '@/hooks/useChatwootLabelStats';
 import { ChatwootLabelStats } from '@/components/chatwoot/ChatwootLabelStats';
+import { GLPINewTicketDialog } from '@/components/GLPINewTicketDialog';
 
 const Atendimentos = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,6 +59,7 @@ const Atendimentos = () => {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [showContactPanel, setShowContactPanel] = useState(false);
   const [viewMode, setViewMode] = useState<'conversations' | 'metrics' | 'stats'>('conversations');
+  const [isGLPIDialogOpen, setIsGLPIDialogOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { 
@@ -996,8 +999,19 @@ const Atendimentos = () => {
               
               {/* Message Input */}
               <div className="p-2 border-t border-slate-700">
-                <div className="mb-1">
-                  <ChatwootQuickReplies onSelectReply={setMessageText} />
+                <div className="mb-1 flex items-center gap-2">
+                  <div className="flex-1">
+                    <ChatwootQuickReplies onSelectReply={setMessageText} />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsGLPIDialogOpen(true)}
+                    className="h-7 px-3 bg-orange-600/20 border-orange-600 text-orange-200 hover:bg-orange-600 hover:text-white transition-colors whitespace-nowrap"
+                  >
+                    <Ticket className="h-3.5 w-3.5 mr-1.5" />
+                    Abrir Chamado
+                  </Button>
                 </div>
                 <div className="flex gap-1.5">
                   <ChatwootFileUpload 
@@ -1050,6 +1064,14 @@ const Atendimentos = () => {
             </CardContent>
           )}
         </Card>
+
+        {/* GLPI New Ticket Dialog */}
+        {selectedConversation && (
+          <GLPINewTicketDialog 
+            open={isGLPIDialogOpen}
+            onOpenChange={setIsGLPIDialogOpen}
+          />
+        )}
 
         {/* Contact Panel */}
         {showContactPanel && (
