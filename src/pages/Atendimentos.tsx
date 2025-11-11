@@ -894,7 +894,7 @@ const Atendimentos = () => {
                   </div> : conversationMessages && conversationMessages.length > 0 ? <div className="space-y-2">
                     {conversationMessages.map((message, index) => {
                     const isOutgoing = message.message_type === 1;
-                    const showSenderName = !isOutgoing && message.sender?.name;
+                    const showSenderName = message.sender?.name;
                     console.log(`Mensagem ${index + 1}/${conversationMessages.length}:`, {
                       id: message.id,
                       content: message.content.substring(0, 50),
