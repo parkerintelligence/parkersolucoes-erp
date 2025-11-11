@@ -894,23 +894,19 @@ const Atendimentos = () => {
                   </div> : conversationMessages && conversationMessages.length > 0 ? <div className="space-y-2">
                     {conversationMessages.map((message, index) => {
                     const isOutgoing = message.message_type === 1;
-                    // Para mensagens outgoing, usar nome do agente atribuído ou nome da inbox
-                    const senderName = isOutgoing 
-                      ? (selectedConversation?.assignee?.name || selectedConversation?.inbox?.name || message.sender?.name)
-                      : message.sender?.name;
-                    const showSenderName = senderName;
+                    const showSenderName = message.sender?.name;
                     console.log(`Mensagem ${index + 1}/${conversationMessages.length}:`, {
                       id: message.id,
                       content: message.content.substring(0, 50),
                       created_at: message.created_at,
                       timestamp_type: typeof message.created_at,
-                      sender: senderName
+                      sender: message.sender?.name
                     });
                     return <div key={`${message.id}-${index}`} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-200`}>
                           <div className={`max-w-[70%] ${isOutgoing ? 'order-2' : 'order-1'}`}>
                             <div className={`rounded-lg p-2 shadow-sm ${isOutgoing ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-100'}`}>
                               {showSenderName && <p className="text-xs font-semibold mb-1 opacity-80">
-                                  {senderName}
+                                  {message.sender.name}
                                 </p>}
                               <p className="text-xs whitespace-pre-wrap break-words">
                                 {message.content}

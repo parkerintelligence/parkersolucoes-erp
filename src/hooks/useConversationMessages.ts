@@ -74,20 +74,18 @@ export const useConversationMessages = (integrationId: string | undefined, conve
       // Enriquecer mensagens outgoing com dados do agente ou inbox
       const enrichedMessages = messages.map(msg => {
         if (msg.message_type === 1) { // Mensagem outgoing (enviada)
-          // Se não tem sender ou sender está incompleto, usar dados do agente ou inbox
-          if (!msg.sender || !msg.sender.name) {
-            return {
-              ...msg,
-              sender: assignee ? {
-                id: assignee.id,
-                name: assignee.name || assignee.available_name,
-                email: assignee.email,
-              } : inbox ? {
-                id: inbox.id,
-                name: inbox.name,
-              } : msg.sender
-            };
-          }
+          // SEMPRE usar dados do agente ou inbox para mensagens outgoing
+          return {
+            ...msg,
+            sender: assignee ? {
+              id: assignee.id,
+              name: assignee.name || assignee.available_name,
+              email: assignee.email,
+            } : inbox ? {
+              id: inbox.id,
+              name: inbox.name,
+            } : msg.sender
+          };
         }
         return msg;
       });
