@@ -16,6 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ServiceDialog } from '@/components/ServiceDialog';
 import { WhatsAppPasswordDialog } from '@/components/WhatsAppPasswordDialog';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { Lock, Plus, Eye, EyeOff, Edit, Trash2, Building, Search, Settings, Code, Mail, Server, Database, Cloud, Shield, Monitor, Globe, Filter, FileDown, MessageCircle, Copy } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import type { Tables } from '@/integrations/supabase/types';
@@ -51,6 +52,11 @@ const Passwords = () => {
   const [selectedCompany, setSelectedCompany] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [activeServiceTab, setActiveServiceTab] = useState('all');
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{
+    open: boolean;
+    passwordId: string | null;
+    passwordName: string;
+  }>({ open: false, passwordId: null, passwordName: '' });
   const [availableServices, setAvailableServices] = useState([{
     name: 'Sistema',
     icon: 'code',
@@ -332,8 +338,11 @@ const Passwords = () => {
       notes: ''
     });
   };
-  const handleDeletePassword = (id: string) => {
-    deletePassword.mutate(id);
+  const handleDeletePassword = () => {
+    if (deleteConfirmDialog.passwordId) {
+      deletePassword.mutate(deleteConfirmDialog.passwordId);
+      setDeleteConfirmDialog({ open: false, passwordId: null, passwordName: '' });
+    }
   };
   const renderPasswordTable = (passwordsToShow: Password[]) => <div className="overflow-x-auto">
       <Table>
@@ -414,7 +423,7 @@ const Passwords = () => {
                       variant="outline" 
                       size="sm" 
                       className="h-7 w-7 p-0 text-red-400 hover:text-red-300 border-red-600 hover:bg-red-900/20"
-                      onClick={() => handleDeletePassword(item.id)}
+                      onClick={() => setDeleteConfirmDialog({ open: true, passwordId: item.id, passwordName: item.name })}
                       title="Excluir"
                     >
                       <Trash2 className="h-3 w-3" />
@@ -711,6 +720,15 @@ const Passwords = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Dialog de confirmação de exclusão */}
+        <DeleteConfirmDialog
+          open={deleteConfirmDialog.open}
+          onOpenChange={(open) => setDeleteConfirmDialog({ ...deleteConfirmDialog, open })}
+          onConfirm={handleDeletePassword}
+          itemName={deleteConfirmDialog.passwordName}
+          itemType="a senha"
+        />
       </div>
     </div>;
 };
