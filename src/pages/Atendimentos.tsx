@@ -22,12 +22,14 @@ import {
   X,
   ChevronRight,
   User,
-  TrendingUp
+  TrendingUp,
+  Tag
 } from 'lucide-react';
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
 import { useChatwootRealtime, useChatwootMessageNotifications } from '@/hooks/useChatwootRealtime';
 import { useIntegrations } from '@/hooks/useIntegrations';
+import { useChatwootLabels } from '@/hooks/useChatwootLabels';
 import { format, isSameDay, isYesterday, isThisWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
@@ -49,6 +51,7 @@ const Atendimentos = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'pending' | 'resolved'>('all');
   const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'mine' | 'unassigned'>('all');
   const [selectedAgentId, setSelectedAgentId] = useState<string>('all');
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [showContactPanel, setShowContactPanel] = useState(false);
   const [viewMode, setViewMode] = useState<'conversations' | 'metrics'>('conversations');
@@ -69,6 +72,9 @@ const Atendimentos = () => {
 
   // Get agents list
   const { agents, isLoading: agentsLoading } = useChatwootAgents();
+  
+  // Get labels list
+  const { labels: availableLabels } = useChatwootLabels(integrationId);
 
   // Get integration settings for popup notifications
   const { data: integrations } = useIntegrations();
@@ -197,7 +203,14 @@ const Atendimentos = () => {
         }
       }
       
-      return matchesSearch && matchesStatus && matchesAssignment && matchesAgent;
+      // Label filter
+      let matchesLabel = true;
+      if (selectedLabels.length > 0) {
+        const convLabels = conv.labels || [];
+        matchesLabel = selectedLabels.some(label => convLabels.includes(label));
+      }
+      
+      return matchesSearch && matchesStatus && matchesAssignment && matchesAgent && matchesLabel;
     })
     .sort((a, b) => new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime());
 
@@ -606,6 +619,49 @@ const Atendimentos = () => {
               </Badge>
             </div>
           </div>
+          
+          {/* Label Filter */}
+          {availableLabels.length > 0 && (
+            <div className="px-2 py-1.5 border-t border-slate-700">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] text-slate-400">Etiquetas:</span>
+                {availableLabels.map((label) => {
+                  const isSelected = selectedLabels.includes(label.title);
+                  return (
+                    <Badge
+                      key={label.id}
+                      variant="outline"
+                      className="h-5 px-2 text-[10px] cursor-pointer transition-all border-0"
+                      style={{
+                        backgroundColor: isSelected ? label.color : `${label.color}20`,
+                        color: isSelected ? '#fff' : label.color,
+                      }}
+                      onClick={() => {
+                        setSelectedLabels(prev =>
+                          prev.includes(label.title)
+                            ? prev.filter(l => l !== label.title)
+                            : [...prev, label.title]
+                        );
+                      }}
+                    >
+                      {label.title}
+                    </Badge>
+                  );
+                })}
+                {selectedLabels.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 px-2 text-[10px]"
+                    onClick={() => setSelectedLabels([])}
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Limpar
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -693,6 +749,18 @@ const Atendimentos = () => {
                               </p>
                             )}
                             
+                            {/* Labels */}
+                            {conversation.labels && conversation.labels.length > 0 && (
+                              <div className="mt-1">
+                                <ChatwootLabelManager 
+                                  conversationId={conversation.id.toString()}
+                                  currentLabels={conversation.labels}
+                                  integrationId={integrationId}
+                                  mode="compact"
+                                />
+                              </div>
+                            )}
+                            
                             <div className="flex items-center gap-1 mt-0.5">
                               <span className="text-[10px] text-slate-500">
                                 {formatMessageTime(conversation.last_activity_at)}
@@ -761,7 +829,8 @@ const Atendimentos = () => {
                 {/* Labels */}
                 <ChatwootLabelManager 
                   conversationId={selectedConversation.id.toString()}
-                  currentLabels={[]}
+                  currentLabels={selectedConversation.labels || []}
+                  integrationId={integrationId}
                 />
                 
                 {/* Status Actions + Agent Selector */}

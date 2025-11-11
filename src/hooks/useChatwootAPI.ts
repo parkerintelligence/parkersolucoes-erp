@@ -3,6 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIntegrations } from './useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
+export interface ChatwootLabel {
+  id: number;
+  title: string;
+  description: string;
+  color: string;
+  show_on_sidebar: boolean;
+}
+
 export interface ChatwootConversation {
   id: number;
   account_id: number;
@@ -19,6 +27,7 @@ export interface ChatwootConversation {
   identifier: string | null;
   last_activity_at: string;
   messages: ChatwootMessage[];
+  labels?: string[];
   assignee?: {
     id: number;
     name: string;
@@ -247,10 +256,11 @@ export const useChatwootAPI = () => {
           ? conversations 
           : (conversations.data?.payload || conversations.payload || conversations.data || []);
 
-        // Map the conversations to preserve all properties including status
+        // Map the conversations to preserve all properties including status and labels
         const mappedConversations = conversationsData.map((conv: any) => ({
           ...conv,
           status: conv.status, // Explicitly preserve status
+          labels: conv.labels || [], // Preserve labels
           assignee: conv.meta?.assignee || conv.assignee || null
         }));
 
