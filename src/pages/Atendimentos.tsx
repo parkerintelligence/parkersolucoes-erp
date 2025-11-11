@@ -31,7 +31,6 @@ import { useIntegrations } from '@/hooks/useIntegrations';
 import { format, isSameDay, isYesterday, isThisWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
-import { ChatwootStats } from '@/components/chatwoot/ChatwootStats';
 import { ChatwootAgentSelector } from '@/components/chatwoot/ChatwootAgentSelector';
 import { ChatwootContactPanel } from '@/components/chatwoot/ChatwootContactPanel';
 import { ChatwootQuickReplies } from '@/components/chatwoot/ChatwootQuickReplies';
@@ -493,9 +492,6 @@ const Atendimentos = () => {
 
       {viewMode === 'conversations' && (
         <>
-          {/* Statistics Dashboard */}
-          <ChatwootStats />
-
       {/* Assignment Filter */}
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="p-4">
@@ -572,6 +568,28 @@ const Atendimentos = () => {
                   )}
                 </SelectContent>
               </Select>
+            </div>
+
+            <Separator orientation="vertical" className="h-8 bg-slate-600" />
+            
+            {/* Compact Statistics */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-slate-400">Total:</span>
+              <Badge variant="secondary" className="h-5 px-2 bg-slate-700 text-slate-200">
+                {safeConversations.length}
+              </Badge>
+              <span className="text-slate-400">Abertas:</span>
+              <Badge variant="secondary" className="h-5 px-2 bg-green-900/50 text-green-300">
+                {safeConversations.filter(c => c.status === 'open').length}
+              </Badge>
+              <span className="text-slate-400">Pendentes:</span>
+              <Badge variant="secondary" className="h-5 px-2 bg-yellow-900/50 text-yellow-300">
+                {safeConversations.filter(c => c.status === 'pending').length}
+              </Badge>
+              <span className="text-slate-400">Resolvidas:</span>
+              <Badge variant="secondary" className="h-5 px-2 bg-blue-900/50 text-blue-300">
+                {safeConversations.filter(c => c.status === 'resolved').length}
+              </Badge>
             </div>
           </div>
         </CardContent>
