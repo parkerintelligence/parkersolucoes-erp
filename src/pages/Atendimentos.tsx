@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, Search, RefreshCw, Send, AlertCircle, Loader2, CheckCircle2, AlertTriangle, Clock, MessageCircle, X, ChevronRight, User, TrendingUp, Tag, Ticket, Bell, BellOff, BarChart3 } from 'lucide-react';
+import { MessageSquare, Search, RefreshCw, Send, AlertCircle, Loader2, CheckCircle2, AlertTriangle, Clock, MessageCircle, X, ChevronRight, User, TrendingUp, Tag, Ticket, Bell, BellOff, BarChart3, Mail } from 'lucide-react';
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
 import { useChatwootRealtime, useChatwootMessageNotifications } from '@/hooks/useChatwootRealtime';
@@ -345,6 +345,25 @@ const Atendimentos = () => {
       }
     }
   };
+
+  const getChannelIcon = (channel: string) => {
+    const channelLower = channel?.toLowerCase() || '';
+    
+    if (channelLower.includes('whatsapp') || channelLower === 'channel::whatsapp') {
+      return <MessageSquare className="h-3 w-3 text-green-500" />;
+    }
+    
+    if (channelLower.includes('telegram')) {
+      return <Send className="h-3 w-3 text-blue-500" />;
+    }
+    
+    if (channelLower.includes('email')) {
+      return <Mail className="h-3 w-3 text-slate-400" />;
+    }
+    
+    return <MessageCircle className="h-3 w-3 text-slate-400" />;
+  };
+
   const getStatusBadge = (status: string) => {
     const configs = {
       open: {
@@ -748,11 +767,16 @@ const Atendimentos = () => {
                     const isSelected = selectedConversation?.id === conversation.id;
                     return <div key={conversation.id} className={`p-2 rounded-lg cursor-pointer transition-all ${isSelected ? 'bg-blue-900/30 border-2 border-blue-600' : 'hover:bg-slate-700/50 border-2 border-transparent'}`} onClick={() => setSelectedConversation(conversation)}>
                         <div className="flex items-start gap-2">
-                          <Avatar className="h-8 w-8 flex-shrink-0">
-                            <AvatarFallback className="bg-blue-600 text-white text-xs">
-                              {getInitials(conversation.meta?.sender?.name || 'Cliente')}
-                            </AvatarFallback>
-                          </Avatar>
+                          <div className="relative">
+                            <Avatar className="h-8 w-8 flex-shrink-0">
+                              <AvatarFallback className="bg-blue-600 text-white text-xs">
+                                {getInitials(conversation.meta?.sender?.name || 'Cliente')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="absolute -bottom-0.5 -right-0.5 bg-slate-800 rounded-full p-0.5 border border-slate-700">
+                              {getChannelIcon(conversation.channel || conversation.meta?.channel)}
+                            </div>
+                          </div>
                           
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-1 mb-0.5">
@@ -795,15 +819,23 @@ const Atendimentos = () => {
               <CardHeader className="pb-2 pt-2 px-3 border-b border-slate-700">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-blue-600 text-white text-xs">
-                        {getInitials(selectedConversation.meta?.sender?.name || 'Cliente')}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-blue-600 text-white text-xs">
+                          {getInitials(selectedConversation.meta?.sender?.name || 'Cliente')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="absolute -bottom-0.5 -right-0.5 bg-slate-800 rounded-full p-0.5 border border-slate-700">
+                        {getChannelIcon(selectedConversation.channel || selectedConversation.meta?.channel)}
+                      </div>
+                    </div>
                     <div>
-                      <h3 className="font-semibold text-sm text-white">
-                        {selectedConversation.meta?.sender?.name || 'Cliente'}
-                      </h3>
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-semibold text-sm text-white">
+                          {selectedConversation.meta?.sender?.name || 'Cliente'}
+                        </h3>
+                        {getChannelIcon(selectedConversation.channel || selectedConversation.meta?.channel)}
+                      </div>
                       <p className="text-[10px] text-slate-400">
                         {selectedConversation.meta?.sender?.phone_number}
                       </p>
