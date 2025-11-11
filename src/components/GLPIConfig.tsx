@@ -10,6 +10,7 @@ import { Wrench, Save, TestTube, AlertCircle, CheckCircle } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { GLPIDefaultTicketParams } from './GLPIDefaultTicketParams';
 
 export const GLPIConfig = () => {
   const { data: integrations } = useIntegrations();
@@ -373,6 +374,9 @@ export const GLPIConfig = () => {
             </div>
           </div>
         </div>
+
+        {/* Parâmetros Padrão de Chamados */}
+        <GLPIDefaultTicketParams />
       </CardContent>
     </Card>
   );

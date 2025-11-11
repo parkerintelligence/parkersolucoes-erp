@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
+import { useSystemSettings } from '@/hooks/useSystemSettings';
 
 interface GLPINewTicketDialogProps {
   open: boolean;
@@ -19,15 +19,44 @@ export const GLPINewTicketDialog = ({
   onOpenChange
 }: GLPINewTicketDialogProps) => {
   const { createTicket, entities, users, itilCategories, requestTypes } = useGLPIExpanded();
+  const { data: settings } = useSystemSettings('glpi');
+  
+  // Buscar parâmetros padrão configurados
+  const glpiTicketParams = settings?.find(s => s.setting_key === 'glpi_default_ticket_params');
+  const defaultParams = glpiTicketParams?.setting_value 
+    ? JSON.parse(glpiTicketParams.setting_value)
+    : {
+        priority: 3,
+        urgency: 3,
+        impact: 3,
+        type: 1,
+        requesttypes_id: 1
+      };
+  
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    priority: '3',
-    urgency: '3',
-    impact: '3',
-    category: '',
-    requestType: '1'
+    priority: String(defaultParams.priority || 3),
+    urgency: String(defaultParams.urgency || 3),
+    impact: String(defaultParams.impact || 3),
+    category: String(defaultParams.itilcategories_id || ''),
+    requestType: String(defaultParams.type || 1)
   });
+
+  // Atualizar valores padrão quando os parâmetros mudarem
+  useEffect(() => {
+    if (glpiTicketParams?.setting_value) {
+      const params = JSON.parse(glpiTicketParams.setting_value);
+      setFormData(prev => ({
+        ...prev,
+        priority: String(params.priority || 3),
+        urgency: String(params.urgency || 3),
+        impact: String(params.impact || 3),
+        category: String(params.itilcategories_id || ''),
+        requestType: String(params.type || 1)
+      }));
+    }
+  }, [glpiTicketParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,18 +75,20 @@ export const GLPINewTicketDialog = ({
     }
 
     try {
-      // Criar dados do chamado conforme formato GLPI
+      // Mesclar dados do formulário com parâmetros padrão configurados
       const ticketData = {
-        name: formData.title,
+        ...defaultParams, // Parâmetros base configurados
+        name: formData.title, // Override com dados do formulário
         content: formData.content,
         priority: parseInt(formData.priority),
         urgency: parseInt(formData.urgency),
         impact: parseInt(formData.impact),
         type: parseInt(formData.requestType),
-        itilcategories_id: formData.category ? parseInt(formData.category) : undefined,
+        itilcategories_id: formData.category ? parseInt(formData.category) : defaultParams.itilcategories_id,
       };
 
       console.log('🎫 [GLPINewTicketDialog] Dados preparados para envio:', ticketData);
+      console.log('🎫 [GLPINewTicketDialog] Parâmetros padrão aplicados:', defaultParams);
       console.log('🎫 [GLPINewTicketDialog] Mutation status:', {
         isPending: createTicket.isPending,
         isError: createTicket.isError,
@@ -71,11 +102,11 @@ export const GLPINewTicketDialog = ({
       setFormData({
         title: '',
         content: '',
-        priority: '3',
-        urgency: '3',
-        impact: '3',
-        category: '',
-        requestType: '1'
+        priority: String(defaultParams.priority || 3),
+        urgency: String(defaultParams.urgency || 3),
+        impact: String(defaultParams.impact || 3),
+        category: String(defaultParams.itilcategories_id || ''),
+        requestType: String(defaultParams.type || 1)
       });
       
       console.log('🎫 [GLPINewTicketDialog] Formulário resetado e dialog fechando');
