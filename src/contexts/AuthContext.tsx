@@ -24,42 +24,19 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   
-  // Debug logging
-  console.log('[useAuth] Context value:', context ? 'exists' : 'NULL');
-  console.log('[useAuth] React version check:', typeof useContext);
-  
   if (!context) {
-    console.error('[useAuth] AuthContext is null! This usually means:');
-    console.error('1. Component is rendered outside AuthProvider');
-    console.error('2. Multiple React instances are loaded (check Vite config dedupe)');
-    console.error('3. Browser cache needs clearing (Ctrl+Shift+R)');
-    
-    // Return a safe default instead of throwing
-    return {
-      isAuthenticated: false,
-      isLoading: true,
-      isMaster: false,
-      user: null,
-      userProfile: null,
-      session: null,
-      login: async () => false,
-      logout: async () => {},
-    };
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   
   return context;
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  console.log('[AuthProvider] Rendering - React hooks check:', typeof useState, typeof useEffect);
-  
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  console.log('[AuthProvider] State initialized, isLoading:', isLoading);
 
   const INACTIVITY_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
 
@@ -275,12 +252,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     login,
     logout,
   };
-  
-  console.log('[AuthProvider] Providing context value:', {
-    isAuthenticated: value.isAuthenticated,
-    isLoading: value.isLoading,
-    hasUser: !!value.user
-  });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
