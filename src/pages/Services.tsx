@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { Settings, Plus, Edit, Trash2 } from 'lucide-react';
 import { useServices, useCreateService, useUpdateService, useDeleteService } from '@/hooks/useServices';
 
@@ -19,6 +20,11 @@ const Services = () => {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<string | null>(null);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{
+    open: boolean;
+    serviceId: string | null;
+    serviceName: string;
+  }>({ open: false, serviceId: null, serviceName: '' });
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -53,6 +59,13 @@ const Services = () => {
     });
     setEditingService(service.id);
     setIsDialogOpen(true);
+  };
+
+  const handleDeleteService = () => {
+    if (deleteConfirmDialog.serviceId) {
+      deleteService.mutate(deleteConfirmDialog.serviceId);
+      setDeleteConfirmDialog({ open: false, serviceId: null, serviceName: '' });
+    }
   };
 
   if (isLoading) {
@@ -218,7 +231,11 @@ const Services = () => {
                           variant="ghost" 
                           size="sm" 
                           className="text-red-600 hover:text-red-700"
-                          onClick={() => deleteService.mutate(service.id)}
+                          onClick={() => setDeleteConfirmDialog({ 
+                            open: true, 
+                            serviceId: service.id, 
+                            serviceName: service.name 
+                          })}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -231,6 +248,15 @@ const Services = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog de confirmação de exclusão */}
+      <DeleteConfirmDialog
+        open={deleteConfirmDialog.open}
+        onOpenChange={(open) => setDeleteConfirmDialog({ ...deleteConfirmDialog, open })}
+        itemName={deleteConfirmDialog.serviceName}
+        itemType="serviço"
+        onConfirm={handleDeleteService}
+      />
     </div>
   );
 };

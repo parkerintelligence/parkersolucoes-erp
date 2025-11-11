@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { Building, Plus, Search, Edit, Trash2, Phone, Mail, MapPin } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,6 +30,11 @@ const Companies = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{
+    open: boolean;
+    companyId: string | null;
+    companyName: string;
+  }>({ open: false, companyId: null, companyName: '' });
   const [formData, setFormData] = useState({
     name: '',
     cnpj: '',
@@ -181,9 +187,10 @@ const Companies = () => {
     }
   };
 
-  const handleDelete = (id: string, name: string) => {
-    if (confirm(`Tem certeza que deseja remover a empresa "${name}"?`)) {
-      deleteCompanyMutation.mutate(id);
+  const handleDelete = () => {
+    if (deleteConfirmDialog.companyId) {
+      deleteCompanyMutation.mutate(deleteConfirmDialog.companyId);
+      setDeleteConfirmDialog({ open: false, companyId: null, companyName: '' });
     }
   };
 
@@ -397,7 +404,11 @@ const Companies = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDelete(company.id, company.name)}
+                          onClick={() => setDeleteConfirmDialog({ 
+                            open: true, 
+                            companyId: company.id, 
+                            companyName: company.name 
+                          })}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -410,6 +421,15 @@ const Companies = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog de confirmação de exclusão */}
+      <DeleteConfirmDialog
+        open={deleteConfirmDialog.open}
+        onOpenChange={(open) => setDeleteConfirmDialog({ ...deleteConfirmDialog, open })}
+        itemName={deleteConfirmDialog.companyName}
+        itemType="empresa"
+        onConfirm={handleDelete}
+      />
     </div>
   );
 };

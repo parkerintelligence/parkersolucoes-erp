@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { DollarSign, Plus, Edit, Trash2, Calendar, TrendingUp, TrendingDown, FileText } from 'lucide-react';
 import { useBudgets, useCreateBudget, useUpdateBudget, useDeleteBudget } from '@/hooks/useBudgets';
 
@@ -21,6 +22,11 @@ const Budgets = () => {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<string | null>(null);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{
+    open: boolean;
+    budgetId: string | null;
+    budgetTitle: string;
+  }>({ open: false, budgetId: null, budgetTitle: '' });
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -65,6 +71,13 @@ const Budgets = () => {
     });
     setEditingBudget(budget.id);
     setIsDialogOpen(true);
+  };
+
+  const handleDeleteBudget = () => {
+    if (deleteConfirmDialog.budgetId) {
+      deleteBudget.mutate(deleteConfirmDialog.budgetId);
+      setDeleteConfirmDialog({ open: false, budgetId: null, budgetTitle: '' });
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -312,7 +325,11 @@ const Budgets = () => {
                               variant="outline" 
                               size="sm" 
                               className="border-red-600 text-red-400 hover:bg-red-900/30"
-                              onClick={() => deleteBudget.mutate(budget.id)}
+                              onClick={() => setDeleteConfirmDialog({ 
+                                open: true, 
+                                budgetId: budget.id, 
+                                budgetTitle: budget.title 
+                              })}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -327,6 +344,15 @@ const Budgets = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog de confirmação de exclusão */}
+      <DeleteConfirmDialog
+        open={deleteConfirmDialog.open}
+        onOpenChange={(open) => setDeleteConfirmDialog({ ...deleteConfirmDialog, open })}
+        itemName={deleteConfirmDialog.budgetTitle}
+        itemType="orçamento"
+        onConfirm={handleDeleteBudget}
+      />
     </div>
   );
 };

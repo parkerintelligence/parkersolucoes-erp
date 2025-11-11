@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { FileText, Plus, Edit, Trash2, Calendar, DollarSign, Building } from 'lucide-react';
 import { useContracts, useCreateContract, useUpdateContract, useDeleteContract } from '@/hooks/useContracts';
 import { useCompanies } from '@/hooks/useCompanies';
@@ -22,6 +23,11 @@ const Contracts = () => {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingContract, setEditingContract] = useState<string | null>(null);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{
+    open: boolean;
+    contractId: string | null;
+    contractTitle: string;
+  }>({ open: false, contractId: null, contractTitle: '' });
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -75,6 +81,13 @@ const Contracts = () => {
     });
     setEditingContract(contract.id);
     setIsDialogOpen(true);
+  };
+
+  const handleDeleteContract = () => {
+    if (deleteConfirmDialog.contractId) {
+      deleteContract.mutate(deleteConfirmDialog.contractId);
+      setDeleteConfirmDialog({ open: false, contractId: null, contractTitle: '' });
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -362,7 +375,11 @@ const Contracts = () => {
                               variant="outline" 
                               size="sm" 
                               className="border-red-600 text-red-400 hover:bg-red-900/30"
-                              onClick={() => deleteContract.mutate(contract.id)}
+                              onClick={() => setDeleteConfirmDialog({ 
+                                open: true, 
+                                contractId: contract.id, 
+                                contractTitle: contract.title 
+                              })}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -377,6 +394,15 @@ const Contracts = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog de confirmação de exclusão */}
+      <DeleteConfirmDialog
+        open={deleteConfirmDialog.open}
+        onOpenChange={(open) => setDeleteConfirmDialog({ ...deleteConfirmDialog, open })}
+        itemName={deleteConfirmDialog.contractTitle}
+        itemType="contrato"
+        onConfirm={handleDeleteContract}
+      />
     </div>
   );
 };

@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ServiceDialog } from '@/components/ServiceDialog';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { 
   StickyNote, Plus, Edit, Trash2, Building, Search, Settings, 
   Code, Mail, Server, Database, Cloud, Shield, Monitor, Globe, Filter, FileDown,
@@ -42,6 +43,11 @@ const Annotations = () => {
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
   const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{
+    open: boolean;
+    annotationId: string | null;
+    annotationName: string;
+  }>({ open: false, annotationId: null, annotationName: '' });
   const [editingAnnotation, setEditingAnnotation] = useState<Annotation | null>(null);
   const [viewingAnnotation, setViewingAnnotation] = useState<AnnotationWithCompany | null>(null);
   const [whatsAppAnnotation, setWhatsAppAnnotation] = useState<AnnotationWithCompany | null>(null);
@@ -296,8 +302,11 @@ const Annotations = () => {
     });
   };
 
-  const handleDeleteAnnotation = (id: string) => {
-    deleteAnnotation.mutate(id);
+  const handleDeleteAnnotation = () => {
+    if (deleteConfirmDialog.annotationId) {
+      deleteAnnotation.mutate(deleteConfirmDialog.annotationId);
+      setDeleteConfirmDialog({ open: false, annotationId: null, annotationName: '' });
+    }
   };
 
   const handleWhatsAppShare = (annotation: Annotation) => {
@@ -389,7 +398,11 @@ const Annotations = () => {
                       variant="outline" 
                       size="sm" 
                       className="h-7 w-7 p-0 text-red-400 hover:text-red-300 border-red-600 hover:bg-red-900/20"
-                      onClick={() => handleDeleteAnnotation(item.id)}
+                      onClick={() => setDeleteConfirmDialog({ 
+                        open: true, 
+                        annotationId: item.id, 
+                        annotationName: item.name 
+                      })}
                       title="Excluir"
                     >
                       <Trash2 className="h-3 w-3" />
@@ -707,6 +720,15 @@ const Annotations = () => {
             annotation={viewingAnnotation}
           />
         )}
+
+        {/* Dialog de confirmação de exclusão */}
+        <DeleteConfirmDialog
+          open={deleteConfirmDialog.open}
+          onOpenChange={(open) => setDeleteConfirmDialog({ ...deleteConfirmDialog, open })}
+          itemName={deleteConfirmDialog.annotationName}
+          itemType="anotação"
+          onConfirm={handleDeleteAnnotation}
+        />
       </div>
     </div>
   );

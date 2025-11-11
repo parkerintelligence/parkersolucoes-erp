@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { FileText, Plus, Edit, Trash2, Download, Eye, File, Folder, Search } from 'lucide-react';
 import { useDocuments, useCreateDocument, useUpdateDocument, useDeleteDocument } from '@/hooks/useDocuments';
 import { useCompanies } from '@/hooks/useCompanies';
@@ -23,6 +24,11 @@ const Documents = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{
+    open: boolean;
+    documentId: string | null;
+    documentTitle: string;
+  }>({ open: false, documentId: null, documentTitle: '' });
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -70,6 +76,13 @@ const Documents = () => {
     });
     setEditingDocument(document.id);
     setIsDialogOpen(true);
+  };
+
+  const handleDeleteDocument = () => {
+    if (deleteConfirmDialog.documentId) {
+      deleteDocument.mutate(deleteConfirmDialog.documentId);
+      setDeleteConfirmDialog({ open: false, documentId: null, documentTitle: '' });
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -382,7 +395,11 @@ const Documents = () => {
                               variant="outline" 
                               size="sm" 
                               className="border-red-600 text-red-400 hover:bg-red-900/30"
-                              onClick={() => deleteDocument.mutate(document.id)}
+                              onClick={() => setDeleteConfirmDialog({ 
+                                open: true, 
+                                documentId: document.id, 
+                                documentTitle: document.title 
+                              })}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -397,6 +414,15 @@ const Documents = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog de confirmação de exclusão */}
+      <DeleteConfirmDialog
+        open={deleteConfirmDialog.open}
+        onOpenChange={(open) => setDeleteConfirmDialog({ ...deleteConfirmDialog, open })}
+        itemName={deleteConfirmDialog.documentTitle}
+        itemType="documento"
+        onConfirm={handleDeleteDocument}
+      />
     </div>
   );
 };
