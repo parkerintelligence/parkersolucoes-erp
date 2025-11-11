@@ -749,7 +749,7 @@ const Atendimentos = () => {
               </CardHeader>
               
               {/* Messages */}
-              <ScrollArea className="flex-1 p-4">
+              <ScrollArea className="h-[calc(100vh-450px)] min-h-[400px] max-h-[600px] p-4">
                 {messagesLoading ? (
                   <div className="text-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
