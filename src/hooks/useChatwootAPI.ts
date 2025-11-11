@@ -325,11 +325,15 @@ export const useChatwootAPI = () => {
 
   const updateConversationStatus = useMutation({
     mutationFn: async ({ conversationId, status }: { conversationId: string; status: 'open' | 'resolved' | 'pending' }) => {
+      console.log('🚀 MUTATION INICIADA!', { conversationId, status });
+      
       if (!chatwootIntegration?.id) {
+        console.error('❌ Sem integração Chatwoot configurada');
         throw new Error('Chatwoot não configurado');
       }
 
       try {
+        console.log('🔍 Buscando profile...');
         // Get profile to get the account ID
         const profile = await makeChatwootRequest(
           chatwootIntegration.id,
@@ -337,33 +341,55 @@ export const useChatwootAPI = () => {
         );
 
         const accountId = profile.account_id;
-
-        console.log('Updating conversation status:', { conversationId, status, accountId });
+        console.log('✅ Profile obtido, accountId:', accountId);
+        console.log('🔄 Atualizando conversa:', { conversationId, status, accountId });
 
         // Pegar status anterior antes de atualizar
         const oldData: any = queryClient.getQueryData(['chatwoot-conversations', chatwootIntegration?.id]);
         const conversationData = oldData?.find((c: any) => c.id.toString() === conversationId);
         const previousStatus = conversationData?.status || 'open';
 
-        const conversation = await makeChatwootRequest(
-          chatwootIntegration.id,
-          `/accounts/${accountId}/conversations/${conversationId}`,
-          {
-            method: 'PATCH',
-            body: {
-              status: status
+        let conversation;
+        try {
+          console.log('🔄 Tentando PATCH para atualizar status...');
+          conversation = await makeChatwootRequest(
+            chatwootIntegration.id,
+            `/accounts/${accountId}/conversations/${conversationId}`,
+            {
+              method: 'PATCH',
+              body: {
+                status: status
+              }
             }
-          }
-        );
+          );
+          console.log('✅ PATCH bem-sucedido:', conversation);
+        } catch (patchError) {
+          console.warn('⚠️ PATCH falhou, tentando POST como fallback:', patchError);
+          
+          // Tentar POST como fallback
+          conversation = await makeChatwootRequest(
+            chatwootIntegration.id,
+            `/accounts/${accountId}/conversations/${conversationId}/toggle_status`,
+            {
+              method: 'POST',
+              body: {
+                status: status
+              }
+            }
+          );
+          console.log('✅ POST bem-sucedido:', conversation);
+        }
 
-        console.log('Conversation updated, new status:', conversation.status);
+        console.log('✅ Conversation updated, new status:', conversation.status);
 
         // Salvar no histórico após sucesso da API
+        console.log('💾 Salvando histórico de status...');
         await saveStatusHistory(conversationId, previousStatus, status);
+        console.log('✅ Histórico salvo!');
 
         return conversation;
       } catch (error: any) {
-        console.error('Erro ao atualizar status:', error);
+        console.error('❌ Erro ao atualizar status:', error);
         throw new Error(error.message || 'Erro ao atualizar status da conversa');
       }
     },
@@ -431,7 +457,7 @@ export const useChatwootAPI = () => {
       });
     },
     onError: (error: Error, variables) => {
-      console.error('❌ Erro ao atualizar status:', error);
+      console.error('❌ Mutation onError:', error);
       
       // Revert otimistic update
       queryClient.invalidateQueries({ 

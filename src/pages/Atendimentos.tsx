@@ -196,7 +196,21 @@ const Atendimentos = () => {
   };
 
   const handleStatusChange = async (status: 'open' | 'resolved' | 'pending') => {
-    if (!selectedConversation) return;
+    console.log('🟢 handleStatusChange CHAMADO!', { status });
+    console.log('🟢 selectedConversation:', selectedConversation);
+    
+    if (!selectedConversation) {
+      console.error('❌ selectedConversation é null!');
+      toast({
+        title: "Erro",
+        description: "Nenhuma conversa selecionada",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    console.log('🟢 Passando verificação de selectedConversation');
+    console.log('🟢 updateConversationStatus:', updateConversationStatus);
 
     try {
       console.log('🔄 Iniciando mudança de status:', {
@@ -230,7 +244,7 @@ const Atendimentos = () => {
       }
       
     } catch (error) {
-      console.error('❌ Erro ao atualizar status:', error);
+      console.error('❌ ERRO CAPTURADO em handleStatusChange:', error);
       
       // Revert local state on error
       setSelectedConversation(selectedConversation);
@@ -646,7 +660,10 @@ const Atendimentos = () => {
                   <Button 
                     size="sm" 
                     variant={selectedConversation.status === 'pending' ? 'default' : 'outline'}
-                    onClick={() => handleStatusChange('pending')}
+                    onClick={() => {
+                      console.log('🟢 BOTÃO PENDENTE CLICADO!');
+                      handleStatusChange('pending');
+                    }}
                     disabled={updateConversationStatus.isPending || selectedConversation.status === 'pending'}
                     className={selectedConversation.status === 'pending' 
                       ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
@@ -662,7 +679,10 @@ const Atendimentos = () => {
                   <Button 
                     size="sm" 
                     variant={selectedConversation.status === 'resolved' ? 'default' : 'outline'}
-                    onClick={() => handleStatusChange('resolved')}
+                    onClick={() => {
+                      console.log('🟢 BOTÃO RESOLVER CLICADO!');
+                      handleStatusChange('resolved');
+                    }}
                     disabled={updateConversationStatus.isPending || selectedConversation.status === 'resolved'}
                     className={selectedConversation.status === 'resolved' 
                       ? 'bg-blue-600 hover:bg-blue-700 text-white' 
