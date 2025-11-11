@@ -301,13 +301,25 @@ export const useChatwootAPI = () => {
 
         const accountId = profile.account_id;
 
+        // Buscar dados da conversa para pegar o agente
+        const conversationData = await makeChatwootRequest(
+          chatwootIntegration.id,
+          `/accounts/${accountId}/conversations/${conversationId}`
+        );
+
+        const assignee = conversationData?.meta?.assignee || conversationData?.assignee;
+        const agentName = assignee?.name || assignee?.available_name || profile.name;
+
+        // Adicionar nome do agente no início da mensagem
+        const messageWithAgent = `*${agentName}:*\n${content}`;
+
         const message = await makeChatwootRequest(
           chatwootIntegration.id,
           `/accounts/${accountId}/conversations/${conversationId}/messages`,
           {
             method: 'POST',
             body: {
-              content: content,
+              content: messageWithAgent,
               message_type: 1, // 0 = incoming, 1 = outgoing
               private: false
             }
