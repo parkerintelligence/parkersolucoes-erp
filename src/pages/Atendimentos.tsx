@@ -478,38 +478,38 @@ const Atendimentos = () => {
         </Card>
       </div>;
   }
-  return <div className="min-h-screen bg-slate-900 text-white p-1.5">
-      <div className="h-[calc(100vh-2rem)] flex flex-col gap-1">
+  return <div className="min-h-screen bg-slate-900 text-white p-2">
+      <div className="h-[calc(100vh-2rem)] flex flex-col gap-1.5">
         {/* Header */}
-        <div className="flex items-center justify-between py-1">
-          <div className="flex items-center gap-1.5">
-            <MessageSquare className="h-4 w-4 text-blue-400" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-blue-400" />
             <div>
-              <h1 className="text-base font-bold text-white">Atendimentos</h1>
-              <p className="text-[10px] text-slate-400">
+              <h1 className="text-xl font-bold text-white">Atendimentos</h1>
+              <p className="text-xs text-slate-400">
                 {filteredConversations.length} conversas • {safeConversations.filter(c => c.status === 'open').length} abertas
               </p>
             </div>
           </div>
-        <div className="flex gap-1 items-center">
+        <div className="flex gap-2 items-center">
           {/* Notification Toggle Button */}
           <Button 
             onClick={() => setNotificationsEnabled(!notificationsEnabled)}
             variant="outline" 
             size="sm" 
-            className="h-6 gap-1 text-[10px] px-2"
+            className="h-7 gap-1.5"
           >
             {notificationsEnabled ? <>
-                <Bell className="h-2.5 w-2.5 text-green-400" />
-                <span className="text-[10px] text-green-400">Notif. ativas</span>
+                <Bell className="h-3 w-3 text-green-400" />
+                <span className="text-xs text-green-400">Notificações ativas</span>
               </> : <>
-                <BellOff className="h-2.5 w-2.5 text-slate-500" />
-                <span className="text-[10px] text-slate-500">Notif. desativadas</span>
+                <BellOff className="h-3 w-3 text-slate-500" />
+                <span className="text-xs text-slate-500">Notificações desativadas</span>
               </>}
           </Button>
           
-          <Button onClick={() => refetchConversations?.()} disabled={isLoading} variant="outline" size="sm" className="h-6 w-6 p-0">
-            {isLoading ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <RefreshCw className="h-2.5 w-2.5" />}
+          <Button onClick={() => refetchConversations?.()} disabled={isLoading} variant="outline" size="sm" className="h-7">
+            {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
           </Button>
         </div>
       </div>
@@ -521,38 +521,38 @@ const Atendimentos = () => {
 
       {/* Assignment Filter */}
       <Card className="bg-slate-800 border-slate-700">
-        <CardContent className="p-1.5">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-medium text-slate-300">
-              Filtrar:
+        <CardContent className="p-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-medium text-slate-300">
+              Filtrar por:
             </span>
-            <div className="flex items-center gap-0.5">
-              <Button variant={assignmentFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setAssignmentFilter('all')} className="gap-1 h-6 text-[10px] px-2">
+            <div className="flex items-center gap-1">
+              <Button variant={assignmentFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setAssignmentFilter('all')} className="gap-1 h-7 text-xs">
                 Todas
-                <Badge variant={assignmentFilter === 'all' ? 'secondary' : 'outline'} className="h-3.5 px-1 text-[9px]">
+                <Badge variant={assignmentFilter === 'all' ? 'secondary' : 'outline'} className="h-4 px-1.5 text-xs">
                   {safeConversations.length}
                 </Badge>
               </Button>
-              <Button variant={assignmentFilter === 'mine' ? 'default' : 'outline'} size="sm" onClick={() => setAssignmentFilter('mine')} className="gap-1 h-6 text-[10px] px-2">
+              <Button variant={assignmentFilter === 'mine' ? 'default' : 'outline'} size="sm" onClick={() => setAssignmentFilter('mine')} className="gap-1 h-7 text-xs">
                 Minhas
-                <Badge variant={assignmentFilter === 'mine' ? 'secondary' : 'outline'} className="h-3.5 px-1 text-[9px]">
+                <Badge variant={assignmentFilter === 'mine' ? 'secondary' : 'outline'} className="h-4 px-1.5 text-xs">
                   {myConversationsCount}
                 </Badge>
               </Button>
-              <Button variant={assignmentFilter === 'unassigned' ? 'default' : 'outline'} size="sm" onClick={() => setAssignmentFilter('unassigned')} className="gap-1 h-6 text-[10px] px-2">
-                Não Atrib.
-                <Badge variant={assignmentFilter === 'unassigned' ? 'secondary' : 'outline'} className="h-3.5 px-1 text-[9px]">
+              <Button variant={assignmentFilter === 'unassigned' ? 'default' : 'outline'} size="sm" onClick={() => setAssignmentFilter('unassigned')} className="gap-1 h-7 text-xs">
+                Não Atribuídas
+                <Badge variant={assignmentFilter === 'unassigned' ? 'secondary' : 'outline'} className="h-4 px-1.5 text-xs">
                   {unassignedCount}
                 </Badge>
               </Button>
             </div>
             
-            <Separator orientation="vertical" className="h-5 bg-slate-600" />
+            <Separator orientation="vertical" className="h-6 bg-slate-600" />
             
-            <div className="flex items-center gap-0.5">
-              <User className="h-2.5 w-2.5 text-slate-400" />
+            <div className="flex items-center gap-1">
+              <User className="h-3 w-3 text-slate-400" />
               <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
-                <SelectTrigger className="w-[130px] h-6 bg-slate-700 border-slate-600 text-white text-[10px]">
+                <SelectTrigger className="w-[160px] h-7 bg-slate-700 border-slate-600 text-white text-xs">
                   <SelectValue placeholder="Selecionar agente..." />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-700 border-slate-600">
@@ -572,13 +572,13 @@ const Atendimentos = () => {
               </Select>
             </div>
 
-            <Separator orientation="vertical" className="h-5 bg-slate-600" />
+            <Separator orientation="vertical" className="h-6 bg-slate-600" />
             
             {/* Period Filter */}
-            <div className="flex items-center gap-0.5">
-              <Clock className="h-2.5 w-2.5 text-slate-400" />
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3 text-slate-400" />
               <Select value={periodFilter} onValueChange={v => setPeriodFilter(v as any)}>
-                <SelectTrigger className="w-[110px] h-6 bg-slate-700 border-slate-600 text-white text-[10px]">
+                <SelectTrigger className="w-[140px] h-7 bg-slate-700 border-slate-600 text-white text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-700 border-slate-600">
@@ -598,70 +598,70 @@ const Atendimentos = () => {
               </Select>
             </div>
 
-            <Separator orientation="vertical" className="h-5 bg-slate-600" />
+            <Separator orientation="vertical" className="h-6 bg-slate-600" />
             
             {/* Buscar conversas */}
-            <div className="relative flex-1 min-w-[150px]">
-              <Search className="absolute left-1.5 top-1.5 h-2.5 w-2.5 text-slate-400" />
-              <Input placeholder="Buscar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-6 h-6 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 text-[10px]" />
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="absolute left-2 top-1.5 h-3 w-3 text-slate-400" />
+              <Input placeholder="Buscar conversas..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-7 h-7 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 text-xs" />
             </div>
 
-            <Separator orientation="vertical" className="h-5 bg-slate-600" />
+            <Separator orientation="vertical" className="h-6 bg-slate-600" />
             
             {/* Compact Statistics */}
-            <div className="flex items-center gap-1 text-[10px]">
-              <span className="text-slate-400">T:</span>
-              <Badge variant="secondary" className="h-4 px-1.5 bg-slate-700 text-slate-200 text-[9px]">
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="text-slate-400">Total:</span>
+              <Badge variant="secondary" className="h-5 px-2 bg-slate-700 text-slate-200 text-xs">
                 {safeConversations.length}
               </Badge>
-              <span className="text-slate-400">A:</span>
-              <Badge variant="secondary" className="h-4 px-1.5 bg-green-900/50 text-green-300 text-[9px]">
+              <span className="text-slate-400">Abertas:</span>
+              <Badge variant="secondary" className="h-5 px-2 bg-green-900/50 text-green-300 text-xs">
                 {safeConversations.filter(c => c.status === 'open').length}
               </Badge>
-              <span className="text-slate-400">P:</span>
-              <Badge variant="secondary" className="h-4 px-1.5 bg-yellow-900/50 text-yellow-300 text-[9px]">
+              <span className="text-slate-400">Pendentes:</span>
+              <Badge variant="secondary" className="h-5 px-2 bg-yellow-900/50 text-yellow-300 text-xs">
                 {safeConversations.filter(c => c.status === 'pending').length}
               </Badge>
-              <span className="text-slate-400">R:</span>
-              <Badge variant="secondary" className="h-4 px-1.5 bg-blue-900/50 text-blue-300 text-[9px]">
+              <span className="text-slate-400">Resolvidas:</span>
+              <Badge variant="secondary" className="h-5 px-2 bg-blue-900/50 text-blue-300 text-xs">
                 {safeConversations.filter(c => c.status === 'resolved').length}
               </Badge>
             </div>
           </div>
           
           {/* Label Filter */}
-          {availableLabels.length > 0 && <div className="px-1.5 py-1 border-t border-slate-700">
-              <div className="flex items-center justify-between gap-1.5">
-                <div className="flex items-center gap-1.5 flex-wrap flex-1">
-                  <span className="text-[10px] text-slate-400">Etiquetas:</span>
+          {availableLabels.length > 0 && <div className="px-2 py-1.5 border-t border-slate-700">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-wrap flex-1">
+                  <span className="text-xs text-slate-400">Etiquetas:</span>
                   {availableLabels.map(label => {
                   const isSelected = selectedLabels.includes(label.title);
-                  return <Badge key={label.id} variant="outline" className={`h-5 px-1.5 text-[10px] cursor-pointer transition-all shadow-sm gap-1 ${isSelected ? 'ring-2 ring-white/30 border-0' : 'border-0'}`} style={{
+                  return <Badge key={label.id} variant="outline" className={`h-6 px-2 text-xs cursor-pointer transition-all shadow-sm gap-1.5 ${isSelected ? 'ring-2 ring-white/30 border-0' : 'border-0'}`} style={{
                     backgroundColor: label.color,
                     color: '#fff'
                   }} onClick={() => {
                     setSelectedLabels(prev => prev.includes(label.title) ? prev.filter(l => l !== label.title) : [...prev, label.title]);
                   }}>
-                        <div className="w-1.5 h-1.5 rounded-full bg-white/40" />
+                        <div className="w-2 h-2 rounded-full bg-white/40" />
                         {label.title}
                       </Badge>;
                 })}
-                  {selectedLabels.length > 0 && <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[10px]" onClick={() => setSelectedLabels([])}>
-                      <X className="h-2.5 w-2.5 mr-0.5" />
+                  {selectedLabels.length > 0 && <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setSelectedLabels([])}>
+                      <X className="h-3 w-3 mr-1" />
                       Limpar
                     </Button>}
                 </div>
                 
                 {/* Navigation buttons */}
-                <div className="flex items-center gap-0.5 flex-shrink-0">
-                  <Button variant={viewMode === "conversations" ? "default" : "ghost"} size="sm" className="h-6 w-6 p-0" onClick={() => setViewMode("conversations")} title="Conversas">
-                    <MessageSquare className="h-3 w-3" />
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <Button variant={viewMode === "conversations" ? "default" : "ghost"} size="sm" className="h-7 w-7 p-0" onClick={() => setViewMode("conversations")} title="Conversas">
+                    <MessageSquare className="h-4 w-4" />
                   </Button>
-                  <Button variant={viewMode === "metrics" ? "default" : "ghost"} size="sm" className="h-6 w-6 p-0" onClick={() => setViewMode("metrics")} title="Métricas">
-                    <TrendingUp className="h-3 w-3" />
+                  <Button variant={viewMode === "metrics" ? "default" : "ghost"} size="sm" className="h-7 w-7 p-0" onClick={() => setViewMode("metrics")} title="Métricas">
+                    <TrendingUp className="h-4 w-4" />
                   </Button>
-                  <Button variant={viewMode === "stats" ? "default" : "ghost"} size="sm" className="h-6 w-6 p-0" onClick={() => setViewMode("stats")} title="Estatísticas">
-                    <BarChart3 className="h-3 w-3" />
+                  <Button variant={viewMode === "stats" ? "default" : "ghost"} size="sm" className="h-7 w-7 p-0" onClick={() => setViewMode("stats")} title="Estatísticas">
+                    <BarChart3 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -670,15 +670,15 @@ const Atendimentos = () => {
       </Card>
 
       {viewMode === 'conversations' && <>
-      <div className="flex-1 grid grid-cols-12 gap-1 min-h-0">
+      <div className="flex-1 grid grid-cols-12 gap-2 min-h-0">
         {/* Conversations List */}
         <Card className="col-span-12 lg:col-span-3 flex flex-col bg-slate-800 border-slate-700">
-          <CardHeader className="pb-0.5 pt-1 px-1.5 border-b border-slate-700 space-y-1">
+          <CardHeader className="pb-1 pt-2 px-2 border-b border-slate-700 space-y-2">
             {/* Sort Selector */}
-            <div className="flex items-center justify-between px-1 py-0.5 border-b border-slate-700/50 bg-slate-800/50 rounded">
-              <span className="text-[10px] text-slate-400 font-medium">Ordenar:</span>
+            <div className="flex items-center justify-between px-1 py-1 border-b border-slate-700/50 bg-slate-800/50 rounded">
+              <span className="text-xs text-slate-400 font-medium">Ordenar por:</span>
               <Select value={sortBy} onValueChange={v => setSortBy(v as any)}>
-                <SelectTrigger className="h-6 w-[110px] text-[10px] bg-slate-700 border-slate-600">
+                <SelectTrigger className="h-7 w-[140px] text-xs bg-slate-700 border-slate-600">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-700 border-slate-600">
@@ -706,27 +706,27 @@ const Atendimentos = () => {
             
             <Tabs value={statusFilter} onValueChange={v => setStatusFilter(v as any)}>
               <TabsList className="w-full grid grid-cols-4 gap-0.5 bg-slate-700 p-0.5 h-auto">
-                <TabsTrigger value="all" className="text-[10px] text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-1.5 py-0.5 h-auto">
+                <TabsTrigger value="all" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1 h-auto">
                   <span>Todas</span>
-                  <Badge variant="secondary" className="h-3.5 px-1 text-[9px] bg-slate-600 text-slate-100 font-semibold mt-0.5">
+                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-slate-600 text-slate-100 font-semibold mt-0.5">
                     {safeConversations.length}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="open" className="text-[10px] text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-1.5 py-0.5 h-auto">
+                <TabsTrigger value="open" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1 h-auto">
                   <span>Abertas</span>
-                  <Badge variant="secondary" className="h-3.5 px-1 text-[9px] bg-green-900/50 text-green-300 font-semibold mt-0.5">
+                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-green-900/50 text-green-300 font-semibold mt-0.5">
                     {safeConversations.filter(c => c.status === 'open').length}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="pending" className="text-[10px] text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-1.5 py-0.5 h-auto">
+                <TabsTrigger value="pending" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1 h-auto">
                   <span>Pendentes</span>
-                  <Badge variant="secondary" className="h-3.5 px-1 text-[9px] bg-yellow-900/50 text-yellow-300 font-semibold mt-0.5">
+                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-yellow-900/50 text-yellow-300 font-semibold mt-0.5">
                     {safeConversations.filter(c => c.status === 'pending').length}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="resolved" className="text-[10px] text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-1.5 py-0.5 h-auto">
+                <TabsTrigger value="resolved" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1 h-auto">
                   <span>Resolvidas</span>
-                  <Badge variant="secondary" className="h-3.5 px-1 text-[9px] bg-blue-900/50 text-blue-300 font-semibold mt-0.5">
+                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-blue-900/50 text-blue-300 font-semibold mt-0.5">
                     {safeConversations.filter(c => c.status === 'resolved').length}
                   </Badge>
                 </TabsTrigger>
@@ -734,8 +734,8 @@ const Atendimentos = () => {
             </Tabs>
           </CardHeader>
           
-           <ScrollArea className="flex-1">
-            <CardContent className="p-0.5">
+           <ScrollArea className="h-[calc(100vh-400px)]">
+            <CardContent className="p-1">
               {isLoading ? <div className="text-center py-4">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-400" />
                   <p className="text-xs text-slate-300">Carregando conversas...</p>
@@ -746,36 +746,36 @@ const Atendimentos = () => {
                   {filteredConversations.map(conversation => {
                     const lastMessage = conversation.messages?.[conversation.messages.length - 1];
                     const isSelected = selectedConversation?.id === conversation.id;
-                    return <div key={conversation.id} className={`p-1.5 rounded-lg cursor-pointer transition-all ${isSelected ? 'bg-blue-900/30 border border-blue-600' : 'hover:bg-slate-700/50 border border-transparent'}`} onClick={() => setSelectedConversation(conversation)}>
-                        <div className="flex items-start gap-1.5">
-                          <Avatar className="h-6 w-6 flex-shrink-0">
-                            <AvatarFallback className="bg-blue-600 text-white text-[9px]">
+                    return <div key={conversation.id} className={`p-2 rounded-lg cursor-pointer transition-all ${isSelected ? 'bg-blue-900/30 border-2 border-blue-600' : 'hover:bg-slate-700/50 border-2 border-transparent'}`} onClick={() => setSelectedConversation(conversation)}>
+                        <div className="flex items-start gap-2">
+                          <Avatar className="h-8 w-8 flex-shrink-0">
+                            <AvatarFallback className="bg-blue-600 text-white text-xs">
                               {getInitials(conversation.meta?.sender?.name || 'Cliente')}
                             </AvatarFallback>
                           </Avatar>
                           
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-1 mb-0.5">
-                              <h3 className="font-medium text-[10px] truncate text-white">
+                              <h3 className="font-medium text-xs truncate text-white">
                                 {conversation.meta?.sender?.name || 'Cliente'}
                               </h3>
                               {getStatusBadge(conversation.status)}
                             </div>
                             
-                            {lastMessage && <p className="text-[9px] text-slate-400 line-clamp-1">
+                            {lastMessage && <p className="text-xs text-slate-400 line-clamp-1">
                                 {lastMessage.content}
                               </p>}
                             
                             {/* Labels */}
-                            {conversation.labels && conversation.labels.length > 0 && <div className="mt-0.5">
+                            {conversation.labels && conversation.labels.length > 0 && <div className="mt-1">
                                 <ChatwootLabelManager conversationId={conversation.id.toString()} currentLabels={conversation.labels} integrationId={integrationId} mode="compact" />
                               </div>}
                             
                             <div className="flex items-center gap-1 mt-0.5">
-                              <span className="text-[9px] text-slate-500">
+                              <span className="text-xs text-slate-500">
                                 {formatMessageTime(conversation.last_activity_at)}
                               </span>
-                              {conversation.unread_count > 0 && <Badge variant="destructive" className="h-3.5 px-1 text-[8px] bg-red-600">
+                              {conversation.unread_count > 0 && <Badge variant="destructive" className="h-4 px-1.5 text-[10px] bg-red-600">
                                   {conversation.unread_count}
                                 </Badge>}
                             </div>
@@ -792,31 +792,31 @@ const Atendimentos = () => {
         <Card className={`${showContactPanel ? 'col-span-12 lg:col-span-6' : 'col-span-12 lg:col-span-9'} flex flex-col bg-slate-800 border-slate-700`}>
           {selectedConversation ? <>
               {/* Chat Header */}
-              <CardHeader className="pb-1 pt-1 px-1.5 border-b border-slate-700">
+              <CardHeader className="pb-2 pt-2 px-3 border-b border-slate-700">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className="bg-blue-600 text-white text-[10px]">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-blue-600 text-white text-xs">
                         {getInitials(selectedConversation.meta?.sender?.name || 'Cliente')}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <h3 className="font-semibold text-xs text-white">
+                      <h3 className="font-semibold text-sm text-white">
                         {selectedConversation.meta?.sender?.name || 'Cliente'}
                       </h3>
-                      <p className="text-[9px] text-slate-400">
+                      <p className="text-[10px] text-slate-400">
                         {selectedConversation.meta?.sender?.phone_number}
                       </p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2">
                     {getStatusBadge(selectedConversation.status)}
-                    <Button variant="ghost" size="icon" onClick={() => setShowContactPanel(!showContactPanel)} className="hidden lg:flex h-6 w-6">
-                      <ChevronRight className={`h-2.5 w-2.5 transition-transform ${showContactPanel ? 'rotate-180' : ''}`} />
+                    <Button variant="ghost" size="icon" onClick={() => setShowContactPanel(!showContactPanel)} className="hidden lg:flex h-7 w-7">
+                      <ChevronRight className={`h-3 w-3 transition-transform ${showContactPanel ? 'rotate-180' : ''}`} />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedConversation(null)} className="lg:hidden h-6 w-6">
-                      <X className="h-2.5 w-2.5" />
+                    <Button variant="ghost" size="icon" onClick={() => setSelectedConversation(null)} className="lg:hidden h-7 w-7">
+                      <X className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>
@@ -825,46 +825,46 @@ const Atendimentos = () => {
                 <ChatwootLabelManager conversationId={selectedConversation.id.toString()} currentLabels={selectedConversation.labels || []} integrationId={integrationId} />
                 
                 {/* Status Actions + Agent Selector */}
-                <div className="flex items-center gap-1 mt-1 flex-wrap">
-                  <Button size="sm" variant={selectedConversation.status === 'open' ? 'default' : 'outline'} onClick={() => handleStatusChange('open')} disabled={updateConversationStatus.isPending || selectedConversation.status === 'open'} className={`h-6 text-[10px] px-2 ${selectedConversation.status === 'open' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}>
-                    {updateConversationStatus.isPending ? <Loader2 className="h-2.5 w-2.5 mr-0.5 animate-spin" /> : <Clock className="h-2.5 w-2.5 mr-0.5" />}
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                  <Button size="sm" variant={selectedConversation.status === 'open' ? 'default' : 'outline'} onClick={() => handleStatusChange('open')} disabled={updateConversationStatus.isPending || selectedConversation.status === 'open'} className={`h-7 text-xs ${selectedConversation.status === 'open' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}>
+                    {updateConversationStatus.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Clock className="h-3 w-3 mr-1" />}
                     Abrir
                   </Button>
                   <Button size="sm" variant={selectedConversation.status === 'pending' ? 'default' : 'outline'} onClick={() => {
                     console.log('🟢 BOTÃO PENDENTE CLICADO!');
                     handleStatusChange('pending');
-                  }} disabled={updateConversationStatus.isPending || selectedConversation.status === 'pending'} className={`h-6 text-[10px] px-2 ${selectedConversation.status === 'pending' ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}>
-                    {updateConversationStatus.isPending ? <Loader2 className="h-2.5 w-2.5 mr-0.5 animate-spin" /> : <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />}
+                  }} disabled={updateConversationStatus.isPending || selectedConversation.status === 'pending'} className={`h-7 text-xs ${selectedConversation.status === 'pending' ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}>
+                    {updateConversationStatus.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <AlertTriangle className="h-3 w-3 mr-1" />}
                     Pendente
                   </Button>
                   <Button size="sm" variant={selectedConversation.status === 'resolved' ? 'default' : 'outline'} onClick={() => {
                     console.log('🟢 BOTÃO RESOLVER CLICADO!');
                     handleStatusChange('resolved');
-                  }} disabled={updateConversationStatus.isPending || selectedConversation.status === 'resolved'} className={`h-6 text-[10px] px-2 ${selectedConversation.status === 'resolved' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}>
-                    {updateConversationStatus.isPending ? <Loader2 className="h-2.5 w-2.5 mr-0.5 animate-spin" /> : <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />}
+                  }} disabled={updateConversationStatus.isPending || selectedConversation.status === 'resolved'} className={`h-7 text-xs ${selectedConversation.status === 'resolved' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}>
+                    {updateConversationStatus.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
                     Resolver
                   </Button>
                   
-                  <Separator orientation="vertical" className="h-5" />
+                  <Separator orientation="vertical" className="h-6" />
                   
                   {/* Agent Selector inline */}
-                  <div className="flex-1 min-w-[140px]">
+                  <div className="flex-1 min-w-[180px]">
                     <ChatwootAgentSelector conversationId={selectedConversation.id.toString()} currentAgentId={selectedConversation.assignee?.id} />
                   </div>
                   
-                  <Button size="sm" variant={showContactPanel ? 'default' : 'outline'} onClick={() => setShowContactPanel(!showContactPanel)} title={showContactPanel ? 'Ocultar informações do contato' : 'Mostrar informações do contato'} className="h-6 text-[10px] px-2">
-                    <User className="h-2.5 w-2.5 mr-0.5" />
+                  <Button size="sm" variant={showContactPanel ? 'default' : 'outline'} onClick={() => setShowContactPanel(!showContactPanel)} title={showContactPanel ? 'Ocultar informações do contato' : 'Mostrar informações do contato'} className="h-7 text-xs">
+                    <User className="h-3 w-3 mr-1" />
                     Contato
                   </Button>
                 </div>
               </CardHeader>
               
               {/* Messages */}
-              <ScrollArea className="h-[calc(100vh-240px)] p-1.5">
-                 {messagesLoading ? <div className="text-center py-2">
-                    <Loader2 className="h-4 w-4 animate-spin mx-auto mb-1 text-blue-400" />
-                    <p className="text-[10px] text-slate-300">Carregando mensagens...</p>
-                  </div> : conversationMessages && conversationMessages.length > 0 ? <div className="space-y-1">
+              <ScrollArea className="h-[calc(100vh-420px)] p-2">
+                 {messagesLoading ? <div className="text-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-400" />
+                    <p className="text-xs text-slate-300">Carregando mensagens...</p>
+                  </div> : conversationMessages && conversationMessages.length > 0 ? <div className="space-y-2">
                     {conversationMessages.map((message, index) => {
                     const isOutgoing = message.message_type === 1;
                     const showSenderName = !isOutgoing && message.sender?.name;
@@ -877,15 +877,15 @@ const Atendimentos = () => {
                     });
                     return <div key={`${message.id}-${index}`} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-200`}>
                           <div className={`max-w-[70%] ${isOutgoing ? 'order-2' : 'order-1'}`}>
-                            <div className={`rounded-lg p-1.5 shadow-sm ${isOutgoing ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-100'}`}>
-                              {showSenderName && <p className="text-[9px] font-semibold mb-0.5 opacity-80">
+                            <div className={`rounded-lg p-2 shadow-sm ${isOutgoing ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-100'}`}>
+                              {showSenderName && <p className="text-xs font-semibold mb-1 opacity-80">
                                   {message.sender.name}
                                 </p>}
-                              <p className="text-[10px] whitespace-pre-wrap break-words">
+                              <p className="text-xs whitespace-pre-wrap break-words">
                                 {message.content}
                               </p>
-                              <div className="flex items-center justify-between gap-1 mt-0.5">
-                                <p className={`text-[9px] ${isOutgoing ? 'text-blue-100' : 'text-slate-400'}`}>
+                              <div className="flex items-center justify-between gap-2 mt-1">
+                                <p className={`text-xs ${isOutgoing ? 'text-blue-100' : 'text-slate-400'}`}>
                                   {formatMessageTime(message.created_at)}
                                 </p>
                                 <ChatwootMessageStatus status={message.status} messageType={message.message_type} />
@@ -895,43 +895,43 @@ const Atendimentos = () => {
                         </div>;
                   })}
                     <div ref={messagesEndRef} />
-                  </div> : <div className="text-center py-3 text-slate-400">
-                    <MessageCircle className="h-6 w-6 mx-auto mb-1.5 opacity-50 text-slate-500" />
-                    <p className="text-[10px]">Nenhuma mensagem nesta conversa</p>
-                    <p className="text-[9px] text-slate-500 mt-0.5">
+                  </div> : <div className="text-center py-4 text-slate-400">
+                    <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50 text-slate-500" />
+                    <p className="text-xs">Nenhuma mensagem nesta conversa</p>
+                    <p className="text-xs text-slate-500 mt-1">
                       As mensagens aparecerão aqui quando forem enviadas ou recebidas
                     </p>
                   </div>}
               </ScrollArea>
               
               {/* Message Input */}
-              <div className="p-1.5 border-t border-slate-700">
-                <div className="mb-0.5 flex items-center gap-1">
+              <div className="p-2 border-t border-slate-700">
+                <div className="mb-1 flex items-center gap-2">
                   <div className="flex-1">
                     <ChatwootQuickReplies onSelectReply={setMessageText} />
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => setIsGLPIDialogOpen(true)} className="h-6 px-2 text-[10px] bg-orange-600/20 border-orange-600 text-orange-200 hover:bg-orange-600 hover:text-white transition-colors whitespace-nowrap">
-                    <Ticket className="h-2.5 w-2.5 mr-1" />
-                    Chamado
+                  <Button variant="outline" size="sm" onClick={() => setIsGLPIDialogOpen(true)} className="h-7 px-3 bg-orange-600/20 border-orange-600 text-orange-200 hover:bg-orange-600 hover:text-white transition-colors whitespace-nowrap">
+                    <Ticket className="h-3.5 w-3.5 mr-1.5" />
+                    Abrir Chamado
                   </Button>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1.5">
                   <ChatwootFileUpload conversationId={selectedConversation.id.toString()} />
                   <Textarea placeholder="Digite sua mensagem..." value={messageText} onChange={e => setMessageText(e.target.value)} onKeyDown={e => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       handleSendMessage();
                     }
-                  }} className="min-h-[40px] max-h-[80px] resize-none bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 text-[10px]" disabled={!selectedConversation.can_reply} />
-                  <Button onClick={handleSendMessage} disabled={sendMessage.isPending || !messageText.trim() || !selectedConversation.can_reply} className="px-3 bg-blue-600 hover:bg-blue-700 text-white h-[40px]">
-                    {sendMessage.isPending ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Send className="h-2.5 w-2.5" />}
+                  }} className="min-h-[50px] max-h-[100px] resize-none bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 text-xs" disabled={!selectedConversation.can_reply} />
+                  <Button onClick={handleSendMessage} disabled={sendMessage.isPending || !messageText.trim() || !selectedConversation.can_reply} className="px-4 bg-blue-600 hover:bg-blue-700 text-white h-[50px]">
+                    {sendMessage.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
                   </Button>
                 </div>
-                {!selectedConversation.can_reply && <p className="text-[9px] text-slate-400 mt-0.5">
+                {!selectedConversation.can_reply && <p className="text-xs text-slate-400 mt-1">
                     Esta conversa não permite resposta
                   </p>}
-                <p className="text-[9px] text-slate-400 mt-0.5">
-                  Enter: enviar • Shift+Enter: quebrar linha
+                <p className="text-xs text-slate-400 mt-1">
+                  Pressione Enter para enviar, Shift+Enter para quebrar linha
                 </p>
               </div>
             </> : <CardContent className="flex-1 flex items-center justify-center">
