@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   console.log('[AuthProvider] State initialized, isLoading:', isLoading);
 
-  const INACTIVITY_TIMEOUT = 60 * 60 * 1000; // 1 hour in milliseconds
+  const INACTIVITY_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -143,17 +143,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Reset inactivity timer on user activity
   const resetInactivityTimer = useCallback(() => {
-    // Only reset if user is authenticated
     if (!session || !user) return;
 
-    // Clear existing timer
+    const now = Date.now();
+    const lastActivity = localStorage.getItem('lastActivity');
+    
+    if (lastActivity) {
+      const timeSinceActivity = now - parseInt(lastActivity);
+      if (timeSinceActivity < 1000) {
+        return;
+      }
+    }
+    
+    localStorage.setItem('lastActivity', now.toString());
+
     if (inactivityTimerRef.current) {
       clearTimeout(inactivityTimerRef.current);
     }
 
-    // Set new timer
     inactivityTimerRef.current = setTimeout(() => {
-      console.log('User inactive for 1 hour, logging out...');
+      console.log('Usuário inativo por 4 horas, fazendo logout...');
       logout();
     }, INACTIVITY_TIMEOUT);
   // eslint-disable-next-line react-hooks/exhaustive-deps

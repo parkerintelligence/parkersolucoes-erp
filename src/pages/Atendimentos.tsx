@@ -249,8 +249,11 @@ const Atendimentos = () => {
       // Revert local state on error
       setSelectedConversation(selectedConversation);
       
-      // Force refetch to get correct state
-      refetchConversations?.();
+      // Only force refetch if conversation not found in cache
+      if (!conversations?.find(c => c.id === selectedConversation.id)) {
+        console.log('⚠️ Conversa não encontrada no cache, forçando refetch');
+        refetchConversations?.();
+      }
     }
   };
 
@@ -288,25 +291,19 @@ const Atendimentos = () => {
 
     let date: Date;
     
-    // Se for um número (Unix timestamp)
     if (typeof timestamp === 'number') {
-      // Se for em segundos (menor que um bilhão significa que é timestamp antigo)
-      // Unix timestamps em milissegundos são maiores que 1000000000000
       date = timestamp < 10000000000 
-        ? new Date(timestamp * 1000) // converter segundos para milissegundos
+        ? new Date(timestamp * 1000)
         : new Date(timestamp);
     } else {
-      // Se for string, tentar parsear
       date = new Date(timestamp);
     }
     
-    // Verificar se a data é válida
     if (isNaN(date.getTime())) {
       console.error('Data inválida:', timestamp);
       return '--:--';
     }
     
-    // Se a data for antes de 2000, provavelmente é um erro
     if (date.getFullYear() < 2000) {
       console.error('Data suspeita (antes de 2000):', timestamp, date);
       return '--:--';
@@ -317,11 +314,13 @@ const Atendimentos = () => {
     
     try {
       if (diffInHours < 24) {
-        return format(date, 'HH:mm', { locale: ptBR });
+        return 'Hoje às ' + format(date, 'HH:mm', { locale: ptBR });
       } else if (diffInHours < 48) {
-        return 'Ontem ' + format(date, 'HH:mm', { locale: ptBR });
+        return 'Ontem às ' + format(date, 'HH:mm', { locale: ptBR });
+      } else if (diffInHours < 168) {
+        return format(date, "EEEE', 'HH:mm", { locale: ptBR });
       } else {
-        return format(date, 'dd/MM/yyyy HH:mm', { locale: ptBR });
+        return format(date, "dd/MM/yyyy', 'HH:mm", { locale: ptBR });
       }
     } catch (error) {
       console.error('Erro ao formatar data:', error, timestamp);

@@ -231,7 +231,7 @@ export const useChatwootAPI = () => {
     enabled: !!chatwootIntegration,
     refetchInterval: false,
     retry: false,
-    staleTime: 0, // Always fetch fresh data after invalidation
+    staleTime: 30000, // 30 segundos - dados são considerados "frescos"
   });
 
   const sendMessage = useMutation({
@@ -439,13 +439,26 @@ export const useChatwootAPI = () => {
       );
       
       // Sincronização em segundo plano (não bloqueia a UI)
-      setTimeout(() => {
-        console.log('🔄 Sincronizando dados em segundo plano...');
-        queryClient.refetchQueries({ 
-          queryKey: ['chatwoot-conversations', chatwootIntegration?.id],
-          type: 'active'
-        });
-      }, 2000); // 2 segundos, não interfere com a atualização visual
+      setTimeout(async () => {
+        const cachedData: any = queryClient.getQueryData([
+          'chatwoot-conversations', 
+          chatwootIntegration?.id
+        ]);
+        
+        const cachedConv = cachedData?.find(
+          (c: any) => String(c.id) === String(variables.conversationId)
+        );
+        
+        if (cachedConv?.status === data.status) {
+          console.log('✅ Status no cache correto, sincronizando...');
+          queryClient.refetchQueries({ 
+            queryKey: ['chatwoot-conversations', chatwootIntegration?.id],
+            type: 'active'
+          });
+        } else {
+          console.log('⚠️ Status no cache divergente, não fazendo refetch');
+        }
+      }, 5000);
       
       toast({
         title: "Status atualizado!",
