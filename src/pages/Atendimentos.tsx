@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageSquare, Search, RefreshCw, Send, AlertCircle, Loader2, CheckCircle2, AlertTriangle, Clock, MessageCircle, X, ChevronRight, User, TrendingUp, Tag, Ticket, Bell, BellOff, BarChart3, Mail } from 'lucide-react';
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
@@ -769,6 +769,10 @@ const Atendimentos = () => {
                         <div className="flex items-start gap-2">
                           <div className="relative">
                             <Avatar className="h-8 w-8 flex-shrink-0">
+                              <AvatarImage 
+                                src={conversation.meta?.sender?.avatar_url || conversation.meta?.sender?.thumbnail} 
+                                alt={conversation.meta?.sender?.name || 'Cliente'} 
+                              />
                               <AvatarFallback className="bg-blue-600 text-white text-xs">
                                 {getInitials(conversation.meta?.sender?.name || 'Cliente')}
                               </AvatarFallback>
@@ -821,6 +825,10 @@ const Atendimentos = () => {
                   <div className="flex items-center gap-2">
                     <div className="relative">
                       <Avatar className="h-8 w-8">
+                        <AvatarImage 
+                          src={selectedConversation.meta?.sender?.avatar_url || selectedConversation.meta?.sender?.thumbnail} 
+                          alt={selectedConversation.meta?.sender?.name || 'Cliente'} 
+                        />
                         <AvatarFallback className="bg-blue-600 text-white text-xs">
                           {getInitials(selectedConversation.meta?.sender?.name || 'Cliente')}
                         </AvatarFallback>

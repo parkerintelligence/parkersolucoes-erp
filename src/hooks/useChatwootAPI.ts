@@ -40,6 +40,8 @@ export interface ChatwootConversation {
       name: string;
       phone_number: string;
       email?: string;
+      avatar_url?: string;
+      thumbnail?: string;
     };
     channel: string;
   };
