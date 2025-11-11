@@ -56,6 +56,7 @@ const Atendimentos = () => {
   const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'mine' | 'unassigned'>('all');
   const [selectedAgentId, setSelectedAgentId] = useState<string>('all');
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<'date' | 'priority' | 'labels'>('date');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [showContactPanel, setShowContactPanel] = useState(false);
   const [viewMode, setViewMode] = useState<'conversations' | 'metrics' | 'stats'>('conversations');
@@ -220,7 +221,42 @@ const Atendimentos = () => {
       
       return matchesSearch && matchesStatus && matchesAssignment && matchesAgent && matchesLabel;
     })
-    .sort((a, b) => new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime());
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'date':
+          return new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime();
+        
+        case 'priority': {
+          const getPriority = (conv: ChatwootConversation) => {
+            if (!conv.assignee) return 4;
+            if (conv.status === 'open') return 3;
+            if (conv.status === 'pending') return 2;
+            if (conv.status === 'resolved') return 1;
+            return 0;
+          };
+          
+          const priorityDiff = getPriority(b) - getPriority(a);
+          if (priorityDiff === 0) {
+            return new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime();
+          }
+          return priorityDiff;
+        }
+        
+        case 'labels': {
+          const labelA = (a.labels && a.labels.length > 0) ? a.labels[0] : 'zzz';
+          const labelB = (b.labels && b.labels.length > 0) ? b.labels[0] : 'zzz';
+          
+          const labelCompare = labelA.localeCompare(labelB, 'pt-BR');
+          if (labelCompare === 0) {
+            return new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime();
+          }
+          return labelCompare;
+        }
+        
+        default:
+          return new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime();
+      }
+    });
 
   // Calculate counts for assignment filter
   const myConversationsCount = safeConversations.filter(c => c.assignee?.id === currentUserId).length;
@@ -689,7 +725,37 @@ const Atendimentos = () => {
       <div className="flex-1 grid grid-cols-12 gap-2 min-h-0">
         {/* Conversations List */}
         <Card className="col-span-12 lg:col-span-3 flex flex-col bg-slate-800 border-slate-700">
-          <CardHeader className="pb-1 pt-2 px-2 border-b border-slate-700">
+          <CardHeader className="pb-1 pt-2 px-2 border-b border-slate-700 space-y-2">
+            {/* Sort Selector */}
+            <div className="flex items-center justify-between px-1 py-1 border-b border-slate-700/50 bg-slate-800/50 rounded">
+              <span className="text-xs text-slate-400 font-medium">Ordenar por:</span>
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+                <SelectTrigger className="h-7 w-[140px] text-xs bg-slate-700 border-slate-600">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600">
+                  <SelectItem value="date" className="text-white hover:bg-slate-600 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-3 w-3" />
+                      <span>Data recente</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="priority" className="text-white hover:bg-slate-600 text-xs">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-3 w-3" />
+                      <span>Prioridade</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="labels" className="text-white hover:bg-slate-600 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Tag className="h-3 w-3" />
+                      <span>Etiquetas</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
             <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
               <TabsList className="w-full grid grid-cols-4 gap-0.5 bg-slate-700 p-0.5 h-auto">
                 <TabsTrigger value="all" className="text-xs text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white flex flex-col items-center justify-center px-2 py-1 h-auto">
