@@ -317,9 +317,9 @@ export default function Alertas() {
   const getStatusColor = (status: DeviceStatus['status']) => {
     switch (status) {
       case 'online':
-        return 'bg-green-500/10 border-green-500/20';
+        return 'bg-green-500/30 border-green-500/40';
       case 'offline':
-        return 'bg-red-500/10 border-red-500/20';
+        return 'bg-red-500/30 border-red-500/40';
       default:
         return 'bg-slate-800 border-slate-700';
     }
