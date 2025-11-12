@@ -315,7 +315,14 @@ export default function Alertas() {
   };
 
   const getStatusColor = (status: DeviceStatus['status']) => {
-    return 'bg-slate-800 border-slate-700';
+    switch (status) {
+      case 'online':
+        return 'bg-green-500/10 border-green-500/20';
+      case 'offline':
+        return 'bg-red-500/10 border-red-500/20';
+      default:
+        return 'bg-slate-800 border-slate-700';
+    }
   };
 
   const getStatusBadge = (status: DeviceStatus['status']) => {
