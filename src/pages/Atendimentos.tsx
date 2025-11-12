@@ -820,14 +820,22 @@ const Atendimentos = () => {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-end gap-1">
                     {getStatusBadge(selectedConversation.status)}
-                    <Button variant="ghost" size="icon" onClick={() => setShowContactPanel(!showContactPanel)} className="hidden lg:flex h-7 w-7">
-                      <ChevronRight className={`h-3 w-3 transition-transform ${showContactPanel ? 'rotate-180' : ''}`} />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedConversation(null)} className="lg:hidden h-7 w-7">
-                      <X className="h-3 w-3" />
-                    </Button>
+                    {selectedConversation.inbox?.name && (
+                      <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                        <MessageCircle className="h-3 w-3" />
+                        {selectedConversation.inbox.name}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => setShowContactPanel(!showContactPanel)} className="hidden lg:flex h-7 w-7">
+                        <ChevronRight className={`h-3 w-3 transition-transform ${showContactPanel ? 'rotate-180' : ''}`} />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setSelectedConversation(null)} className="lg:hidden h-7 w-7">
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 
