@@ -176,40 +176,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       async (event, session) => {
         console.log('🔐 Auth state changed:', event, !!session);
         
-        // Ignorar eventos de refresh de token - apenas atualizar a sessão
+        // TOKEN_REFRESHED: Atualizar sessão se válida
         if (event === 'TOKEN_REFRESHED') {
-          console.log('✅ Token refreshed, mantendo sessão atual');
           if (session) {
+            console.log('✅ Token refreshed successfully');
             setSession(session);
             setUser(session.user);
+          } else {
+            console.warn('⚠️ Token refresh falhou, limpando sessão');
+            setSession(null);
+            setUser(null);
+            setUserProfile(null);
           }
           return;
         }
         
-        // CRÍTICO: Não fazer logout em erros temporários ou rate limiting
-        // Apenas fazer logout se for explicitamente SIGNED_OUT
-        if (!session && event !== 'SIGNED_OUT') {
-          console.warn('⚠️ Evento de auth sem sessão mas não é sign out:', event);
-          console.warn('⚠️ Mantendo usuário logado para evitar logout acidental');
-          // Manter o usuário logado - não limpar session/user
-          return;
-        }
-        
-        // Atualizar session e user apenas em eventos válidos
+        // SIGNED_IN ou INITIAL_SESSION: Configurar sessão e buscar perfil
         if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-          setSession(session);
-          setUser(session?.user ?? null);
-          
-          if (session?.user) {
-            console.log('👤 Buscando perfil do usuário...');
+          if (session) {
+            console.log('✅ Sessão iniciada');
+            setSession(session);
+            setUser(session.user);
+            
             setTimeout(async () => {
               const profile = await fetchUserProfile(session.user.id);
               setUserProfile(profile);
             }, 0);
           }
-        } else if (event === 'SIGNED_OUT') {
-          // Limpar perfil apenas em logout explícito
-          console.log('🚪 Usuário deslogado, limpando perfil');
+        } 
+        // SIGNED_OUT: Limpar tudo
+        else if (event === 'SIGNED_OUT') {
+          console.log('🚪 Usuário deslogado');
+          setSession(null);
+          setUser(null);
+          setUserProfile(null);
+        }
+        // Outros eventos sem sessão: Limpar apenas se já tínhamos uma sessão
+        else if (!session && (user || userProfile)) {
+          console.warn('⚠️ Sessão perdida em evento:', event);
           setSession(null);
           setUser(null);
           setUserProfile(null);
