@@ -37,8 +37,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastActivityCheckRef = useRef<number>(0);
 
-  const INACTIVITY_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+  const INACTIVITY_TIMEOUT = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -118,21 +119,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Reset inactivity timer on user activity (com throttle para evitar rate limiting)
+  // Reset inactivity timer on user activity (com throttle agressivo para evitar rate limiting)
   const resetInactivityTimer = useCallback(() => {
     if (!session || !user) return;
 
     const now = Date.now();
-    const lastActivity = localStorage.getItem('lastActivity');
     
-    // Aumentar intervalo para 30 segundos para evitar rate limiting
-    if (lastActivity) {
-      const timeSinceActivity = now - parseInt(lastActivity);
-      if (timeSinceActivity < 30000) { // 30 segundos ao invés de 1 segundo
-        return;
-      }
+    // Aumentar intervalo para 2 minutos para evitar rate limiting
+    if (now - lastActivityCheckRef.current < 120000) { // 2 minutos
+      return;
     }
     
+    lastActivityCheckRef.current = now;
     localStorage.setItem('lastActivity', now.toString());
 
     if (inactivityTimerRef.current) {
@@ -140,7 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     inactivityTimerRef.current = setTimeout(() => {
-      console.log('⏰ Usuário inativo por 4 horas, fazendo logout automático...');
+      console.log('⏰ Usuário inativo por 8 horas, fazendo logout automático...');
       logout();
     }, INACTIVITY_TIMEOUT);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -150,8 +148,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!session || !user) return;
 
-    // Usar apenas eventos essenciais (remover mousemove e scroll que são muito frequentes)
-    const events = ['mousedown', 'keypress', 'touchstart', 'click'];
+    // Usar apenas eventos essenciais e menos frequentes
+    const events = ['click', 'keydown'];
     
     // Reset timer on any activity
     events.forEach(event => {
@@ -178,34 +176,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       async (event, session) => {
         console.log('🔐 Auth state changed:', event, !!session);
         
-        // Ignorar eventos de refresh de token e erros de rate limit
+        // Ignorar eventos de refresh de token - apenas atualizar a sessão
         if (event === 'TOKEN_REFRESHED') {
           console.log('✅ Token refreshed, mantendo sessão atual');
-          // Atualizar session mas não fazer outras operações
-          setSession(session);
+          if (session) {
+            setSession(session);
+            setUser(session.user);
+          }
           return;
         }
         
-        // Não fazer logout em erros de rate limiting
+        // CRÍTICO: Não fazer logout em erros temporários ou rate limiting
+        // Apenas fazer logout se for explicitamente SIGNED_OUT
         if (!session && event !== 'SIGNED_OUT') {
           console.warn('⚠️ Evento de auth sem sessão mas não é sign out:', event);
-          // Manter o usuário logado em caso de erros temporários
+          console.warn('⚠️ Mantendo usuário logado para evitar logout acidental');
+          // Manter o usuário logado - não limpar session/user
           return;
         }
         
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user && event === 'SIGNED_IN') {
-          // Fetch user profile apenas em login explícito
-          console.log('👤 Buscando perfil do usuário...');
-          setTimeout(async () => {
-            const profile = await fetchUserProfile(session.user.id);
-            setUserProfile(profile);
-          }, 0);
+        // Atualizar session e user apenas em eventos válidos
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+          setSession(session);
+          setUser(session?.user ?? null);
+          
+          if (session?.user) {
+            console.log('👤 Buscando perfil do usuário...');
+            setTimeout(async () => {
+              const profile = await fetchUserProfile(session.user.id);
+              setUserProfile(profile);
+            }, 0);
+          }
         } else if (event === 'SIGNED_OUT') {
           // Limpar perfil apenas em logout explícito
           console.log('🚪 Usuário deslogado, limpando perfil');
+          setSession(null);
+          setUser(null);
           setUserProfile(null);
         }
         
