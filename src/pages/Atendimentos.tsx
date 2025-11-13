@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +41,7 @@ const Atendimentos = () => {
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'date' | 'priority' | 'labels'>('date');
   const [periodFilter, setPeriodFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [selectedInboxId, setSelectedInboxId] = useState<string>('all');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [showContactPanel, setShowContactPanel] = useState(false);
   const [viewMode, setViewMode] = useState<'conversations' | 'metrics' | 'stats'>('conversations');
@@ -179,9 +180,26 @@ const Atendimentos = () => {
     }
   }, [selectedConversation?.id, integrationId, markConversationAsRead]);
   const safeConversations = Array.isArray(conversations) ? conversations : [];
+
+  // Extract unique inboxes from conversations
+  const availableInboxes = useMemo(() => {
+    const inboxMap = new Map<number, { id: number; name: string }>();
+    safeConversations.forEach(conv => {
+      if (conv.inbox?.id && conv.inbox?.name) {
+        inboxMap.set(conv.inbox.id, {
+          id: conv.inbox.id,
+          name: conv.inbox.name
+        });
+      }
+    });
+    return Array.from(inboxMap.values()).sort((a, b) => 
+      a.name.localeCompare(b.name)
+    );
+  }, [safeConversations]);
   const filteredConversations = safeConversations.filter(conv => {
     const matchesSearch = conv.meta?.sender?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || conv.meta?.sender?.phone_number?.includes(searchTerm) || conv.id?.toString().includes(searchTerm);
     const matchesStatus = statusFilter === 'all' || conv.status === statusFilter;
+    const matchesInbox = selectedInboxId === 'all' || conv.inbox?.id?.toString() === selectedInboxId;
 
     // Period filter
     let matchesPeriod = true;
@@ -227,7 +245,7 @@ const Atendimentos = () => {
       const convLabels = conv.labels || [];
       matchesLabel = selectedLabels.some(label => convLabels.includes(label));
     }
-    return matchesSearch && matchesStatus && matchesAssignment && matchesAgent && matchesLabel && matchesPeriod;
+    return matchesSearch && matchesStatus && matchesAssignment && matchesAgent && matchesLabel && matchesPeriod && matchesInbox;
   }).sort((a, b) => {
     switch (sortBy) {
       case 'date':
@@ -608,6 +626,36 @@ const Atendimentos = () => {
 
             <Separator orientation="vertical" className="h-6 bg-slate-600" />
             
+            {/* Inbox Filter */}
+            <div className="flex items-center gap-1">
+              <MessageCircle className="h-3 w-3 text-slate-400" />
+              <Select value={selectedInboxId} onValueChange={setSelectedInboxId}>
+                <SelectTrigger className="w-[160px] h-7 bg-slate-700 border-slate-600 text-white text-xs">
+                  <SelectValue placeholder="Todas as caixas" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600">
+                  <SelectItem value="all" className="text-white hover:bg-slate-600 text-xs">
+                    Todas as caixas
+                  </SelectItem>
+                  <Separator className="my-1 bg-slate-600" />
+                  {availableInboxes.map(inbox => (
+                    <SelectItem 
+                      key={inbox.id} 
+                      value={inbox.id.toString()} 
+                      className="text-white hover:bg-slate-600 text-xs"
+                    >
+                      <div className="flex items-center gap-2">
+                        <MessageCircle className="h-3 w-3" />
+                        <span>{inbox.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Separator orientation="vertical" className="h-6 bg-slate-600" />
+            
             {/* Buscar conversas */}
             <div className="relative flex-1 min-w-[180px]">
               <Search className="absolute left-2 top-1.5 h-3 w-3 text-slate-400" />
@@ -780,7 +828,16 @@ const Atendimentos = () => {
                                 <ChatwootLabelManager conversationId={conversation.id.toString()} currentLabels={conversation.labels} integrationId={integrationId} mode="compact" />
                               </div>}
                             
-                            <div className="flex items-center gap-1 mt-0.5">
+                            <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                              {conversation.inbox?.name && (
+                                <>
+                                  <MessageCircle className="h-3 w-3 text-blue-400" />
+                                  <span className="text-xs text-blue-400 font-medium">
+                                    {conversation.inbox.name}
+                                  </span>
+                                  <span className="text-xs text-slate-500">•</span>
+                                </>
+                              )}
                               <span className="text-xs text-slate-500">
                                 {formatMessageTime(conversation.last_activity_at)}
                               </span>
