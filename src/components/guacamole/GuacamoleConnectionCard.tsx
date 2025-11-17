@@ -17,6 +17,7 @@ interface GuacamoleConnectionCardProps {
   onConnect: (connection: GuacamoleConnection) => void;
   onEdit: (connection: GuacamoleConnection) => void;
   onDelete: (connectionId: string) => void;
+  onDisconnect?: (connectionId: string) => void;
   isDeleting?: boolean;
 }
 
@@ -25,9 +26,11 @@ export const GuacamoleConnectionCard = ({
   onConnect,
   onEdit,
   onDelete,
+  onDisconnect,
   isDeleting = false
 }: Omit<GuacamoleConnectionCardProps, 'onToggleDetails' | 'showDetails'>) => {
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   const getProtocolColor = (protocol: string) => {
     switch (protocol?.toLowerCase()) {
@@ -45,6 +48,16 @@ export const GuacamoleConnectionCard = ({
       await onConnect(connection);
     } finally {
       setIsConnecting(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!onDisconnect) return;
+    setIsDisconnecting(true);
+    try {
+      await onDisconnect(connection.identifier);
+    } finally {
+      setIsDisconnecting(false);
     }
   };
 
@@ -78,6 +91,17 @@ export const GuacamoleConnectionCard = ({
               <div className="flex items-center gap-1">
                 <div className={`w-1 h-1 rounded-full ${status.color}`} />
                 <span className="text-[10px] text-slate-400">{status.label}</span>
+                {connection.activeConnections && connection.activeConnections > 0 && onDisconnect && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 px-1 ml-1 text-[9px] text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    onClick={handleDisconnect}
+                    disabled={isDisconnecting}
+                  >
+                    {isDisconnecting ? 'Desconectando...' : 'Desconectar'}
+                  </Button>
+                )}
               </div>
             </CardDescription>
           </div>
