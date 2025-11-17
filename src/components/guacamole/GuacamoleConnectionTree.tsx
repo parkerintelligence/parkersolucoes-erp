@@ -11,6 +11,7 @@ interface GuacamoleConnectionTreeProps {
   onConnect: (connection: GuacamoleConnection) => void;
   onEdit: (connection: GuacamoleConnection) => void;
   onDelete: (connectionId: string) => void;
+  onDisconnect?: (connectionId: string) => void;
   isDeleting?: boolean;
 }
 interface ConnectionGroup {
@@ -24,6 +25,7 @@ export const GuacamoleConnectionTree = ({
   onConnect,
   onEdit,
   onDelete,
+  onDisconnect,
   isDeleting
 }: GuacamoleConnectionTreeProps) => {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set()); // Começar todos recolhidos
@@ -216,6 +218,16 @@ export const GuacamoleConnectionTree = ({
                             <Badge variant="secondary" className={`text-xs ${getStatusColor(getConnectionStatus(connection))}`}>
                               {getConnectionStatus(connection)}
                             </Badge>
+                            {connection.activeConnections > 0 && onDisconnect && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onDisconnect(connection.identifier)}
+                                className="h-5 px-2 text-[9px] text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                              >
+                                Desconectar
+                              </Button>
+                            )}
                           </div>
 
                           {/* Botão conectar */}

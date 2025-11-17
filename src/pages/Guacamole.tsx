@@ -464,7 +464,7 @@ const Guacamole = () => {
                   </div> : viewMode === 'grid' ? <GuacamoleConnectionTree connections={connections} connectionGroups={connectionGroups} onConnect={handleConnectToGuacamole} onEdit={conn => setConnectionDialog({
                 open: true,
                 connection: conn
-              })} onDelete={handleDeleteConnection} isDeleting={deleteConnectionMutation.isPending} /> : <div className="bg-slate-800 rounded-lg overflow-hidden">
+              })} onDelete={handleDeleteConnection} onDisconnect={handleDisconnectSession} isDeleting={deleteConnectionMutation.isPending} /> : <div className="bg-slate-800 rounded-lg overflow-hidden">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-slate-700">
