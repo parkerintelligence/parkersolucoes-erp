@@ -53,12 +53,6 @@ export const GLPIConnectionStatus = () => {
             <Badge variant={getStatusColor()} className="bg-blue-600 text-white border-blue-500">
               {getStatusText()}
             </Badge>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-400">
-              {glpiIntegration.base_url}
-            </span>
             <Button 
               variant="outline" 
               size="sm"
@@ -69,6 +63,12 @@ export const GLPIConnectionStatus = () => {
               <RefreshCw className={`h-4 w-4 mr-2 ${initSession.isPending ? 'animate-spin' : ''}`} />
               {hasValidSession ? 'Renovar Sessão' : 'Iniciar Sessão'}
             </Button>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-slate-400">
+              {glpiIntegration.base_url}
+            </span>
           </div>
         </div>
         
