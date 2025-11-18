@@ -14,7 +14,8 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
-  Monitor
+  Monitor,
+  CheckCheck
 } from 'lucide-react';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { GLPITicketConfirmDialog } from './GLPITicketConfirmDialog';
@@ -27,13 +28,23 @@ interface GLPITicketsGridProps {
 }
 
 const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
-  const { tickets, getStatusText, getPriorityText, deleteTicket } = useGLPIExpanded();
+  const { 
+    tickets, 
+    getStatusText, 
+    getPriorityText, 
+    deleteTicket, 
+    updateTicket,
+    users,
+    entities,
+    itilCategories
+  } = useGLPIExpanded();
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isNewTicketDialogOpen, setIsNewTicketDialogOpen] = useState(false);
   const [ticketToDelete, setTicketToDelete] = useState<any>(null);
   const [remoteAccessDialogOpen, setRemoteAccessDialogOpen] = useState(false);
   const [selectedTicketForRemote, setSelectedTicketForRemote] = useState<any>(null);
+  const [showOpenOnly, setShowOpenOnly] = useState(true);
 
   const getStatusColor = (status: number) => {
     switch (status) {
@@ -87,6 +98,35 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
     }
   };
 
+  const handleCloseTicket = async (ticketId: number) => {
+    try {
+      await updateTicket.mutateAsync({
+        id: ticketId,
+        updates: { status: 5 } // Status 5 = Solucionado
+      });
+    } catch (error) {
+      console.error('Erro ao encerrar chamado:', error);
+    }
+  };
+
+  const getUserName = (userId: number) => {
+    if (!userId || !users.data) return '-';
+    const user = users.data.find((u: any) => u.id === userId);
+    return user ? `${user.firstname || ''} ${user.realname || ''}`.trim() || user.name : '-';
+  };
+
+  const getEntityName = (entityId: number) => {
+    if (!entityId || !entities.data) return '-';
+    const entity = entities.data.find((e: any) => e.id === entityId);
+    return entity?.name || '-';
+  };
+
+  const getCategoryName = (categoryId: number) => {
+    if (!categoryId || !itilCategories.data) return '-';
+    const category = itilCategories.data.find((c: any) => c.id === categoryId);
+    return category?.name || category?.completename || '-';
+  };
+
   if (tickets.isLoading) {
     return (
       <Card className="bg-gray-800 border-gray-700">
@@ -112,21 +152,41 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
     );
   }
 
-  const ticketsList = Array.isArray(tickets.data) ? tickets.data : [];
+  // Filtrar tickets baseado no toggle
+  const ticketsList = Array.isArray(tickets.data) 
+    ? tickets.data.filter((ticket: any) => {
+        // Se showOpenOnly for true, mostra apenas tickets não solucionados e não fechados
+        if (showOpenOnly) {
+          return ticket.status !== 5 && ticket.status !== 6;
+        }
+        return true;
+      })
+    : [];
 
   return (
     <div className="space-y-4">
       <Card className="bg-gray-800 border-gray-700">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-white">Chamados GLPI</CardTitle>
-          <Button 
-            size="sm" 
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-            onClick={() => setIsNewTicketDialogOpen(true)}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Chamado
-          </Button>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showOpenOnly}
+                onChange={(e) => setShowOpenOnly(e.target.checked)}
+                className="rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
+              />
+              Apenas chamados em aberto
+            </label>
+            <Button 
+              size="sm" 
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => setIsNewTicketDialogOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Chamado
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {ticketsList.length === 0 ? (
@@ -141,6 +201,9 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                 <TableRow className="border-gray-700">
                   <TableHead className="text-gray-300">ID</TableHead>
                   <TableHead className="text-gray-300">Título</TableHead>
+                  <TableHead className="text-gray-300">Técnico</TableHead>
+                  <TableHead className="text-gray-300">Categoria</TableHead>
+                  <TableHead className="text-gray-300">Entidade</TableHead>
                   <TableHead className="text-gray-300">Status</TableHead>
                   <TableHead className="text-gray-300">Prioridade</TableHead>
                   <TableHead className="text-gray-300">Data</TableHead>
@@ -162,6 +225,15 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                           </span>
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell className="text-gray-300 py-2 text-sm">
+                      {getUserName(ticket.users_id_assign || ticket._users_id_assign)}
+                    </TableCell>
+                    <TableCell className="text-gray-300 py-2 text-sm">
+                      {getCategoryName(ticket.itilcategories_id || ticket.categories_id)}
+                    </TableCell>
+                    <TableCell className="text-gray-300 py-2 text-sm">
+                      {getEntityName(ticket.entities_id)}
                     </TableCell>
                     <TableCell className="py-2">
                       <Badge className={getStatusColor(ticket.status)}>
@@ -214,6 +286,18 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                         >
                           <Monitor className="h-4 w-4" />
                         </Button>
+                        {ticket.status !== 5 && ticket.status !== 6 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCloseTicket(ticket.id)}
+                            disabled={updateTicket.isPending}
+                            className="border-gray-600 text-green-400 hover:bg-green-900/20"
+                            title="Encerrar Chamado"
+                          >
+                            <CheckCheck className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
