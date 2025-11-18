@@ -15,12 +15,15 @@ import {
 } from 'lucide-react';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { GLPIInventoryFilters } from './GLPIInventoryFilters';
+import { GLPIRemoteAccessDialog } from './GLPIRemoteAccessDialog';
 import { useState, useMemo } from 'react';
 
 export const GLPIInventory = () => {
   const { computers, monitors, printers, networkEquipment, entities } = useGLPIExpanded();
   const [filters, setFilters] = useState({});
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [remoteAccessDialogOpen, setRemoteAccessDialogOpen] = useState(false);
+  const [selectedItemForRemote, setSelectedItemForRemote] = useState<any>(null);
 
   const getEntityName = (entityId: number) => {
     const entity = entities.data?.find(e => e.id === entityId);
@@ -182,141 +185,37 @@ export const GLPIInventory = () => {
                           </TableCell>
                           <TableCell>{getStatusBadge(item.states_id || 1)}</TableCell>
                           <TableCell>
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button 
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setSelectedItem(item)}
-                                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-gray-800 border-gray-700 text-white">
-                                <DialogHeader>
-                                  <DialogTitle className="flex items-center gap-2 text-white">
-                                    {getTypeIcon(selectedItem?.type)}
-                                    {getTypeName(selectedItem?.type)} #{selectedItem?.id}
-                                  </DialogTitle>
-                                  <DialogDescription className="text-gray-400">
-                                    Informações detalhadas do equipamento
-                                  </DialogDescription>
-                                </DialogHeader>
-                                {selectedItem && (
-                                  <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                        <label className="text-sm font-medium text-gray-300">Nome</label>
-                                        <p className="text-gray-400 mt-1">{selectedItem.name || 'Sem nome'}</p>
-                                      </div>
-                                      <div>
-                                        <label className="text-sm font-medium text-gray-300">Tipo</label>
-                                        <div className="mt-1">
-                                          <Badge variant="outline" className="bg-gray-700 text-gray-200 border-gray-600">
-                                            {getTypeName(selectedItem.type)}
-                                          </Badge>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                        <label className="text-sm font-medium text-gray-300">Entidade</label>
-                                        <p className="text-gray-400 mt-1">{getEntityName(selectedItem.entities_id)}</p>
-                                      </div>
-                                      <div>
-                                        <label className="text-sm font-medium text-gray-300">Status</label>
-                                        <div className="mt-1">
-                                          {getStatusBadge(selectedItem.states_id || 1)}
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {(selectedItem.serial || selectedItem.otherserial) && (
-                                      <div className="grid grid-cols-2 gap-4">
-                                        {selectedItem.serial && (
-                                          <div>
-                                            <label className="text-sm font-medium text-gray-300">Número de Série</label>
-                                            <p className="text-gray-400 mt-1 font-mono text-sm">{selectedItem.serial}</p>
-                                          </div>
-                                        )}
-                                        {selectedItem.otherserial && (
-                                          <div>
-                                            <label className="text-sm font-medium text-gray-300">Número de Série Alternativo</label>
-                                            <p className="text-gray-400 mt-1 font-mono text-sm">{selectedItem.otherserial}</p>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-
-                                    {(selectedItem.manufacturers_id || selectedItem.models_id || selectedItem.computertypes_id) && (
-                                      <div className="grid grid-cols-2 gap-4">
-                                        {selectedItem.manufacturers_id && (
-                                          <div>
-                                            <label className="text-sm font-medium text-gray-300">Fabricante</label>
-                                            <p className="text-gray-400 mt-1">ID: {selectedItem.manufacturers_id}</p>
-                                          </div>
-                                        )}
-                                        {selectedItem.models_id && (
-                                          <div>
-                                            <label className="text-sm font-medium text-gray-300">Modelo</label>
-                                            <p className="text-gray-400 mt-1">ID: {selectedItem.models_id}</p>
-                                          </div>
-                                        )}
-                                        {selectedItem.computertypes_id && (
-                                          <div>
-                                            <label className="text-sm font-medium text-gray-300">Tipo de Computador</label>
-                                            <p className="text-gray-400 mt-1">ID: {selectedItem.computertypes_id}</p>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-
-                                    {(selectedItem.locations_id || selectedItem.users_id_tech) && (
-                                      <div className="grid grid-cols-2 gap-4">
-                                        {selectedItem.locations_id && (
-                                          <div>
-                                            <label className="text-sm font-medium text-gray-300">Localização</label>
-                                            <p className="text-gray-400 mt-1">ID: {selectedItem.locations_id}</p>
-                                          </div>
-                                        )}
-                                        {selectedItem.users_id_tech && (
-                                          <div>
-                                            <label className="text-sm font-medium text-gray-300">Responsável Técnico</label>
-                                            <p className="text-gray-400 mt-1">ID: {selectedItem.users_id_tech}</p>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-
-                                    {selectedItem.comment && (
-                                      <div>
-                                        <label className="text-sm font-medium text-gray-300">Comentários</label>
-                                        <p className="text-gray-400 mt-1 text-sm whitespace-pre-wrap">{selectedItem.comment}</p>
-                                      </div>
-                                    )}
-
-                                    {(selectedItem.date_creation || selectedItem.date_mod) && (
-                                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-700">
-                                        {selectedItem.date_creation && (
-                                          <div>
-                                            <label className="text-sm font-medium text-gray-300">Data de Criação</label>
-                                            <p className="text-gray-400 mt-1 text-sm">{new Date(selectedItem.date_creation).toLocaleString('pt-BR')}</p>
-                                          </div>
-                                        )}
-                                        {selectedItem.date_mod && (
-                                          <div>
-                                            <label className="text-sm font-medium text-gray-300">Última Modificação</label>
-                                            <p className="text-gray-400 mt-1 text-sm">{new Date(selectedItem.date_mod).toLocaleString('pt-BR')}</p>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </DialogContent>
-                            </Dialog>
+                            <div className="flex items-center gap-2">
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button 
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setSelectedItem(item)}
+                                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                                    title="Ver Detalhes"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-gray-800 border-gray-700 text-white">
+...
+                                </DialogContent>
+                              </Dialog>
+                              
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedItemForRemote(item);
+                                  setRemoteAccessDialogOpen(true);
+                                }}
+                                className="border-gray-600 text-blue-400 hover:bg-blue-900/20"
+                                title="Acesso Remoto"
+                              >
+                                <Monitor className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -328,6 +227,13 @@ export const GLPIInventory = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Remote Access Dialog */}
+      <GLPIRemoteAccessDialog
+        open={remoteAccessDialogOpen}
+        onOpenChange={setRemoteAccessDialogOpen}
+        itemName={selectedItemForRemote?.name}
+      />
     </div>
   );
 };

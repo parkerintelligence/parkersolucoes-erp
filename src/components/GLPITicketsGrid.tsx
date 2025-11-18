@@ -13,11 +13,13 @@ import {
   User,
   AlertTriangle,
   CheckCircle,
-  XCircle
+  XCircle,
+  Monitor
 } from 'lucide-react';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { GLPITicketConfirmDialog } from './GLPITicketConfirmDialog';
 import { GLPINewTicketDialog } from './GLPINewTicketDialog';
+import { GLPIRemoteAccessDialog } from './GLPIRemoteAccessDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface GLPITicketsGridProps {
@@ -30,6 +32,8 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isNewTicketDialogOpen, setIsNewTicketDialogOpen] = useState(false);
   const [ticketToDelete, setTicketToDelete] = useState<any>(null);
+  const [remoteAccessDialogOpen, setRemoteAccessDialogOpen] = useState(false);
+  const [selectedTicketForRemote, setSelectedTicketForRemote] = useState<any>(null);
 
   const getStatusColor = (status: number) => {
     switch (status) {
@@ -201,6 +205,18 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => {
+                            setSelectedTicketForRemote(ticket);
+                            setRemoteAccessDialogOpen(true);
+                          }}
+                          className="border-gray-600 text-blue-400 hover:bg-blue-900/20"
+                          title="Acesso Remoto"
+                        >
+                          <Monitor className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => setTicketToDelete(ticket)}
                           className="border-gray-600 text-red-400 hover:bg-red-900/20"
                         >
@@ -297,6 +313,13 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Remote Access Dialog */}
+      <GLPIRemoteAccessDialog
+        open={remoteAccessDialogOpen}
+        onOpenChange={setRemoteAccessDialogOpen}
+        itemName={selectedTicketForRemote?.name}
+      />
     </div>
   );
 };
