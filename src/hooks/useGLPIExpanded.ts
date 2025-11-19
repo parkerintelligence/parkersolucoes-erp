@@ -720,35 +720,46 @@ export const useGLPIExpanded = () => {
             // Cache miss - buscar da API
             cacheMisses++;
             try {
-              // Buscar usuários do ticket (tipo 2 = técnico atribuído)
+              // Buscar usuários do ticket (endpoint correto sem 's' e filtrar por type=2)
               const ticketUsers = await makeGLPIRequest(
-                `tickets/${ticket.id}/Ticket_User?type=2`
+                `Ticket/${ticket.id}/Ticket_User`
               );
               
+              console.log(`📋 [GLPI] Ticket ${ticket.id} - Usuários retornados:`, ticketUsers);
+              
+              // Filtrar técnicos atribuídos (type 2)
+              const assignedTechs = Array.isArray(ticketUsers) 
+                ? ticketUsers.filter((u: any) => u.type === 2)
+                : [];
+              
+              console.log(`👨‍💻 [GLPI] Ticket ${ticket.id} - Técnicos atribuídos:`, assignedTechs);
+              
               // Se houver técnico atribuído, adicionar ao ticket e ao cache
-              if (Array.isArray(ticketUsers) && ticketUsers.length > 0) {
-                ticket.users_id_assign = ticketUsers[0].users_id;
-                setCachedTicketUser(ticket.id, glpiIntegration?.id || '', ticketUsers[0].users_id);
+              if (assignedTechs.length > 0) {
+                ticket.users_id_assign = assignedTechs[0].users_id;
+                setCachedTicketUser(ticket.id, glpiIntegration?.id || '', assignedTechs[0].users_id);
+                console.log(`✅ [GLPI] Ticket ${ticket.id} - Técnico atribuído: ${assignedTechs[0].users_id}`);
               } else {
-                // Salvar null no cache para evitar requisições futuras
+                // Se não houver técnico, marcar como sem técnico no cache
                 setCachedTicketUser(ticket.id, glpiIntegration?.id || '', null);
+                console.log(`ℹ️ [GLPI] Ticket ${ticket.id} - Sem técnico atribuído`);
               }
             } catch (error) {
-              console.warn(`Não foi possível buscar usuários do ticket ${ticket.id}:`, error);
-              // Salvar null no cache mesmo em caso de erro
+              console.error(`❌ [GLPI] Erro ao buscar Ticket_User para ticket ${ticket.id}:`, error);
+              // Em caso de erro, marcar como sem técnico no cache para evitar novas tentativas
               setCachedTicketUser(ticket.id, glpiIntegration?.id || '', null);
             }
             return ticket;
           })
         );
         
-        console.log(`📊 [CACHE STATS] Hits: ${cacheHits} | Misses: ${cacheMisses} | Taxa: ${cacheHits > 0 ? ((cacheHits / (cacheHits + cacheMisses)) * 100).toFixed(1) : 0}%`);
+        console.log(`✅ [GLPI] Cache de Ticket_User - Hits: ${cacheHits}, Misses: ${cacheMisses}`);
         return ticketsWithUsers;
       }
       
       return ticketsData;
     },
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 30000,
     retry: (failureCount, error) => {
       // Não tentar novamente em caso de erros de configuração
@@ -764,99 +775,104 @@ export const useGLPIExpanded = () => {
   const problems = useQuery({
     queryKey: ['glpi', 'problems', glpiIntegration?.id],
     queryFn: () => makeGLPIRequest('problems'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 30000,
   });
 
   const changes = useQuery({
     queryKey: ['glpi', 'changes', glpiIntegration?.id],
     queryFn: () => makeGLPIRequest('changes'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 30000,
   });
 
   const computers = useQuery({
     queryKey: ['glpi', 'computers', glpiIntegration?.id],
     queryFn: () => makeGLPIRequest('computers'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 60000,
   });
 
   const monitors = useQuery({
     queryKey: ['glpi', 'monitors', glpiIntegration?.id],
     queryFn: () => makeGLPIRequest('Monitor'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 60000,
   });
 
   const printers = useQuery({
     queryKey: ['glpi', 'printers', glpiIntegration?.id],
     queryFn: () => makeGLPIRequest('Printer'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 60000,
   });
 
   const networkequipments = useQuery({
     queryKey: ['glpi', 'networkequipments', glpiIntegration?.id],
     queryFn: () => makeGLPIRequest('NetworkEquipment'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 60000,
   });
 
   const software = useQuery({
     queryKey: ['glpi', 'software', glpiIntegration?.id],
     queryFn: () => makeGLPIRequest('Software'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 60000,
   });
 
   const suppliers = useQuery({
     queryKey: ['glpi', 'suppliers', glpiIntegration?.id],
     queryFn: () => makeGLPIRequest('Supplier'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 60000,
   });
 
   const contracts = useQuery({
     queryKey: ['glpi', 'contracts', glpiIntegration?.id],
     queryFn: () => makeGLPIRequest('Contract'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 60000,
   });
 
   const users = useQuery({
     queryKey: ['glpi', 'users', glpiIntegration?.id],
     queryFn: () => makeGLPIRequest('users'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 60000,
   });
 
   const entities = useQuery({
     queryKey: ['glpi', 'entities', glpiIntegration?.id],
     queryFn: () => makeGLPIRequest('entities'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 60000,
   });
 
   const locations = useQuery({
     queryKey: ['glpi', 'locations', glpiIntegration?.id],
     queryFn: () => makeGLPIRequest('locations'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 60000,
   });
 
   const groups = useQuery({
     queryKey: ['glpi', 'groups', glpiIntegration?.id],
     queryFn: () => makeGLPIRequest('groups'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 60000,
   });
 
   // Nova query para categorias de tickets
   const itilCategories = useQuery({
     queryKey: ['glpi', 'itilcategories', glpiIntegration?.id],
-    queryFn: () => makeGLPIRequest('ITILCategory'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    queryFn: async () => {
+      console.log('📋 [GLPI] Buscando categorias de tickets (ITILCategory)...');
+      const data = await makeGLPIRequest('ITILCategory');
+      console.log('✅ [GLPI] Categorias carregadas:', data);
+      return data;
+    },
+    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 60000,
   });
 
@@ -864,7 +880,7 @@ export const useGLPIExpanded = () => {
   const requestTypes = useQuery({
     queryKey: ['glpi', 'requesttypes', glpiIntegration?.id],
     queryFn: () => makeGLPIRequest('RequestType'),
-    enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
+    enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 60000,
   });
 
