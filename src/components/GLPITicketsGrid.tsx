@@ -153,6 +153,22 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
     return colors[entityId % colors.length];
   };
 
+  const getCategoryColor = (categoryId: number) => {
+    const colors = [
+      'bg-blue-600 text-white',
+      'bg-purple-600 text-white',
+      'bg-green-600 text-white',
+      'bg-yellow-600 text-white',
+      'bg-orange-600 text-white',
+      'bg-pink-600 text-white',
+      'bg-indigo-600 text-white',
+      'bg-cyan-600 text-white',
+      'bg-teal-600 text-white',
+      'bg-red-600 text-white',
+    ];
+    return colors[categoryId % colors.length];
+  };
+
   const handleSort = (column: string) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -357,6 +373,9 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                       {getSortIcon('status')}
                     </div>
                   </TableHead>
+                  <TableHead className="text-gray-300">
+                    Etiqueta
+                  </TableHead>
                   <TableHead 
                     className="text-gray-300 cursor-pointer hover:text-white transition-colors"
                     onClick={() => handleSort('priority')}
@@ -412,6 +431,15 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                           {getStatusText(ticket.status)}
                         </div>
                       </Badge>
+                    </TableCell>
+                    <TableCell className="py-2">
+                      {ticket.itilcategories_id || ticket.categories_id ? (
+                        <Badge className={getCategoryColor(ticket.itilcategories_id || ticket.categories_id)}>
+                          {getCategoryName(ticket.itilcategories_id || ticket.categories_id)}
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-400 text-sm">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="py-2">
                       <Badge className={getPriorityColor(ticket.priority)}>
