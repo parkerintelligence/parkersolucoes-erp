@@ -8,6 +8,7 @@ import { Loader2, Wifi, Users, Clock } from 'lucide-react';
 export const MikrotikDashboard = () => {
   const { callAPI, loading } = useMikrotikAPI();
   const [identity, setIdentity] = useState<any>(null);
+  const [resource, setResource] = useState<any>(null);
   const [interfaces, setInterfaces] = useState<any[]>([]);
   const [dhcpLeases, setDhcpLeases] = useState<any[]>([]);
 
@@ -17,14 +18,18 @@ export const MikrotikDashboard = () => {
 
   const loadData = async () => {
     try {
-      const [identityData, interfacesData, leasesData] = await Promise.all([
+      const [identityData, resourceData, interfacesData, leasesData] = await Promise.all([
         callAPI('/system/identity'),
+        callAPI('/system/resource'),
         callAPI('/interface'),
         callAPI('/ip/dhcp-server/lease'),
       ]);
 
       if (identityData && identityData.length > 0) {
         setIdentity(identityData[0]);
+      }
+      if (resourceData && resourceData.length > 0) {
+        setResource(resourceData[0]);
       }
       if (interfacesData) {
         setInterfaces(interfacesData);
@@ -84,7 +89,7 @@ export const MikrotikDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {identity?.uptime || 'N/A'}
+              {resource?.uptime || 'N/A'}
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               Tempo ligado

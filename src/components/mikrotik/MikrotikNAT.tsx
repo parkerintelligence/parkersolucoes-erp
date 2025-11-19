@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useMikrotikAPI } from '@/hooks/useMikrotikAPI';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Network, RefreshCw, Trash2 } from 'lucide-react';
+import { Loader2, Network, RefreshCw, Trash2, Plus, Power } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -13,11 +13,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { MikrotikNATDialog } from './MikrotikNATDialog';
 
 export const MikrotikNAT = () => {
   const { callAPI, loading } = useMikrotikAPI();
   const { toast } = useToast();
   const [natRules, setNatRules] = useState<any[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     loadNATRules();
@@ -31,6 +33,19 @@ export const MikrotikNAT = () => {
       }
     } catch (error) {
       console.error('Erro ao carregar regras NAT:', error);
+    }
+  };
+
+  const toggleRule = async (id: string, currentDisabled: boolean) => {
+    try {
+      await callAPI(`/ip/firewall/nat/${id}`, 'PATCH', { disabled: !currentDisabled });
+      toast({
+        title: 'Sucesso',
+        description: currentDisabled ? 'Regra NAT ativada com sucesso' : 'Regra NAT desativada com sucesso',
+      });
+      loadNATRules();
+    } catch (error) {
+      console.error('Erro ao alternar regra:', error);
     }
   };
 
@@ -65,10 +80,16 @@ export const MikrotikNAT = () => {
             <CardTitle>Regras NAT</CardTitle>
             <CardDescription>Gerenciar regras de NAT do MikroTik</CardDescription>
           </div>
-          <Button onClick={loadNATRules} disabled={loading} size="sm" variant="outline">
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setDialogOpen(true)} size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Regra NAT
+            </Button>
+            <Button onClick={loadNATRules} disabled={loading} size="sm" variant="outline">
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -77,9 +98,15 @@ export const MikrotikNAT = () => {
             <TableRow>
               <TableHead>Chain</TableHead>
               <TableHead>Ação</TableHead>
+              <TableHead>Protocolo</TableHead>
               <TableHead>Origem</TableHead>
+              <TableHead>Porta Origem</TableHead>
               <TableHead>Destino</TableHead>
+              <TableHead>Porta Destino</TableHead>
+              <TableHead>To Address</TableHead>
+              <TableHead>To Port</TableHead>
               <TableHead>Interface</TableHead>
+              <TableHead>Comentário</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -96,22 +123,47 @@ export const MikrotikNAT = () => {
                 <TableCell>
                   <Badge>{rule.action}</Badge>
                 </TableCell>
-                <TableCell>{rule['src-address'] || 'any'}</TableCell>
-                <TableCell>{rule['dst-address'] || 'any'}</TableCell>
-                <TableCell>{rule['out-interface'] || rule['in-interface'] || 'any'}</TableCell>
+                <TableCell>{rule.protocol || 'all'}</TableCell>
+                <TableCell className="max-w-[120px] truncate">
+                  {rule['src-address'] || 'any'}
+                </TableCell>
+                <TableCell>{rule['src-port'] || '-'}</TableCell>
+                <TableCell className="max-w-[120px] truncate">
+                  {rule['dst-address'] || 'any'}
+                </TableCell>
+                <TableCell>{rule['dst-port'] || '-'}</TableCell>
+                <TableCell className="max-w-[120px] truncate">
+                  {rule['to-addresses'] || '-'}
+                </TableCell>
+                <TableCell>{rule['to-ports'] || '-'}</TableCell>
+                <TableCell className="text-xs">
+                  {rule['out-interface'] || rule['in-interface'] || '-'}
+                </TableCell>
+                <TableCell className="max-w-[150px] truncate text-muted-foreground text-xs">
+                  {rule.comment || '-'}
+                </TableCell>
                 <TableCell>
                   <Badge variant={rule.disabled ? 'secondary' : 'default'}>
                     {rule.disabled ? 'Inativa' : 'Ativa'}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => deleteRule(rule['.id'])}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant={rule.disabled ? 'default' : 'outline'}
+                      onClick={() => toggleRule(rule['.id'], rule.disabled)}
+                    >
+                      <Power className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => deleteRule(rule['.id'])}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -124,6 +176,12 @@ export const MikrotikNAT = () => {
           </div>
         )}
       </CardContent>
+      
+      <MikrotikNATDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSuccess={loadNATRules}
+      />
     </Card>
   );
 };
