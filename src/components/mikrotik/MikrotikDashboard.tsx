@@ -235,61 +235,61 @@ export const MikrotikDashboard = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="bg-purple-900/20 border-purple-600/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-medium text-purple-300">Dispositivo</CardTitle>
-            <Activity className="h-4 w-4 text-purple-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-3 pt-3">
+            <CardTitle className="text-[10px] font-medium text-purple-300">Dispositivo</CardTitle>
+            <Activity className="h-3 w-3 text-purple-400" />
           </CardHeader>
-          <CardContent className="p-3">
-            <div className="text-xl font-bold text-purple-400">{identity?.name || 'MikroTik'}</div>
-            <p className="text-xs text-purple-300/70 mt-1">
+          <CardContent className="p-3 pt-1">
+            <div className="text-sm font-bold text-purple-400">{identity?.name || 'MikroTik'}</div>
+            <p className="text-[10px] text-purple-300/70 mt-0.5">
               {routerboard?.model || 'RouterOS'}
             </p>
             <div className="flex items-center gap-1 mt-1 flex-wrap">
-              <Badge variant="secondary" className="text-xs bg-purple-800/50 text-purple-200 border-purple-600/30">
+              <Badge variant="secondary" className="text-[9px] py-0 px-1.5 h-4 bg-purple-800/50 text-purple-200 border-purple-600/30">
                 RB: v{routerboard?.['current-firmware'] || routerboard?.version || 'N/A'}
               </Badge>
-              <Badge variant="outline" className="text-xs border-purple-600/30 text-purple-200">
+              <Badge variant="outline" className="text-[9px] py-0 px-1.5 h-4 border-purple-600/30 text-purple-200">
                 OS: v{resource?.version || 'N/A'}
               </Badge>
             </div>
-            <Badge className="mt-2 bg-purple-600/80 text-white" variant="default">Online</Badge>
+            <Badge className="mt-1.5 text-[9px] py-0 px-1.5 h-4 bg-purple-600/80 text-white" variant="default">Online</Badge>
           </CardContent>
         </Card>
 
         <Card className="bg-blue-900/20 border-blue-600/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-medium text-blue-300">Interfaces</CardTitle>
-            <Wifi className="h-4 w-4 text-blue-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-3 pt-3">
+            <CardTitle className="text-[10px] font-medium text-blue-300">Interfaces</CardTitle>
+            <Wifi className="h-3 w-3 text-blue-400" />
           </CardHeader>
-          <CardContent className="p-3">
-            <div className="text-xl font-bold text-blue-400">{stats.activeInterfaces}/{stats.totalInterfaces}</div>
-            <Progress value={(stats.activeInterfaces / stats.totalInterfaces) * 100} className="mt-2 bg-blue-900/30" />
-            <p className="text-xs text-blue-300/70 mt-2">Ativas</p>
+          <CardContent className="p-3 pt-1">
+            <div className="text-sm font-bold text-blue-400">{stats.activeInterfaces}/{stats.totalInterfaces}</div>
+            <Progress value={(stats.activeInterfaces / stats.totalInterfaces) * 100} className="mt-1.5 h-1.5 bg-blue-900/30" />
+            <p className="text-[10px] text-blue-300/70 mt-1.5">Ativas</p>
           </CardContent>
         </Card>
 
         <Card className="bg-green-900/20 border-green-600/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-medium text-green-300">DHCP</CardTitle>
-            <Users className="h-4 w-4 text-green-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-3 pt-3">
+            <CardTitle className="text-[10px] font-medium text-green-300">DHCP</CardTitle>
+            <Users className="h-3 w-3 text-green-400" />
           </CardHeader>
-          <CardContent className="p-3">
-            <div className="text-xl font-bold text-green-400">{stats.activeDhcp}</div>
-            <Progress value={(stats.activeDhcp / stats.totalDhcp) * 100} className="mt-2 bg-green-900/30" />
-            <p className="text-xs text-green-300/70 mt-2">de {stats.totalDhcp} leases</p>
+          <CardContent className="p-3 pt-1">
+            <div className="text-sm font-bold text-green-400">{stats.activeDhcp}</div>
+            <Progress value={(stats.activeDhcp / stats.totalDhcp) * 100} className="mt-1.5 h-1.5 bg-green-900/30" />
+            <p className="text-[10px] text-green-300/70 mt-1.5">de {stats.totalDhcp} leases</p>
           </CardContent>
         </Card>
 
         <Card className="bg-yellow-900/20 border-yellow-600/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-medium text-yellow-300">Uptime</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-3 pt-3">
+            <CardTitle className="text-[10px] font-medium text-yellow-300">Uptime</CardTitle>
+            <Clock className="h-3 w-3 text-yellow-400" />
           </CardHeader>
-          <CardContent className="p-3">
-            <div className="text-xl font-bold text-yellow-400">{formatUptime(resource?.uptime)}</div>
-            <Badge className="mt-2 bg-yellow-600/80 text-white" variant={getUptimeBadge(resource?.uptime)}>Estável</Badge>
+          <CardContent className="p-3 pt-1">
+            <div className="text-sm font-bold text-yellow-400">{formatUptime(resource?.uptime)}</div>
+            <Badge className="mt-1.5 text-[9px] py-0 px-1.5 h-4 bg-yellow-600/80 text-white" variant={getUptimeBadge(resource?.uptime)}>Estável</Badge>
           </CardContent>
         </Card>
       </div>
@@ -303,48 +303,48 @@ export const MikrotikDashboard = () => {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="bg-slate-800 border-slate-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-medium text-white">Firewall</CardTitle>
-            <Shield className="h-4 w-4 text-red-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-3 pt-3">
+            <CardTitle className="text-[10px] font-medium text-white">Firewall</CardTitle>
+            <Shield className="h-3 w-3 text-red-400" />
           </CardHeader>
-          <CardContent className="p-3">
-            <div className="text-xl font-bold text-white">{stats.activeFirewall}/{stats.totalFirewall}</div>
-            <Progress value={(stats.activeFirewall / stats.totalFirewall) * 100} className="mt-2 bg-red-900/30" />
+          <CardContent className="p-3 pt-1">
+            <div className="text-sm font-bold text-white">{stats.activeFirewall}/{stats.totalFirewall}</div>
+            <Progress value={(stats.activeFirewall / stats.totalFirewall) * 100} className="mt-1.5 h-1.5 bg-red-900/30" />
           </CardContent>
         </Card>
 
         <Card className="bg-slate-800 border-slate-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-medium text-white">NAT</CardTitle>
-            <Network className="h-4 w-4 text-green-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-3 pt-3">
+            <CardTitle className="text-[10px] font-medium text-white">NAT</CardTitle>
+            <Network className="h-3 w-3 text-green-400" />
           </CardHeader>
-          <CardContent className="p-3">
-            <div className="text-xl font-bold text-white">{stats.activeNat}/{stats.totalNat}</div>
-            <Progress value={(stats.activeNat / stats.totalNat) * 100} className="mt-2 bg-green-900/30" />
+          <CardContent className="p-3 pt-1">
+            <div className="text-sm font-bold text-white">{stats.activeNat}/{stats.totalNat}</div>
+            <Progress value={(stats.activeNat / stats.totalNat) * 100} className="mt-1.5 h-1.5 bg-green-900/30" />
           </CardContent>
         </Card>
 
         <Card className="bg-slate-800 border-slate-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-medium text-white">VPN</CardTitle>
-            <KeyRound className="h-4 w-4 text-yellow-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-3 pt-3">
+            <CardTitle className="text-[10px] font-medium text-white">VPN</CardTitle>
+            <KeyRound className="h-3 w-3 text-yellow-400" />
           </CardHeader>
-          <CardContent className="p-3">
-            <div className="text-xl font-bold text-white">{stats.connectedVpn}/{stats.enabledVpn}</div>
-            <Progress value={stats.enabledVpn > 0 ? (stats.connectedVpn / stats.enabledVpn) * 100 : 0} className="mt-2 bg-yellow-900/30" />
+          <CardContent className="p-3 pt-1">
+            <div className="text-sm font-bold text-white">{stats.connectedVpn}/{stats.enabledVpn}</div>
+            <Progress value={stats.enabledVpn > 0 ? (stats.connectedVpn / stats.enabledVpn) * 100 : 0} className="mt-1.5 h-1.5 bg-yellow-900/30" />
           </CardContent>
         </Card>
 
         <Card className="bg-slate-800 border-slate-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-medium text-white">IPs</CardTitle>
-            <Globe className="h-4 w-4 text-blue-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-3 pt-3">
+            <CardTitle className="text-[10px] font-medium text-white">IPs</CardTitle>
+            <Globe className="h-3 w-3 text-blue-400" />
           </CardHeader>
-          <CardContent className="p-3">
-            <div className="text-xl font-bold text-white">{stats.validIps}</div>
-            <Badge className="mt-2 bg-blue-600/80 text-white" variant="secondary">Configurados</Badge>
+          <CardContent className="p-3 pt-1">
+            <div className="text-sm font-bold text-white">{stats.validIps}</div>
+            <Badge className="mt-1.5 text-[9px] py-0 px-1.5 h-4 bg-blue-600/80 text-white" variant="secondary">Configurados</Badge>
           </CardContent>
         </Card>
       </div>
