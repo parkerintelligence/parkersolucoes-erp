@@ -6,13 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, AlertCircle, Settings, LayoutDashboard, Wifi, Shield, Network, Stethoscope } from "lucide-react";
+import { Loader2, AlertCircle, Settings, LayoutDashboard, Wifi, Shield, Network, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MikrotikDashboard } from "@/components/mikrotik/MikrotikDashboard";
 import { MikrotikInterfaces } from "@/components/mikrotik/MikrotikInterfaces";
 import { MikrotikFirewall } from "@/components/mikrotik/MikrotikFirewall";
 import { MikrotikNAT } from "@/components/mikrotik/MikrotikNAT";
-import { MikrotikDiagnostic } from "@/components/MikrotikDiagnostic";
+import { MikrotikDHCP } from "@/components/mikrotik/MikrotikDHCP";
 
 const Winbox = () => {
   const { toast } = useToast();
@@ -121,47 +121,47 @@ const Winbox = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 pb-8">
-        <Tabs defaultValue="diagnostic" className="space-y-6">
+        <Tabs defaultValue="dashboard" className="w-full">
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="diagnostic">
-              <Stethoscope className="h-4 w-4 mr-2" />
-              Diagnóstico
-            </TabsTrigger>
-            <TabsTrigger value="dashboard">
-              <LayoutDashboard className="h-4 w-4 mr-2" />
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <LayoutDashboard className="h-4 w-4" />
               Dashboard
             </TabsTrigger>
-            <TabsTrigger value="interfaces">
-              <Wifi className="h-4 w-4 mr-2" />
+            <TabsTrigger value="dhcp" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              DHCP
+            </TabsTrigger>
+            <TabsTrigger value="interfaces" className="flex items-center gap-2">
+              <Wifi className="h-4 w-4" />
               Interfaces
             </TabsTrigger>
-            <TabsTrigger value="firewall">
-              <Shield className="h-4 w-4 mr-2" />
+            <TabsTrigger value="firewall" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
               Firewall
             </TabsTrigger>
-            <TabsTrigger value="nat">
-              <Network className="h-4 w-4 mr-2" />
+            <TabsTrigger value="nat" className="flex items-center gap-2">
+              <Network className="h-4 w-4" />
               NAT
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="diagnostic">
-            <MikrotikDiagnostic />
-          </TabsContent>
-
-          <TabsContent value="dashboard">
+          <TabsContent value="dashboard" className="mt-6">
             <MikrotikDashboard />
           </TabsContent>
 
-          <TabsContent value="interfaces">
+          <TabsContent value="dhcp" className="mt-6">
+            <MikrotikDHCP />
+          </TabsContent>
+
+          <TabsContent value="interfaces" className="mt-6">
             <MikrotikInterfaces />
           </TabsContent>
 
-          <TabsContent value="firewall">
+          <TabsContent value="firewall" className="mt-6">
             <MikrotikFirewall />
           </TabsContent>
 
-          <TabsContent value="nat">
+          <TabsContent value="nat" className="mt-6">
             <MikrotikNAT />
           </TabsContent>
         </Tabs>

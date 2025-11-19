@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useMikrotikAPI } from '@/hooks/useMikrotikAPI';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Shield, RefreshCw, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Shield, RefreshCw, Plus, Trash2, Power } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -13,11 +13,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { MikrotikFirewallDialog } from './MikrotikFirewallDialog';
 
 export const MikrotikFirewall = () => {
   const { callAPI, loading } = useMikrotikAPI();
   const { toast } = useToast();
   const [rules, setRules] = useState<any[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     loadRules();
@@ -31,6 +33,19 @@ export const MikrotikFirewall = () => {
       }
     } catch (error) {
       console.error('Erro ao carregar regras:', error);
+    }
+  };
+
+  const toggleRule = async (id: string, currentDisabled: boolean) => {
+    try {
+      await callAPI(`/ip/firewall/filter/${id}`, 'PATCH', { disabled: !currentDisabled });
+      toast({
+        title: 'Sucesso',
+        description: currentDisabled ? 'Regra ativada com sucesso' : 'Regra desativada com sucesso',
+      });
+      loadRules();
+    } catch (error) {
+      console.error('Erro ao alternar regra:', error);
     }
   };
 
@@ -66,6 +81,10 @@ export const MikrotikFirewall = () => {
             <CardDescription>Gerenciar regras de firewall do MikroTik</CardDescription>
           </div>
           <div className="flex gap-2">
+            <Button onClick={() => setDialogOpen(true)} size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Regra
+            </Button>
             <Button onClick={loadRules} disabled={loading} size="sm" variant="outline">
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Atualizar
@@ -81,13 +100,17 @@ export const MikrotikFirewall = () => {
               <TableHead>Ação</TableHead>
               <TableHead>Protocolo</TableHead>
               <TableHead>Origem</TableHead>
+              <TableHead>Porta Origem</TableHead>
               <TableHead>Destino</TableHead>
+              <TableHead>Porta Destino</TableHead>
+              <TableHead>Interface</TableHead>
+              <TableHead>Comentário</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rules.map((rule, index) => (
+            {rules.map((rule) => (
               <TableRow key={rule['.id']}>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
@@ -101,21 +124,42 @@ export const MikrotikFirewall = () => {
                   </Badge>
                 </TableCell>
                 <TableCell>{rule.protocol || 'all'}</TableCell>
-                <TableCell>{rule['src-address'] || 'any'}</TableCell>
-                <TableCell>{rule['dst-address'] || 'any'}</TableCell>
+                <TableCell className="max-w-[150px] truncate">
+                  {rule['src-address'] || 'any'}
+                </TableCell>
+                <TableCell>{rule['src-port'] || '-'}</TableCell>
+                <TableCell className="max-w-[150px] truncate">
+                  {rule['dst-address'] || 'any'}
+                </TableCell>
+                <TableCell>{rule['dst-port'] || '-'}</TableCell>
+                <TableCell className="text-xs">
+                  {rule['in-interface'] || rule['out-interface'] || '-'}
+                </TableCell>
+                <TableCell className="max-w-[150px] truncate text-muted-foreground text-xs">
+                  {rule.comment || '-'}
+                </TableCell>
                 <TableCell>
                   <Badge variant={rule.disabled ? 'secondary' : 'default'}>
                     {rule.disabled ? 'Inativa' : 'Ativa'}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => deleteRule(rule['.id'])}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant={rule.disabled ? 'default' : 'outline'}
+                      onClick={() => toggleRule(rule['.id'], rule.disabled)}
+                    >
+                      <Power className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => deleteRule(rule['.id'])}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -128,6 +172,12 @@ export const MikrotikFirewall = () => {
           </div>
         )}
       </CardContent>
+      
+      <MikrotikFirewallDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSuccess={loadRules}
+      />
     </Card>
   );
 };
