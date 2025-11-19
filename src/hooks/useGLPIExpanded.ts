@@ -652,7 +652,7 @@ export const useGLPIExpanded = () => {
   // Queries para buscar dados
   const tickets = useQuery({
     queryKey: ['glpi', 'tickets', glpiIntegration?.id],
-    queryFn: () => makeGLPIRequest('tickets?expand_dropdowns=false&with_devices=false&with_infocoms=false&with_contracts=false&with_documents=false&with_tickets=false&with_problems=false&with_changes=false&with_notes=false&with_logs=false'),
+    queryFn: () => makeGLPIRequest('tickets'),
     enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
     staleTime: 30000,
     retry: (failureCount, error) => {
