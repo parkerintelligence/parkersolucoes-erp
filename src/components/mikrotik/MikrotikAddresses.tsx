@@ -207,21 +207,21 @@ export const MikrotikAddresses = () => {
                       <ArrowUpDown className="ml-2 h-3 w-3" />
                     </Button>
                   </TableHead>
-                  <TableHead>Interface</TableHead>
-                  <TableHead>Rede</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Comentário</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="text-slate-300">Interface</TableHead>
+                  <TableHead className="text-slate-300">Rede</TableHead>
+                  <TableHead className="text-slate-300">Status</TableHead>
+                  <TableHead className="text-slate-300">Comentário</TableHead>
+                  <TableHead className="text-slate-300 text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {addresses.map((address) => (
-                  <TableRow key={address[".id"]}>
-                    <TableCell className="font-medium">{address.address}</TableCell>
-                    <TableCell>{address.interface || "-"}</TableCell>
-                    <TableCell>{address.network || "-"}</TableCell>
+                  <TableRow key={address[".id"]} className="hover:bg-slate-700/50">
+                    <TableCell className="font-medium text-slate-200">{address.address}</TableCell>
+                    <TableCell className="text-slate-200">{address.interface || "-"}</TableCell>
+                    <TableCell className="text-slate-200">{address.network || "-"}</TableCell>
                     <TableCell>{getStatusBadge(address)}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{address.comment || "-"}</TableCell>
+                    <TableCell className="text-slate-400 text-sm">{address.comment || "-"}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button

@@ -153,26 +153,26 @@ export const MikrotikLogs = () => {
         <ScrollArea className="h-[600px] w-full">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]">Tipo</TableHead>
-                <TableHead className="w-[150px]">Data/Hora</TableHead>
-                <TableHead className="w-[120px]">Tópico</TableHead>
-                <TableHead>Mensagem</TableHead>
+              <TableRow className="hover:bg-slate-700/30">
+                <TableHead className="text-slate-300 w-[50px]">Tipo</TableHead>
+                <TableHead className="text-slate-300 w-[150px]">Data/Hora</TableHead>
+                <TableHead className="text-slate-300 w-[120px]">Tópico</TableHead>
+                <TableHead className="text-slate-300">Mensagem</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredLogs.map((log: any) => (
-                <TableRow key={log[".id"]}>
+                <TableRow key={log[".id"]} className="hover:bg-slate-700/50">
                   <TableCell>
                     {getTopicIcon(log.topics)}
                   </TableCell>
-                  <TableCell className="text-xs">
+                  <TableCell className="text-xs text-slate-200">
                     {log.time || "N/A"}
                   </TableCell>
                   <TableCell>
                     {getTopicBadge(log.topics)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs">
+                  <TableCell className="font-mono text-xs text-slate-200">
                     {log.message || "Sem mensagem"}
                   </TableCell>
                 </TableRow>
