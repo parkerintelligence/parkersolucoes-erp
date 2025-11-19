@@ -19,6 +19,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { MikrotikTableFilter } from './MikrotikTableFilter';
 import { MikrotikExportActions } from './MikrotikExportActions';
 import { generateNATSummary } from '@/utils/mikrotikExportFormatters';
+import { MikrotikPagination } from './MikrotikPagination';
 
 const getChainColor = (chain: string) => {
   switch (chain) {
@@ -41,6 +42,8 @@ export const MikrotikNAT = () => {
   const [filter, setFilter] = useState('');
   const [sortField, setSortField] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   useEffect(() => {
     loadNATRules();
@@ -131,6 +134,18 @@ export const MikrotikNAT = () => {
     return filtered;
   }, [natRules, filter, sortField, sortDirection]);
 
+  // Calcular paginação
+  const totalItems = filteredAndSortedRules.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedRules = filteredAndSortedRules.slice(startIndex, endIndex);
+
+  // Reset para primeira página quando filtros mudarem
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, sortField, sortDirection, itemsPerPage]);
+
   const getStatusBadge = (rule: any) => {
     if (rule.disabled === "true" || rule.disabled === true) {
       return <Badge className="bg-red-600/80 text-white">Desativada</Badge>;
@@ -207,7 +222,7 @@ export const MikrotikNAT = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredAndSortedRules.map((rule) => (
+            {paginatedRules.map((rule) => (
               <TableRow key={rule['.id']} className={`hover:bg-slate-700/50 ${getChainColor(rule.chain)}`}>
                 <TableCell className="font-medium text-slate-200">
                   <div className="flex items-center gap-2">
@@ -264,6 +279,17 @@ export const MikrotikNAT = () => {
             ))}
           </TableBody>
         </Table>
+
+        <MikrotikPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={totalItems}
+          startIndex={startIndex}
+          endIndex={endIndex}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
 
         {filteredAndSortedRules.length === 0 && natRules.length > 0 && (
           <div className="text-center py-8 text-muted-foreground">

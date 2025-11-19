@@ -63,9 +63,8 @@ export const MikrotikDHCP = () => {
         return;
       }
 
-      await callAPI(`/ip/dhcp-server/lease/${lease['.id']}`, 'PATCH', {
-        'make-static': ''
-      });
+      // Usar o comando make-static no formato correto do MikroTik REST API
+      await callAPI(`/ip/dhcp-server/lease/${lease['.id']}/make-static`, 'POST');
 
       toast({
         title: 'Sucesso',
@@ -204,10 +203,15 @@ export const MikrotikDHCP = () => {
               columns={[
                 { key: 'host-name', label: 'Hostname' },
                 { key: 'address', label: 'IP' },
-                { key: 'mac-address', label: 'MAC Address' },
+                { key: 'mac-address', label: 'MAC Address', formatter: (val) => val?.toUpperCase() || 'N/A' },
                 { key: 'server', label: 'Servidor' },
                 { key: 'status', label: 'Status' },
                 { key: 'expires-after', label: 'Expira em' },
+                { 
+                  key: 'dynamic', 
+                  label: 'Tipo',
+                  formatter: (val) => val === 'true' ? '🔄 Dinâmico' : '🔒 IP Fixo'
+                },
                 { key: 'comment', label: 'Comentário' }
               ]}
               gridTitle="DHCP Leases"

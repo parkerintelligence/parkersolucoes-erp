@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMikrotikAPI } from "@/hooks/useMikrotikAPI";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { MikrotikTableFilter } from './MikrotikTableFilter';
 import { MikrotikExportActions } from './MikrotikExportActions';
 import { generatePPPSummary } from '@/utils/mikrotikExportFormatters';
+import { MikrotikPagination } from './MikrotikPagination';
 
 interface PPPSecret {
   ".id": string;
@@ -37,6 +38,8 @@ export const MikrotikPPP = () => {
   const [filter, setFilter] = useState('');
   const [sortField, setSortField] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   const { data: secrets = [], isLoading } = useQuery({
     queryKey: ["mikrotik-ppp-secrets"],
@@ -145,6 +148,18 @@ export const MikrotikPPP = () => {
     return filtered;
   }, [secrets, filter, sortField, sortDirection]);
 
+  // Calcular paginação
+  const totalItems = filteredAndSortedSecrets.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedSecrets = filteredAndSortedSecrets.slice(startIndex, endIndex);
+
+  // Reset para primeira página quando filtros mudarem
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, sortField, sortDirection, itemsPerPage]);
+
   const getServiceBadge = (service?: string) => {
     const variants: Record<string, { label: string; className: string }> = {
       pptp: { label: "PPTP", className: "bg-blue-600/80 text-white" },
@@ -202,7 +217,8 @@ export const MikrotikPPP = () => {
           ) : secrets.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">Nenhum usuário VPN cadastrado</p>
           ) : (
-        <Table>
+            <>
+              <Table>
           <TableHeader>
             <TableRow className="hover:bg-slate-700/30">
               <TableHead className="text-slate-300">
@@ -224,7 +240,7 @@ export const MikrotikPPP = () => {
             </TableRow>
           </TableHeader>
               <TableBody>
-                {secrets.map((secret) => (
+                {paginatedSecrets.map((secret) => (
                   <TableRow key={secret[".id"]}>
                     <TableCell className="font-medium">{secret.name}</TableCell>
                     <TableCell>{getServiceBadge(secret.service)}</TableCell>
@@ -275,6 +291,18 @@ export const MikrotikPPP = () => {
                 ))}
               </TableBody>
             </Table>
+
+            <MikrotikPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              totalItems={totalItems}
+              startIndex={startIndex}
+              endIndex={endIndex}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={setItemsPerPage}
+            />
+            </>
           )}
         </CardContent>
       </Card>

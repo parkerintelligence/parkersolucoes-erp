@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMikrotikAPI } from "@/hooks/useMikrotikAPI";
 import { useToast } from "@/hooks/use-toast";
@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Power, PowerOff, ArrowUpDown, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Power, PowerOff, ArrowUpDown, RefreshCw, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MikrotikAddressDialog } from "./MikrotikAddressDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { MikrotikTableFilter } from './MikrotikTableFilter';
 import { MikrotikExportActions } from './MikrotikExportActions';
 import { generateAddressesSummary } from '@/utils/mikrotikExportFormatters';
+import { MikrotikPagination } from './MikrotikPagination';
 
 interface IPAddress {
   ".id": string;
@@ -35,6 +37,8 @@ export const MikrotikAddresses = () => {
   const [filter, setFilter] = useState('');
   const [sortField, setSortField] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   const { data: addresses = [], isLoading, refetch } = useQuery({
     queryKey: ["mikrotik-ip-addresses"],
@@ -166,6 +170,18 @@ export const MikrotikAddresses = () => {
     return filtered;
   }, [addresses, filter, sortField, sortDirection]);
 
+  // Calcular paginação
+  const totalItems = filteredAndSortedAddresses.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedAddresses = filteredAndSortedAddresses.slice(startIndex, endIndex);
+
+  // Reset para primeira página quando filtros mudarem
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, sortField, sortDirection, itemsPerPage]);
+
   const getStatusBadge = (address: IPAddress) => {
     if (address.invalid === "true") {
       return <Badge className="bg-yellow-600/80 text-white">Inválido</Badge>;
@@ -218,6 +234,7 @@ export const MikrotikAddresses = () => {
           ) : addresses.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">Nenhum endereço IP cadastrado</p>
               ) : (
+                <>
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-slate-700/30">
@@ -235,7 +252,7 @@ export const MikrotikAddresses = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {addresses.map((address) => (
+                {paginatedAddresses.map((address) => (
                   <TableRow key={address[".id"]} className="hover:bg-slate-700/50">
                     <TableCell className="font-medium text-slate-200">{address.address}</TableCell>
                     <TableCell className="text-slate-200">{address.interface || "-"}</TableCell>
@@ -281,6 +298,18 @@ export const MikrotikAddresses = () => {
                 ))}
               </TableBody>
             </Table>
+
+            <MikrotikPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              totalItems={totalItems}
+              startIndex={startIndex}
+              endIndex={endIndex}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={setItemsPerPage}
+            />
+            </>
           )}
         </CardContent>
       </Card>
