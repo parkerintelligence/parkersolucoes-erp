@@ -1,4 +1,4 @@
-import { Shield, Network, Users, Power, KeyRound, Globe, FileText } from "lucide-react";
+import { Shield, Network, Users, Power, KeyRound, Globe, FileText, LayoutDashboard } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { MikrotikPPP } from "@/components/mikrotik/MikrotikPPP";
 import { MikrotikAddresses } from "@/components/mikrotik/MikrotikAddresses";
 import { MikrotikLogs } from "@/components/mikrotik/MikrotikLogs";
 import { MikrotikClientSelector } from "@/components/mikrotik/MikrotikClientSelector";
+import { MikrotikDashboard } from "@/components/mikrotik/MikrotikDashboard";
 import { useMikrotikContext } from "@/contexts/MikrotikContext";
 
 const Winbox = () => {
@@ -39,8 +40,12 @@ const Winbox = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 pb-8">
-        <Tabs defaultValue="dhcp" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </TabsTrigger>
             <TabsTrigger value="dhcp" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               DHCP
@@ -66,6 +71,10 @@ const Winbox = () => {
               Logs
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="dashboard" className="mt-6">
+            <MikrotikDashboard />
+          </TabsContent>
 
           <TabsContent value="dhcp" className="mt-6">
             <MikrotikDHCP />
