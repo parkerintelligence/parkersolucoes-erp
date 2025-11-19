@@ -75,3 +75,6 @@ verify_jwt = true
 [functions.chatwoot-webhook]
 verify_jwt = false
 
+[functions.mikrotik-proxy]
+verify_jwt = true
+

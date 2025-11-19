@@ -2,11 +2,16 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, AlertCircle, Settings, ExternalLink } from "lucide-react";
+import { Loader2, AlertCircle, Settings, LayoutDashboard, Wifi, Shield, Network } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { MikrotikDashboard } from "@/components/mikrotik/MikrotikDashboard";
+import { MikrotikInterfaces } from "@/components/mikrotik/MikrotikInterfaces";
+import { MikrotikFirewall } from "@/components/mikrotik/MikrotikFirewall";
+import { MikrotikNAT } from "@/components/mikrotik/MikrotikNAT";
 
 const Winbox = () => {
   const { toast } = useToast();
@@ -104,32 +109,53 @@ const Winbox = () => {
   }
 
   return (
-    <div className="h-screen w-full flex flex-col bg-background">
-      <div className="border-b bg-card p-4">
-        <div className="max-w-full mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Winbox - {integration.name}</h1>
-            <p className="text-sm text-muted-foreground">
-              Gerenciamento do MikroTik RouterOS
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.open(integration.base_url, "_blank")}
-          >
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Abrir em nova aba
-          </Button>
+    <div className="min-h-screen bg-background">
+      <div className="border-b bg-card p-4 mb-6">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-2xl font-bold">MikroTik - {integration.name}</h1>
+          <p className="text-sm text-muted-foreground">
+            Gerenciamento completo via API REST
+          </p>
         </div>
       </div>
-      <div className="flex-1 overflow-hidden">
-        <iframe
-          src={integration.base_url}
-          className="w-full h-full border-0"
-          title="Winbox WebFig"
-          allow="fullscreen"
-        />
+
+      <div className="max-w-7xl mx-auto px-4 pb-8">
+        <Tabs defaultValue="dashboard" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="dashboard">
+              <LayoutDashboard className="h-4 w-4 mr-2" />
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="interfaces">
+              <Wifi className="h-4 w-4 mr-2" />
+              Interfaces
+            </TabsTrigger>
+            <TabsTrigger value="firewall">
+              <Shield className="h-4 w-4 mr-2" />
+              Firewall
+            </TabsTrigger>
+            <TabsTrigger value="nat">
+              <Network className="h-4 w-4 mr-2" />
+              NAT
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="dashboard">
+            <MikrotikDashboard />
+          </TabsContent>
+
+          <TabsContent value="interfaces">
+            <MikrotikInterfaces />
+          </TabsContent>
+
+          <TabsContent value="firewall">
+            <MikrotikFirewall />
+          </TabsContent>
+
+          <TabsContent value="nat">
+            <MikrotikNAT />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
