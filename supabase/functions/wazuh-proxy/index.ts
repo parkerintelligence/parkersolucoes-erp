@@ -189,7 +189,11 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in wazuh-proxy function:', error);
+    console.error('=== Wazuh Proxy Error ===');
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    console.error('Full error:', error);
+    console.error('Stack trace:', error.stack);
     
     let errorMessage = 'Wazuh API connection failed';
     let errorDetails = error.message;
