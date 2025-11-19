@@ -1,4 +1,4 @@
-import { Shield, Network, Users, Power, KeyRound, Globe, FileText, LayoutDashboard } from "lucide-react";
+import { Shield, Network, Users, Power, KeyRound, Globe, FileText, LayoutDashboard, RotateCcw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,13 +11,50 @@ import { MikrotikLogs } from "@/components/mikrotik/MikrotikLogs";
 import { MikrotikClientSelector } from "@/components/mikrotik/MikrotikClientSelector";
 import { MikrotikDashboard } from "@/components/mikrotik/MikrotikDashboard";
 import { useMikrotikContext } from "@/contexts/MikrotikContext";
+import { useMikrotikAPI } from "@/hooks/useMikrotikAPI";
+import { toast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useState } from "react";
 
 const Winbox = () => {
   const { selectedClient, disconnectClient } = useMikrotikContext();
+  const { callAPI } = useMikrotikAPI();
+  const [isRebooting, setIsRebooting] = useState(false);
 
   if (!selectedClient) {
     return <MikrotikClientSelector />;
   }
+
+  const handleReboot = async () => {
+    try {
+      setIsRebooting(true);
+      toast({
+        title: "Reiniciando MikroTik",
+        description: "O dispositivo está sendo reiniciado. Aguarde alguns instantes...",
+      });
+      
+      await callAPI('/system/reboot', 'POST');
+      
+      toast({
+        title: "Reinício iniciado",
+        description: "O MikroTik foi reiniciado com sucesso. A conexão será restabelecida em breve.",
+      });
+      
+      // Desconectar após 2 segundos
+      setTimeout(() => {
+        disconnectClient();
+      }, 2000);
+    } catch (error) {
+      console.error('Erro ao reiniciar MikroTik:', error);
+      toast({
+        title: "Erro ao reiniciar",
+        description: error instanceof Error ? error.message : "Não foi possível reiniciar o MikroTik.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRebooting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -38,10 +75,47 @@ const Winbox = () => {
               </div>
               <Badge className="bg-green-600 text-white">Conectado</Badge>
             </div>
-            <Button variant="outline" onClick={disconnectClient} className="border-slate-600 text-slate-300 hover:bg-slate-700">
-              <Power className="mr-2 h-4 w-4" />
-              Desconectar
-            </Button>
+            <div className="flex items-center gap-2">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="border-orange-600/50 text-orange-400 hover:bg-orange-600/20"
+                    disabled={isRebooting}
+                  >
+                    <RotateCcw className={`mr-2 h-4 w-4 ${isRebooting ? 'animate-spin' : ''}`} />
+                    Reiniciar
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="bg-slate-800 border-slate-700">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-white">Confirmar Reinício</AlertDialogTitle>
+                    <AlertDialogDescription className="text-slate-300">
+                      Tem certeza que deseja reiniciar o MikroTik <strong>{selectedClient.name}</strong>?
+                      <br /><br />
+                      Esta ação irá desconectar todos os clientes temporariamente e você precisará reconectar após o reinício.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="bg-slate-700 text-slate-300 hover:bg-slate-600 border-slate-600">
+                      Cancelar
+                    </AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleReboot}
+                      className="bg-orange-600 text-white hover:bg-orange-700"
+                      disabled={isRebooting}
+                    >
+                      {isRebooting ? 'Reiniciando...' : 'Sim, Reiniciar'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              
+              <Button variant="outline" onClick={disconnectClient} className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                <Power className="mr-2 h-4 w-4" />
+                Desconectar
+              </Button>
+            </div>
           </div>
         </div>
       </div>
