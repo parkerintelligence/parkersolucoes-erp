@@ -1627,7 +1627,6 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
 Início: ${starttime}
 Status: ${jobstatus_desc}
 Tamanho: ${jobbytes}\`\`\`
-─────────────────────
 `;
     };
 
