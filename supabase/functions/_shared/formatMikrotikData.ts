@@ -139,11 +139,17 @@ export const generateClientSummary = (clientData: ClientDashboardData): string =
   summary += `👥 DHCP: ${dhcpActive} conectados / ${dhcpTotal} total\n`;
   
   // Firewall
-  const firewallActive = clientData.firewallRules?.filter(r => !r.disabled).length || 0;
+  const firewallActive = clientData.firewallRules?.filter(r => {
+    const isDisabled = r.disabled === true || r.disabled === 'true';
+    return !isDisabled;
+  }).length || 0;
   summary += `🔒 Firewall: ${firewallActive} regras ativas\n`;
   
   // NAT
-  const natActive = clientData.natRules?.filter(r => !r.disabled).length || 0;
+  const natActive = clientData.natRules?.filter(r => {
+    const isDisabled = r.disabled === true || r.disabled === 'true';
+    return !isDisabled;
+  }).length || 0;
   summary += `🔀 NAT: ${natActive} regras ativas\n`;
   
   // VPN
