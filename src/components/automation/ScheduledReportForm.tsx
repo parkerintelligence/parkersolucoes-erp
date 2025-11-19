@@ -25,7 +25,9 @@ import {
   Plus,
   AlertCircle,
   Save,
-  Clock
+  Clock,
+  Network,
+  Activity
 } from 'lucide-react';
 
 interface ScheduledReportFormProps {
@@ -40,7 +42,8 @@ const templateTypeIcons = {
   schedule_critical: Calendar,
   glpi_summary: ExternalLink,
   bacula_daily: HardDrive,
-  custom: MessageCircle
+  custom: MessageCircle,
+  mikrotik_dashboard: Network
 };
 
 export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSuccess }: ScheduledReportFormProps) => {
@@ -542,6 +545,18 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                     {selectedTemplate.body}
                   </div>
                 </div>
+                
+                {(selectedTemplate.template_type as string) === 'mikrotik_dashboard' && (
+                  <div className="mt-3">
+                    <Badge variant="outline" className="text-xs border-blue-500 text-blue-400">
+                      <Activity className="h-3 w-3 mr-1" />
+                      Relatório consolidado de todos os clientes Mikrotik
+                    </Badge>
+                    <p className="text-xs text-gray-400 mt-2">
+                      Este relatório coleta automaticamente dados do Dashboard de todos os clientes Mikrotik cadastrados, incluindo: CPU, RAM, interfaces, DHCP, firewall, NAT, VPN e alertas.
+                    </p>
+                  </div>
+                )}
                 
                 <div className="text-xs text-gray-400">
                   <p>As variáveis serão substituídas automaticamente quando o relatório for enviado.</p>
