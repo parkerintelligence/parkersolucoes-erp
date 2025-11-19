@@ -105,7 +105,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: body ? JSON.stringify(body) : undefined,
-        signal: AbortSignal.timeout(10000), // 10 segundos timeout
+        signal: AbortSignal.timeout(30000), // 30 segundos timeout
       });
       
       console.log('📊 Status da resposta:', mikrotikResponse.status);
@@ -117,7 +117,7 @@ serve(async (req) => {
       if (fetchError.name === 'TimeoutError' || fetchError.message?.includes('timeout')) {
         return new Response(JSON.stringify({ 
           error: 'Timeout ao conectar com MikroTik',
-          details: `Não foi possível conectar com ${mikrotikUrl} em 10 segundos. Verifique se o endereço está correto e acessível.`
+          details: `Não foi possível conectar com ${mikrotikUrl} em 30 segundos. Verifique se o endereço está correto e acessível.`
         }), {
           status: 504,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
