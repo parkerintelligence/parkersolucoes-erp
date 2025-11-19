@@ -125,26 +125,57 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
   };
 
   const getUserName = (userId: number) => {
-    console.log('🔍 [getUserName] Buscando nome para userId:', userId, 'tipo:', typeof userId);
-    if (!userId || !users.data) {
-      console.log('🔍 [getUserName] userId inválido ou users.data não disponível');
+    if (!userId) {
+      console.log(`👤 [GLPI] getUserName - userId inválido:`, userId);
       return '-';
     }
-    const user = users.data.find((u: any) => u.id === userId);
-    console.log('🔍 [getUserName] Usuário encontrado:', user ? `${user.firstname} ${user.realname}` : 'não encontrado');
-    return user ? `${user.firstname || ''} ${user.realname || ''}`.trim() || user.name : '-';
+    const user = users.data?.find((u: any) => u.id === userId);
+    const name = user?.name || user?.realname || `Usuário ${userId}`;
+    console.log(`👤 [GLPI] getUserName(${userId}):`, { 
+      user, 
+      name,
+      totalUsers: users.data?.length || 0 
+    });
+    return name;
   };
 
   const getEntityName = (entityId: number) => {
-    if (!entityId || !entities.data) return '-';
-    const entity = entities.data.find((e: any) => e.id === entityId);
-    return entity?.name || '-';
+    if (!entityId) return '-';
+    const entity = entities.data?.find((e: any) => e.id === entityId);
+    return entity?.name || entity?.completename || `Entidade ${entityId}`;
   };
 
   const getCategoryName = (categoryId: number) => {
-    if (!categoryId || !itilCategories.data) return '-';
-    const category = itilCategories.data.find((c: any) => c.id === categoryId);
-    return category?.name || category?.completename || '-';
+    if (!categoryId) {
+      console.log(`🏷️ [GLPI] getCategoryName - categoryId inválido:`, categoryId);
+      return '-';
+    }
+    const category = itilCategories.data?.find((c: any) => c.id === categoryId);
+    const name = category?.name || category?.completename || `Categoria ${categoryId}`;
+    console.log(`🏷️ [GLPI] getCategoryName(${categoryId}):`, { 
+      category, 
+      name, 
+      allCategories: itilCategories.data?.length || 0,
+      firstCategory: itilCategories.data?.[0]
+    });
+    return name;
+  };
+
+  const parseGLPIDate = (dateString: string | null): Date | null => {
+    if (!dateString) return null;
+    
+    // A API GLPI retorna datas no formato "YYYY-MM-DD HH:mm:ss"
+    // Interpretar como horário local sem adicionar offset fixo
+    // O servidor pode estar em UTC-2 ou UTC-3 dependendo do horário de verão
+    const localDate = new Date(dateString.replace(' ', 'T'));
+    
+    console.log(`⏰ [GLPI] parseGLPIDate:`, {
+      input: dateString,
+      parsed: localDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+      iso: localDate.toISOString()
+    });
+    
+    return localDate;
   };
 
   const getEntityColor = (entityId: number) => {
@@ -455,31 +486,23 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-gray-300 py-2">
-              {(() => {
-                // Helper para interpretar timestamp GLPI como horário de Brasília (UTC-3)
-                const parseGLPIDate = (dateString: string | null): Date | null => {
-                  if (!dateString) return null;
-                  // GLPI retorna "2025-11-19 13:36:00" em horário de Brasília
-                  const dateWithTZ = dateString.replace(' ', 'T') + '-03:00';
-                  return new Date(dateWithTZ);
-                };
-
-                const ticketDate = parseGLPIDate(ticket.date || ticket.date_creation);
-                if (!ticketDate) return 'N/A';
-                
-                return (
-                  <div className="flex items-center gap-2">
-                    <span>{ticketDate.toLocaleDateString('pt-BR')}</span>
-                    <span className="text-gray-500">•</span>
-                    <span className="text-gray-400">
-                      {ticketDate.toLocaleTimeString('pt-BR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </span>
-                  </div>
-                );
-              })()}
+                      {(() => {
+                        const ticketDate = parseGLPIDate(ticket.date || ticket.date_creation);
+                        if (!ticketDate) return 'N/A';
+                        
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span>{ticketDate.toLocaleDateString('pt-BR')}</span>
+                            <span className="text-gray-500">•</span>
+                            <span className="text-gray-400">
+                              {ticketDate.toLocaleTimeString('pt-BR', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="py-2">
                       <div className="flex items-center gap-2">

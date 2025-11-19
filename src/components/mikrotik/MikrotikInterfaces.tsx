@@ -141,13 +141,6 @@ export const MikrotikInterfaces = () => {
         </div>
         <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar interfaces..." />
       </CardHeader>
-          <Button onClick={loadInterfaces} disabled={loading} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
-        </div>
-        <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar interfaces..." />
-      </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>

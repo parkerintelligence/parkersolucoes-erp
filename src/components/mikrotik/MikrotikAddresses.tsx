@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Power, PowerOff, ArrowUpDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Power, PowerOff, ArrowUpDown, RefreshCw } from "lucide-react";
 import { MikrotikAddressDialog } from "./MikrotikAddressDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { MikrotikTableFilter } from './MikrotikTableFilter';
+import { MikrotikExportActions } from './MikrotikExportActions';
+import { generateAddressesSummary } from '@/utils/mikrotikExportFormatters';
 
 interface IPAddress {
   ".id": string;
@@ -34,7 +36,7 @@ export const MikrotikAddresses = () => {
   const [sortField, setSortField] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  const { data: addresses = [], isLoading } = useQuery({
+  const { data: addresses = [], isLoading, refetch } = useQuery({
     queryKey: ["mikrotik-ip-addresses"],
     queryFn: async () => {
       const result = await callAPI("/ip/address", "GET");
