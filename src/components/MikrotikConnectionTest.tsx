@@ -25,10 +25,14 @@ export const MikrotikConnectionTest = () => {
         });
       }
     } catch (error: any) {
+      const is401 = error.message?.includes('401') || error.message?.includes('Unauthorized') || error.message?.includes('autenticação');
+      
       setTestResult({
         success: false,
-        message: 'Falha na conexão',
-        details: error.message || 'Verifique as credenciais e se a API REST está habilitada no MikroTik',
+        message: is401 ? 'Erro de Autenticação (401)' : 'Falha na conexão',
+        details: is401 
+          ? 'Credenciais inválidas ou API REST não habilitada. Verifique:\n• Usuário e senha estão corretos\n• API REST está habilitada em IP → Services → www-ssl (HTTPS) ou www (HTTP)\n• Usuário tem permissões de "api" ou "full"\n• Porta está correta (443 para HTTPS, 80 para HTTP)'
+          : error.message || 'Verifique as credenciais e configurações de rede',
       });
     }
   };
@@ -63,7 +67,7 @@ export const MikrotikConnectionTest = () => {
             <AlertDescription>
               <div className="font-semibold">{testResult.message}</div>
               {testResult.details && (
-                <div className="text-sm mt-1">{testResult.details}</div>
+                <div className="text-sm mt-1 whitespace-pre-line">{testResult.details}</div>
               )}
             </AlertDescription>
           </Alert>
