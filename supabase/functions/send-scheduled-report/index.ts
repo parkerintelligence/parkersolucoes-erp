@@ -435,14 +435,10 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
       
       // Garantir quebras de linha específicas para formatação Bacula antes da limpeza final
       if (template.template_type === 'bacula_daily') {
-        // Garantir quebra de linha entre seções
-        messageContent = messageContent.replace(/\`\`\`(🔴|⚠️|🚫|📈|✅|🔄)/g, '```\n\n$1');
-        // Garantir quebra de linha após informações e antes de títulos de seção
-        messageContent = messageContent.replace(/(Tamanho: [^\n]+)(🔴|⚠️|🚫|📈|✅|🔄)/g, '$1\n\n$2');
-        messageContent = messageContent.replace(/(GB|MB|KB|B)(🔴|⚠️|🚫|📈|✅|🔄)/g, '$1\n\n$2');
-        // Garantir quebra de linha após estatísticas e antes de seções
-        messageContent = messageContent.replace(/([0-9.]+%)(🔴|⚠️|🚫|📈|✅|🔄)/g, '$1\n\n$2');
-        messageContent = messageContent.replace(/📅 \*Período\*: ([^\n]+)📊/g, '📅 *Período*: $1\n\n📊');
+        // Garantir quebra de linha entre seções e após informações
+        messageContent = messageContent.replace(/(Tamanho: [^\n]+)\n*(🔴|⚠️|🚫|📈|✅|🔄)/g, '$1\n\n$2');
+        messageContent = messageContent.replace(/([0-9.]+%)\n*(🔴|⚠️|🚫|📈|✅|🔄)/g, '$1\n\n$2');
+        messageContent = messageContent.replace(/📅 \*Período\*: ([^\n]+)\n*📊/g, '📅 *Período*: $1\n\n📊');
       }
       
       // Limpeza final
@@ -1627,13 +1623,10 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
       const statusEmoji = jobstatus === 'T' ? '✅' : jobstatus === 'E' ? '❌' : jobstatus === 'f' ? '⚠️' : '🔄';
       
       return `${statusEmoji} *${name}*
-\`\`\`Cliente: ${client}
-
+Cliente: ${client}
 Início: ${starttime}
-
 Status: ${jobstatus_desc}
-
-Tamanho: ${jobbytes}\`\`\``;
+Tamanho: ${jobbytes}`;
     };
 
     // Preparar listas de jobs por categoria
