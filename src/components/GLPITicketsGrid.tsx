@@ -164,15 +164,21 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
   const parseGLPIDate = (dateString: string | null): Date | null => {
     if (!dateString) return null;
     
-    // A API GLPI retorna datas no formato "YYYY-MM-DD HH:mm:ss"
-    // Interpretar como horário local sem adicionar offset fixo
-    // O servidor pode estar em UTC-2 ou UTC-3 dependendo do horário de verão
-    const localDate = new Date(dateString.replace(' ', 'T'));
+    // GLPI retorna datas no formato "YYYY-MM-DD HH:mm:ss" já no timezone local do servidor
+    // Vamos interpretar como datetime local sem conversão de timezone
+    const [datePart, timePart] = dateString.split(' ');
+    if (!datePart || !timePart) return null;
+    
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hour, minute, second] = timePart.split(':').map(Number);
+    
+    // Criar data usando os componentes locais (sem conversão UTC)
+    const localDate = new Date(year, month - 1, day, hour, minute, second || 0);
     
     console.log(`⏰ [GLPI] parseGLPIDate:`, {
       input: dateString,
-      parsed: localDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-      iso: localDate.toISOString()
+      parsed: localDate.toLocaleString('pt-BR'),
+      components: { year, month, day, hour, minute, second }
     });
     
     return localDate;
