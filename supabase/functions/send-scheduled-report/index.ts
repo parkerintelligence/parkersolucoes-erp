@@ -1622,8 +1622,6 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
       
       const statusEmoji = jobstatus === 'T' ? '✅' : jobstatus === 'E' ? '❌' : jobstatus === 'f' ? '⚠️' : '🔄';
       
-      const statusEmoji = jobstatus === 'T' ? '✅' : jobstatus === 'E' ? '❌' : jobstatus === 'f' ? '⚠️' : '🔄';
-      
       return `${statusEmoji} *${name}*
 \`\`\`Cliente: ${client}
 Início: ${starttime}
