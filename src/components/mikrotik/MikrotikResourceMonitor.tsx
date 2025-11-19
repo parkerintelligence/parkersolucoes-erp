@@ -87,46 +87,54 @@ export const MikrotikResourceMonitor = () => {
   const totalHdd = parseInt(resources['total-hdd-space']) || 1;
   const hddUsage = ((totalHdd - freeHdd) / totalHdd) * 100;
 
+  const formatBytes = (bytes: number) => {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <Card>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <Card className="bg-blue-900/20 border-blue-600/30">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">CPU</CardTitle>
-          <Cpu className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-xs font-medium text-blue-300">CPU</CardTitle>
+          <Cpu className="h-4 w-4 text-blue-400" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{cpuLoad}%</div>
-          <Progress value={cpuLoad} className="mt-2" />
-          <p className="text-xs text-muted-foreground mt-2">
+        <CardContent className="p-3">
+          <div className="text-xl font-bold text-blue-400">{cpuLoad}%</div>
+          <Progress value={cpuLoad} className="mt-2 bg-blue-900/30" />
+          <p className="text-xs text-blue-300/70 mt-2">
             {resources['cpu-count']} núcleos
           </p>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="bg-green-900/20 border-green-600/30">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Memória</CardTitle>
-          <Activity className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-xs font-medium text-green-300">Memória</CardTitle>
+          <Activity className="h-4 w-4 text-green-400" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{memoryUsage.toFixed(1)}%</div>
-          <Progress value={memoryUsage} className="mt-2" />
-          <p className="text-xs text-muted-foreground mt-2">
-            {(freeMemory / 1024 / 1024).toFixed(0)} MB livre
+        <CardContent className="p-3">
+          <div className="text-xl font-bold text-green-400">{memoryUsage.toFixed(1)}%</div>
+          <Progress value={memoryUsage} className="mt-2 bg-green-900/30" />
+          <p className="text-xs text-green-300/70 mt-2">
+            {formatBytes(totalMemory - freeMemory)} / {formatBytes(totalMemory)}
           </p>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="bg-yellow-900/20 border-yellow-600/30">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Disco</CardTitle>
-          <HardDrive className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-xs font-medium text-yellow-300">Disco</CardTitle>
+          <HardDrive className="h-4 w-4 text-yellow-400" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{hddUsage.toFixed(1)}%</div>
-          <Progress value={hddUsage} className="mt-2" />
-          <p className="text-xs text-muted-foreground mt-2">
-            {(freeHdd / 1024 / 1024).toFixed(0)} MB livre
+        <CardContent className="p-3">
+          <div className="text-xl font-bold text-yellow-400">{hddUsage.toFixed(1)}%</div>
+          <Progress value={hddUsage} className="mt-2 bg-yellow-900/30" />
+          <p className="text-xs text-yellow-300/70 mt-2">
+            {formatBytes(totalHdd - freeHdd)} / {formatBytes(totalHdd)}
           </p>
         </CardContent>
       </Card>
