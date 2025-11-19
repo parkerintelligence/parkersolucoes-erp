@@ -13,12 +13,19 @@ serve(async (req) => {
 
   try {
     // Parse request body first
-    const { endpoint, method = 'GET', body } = await req.json();
+    const { endpoint, method = 'GET', body, clientId } = await req.json();
 
-    console.log('📥 Request:', { endpoint, method });
+    console.log('📥 Request:', { endpoint, method, clientId });
 
     if (!endpoint) {
       return new Response(JSON.stringify({ error: 'Campo obrigatório: endpoint' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!clientId) {
+      return new Response(JSON.stringify({ error: 'Campo obrigatório: clientId' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -62,10 +69,10 @@ serve(async (req) => {
     const { data: integration, error: integrationError } = await supabaseClient
       .from('integrations')
       .select('*')
+      .eq('id', clientId)
       .eq('type', 'mikrotik')
       .eq('user_id', user.id)
-      .eq('is_active', true)
-      .maybeSingle();
+      .single();
 
     if (integrationError || !integration) {
       console.error('❌ Integração não encontrada:', integrationError);
