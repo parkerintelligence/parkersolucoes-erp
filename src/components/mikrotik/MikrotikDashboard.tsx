@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useMikrotikAPI } from '@/hooks/useMikrotikAPI';
+import { useMikrotikContext } from '@/contexts/MikrotikContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -19,6 +20,7 @@ const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3
 
 export const MikrotikDashboard = () => {
   const { callAPI } = useMikrotikAPI();
+  const { selectedClient } = useMikrotikContext();
   
   // Estados básicos
   const [identity, setIdentity] = useState<any>(null);
@@ -145,8 +147,11 @@ export const MikrotikDashboard = () => {
 
   // Carregar dados iniciais
   useEffect(() => {
-    loadData();
-  }, []);
+    if (selectedClient) {
+      console.log('🎯 Dashboard carregando dados para:', selectedClient.name);
+      loadData();
+    }
+  }, [selectedClient]);
 
   // Atualizar histórico de recursos
   useEffect(() => {
@@ -227,10 +232,24 @@ export const MikrotikDashboard = () => {
     return 'secondary';
   };
 
+  if (!selectedClient) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Network className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">Nenhum cliente selecionado</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading && !identity) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando dados do cliente...</p>
+        </div>
       </div>
     );
   }
@@ -240,7 +259,13 @@ export const MikrotikDashboard = () => {
       {/* Header com botão de refresh */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+          <div className="flex items-center gap-3 mb-2">
+            <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+            <Badge variant="outline" className="text-sm">
+              <Network className="h-3 w-3 mr-1" />
+              {selectedClient.name}
+            </Badge>
+          </div>
           <p className="text-muted-foreground">
             Visão geral do MikroTik • Última atualização: {lastUpdate.toLocaleTimeString('pt-BR')}
           </p>

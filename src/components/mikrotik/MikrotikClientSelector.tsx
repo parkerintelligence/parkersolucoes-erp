@@ -68,41 +68,55 @@ export const MikrotikClientSelector = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Selecione um Cliente MikroTik</h1>
         <p className="text-muted-foreground">
           Escolha qual dispositivo você deseja gerenciar
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {activeClients.map((client) => (
-          <Card key={client.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between mb-2">
-                <Network className="h-8 w-8 text-primary" />
-                <Badge variant="secondary">Ativo</Badge>
-              </div>
-              <CardTitle className="text-xl">{client.name}</CardTitle>
-              <CardDescription className="break-all">
-                {client.base_url}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={() => selectClient(client)} 
-                className="w-full"
-                size="lg"
+      <Card>
+        <CardContent className="p-0">
+          <div className="divide-y">
+            {activeClients.map((client) => (
+              <div
+                key={client.id}
+                className="flex items-center justify-between p-4 hover:bg-accent transition-colors"
               >
-                Conectar
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                <div className="flex items-center gap-4 flex-1">
+                  <div className="flex-shrink-0">
+                    <Network className="h-8 w-8 text-primary" />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-lg">{client.name}</h3>
+                      <Badge variant="secondary" className="text-xs">
+                        Ativo
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {client.base_url}
+                    </p>
+                  </div>
+                </div>
 
-      <div className="mt-8 text-center">
+                <div className="flex-shrink-0 ml-4">
+                  <Button 
+                    onClick={() => selectClient(client)}
+                    size="default"
+                  >
+                    Conectar
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="mt-6 text-center">
         <Button variant="outline" onClick={() => navigate('/admin')}>
           <Settings className="mr-2 h-4 w-4" />
           Gerenciar Clientes

@@ -45,16 +45,22 @@ export const MikrotikProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       setClients(data || []);
 
-      // Auto-selecionar se houver apenas um cliente ativo
-      const activeClients = (data || []).filter(c => c.is_active);
-      if (activeClients.length === 1 && !selectedClient) {
-        const savedClientId = localStorage.getItem('mikrotik_selected_client');
-        if (savedClientId && activeClients[0].id === savedClientId) {
-          setSelectedClient(activeClients[0]);
+      // Tentar restaurar seleção do localStorage
+      const savedClientId = localStorage.getItem('mikrotik_selected_client');
+      console.log('🔍 Tentando restaurar cliente:', savedClientId);
+      
+      if (savedClientId && data) {
+        const savedClient = data.find(c => c.id === savedClientId && c.is_active);
+        if (savedClient) {
+          console.log('✅ Cliente restaurado:', savedClient.name);
+          setSelectedClient(savedClient);
+        } else {
+          console.log('⚠️ Cliente salvo não encontrado ou inativo');
+          localStorage.removeItem('mikrotik_selected_client');
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar clientes MikroTik:', error);
+      console.error('❌ Erro ao carregar clientes MikroTik:', error);
       setClients([]);
     } finally {
       setLoading(false);
@@ -66,6 +72,7 @@ export const MikrotikProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const selectClient = (client: Integration) => {
+    console.log('✅ Cliente selecionado:', client.name, client.id);
     setSelectedClient(client);
     localStorage.setItem('mikrotik_selected_client', client.id);
   };
