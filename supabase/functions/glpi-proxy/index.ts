@@ -494,6 +494,19 @@ serve(async (req) => {
         console.log('Parsed result (structure):', Array.isArray(result) ? `Array[${result.length}]` : typeof result)
         if (Array.isArray(result) && result.length > 0) {
           console.log('First result item keys:', Object.keys(result[0] || {}))
+          
+          // Log específico para endpoints de tickets para debug do users_id_assign
+          if (apiPath.toLowerCase().includes('ticket')) {
+            const firstTicket = result[0]
+            console.log('🎫 [DEBUG TICKET] Primeiro ticket retornado:', {
+              id: firstTicket?.id,
+              name: firstTicket?.name,
+              users_id_assign: firstTicket?.users_id_assign,
+              _users_id_assign: firstTicket?._users_id_assign,
+              hasUsersIdAssign: 'users_id_assign' in (firstTicket || {}),
+              has_UsersIdAssign: '_users_id_assign' in (firstTicket || {}),
+            })
+          }
         }
       }
     } catch (parseError) {
