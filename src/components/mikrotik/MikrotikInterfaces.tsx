@@ -17,6 +17,7 @@ import {
 import { MikrotikTableFilter } from './MikrotikTableFilter';
 import { MikrotikExportActions } from './MikrotikExportActions';
 import { generateInterfacesSummary, formatBytes } from '@/utils/mikrotikExportFormatters';
+import { MikrotikPagination } from './MikrotikPagination';
 
 export const MikrotikInterfaces = () => {
   const { callAPI, loading } = useMikrotikAPI();
@@ -25,6 +26,8 @@ export const MikrotikInterfaces = () => {
   const [filter, setFilter] = useState('');
   const [sortField, setSortField] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   useEffect(() => {
     loadInterfaces();
@@ -91,6 +94,18 @@ export const MikrotikInterfaces = () => {
 
     return filtered;
   }, [interfaces, filter, sortField, sortDirection]);
+
+  // Calcular paginação
+  const totalItems = filteredAndSortedInterfaces.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedInterfaces = filteredAndSortedInterfaces.slice(startIndex, endIndex);
+
+  // Reset para primeira página quando filtros mudarem
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, sortField, sortDirection, itemsPerPage]);
 
   if (loading && interfaces.length === 0) {
     return (
@@ -165,7 +180,7 @@ export const MikrotikInterfaces = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredAndSortedInterfaces.map((iface) => (
+            {paginatedInterfaces.map((iface) => (
               <TableRow key={iface['.id']} className="hover:bg-slate-700/50">
                 <TableCell className="font-medium text-slate-200">
                   <div className="flex items-center gap-2">
@@ -197,6 +212,17 @@ export const MikrotikInterfaces = () => {
             ))}
           </TableBody>
         </Table>
+
+        <MikrotikPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={totalItems}
+          startIndex={startIndex}
+          endIndex={endIndex}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
 
         {filteredAndSortedInterfaces.length === 0 && interfaces.length > 0 && (
           <div className="text-center py-8 text-muted-foreground">
