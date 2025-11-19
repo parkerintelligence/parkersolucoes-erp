@@ -30,23 +30,32 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    
+    // Check if it's a service role call
+    const isServiceRole = token === serviceRoleKey;
     
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      serviceRoleKey,
     );
 
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    // If not service role, validate user token
+    if (!isServiceRole) {
+      const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
-    if (userError || !user) {
-      console.error('❌ Authentication failed:', userError?.message);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Authentication failed' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (userError || !user) {
+        console.error('❌ Authentication failed:', userError?.message);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Authentication failed' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('✅ User authenticated:', user.email);
+    } else {
+      console.log('✅ Service role authenticated');
     }
-
-    console.log('✅ User authenticated:', user.email);
 
     const { integrationId, phoneNumber, message } = await req.json() as WhatsAppMessageRequest;
 
@@ -72,13 +81,8 @@ serve(async (req) => {
       );
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: `Bearer ${token}` } } }
-    );
-
-    const { data: integration, error: integrationError } = await supabaseClient
+    // Use service role client to fetch integration (works for both global and user-specific integrations)
+    const { data: integration, error: integrationError } = await supabaseAdmin
       .from('integrations')
       .select('base_url, api_token, instance_name')
       .eq('id', integrationId)
