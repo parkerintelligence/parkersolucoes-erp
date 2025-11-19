@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Monitor, Server, Terminal, Search, AlertTriangle, Loader2, ExternalLink } from 'lucide-react';
 import { useGuacamoleAPI } from '@/hooks/useGuacamoleAPI';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface GLPIRemoteAccessDialogProps {
   open: boolean;
@@ -57,24 +58,87 @@ export const GLPIRemoteAccessDialog = ({
   };
 
   const handleConnect = async (connection: any) => {
-    try {
-      const baseUrl = integration?.base_url?.replace(/\/$/, '');
-      const dataSource = integration?.directory || 'postgresql';
-      const url = `${baseUrl}/#/client/${encodeURIComponent(connection.identifier)}?dataSource=${dataSource}`;
-      
-      window.open(url, '_blank', 'noopener,noreferrer');
-      
+    if (!integration?.base_url) {
       toast({
-        title: "Conexão Remota",
-        description: `Abrindo conexão com ${connection.name}...`,
+        title: "Erro de configuração",
+        description: "URL base do Guacamole não configurada.",
+        variant: "destructive"
       });
+      return;
+    }
+
+    try {
+      const { data: sessionData, error } = await supabase.functions.invoke('guacamole-proxy', {
+        body: {
+          integrationId: integration.id,
+          endpoint: `connect/${connection.identifier}`,
+          method: 'POST'
+        }
+      });
+
+      if (error) {
+        console.error('Erro na função Edge:', error);
+        throw new Error(error.message || 'Erro na comunicação com o servidor');
+      }
+
+      if (!sessionData?.result) {
+        throw new Error('Resposta inválida do servidor');
+      }
+
+      const result = sessionData.result;
       
-      onOpenChange(false);
-    } catch (error) {
+      if (!result.success || !result.sessionUrl) {
+        throw new Error(result.warning || 'URL de sessão não fornecida');
+      }
+
+      window.open(result.sessionUrl, '_blank', 'noopener,noreferrer');
+
+      let toastMessage = '';
+      let toastDescription = '';
+      
+      switch (result.method) {
+        case 'tunnel':
+          toastMessage = 'Conectado com túnel!';
+          toastDescription = `Conexão "${connection.name}" aberta com túnel direto. Autenticação automática ativa.`;
+          break;
+        case 'direct':
+          toastMessage = result.hasCredentials ? 'Conectado com credenciais!' : 'Conectando...';
+          toastDescription = result.hasCredentials 
+            ? `Conexão "${connection.name}" aberta com credenciais incorporadas.`
+            : `Conexão "${connection.name}" aberta. Pode ser necessário inserir credenciais.`;
+          break;
+        case 'fallback':
+          toastMessage = 'Conectando (modo básico)';
+          toastDescription = `Conexão "${connection.name}" aberta. Autenticação manual pode ser necessária.`;
+          break;
+        default:
+          toastMessage = 'Conectando...';
+          toastDescription = `Abrindo conexão "${connection.name}".`;
+      }
+
       toast({
-        title: "Erro",
-        description: "Não foi possível abrir a conexão remota.",
-        variant: "destructive",
+        title: toastMessage,
+        description: toastDescription
+      });
+
+      if (result.warning) {
+        setTimeout(() => {
+          toast({
+            title: "Atenção",
+            description: result.warning,
+            variant: "default"
+          });
+        }, 2000);
+      }
+
+      onOpenChange(false);
+
+    } catch (error: any) {
+      console.error('Erro ao conectar:', error);
+      toast({
+        title: "Erro ao conectar",
+        description: error.message || "Não foi possível estabelecer a conexão remota.",
+        variant: "destructive"
       });
     }
   };

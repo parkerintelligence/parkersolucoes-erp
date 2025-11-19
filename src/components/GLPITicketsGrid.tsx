@@ -127,6 +127,20 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
     return category?.name || category?.completename || '-';
   };
 
+  const getEntityColor = (entityId: number) => {
+    const colors = [
+      'bg-blue-900/30 text-blue-300',
+      'bg-purple-900/30 text-purple-300',
+      'bg-green-900/30 text-green-300',
+      'bg-yellow-900/30 text-yellow-300',
+      'bg-orange-900/30 text-orange-300',
+      'bg-pink-900/30 text-pink-300',
+      'bg-indigo-900/30 text-indigo-300',
+      'bg-cyan-900/30 text-cyan-300',
+    ];
+    return colors[entityId % colors.length];
+  };
+
   if (tickets.isLoading) {
     return (
       <Card className="bg-gray-800 border-gray-700">
@@ -232,8 +246,10 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                     <TableCell className="text-gray-300 py-2 text-sm">
                       {getCategoryName(ticket.itilcategories_id || ticket.categories_id)}
                     </TableCell>
-                    <TableCell className="text-gray-300 py-2 text-sm">
-                      {getEntityName(ticket.entities_id)}
+                    <TableCell className="py-2">
+                      <span className={`px-2 py-1 rounded text-sm font-medium ${getEntityColor(ticket.entities_id)}`}>
+                        {getEntityName(ticket.entities_id)}
+                      </span>
                     </TableCell>
                     <TableCell className="py-2">
                       <Badge className={getStatusColor(ticket.status)}>
@@ -264,13 +280,16 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                           size="sm"
                           onClick={() => handleViewTicket(ticket)}
                           className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                          title="Ver Detalhes"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => handleViewTicket(ticket)}
                           className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                          title="Editar Chamado"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -286,6 +305,15 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                         >
                           <Monitor className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTicketToDelete(ticket)}
+                          className="border-gray-600 text-red-400 hover:bg-red-900/20"
+                          title="Excluir Chamado"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                         {ticket.status !== 5 && ticket.status !== 6 && (
                           <Button
                             variant="outline"
@@ -298,14 +326,6 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                             <CheckCheck className="h-4 w-4" />
                           </Button>
                         )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setTicketToDelete(ticket)}
-                          className="border-gray-600 text-red-400 hover:bg-red-900/20"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
