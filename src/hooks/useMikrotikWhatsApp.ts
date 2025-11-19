@@ -32,10 +32,7 @@ export const useMikrotikWhatsApp = () => {
     if (options.includeDetails && options.columns && options.data.length > 0) {
       message += `📋 *REGISTROS DETALHADOS*\n\n`;
       
-      // Limitar a 10 registros para não tornar a mensagem muito longa
-      const recordsToShow = options.data.slice(0, 10);
-      
-      recordsToShow.forEach((record, index) => {
+      options.data.forEach((record, index) => {
         message += `*Registro ${index + 1}*\n`;
         
         options.columns!.forEach(col => {
@@ -48,10 +45,6 @@ export const useMikrotikWhatsApp = () => {
         
         message += `\n`;
       });
-      
-      if (options.data.length > 10) {
-        message += `_... e mais ${options.data.length - 10} registros_\n\n`;
-      }
     }
     
     message += `---\n`;
