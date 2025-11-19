@@ -101,12 +101,12 @@ export const MikrotikInterfaces = () => {
 
   const getStatusBadge = (iface: any) => {
     if (iface.disabled === "true" || iface.disabled === true) {
-      return <Badge className="bg-red-600 text-white">Desativada</Badge>;
+      return <Badge className="bg-red-600/80 text-white">Desativada</Badge>;
     }
     if (iface.running) {
-      return <Badge className="bg-green-600 text-white">Conectada</Badge>;
+      return <Badge className="bg-green-600/80 text-white">Conectada</Badge>;
     }
-    return <Badge className="bg-yellow-600 text-white">Desconectada</Badge>;
+    return <Badge className="bg-yellow-600/80 text-white">Desconectada</Badge>;
   };
 
   return (
@@ -163,14 +163,15 @@ export const MikrotikInterfaces = () => {
                 <TableCell className="text-slate-200">{formatBytes(iface['tx-byte'])}</TableCell>
                 <TableCell className="text-right">
                   <Button
-                    size="sm"
-                    variant="ghost"
+                    size="xs"
+                    variant="outline"
                     onClick={() => toggleInterface(iface['.id'], iface.disabled)}
+                    className={iface.disabled ? "border-green-600/50 text-green-400 hover:bg-green-600/20" : "border-slate-600 text-slate-300 hover:bg-slate-700"}
                   >
                     {iface.disabled ? (
-                      <Power className="h-4 w-4 text-green-500" />
+                      <Power className="h-3 w-3" />
                     ) : (
-                      <PowerOff className="h-4 w-4 text-red-500" />
+                      <PowerOff className="h-3 w-3" />
                     )}
                   </Button>
                 </TableCell>

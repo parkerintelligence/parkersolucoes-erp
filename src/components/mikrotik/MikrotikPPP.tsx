@@ -144,16 +144,16 @@ export const MikrotikPPP = () => {
 
   const getServiceBadge = (service?: string) => {
     const variants: Record<string, { label: string; className: string }> = {
-      pptp: { label: "PPTP", className: "bg-blue-500 text-white" },
-      l2tp: { label: "L2TP", className: "bg-green-500 text-white" },
-      sstp: { label: "SSTP", className: "bg-purple-500 text-white" },
-      pppoe: { label: "PPPoE", className: "bg-orange-500 text-white" },
-      ovpn: { label: "OpenVPN", className: "bg-cyan-500 text-white" },
+      pptp: { label: "PPTP", className: "bg-blue-600/80 text-white" },
+      l2tp: { label: "L2TP", className: "bg-green-600/80 text-white" },
+      sstp: { label: "SSTP", className: "bg-purple-600/80 text-white" },
+      pppoe: { label: "PPPoE", className: "bg-orange-600/80 text-white" },
+      ovpn: { label: "OpenVPN", className: "bg-cyan-600/80 text-white" },
     };
 
     const config = service && variants[service] 
       ? variants[service] 
-      : { label: service || "N/A", className: "bg-muted" };
+      : { label: service || "N/A", className: "border-slate-600 text-slate-400" };
     return <Badge className={config.className}>{config.label}</Badge>;
   };
 
@@ -209,9 +209,9 @@ export const MikrotikPPP = () => {
                     <TableCell>{secret.profile || "default"}</TableCell>
                     <TableCell>
                       {secret.disabled === "true" ? (
-                        <Badge variant="secondary">Inativo</Badge>
+                        <Badge className="bg-red-600/80 text-white">Inativo</Badge>
                       ) : (
-                        <Badge variant="default">Ativo</Badge>
+                        <Badge className="bg-green-600/80 text-white">Ativo</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
@@ -221,6 +221,7 @@ export const MikrotikPPP = () => {
                           size="xs"
                           onClick={() => handleToggle(secret)}
                           disabled={loading}
+                          className={secret.disabled === "true" ? "border-green-600/50 text-green-400 hover:bg-green-600/20" : "border-slate-600 text-slate-300 hover:bg-slate-700"}
                         >
                           {secret.disabled === "true" ? (
                             <Power className="h-3 w-3" />
@@ -232,6 +233,7 @@ export const MikrotikPPP = () => {
                           variant="outline"
                           size="xs"
                           onClick={() => handleEdit(secret)}
+                          className="border-slate-600 text-slate-300 hover:bg-slate-700"
                         >
                           <Pencil className="h-3 w-3" />
                         </Button>
@@ -239,6 +241,7 @@ export const MikrotikPPP = () => {
                           variant="outline"
                           size="xs"
                           onClick={() => handleDelete(secret)}
+                          className="border-red-600/50 text-red-400 hover:bg-red-600/20"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
