@@ -44,11 +44,21 @@ export const useMikrotikWhatsApp = () => {
         throw new Error('Nenhuma integração Evolution API ativa encontrada');
       }
 
+      // Format phone number: remove non-digits and ensure country code
+      let formattedNumber = phoneNumber.replace(/\D/g, '');
+      
+      // If number doesn't start with country code (55 for Brazil), add it
+      if (!formattedNumber.startsWith('55')) {
+        formattedNumber = '55' + formattedNumber;
+      }
+
+      console.log('📱 Número formatado:', formattedNumber);
+
       // Send message via edge function
       const { data, error } = await supabase.functions.invoke('send-whatsapp-message', {
         body: {
           integrationId: evolutionIntegration.id,
-          phoneNumber: phoneNumber.replace(/\D/g, ''), // Remove non-digits
+          phoneNumber: formattedNumber,
           message
         }
       });

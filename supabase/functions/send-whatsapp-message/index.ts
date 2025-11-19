@@ -59,6 +59,19 @@ serve(async (req) => {
       );
     }
 
+    // Validate phone number format (should have country code)
+    if (phoneNumber.length < 12 || phoneNumber.length > 15) {
+      console.error('❌ Número inválido:', phoneNumber, 'Tamanho:', phoneNumber.length);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Número de telefone inválido. Deve ter código do país (ex: 5564999887766)',
+          details: `Número fornecido: ${phoneNumber.substring(0, 4)}**** tem ${phoneNumber.length} dígitos. Esperado: 12-15 dígitos com código do país.`
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
