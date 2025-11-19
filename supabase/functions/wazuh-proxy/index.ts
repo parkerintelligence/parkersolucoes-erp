@@ -57,8 +57,8 @@ serve(async (req) => {
       .from('integrations')
       .select('*')
       .eq('id', integrationId)
-      .eq('user_id', user.id)
       .eq('type', 'wazuh')
+      .or(`user_id.eq.${user.id},is_global.eq.true`)
       .single();
 
     if (integrationError || !integration) {
