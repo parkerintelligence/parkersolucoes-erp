@@ -166,40 +166,40 @@ export const MikrotikFirewall = () => {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-slate-700/30">
-                  <TableHead className="text-slate-300">
+              <TableHead className="text-slate-300">
                 <Button variant="ghost" size="sm" onClick={() => handleSort('chain')} className="h-8 px-2">
                   Chain
                   <ArrowUpDown className="ml-2 h-3 w-3" />
                 </Button>
               </TableHead>
-              <TableHead>
+              <TableHead className="text-slate-300">
                 <Button variant="ghost" size="sm" onClick={() => handleSort('action')} className="h-8 px-2">
                   Ação
                   <ArrowUpDown className="ml-2 h-3 w-3" />
                 </Button>
               </TableHead>
-              <TableHead>
+              <TableHead className="text-slate-300">
                 <Button variant="ghost" size="sm" onClick={() => handleSort('protocol')} className="h-8 px-2">
                   Protocolo
                   <ArrowUpDown className="ml-2 h-3 w-3" />
                 </Button>
               </TableHead>
-              <TableHead>Origem</TableHead>
-              <TableHead>Porta Origem</TableHead>
-              <TableHead>Destino</TableHead>
-              <TableHead>Porta Destino</TableHead>
-              <TableHead>Interface</TableHead>
-              <TableHead>Comentário</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead className="text-slate-300">Origem</TableHead>
+              <TableHead className="text-slate-300">Porta Origem</TableHead>
+              <TableHead className="text-slate-300">Destino</TableHead>
+              <TableHead className="text-slate-300">Porta Destino</TableHead>
+              <TableHead className="text-slate-300">Interface</TableHead>
+              <TableHead className="text-slate-300">Comentário</TableHead>
+              <TableHead className="text-slate-300">Status</TableHead>
+              <TableHead className="text-slate-300 text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredAndSortedRules.map((rule) => (
-              <TableRow key={rule['.id']} className={getChainColor(rule.chain)}>
-                <TableCell className="font-medium">
+              <TableRow key={rule['.id']} className={`hover:bg-slate-700/50 ${getChainColor(rule.chain)}`}>
+                <TableCell className="font-medium text-slate-200">
                   <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-blue-500" />
+                    <Shield className="h-4 w-4 text-blue-400" />
                     {rule.chain}
                   </div>
                 </TableCell>
@@ -208,19 +208,19 @@ export const MikrotikFirewall = () => {
                     {rule.action}
                   </Badge>
                 </TableCell>
-                <TableCell>{rule.protocol || 'all'}</TableCell>
-                <TableCell className="max-w-[150px] truncate">
+                <TableCell className="text-slate-200">{rule.protocol || 'all'}</TableCell>
+                <TableCell className="max-w-[150px] truncate text-slate-200">
                   {rule['src-address'] || 'any'}
                 </TableCell>
-                <TableCell>{rule['src-port'] || '-'}</TableCell>
-                <TableCell className="max-w-[150px] truncate">
+                <TableCell className="text-slate-200">{rule['src-port'] || '-'}</TableCell>
+                <TableCell className="max-w-[150px] truncate text-slate-200">
                   {rule['dst-address'] || 'any'}
                 </TableCell>
-                <TableCell>{rule['dst-port'] || '-'}</TableCell>
-                <TableCell className="text-xs">
+                <TableCell className="text-slate-200">{rule['dst-port'] || '-'}</TableCell>
+                <TableCell className="text-xs text-slate-200">
                   {rule['in-interface'] || rule['out-interface'] || '-'}
                 </TableCell>
-                <TableCell className="max-w-[150px] truncate text-muted-foreground text-xs">
+                <TableCell className="max-w-[150px] truncate text-slate-400 text-xs">
                   {rule.comment || '-'}
                 </TableCell>
                 <TableCell>
