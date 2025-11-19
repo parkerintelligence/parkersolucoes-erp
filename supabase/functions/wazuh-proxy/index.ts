@@ -124,19 +124,18 @@ serve(async (req) => {
       console.log(`Attempting ${isRetry ? 'HTTP' : 'HTTPS'} authentication to:`, url);
       
       try {
-        const authResponse = await fetch(url, {
-          method: 'POST', // Wazuh uses POST for authentication
+        // Add ?raw=true to get the token directly without JSON wrapper
+        const authUrlWithParams = `${url}?raw=true`;
+        
+        const authResponse = await fetch(authUrlWithParams, {
+          method: 'POST',
           headers: {
             'Authorization': `Basic ${basicAuth}`,
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
           },
-          body: JSON.stringify({
-            username: username,
-            password: password
-          }),
+          // NO BODY - Wazuh API uses ONLY Basic Auth header for authentication
           signal: AbortSignal.timeout(15000),
-          client: httpClient, // Use custom client that allows self-signed certs
+          client: httpClient,
         });
 
         console.log('Auth response status:', authResponse.status);
@@ -147,11 +146,11 @@ serve(async (req) => {
           throw new Error(`Authentication failed: ${authResponse.status} ${authResponse.statusText}`);
         }
 
-        const authData = await authResponse.json();
-        console.log('Auth response received, token length:', authData.data?.token?.length || 0);
+        // With ?raw=true, the response is just the token string, not JSON
+        const token = await authResponse.text();
+        console.log('Auth response received, token length:', token?.length || 0);
         
-        const token = authData.data?.token;
-        if (!token) {
+        if (!token || token.trim() === '') {
           throw new Error('No JWT token received from authentication');
         }
         
