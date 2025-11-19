@@ -1624,7 +1624,11 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
       
       const statusEmoji = jobstatus === 'T' ? '✅' : jobstatus === 'E' ? '❌' : jobstatus === 'f' ? '⚠️' : '🔄';
       
-      return `${statusEmoji} ${name}\n(${client})\n${starttime}\n${jobstatus_desc} - ${jobbytes}\n__________________________________________________________`;
+      return `${statusEmoji} *${name}*
+\`\`\`Cliente: ${client}
+Início: ${starttime}
+Status: ${jobstatus_desc}
+Tamanho: ${jobbytes}\`\`\``;
     };
 
     // Preparar listas de jobs por categoria
