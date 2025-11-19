@@ -2,28 +2,70 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useMikrotikAPI } from '@/hooks/useMikrotikAPI';
+import { useMikrotikContext } from '@/contexts/MikrotikContext';
 import { Cpu, HardDrive, Activity, Loader2 } from 'lucide-react';
 
 export const MikrotikResourceMonitor = () => {
   const { callAPI, loading } = useMikrotikAPI();
+  const { selectedClient } = useMikrotikContext();
   const [resources, setResources] = useState<any>(null);
 
   useEffect(() => {
+    if (!selectedClient) {
+      console.log('⚠️ ResourceMonitor: Nenhum cliente selecionado');
+      setResources(null);
+      return;
+    }
+
+    console.log('🔄 ResourceMonitor: Carregando recursos para', selectedClient.name);
     loadResources();
+    
     const interval = setInterval(loadResources, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      console.log('🛑 ResourceMonitor: Limpando interval');
+      clearInterval(interval);
+    };
+  }, [selectedClient]);
 
   const loadResources = async () => {
+    if (!selectedClient) {
+      console.log('⚠️ ResourceMonitor: Tentativa de carregar sem cliente');
+      return;
+    }
+
     try {
+      console.log('📊 ResourceMonitor: Buscando /system/resource para', selectedClient.name);
       const data = await callAPI('/system/resource');
-      if (data && data.length > 0) {
-        setResources(data[0]);
+      
+      if (data) {
+        const resourceData = Array.isArray(data) ? data[0] : data;
+        console.log('✅ ResourceMonitor: Dados recebidos:', {
+          cpu: resourceData['cpu-load'],
+          memory: `${resourceData['free-memory']}/${resourceData['total-memory']}`,
+          hdd: `${resourceData['free-hdd-space']}/${resourceData['total-hdd-space']}`
+        });
+        setResources(resourceData);
+      } else {
+        console.warn('⚠️ ResourceMonitor: Resposta vazia da API');
       }
     } catch (error) {
-      console.error('Erro ao carregar recursos:', error);
+      console.error('❌ ResourceMonitor: Erro ao carregar recursos:', error);
+      setResources(null);
     }
   };
+
+  if (!selectedClient) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center p-8">
+          <div className="text-center text-muted-foreground">
+            <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">Selecione um cliente para ver os recursos</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (loading && !resources) {
     return (
