@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Save, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { MikrotikConnectionTest } from './MikrotikConnectionTest';
 
 export const MikrotikAdminConfig = () => {
   const { toast } = useToast();
@@ -158,18 +159,21 @@ export const MikrotikAdminConfig = () => {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center p-8">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <Card>
+          <CardContent className="flex items-center justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Configuração Winbox (MikroTik)</CardTitle>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Configuração Winbox (MikroTik)</CardTitle>
         <CardDescription>
           Configure o acesso ao webfig do MikroTik RouterOS
         </CardDescription>
@@ -246,5 +250,8 @@ export const MikrotikAdminConfig = () => {
         </div>
       </CardContent>
     </Card>
+    
+    {integration && <MikrotikConnectionTest />}
+    </div>
   );
 };
