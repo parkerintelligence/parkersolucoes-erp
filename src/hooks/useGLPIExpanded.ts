@@ -855,15 +855,12 @@ export const useGLPIExpanded = () => {
       }
       
       try {
-        // Formato correto da API GLPI: {"input": {...}}
-        const glpiPayload = {
-          input: enhancedTicketData
-        };
-        console.log('🎫 [useGLPIExpanded] Enviando payload formatado para GLPI:', JSON.stringify(glpiPayload, null, 2));
+        // A edge function já faz o wrap com "input", então enviamos direto o objeto
+        console.log('🎫 [useGLPIExpanded] Enviando dados diretamente (edge function fará o wrap):', JSON.stringify(enhancedTicketData, null, 2));
         
         const response = await makeGLPIRequest('Ticket', {
           method: 'POST',
-          body: JSON.stringify(glpiPayload)
+          body: JSON.stringify(enhancedTicketData)
         });
         
         console.log('🎫 [useGLPIExpanded] Resposta do GLPI proxy:', response);
