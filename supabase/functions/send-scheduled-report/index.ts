@@ -1009,23 +1009,35 @@ async function getGLPIStandardData(glpiIntegration: any) {
       .slice(0, 10)
       .map(ticket => {
         const priority = getPriorityIcon(ticket.priority || 1);
+        const urgency = getUrgencyIcon(ticket.urgency || 1);
         const status = getStatusText(ticket.status || 1);
         const timeOpen = ticket.date ? getTimeOpenText(new Date(ticket.date), now) : 'N/A';
-        const assignee = ticket.users_id_recipient ? `(#${ticket.users_id_recipient})` : '(Não atribuído)';
-        const category = ticket.itilcategories_id ? `Cat: ${ticket.itilcategories_id}` : 'Sem categoria';
+        const assignee = ticket.users_id_recipient ? `Técnico #${ticket.users_id_recipient}` : 'Não atribuído';
+        const category = ticket.itilcategories_id ? `${ticket.itilcategories_id}` : 'Sem categoria';
+        const entity = ticket.entities_id ? `Entidade: ${ticket.entities_id}` : 'Sem entidade';
+        const description = ticket.content ? ticket.content.substring(0, 100).replace(/\n/g, ' ') : 'Sem descrição';
         
-        return `${priority} *${ticket.name || `Ticket #${ticket.id}`}*\n   ↳ ${status} • ${timeOpen} • ${category}\n   ↳ ${assignee}`;
+        return `🎫 *ID: ${ticket.id} - ${ticket.name || 'Sem título'}*
+📝 ${description}${ticket.content && ticket.content.length > 100 ? '...' : ''}
+📊 Status: ${status} • ${timeOpen}
+🔥 Prioridade: ${priority} • Urgência: ${urgency}
+🏷️ Etiqueta: ${category}
+🏢 ${entity}
+👤 ${assignee}`;
       })
-      .join('\n\n');
+      .join('\n\n─────────────────\n\n');
 
     // Criar resumo dos tickets críticos
     const criticalSummary = criticalTickets
       .slice(0, 3)
       .map(ticket => {
+        const priority = getPriorityIcon(ticket.priority || 1);
+        const urgency = getUrgencyIcon(ticket.urgency || 1);
         const timeOpen = ticket.date ? getTimeOpenText(new Date(ticket.date), now) : 'N/A';
-        return `🔴 ${ticket.name || `Ticket #${ticket.id}`} (${timeOpen})`;
+        const category = ticket.itilcategories_id ? `${ticket.itilcategories_id}` : 'Sem categoria';
+        return `${priority} *ID: ${ticket.id}* - ${ticket.name || 'Sem título'}\n   ${timeOpen} • Urgência: ${urgency} • Etiqueta: ${category}`;
       })
-      .join('\n');
+      .join('\n\n');
 
     // Buscar novos tickets criados no dia anterior
     const newTicketsResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/glpi-proxy`, {
@@ -1097,10 +1109,27 @@ async function getGLPIStandardData(glpiIntegration: any) {
 
 // Funções auxiliares para formatação
 function getPriorityIcon(priority: number): string {
-  if (priority >= 5) return '🔴'; // Muito alta
-  if (priority >= 4) return '🟡'; // Alta
-  if (priority >= 3) return '🟠'; // Média
-  return '🟢'; // Baixa/Muito baixa
+  switch(priority) {
+    case 1: return '⚪ Muito Baixa';
+    case 2: return '🟢 Baixa';
+    case 3: return '🟡 Média';
+    case 4: return '🟠 Alta';
+    case 5: return '🔴 Muito Alta';
+    case 6: return '🚨 Crítica';
+    default: return '⚪ Baixa';
+  }
+}
+
+// Helper: Ícone de urgência
+function getUrgencyIcon(urgency: number): string {
+  switch(urgency) {
+    case 1: return '⚪ Muito Baixa';
+    case 2: return '🟢 Baixa';
+    case 3: return '🟡 Média';
+    case 4: return '🟠 Alta';
+    case 5: return '🔴 Muito Alta';
+    default: return '⚪ Baixa';
+  }
 }
 
 function getStatusText(status: number): string {
