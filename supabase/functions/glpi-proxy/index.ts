@@ -313,6 +313,28 @@ serve(async (req) => {
     console.log('HTTP Method:', method)
     console.log('Request Body:', data ? JSON.stringify(data, null, 2) : 'N/A')
 
+    // Log detalhado para criação de tickets
+    if (method === 'POST' && endpoint === 'Ticket') {
+      console.log('📮 [GLPI Proxy] === CRIANDO TICKET ===')
+      console.log('📮 [GLPI Proxy] Payload completo recebido:', JSON.stringify(data, null, 2))
+      
+      if (data && typeof data === 'object') {
+        const input = data.input || data
+        console.log('📮 [GLPI Proxy] Dados do ticket:')
+        console.log('  - name:', input.name)
+        console.log('  - content:', input.content)
+        console.log('  - content.length:', input.content?.length || 0)
+        console.log('  - entities_id:', input.entities_id)
+        console.log('  - users_id_assign:', input.users_id_assign)
+        console.log('  - users_id_requester:', input.users_id_requester)
+        console.log('  - priority:', input.priority)
+        console.log('  - urgency:', input.urgency)
+        console.log('  - impact:', input.impact)
+        console.log('  - type:', input.type)
+        console.log('  - itilcategories_id:', input.itilcategories_id)
+      }
+    }
+
     const requestOptions: RequestInit = {
       method: method,
       headers: {
