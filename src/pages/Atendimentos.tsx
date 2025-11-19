@@ -404,8 +404,9 @@ const Atendimentos = () => {
         {config.label}
       </Badge>;
   };
-  const getInitials = (name: string) => {
-    return name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '??';
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return '??';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '??';
   };
   const formatMessageTime = (timestamp: string | number) => {
     if (!timestamp) {
@@ -946,7 +947,7 @@ const Atendimentos = () => {
                     const showSenderName = !isOutgoing && message.sender?.name;
                     console.log(`Mensagem ${index + 1}/${conversationMessages.length}:`, {
                       id: message.id,
-                      content: message.content.substring(0, 50),
+                      content: message.content ? message.content.substring(0, 50) : 'null',
                       created_at: message.created_at,
                       timestamp_type: typeof message.created_at,
                       sender: message.sender?.name
