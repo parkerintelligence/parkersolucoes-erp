@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useMikrotikAPI } from '@/hooks/useMikrotikAPI';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Shield, RefreshCw, Plus, Trash2, Power } from 'lucide-react';
+import { Loader2, Shield, RefreshCw, Plus, Trash2, Power, ArrowUpDown } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { MikrotikFirewallDialog } from './MikrotikFirewallDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { MikrotikTableFilter } from './MikrotikTableFilter';
 
 const getChainColor = (chain: string) => {
   switch (chain) {
@@ -36,6 +37,9 @@ export const MikrotikFirewall = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [ruleToDelete, setRuleToDelete] = useState<any>(null);
+  const [filter, setFilter] = useState('');
+  const [sortField, setSortField] = useState<string>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     loadRules();
@@ -91,6 +95,42 @@ export const MikrotikFirewall = () => {
     }
   };
 
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const filteredAndSortedRules = useMemo(() => {
+    let filtered = rules.filter((rule) => {
+      const searchTerm = filter.toLowerCase();
+      return (
+        rule.chain?.toLowerCase().includes(searchTerm) ||
+        rule.action?.toLowerCase().includes(searchTerm) ||
+        rule.protocol?.toLowerCase().includes(searchTerm) ||
+        rule['src-address']?.toLowerCase().includes(searchTerm) ||
+        rule['dst-address']?.toLowerCase().includes(searchTerm) ||
+        rule['in-interface']?.toLowerCase().includes(searchTerm) ||
+        rule['out-interface']?.toLowerCase().includes(searchTerm) ||
+        rule.comment?.toLowerCase().includes(searchTerm)
+      );
+    });
+
+    if (sortField) {
+      filtered.sort((a, b) => {
+        const aVal = a[sortField] || '';
+        const bVal = b[sortField] || '';
+        const comparison = aVal.toString().localeCompare(bVal.toString());
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    return filtered;
+  }, [rules, filter, sortField, sortDirection]);
+
   if (loading && rules.length === 0) {
     return (
       <Card>
@@ -104,7 +144,7 @@ export const MikrotikFirewall = () => {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <CardTitle>Regras de Firewall</CardTitle>
             <CardDescription>Gerenciar regras de firewall do MikroTik</CardDescription>
@@ -120,14 +160,30 @@ export const MikrotikFirewall = () => {
             </Button>
           </div>
         </div>
+        <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar regras de firewall..." />
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Chain</TableHead>
-              <TableHead>Ação</TableHead>
-              <TableHead>Protocolo</TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" onClick={() => handleSort('chain')} className="h-8 px-2">
+                  Chain
+                  <ArrowUpDown className="ml-2 h-3 w-3" />
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" onClick={() => handleSort('action')} className="h-8 px-2">
+                  Ação
+                  <ArrowUpDown className="ml-2 h-3 w-3" />
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" onClick={() => handleSort('protocol')} className="h-8 px-2">
+                  Protocolo
+                  <ArrowUpDown className="ml-2 h-3 w-3" />
+                </Button>
+              </TableHead>
               <TableHead>Origem</TableHead>
               <TableHead>Porta Origem</TableHead>
               <TableHead>Destino</TableHead>
@@ -139,7 +195,7 @@ export const MikrotikFirewall = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rules.map((rule) => (
+            {filteredAndSortedRules.map((rule) => (
               <TableRow key={rule['.id']} className={getChainColor(rule.chain)}>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
@@ -194,6 +250,12 @@ export const MikrotikFirewall = () => {
             ))}
           </TableBody>
         </Table>
+
+        {filteredAndSortedRules.length === 0 && rules.length > 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            Nenhuma regra encontrada com o filtro aplicado
+          </div>
+        )}
 
         {rules.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">

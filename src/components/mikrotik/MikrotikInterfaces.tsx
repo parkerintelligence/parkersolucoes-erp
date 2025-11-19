@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useMikrotikAPI } from '@/hooks/useMikrotikAPI';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Wifi, RefreshCw, Power, PowerOff } from 'lucide-react';
+import { Loader2, Wifi, RefreshCw, Power, PowerOff, ArrowUpDown } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -13,11 +13,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { MikrotikTableFilter } from './MikrotikTableFilter';
 
 export const MikrotikInterfaces = () => {
   const { callAPI, loading } = useMikrotikAPI();
   const { toast } = useToast();
   const [interfaces, setInterfaces] = useState<any[]>([]);
+  const [filter, setFilter] = useState('');
+  const [sortField, setSortField] = useState<string>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     loadInterfaces();
@@ -55,6 +59,36 @@ export const MikrotikInterfaces = () => {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const filteredAndSortedInterfaces = useMemo(() => {
+    let filtered = interfaces.filter((iface) => {
+      const searchTerm = filter.toLowerCase();
+      return (
+        iface.name?.toLowerCase().includes(searchTerm) ||
+        iface.type?.toLowerCase().includes(searchTerm)
+      );
+    });
+
+    if (sortField) {
+      filtered.sort((a, b) => {
+        const aVal = a[sortField] || '';
+        const bVal = b[sortField] || '';
+        const comparison = aVal.toString().localeCompare(bVal.toString());
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    return filtered;
+  }, [interfaces, filter, sortField, sortDirection]);
+
   if (loading && interfaces.length === 0) {
     return (
       <Card>
@@ -68,7 +102,7 @@ export const MikrotikInterfaces = () => {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <CardTitle>Interfaces de Rede</CardTitle>
             <CardDescription>Gerenciar interfaces do MikroTik</CardDescription>
@@ -78,13 +112,24 @@ export const MikrotikInterfaces = () => {
             Atualizar
           </Button>
         </div>
+        <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar interfaces..." />
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Tipo</TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" onClick={() => handleSort('name')} className="h-8 px-2">
+                  Nome
+                  <ArrowUpDown className="ml-2 h-3 w-3" />
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" onClick={() => handleSort('type')} className="h-8 px-2">
+                  Tipo
+                  <ArrowUpDown className="ml-2 h-3 w-3" />
+                </Button>
+              </TableHead>
               <TableHead>Status</TableHead>
               <TableHead>RX</TableHead>
               <TableHead>TX</TableHead>
@@ -92,7 +137,7 @@ export const MikrotikInterfaces = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {interfaces.map((iface) => (
+            {filteredAndSortedInterfaces.map((iface) => (
               <TableRow key={iface['.id']}>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
@@ -125,6 +170,18 @@ export const MikrotikInterfaces = () => {
             ))}
           </TableBody>
         </Table>
+
+        {filteredAndSortedInterfaces.length === 0 && interfaces.length > 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            Nenhuma interface encontrada com o filtro aplicado
+          </div>
+        )}
+
+        {interfaces.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            Nenhuma interface encontrada
+          </div>
+        )}
       </CardContent>
     </Card>
   );
