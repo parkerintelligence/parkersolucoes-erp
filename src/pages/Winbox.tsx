@@ -1,12 +1,13 @@
-import { LayoutDashboard, Wifi, Shield, Network, Users, Power } from "lucide-react";
+import { LayoutDashboard, Shield, Network, Users, Power, KeyRound, Globe } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MikrotikDashboard } from "@/components/mikrotik/MikrotikDashboard";
-import { MikrotikInterfaces } from "@/components/mikrotik/MikrotikInterfaces";
 import { MikrotikFirewall } from "@/components/mikrotik/MikrotikFirewall";
 import { MikrotikNAT } from "@/components/mikrotik/MikrotikNAT";
 import { MikrotikDHCP } from "@/components/mikrotik/MikrotikDHCP";
+import { MikrotikPPP } from "@/components/mikrotik/MikrotikPPP";
+import { MikrotikAddresses } from "@/components/mikrotik/MikrotikAddresses";
 import { MikrotikClientSelector } from "@/components/mikrotik/MikrotikClientSelector";
 import { useMikrotikContext } from "@/contexts/MikrotikContext";
 
@@ -39,7 +40,7 @@ const Winbox = () => {
 
       <div className="max-w-7xl mx-auto px-4 pb-8">
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
@@ -48,9 +49,13 @@ const Winbox = () => {
               <Users className="h-4 w-4" />
               DHCP
             </TabsTrigger>
-            <TabsTrigger value="interfaces" className="flex items-center gap-2">
-              <Wifi className="h-4 w-4" />
-              Interfaces
+            <TabsTrigger value="ppp" className="flex items-center gap-2">
+              <KeyRound className="h-4 w-4" />
+              VPN (PPP)
+            </TabsTrigger>
+            <TabsTrigger value="addresses" className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              IP Addresses
             </TabsTrigger>
             <TabsTrigger value="firewall" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
@@ -70,8 +75,12 @@ const Winbox = () => {
             <MikrotikDHCP />
           </TabsContent>
 
-          <TabsContent value="interfaces" className="mt-6">
-            <MikrotikInterfaces />
+          <TabsContent value="ppp" className="mt-6">
+            <MikrotikPPP />
+          </TabsContent>
+
+          <TabsContent value="addresses" className="mt-6">
+            <MikrotikAddresses />
           </TabsContent>
 
           <TabsContent value="firewall" className="mt-6">
