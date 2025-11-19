@@ -347,7 +347,7 @@ const WhatsAppTemplates = () => {
               />
               <div className="flex flex-wrap gap-2 mt-2">
                 <Label className="text-sm text-gray-400">Variáveis disponíveis:</Label>
-                {templateTypes[formData.template_type].variables.map(variable => (
+                {(templateTypes[formData.template_type as keyof typeof templateTypes]?.variables || []).map(variable => (
                   <Button
                     key={variable}
                     variant="outline"
