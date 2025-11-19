@@ -12,6 +12,18 @@ serve(async (req) => {
   }
 
   try {
+    // Parse request body first
+    const { endpoint, method = 'GET', body } = await req.json();
+
+    console.log('📥 Request:', { endpoint, method });
+
+    if (!endpoint) {
+      return new Response(JSON.stringify({ error: 'Campo obrigatório: endpoint' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -24,7 +36,7 @@ serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) {
-      console.error('Auth error:', authError);
+      console.error('❌ Auth error:', authError);
       return new Response(JSON.stringify({ error: 'Não autorizado' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -42,14 +54,14 @@ serve(async (req) => {
       .maybeSingle();
 
     if (integrationError || !integration) {
-      console.error('Integração não encontrada:', integrationError);
+      console.error('❌ Integração não encontrada:', integrationError);
       return new Response(JSON.stringify({ error: 'Integração MikroTik não configurada' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { endpoint, method = 'GET', body } = await req.json();
+    console.log('✅ Integração encontrada:', integration.name);
     
     console.log(`🔄 MikroTik API: ${method} ${endpoint}`);
 
