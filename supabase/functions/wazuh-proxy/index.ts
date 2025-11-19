@@ -280,26 +280,56 @@ serve(async (req) => {
     let suggestions = [];
     
     // Provide specific guidance based on error type
-    if (error.message.includes('certificate') || error.message.includes('SSL') || error.message.includes('TLS')) {
-      errorMessage = 'SSL Certificate Error';
-      errorDetails = 'Supabase Edge Functions cannot verify self-signed SSL certificates. You must use HTTP or install a valid SSL certificate.';
+    if (error.message.includes('certificate') || error.message.includes('SSL') || error.message.includes('TLS') || error.message.includes('UnknownIssuer')) {
+      errorMessage = '🔒 SSL Certificate Problem';
+      errorDetails = 'Wazuh is using HTTPS with a self-signed certificate. Supabase Edge Functions cannot verify self-signed certificates.';
       suggestions = [
-        'RECOMMENDED: Configure Wazuh API to accept HTTP connections',
-        'Edit /var/ossec/api/configuration/api.yaml and set: host: 0.0.0.0, port: 55000, https: disabled',
-        'Restart Wazuh API: systemctl restart wazuh-manager',
-        'Use HTTP in the URL: http://your-server:55000',
-        'Alternative: Install a valid SSL certificate from a trusted CA',
-        'See Wazuh docs: https://documentation.wazuh.com/current/user-manual/api/configuration.html'
+        '⚠️  REQUIRED ACTION: Configure Wazuh for HTTP',
+        '',
+        '📋 Quick Setup Steps:',
+        '1. SSH into Wazuh server',
+        '2. sudo nano /var/ossec/api/configuration/api.yaml',
+        '3. Set: https: enabled: no',
+        '4. sudo systemctl restart wazuh-manager',
+        '5. Use http://your-server:55000 in the URL field',
+        '',
+        '📖 See "Guia de Setup" tab for detailed instructions',
+        '🔗 Wazuh docs: https://documentation.wazuh.com/current/user-manual/api/configuration.html'
       ];
-    } else if (error.message.includes('connection closed') || error.message.includes('ECONNREFUSED') || error.message.includes('ECONNRESET')) {
-      errorMessage = 'Connection Failed';
-      errorDetails = 'Cannot connect to Wazuh server. Common causes: wrong protocol (HTTP vs HTTPS), server down, or firewall blocking.';
+    } else if (error.message.includes('connection closed') || error.message.includes('ECONNREFUSED') || error.message.includes('ECONNRESET') || error.message.includes('ETIMEDOUT')) {
+      errorMessage = '❌ Wazuh Server Not Configured for HTTP';
+      errorDetails = 'Connection attempts failed. The Wazuh server is rejecting both HTTP and HTTPS connections from Supabase. This means Wazuh is NOT configured to accept HTTP connections yet.';
       suggestions = [
-        'Try HTTPS instead of HTTP (Wazuh defaults to HTTPS on port 55000)',
-        'Verify Wazuh server is running: systemctl status wazuh-manager',
-        'Check if API is listening: curl -k https://localhost:55000',
-        'Ensure firewall allows connections to port 55000',
-        'Check Wazuh API configuration: /var/ossec/api/configuration/api.yaml'
+        '🔴 PROBLEM: Wazuh is only accepting HTTPS with self-signed certificate',
+        '🟢 SOLUTION: Configure Wazuh API to accept HTTP connections',
+        '',
+        '⚙️  Configuration Steps:',
+        '',
+        '1️⃣  Connect to your Wazuh server via SSH',
+        '',
+        '2️⃣  Edit the API configuration:',
+        '   sudo nano /var/ossec/api/configuration/api.yaml',
+        '',
+        '3️⃣  Find and modify these settings:',
+        '   host: 0.0.0.0',
+        '   port: 55000',
+        '   https:',
+        '     enabled: no',
+        '',
+        '4️⃣  Save the file (Ctrl+X, Y, Enter) and restart:',
+        '   sudo systemctl restart wazuh-manager',
+        '',
+        '5️⃣  Verify locally on the server:',
+        '   curl http://localhost:55000',
+        '   (Should return: {"title": "Wazuh API REST"})',
+        '',
+        '6️⃣  Check firewall allows port 55000:',
+        '   sudo ufw status',
+        '   sudo ufw allow 55000/tcp',
+        '',
+        '7️⃣  Update URL in this form to: http://your-server:55000',
+        '',
+        '📖 See "Guia de Setup" tab in the interface for detailed instructions'
       ];
     } else if (error.message.includes('Authentication failed') || error.message.includes('401')) {
       errorMessage = 'Authentication Failed';
