@@ -83,22 +83,54 @@ serve(async (req) => {
 
     const mikrotikUrl = `${integration.base_url}/rest${endpoint}`;
     console.log('📍 URL completa:', mikrotikUrl);
+    console.log('🔑 Tentando autenticar como:', integration.username);
+    console.log('🔐 Senha começa com:', integration.password?.substring(0, 3) + '***');
     
     const auth = btoa(`${integration.username}:${integration.password}`);
+    console.log('📦 Authorization header criado');
 
-    const mikrotikResponse = await fetch(mikrotikUrl, {
-      method,
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/json',
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    
-    console.log('📊 Status:', mikrotikResponse.status);
+    let mikrotikResponse;
+    try {
+      mikrotikResponse = await fetch(mikrotikUrl, {
+        method,
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/json',
+        },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(10000), // 10 segundos timeout
+      });
+      
+      console.log('📊 Status da resposta:', mikrotikResponse.status);
+      console.log('📋 Headers da resposta:', Object.fromEntries(mikrotikResponse.headers.entries()));
+      
+    } catch (fetchError: any) {
+      console.error('❌ Erro ao conectar com MikroTik:', fetchError.message);
+      
+      if (fetchError.name === 'TimeoutError' || fetchError.message?.includes('timeout')) {
+        return new Response(JSON.stringify({ 
+          error: 'Timeout ao conectar com MikroTik',
+          details: `Não foi possível conectar com ${mikrotikUrl} em 10 segundos. Verifique se o endereço está correto e acessível.`
+        }), {
+          status: 504,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      return new Response(JSON.stringify({ 
+        error: 'Erro de conexão com MikroTik',
+        details: fetchError.message,
+        url: mikrotikUrl
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     
     if (mikrotikResponse.status === 401) {
-      console.error('❌ MikroTik retornou 401 - Verifique usuário/senha e se a API REST está habilitada');
+      console.error('❌ MikroTik retornou 401 - Credenciais inválidas ou sem permissões');
+      console.log('💡 Verifique: usuário tem permissão "api" ou "full" no MikroTik');
+      console.log('💡 Verifique: serviço www ou www-ssl está habilitado');
     }
 
     const responseText = await mikrotikResponse.text();

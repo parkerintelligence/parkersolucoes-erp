@@ -3,10 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useMikrotikAPI } from '@/hooks/useMikrotikAPI';
+import { useIntegrations } from '@/hooks/useIntegrations';
 import { CheckCircle2, XCircle, Loader2, AlertCircle } from 'lucide-react';
 
 export const MikrotikConnectionTest = () => {
   const { callAPI, loading } = useMikrotikAPI();
+  const { data: integrations } = useIntegrations();
+  const integration = integrations?.find((i) => i.type === 'mikrotik');
+  
   const [testResult, setTestResult] = useState<{
     success: boolean;
     message: string;
@@ -80,11 +84,20 @@ export const MikrotikConnectionTest = () => {
               <div className="space-y-2">
                 <p className="font-semibold">Requisitos para funcionamento:</p>
                 <ul className="list-disc list-inside text-sm space-y-1">
-                  <li>API REST habilitada no MikroTik (IP → Services → www-ssl)</li>
-                  <li>Porta configurada corretamente (padrão 443 para HTTPS, 80 para HTTP)</li>
-                  <li>Usuário com permissões de API ou full access</li>
-                  <li>URL no formato: http://ip:porta ou https://ip:porta</li>
+                  <li>API REST habilitada no MikroTik (IP → Services → www-ssl ou www)</li>
+                  <li>Porta configurada corretamente (sua configuração: 8999)</li>
+                  <li>Usuário com permissões de <strong>api</strong> ou <strong>full</strong></li>
+                  <li>URL no formato: http://ip:porta (sua URL: {integration?.base_url})</li>
+                  <li>Firewall permitindo conexão do servidor Lovable</li>
                 </ul>
+                <div className="mt-3 p-2 bg-muted rounded text-xs">
+                  <p className="font-semibold mb-1">Para habilitar API REST via terminal:</p>
+                  <code className="block">/ip service set www-ssl disabled=no</code>
+                  <code className="block">/ip service set www-ssl port=8999</code>
+                  <p className="font-semibold mt-2 mb-1">Para criar usuário com permissões:</p>
+                  <code className="block">/user group add name=api-users policy=api,read</code>
+                  <code className="block">/user add name=apiuser group=api-users password=suasenha</code>
+                </div>
               </div>
             </AlertDescription>
           </Alert>
