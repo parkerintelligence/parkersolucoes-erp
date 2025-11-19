@@ -14,15 +14,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { MikrotikFirewallDialog } from './MikrotikFirewallDialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const getChainColor = (chain: string) => {
   switch (chain) {
     case 'input':
-      return 'bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/30';
+      return 'bg-blue-900/30 dark:bg-blue-900/50 hover:bg-blue-900/40 dark:hover:bg-blue-900/60';
     case 'forward':
-      return 'bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-950/30';
+      return 'bg-green-900/30 dark:bg-green-900/50 hover:bg-green-900/40 dark:hover:bg-green-900/60';
     case 'output':
-      return 'bg-yellow-50 dark:bg-yellow-950/20 hover:bg-yellow-100 dark:hover:bg-yellow-950/30';
+      return 'bg-yellow-900/30 dark:bg-yellow-900/50 hover:bg-yellow-900/40 dark:hover:bg-yellow-900/60';
     default:
       return 'hover:bg-muted/50';
   }
@@ -33,6 +34,8 @@ export const MikrotikFirewall = () => {
   const { toast } = useToast();
   const [rules, setRules] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [ruleToDelete, setRuleToDelete] = useState<any>(null);
 
   useEffect(() => {
     loadRules();
@@ -72,6 +75,19 @@ export const MikrotikFirewall = () => {
       loadRules();
     } catch (error) {
       console.error('Erro ao remover regra:', error);
+    }
+  };
+
+  const handleDelete = (rule: any) => {
+    setRuleToDelete(rule);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (ruleToDelete) {
+      deleteRule(ruleToDelete['.id']);
+      setDeleteDialogOpen(false);
+      setRuleToDelete(null);
     }
   };
 
@@ -168,7 +184,7 @@ export const MikrotikFirewall = () => {
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => deleteRule(rule['.id'])}
+                      onClick={() => handleDelete(rule)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -191,6 +207,23 @@ export const MikrotikFirewall = () => {
         onOpenChange={setDialogOpen}
         onSuccess={loadRules}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta regra de firewall? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
