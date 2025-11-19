@@ -99,15 +99,25 @@ export const MikrotikInterfaces = () => {
     );
   }
 
+  const getStatusBadge = (iface: any) => {
+    if (iface.disabled === "true" || iface.disabled === true) {
+      return <Badge className="bg-red-600 text-white">Desativada</Badge>;
+    }
+    if (iface.running) {
+      return <Badge className="bg-green-600 text-white">Conectada</Badge>;
+    }
+    return <Badge className="bg-yellow-600 text-white">Desconectada</Badge>;
+  };
+
   return (
-    <Card>
+    <Card className="bg-slate-800 border-slate-700">
       <CardHeader>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <CardTitle>Interfaces de Rede</CardTitle>
-            <CardDescription>Gerenciar interfaces do MikroTik</CardDescription>
+            <CardTitle className="text-white">Interfaces de Rede</CardTitle>
+            <CardDescription className="text-slate-400">Gerenciar interfaces do MikroTik</CardDescription>
           </div>
-          <Button onClick={loadInterfaces} disabled={loading} size="sm">
+          <Button onClick={loadInterfaces} disabled={loading} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
@@ -117,52 +127,50 @@ export const MikrotikInterfaces = () => {
       <CardContent>
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>
+            <TableRow className="hover:bg-slate-700/30">
+              <TableHead className="text-slate-300">
                 <Button variant="ghost" size="sm" onClick={() => handleSort('name')} className="h-8 px-2">
                   Nome
                   <ArrowUpDown className="ml-2 h-3 w-3" />
                 </Button>
               </TableHead>
-              <TableHead>
+              <TableHead className="text-slate-300">
                 <Button variant="ghost" size="sm" onClick={() => handleSort('type')} className="h-8 px-2">
                   Tipo
                   <ArrowUpDown className="ml-2 h-3 w-3" />
                 </Button>
               </TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>RX</TableHead>
-              <TableHead>TX</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead className="text-slate-300">Status</TableHead>
+              <TableHead className="text-slate-300">RX</TableHead>
+              <TableHead className="text-slate-300">TX</TableHead>
+              <TableHead className="text-slate-300 text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredAndSortedInterfaces.map((iface) => (
-              <TableRow key={iface['.id']}>
-                <TableCell className="font-medium">
+              <TableRow key={iface['.id']} className="hover:bg-slate-700/50">
+                <TableCell className="font-medium text-slate-200">
                   <div className="flex items-center gap-2">
-                    <Wifi className={`h-4 w-4 ${iface.running ? 'text-green-500' : 'text-gray-400'}`} />
+                    <Wifi className={`h-4 w-4 ${iface.running ? 'text-green-500' : 'text-slate-400'}`} />
                     {iface.name}
                   </div>
                 </TableCell>
-                <TableCell>{iface.type}</TableCell>
-                <TableCell>
-                  <Badge variant={iface.running ? 'default' : 'secondary'}>
-                    {iface.running ? 'Ativo' : 'Inativo'}
-                  </Badge>
+                <TableCell className="text-slate-200">{iface.type}</TableCell>
+                <TableCell className="text-slate-200">
+                  {getStatusBadge(iface)}
                 </TableCell>
-                <TableCell>{formatBytes(iface['rx-byte'])}</TableCell>
-                <TableCell>{formatBytes(iface['tx-byte'])}</TableCell>
+                <TableCell className="text-slate-200">{formatBytes(iface['rx-byte'])}</TableCell>
+                <TableCell className="text-slate-200">{formatBytes(iface['tx-byte'])}</TableCell>
                 <TableCell className="text-right">
                   <Button
                     size="sm"
-                    variant={iface.disabled ? 'default' : 'outline'}
+                    variant="ghost"
                     onClick={() => toggleInterface(iface['.id'], iface.disabled)}
                   >
                     {iface.disabled ? (
-                      <><Power className="h-4 w-4 mr-2" /> Ativar</>
+                      <Power className="h-4 w-4 text-green-500" />
                     ) : (
-                      <><PowerOff className="h-4 w-4 mr-2" /> Desativar</>
+                      <PowerOff className="h-4 w-4 text-red-500" />
                     )}
                   </Button>
                 </TableCell>

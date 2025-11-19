@@ -178,23 +178,27 @@ export const MikrotikPPP = () => {
           ) : secrets.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">Nenhum usuário VPN cadastrado</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>
-                    <Button variant="ghost" size="sm" onClick={() => handleSort('name')} className="h-8 px-2">
-                      Nome
-                      <ArrowUpDown className="ml-2 h-3 w-3" />
-                    </Button>
-                  </TableHead>
-                  <TableHead>Serviço</TableHead>
-                  <TableHead>IP Local</TableHead>
-                  <TableHead>IP Remoto</TableHead>
-                  <TableHead>Perfil</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-slate-700/30">
+              <TableHead className="text-slate-300">
+                <Button variant="ghost" size="sm" onClick={() => handleSort('name')} className="h-8 px-2">
+                  Nome
+                  <ArrowUpDown className="ml-2 h-3 w-3" />
+                </Button>
+              </TableHead>
+              <TableHead className="text-slate-300">
+                <Button variant="ghost" size="sm" onClick={() => handleSort('service')} className="h-8 px-2">
+                  Serviço
+                  <ArrowUpDown className="ml-2 h-3 w-3" />
+                </Button>
+              </TableHead>
+              <TableHead className="text-slate-300">IPs</TableHead>
+              <TableHead className="text-slate-300">Perfil</TableHead>
+              <TableHead className="text-slate-300">Status</TableHead>
+              <TableHead className="text-slate-300 text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
               <TableBody>
                 {secrets.map((secret) => (
                   <TableRow key={secret[".id"]}>
