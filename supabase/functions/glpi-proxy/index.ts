@@ -407,6 +407,11 @@ serve(async (req) => {
         console.error('❌ Erro não é JSON válido')
       }
       
+      // Log adicional para Ticket_User requests
+      if (apiPath.includes('Ticket_User')) {
+        console.log('👥 [GLPI Proxy] Erro ao buscar Ticket_User:', apiPath)
+      }
+      
       // Se for erro 401, limpar cache da sessão
       if (apiResponse.status === 401) {
         console.log('Session token inválido, removendo do cache')

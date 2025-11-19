@@ -651,8 +651,35 @@ export const useGLPIExpanded = () => {
 
   // Queries para buscar dados
   const tickets = useQuery({
-    queryKey: ['glpi', 'tickets', 'v2', glpiIntegration?.id],
-    queryFn: () => makeGLPIRequest('tickets'),
+    queryKey: ['glpi', 'tickets', 'v3', glpiIntegration?.id],
+    queryFn: async () => {
+      const ticketsData = await makeGLPIRequest('tickets');
+      
+      // Para cada ticket, buscar os usuários atribuídos
+      if (Array.isArray(ticketsData) && ticketsData.length > 0) {
+        const ticketsWithUsers = await Promise.all(
+          ticketsData.map(async (ticket) => {
+            try {
+              // Buscar usuários do ticket (tipo 2 = técnico atribuído)
+              const ticketUsers = await makeGLPIRequest(
+                `tickets/${ticket.id}/Ticket_User?type=2`
+              );
+              
+              // Se houver técnico atribuído, adicionar ao ticket
+              if (Array.isArray(ticketUsers) && ticketUsers.length > 0) {
+                ticket.users_id_assign = ticketUsers[0].users_id;
+              }
+            } catch (error) {
+              console.warn(`Não foi possível buscar usuários do ticket ${ticket.id}:`, error);
+            }
+            return ticket;
+          })
+        );
+        return ticketsWithUsers;
+      }
+      
+      return ticketsData;
+    },
     enabled: !!glpiIntegration && !!glpiIntegration.webhook_url,
     staleTime: 30000,
     retry: (failureCount, error) => {

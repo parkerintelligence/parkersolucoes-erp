@@ -455,19 +455,31 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-gray-300 py-2">
-              {ticket.date ? (
-                <div className="flex items-center gap-2">
-                  <span>{new Date(ticket.date).toLocaleDateString('pt-BR')}</span>
-                  <span className="text-gray-500">•</span>
-                  <span className="text-gray-400">{new Date(ticket.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-              ) : (ticket.date_creation ? (
-                <div className="flex items-center gap-2">
-                  <span>{new Date(ticket.date_creation).toLocaleDateString('pt-BR')}</span>
-                  <span className="text-gray-500">•</span>
-                  <span className="text-gray-400">{new Date(ticket.date_creation).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-              ) : 'N/A')}
+              {(() => {
+                // Helper para interpretar timestamp GLPI como horário de Brasília (UTC-3)
+                const parseGLPIDate = (dateString: string | null): Date | null => {
+                  if (!dateString) return null;
+                  // GLPI retorna "2025-11-19 13:36:00" em horário de Brasília
+                  const dateWithTZ = dateString.replace(' ', 'T') + '-03:00';
+                  return new Date(dateWithTZ);
+                };
+
+                const ticketDate = parseGLPIDate(ticket.date || ticket.date_creation);
+                if (!ticketDate) return 'N/A';
+                
+                return (
+                  <div className="flex items-center gap-2">
+                    <span>{ticketDate.toLocaleDateString('pt-BR')}</span>
+                    <span className="text-gray-500">•</span>
+                    <span className="text-gray-400">
+                      {ticketDate.toLocaleTimeString('pt-BR', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </span>
+                  </div>
+                );
+              })()}
                     </TableCell>
                     <TableCell className="py-2">
                       <div className="flex items-center gap-2">
