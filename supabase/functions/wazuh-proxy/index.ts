@@ -12,12 +12,6 @@ let tokenCache: { [key: string]: { token: string, expires: number } } = {};
 
 console.log("Wazuh-proxy function starting...");
 
-// Create HTTP client that allows self-signed certificates
-const httpClient = Deno.createHttpClient({
-  // This allows self-signed certificates
-  caCerts: [],
-});
-
 serve(async (req) => {
   console.log(`Received ${req.method} request to wazuh-proxy`);
   
@@ -85,195 +79,111 @@ serve(async (req) => {
       throw new Error('Wazuh integration is not properly configured');
     }
 
-    // Clean up base URL - remove any trailing slashes and add port if needed
+    // Clean up base URL - remove trailing slashes
     let cleanBaseUrl = base_url.replace(/\/+$/, '');
     
+    // Ensure we have the protocol and port
+    if (!cleanBaseUrl.match(/^https?:\/\//)) {
+      cleanBaseUrl = `https://${cleanBaseUrl}`;
+    }
+    
     // Add default Wazuh API port (55000) if not specified
-    if (!cleanBaseUrl.includes(':') || cleanBaseUrl.match(/^https?:\/\/[^:]+$/)) {
-      if (cleanBaseUrl.startsWith('http://')) {
-        cleanBaseUrl = cleanBaseUrl + ':55000';
-      } else if (cleanBaseUrl.startsWith('https://')) {
-        cleanBaseUrl = cleanBaseUrl + ':55000';
-      } else {
-        cleanBaseUrl = `https://${cleanBaseUrl}:55000`;
-      }
+    if (!cleanBaseUrl.match(/:\d+$/)) {
+      cleanBaseUrl = cleanBaseUrl + ':55000';
     }
 
-    console.log(`Attempting to connect to Wazuh API: ${cleanBaseUrl}${endpoint}`);
+    console.log(`Connecting to Wazuh API: ${cleanBaseUrl}${endpoint}`);
     
-    // Step 1: Test basic connectivity first
-    console.log('Step 1: Testing basic connectivity...');
-    try {
-      const connectivityTest = await fetch(`${cleanBaseUrl}`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(10000),
-      });
-      console.log('Connectivity test result:', connectivityTest.status);
-    } catch (connectError) {
-      console.log('Basic connectivity failed, will try anyway:', connectError.message);
-    }
+    // According to Wazuh docs, API uses HTTPS by default with self-signed certs
+    // Deno requires valid SSL certificates, so we'll try to connect and provide helpful errors
+    console.log('Authenticating with Wazuh API...');
 
-    // Step 2: Get JWT token using proper Wazuh API authentication
-    console.log('Step 2: Authenticating with Wazuh API...');
-    
     const basicAuth = btoa(`${username}:${password}`);
     const cacheKey = `${cleanBaseUrl}:${username}`;
     
-    // Function to attempt authentication and cache token
-    const attemptAuth = async (url: string, isRetry = false) => {
-      console.log(`Attempting ${isRetry ? 'HTTP' : 'HTTPS'} authentication to:`, url);
+    // Function to authenticate with Wazuh API following official documentation
+    const authenticateWithWazuh = async (baseUrl: string) => {
+      // Per Wazuh docs: POST /security/user/authenticate?raw=true with Basic Auth
+      const authUrl = `${baseUrl}/security/user/authenticate?raw=true`;
       
-      try {
-        // Add ?raw=true to get the token directly without JSON wrapper
-        const authUrlWithParams = `${url}?raw=true`;
-        
-        const authResponse = await fetch(authUrlWithParams, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Basic ${basicAuth}`,
-            'Content-Type': 'application/json',
-          },
-          // NO BODY - Wazuh API uses ONLY Basic Auth header for authentication
-          signal: AbortSignal.timeout(15000),
-          client: httpClient,
-        });
+      console.log(`Authenticating to: ${authUrl}`);
+      
+      const authResponse = await fetch(authUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${basicAuth}`,
+        },
+        signal: AbortSignal.timeout(15000),
+      });
 
-        console.log('Auth response status:', authResponse.status);
-        
-        if (!authResponse.ok) {
-          const errorText = await authResponse.text();
-          console.error('Auth error response body:', errorText);
-          throw new Error(`Authentication failed: ${authResponse.status} ${authResponse.statusText}`);
-        }
-
-        // With ?raw=true, the response is just the token string, not JSON
-        const token = await authResponse.text();
-        console.log('Auth response received, token length:', token?.length || 0);
-        
-        if (!token || token.trim() === '') {
-          throw new Error('No JWT token received from authentication');
-        }
-        
-        // Cache the token for 15 minutes (Wazuh default expiry is usually longer)
-        tokenCache[cacheKey] = {
-          token: token,
-          expires: Date.now() + (15 * 60 * 1000)
-        };
-        
-        return {
-          token: token,
-          baseUrl: url.replace('/security/user/authenticate', '')
-        };
-      } catch (error) {
-        console.error(`${isRetry ? 'HTTP' : 'HTTPS'} auth error:`, error.message);
-        throw error;
+      console.log('Auth response status:', authResponse.status);
+      
+      if (!authResponse.ok) {
+        const errorText = await authResponse.text();
+        console.error('Auth error:', errorText);
+        throw new Error(`Authentication failed: ${authResponse.status} - ${errorText}`);
       }
+
+      // With raw=true, response is the token as plain text
+      const token = await authResponse.text();
+      
+      if (!token || token.trim() === '') {
+        throw new Error('No JWT token received from authentication');
+      }
+      
+      console.log('Authentication successful, token length:', token.length);
+      
+      // Cache token for 15 minutes
+      tokenCache[cacheKey] = {
+        token: token.trim(),
+        expires: Date.now() + (15 * 60 * 1000)
+      };
+      
+      return token.trim();
     };
     
     // Check if we have a valid cached token
     const cachedToken = tokenCache[cacheKey];
+    let jwtToken: string;
+    
     if (cachedToken && cachedToken.expires > Date.now()) {
       console.log('Using cached JWT token');
+      jwtToken = cachedToken.token;
     } else {
       console.log('Getting new JWT token...');
+      jwtToken = await authenticateWithWazuh(cleanBaseUrl);
     }
 
-    // Function to make API request with proper Wazuh endpoints
-    const makeApiRequest = async (baseUrl: string, token: string) => {
-      const apiUrl = `${baseUrl}${endpoint}`;
-      console.log('Step 3: Making API request to:', apiUrl);
-      
-      const requestHeaders: Record<string, string> = {
+    // Make the API request with the JWT token
+    const apiUrl = `${cleanBaseUrl}${endpoint}`;
+    console.log('Making API request to:', apiUrl);
+    
+    const apiResponse = await fetch(apiUrl, {
+      method: method || 'GET',
+      headers: {
+        'Authorization': `Bearer ${jwtToken}`,
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      };
+      },
+      signal: AbortSignal.timeout(30000),
+    });
 
-      const apiResponse = await fetch(apiUrl, {
-        method: method || 'GET',
-        headers: requestHeaders,
-        signal: AbortSignal.timeout(30000),
-        client: httpClient, // Use custom client that allows self-signed certs
-      });
-
-      console.log('API response status:', apiResponse.status);
-      
-      if (!apiResponse.ok) {
-        // If token expired, clear cache and retry once
-        if (apiResponse.status === 401) {
-          console.log('Token might be expired, clearing cache...');
-          delete tokenCache[cacheKey];
-          throw new Error('JWT_EXPIRED');
-        }
-        
-        const errorText = await apiResponse.text();
-        console.error('API error response:', errorText);
-        throw new Error(`API request failed: ${apiResponse.status} ${apiResponse.statusText}`);
-      }
-
-      const contentType = apiResponse.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const responseText = await apiResponse.text();
-        console.error('Non-JSON response received:', responseText.substring(0, 200));
-        throw new Error('API returned non-JSON response');
-      }
-
-      const responseData = await apiResponse.json();
-      console.log('API response structure:', {
-        hasError: !!responseData.error,
-        hasData: !!responseData.data,
-        dataType: typeof responseData.data,
-        affectedItems: responseData.data?.affected_items?.length || 0,
-        totalItems: responseData.data?.total_affected_items || 0
-      });
-      
-      return responseData;
-    };
-
-    // Get or refresh JWT token
-    let jwtToken = cachedToken?.token;
-    let finalBaseUrl = cleanBaseUrl;
+    console.log('API response status:', apiResponse.status);
     
-    if (!jwtToken) {
-      try {
-        // Try HTTP first if we detect HTTPS (common for self-signed certs)
-        const shouldTryHttp = cleanBaseUrl.startsWith('https://');
-        const protocols = shouldTryHttp 
-          ? [cleanBaseUrl.replace('https://', 'http://'), cleanBaseUrl] 
-          : [cleanBaseUrl];
-        
-        let lastError;
-        let authSuccess = false;
-        
-        for (const baseUrl of protocols) {
-          try {
-            const authUrl = `${baseUrl}/security/user/authenticate`;
-            console.log(`Trying authentication with: ${baseUrl}`);
-            
-            const authResult = await attemptAuth(authUrl, baseUrl.startsWith('http://'));
-            finalBaseUrl = authResult.baseUrl;
-            jwtToken = authResult.token;
-            authSuccess = true;
-            console.log(`Authentication successful using: ${baseUrl.startsWith('http://') ? 'HTTP' : 'HTTPS'}`);
-            break;
-          } catch (error) {
-            console.log(`Failed with ${baseUrl.startsWith('http://') ? 'HTTP' : 'HTTPS'}: ${error.message}`);
-            lastError = error;
-          }
-        }
-        
-        if (!authSuccess) {
-          throw new Error(`All authentication attempts failed. Last error: ${lastError?.message}`);
-        }
-      } catch (error) {
-        console.error('Authentication failed:', error);
-        throw error;
+    if (!apiResponse.ok) {
+      // If token expired, clear cache for next request
+      if (apiResponse.status === 401) {
+        console.log('Token expired, clearing cache...');
+        delete tokenCache[cacheKey];
       }
+      
+      const errorText = await apiResponse.text();
+      console.error('API error:', errorText);
+      throw new Error(`API request failed: ${apiResponse.status}`);
     }
 
-    // Make the actual API request
-    const responseData = await makeApiRequest(finalBaseUrl, jwtToken);
-    
+    const responseData = await apiResponse.json();
+    console.log('API response received successfully');
+
     return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -281,28 +191,49 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in wazuh-proxy function:', error);
     
-    // Provide more specific error information
     let errorMessage = 'Wazuh API connection failed';
     let errorDetails = error.message;
+    let suggestions = [];
     
-    if (error.message.includes('error sending request for url')) {
-      errorMessage = 'Connection failed - check Wazuh server URL and network access';
-      errorDetails = `Unable to connect to Wazuh server. Please verify: 1) Server is running and accessible, 2) URL and port are correct, 3) Network/firewall allows access`;
-    } else if (error.message.includes('Authentication failed')) {
-      errorMessage = 'Authentication failed';
-      errorDetails = 'Invalid credentials or authentication method. Please verify username and password.';
+    // Provide specific guidance based on error type
+    if (error.message.includes('certificate') || error.message.includes('SSL') || error.message.includes('TLS')) {
+      errorMessage = 'SSL Certificate Error';
+      errorDetails = 'The Wazuh server is using a self-signed SSL certificate that cannot be verified.';
+      suggestions = [
+        'Option 1: Install a valid SSL certificate (recommended)',
+        'Option 2: Configure Wazuh to accept HTTP connections (less secure)',
+        'See Wazuh documentation: https://documentation.wazuh.com/current/user-manual/api/configuration.html'
+      ];
+    } else if (error.message.includes('connection closed') || error.message.includes('ECONNREFUSED')) {
+      errorMessage = 'Connection Failed';
+      errorDetails = 'Cannot connect to Wazuh server. The server may be down or not configured correctly.';
+      suggestions = [
+        'Verify Wazuh server is running: systemctl status wazuh-manager',
+        'Check if API is listening on the correct port',
+        'Ensure firewall allows connections to port 55000',
+        'Try accessing the API locally on the server first'
+      ];
+    } else if (error.message.includes('Authentication failed') || error.message.includes('401')) {
+      errorMessage = 'Authentication Failed';
+      errorDetails = 'Invalid username or password.';
+      suggestions = [
+        'Verify Wazuh API credentials are correct',
+        'Check if the user has necessary permissions',
+        'Try resetting the password: https://documentation.wazuh.com/current/user-manual/user-administration/password-management.html'
+      ];
+    } else {
+      suggestions = [
+        'Check Wazuh server status and logs',
+        'Verify network connectivity',
+        'Review Wazuh API configuration'
+      ];
     }
     
     return new Response(
       JSON.stringify({ 
         error: errorMessage,
         details: errorDetails,
-        suggestions: [
-          'Verify Wazuh server is running and accessible',
-          'Check username and password credentials',
-          'Ensure network/firewall allows access to Wazuh API',
-          'Try HTTP if HTTPS has SSL certificate issues'
-        ]
+        suggestions
       }),
       {
         status: 400,
