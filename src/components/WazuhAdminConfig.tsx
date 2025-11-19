@@ -16,6 +16,7 @@ import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteI
 import { useWazuhAPI } from '@/hooks/useWazuhAPI';
 import { useToast } from '@/hooks/use-toast';
 import { WazuhSetupGuide } from './WazuhSetupGuide';
+import { WazuhConnectionTroubleshoot } from './WazuhConnectionTroubleshoot';
 
 const WazuhAdminConfig = () => {
   const { toast } = useToast();
@@ -207,8 +208,9 @@ const WazuhAdminConfig = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <Tabs defaultValue="connection" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-slate-700">
+            <TabsList className="grid w-full grid-cols-4 bg-slate-700">
               <TabsTrigger value="connection" className="text-white">Conexão</TabsTrigger>
+              <TabsTrigger value="troubleshoot" className="text-white">Diagnóstico</TabsTrigger>
               <TabsTrigger value="guide" className="text-white">Guia de Setup</TabsTrigger>
               <TabsTrigger value="settings" className="text-white">Configurações</TabsTrigger>
             </TabsList>
@@ -325,6 +327,10 @@ const WazuhAdminConfig = () => {
                   </Button>
                 )}
               </div>
+            </TabsContent>
+
+            <TabsContent value="troubleshoot" className="space-y-4">
+              <WazuhConnectionTroubleshoot />
             </TabsContent>
 
             <TabsContent value="guide" className="space-y-4">
