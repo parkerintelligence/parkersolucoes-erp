@@ -113,6 +113,33 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`📝 [SEND] Template encontrado: ${template.name} (tipo: ${template.template_type})`);
 
+    // Check if it's a Mikrotik Dashboard report - delegate to specialized function
+    if (template.template_type === 'mikrotik_dashboard') {
+      console.log('📊 [SEND] Tipo Mikrotik Dashboard detectado - delegando para função especializada');
+      
+      const { data: mikrotikData, error: mikrotikError } = await supabase.functions.invoke(
+        'send-mikrotik-consolidated-report',
+        {
+          body: { report_id }
+        }
+      );
+      
+      if (mikrotikError) {
+        console.error('❌ [SEND] Erro na função Mikrotik:', mikrotikError);
+        throw mikrotikError;
+      }
+      
+      console.log('✅ [SEND] Relatório Mikrotik processado com sucesso');
+      
+      return new Response(
+        JSON.stringify(mikrotikData),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      );
+    }
+
     // Gerar conteúdo baseado no template com autenticação correta
     const authHeader = req.headers.get('authorization') || '';
     const message = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings, authHeader);
