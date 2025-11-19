@@ -698,6 +698,7 @@ export type Database = {
           id: string
           instance_name: string | null
           is_active: boolean | null
+          is_global: boolean | null
           keep_logged: boolean | null
           name: string
           passive_mode: boolean | null
@@ -708,7 +709,7 @@ export type Database = {
           type: string
           updated_at: string
           use_ssl: boolean | null
-          user_id: string
+          user_id: string | null
           user_token: string | null
           username: string | null
           webhook_url: string | null
@@ -723,6 +724,7 @@ export type Database = {
           id?: string
           instance_name?: string | null
           is_active?: boolean | null
+          is_global?: boolean | null
           keep_logged?: boolean | null
           name: string
           passive_mode?: boolean | null
@@ -733,7 +735,7 @@ export type Database = {
           type: string
           updated_at?: string
           use_ssl?: boolean | null
-          user_id: string
+          user_id?: string | null
           user_token?: string | null
           username?: string | null
           webhook_url?: string | null
@@ -748,6 +750,7 @@ export type Database = {
           id?: string
           instance_name?: string | null
           is_active?: boolean | null
+          is_global?: boolean | null
           keep_logged?: boolean | null
           name?: string
           passive_mode?: boolean | null
@@ -758,7 +761,7 @@ export type Database = {
           type?: string
           updated_at?: string
           use_ssl?: boolean | null
-          user_id?: string
+          user_id?: string | null
           user_token?: string | null
           username?: string | null
           webhook_url?: string | null

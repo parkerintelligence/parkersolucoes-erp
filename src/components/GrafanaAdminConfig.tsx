@@ -44,6 +44,7 @@ export const GrafanaAdminConfig = () => {
       username: formData.username || null,
       password: formData.password || null,
       is_active: formData.is_active,
+      is_global: true,
       webhook_url: null,
       phone_number: null,
       region: null,

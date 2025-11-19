@@ -45,6 +45,7 @@ export const WasabiAdminConfig = () => {
       region: formData.region,
       bucket_name: formData.bucket_name,
       is_active: formData.is_active,
+      is_global: true,
       password: null,
       webhook_url: null,
       phone_number: null,

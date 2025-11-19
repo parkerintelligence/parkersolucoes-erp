@@ -85,8 +85,9 @@ const GuacamoleAdminConfig = () => {
         base_url: config.base_url,
         username: config.username,
         password: config.password,
-        directory: config.data_source, // Usar directory para armazenar data_source
-        is_active: config.is_active
+        directory: config.data_source,
+        is_active: config.is_active,
+        is_global: true
       };
 
       if (guacamoleIntegration) {

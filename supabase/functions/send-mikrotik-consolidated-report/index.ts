@@ -158,14 +158,14 @@ Deno.serve(async (req) => {
     
     console.log(`📏 [MIKROTIK-REPORT] Tamanho da mensagem: ${message.length} caracteres`);
 
-    // Find active Evolution API integration
+    // Find active Evolution API integration global
     const { data: evolutionIntegration, error: evolutionError } = await supabase
       .from('integrations')
       .select('*')
-      .eq('user_id', report.user_id)
       .eq('type', 'evolution_api')
       .eq('is_active', true)
-      .single();
+      .eq('is_global', true)
+      .maybeSingle();
 
     if (evolutionError || !evolutionIntegration) {
       throw new Error('❌ Evolution API não configurada. Acesse Admin → Integrações e configure a Evolution API para enviar mensagens pelo WhatsApp.');

@@ -19,11 +19,12 @@ export interface Integration {
   keep_logged?: boolean;
   phone_number?: string;
   webhook_url?: string;
-  instance_name?: string; // Adicionado para Evolution API
+  instance_name?: string;
   is_active: boolean;
+  is_global?: boolean;
   created_at: string;
   updated_at: string;
-  user_id: string;
+  user_id?: string | null;
 }
 
 export const useIntegrations = () => {
@@ -50,7 +51,7 @@ export const useCreateIntegration = () => {
 
   return useMutation({
     mutationFn: async (integration: Omit<Integration, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-      console.log('🚀 [useCreateIntegration] Iniciando criação de integração:', integration);
+      console.log('🚀 [useCreateIntegration] Iniciando criação de integração global:', integration);
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -60,16 +61,18 @@ export const useCreateIntegration = () => {
 
       console.log('✅ [useCreateIntegration] Usuário autenticado:', user.id);
 
-      const integrationWithUser = {
+      // Integrações globais não precisam de user_id
+      const globalIntegration = {
         ...integration,
-        user_id: user.id
+        is_global: true,
+        user_id: null
       };
 
-      console.log('📝 [useCreateIntegration] Dados completos para inserção:', integrationWithUser);
+      console.log('📝 [useCreateIntegration] Dados completos para inserção:', globalIntegration);
 
       const { data, error } = await supabase
         .from('integrations')
-        .insert([integrationWithUser])
+        .insert([globalIntegration])
         .select()
         .single();
 
@@ -81,7 +84,7 @@ export const useCreateIntegration = () => {
         throw error;
       }
 
-      console.log('✅ [useCreateIntegration] Integração criada com sucesso:', data);
+      console.log('✅ [useCreateIntegration] Integração global criada com sucesso:', data);
       return data;
     },
     onSuccess: (data) => {

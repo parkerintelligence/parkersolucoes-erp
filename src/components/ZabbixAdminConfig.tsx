@@ -69,7 +69,7 @@ const ZabbixAdminConfig = () => {
         password: formData.password || null,
         api_token: formData.api_token || null,
         is_active: formData.is_active,
-        user_id: userData.user.id,
+        is_global: true
       };
 
       const { data, error } = zabbixIntegration

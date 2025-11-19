@@ -68,13 +68,14 @@ const UniFiAdminConfig = () => {
       const integrationData = {
         type: 'unifi',
         name: formData.name,
-        base_url: '', // Required field, empty for Site Manager API
+        base_url: '',
         api_token: formData.api_token,
-        username: '', // Optional fields for compatibility
+        username: '',
         password: '',
         port: 8443,
         use_ssl: true,
-        is_active: formData.is_active
+        is_active: formData.is_active,
+        is_global: true
       };
 
       if (editingIntegration) {
