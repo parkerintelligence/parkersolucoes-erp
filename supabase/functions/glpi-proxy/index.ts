@@ -323,8 +323,10 @@ serve(async (req) => {
     }
 
     if (data && (method === 'POST' || method === 'PUT')) {
-      requestOptions.body = JSON.stringify(data)
-      console.log('🔍 Payload sendo enviado para API GLPI:', JSON.stringify(data, null, 2))
+      // GLPI API requires data to be wrapped in "input" field
+      const payload = { input: data }
+      requestOptions.body = JSON.stringify(payload)
+      console.log('🔍 Payload sendo enviado para API GLPI:', JSON.stringify(payload, null, 2))
     }
 
     let apiResponse: Response
