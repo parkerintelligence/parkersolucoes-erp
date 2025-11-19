@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (evolutionError || !evolutionIntegration) {
-      throw new Error('Nenhuma integração Evolution API ativa encontrada');
+      throw new Error('❌ Evolution API não configurada. Acesse Admin → Integrações e configure a Evolution API para enviar mensagens pelo WhatsApp.');
     }
 
     console.log(`📱 [MIKROTIK-REPORT] Evolution API encontrada: ${evolutionIntegration.name}`);
