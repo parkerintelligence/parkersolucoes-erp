@@ -269,28 +269,28 @@ serve(async (req) => {
     
     switch (endpoint) {
       case 'tickets':
-        apiPath = '/apirest.php/Ticket'
+        apiPath = '/apirest.php/Ticket?range=0-9999'
         break
       case 'computers':
-        apiPath = '/apirest.php/Computer'
+        apiPath = '/apirest.php/Computer?range=0-9999'
         break
       case 'users':
-        apiPath = '/apirest.php/User'
+        apiPath = '/apirest.php/User?range=0-9999'
         break
       case 'problems':
-        apiPath = '/apirest.php/Problem'
+        apiPath = '/apirest.php/Problem?range=0-9999'
         break
       case 'changes':
-        apiPath = '/apirest.php/Change'
+        apiPath = '/apirest.php/Change?range=0-9999'
         break
       case 'entities':
-        apiPath = '/apirest.php/Entity'
+        apiPath = '/apirest.php/Entity?range=0-9999'
         break
       case 'locations':
-        apiPath = '/apirest.php/Location'
+        apiPath = '/apirest.php/Location?range=0-9999'
         break
       case 'groups':
-        apiPath = '/apirest.php/Group'
+        apiPath = '/apirest.php/Group?range=0-9999'
         break
       default:
         if (endpoint.startsWith('tickets/')) {
