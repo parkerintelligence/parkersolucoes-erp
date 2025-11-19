@@ -13,6 +13,7 @@ interface MikrotikWhatsAppDialogProps {
   gridTitle: string;
   data: any[];
   summary: string;
+  columns?: { key: string; label: string; formatter?: (val: any) => string }[];
 }
 
 export const MikrotikWhatsAppDialog = ({
@@ -20,7 +21,8 @@ export const MikrotikWhatsAppDialog = ({
   onOpenChange,
   gridTitle,
   data,
-  summary
+  summary,
+  columns
 }: MikrotikWhatsAppDialogProps) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const { formatMessage, sendMessage, sending } = useMikrotikWhatsApp();
@@ -28,7 +30,9 @@ export const MikrotikWhatsAppDialog = ({
   const message = formatMessage({
     gridTitle,
     data,
-    summary
+    summary,
+    includeDetails: true,
+    columns
   });
 
   const handlePhoneChange = (value: string) => {

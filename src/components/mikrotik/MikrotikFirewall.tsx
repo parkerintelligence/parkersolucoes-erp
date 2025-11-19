@@ -178,6 +178,30 @@ export const MikrotikFirewall = () => {
             <CardDescription>Gerenciar regras de firewall do MikroTik</CardDescription>
           </div>
           <div className="flex gap-2">
+            <MikrotikExportActions
+              data={rules}
+              filteredData={filteredAndSortedRules}
+              columns={[
+                { key: 'chain', label: 'Chain' },
+                { key: 'action', label: 'Ação' },
+                { key: 'protocol', label: 'Protocolo' },
+                { key: 'src-address', label: 'Origem' },
+                { key: 'src-port', label: 'Porta Origem' },
+                { key: 'dst-address', label: 'Destino' },
+                { key: 'dst-port', label: 'Porta Destino' },
+                { key: 'in-interface', label: 'Interface IN' },
+                { key: 'out-interface', label: 'Interface OUT' },
+                { key: 'comment', label: 'Comentário' },
+                { 
+                  key: 'disabled', 
+                  label: 'Status',
+                  formatter: (val) => val === 'true' ? 'Desativada' : 'Ativa'
+                }
+              ]}
+              gridTitle="Firewall"
+              getSummary={() => generateFirewallSummary(filteredAndSortedRules)}
+            />
+            
             <Button onClick={() => setDialogOpen(true)} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Nova Regra
