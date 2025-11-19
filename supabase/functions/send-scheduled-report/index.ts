@@ -435,12 +435,14 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
       
       // Garantir quebras de linha específicas para formatação Bacula antes da limpeza final
       if (template.template_type === 'bacula_daily') {
+        // Garantir quebra de linha entre seções
+        messageContent = messageContent.replace(/\`\`\`(🔴|⚠️|🚫|📈|✅|🔄)/g, '```\n\n$1');
+        // Garantir quebra de linha após informações e antes de títulos de seção
+        messageContent = messageContent.replace(/(Tamanho: [^\n]+)(🔴|⚠️|🚫|📈|✅|🔄)/g, '$1\n\n$2');
+        messageContent = messageContent.replace(/(GB|MB|KB|B)(🔴|⚠️|🚫|📈|✅|🔄)/g, '$1\n\n$2');
+        // Garantir quebra de linha após estatísticas e antes de seções
+        messageContent = messageContent.replace(/([0-9.]+%)(🔴|⚠️|🚫|📈|✅|🔄)/g, '$1\n\n$2');
         messageContent = messageContent.replace(/📅 \*Período\*: ([^\n]+)📊/g, '📅 *Período*: $1\n\n📊');
-        messageContent = messageContent.replace(/• Taxa de Sucesso: ([0-9.]+)%✅/g, '• Taxa de Sucesso: $1%\n\n✅');
-        messageContent = messageContent.replace(/• Taxa de Sucesso: ([0-9.]+)%❌/g, '• Taxa de Sucesso: $1%\n\n❌');
-        messageContent = messageContent.replace(/• Taxa de Sucesso: ([0-9.]+)%⚠️/g, '• Taxa de Sucesso: $1%\n\n⚠️');
-        messageContent = messageContent.replace(/• Taxa de Sucesso: ([0-9.]+)%🔄/g, '• Taxa de Sucesso: $1%\n\n🔄');
-        messageContent = messageContent.replace(/• Taxa de Sucesso: ([0-9.]+)%🚫/g, '• Taxa de Sucesso: $1%\n\n🚫');
       }
       
       // Limpeza final
@@ -1626,34 +1628,37 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
       
       return `${statusEmoji} *${name}*
 \`\`\`Cliente: ${client}
+
 Início: ${starttime}
+
 Status: ${jobstatus_desc}
+
 Tamanho: ${jobbytes}\`\`\``;
     };
 
     // Preparar listas de jobs por categoria
     const successJobsList = jobsByStatus.success.length > 0 ? 
-      jobsByStatus.success.slice(0, 10).map(formatJobDetails).join('\n') : 
+      jobsByStatus.success.slice(0, 10).map(formatJobDetails).join('\n\n') : 
       'Nenhum job com sucesso encontrado';
 
     const errorJobsList = jobsByStatus.errors.length > 0 ? 
-      jobsByStatus.errors.slice(0, 10).map(formatJobDetails).join('\n') : 
+      jobsByStatus.errors.slice(0, 10).map(formatJobDetails).join('\n\n') : 
       'Nenhum job com erro encontrado';
 
     const cancelledJobsList = jobsByStatus.cancelled.length > 0 ? 
-      jobsByStatus.cancelled.slice(0, 10).map(formatJobDetails).join('\n') : 
+      jobsByStatus.cancelled.slice(0, 10).map(formatJobDetails).join('\n\n') : 
       'Nenhum job cancelado encontrado';
 
     const runningJobsList = jobsByStatus.running.length > 0 ? 
-      jobsByStatus.running.slice(0, 10).map(formatJobDetails).join('\n') : 
+      jobsByStatus.running.slice(0, 10).map(formatJobDetails).join('\n\n') : 
       'Nenhum job em execução encontrado';
 
     const blockedJobsList = jobsByStatus.blocked.length > 0 ? 
-      jobsByStatus.blocked.slice(0, 10).map(formatJobDetails).join('\n') : 
+      jobsByStatus.blocked.slice(0, 10).map(formatJobDetails).join('\n\n') : 
       'Nenhum job bloqueado encontrado';
 
     const otherJobsList = jobsByStatus.other.length > 0 ? 
-      jobsByStatus.other.slice(0, 10).map(formatJobDetails).join('\n') : 
+      jobsByStatus.other.slice(0, 10).map(formatJobDetails).join('\n\n') : 
       'Nenhum job com outros status encontrado';
 
     // Calcular estatísticas
