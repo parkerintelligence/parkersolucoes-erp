@@ -128,6 +128,16 @@ export const MikrotikNAT = () => {
     return filtered;
   }, [natRules, filter, sortField, sortDirection]);
 
+  const getStatusBadge = (rule: any) => {
+    if (rule.disabled === "true" || rule.disabled === true) {
+      return <Badge className="bg-red-600/80 text-white">Desativada</Badge>;
+    }
+    if (rule.invalid === "true" || rule.invalid === true) {
+      return <Badge className="bg-yellow-600/80 text-white">Inválida</Badge>;
+    }
+    return <Badge className="bg-green-600/80 text-white">Ativa</Badge>;
+  };
+
   if (loading && natRules.length === 0) {
     return (
       <Card>
@@ -225,23 +235,23 @@ export const MikrotikNAT = () => {
                   {rule.comment || '-'}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={rule.disabled ? 'secondary' : 'default'}>
-                    {rule.disabled ? 'Inativa' : 'Ativa'}
-                  </Badge>
+                  {getStatusBadge(rule)}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <Button
                       size="xs"
-                      variant={rule.disabled ? 'default' : 'outline'}
+                      variant="outline"
                       onClick={() => toggleRule(rule['.id'], rule.disabled)}
+                      className={rule.disabled ? "border-green-600/50 text-green-400 hover:bg-green-600/20" : "border-slate-600 text-slate-300 hover:bg-slate-700"}
                     >
                       <Power className="h-3 w-3" />
                     </Button>
                     <Button
                       size="xs"
-                      variant="destructive"
+                      variant="outline"
                       onClick={() => handleDelete(rule)}
+                      className="border-red-600/50 text-red-400 hover:bg-red-600/20"
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>

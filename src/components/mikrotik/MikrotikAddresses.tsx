@@ -166,15 +166,15 @@ export const MikrotikAddresses = () => {
 
   const getStatusBadge = (address: IPAddress) => {
     if (address.invalid === "true") {
-      return <Badge variant="destructive">Inválido</Badge>;
+      return <Badge className="bg-yellow-600/80 text-white">Inválido</Badge>;
     }
     if (address.dynamic === "true") {
-      return <Badge className="bg-blue-500 text-white">Dinâmico</Badge>;
+      return <Badge className="bg-blue-600/80 text-white">Dinâmico</Badge>;
     }
     if (address.disabled === "true") {
-      return <Badge variant="secondary">Desabilitado</Badge>;
+      return <Badge className="bg-red-600/80 text-white">Desabilitado</Badge>;
     }
-    return <Badge variant="default">Ativo</Badge>;
+    return <Badge className="bg-green-600/80 text-white">Ativo</Badge>;
   };
 
   return (
@@ -229,6 +229,7 @@ export const MikrotikAddresses = () => {
                           size="xs"
                           onClick={() => handleToggle(address)}
                           disabled={loading || address.dynamic === "true"}
+                          className="border-slate-600 text-slate-300 hover:bg-slate-700"
                         >
                           {address.disabled === "true" ? (
                             <Power className="h-3 w-3" />
@@ -241,6 +242,7 @@ export const MikrotikAddresses = () => {
                           size="xs"
                           onClick={() => handleEdit(address)}
                           disabled={address.dynamic === "true"}
+                          className="border-slate-600 text-slate-300 hover:bg-slate-700"
                         >
                           <Pencil className="h-3 w-3" />
                         </Button>
@@ -249,6 +251,7 @@ export const MikrotikAddresses = () => {
                           size="xs"
                           onClick={() => handleDelete(address)}
                           disabled={address.dynamic === "true"}
+                          className="border-red-600/50 text-red-400 hover:bg-red-600/20"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
