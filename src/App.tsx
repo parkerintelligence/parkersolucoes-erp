@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { MikrotikProvider } from '@/contexts/MikrotikContext';
 import { Toaster } from '@/components/ui/sonner';
 import Login from '@/pages/Login';
 import VPS from '@/pages/VPS';
@@ -46,7 +47,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
+        <MikrotikProvider>
+          <BrowserRouter>
           <div className="min-h-screen bg-background">
             <Routes>
               <Route path="/" element={<Login />} />
@@ -82,6 +84,7 @@ function App() {
           </div>
           <Toaster position="bottom-right" />
         </BrowserRouter>
+        </MikrotikProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
