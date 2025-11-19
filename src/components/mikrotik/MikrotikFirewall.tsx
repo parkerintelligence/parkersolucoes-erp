@@ -163,10 +163,10 @@ export const MikrotikFirewall = () => {
         <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar regras de firewall..." />
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-slate-700/30">
+                  <TableHead className="text-slate-300">
                 <Button variant="ghost" size="sm" onClick={() => handleSort('chain')} className="h-8 px-2">
                   Chain
                   <ArrowUpDown className="ml-2 h-3 w-3" />
