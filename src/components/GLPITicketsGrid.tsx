@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Eye, 
   Edit, 
@@ -18,7 +19,11 @@ import {
   CheckCheck,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { GLPITicketConfirmDialog } from './GLPITicketConfirmDialog';
@@ -50,6 +55,8 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
   const [showOpenOnly, setShowOpenOnly] = useState(true);
   const [sortColumn, setSortColumn] = useState<string>('id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
 
   const getStatusColor = (status: number) => {
     switch (status) {
@@ -190,7 +197,7 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
   }
 
   // Filtrar e ordenar tickets
-  const ticketsList = Array.isArray(tickets.data) 
+  const filteredAndSortedTickets = Array.isArray(tickets.data) 
     ? tickets.data
         .filter((ticket: any) => {
           // Se showOpenOnly for true, mostra apenas tickets não solucionados e não fechados
@@ -247,6 +254,18 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
           }
         })
     : [];
+
+  // Calcular paginação
+  const totalItems = filteredAndSortedTickets.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const ticketsList = filteredAndSortedTickets.slice(startIndex, endIndex);
+
+  // Resetar para primeira página quando filtros ou ordenação mudarem
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [showOpenOnly, sortColumn, sortDirection, itemsPerPage]);
 
   return (
     <div className="space-y-4">
@@ -467,6 +486,85 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                 ))}
               </TableBody>
             </Table>
+          )}
+
+          {/* Controles de Paginação */}
+          {ticketsList.length > 0 && (
+            <div className="mt-4 flex items-center justify-between border-t border-gray-700 pt-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-400">
+                  Exibindo {startIndex + 1} - {Math.min(endIndex, totalItems)} de {totalItems} chamados
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                {/* Select de itens por página */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-400">Registros por página:</span>
+                  <Select
+                    value={itemsPerPage.toString()}
+                    onValueChange={(value) => setItemsPerPage(Number(value))}
+                  >
+                    <SelectTrigger className="w-20 bg-gray-700 border-gray-600 text-white z-50">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-700 border-gray-600 z-50">
+                      <SelectItem value="25" className="text-white hover:bg-gray-600">25</SelectItem>
+                      <SelectItem value="50" className="text-white hover:bg-gray-600">50</SelectItem>
+                      <SelectItem value="100" className="text-white hover:bg-gray-600">100</SelectItem>
+                      <SelectItem value="200" className="text-white hover:bg-gray-600">200</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Navegação de páginas */}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+                    title="Primeira página"
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+                    title="Página anterior"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm text-gray-300 px-3">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+                    title="Próxima página"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+                    title="Última página"
+                  >
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
