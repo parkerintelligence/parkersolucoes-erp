@@ -111,6 +111,7 @@ export const MikrotikPPP = () => {
       l2tp: { label: "L2TP", className: "bg-green-500 text-white" },
       sstp: { label: "SSTP", className: "bg-purple-500 text-white" },
       pppoe: { label: "PPPoE", className: "bg-orange-500 text-white" },
+      ovpn: { label: "OpenVPN", className: "bg-cyan-500 text-white" },
     };
 
     const config = service && variants[service] 

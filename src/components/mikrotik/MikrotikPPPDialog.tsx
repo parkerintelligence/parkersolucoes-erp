@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMikrotikAPI } from "@/hooks/useMikrotikAPI";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Eye, EyeOff } from "lucide-react";
 
 interface PPPSecret {
   ".id": string;
@@ -44,6 +45,7 @@ export const MikrotikPPPDialog = ({ open, onOpenChange, secret }: MikrotikPPPDia
   const { callAPI, loading } = useMikrotikAPI();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showPassword, setShowPassword] = useState(false);
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<PPPFormData>({
     defaultValues: {
       name: "",
@@ -147,12 +149,28 @@ export const MikrotikPPPDialog = ({ open, onOpenChange, secret }: MikrotikPPPDia
 
             <div className="space-y-2">
               <Label htmlFor="password">Senha *</Label>
-              <Input
-                id="password"
-                type="password"
-                {...register("password", { required: "Senha é obrigatória" })}
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  {...register("password", { required: "Senha é obrigatória" })}
+                  placeholder="••••••••"
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
               {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>
           </div>
@@ -169,6 +187,7 @@ export const MikrotikPPPDialog = ({ open, onOpenChange, secret }: MikrotikPPPDia
                   <SelectItem value="l2tp">L2TP</SelectItem>
                   <SelectItem value="sstp">SSTP</SelectItem>
                   <SelectItem value="pppoe">PPPoE</SelectItem>
+                  <SelectItem value="ovpn">OpenVPN</SelectItem>
                 </SelectContent>
               </Select>
             </div>
