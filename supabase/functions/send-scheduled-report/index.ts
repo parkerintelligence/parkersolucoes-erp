@@ -1622,37 +1622,39 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
       
       const statusEmoji = jobstatus === 'T' ? '✅' : jobstatus === 'E' ? '❌' : jobstatus === 'f' ? '⚠️' : '🔄';
       
+      const statusEmoji = jobstatus === 'T' ? '✅' : jobstatus === 'E' ? '❌' : jobstatus === 'f' ? '⚠️' : '🔄';
+      
       return `${statusEmoji} *${name}*
-Cliente: ${client}
+\`\`\`Cliente: ${client}
 Início: ${starttime}
 Status: ${jobstatus_desc}
-Tamanho: ${jobbytes}
+Tamanho: ${jobbytes}\`\`\`
 ─────────────────────`;
     };
 
-    // Preparar listas de jobs por categoria
+    // Preparar listas de jobs por categoria com espaçamento maior
     const successJobsList = jobsByStatus.success.length > 0 ? 
-      jobsByStatus.success.slice(0, 10).map(formatJobDetails).join('\n\n') : 
+      jobsByStatus.success.slice(0, 10).map(formatJobDetails).join('\n\n\n') : 
       'Nenhum job com sucesso encontrado';
 
     const errorJobsList = jobsByStatus.errors.length > 0 ? 
-      jobsByStatus.errors.slice(0, 10).map(formatJobDetails).join('\n\n') : 
+      jobsByStatus.errors.slice(0, 10).map(formatJobDetails).join('\n\n\n') : 
       'Nenhum job com erro encontrado';
 
     const cancelledJobsList = jobsByStatus.cancelled.length > 0 ? 
-      jobsByStatus.cancelled.slice(0, 10).map(formatJobDetails).join('\n\n') : 
+      jobsByStatus.cancelled.slice(0, 10).map(formatJobDetails).join('\n\n\n') : 
       'Nenhum job cancelado encontrado';
 
     const runningJobsList = jobsByStatus.running.length > 0 ? 
-      jobsByStatus.running.slice(0, 10).map(formatJobDetails).join('\n\n') : 
+      jobsByStatus.running.slice(0, 10).map(formatJobDetails).join('\n\n\n') : 
       'Nenhum job em execução encontrado';
 
     const blockedJobsList = jobsByStatus.blocked.length > 0 ? 
-      jobsByStatus.blocked.slice(0, 10).map(formatJobDetails).join('\n\n') : 
+      jobsByStatus.blocked.slice(0, 10).map(formatJobDetails).join('\n\n\n') : 
       'Nenhum job bloqueado encontrado';
 
     const otherJobsList = jobsByStatus.other.length > 0 ? 
-      jobsByStatus.other.slice(0, 10).map(formatJobDetails).join('\n\n') : 
+      jobsByStatus.other.slice(0, 10).map(formatJobDetails).join('\n\n\n') : 
       'Nenhum job com outros status encontrado';
 
     // Calcular estatísticas
