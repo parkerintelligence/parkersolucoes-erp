@@ -88,6 +88,37 @@ export const generateClientSummary = (clientData: ClientDashboardData): string =
   const activeInterfaces = clientData.interfaces?.filter(i => i.running === true).length || 0;
   summary += `🌐 Interfaces: ${activeInterfaces} ativas / ${totalInterfaces} total\n`;
   
+  // Interface details - show status of each interface
+  if (clientData.interfaces && clientData.interfaces.length > 0) {
+    summary += `\n📡 *Status das Interfaces:*\n`;
+    
+    clientData.interfaces.forEach((iface: any) => {
+      const isUp = iface.running === true && iface.disabled !== 'true';
+      const statusIcon = isUp ? '✅' : '❌';
+      const ifaceName = iface.name || 'N/A';
+      const ifaceType = iface.type || 'unknown';
+      
+      // Show interface name, type and status
+      summary += `  ${statusIcon} ${ifaceName}`;
+      
+      // Add type in parentheses if available
+      if (ifaceType && ifaceType !== 'unknown') {
+        summary += ` (${ifaceType})`;
+      }
+      
+      // Add disabled indicator if interface is administratively disabled
+      if (iface.disabled === 'true') {
+        summary += ` - DESABILITADA`;
+      } else if (!iface.running) {
+        summary += ` - DOWN`;
+      }
+      
+      summary += `\n`;
+    });
+    
+    summary += `\n`;
+  }
+  
   // DHCP
   const dhcpTotal = clientData.dhcpLeases?.length || 0;
   const dhcpActive = clientData.dhcpLeases?.filter(l => l.status === 'bound').length || 0;
