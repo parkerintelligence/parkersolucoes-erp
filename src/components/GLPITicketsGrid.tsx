@@ -442,19 +442,19 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-gray-300 py-2">
-                      {ticket.date ? (
-                        <div className="flex items-center gap-2">
-                          <span>{new Date(ticket.date).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</span>
-                          <span className="text-gray-500">•</span>
-                          <span className="text-gray-400">{new Date(ticket.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}</span>
-                        </div>
-                      ) : (ticket.date_creation ? (
-                        <div className="flex items-center gap-2">
-                          <span>{new Date(ticket.date_creation).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</span>
-                          <span className="text-gray-500">•</span>
-                          <span className="text-gray-400">{new Date(ticket.date_creation).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}</span>
-                        </div>
-                      ) : 'N/A')}
+              {ticket.date ? (
+                <div className="flex items-center gap-2">
+                  <span>{new Date(ticket.date + 'Z').toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</span>
+                  <span className="text-gray-500">•</span>
+                  <span className="text-gray-400">{new Date(ticket.date + 'Z').toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}</span>
+                </div>
+              ) : (ticket.date_creation ? (
+                <div className="flex items-center gap-2">
+                  <span>{new Date(ticket.date_creation + 'Z').toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</span>
+                  <span className="text-gray-500">•</span>
+                  <span className="text-gray-400">{new Date(ticket.date_creation + 'Z').toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}</span>
+                </div>
+              ) : 'N/A')}
                     </TableCell>
                     <TableCell className="py-2">
                       <div className="flex items-center gap-2">
