@@ -46,6 +46,7 @@ export const EvolutionAPIAdminConfig = () => {
       phone_number: formData.phone_number || null,
       instance_name: formData.instance_name,
       is_active: formData.is_active,
+      is_global: true,
       username: null,
       password: null,
       webhook_url: null,

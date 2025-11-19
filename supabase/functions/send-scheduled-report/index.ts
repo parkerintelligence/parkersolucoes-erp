@@ -124,14 +124,14 @@ const handler = async (req: Request): Promise<Response> => {
       execution_date: new Date().toISOString()
     };
 
-    // Buscar Evolution API integration do usuário
+    // Buscar Evolution API integration global
     const { data: integration, error: integrationError } = await supabase
       .from('integrations')
       .select('*')
-      .eq('user_id', report.user_id)
       .eq('type', 'evolution_api')
       .eq('is_active', true)
-      .single();
+      .eq('is_global', true)
+      .maybeSingle();
 
     if (integrationError || !integration) {
       console.error('❌ [SEND] Evolution API não configurada:', integrationError);

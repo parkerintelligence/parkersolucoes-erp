@@ -88,6 +88,7 @@ export const ChatwootAdminConfig = () => {
       api_token: formData.api_token,
       webhook_url: formData.webhook_url || null,
       is_active: formData.is_active,
+      is_global: true,
       username: null,
       password: null,
       phone_number: null,

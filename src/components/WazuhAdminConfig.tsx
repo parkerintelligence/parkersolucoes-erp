@@ -84,10 +84,11 @@ const WazuhAdminConfig = () => {
       const integrationData = {
         type: 'wazuh',
         name: formData.name,
-        base_url: formData.base_url.replace(/\/$/, ''), // Remove trailing slash
+        base_url: formData.base_url.replace(/\/$/, ''),
         username: formData.username,
         password: formData.password,
         is_active: formData.is_active,
+        is_global: true
       };
 
       console.log('📝 Dados para salvamento:', integrationData);

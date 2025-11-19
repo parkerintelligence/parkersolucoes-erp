@@ -50,6 +50,7 @@ export const GLPIConfig = () => {
         username: config.username || null,
         password: config.password || null,
         is_active: config.is_active,
+        is_global: true,
         webhook_url: null,
         phone_number: null,
         region: null,

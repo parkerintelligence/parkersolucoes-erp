@@ -69,6 +69,7 @@ export const ChatwootSimpleConfig = () => {
       api_token: formData.api_token,
       webhook_url: formData.webhook_url || null,
       is_active: formData.is_active,
+      is_global: true,
       enable_popup_notifications: formData.enable_popup_notifications,
       username: null,
       password: null,

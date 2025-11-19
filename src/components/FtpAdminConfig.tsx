@@ -49,6 +49,7 @@ export const FtpAdminConfig = () => {
       passive_mode: formData.passive_mode,
       use_ssl: formData.use_ssl,
       is_active: formData.is_active,
+      is_global: true,
       api_token: null,
       webhook_url: null,
       phone_number: null,

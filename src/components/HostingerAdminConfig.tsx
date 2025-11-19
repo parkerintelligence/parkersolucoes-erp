@@ -45,7 +45,8 @@ export const HostingerAdminConfig = () => {
         type: 'hostinger' as const,
         base_url: formData.base_url.trim(),
         api_token: formData.api_token.trim(),
-        is_active: formData.is_active
+        is_active: formData.is_active,
+        is_global: true
       };
 
       console.log('Tentando salvar integração Hostinger:', integrationData);

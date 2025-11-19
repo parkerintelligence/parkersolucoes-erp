@@ -54,6 +54,7 @@ export const BaculaAdminConfig = () => {
       await createIntegration.mutateAsync({
         ...formData,
         type: 'bacula',
+        is_global: true,
       });
       resetForm();
     } catch (error) {

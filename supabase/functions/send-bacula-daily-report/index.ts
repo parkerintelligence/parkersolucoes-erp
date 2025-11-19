@@ -158,13 +158,14 @@ serve(async (req) => {
 
     console.log(`👥 [BACULA-DAILY] Destinatários encontrados: ${recipients.length}`);
 
-    // Buscar integrações
+    // Buscar integrações globais
     const { data: evolutionIntegration } = await supabase
       .from('integrations')
       .select('*')
       .eq('type', 'evolution_api')
       .eq('is_active', true)
-      .single();
+      .eq('is_global', true)
+      .maybeSingle();
 
     if (!evolutionIntegration) {
       throw new Error('Integração Evolution API não encontrada');
