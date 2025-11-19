@@ -7,6 +7,7 @@ export interface GuacamoleConnection {
   identifier: string;
   name: string;
   protocol: string;
+  parentIdentifier?: string;
   parameters: Record<string, any>;
   attributes: Record<string, any>;
   activeConnections: number;
@@ -158,6 +159,7 @@ export const useGuacamoleAPI = (onLog?: (type: string, message: string, options?
               identifier: key,
               name: connectionData?.name || key,
               protocol: connectionData?.protocol || 'unknown',
+              parentIdentifier: connectionData?.parentIdentifier,
               parameters: connectionData?.parameters || {},
               attributes: connectionData?.attributes || {},
               activeConnections: connectionData?.activeConnections || 0
