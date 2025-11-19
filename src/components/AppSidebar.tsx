@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, MessagesSquare } from 'lucide-react';
+import { LayoutDashboard, Settings, Calculator, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, MessagesSquare, Router } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar } from '@/components/ui/sidebar';
 // import { useSystemSettings } from '@/hooks/useSystemSettings';
 const menuItems = [{
@@ -72,6 +72,11 @@ const menuItems = [{
   title: 'Zabbix',
   url: '/zabbix',
   icon: Activity,
+  role: 'user'
+}, {
+  title: 'Winbox',
+  url: '/winbox',
+  icon: Router,
   role: 'user'
 }, {
   title: 'Bacula',
