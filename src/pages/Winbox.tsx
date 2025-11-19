@@ -20,22 +20,29 @@ const Winbox = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b bg-card p-4 mb-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold">MikroTik - {selectedClient.name}</h1>
-              <Badge variant="default">Conectado</Badge>
+    <div className="min-h-screen bg-slate-900">
+      <div className="bg-slate-900 p-6 mb-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-600 p-2 rounded-lg">
+                <Network className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">
+                  MikroTik - {selectedClient.name}
+                </h1>
+                <p className="text-slate-400 text-sm">
+                  {selectedClient.base_url}
+                </p>
+              </div>
+              <Badge className="bg-green-600 text-white">Conectado</Badge>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {selectedClient.base_url}
-            </p>
+            <Button variant="outline" onClick={disconnectClient} className="border-slate-600 text-slate-300 hover:bg-slate-700">
+              <Power className="mr-2 h-4 w-4" />
+              Desconectar
+            </Button>
           </div>
-          <Button variant="outline" onClick={disconnectClient}>
-            <Power className="mr-2 h-4 w-4" />
-            Desconectar
-          </Button>
         </div>
       </div>
 

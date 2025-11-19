@@ -38,18 +38,18 @@ export const MikrotikLogs = () => {
   };
 
   const getTopicBadge = (topics: string) => {
-    if (!topics) return <Badge variant="outline">Sistema</Badge>;
+    if (!topics) return <Badge className="bg-slate-600 text-white">Sistema</Badge>;
     
     if (topics.includes("error") || topics.includes("critical")) {
-      return <Badge variant="destructive">Erro</Badge>;
+      return <Badge className="bg-red-600 text-white">Erro</Badge>;
     }
     if (topics.includes("warning")) {
-      return <Badge className="bg-yellow-500 text-white">Aviso</Badge>;
+      return <Badge className="bg-yellow-600 text-white">Aviso</Badge>;
     }
     if (topics.includes("info")) {
-      return <Badge variant="default">Info</Badge>;
+      return <Badge className="bg-blue-600 text-white">Info</Badge>;
     }
-    return <Badge variant="outline">{topics}</Badge>;
+    return <Badge className="bg-slate-600 text-white">{topics}</Badge>;
   };
 
   const filteredLogs = logs.filter((log: any) => {

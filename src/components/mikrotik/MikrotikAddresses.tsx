@@ -197,11 +197,11 @@ export const MikrotikAddresses = () => {
             <p className="text-center py-8 text-muted-foreground">Nenhum endereço encontrado com o filtro aplicado</p>
           ) : addresses.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">Nenhum endereço IP cadastrado</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-slate-700/30">
+                      <TableHead className="text-slate-300">
                     <Button variant="ghost" size="sm" onClick={() => handleSort('address')} className="h-8 px-2">
                       Endereço
                       <ArrowUpDown className="ml-2 h-3 w-3" />
