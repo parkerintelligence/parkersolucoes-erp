@@ -44,18 +44,9 @@ export const MikrotikDashboard = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [
-        identityData,
-        resourceData,
-        routerboardData,
-        interfacesData,
-        leasesData,
-        firewallData,
-        natData,
-        vpnSecretsData,
-        vpnActiveData,
-        ipAddressesData
-      ] = await Promise.all([
+      console.log('Carregando dados do dashboard...');
+      
+      const results = await Promise.allSettled([
         callAPI('/system/identity'),
         callAPI('/system/resource'),
         callAPI('/system/routerboard'),
@@ -68,18 +59,83 @@ export const MikrotikDashboard = () => {
         callAPI('/ip/address'),
       ]);
 
-      if (identityData?.[0]) setIdentity(identityData[0]);
-      if (resourceData?.[0]) setResource(resourceData[0]);
-      if (routerboardData?.[0]) setRouterboard(routerboardData[0]);
-      if (interfacesData) setInterfaces(interfacesData);
-      if (leasesData) setDhcpLeases(leasesData);
-      if (firewallData) setFirewallRules(firewallData);
-      if (natData) setNatRules(natData);
-      if (vpnSecretsData) setVpnSecrets(vpnSecretsData);
-      if (vpnActiveData) setVpnActive(vpnActiveData);
-      if (ipAddressesData) setIpAddresses(ipAddressesData);
+      const [
+        identityResult,
+        resourceResult,
+        routerboardResult,
+        interfacesResult,
+        leasesResult,
+        firewallResult,
+        natResult,
+        vpnSecretsResult,
+        vpnActiveResult,
+        ipAddressesResult
+      ] = results;
+
+      if (identityResult.status === 'fulfilled' && identityResult.value) {
+        const data = Array.isArray(identityResult.value) ? identityResult.value[0] : identityResult.value;
+        setIdentity(data);
+        console.log('Identity loaded:', data);
+      }
+      
+      if (resourceResult.status === 'fulfilled' && resourceResult.value) {
+        const data = Array.isArray(resourceResult.value) ? resourceResult.value[0] : resourceResult.value;
+        setResource(data);
+        console.log('Resource loaded:', data);
+      }
+      
+      if (routerboardResult.status === 'fulfilled' && routerboardResult.value) {
+        const data = Array.isArray(routerboardResult.value) ? routerboardResult.value[0] : routerboardResult.value;
+        setRouterboard(data);
+        console.log('Routerboard loaded:', data);
+      }
+      
+      if (interfacesResult.status === 'fulfilled' && interfacesResult.value) {
+        const data = Array.isArray(interfacesResult.value) ? interfacesResult.value : [interfacesResult.value];
+        setInterfaces(data);
+        console.log('Interfaces loaded:', data.length);
+      }
+      
+      if (leasesResult.status === 'fulfilled' && leasesResult.value) {
+        const data = Array.isArray(leasesResult.value) ? leasesResult.value : [leasesResult.value];
+        setDhcpLeases(data);
+        console.log('DHCP Leases loaded:', data.length, data);
+      } else {
+        console.error('DHCP failed:', leasesResult);
+      }
+      
+      if (firewallResult.status === 'fulfilled' && firewallResult.value) {
+        const data = Array.isArray(firewallResult.value) ? firewallResult.value : [firewallResult.value];
+        setFirewallRules(data);
+        console.log('Firewall rules loaded:', data.length);
+      }
+      
+      if (natResult.status === 'fulfilled' && natResult.value) {
+        const data = Array.isArray(natResult.value) ? natResult.value : [natResult.value];
+        setNatRules(data);
+        console.log('NAT rules loaded:', data.length);
+      }
+      
+      if (vpnSecretsResult.status === 'fulfilled' && vpnSecretsResult.value) {
+        const data = Array.isArray(vpnSecretsResult.value) ? vpnSecretsResult.value : [vpnSecretsResult.value];
+        setVpnSecrets(data);
+        console.log('VPN Secrets loaded:', data.length);
+      }
+      
+      if (vpnActiveResult.status === 'fulfilled' && vpnActiveResult.value) {
+        const data = Array.isArray(vpnActiveResult.value) ? vpnActiveResult.value : [vpnActiveResult.value];
+        setVpnActive(data);
+        console.log('VPN Active loaded:', data.length);
+      }
+      
+      if (ipAddressesResult.status === 'fulfilled' && ipAddressesResult.value) {
+        const data = Array.isArray(ipAddressesResult.value) ? ipAddressesResult.value : [ipAddressesResult.value];
+        setIpAddresses(data);
+        console.log('IP Addresses loaded:', data.length);
+      }
       
       setLastUpdate(new Date());
+      console.log('Dashboard data loaded successfully');
     } catch (error) {
       console.error('Erro ao carregar dados do dashboard:', error);
     } finally {
