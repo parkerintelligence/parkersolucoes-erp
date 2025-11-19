@@ -5,12 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, FileText, AlertCircle, Info, AlertTriangle } from "lucide-react";
+import { RefreshCw, FileText, AlertCircle, Info, AlertTriangle, Search, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const MikrotikLogs = () => {
   const { callAPI, loading } = useMikrotikAPI();
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTopic, setSelectedTopic] = useState<string>("all");
 
   const { data: logs = [], refetch } = useQuery({
     queryKey: ["mikrotik-logs"],
@@ -48,6 +52,29 @@ export const MikrotikLogs = () => {
     return <Badge variant="outline">{topics}</Badge>;
   };
 
+  const filteredLogs = logs.filter((log: any) => {
+    if (searchTerm && !log.message?.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false;
+    }
+    
+    if (selectedTopic !== "all") {
+      if (selectedTopic === "error" && !log.topics?.includes("error") && !log.topics?.includes("critical")) {
+        return false;
+      }
+      if (selectedTopic === "warning" && !log.topics?.includes("warning")) {
+        return false;
+      }
+      if (selectedTopic === "info" && !log.topics?.includes("info")) {
+        return false;
+      }
+      if (selectedTopic === "system" && log.topics) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
+
   return (
     <Card>
       <CardHeader>
@@ -75,6 +102,54 @@ export const MikrotikLogs = () => {
         </div>
       </CardHeader>
       <CardContent>
+        <div className="flex flex-col gap-4 mb-4">
+          <div className="flex flex-wrap gap-2">
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar nas mensagens..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+            
+            <Select value={selectedTopic} onValueChange={setSelectedTopic}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrar por tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="error">Erros</SelectItem>
+                <SelectItem value="warning">Avisos</SelectItem>
+                <SelectItem value="info">Informações</SelectItem>
+                <SelectItem value="system">Sistema</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {(searchTerm || selectedTopic !== "all") && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm("");
+                  setSelectedTopic("all");
+                }}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Limpar Filtros
+              </Button>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <FileText className="h-4 w-4" />
+            Mostrando {filteredLogs.length} de {logs.length} logs
+          </div>
+        </div>
+        
         <ScrollArea className="h-[600px] w-full">
           <Table>
             <TableHeader>
@@ -86,7 +161,7 @@ export const MikrotikLogs = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {logs.map((log: any) => (
+              {filteredLogs.map((log: any) => (
                 <TableRow key={log[".id"]}>
                   <TableCell>
                     {getTopicIcon(log.topics)}
@@ -104,6 +179,13 @@ export const MikrotikLogs = () => {
               ))}
             </TableBody>
           </Table>
+
+          {filteredLogs.length === 0 && logs.length > 0 && (
+            <div className="text-center py-12 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum log encontrado com os filtros aplicados</p>
+            </div>
+          )}
 
           {logs.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">

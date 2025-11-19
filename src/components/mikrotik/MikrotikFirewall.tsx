@@ -173,20 +173,20 @@ export const MikrotikFirewall = () => {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-end gap-1">
                     <Button
-                      size="sm"
+                      size="xs"
                       variant={rule.disabled ? 'default' : 'outline'}
                       onClick={() => toggleRule(rule['.id'], rule.disabled)}
                     >
-                      <Power className="h-4 w-4" />
+                      <Power className="h-3 w-3" />
                     </Button>
                     <Button
-                      size="sm"
+                      size="xs"
                       variant="destructive"
                       onClick={() => handleDelete(rule)}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                 </TableCell>
