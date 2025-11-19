@@ -171,8 +171,7 @@ export const GLPIRemoteAccessDialog = ({
     
     // Filtro de grupo
     const matchesGroup = selectedGroup === 'all' || 
-      conn.attributes?.['guac-parent-identifier'] === selectedGroup ||
-      groups?.find(g => g.identifier === selectedGroup)?.childConnections?.includes(conn.identifier);
+      conn.parentIdentifier === selectedGroup;
     
     return matchesSearch && matchesGroup;
   }) || [];
