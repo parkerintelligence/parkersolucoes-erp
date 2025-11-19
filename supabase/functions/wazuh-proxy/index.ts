@@ -177,11 +177,12 @@ serve(async (req) => {
         console.log('⚠️ First auth attempt failed:', error.message);
         authError = error;
         
-        // If it's a certificate error and using HTTPS, try with custom client
+        // If it's a certificate error, connection closed, or SSL issue - try alternatives
         if (cleanBaseUrl.startsWith('https') && 
             (error.message.includes('certificate') || 
              error.message.includes('SSL') || 
-             error.message.includes('TLS'))) {
+             error.message.includes('TLS') ||
+             error.message.includes('connection closed'))) {
           
           console.log('🔧 Retrying with custom HTTP client (accepting self-signed certs)...');
           try {
@@ -202,6 +203,25 @@ serve(async (req) => {
               } catch (httpError) {
                 authError = httpError;
               }
+            }
+          }
+        } else if (cleanBaseUrl.startsWith('http://')) {
+          // If HTTP failed, try HTTPS
+          const httpsUrl = cleanBaseUrl.replace('http://', 'https://');
+          console.log(`🔄 Trying HTTPS: ${httpsUrl}`);
+          try {
+            jwtToken = await authenticateWithWazuh(httpsUrl, false);
+            authError = null;
+            cleanBaseUrl = httpsUrl;
+          } catch (httpsError) {
+            console.log('⚠️ HTTPS attempt failed:', httpsError.message);
+            // Try HTTPS with custom client
+            try {
+              jwtToken = await authenticateWithWazuh(httpsUrl, true);
+              authError = null;
+              cleanBaseUrl = httpsUrl;
+            } catch (finalError) {
+              authError = finalError;
             }
           }
         }
@@ -266,14 +286,15 @@ serve(async (req) => {
         'Option 2: Configure Wazuh to accept HTTP connections (less secure)',
         'See Wazuh documentation: https://documentation.wazuh.com/current/user-manual/api/configuration.html'
       ];
-    } else if (error.message.includes('connection closed') || error.message.includes('ECONNREFUSED')) {
+    } else if (error.message.includes('connection closed') || error.message.includes('ECONNREFUSED') || error.message.includes('ECONNRESET')) {
       errorMessage = 'Connection Failed';
-      errorDetails = 'Cannot connect to Wazuh server. The server may be down or not configured correctly.';
+      errorDetails = 'Cannot connect to Wazuh server. Common causes: wrong protocol (HTTP vs HTTPS), server down, or firewall blocking.';
       suggestions = [
+        'Try HTTPS instead of HTTP (Wazuh defaults to HTTPS on port 55000)',
         'Verify Wazuh server is running: systemctl status wazuh-manager',
-        'Check if API is listening on the correct port',
+        'Check if API is listening: curl -k https://localhost:55000',
         'Ensure firewall allows connections to port 55000',
-        'Try accessing the API locally on the server first'
+        'Check Wazuh API configuration: /var/ossec/api/configuration/api.yaml'
       ];
     } else if (error.message.includes('Authentication failed') || error.message.includes('401')) {
       errorMessage = 'Authentication Failed';
