@@ -32,7 +32,7 @@ const WazuhAdminConfig = () => {
 
   const [formData, setFormData] = useState({
     name: wazuhIntegration?.name || 'Wazuh Principal',
-    base_url: wazuhIntegration?.base_url || '',
+    base_url: wazuhIntegration?.base_url || 'https://',
     username: wazuhIntegration?.username || '',
     password: wazuhIntegration?.password || '',
     api_token: wazuhIntegration?.api_token || '',
