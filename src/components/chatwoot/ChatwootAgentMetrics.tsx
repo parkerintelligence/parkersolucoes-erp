@@ -50,7 +50,8 @@ export const ChatwootAgentMetrics = () => {
     return `${hours}h ${mins}m`;
   };
 
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return '??';
     return name
       .split(' ')
       .map(n => n[0])
