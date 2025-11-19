@@ -345,16 +345,21 @@ serve(async (req) => {
     }
 
     if (data && (method === 'POST' || method === 'PUT')) {
-      // GLPI API requires data to be wrapped in "input" field
-      const payload = { input: data }
+      // Verificar se os dados já têm o wrap "input"
+      // Se já tiver, usar direto; se não, adicionar o wrap
+      const payload = data.input ? data : { input: data }
       requestOptions.body = JSON.stringify(payload)
+      
       console.log('🔍 [GLPI Proxy] Payload final sendo enviado para API GLPI:', JSON.stringify(payload, null, 2))
-      console.log('🔍 [GLPI Proxy] Verificação dos campos principais:')
-      console.log('   - name:', data.name)
-      console.log('   - content:', data.content)
-      console.log('   - entities_id:', data.entities_id)
-      console.log('   - users_id_assign:', data.users_id_assign)
-      console.log('   - users_id_requester:', data.users_id_requester)
+      
+      // Log detalhado dos campos principais
+      const ticketData = payload.input || payload
+      console.log('🎫 [GLPI Proxy] Verificação dos campos principais:')
+      console.log('   - name:', ticketData.name)
+      console.log('   - content:', ticketData.content)
+      console.log('   - entities_id:', ticketData.entities_id)
+      console.log('   - users_id_assign:', ticketData.users_id_assign)
+      console.log('   - users_id_requester:', ticketData.users_id_requester)
     }
 
     let apiResponse: Response
