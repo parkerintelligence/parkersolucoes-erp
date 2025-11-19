@@ -10,13 +10,7 @@ import {
   Network, KeyRound, Globe, Activity
 } from 'lucide-react';
 import { MikrotikResourceMonitor } from './MikrotikResourceMonitor';
-import { 
-  LineChart, Line, PieChart, Pie, Cell,
-  CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend
-} from 'recharts';
 import { cn } from '@/lib/utils';
-
-const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
 
 export const MikrotikDashboard = () => {
   const { callAPI } = useMikrotikAPI();
@@ -36,12 +30,8 @@ export const MikrotikDashboard = () => {
   const [vpnActive, setVpnActive] = useState<any[]>([]);
   const [ipAddresses, setIpAddresses] = useState<any[]>([]);
   
-  // Estados de gráficos
-  const [resourceHistory, setResourceHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-
-  const MAX_HISTORY = 12; // Últimos 12 registros (1 minuto com refresh de 5s)
 
   const loadData = async () => {
     try {
@@ -153,29 +143,6 @@ export const MikrotikDashboard = () => {
     }
   }, [selectedClient]);
 
-  // Atualizar histórico de recursos
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const data = await callAPI('/system/resource');
-        if (data && data[0]) {
-          const newEntry = {
-            time: new Date().toLocaleTimeString('pt-BR', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              second: '2-digit'
-            }),
-            cpu: parseInt(data[0]['cpu-load']) || 0,
-            memory: Math.round(((parseInt(data[0]['total-memory']) - parseInt(data[0]['free-memory'])) / parseInt(data[0]['total-memory']) * 100)) || 0
-          };
-          setResourceHistory(prev => [...prev.slice(-MAX_HISTORY + 1), newEntry]);
-        }
-      } catch (error) {
-        console.error('Erro ao atualizar histórico:', error);
-      }
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Cálculos memoizados
   const stats = useMemo(() => {
@@ -201,14 +168,6 @@ export const MikrotikDashboard = () => {
       validIps
     };
   }, [interfaces, firewallRules, natRules, vpnSecrets, vpnActive, dhcpLeases, ipAddresses]);
-
-  // Dados para gráfico de pizza
-  const pieData = [
-    { name: 'Firewall', value: stats.totalFirewall },
-    { name: 'NAT', value: stats.totalNat },
-    { name: 'VPN', value: stats.enabledVpn },
-    { name: 'IPs', value: stats.validIps },
-  ].filter(item => item.value > 0);
 
   const formatUptime = (uptime: string) => {
     if (!uptime) return 'N/A';
@@ -255,9 +214,9 @@ export const MikrotikDashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen rounded-xl">
       {/* Header com botão de refresh */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
@@ -276,165 +235,133 @@ export const MikrotikDashboard = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        <Card className="bg-purple-900/20 border-purple-600/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Dispositivo</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs font-medium text-purple-300">Dispositivo</CardTitle>
+            <Activity className="h-4 w-4 text-purple-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{identity?.name || 'MikroTik'}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+          <CardContent className="p-3">
+            <div className="text-xl font-bold text-purple-400">{identity?.name || 'MikroTik'}</div>
+            <p className="text-xs text-purple-300/70 mt-1">
               {routerboard?.model || 'RouterOS'}
             </p>
-            <p className="text-xs text-muted-foreground">
-              v{resource?.version || 'N/A'}
-            </p>
-            <Badge className="mt-2" variant="default">Online</Badge>
+            <div className="flex items-center gap-1 mt-1 flex-wrap">
+              <Badge variant="secondary" className="text-xs bg-purple-800/50 text-purple-200 border-purple-600/30">
+                RB: v{routerboard?.['current-firmware'] || routerboard?.version || 'N/A'}
+              </Badge>
+              <Badge variant="outline" className="text-xs border-purple-600/30 text-purple-200">
+                OS: v{resource?.version || 'N/A'}
+              </Badge>
+            </div>
+            <Badge className="mt-2 bg-purple-600/80 text-white" variant="default">Online</Badge>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-blue-900/20 border-blue-600/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Interfaces</CardTitle>
-            <Wifi className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs font-medium text-blue-300">Interfaces</CardTitle>
+            <Wifi className="h-4 w-4 text-blue-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.activeInterfaces}/{stats.totalInterfaces}</div>
-            <Progress value={(stats.activeInterfaces / stats.totalInterfaces) * 100} className="mt-2" />
-            <p className="text-xs text-muted-foreground mt-2">Ativas</p>
+          <CardContent className="p-3">
+            <div className="text-xl font-bold text-blue-400">{stats.activeInterfaces}/{stats.totalInterfaces}</div>
+            <Progress value={(stats.activeInterfaces / stats.totalInterfaces) * 100} className="mt-2 bg-blue-900/30" />
+            <p className="text-xs text-blue-300/70 mt-2">Ativas</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-green-900/20 border-green-600/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">DHCP</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs font-medium text-green-300">DHCP</CardTitle>
+            <Users className="h-4 w-4 text-green-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.activeDhcp}</div>
-            <Progress value={(stats.activeDhcp / stats.totalDhcp) * 100} className="mt-2" />
-            <p className="text-xs text-muted-foreground mt-2">de {stats.totalDhcp} leases</p>
+          <CardContent className="p-3">
+            <div className="text-xl font-bold text-green-400">{stats.activeDhcp}</div>
+            <Progress value={(stats.activeDhcp / stats.totalDhcp) * 100} className="mt-2 bg-green-900/30" />
+            <p className="text-xs text-green-300/70 mt-2">de {stats.totalDhcp} leases</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-yellow-900/20 border-yellow-600/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Uptime</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs font-medium text-yellow-300">Uptime</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatUptime(resource?.uptime)}</div>
-            <Badge className="mt-2" variant={getUptimeBadge(resource?.uptime)}>Estável</Badge>
+          <CardContent className="p-3">
+            <div className="text-xl font-bold text-yellow-400">{formatUptime(resource?.uptime)}</div>
+            <Badge className="mt-2 bg-yellow-600/80 text-white" variant={getUptimeBadge(resource?.uptime)}>Estável</Badge>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
+      <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
-          <CardTitle>Recursos do Sistema</CardTitle>
+          <CardTitle className="text-white">Recursos do Sistema</CardTitle>
         </CardHeader>
         <CardContent>
           <MikrotikResourceMonitor />
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="bg-slate-800 border-slate-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Firewall</CardTitle>
-            <Shield className="h-4 w-4 text-red-500" />
+            <CardTitle className="text-xs font-medium text-white">Firewall</CardTitle>
+            <Shield className="h-4 w-4 text-red-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.activeFirewall}/{stats.totalFirewall}</div>
-            <Progress value={(stats.activeFirewall / stats.totalFirewall) * 100} className="mt-2" />
+          <CardContent className="p-3">
+            <div className="text-xl font-bold text-white">{stats.activeFirewall}/{stats.totalFirewall}</div>
+            <Progress value={(stats.activeFirewall / stats.totalFirewall) * 100} className="mt-2 bg-red-900/30" />
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-slate-800 border-slate-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">NAT</CardTitle>
-            <Network className="h-4 w-4 text-green-500" />
+            <CardTitle className="text-xs font-medium text-white">NAT</CardTitle>
+            <Network className="h-4 w-4 text-green-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.activeNat}/{stats.totalNat}</div>
-            <Progress value={(stats.activeNat / stats.totalNat) * 100} className="mt-2" />
+          <CardContent className="p-3">
+            <div className="text-xl font-bold text-white">{stats.activeNat}/{stats.totalNat}</div>
+            <Progress value={(stats.activeNat / stats.totalNat) * 100} className="mt-2 bg-green-900/30" />
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-slate-800 border-slate-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">VPN</CardTitle>
-            <KeyRound className="h-4 w-4 text-yellow-500" />
+            <CardTitle className="text-xs font-medium text-white">VPN</CardTitle>
+            <KeyRound className="h-4 w-4 text-yellow-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.connectedVpn}/{stats.enabledVpn}</div>
-            <Progress value={stats.enabledVpn > 0 ? (stats.connectedVpn / stats.enabledVpn) * 100 : 0} className="mt-2" />
+          <CardContent className="p-3">
+            <div className="text-xl font-bold text-white">{stats.connectedVpn}/{stats.enabledVpn}</div>
+            <Progress value={stats.enabledVpn > 0 ? (stats.connectedVpn / stats.enabledVpn) * 100 : 0} className="mt-2 bg-yellow-900/30" />
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-slate-800 border-slate-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">IPs</CardTitle>
-            <Globe className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-xs font-medium text-white">IPs</CardTitle>
+            <Globe className="h-4 w-4 text-blue-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.validIps}</div>
-            <Badge className="mt-2" variant="secondary">Configurados</Badge>
+          <CardContent className="p-3">
+            <div className="text-xl font-bold text-white">{stats.validIps}</div>
+            <Badge className="mt-2 bg-blue-600/80 text-white" variant="secondary">Configurados</Badge>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Histórico</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={resourceHistory}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" style={{ fontSize: '11px' }} />
-                <YAxis domain={[0, 100]} style={{ fontSize: '11px' }} />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="cpu" stroke="hsl(var(--chart-1))" strokeWidth={2} name="CPU" />
-                <Line type="monotone" dataKey="memory" stroke="hsl(var(--chart-2))" strokeWidth={2} name="RAM" />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribuição</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                  {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
+      <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
-          <CardTitle>Interfaces</CardTitle>
+          <CardTitle className="text-white">Interfaces</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             {interfaces.slice(0, 6).map((iface: any) => (
-              <div key={iface['.id']} className="flex items-center justify-between p-2 border rounded">
+              <div key={iface['.id']} className="flex items-center justify-between p-2 border border-slate-700 rounded hover:bg-slate-700/50">
                 <div className="flex items-center gap-2">
                   <div className={cn("w-2 h-2 rounded-full", iface.running ? "bg-green-500" : "bg-red-500")} />
-                  <span className="font-medium text-sm">{iface.name}</span>
+                  <span className="font-medium text-sm text-slate-200">{iface.name}</span>
                 </div>
-                <Badge variant={iface.running ? "default" : "secondary"} className="text-xs">{iface.running ? "UP" : "DOWN"}</Badge>
+                <Badge variant={iface.running ? "default" : "secondary"} className={cn("text-xs", iface.running ? "bg-green-600/80 text-white" : "bg-slate-700 text-slate-300")}>{iface.running ? "UP" : "DOWN"}</Badge>
               </div>
             ))}
           </div>

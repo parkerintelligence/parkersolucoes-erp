@@ -43,14 +43,48 @@ export const MikrotikDHCP = () => {
     return mac.toUpperCase();
   };
 
+  const makeStatic = async (lease: any) => {
+    try {
+      if (!lease.address || !lease['mac-address']) {
+        toast({
+          title: 'Erro',
+          description: 'Lease não possui IP ou MAC address válidos',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      await callAPI('/ip/dhcp-server/lease/add', 'POST', {
+        address: lease.address,
+        'mac-address': lease['mac-address'],
+        'server': lease.server,
+        'comment': lease.comment || lease['host-name'] || 'IP Fixo',
+      });
+
+      toast({
+        title: 'Sucesso',
+        description: `IP ${lease.address} fixado para ${lease['mac-address']}`,
+      });
+
+      loadLeases();
+    } catch (error) {
+      console.error('Erro ao fixar IP:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível fixar o IP',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'bound':
-        return <Badge variant="default">Conectado</Badge>;
+        return <Badge className="bg-green-600/80 text-white">Conectado</Badge>;
       case 'waiting':
-        return <Badge variant="secondary">Aguardando</Badge>;
+        return <Badge className="bg-yellow-600/80 text-white">Aguardando</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline" className="border-slate-600 text-slate-400">{status}</Badge>;
     }
   };
 
@@ -100,16 +134,16 @@ export const MikrotikDHCP = () => {
   const activeLeases = leases.filter((l) => l.status === 'bound');
 
   return (
-    <Card>
+    <Card className="bg-slate-800 border-slate-700">
       <CardHeader>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <CardTitle>Clientes DHCP</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-white">Clientes DHCP</CardTitle>
+            <CardDescription className="text-slate-400">
               {activeLeases.length} dispositivos conectados
             </CardDescription>
           </div>
-          <Button onClick={loadLeases} disabled={loading} size="sm" variant="outline">
+          <Button onClick={loadLeases} disabled={loading} size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
@@ -136,27 +170,42 @@ export const MikrotikDHCP = () => {
               <TableHead>Servidor</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Expira em</TableHead>
+              <TableHead>Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredAndSortedLeases.map((lease) => (
-              <TableRow key={lease['.id']}>
-                <TableCell className="font-medium">
+              <TableRow key={lease['.id']} className="hover:bg-slate-700/50">
+                <TableCell className="font-medium text-slate-200">
                   <div className="flex items-center gap-2">
-                    <Network className="h-4 w-4 text-blue-500" />
+                    <Network className="h-4 w-4 text-blue-400" />
                     {lease['host-name'] || lease.comment || 'Sem nome'}
                   </div>
                 </TableCell>
-                <TableCell>{lease.address || 'N/A'}</TableCell>
+                <TableCell className="text-slate-200">{lease.address || 'N/A'}</TableCell>
                 <TableCell>
-                  <code className="text-xs bg-muted px-2 py-1 rounded">
+                  <code className="text-xs bg-slate-900/50 px-2 py-1 rounded text-slate-300">
                     {formatMacAddress(lease['mac-address'])}
                   </code>
                 </TableCell>
-                <TableCell>{lease.server || 'N/A'}</TableCell>
+                <TableCell className="text-slate-200">{lease.server || 'N/A'}</TableCell>
                 <TableCell>{getStatusBadge(lease.status)}</TableCell>
-                <TableCell className="text-muted-foreground">
+                <TableCell className="text-slate-400">
                   {lease['expires-after'] || 'N/A'}
+                </TableCell>
+                <TableCell>
+                  {lease.status === 'bound' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => makeStatic(lease)}
+                      disabled={loading}
+                      className="h-7 text-xs border-green-600/50 text-green-400 hover:bg-green-600/20"
+                    >
+                      <Network className="h-3 w-3 mr-1" />
+                      Fixar IP
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -164,13 +213,13 @@ export const MikrotikDHCP = () => {
         </Table>
 
         {filteredAndSortedLeases.length === 0 && leases.length > 0 && (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-8 text-slate-400">
             Nenhum cliente encontrado com o filtro aplicado
           </div>
         )}
 
         {leases.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-8 text-slate-400">
             Nenhum cliente DHCP encontrado
           </div>
         )}
