@@ -1005,14 +1005,16 @@ async function getGLPIStandardData(glpiIntegration: any) {
       return priorityB - priorityA; // Ordem decrescente (maior prioridade primeiro)
     });
 
-    // Buscar nomes das categorias do GLPI
-    console.log('🏷️ [GLPI] Buscando nomes de categorias...');
+    // Buscar nomes das categorias, entidades e técnicos do GLPI
+    console.log('🏷️ [GLPI] Buscando nomes de categorias, entidades e técnicos...');
     const categoryNames = new Map<number, string>();
     const entityNames = new Map<number, string>();
+    const userNames = new Map<number, string>();
     
-    // Extrair IDs únicos de categorias e entidades
-    const categoryIds = [...new Set(sortedTickets.map(t => t.itilcategories_id).filter(id => id))];
-    const entityIds = [...new Set(sortedTickets.map(t => t.entities_id).filter(id => id))];
+    // Extrair IDs únicos de categorias, entidades e usuários
+    const categoryIds = [...new Set(sortedTickets.map(t => t.itilcategories_id).filter(id => id && id !== 0))];
+    const entityIds = [...new Set(sortedTickets.map(t => t.entities_id).filter(id => id && id !== 0))];
+    const userIds = [...new Set(sortedTickets.map(t => t.users_id_recipient).filter(id => id && id !== 0))];
     
     // Buscar nomes das categorias
     for (const categoryId of categoryIds) {
@@ -1070,7 +1072,36 @@ async function getGLPIStandardData(glpiIntegration: any) {
       }
     }
     
-    console.log(`🏷️ [GLPI] ${categoryNames.size} categorias e ${entityNames.size} entidades carregadas`);
+    // Buscar nomes dos técnicos
+    for (const userId of userIds) {
+      try {
+        const userResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/glpi-proxy`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+            'Content-Type': 'application/json',
+            'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
+          },
+          body: JSON.stringify({
+            integrationId: glpiIntegration.id,
+            endpoint: `User/${userId}`,
+            method: 'GET'
+          })
+        });
+        
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          if (userData.result && (userData.result.realname || userData.result.firstname)) {
+            const fullName = `${userData.result.firstname || ''} ${userData.result.realname || ''}`.trim();
+            userNames.set(userId, fullName || `Usuário #${userId}`);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ [GLPI] Erro ao buscar usuário ${userId}:`, error);
+      }
+    }
+    
+    console.log(`🏷️ [GLPI] ${categoryNames.size} categorias, ${entityNames.size} entidades e ${userNames.size} técnicos carregados`);
 
     // Criar lista detalhada dos tickets em aberto (top 10)
     const detailedOpenTickets = sortedTickets
@@ -1080,18 +1111,29 @@ async function getGLPIStandardData(glpiIntegration: any) {
         const urgency = getUrgencyIcon(ticket.urgency || 1);
         const status = getStatusText(ticket.status || 1);
         const timeOpen = ticket.date ? getTimeOpenText(new Date(ticket.date), now) : 'N/A';
-        const assignee = ticket.users_id_recipient ? `Técnico #${ticket.users_id_recipient}` : 'Não atribuído';
-        const categoryName = categoryNames.get(ticket.itilcategories_id) || `ID: ${ticket.itilcategories_id}` || 'Sem categoria';
-        const entityName = entityNames.get(ticket.entities_id) || `ID: ${ticket.entities_id}` || 'Sem entidade';
+        const assignee = ticket.users_id_recipient && ticket.users_id_recipient !== 0 
+          ? userNames.get(ticket.users_id_recipient) || `Usuário #${ticket.users_id_recipient}` 
+          : 'Não atribuído';
+        const categoryName = ticket.itilcategories_id && ticket.itilcategories_id !== 0
+          ? categoryNames.get(ticket.itilcategories_id) || 'Sem categoria'
+          : 'Sem categoria';
+        const entityName = ticket.entities_id && ticket.entities_id !== 0
+          ? entityNames.get(ticket.entities_id) || 'Sem entidade'
+          : 'Sem entidade';
         const description = ticket.content ? ticket.content.substring(0, 80).replace(/\n/g, ' ').replace(/<[^>]*>/g, '') : 'Sem descrição';
         
         return `🎫 *ID ${ticket.id}: ${ticket.name || 'Sem título'}*
 \`\`\`${description}${ticket.content && ticket.content.length > 80 ? '...' : ''}\`\`\`
-📊 ${status} • ⏱️ ${timeOpen}
-🔥 ${priority} • ⚡ ${urgency}
-🏷️ ${categoryName}
-🏢 ${entityName}
-👤 ${assignee}`;
+
+📊 Status: ${status}
+⏱️ Aberto há: ${timeOpen}
+
+🔥 Prioridade: ${priority}
+⚡ Urgência: ${urgency}
+
+🏷️ Categoria: ${categoryName}
+🏢 Entidade: ${entityName}
+👤 Técnico: ${assignee}`;
       })
       .join('\n\n─────────────────\n\n');
 
@@ -1102,9 +1144,11 @@ async function getGLPIStandardData(glpiIntegration: any) {
         const priority = getPriorityIcon(ticket.priority || 1);
         const urgency = getUrgencyIcon(ticket.urgency || 1);
         const timeOpen = ticket.date ? getTimeOpenText(new Date(ticket.date), now) : 'N/A';
-        const categoryName = categoryNames.get(ticket.itilcategories_id) || `ID: ${ticket.itilcategories_id}` || 'Sem categoria';
+        const categoryName = ticket.itilcategories_id && ticket.itilcategories_id !== 0
+          ? categoryNames.get(ticket.itilcategories_id) || 'Sem categoria'
+          : 'Sem categoria';
         return `${priority} *ID ${ticket.id}* - ${ticket.name || 'Sem título'}
-\`\`\`${timeOpen} • ${urgency} • ${categoryName}\`\`\``;
+\`\`\`⏱️ ${timeOpen} • ⚡ ${urgency} • 🏷️ ${categoryName}\`\`\``;
       })
       .join('\n\n');
 
