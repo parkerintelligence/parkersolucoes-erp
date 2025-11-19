@@ -339,6 +339,7 @@ async function generateMessageFromTemplate(template: any, reportType: string, us
           .replace(/\{\{critical_tickets_detailed\}\}/g, glpiData.critical_tickets_detailed || 'Nenhum ticket crítico encontrado')
           .replace(/\{\{total_active\}\}/g, glpiData.total_active?.toString() || '0')
           .replace(/\{\{overdue\}\}/g, glpiData.overdue?.toString() || '0')
+          .replace(/\{\{daily_stats\}\}/g, glpiData.daily_stats || '📊 Estatísticas não disponíveis')
           .replace(/\{\{report_date\}\}/g, glpiData.report_date || currentDate);
       }
       break;
@@ -1004,6 +1005,73 @@ async function getGLPIStandardData(glpiIntegration: any) {
       return priorityB - priorityA; // Ordem decrescente (maior prioridade primeiro)
     });
 
+    // Buscar nomes das categorias do GLPI
+    console.log('🏷️ [GLPI] Buscando nomes de categorias...');
+    const categoryNames = new Map<number, string>();
+    const entityNames = new Map<number, string>();
+    
+    // Extrair IDs únicos de categorias e entidades
+    const categoryIds = [...new Set(sortedTickets.map(t => t.itilcategories_id).filter(id => id))];
+    const entityIds = [...new Set(sortedTickets.map(t => t.entities_id).filter(id => id))];
+    
+    // Buscar nomes das categorias
+    for (const categoryId of categoryIds) {
+      try {
+        const catResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/glpi-proxy`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+            'Content-Type': 'application/json',
+            'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
+          },
+          body: JSON.stringify({
+            integrationId: glpiIntegration.id,
+            endpoint: `ITILCategory/${categoryId}`,
+            method: 'GET'
+          })
+        });
+        
+        if (catResponse.ok) {
+          const catData = await catResponse.json();
+          if (catData.result && catData.result.name) {
+            categoryNames.set(categoryId, catData.result.name);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ [GLPI] Erro ao buscar categoria ${categoryId}:`, error);
+      }
+    }
+    
+    // Buscar nomes das entidades
+    for (const entityId of entityIds) {
+      try {
+        const entResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/glpi-proxy`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+            'Content-Type': 'application/json',
+            'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
+          },
+          body: JSON.stringify({
+            integrationId: glpiIntegration.id,
+            endpoint: `Entity/${entityId}`,
+            method: 'GET'
+          })
+        });
+        
+        if (entResponse.ok) {
+          const entData = await entResponse.json();
+          if (entData.result && entData.result.name) {
+            entityNames.set(entityId, entData.result.name);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ [GLPI] Erro ao buscar entidade ${entityId}:`, error);
+      }
+    }
+    
+    console.log(`🏷️ [GLPI] ${categoryNames.size} categorias e ${entityNames.size} entidades carregadas`);
+
     // Criar lista detalhada dos tickets em aberto (top 10)
     const detailedOpenTickets = sortedTickets
       .slice(0, 10)
@@ -1013,16 +1081,16 @@ async function getGLPIStandardData(glpiIntegration: any) {
         const status = getStatusText(ticket.status || 1);
         const timeOpen = ticket.date ? getTimeOpenText(new Date(ticket.date), now) : 'N/A';
         const assignee = ticket.users_id_recipient ? `Técnico #${ticket.users_id_recipient}` : 'Não atribuído';
-        const category = ticket.itilcategories_id ? `${ticket.itilcategories_id}` : 'Sem categoria';
-        const entity = ticket.entities_id ? `Entidade: ${ticket.entities_id}` : 'Sem entidade';
-        const description = ticket.content ? ticket.content.substring(0, 100).replace(/\n/g, ' ') : 'Sem descrição';
+        const categoryName = categoryNames.get(ticket.itilcategories_id) || `ID: ${ticket.itilcategories_id}` || 'Sem categoria';
+        const entityName = entityNames.get(ticket.entities_id) || `ID: ${ticket.entities_id}` || 'Sem entidade';
+        const description = ticket.content ? ticket.content.substring(0, 80).replace(/\n/g, ' ').replace(/<[^>]*>/g, '') : 'Sem descrição';
         
-        return `🎫 *ID: ${ticket.id} - ${ticket.name || 'Sem título'}*
-📝 ${description}${ticket.content && ticket.content.length > 100 ? '...' : ''}
-📊 Status: ${status} • ${timeOpen}
-🔥 Prioridade: ${priority} • Urgência: ${urgency}
-🏷️ Etiqueta: ${category}
-🏢 ${entity}
+        return `🎫 *ID ${ticket.id}: ${ticket.name || 'Sem título'}*
+\`\`\`${description}${ticket.content && ticket.content.length > 80 ? '...' : ''}\`\`\`
+📊 ${status} • ⏱️ ${timeOpen}
+🔥 ${priority} • ⚡ ${urgency}
+🏷️ ${categoryName}
+🏢 ${entityName}
 👤 ${assignee}`;
       })
       .join('\n\n─────────────────\n\n');
@@ -1034,45 +1102,18 @@ async function getGLPIStandardData(glpiIntegration: any) {
         const priority = getPriorityIcon(ticket.priority || 1);
         const urgency = getUrgencyIcon(ticket.urgency || 1);
         const timeOpen = ticket.date ? getTimeOpenText(new Date(ticket.date), now) : 'N/A';
-        const category = ticket.itilcategories_id ? `${ticket.itilcategories_id}` : 'Sem categoria';
-        return `${priority} *ID: ${ticket.id}* - ${ticket.name || 'Sem título'}\n   ${timeOpen} • Urgência: ${urgency} • Etiqueta: ${category}`;
+        const categoryName = categoryNames.get(ticket.itilcategories_id) || `ID: ${ticket.itilcategories_id}` || 'Sem categoria';
+        return `${priority} *ID ${ticket.id}* - ${ticket.name || 'Sem título'}
+\`\`\`${timeOpen} • ${urgency} • ${categoryName}\`\`\``;
       })
       .join('\n\n');
-
-    // Buscar novos tickets criados no dia anterior
-    const newTicketsResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/glpi-proxy`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-        'Content-Type': 'application/json',
-        'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
-      },
-      body: JSON.stringify({
-        integrationId: glpiIntegration.id,
-        endpoint: 'Ticket',
-        method: 'GET',
-        data: {
-          range: '0-20',
-          'searchText[0][field]': 15, // data de criação
-          'searchText[0][searchtype]': 'contains',
-          'searchText[0][value]': yesterday.toISOString().split('T')[0]
-        }
-      })
-    });
-
-    let dailyNewTickets = 0;
-    if (newTicketsResponse.ok) {
-      const newTicketsData = await newTicketsResponse.json();
-      const newTicketsArray = Array.isArray(newTicketsData) ? newTicketsData : (newTicketsData.data || []);
-      dailyNewTickets = newTicketsArray.length;
-    }
 
     const dataResponse = {
       // Contadores básicos
       open: openTickets.length,
       critical: criticalTickets.length,
       pending: pendingTickets.length,
-      new_today: dailyNewTickets,
+      new_today: newTickets.length,
       overdue: overdueTickets.length,
       
       // Listas detalhadas
@@ -1083,17 +1124,27 @@ async function getGLPIStandardData(glpiIntegration: any) {
       avg_time_open: avgTimeOpen,
       total_active: allTickets.length,
       
+      // Estatísticas formatadas para mensagem
+      daily_stats: `\`\`\`📊 Resumo do Dia:
+• Total Ativo: ${allTickets.length}
+• Novos: ${newTickets.length}
+• Em Aberto: ${openTickets.length}
+• Críticos: ${criticalTickets.length}
+• Pendentes: ${pendingTickets.length}
+• Vencidos: ${overdueTickets.length}
+• Tempo Médio Aberto: ${avgTimeOpen}\`\`\``,
+      
       // Dados para compatibilidade com outros templates
       list: detailedOpenTickets || '✅ Nenhum ticket em aberto',
-      new_tickets: dailyNewTickets,
-      resolved_tickets: 0, // Para relatório diário, seria 0 pois foca em abertos
-      avg_resolution_time: '2.5 horas', // Mock
+      new_tickets: newTickets.length,
+      resolved_tickets: 0,
+      avg_resolution_time: avgTimeOpen,
       open_tickets_list: detailedOpenTickets || 'Nenhum ticket em aberto',
-      productivity_summary: `${allTickets.length} tickets ativos • ${dailyNewTickets} novos ontem`,
+      productivity_summary: `${allTickets.length} tickets ativos • ${newTickets.length} novos • ${criticalTickets.length} críticos`,
       critical_tickets_detailed: criticalSummary || 'Nenhum ticket crítico encontrado',
       
       // Data do relatório
-      report_date: yesterday.toLocaleDateString('pt-BR'),
+      report_date: new Date().toLocaleDateString('pt-BR'),
       isRealData: true
     };
 
