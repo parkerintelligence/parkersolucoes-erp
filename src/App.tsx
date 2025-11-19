@@ -17,6 +17,7 @@ import Wasabi from '@/pages/Wasabi';
 import Schedule from '@/pages/Schedule';
 import Automation from '@/pages/Automation';
 import { SafeZabbix } from '@/components/SafeZabbix';
+import Winbox from '@/pages/Winbox';
 import Services from '@/pages/Services';
 import Budgets from '@/pages/Budgets';
 import Contracts from '@/pages/Contracts';
@@ -66,6 +67,7 @@ function App() {
               <Route path="/schedule" element={<Layout><Schedule /></Layout>} />
               <Route path="/automation" element={<Layout><Automation /></Layout>} />
               <Route path="/zabbix" element={<Layout><SafeZabbix /></Layout>} />
+              <Route path="/winbox" element={<Layout><Winbox /></Layout>} />
               <Route path="/services" element={<Layout><Services /></Layout>} />
               <Route path="/budgets" element={<Layout><Budgets /></Layout>} />
               <Route path="/contracts" element={<Layout><Contracts /></Layout>} />
