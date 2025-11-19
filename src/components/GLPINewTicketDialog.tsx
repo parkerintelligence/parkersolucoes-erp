@@ -42,7 +42,7 @@ export const GLPINewTicketDialog = ({
     category: String(defaultParams.itilcategories_id || ''),
     requestType: String(defaultParams.type || 1),
     entity: String(defaultParams.entities_id || ''),
-    assignedUser: String(defaultParams.users_id_assign || ''),
+    assignedUser: String(defaultParams.users_id_assign || 'none'),
   });
 
   // Atualizar valores padrão quando os parâmetros mudarem
@@ -57,7 +57,7 @@ export const GLPINewTicketDialog = ({
         category: String(params.itilcategories_id || ''),
         requestType: String(params.type || 1),
         entity: String(params.entities_id || ''),
-        assignedUser: String(params.users_id_assign || ''),
+        assignedUser: String(params.users_id_assign || 'none'),
       }));
     }
   }, [glpiTicketParams]);
@@ -100,7 +100,7 @@ export const GLPINewTicketDialog = ({
         type: parseInt(formData.requestType),
         itilcategories_id: formData.category ? parseInt(formData.category) : defaultParams.itilcategories_id,
         entities_id: formData.entity ? parseInt(formData.entity) : defaultParams.entities_id,
-        users_id_assign: formData.assignedUser ? parseInt(formData.assignedUser) : undefined,
+        users_id_assign: formData.assignedUser && formData.assignedUser !== 'none' ? parseInt(formData.assignedUser) : undefined,
       };
 
       console.log('🎫 [GLPINewTicketDialog] Dados completos preparados:', {
@@ -225,7 +225,7 @@ export const GLPINewTicketDialog = ({
                     <SelectValue placeholder="Atribuir depois" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-700 border-gray-600">
-                    <SelectItem value="" className="text-white">Nenhum (atribuir depois)</SelectItem>
+                    <SelectItem value="none" className="text-white">Nenhum (atribuir depois)</SelectItem>
                     {users.data
                       ?.filter((user: any) => user.is_active === 1 || user.is_active === true)
                       ?.map((user: any) => (
