@@ -9,6 +9,7 @@ export interface WhatsAppMessageOptions {
   data: any[];
   summary: string;
   includeDetails?: boolean;
+  columns?: { key: string; label: string; formatter?: (val: any) => string }[];
 }
 
 export const useMikrotikWhatsApp = () => {
@@ -26,6 +27,33 @@ export const useMikrotikWhatsApp = () => {
     message += `📅 Data/Hora: ${timestamp}\n`;
     message += `📊 Total de itens: ${options.data.length}\n\n`;
     message += `${options.summary}\n\n`;
+    
+    // Adicionar registros detalhados se solicitado
+    if (options.includeDetails && options.columns && options.data.length > 0) {
+      message += `📋 *REGISTROS DETALHADOS*\n\n`;
+      
+      // Limitar a 10 registros para não tornar a mensagem muito longa
+      const recordsToShow = options.data.slice(0, 10);
+      
+      recordsToShow.forEach((record, index) => {
+        message += `*Registro ${index + 1}*\n`;
+        
+        options.columns!.forEach(col => {
+          const value = record[col.key];
+          const formatted = col.formatter ? col.formatter(value) : (value?.toString() || '-');
+          // Remover emojis e caracteres especiais para não quebrar formatação
+          const clean = formatted.replace(/[📊📍✅❌🔄🔒📤📥🔀👥💻🌐📝⚠️\*]/g, '').trim();
+          message += `  • ${col.label}: ${clean}\n`;
+        });
+        
+        message += `\n`;
+      });
+      
+      if (options.data.length > 10) {
+        message += `_... e mais ${options.data.length - 10} registros_\n\n`;
+      }
+    }
+    
     message += `---\n`;
     message += `Gerado automaticamente via Sistema Parker`;
 

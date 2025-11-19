@@ -81,6 +81,7 @@ export const MikrotikExportActions = ({
         gridTitle={gridTitle}
         data={filteredData}
         summary={getSummary()}
+        columns={columns}
       />
     </>
   );
