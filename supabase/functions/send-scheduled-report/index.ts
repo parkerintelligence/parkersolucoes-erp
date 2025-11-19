@@ -1626,7 +1626,8 @@ async function getBaculaData(userId: string, settings: any, authHeader: string =
 Cliente: ${client}
 Início: ${starttime}
 Status: ${jobstatus_desc}
-Tamanho: ${jobbytes}`;
+Tamanho: ${jobbytes}
+─────────────────────`;
     };
 
     // Preparar listas de jobs por categoria
