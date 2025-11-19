@@ -156,15 +156,26 @@ export const generateAddressesSummary = (addresses: any[]): string => {
 };
 
 export const generateDHCPSummary = (leases: any[]): string => {
-  const bound = leases.filter(l => l.status === 'bound').length;
-  const waiting = leases.filter(l => l.status === 'waiting').length;
-  const staticLeases = leases.filter(l => l['address-lists']?.includes('static')).length;
+  const boundLeases = leases.filter(l => l.status === 'bound').length;
+  const waitingLeases = leases.filter(l => l.status === 'waiting').length;
+  const staticLeases = leases.filter(l => l.dynamic === 'false' || !l.dynamic).length;
+  const dynamicLeases = leases.filter(l => l.dynamic === 'true').length;
+  
+  const byServer = leases.reduce((acc: any, lease) => {
+    const server = lease.server || 'unknown';
+    acc[server] = (acc[server] || 0) + 1;
+    return acc;
+  }, {});
 
   let summary = `📊 *RESUMO*\n\n`;
-  summary += `✅ Leases ativos (bound): ${bound}\n`;
-  summary += `⏳ Aguardando (waiting): ${waiting}\n`;
-  summary += `📌 IPs fixos: ${staticLeases}\n`;
-  summary += `📊 Total: ${leases.length}\n`;
+  summary += `✅ Dispositivos conectados: ${boundLeases}\n`;
+  summary += `⏳ Aguardando: ${waitingLeases}\n`;
+  summary += `🔒 IP Fixos: ${staticLeases}\n`;
+  summary += `🔄 IP Dinâmicos: ${dynamicLeases}\n\n`;
+  summary += `📍 *Por Servidor DHCP:*\n`;
+  Object.entries(byServer).forEach(([server, count]) => {
+    summary += `  • ${server}: ${count}\n`;
+  });
 
   return summary;
 };

@@ -14,6 +14,7 @@ export interface MikrotikExportOptions {
   columns: ExportColumn[];
   gridTitle: string;
   format: 'pdf' | 'excel';
+  getSummary: () => string;
 }
 
 export const useMikrotikExport = () => {
@@ -42,6 +43,35 @@ export const useMikrotikExport = () => {
       doc.setLineWidth(0.5);
       doc.line(20, 46, 190, 46);
 
+      let currentY = 50;
+
+      // 1. RESUMO
+      const summary = options.getSummary();
+      doc.setFontSize(14);
+      doc.setTextColor(33, 150, 243);
+      doc.text('RESUMO', 20, currentY);
+      currentY += 8;
+
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      const summaryLines = summary.split('\n').filter(line => line.trim() !== '');
+      summaryLines.forEach(line => {
+        // Remove emojis e símbolos de markdown
+        const cleanLine = line.replace(/[📊📍✅❌🔄🔒📤📥🔀👥💻🌐📝⚠️\*]/g, '').trim();
+        if (cleanLine) {
+          doc.text(cleanLine, 20, currentY);
+          currentY += 5;
+        }
+      });
+
+      currentY += 10;
+
+      // 2. TABELA DE REGISTROS DETALHADOS
+      doc.setFontSize(14);
+      doc.setTextColor(33, 150, 243);
+      doc.text('REGISTROS DETALHADOS', 20, currentY);
+      currentY += 8;
+
       // Table data
       const tableData = options.data.map(row => 
         options.columns.map(col => {
@@ -54,15 +84,16 @@ export const useMikrotikExport = () => {
       autoTable(doc, {
         head: [options.columns.map(col => col.label)],
         body: tableData,
-        startY: 50,
+        startY: currentY,
         styles: { 
-          fontSize: 8,
-          cellPadding: 2,
+          fontSize: 7,
+          cellPadding: 1.5,
         },
         headStyles: { 
           fillColor: [33, 150, 243],
           textColor: [255, 255, 255],
-          fontStyle: 'bold'
+          fontStyle: 'bold',
+          fontSize: 8
         },
         alternateRowStyles: {
           fillColor: [245, 245, 245]
@@ -116,6 +147,18 @@ export const useMikrotikExport = () => {
         '', // Empty line
       ];
 
+      // Resumo
+      const summary = options.getSummary();
+      const summaryLines = summary.split('\n')
+        .filter(line => line.trim() !== '')
+        .map(line => line.replace(/[📊📍✅❌🔄🔒📤📥🔀👥💻🌐📝⚠️\*]/g, '').trim());
+      
+      const summarySection = [
+        'RESUMO',
+        ...summaryLines,
+        '', // Empty line
+      ];
+
       // CSV headers
       const headers = options.columns.map(col => col.label).join(';');
 
@@ -130,7 +173,7 @@ export const useMikrotikExport = () => {
       );
 
       // Combine all
-      const csv = [...metadata, headers, ...rows].join('\n');
+      const csv = [...metadata, ...summarySection, headers, ...rows].join('\n');
 
       // Create blob with UTF-8 BOM for Excel compatibility
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });

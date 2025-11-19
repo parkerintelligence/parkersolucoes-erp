@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useMikrotikAPI } from '@/hooks/useMikrotikAPI';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Network, RefreshCw, Trash2, Plus, Power, ArrowUpDown } from 'lucide-react';
+import { Loader2, Network, RefreshCw, Trash2, Plus, Power, ArrowUpDown, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Table,
   TableBody,
