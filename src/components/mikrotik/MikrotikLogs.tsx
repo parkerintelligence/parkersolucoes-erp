@@ -9,6 +9,8 @@ import { RefreshCw, FileText, AlertCircle, Info, AlertTriangle, Search, X } from
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MikrotikExportActions } from './MikrotikExportActions';
+import { generateLogsSummary } from '@/utils/mikrotikExportFormatters';
 
 export const MikrotikLogs = () => {
   const { callAPI, loading } = useMikrotikAPI();
@@ -86,6 +88,17 @@ export const MikrotikLogs = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            <MikrotikExportActions
+              data={logs.slice(0, 1000)}
+              filteredData={filteredLogs.slice(0, 1000)}
+              columns={[
+                { key: 'time', label: 'Hora' },
+                { key: 'topics', label: 'Tópico' },
+                { key: 'message', label: 'Mensagem' }
+              ]}
+              gridTitle="Logs do Sistema"
+              getSummary={() => generateLogsSummary(filteredLogs.slice(0, 1000))}
+            />
             <Button
               onClick={() => setAutoRefresh(!autoRefresh)}
               size="sm"

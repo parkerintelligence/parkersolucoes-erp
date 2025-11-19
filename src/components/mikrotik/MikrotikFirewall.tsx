@@ -16,6 +16,8 @@ import {
 import { MikrotikFirewallDialog } from './MikrotikFirewallDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { MikrotikTableFilter } from './MikrotikTableFilter';
+import { MikrotikExportActions } from './MikrotikExportActions';
+import { generateFirewallSummary } from '@/utils/mikrotikExportFormatters';
 
 const getChainColor = (chain: string) => {
   switch (chain) {

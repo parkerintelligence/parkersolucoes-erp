@@ -183,10 +183,28 @@ export const MikrotikAddresses = () => {
         <CardHeader>
           <div className="flex flex-row items-center justify-between mb-4">
             <CardTitle>Endereços IP</CardTitle>
-            <Button onClick={() => { setEditingAddress(null); setDialogOpen(true); }}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo IP
-            </Button>
+            <div className="flex gap-2">
+              <MikrotikExportActions
+                data={addresses || []}
+                filteredData={filteredAndSortedAddresses}
+                columns={[
+                  { key: 'address', label: 'Endereço' },
+                  { key: 'interface', label: 'Interface' },
+                  { key: 'network', label: 'Rede' },
+                  { key: 'comment', label: 'Comentário' },
+                  { key: 'disabled', label: 'Status', formatter: (val) => val === 'true' ? '❌ Desabilitado' : '✅ Ativo' }
+                ]}
+                gridTitle="Endereços IP"
+                getSummary={() => generateAddressesSummary(filteredAndSortedAddresses)}
+              />
+              <Button onClick={() => { setEditingAddress(null); setDialogOpen(true); }}>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo IP
+              </Button>
+              <Button onClick={() => refetch()} disabled={isLoading} variant="outline">
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
           </div>
           <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar endereços IP..." />
         </CardHeader>
