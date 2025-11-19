@@ -32,7 +32,7 @@ const WazuhAdminConfig = () => {
 
   const [formData, setFormData] = useState({
     name: wazuhIntegration?.name || 'Wazuh Principal',
-    base_url: wazuhIntegration?.base_url || 'https://',
+    base_url: wazuhIntegration?.base_url || 'http://',
     username: wazuhIntegration?.username || '',
     password: wazuhIntegration?.password || '',
     api_token: wazuhIntegration?.api_token || '',
@@ -212,6 +212,15 @@ const WazuhAdminConfig = () => {
             </TabsList>
 
             <TabsContent value="connection" className="space-y-4">
+              <Alert className="bg-blue-900/20 border-blue-700">
+                <AlertCircle className="h-4 w-4 text-blue-400" />
+                <AlertDescription className="text-blue-300 text-sm">
+                  <strong>Importante:</strong> Devido a limitações de segurança do Supabase Edge Functions, 
+                  certificados SSL auto-assinados não são suportados. 
+                  <strong className="block mt-1">Use HTTP ou instale um certificado SSL válido no servidor Wazuh.</strong>
+                </AlertDescription>
+              </Alert>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-white">Nome da Integração</Label>
@@ -230,11 +239,11 @@ const WazuhAdminConfig = () => {
                     id="base_url"
                     value={formData.base_url}
                     onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
-                    placeholder="https://wazuh.empresa.com:55000"
+                    placeholder="http://wazuh.empresa.com:55000"
                     className="bg-slate-700 border-slate-600 text-white"
                   />
                   <p className="text-xs text-slate-400">
-                    URL completa incluindo porta (padrão: 55000)
+                    URL completa incluindo porta (padrão: 55000). Use HTTP devido às limitações de SSL.
                   </p>
                 </div>
 
