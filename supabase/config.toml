@@ -78,3 +78,6 @@ verify_jwt = false
 [functions.mikrotik-proxy]
 verify_jwt = true
 
+[functions.send-mikrotik-consolidated-report]
+verify_jwt = false
+
