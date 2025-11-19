@@ -825,13 +825,28 @@ export const useGLPIExpanded = () => {
         impact: ticketData.impact || 3,
         type: ticketData.type || 1,
         status: 1, // Status: Novo
-        entities_id: validValues.entities_id,
+        entities_id: ticketData.entities_id || validValues.entities_id,
         users_id_requester: validValues.users_id_requester,
+        users_id_assign: ticketData.users_id_assign,
         itilcategories_id: ticketData.itilcategories_id || validValues.itilcategories_id,
         requesttypes_id: validValues.requesttypes_id
       };
       
-      console.log('🎫 [useGLPIExpanded] Dados do ticket preparados:', JSON.stringify(enhancedTicketData, null, 2));
+      console.log('🎫 [useGLPIExpanded] Dados finais do ticket:', {
+        name: enhancedTicketData.name,
+        'name.length': enhancedTicketData.name?.length || 0,
+        content: enhancedTicketData.content,
+        'content.length': enhancedTicketData.content?.length || 0,
+        entities_id: enhancedTicketData.entities_id,
+        users_id_assign: enhancedTicketData.users_id_assign,
+        users_id_requester: enhancedTicketData.users_id_requester,
+        priority: enhancedTicketData.priority,
+        urgency: enhancedTicketData.urgency,
+        impact: enhancedTicketData.impact,
+        type: enhancedTicketData.type,
+        itilcategories_id: enhancedTicketData.itilcategories_id,
+        status: enhancedTicketData.status,
+      });
       
       // Verificar se temos uma sessão válida
       if (!hasValidSession) {

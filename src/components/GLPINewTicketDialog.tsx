@@ -40,7 +40,9 @@ export const GLPINewTicketDialog = ({
     urgency: String(defaultParams.urgency || 3),
     impact: String(defaultParams.impact || 3),
     category: String(defaultParams.itilcategories_id || ''),
-    requestType: String(defaultParams.type || 1)
+    requestType: String(defaultParams.type || 1),
+    entity: String(defaultParams.entities_id || ''),
+    assignedUser: String(defaultParams.users_id_assign || ''),
   });
 
   // Atualizar valores padrão quando os parâmetros mudarem
@@ -53,7 +55,9 @@ export const GLPINewTicketDialog = ({
         urgency: String(params.urgency || 3),
         impact: String(params.impact || 3),
         category: String(params.itilcategories_id || ''),
-        requestType: String(params.type || 1)
+        requestType: String(params.type || 1),
+        entity: String(params.entities_id || ''),
+        assignedUser: String(params.users_id_assign || ''),
       }));
     }
   }, [glpiTicketParams]);
@@ -74,6 +78,16 @@ export const GLPINewTicketDialog = ({
       return;
     }
 
+    if (!formData.entity) {
+      console.warn('🎫 [GLPINewTicketDialog] Entidade não selecionada - cancelando criação');
+      toast({
+        title: "Erro",
+        description: "Selecione uma entidade para o chamado.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       // Mesclar dados do formulário com parâmetros padrão configurados
       const ticketData = {
@@ -85,14 +99,22 @@ export const GLPINewTicketDialog = ({
         impact: parseInt(formData.impact),
         type: parseInt(formData.requestType),
         itilcategories_id: formData.category ? parseInt(formData.category) : defaultParams.itilcategories_id,
+        entities_id: formData.entity ? parseInt(formData.entity) : defaultParams.entities_id,
+        users_id_assign: formData.assignedUser ? parseInt(formData.assignedUser) : undefined,
       };
 
-      console.log('🎫 [GLPINewTicketDialog] Dados preparados para envio:', ticketData);
-      console.log('🎫 [GLPINewTicketDialog] Parâmetros padrão aplicados:', defaultParams);
-      console.log('🎫 [GLPINewTicketDialog] Mutation status:', {
-        isPending: createTicket.isPending,
-        isError: createTicket.isError,
-        error: createTicket.error
+      console.log('🎫 [GLPINewTicketDialog] Dados completos preparados:', {
+        title: ticketData.name,
+        content: ticketData.content,
+        'content.length': ticketData.content?.length || 0,
+        entity: ticketData.entities_id,
+        assignedUser: ticketData.users_id_assign,
+        category: ticketData.itilcategories_id,
+        priority: ticketData.priority,
+        urgency: ticketData.urgency,
+        impact: ticketData.impact,
+        type: ticketData.type,
+        defaultParams,
       });
 
       const result = await createTicket.mutateAsync(ticketData);
@@ -106,7 +128,9 @@ export const GLPINewTicketDialog = ({
         urgency: String(defaultParams.urgency || 3),
         impact: String(defaultParams.impact || 3),
         category: String(defaultParams.itilcategories_id || ''),
-        requestType: String(defaultParams.type || 1)
+        requestType: String(defaultParams.type || 1),
+        entity: String(defaultParams.entities_id || ''),
+        assignedUser: String(defaultParams.users_id_assign || ''),
       });
       
       console.log('🎫 [GLPINewTicketDialog] Formulário resetado e dialog fechando');
@@ -131,116 +155,190 @@ export const GLPINewTicketDialog = ({
           <DialogTitle className="text-white">Novo Chamado GLPI</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="title" className="text-gray-300">Título *</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Descreva brevemente o problema"
-              className="bg-gray-700 border-gray-600 text-white"
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="content" className="text-gray-300">Descrição</Label>
-            <Textarea
-              id="content"
-              value={formData.content}
-              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              placeholder="Descreva detalhadamente o problema ou solicitação"
-              className="bg-gray-700 border-gray-600 text-white min-h-[100px]"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Seção 1: Informações Básicas */}
+          <div className="space-y-4">
+            <div className="border-b border-gray-600 pb-2">
+              <h3 className="text-sm font-semibold text-gray-300">Informações Básicas</h3>
+            </div>
+            
             <div>
-              <Label htmlFor="priority" className="text-gray-300">Prioridade</Label>
-              <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-700 border-gray-600">
-                  <SelectItem value="1" className="text-white">Muito Baixa</SelectItem>
-                  <SelectItem value="2" className="text-white">Baixa</SelectItem>
-                  <SelectItem value="3" className="text-white">Média</SelectItem>
-                  <SelectItem value="4" className="text-white">Alta</SelectItem>
-                  <SelectItem value="5" className="text-white">Muito Alta</SelectItem>
-                  <SelectItem value="6" className="text-white">Crítica</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="title" className="text-gray-300">Título *</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Descreva brevemente o problema"
+                className="bg-gray-700 border-gray-600 text-white"
+                required
+              />
             </div>
 
             <div>
-              <Label htmlFor="urgency" className="text-gray-300">Urgência</Label>
-              <Select value={formData.urgency} onValueChange={(value) => setFormData({ ...formData, urgency: value })}>
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-700 border-gray-600">
-                  <SelectItem value="1" className="text-white">Muito Baixa</SelectItem>
-                  <SelectItem value="2" className="text-white">Baixa</SelectItem>
-                  <SelectItem value="3" className="text-white">Média</SelectItem>
-                  <SelectItem value="4" className="text-white">Alta</SelectItem>
-                  <SelectItem value="5" className="text-white">Muito Alta</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="content" className="text-gray-300">Descrição</Label>
+              <Textarea
+                id="content"
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                placeholder="Descreva detalhadamente o problema ou solicitação"
+                className="bg-gray-700 border-gray-600 text-white min-h-[100px]"
+              />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="impact" className="text-gray-300">Impacto</Label>
-              <Select value={formData.impact} onValueChange={(value) => setFormData({ ...formData, impact: value })}>
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-700 border-gray-600">
-                  <SelectItem value="1" className="text-white">Muito Baixo</SelectItem>
-                  <SelectItem value="2" className="text-white">Baixo</SelectItem>
-                  <SelectItem value="3" className="text-white">Médio</SelectItem>
-                  <SelectItem value="4" className="text-white">Alto</SelectItem>
-                  <SelectItem value="5" className="text-white">Muito Alto</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Seção 2: Atribuições */}
+          <div className="space-y-4">
+            <div className="border-b border-gray-600 pb-2">
+              <h3 className="text-sm font-semibold text-gray-300">Atribuições</h3>
             </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="entity" className="text-gray-300">Entidade *</Label>
+                <Select 
+                  value={formData.entity} 
+                  onValueChange={(value) => setFormData({ ...formData, entity: value })}
+                >
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectValue placeholder="Selecione uma entidade" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-600">
+                    {entities.data?.map((entity: any) => (
+                      <SelectItem key={entity.id} value={entity.id.toString()} className="text-white">
+                        {entity.completename || entity.name || `Entidade ${entity.id}`}
+                      </SelectItem>
+                    ))}
+                    {(!entities.data || entities.data.length === 0) && (
+                      <SelectItem value="0" className="text-white">Entidade Raiz</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div>
-              <Label htmlFor="requestType" className="text-gray-300">Tipo de Solicitação</Label>
-              <Select value={formData.requestType} onValueChange={(value) => setFormData({ ...formData, requestType: value })}>
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-700 border-gray-600">
-                  <SelectItem value="1" className="text-white">Incidente</SelectItem>
-                  <SelectItem value="2" className="text-white">Solicitação</SelectItem>
-                </SelectContent>
-              </Select>
+              <div>
+                <Label htmlFor="assignedUser" className="text-gray-300">Técnico Responsável</Label>
+                <Select 
+                  value={formData.assignedUser} 
+                  onValueChange={(value) => setFormData({ ...formData, assignedUser: value })}
+                >
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectValue placeholder="Atribuir depois" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-600">
+                    <SelectItem value="" className="text-white">Nenhum (atribuir depois)</SelectItem>
+                    {users.data
+                      ?.filter((user: any) => user.is_active === 1 || user.is_active === true)
+                      ?.map((user: any) => (
+                        <SelectItem key={user.id} value={user.id.toString()} className="text-white">
+                          {user.realname || user.name || `Usuário ${user.id}`}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="category" className="text-gray-300">Categoria</Label>
-            <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-              <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                <SelectValue placeholder="Selecione uma categoria" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-700 border-gray-600">
-                {itilCategories.data?.map((category: any) => (
-                  <SelectItem key={category.id} value={category.id.toString()} className="text-white">
-                    {category.name}
-                  </SelectItem>
-                ))}
-                {(!itilCategories.data || itilCategories.data.length === 0) && (
-                  <SelectItem value="1" className="text-white">Geral</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
+          {/* Seção 3: Classificação */}
+          <div className="space-y-4">
+            <div className="border-b border-gray-600 pb-2">
+              <h3 className="text-sm font-semibold text-gray-300">Classificação</h3>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="category" className="text-gray-300">Categoria</Label>
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-600">
+                    {itilCategories.data?.map((category: any) => (
+                      <SelectItem key={category.id} value={category.id.toString()} className="text-white">
+                        {category.completename || category.name}
+                      </SelectItem>
+                    ))}
+                    {(!itilCategories.data || itilCategories.data.length === 0) && (
+                      <SelectItem value="1" className="text-white">Geral</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="requestType" className="text-gray-300">Tipo de Solicitação</Label>
+                <Select value={formData.requestType} onValueChange={(value) => setFormData({ ...formData, requestType: value })}>
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-600">
+                    <SelectItem value="1" className="text-white">Incidente</SelectItem>
+                    <SelectItem value="2" className="text-white">Solicitação</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
+          {/* Seção 4: Priorização */}
+          <div className="space-y-4">
+            <div className="border-b border-gray-600 pb-2">
+              <h3 className="text-sm font-semibold text-gray-300">Priorização</h3>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="priority" className="text-gray-300">Prioridade</Label>
+                <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-600">
+                    <SelectItem value="1" className="text-white">Muito Baixa</SelectItem>
+                    <SelectItem value="2" className="text-white">Baixa</SelectItem>
+                    <SelectItem value="3" className="text-white">Média</SelectItem>
+                    <SelectItem value="4" className="text-white">Alta</SelectItem>
+                    <SelectItem value="5" className="text-white">Muito Alta</SelectItem>
+                    <SelectItem value="6" className="text-white">Crítica</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="urgency" className="text-gray-300">Urgência</Label>
+                <Select value={formData.urgency} onValueChange={(value) => setFormData({ ...formData, urgency: value })}>
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-600">
+                    <SelectItem value="1" className="text-white">Muito Baixa</SelectItem>
+                    <SelectItem value="2" className="text-white">Baixa</SelectItem>
+                    <SelectItem value="3" className="text-white">Média</SelectItem>
+                    <SelectItem value="4" className="text-white">Alta</SelectItem>
+                    <SelectItem value="5" className="text-white">Muito Alta</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="impact" className="text-gray-300">Impacto</Label>
+                <Select value={formData.impact} onValueChange={(value) => setFormData({ ...formData, impact: value })}>
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-600">
+                    <SelectItem value="1" className="text-white">Muito Baixo</SelectItem>
+                    <SelectItem value="2" className="text-white">Baixo</SelectItem>
+                    <SelectItem value="3" className="text-white">Médio</SelectItem>
+                    <SelectItem value="4" className="text-white">Alto</SelectItem>
+                    <SelectItem value="5" className="text-white">Muito Alto</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t border-gray-600">
             <Button
               type="button"
               variant="outline"
@@ -251,7 +349,7 @@ export const GLPINewTicketDialog = ({
             </Button>
             <Button
               type="submit"
-              disabled={createTicket.isPending || !formData.title.trim()}
+              disabled={createTicket.isPending || !formData.title.trim() || !formData.entity}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {createTicket.isPending ? 'Criando...' : 'Criar Chamado'}
