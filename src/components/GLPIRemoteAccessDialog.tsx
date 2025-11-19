@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Monitor, Server, Terminal, Search, AlertTriangle, Loader2, ExternalLink } from 'lucide-react';
 import { useGuacamoleAPI } from '@/hooks/useGuacamoleAPI';
 import { toast } from '@/hooks/use-toast';
@@ -14,16 +15,36 @@ interface GLPIRemoteAccessDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   itemName?: string;
+  entityName?: string;
 }
 
 export const GLPIRemoteAccessDialog = ({ 
   open, 
   onOpenChange, 
-  itemName 
+  itemName,
+  entityName 
 }: GLPIRemoteAccessDialogProps) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const { useConnections, integration, isConfigured } = useGuacamoleAPI();
+  const [selectedGroup, setSelectedGroup] = useState<string>('all');
+  const { useConnections, useConnectionGroups, integration, isConfigured } = useGuacamoleAPI();
   const { data: connections, isLoading, error, refetch } = useConnections();
+  const { data: groups } = useConnectionGroups();
+
+  // Pré-selecionar grupo baseado na entidade quando o dialog abrir
+  useEffect(() => {
+    if (open && entityName && groups) {
+      const matchingGroup = groups.find(g => 
+        g.name.toLowerCase().includes(entityName.toLowerCase()) ||
+        entityName.toLowerCase().includes(g.name.toLowerCase())
+      );
+      
+      if (matchingGroup) {
+        setSelectedGroup(matchingGroup.identifier);
+      } else {
+        setSelectedGroup('all');
+      }
+    }
+  }, [open, entityName, groups]);
 
   const getProtocolIcon = (protocol: string) => {
     switch (protocol?.toLowerCase()) {
@@ -143,10 +164,18 @@ export const GLPIRemoteAccessDialog = ({
     }
   };
 
-  const filteredConnections = connections?.filter(conn => 
-    conn.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    conn.protocol?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredConnections = connections?.filter(conn => {
+    // Filtro de texto
+    const matchesSearch = conn.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      conn.protocol?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Filtro de grupo
+    const matchesGroup = selectedGroup === 'all' || 
+      conn.attributes?.['guac-parent-identifier'] === selectedGroup ||
+      groups?.find(g => g.identifier === selectedGroup)?.childConnections?.includes(conn.identifier);
+    
+    return matchesSearch && matchesGroup;
+  }) || [];
 
   if (!isConfigured) {
     return (
@@ -188,15 +217,42 @@ export const GLPIRemoteAccessDialog = ({
           )}
         </DialogHeader>
 
-        {/* Search bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Buscar por nome ou protocolo..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-gray-900 border-gray-600 text-white placeholder:text-gray-500"
-          />
+        {/* Search and filters */}
+        <div className="space-y-3">
+          {/* Search bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Buscar por nome ou protocolo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-gray-900 border-gray-600 text-white placeholder:text-gray-500"
+            />
+          </div>
+
+          {/* Group filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-400">Filtrar por grupo:</span>
+            <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+              <SelectTrigger className="flex-1 bg-gray-900 border-gray-600 text-white z-50">
+                <SelectValue placeholder="Todos os grupos" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-600 z-50">
+                <SelectItem value="all" className="text-white hover:bg-gray-700">
+                  Todos os grupos
+                </SelectItem>
+                {groups?.map((group) => (
+                  <SelectItem 
+                    key={group.identifier} 
+                    value={group.identifier}
+                    className="text-white hover:bg-gray-700"
+                  >
+                    {group.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Content area */}
