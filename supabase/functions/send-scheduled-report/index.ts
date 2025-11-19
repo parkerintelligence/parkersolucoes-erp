@@ -845,18 +845,8 @@ async function getGLPIPerformanceData(glpiIntegration: any) {
       },
       body: JSON.stringify({
         integrationId: glpiIntegration.id,
-        endpoint: 'Ticket',
-        method: 'GET',
-        data: {
-          range: '0-100',
-          'searchText[0][field]': 15, // data de abertura
-          'searchText[0][searchtype]': 'morethan',
-          'searchText[0][value]': lastWeekStart.toISOString().split('T')[0],
-          'searchText[1][field]': 15,
-          'searchText[1][searchtype]': 'lessthan', 
-          'searchText[1][value]': lastWeekEnd.toISOString().split('T')[0],
-          'searchText[1][link]': 'AND'
-        }
+        endpoint: 'tickets',
+        method: 'GET'
       })
     });
 
@@ -873,7 +863,14 @@ async function getGLPIPerformanceData(glpiIntegration: any) {
       return getGLPIPerformanceMockData();
     }
 
-    const tickets = Array.isArray(glpiData) ? glpiData : (glpiData.data || []);
+    // A resposta do glpi-proxy vem como { result: [...] }
+    const allTickets = glpiData.result || [];
+    
+    // Filtrar tickets pela data da semana passada
+    const tickets = allTickets.filter((t: any) => {
+      const ticketDate = new Date(t.date);
+      return ticketDate >= lastWeekStart && ticketDate <= lastWeekEnd;
+    });
     console.log(`📊 [GLPI] ${tickets.length} tickets encontrados na semana`);
 
     // Calcular métricas de performance
@@ -953,14 +950,8 @@ async function getGLPIStandardData(glpiIntegration: any) {
       },
       body: JSON.stringify({
         integrationId: glpiIntegration.id,
-        endpoint: 'Ticket',
-        method: 'GET',
-        data: {
-          range: '0-100',
-          'searchText[0][field]': 12, // status
-          'searchText[0][searchtype]': 'contains',
-          'searchText[0][value]': '1|2|3|4' // Status em aberto (excluindo 5=resolved)
-        }
+        endpoint: 'tickets',
+        method: 'GET'
       })
     });
 
@@ -981,7 +972,8 @@ async function getGLPIStandardData(glpiIntegration: any) {
       return getGLPIDailyMockData();
     }
 
-    const allTickets = Array.isArray(glpiData) ? glpiData : (glpiData.data || []);
+    // A resposta do glpi-proxy vem como { result: [...] }
+    const allTickets = glpiData.result || [];
     console.log(`📊 [GLPI] ${allTickets.length} tickets em aberto encontrados`);
     console.log(`📋 [GLPI] Primeiros tickets:`, allTickets.slice(0, 3).map(t => ({ id: t.id, name: t.name, status: t.status, priority: t.priority })));
 
