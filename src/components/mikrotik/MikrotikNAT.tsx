@@ -14,12 +14,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { MikrotikNATDialog } from './MikrotikNATDialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 export const MikrotikNAT = () => {
   const { callAPI, loading } = useMikrotikAPI();
   const { toast } = useToast();
   const [natRules, setNatRules] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [ruleToDelete, setRuleToDelete] = useState<any>(null);
 
   useEffect(() => {
     loadNATRules();
@@ -59,6 +62,19 @@ export const MikrotikNAT = () => {
       loadNATRules();
     } catch (error) {
       console.error('Erro ao remover regra:', error);
+    }
+  };
+
+  const handleDelete = (rule: any) => {
+    setRuleToDelete(rule);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (ruleToDelete) {
+      deleteRule(ruleToDelete['.id']);
+      setDeleteDialogOpen(false);
+      setRuleToDelete(null);
     }
   };
 
@@ -159,7 +175,7 @@ export const MikrotikNAT = () => {
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => deleteRule(rule['.id'])}
+                      onClick={() => handleDelete(rule)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -182,6 +198,23 @@ export const MikrotikNAT = () => {
         onOpenChange={setDialogOpen}
         onSuccess={loadNATRules}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta regra NAT? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
