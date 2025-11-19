@@ -15,7 +15,10 @@ import {
   CheckCircle,
   XCircle,
   Monitor,
-  CheckCheck
+  CheckCheck,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { GLPITicketConfirmDialog } from './GLPITicketConfirmDialog';
@@ -45,6 +48,8 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
   const [remoteAccessDialogOpen, setRemoteAccessDialogOpen] = useState(false);
   const [selectedTicketForRemote, setSelectedTicketForRemote] = useState<any>(null);
   const [showOpenOnly, setShowOpenOnly] = useState(true);
+  const [sortColumn, setSortColumn] = useState<string>('id');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   const getStatusColor = (status: number) => {
     switch (status) {
@@ -141,6 +146,24 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
     return colors[entityId % colors.length];
   };
 
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
+  const getSortIcon = (column: string) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="h-4 w-4 ml-1 inline-block" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="h-4 w-4 ml-1 inline-block" />
+      : <ArrowDown className="h-4 w-4 ml-1 inline-block" />;
+  };
+
   if (tickets.isLoading) {
     return (
       <Card className="bg-gray-800 border-gray-700">
@@ -166,15 +189,63 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
     );
   }
 
-  // Filtrar tickets baseado no toggle
+  // Filtrar e ordenar tickets
   const ticketsList = Array.isArray(tickets.data) 
-    ? tickets.data.filter((ticket: any) => {
-        // Se showOpenOnly for true, mostra apenas tickets não solucionados e não fechados
-        if (showOpenOnly) {
-          return ticket.status !== 5 && ticket.status !== 6;
-        }
-        return true;
-      })
+    ? tickets.data
+        .filter((ticket: any) => {
+          // Se showOpenOnly for true, mostra apenas tickets não solucionados e não fechados
+          if (showOpenOnly) {
+            return ticket.status !== 5 && ticket.status !== 6;
+          }
+          return true;
+        })
+        .sort((a: any, b: any) => {
+          let aValue, bValue;
+          
+          switch (sortColumn) {
+            case 'id':
+              aValue = a.id;
+              bValue = b.id;
+              break;
+            case 'name':
+              aValue = (a.name || '').toLowerCase();
+              bValue = (b.name || '').toLowerCase();
+              break;
+            case 'technician':
+              aValue = getUserName(a.users_id_assign || a._users_id_assign).toLowerCase();
+              bValue = getUserName(b.users_id_assign || b._users_id_assign).toLowerCase();
+              break;
+            case 'category':
+              aValue = getCategoryName(a.itilcategories_id || a.categories_id).toLowerCase();
+              bValue = getCategoryName(b.itilcategories_id || b.categories_id).toLowerCase();
+              break;
+            case 'entity':
+              aValue = getEntityName(a.entities_id).toLowerCase();
+              bValue = getEntityName(b.entities_id).toLowerCase();
+              break;
+            case 'status':
+              aValue = a.status;
+              bValue = b.status;
+              break;
+            case 'priority':
+              aValue = a.priority;
+              bValue = b.priority;
+              break;
+            case 'date':
+              aValue = new Date(a.date || 0).getTime();
+              bValue = new Date(b.date || 0).getTime();
+              break;
+            default:
+              aValue = a.id;
+              bValue = b.id;
+          }
+
+          if (sortDirection === 'asc') {
+            return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+          } else {
+            return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+          }
+        })
     : [];
 
   return (
@@ -213,14 +284,78 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-700">
-                  <TableHead className="text-gray-300">ID</TableHead>
-                  <TableHead className="text-gray-300">Título</TableHead>
-                  <TableHead className="text-gray-300">Técnico</TableHead>
-                  <TableHead className="text-gray-300">Categoria</TableHead>
-                  <TableHead className="text-gray-300">Entidade</TableHead>
-                  <TableHead className="text-gray-300">Status</TableHead>
-                  <TableHead className="text-gray-300">Prioridade</TableHead>
-                  <TableHead className="text-gray-300">Data</TableHead>
+                  <TableHead 
+                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('id')}
+                  >
+                    <div className="flex items-center">
+                      ID
+                      {getSortIcon('id')}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('name')}
+                  >
+                    <div className="flex items-center">
+                      Título
+                      {getSortIcon('name')}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('technician')}
+                  >
+                    <div className="flex items-center">
+                      Técnico
+                      {getSortIcon('technician')}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('category')}
+                  >
+                    <div className="flex items-center">
+                      Categoria
+                      {getSortIcon('category')}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('entity')}
+                  >
+                    <div className="flex items-center">
+                      Entidade
+                      {getSortIcon('entity')}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('status')}
+                  >
+                    <div className="flex items-center">
+                      Status
+                      {getSortIcon('status')}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('priority')}
+                  >
+                    <div className="flex items-center">
+                      Prioridade
+                      {getSortIcon('priority')}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('date')}
+                  >
+                    <div className="flex items-center">
+                      Data
+                      {getSortIcon('date')}
+                    </div>
+                  </TableHead>
                   <TableHead className="text-gray-300">Ações</TableHead>
                 </TableRow>
               </TableHeader>
