@@ -70,34 +70,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`📋 [SEND] Relatório encontrado: ${report.name} (${report.report_type})`);
 
-    // Criar log inicial
-    reportLog = {
-      report_id: report_id,
-      phone_number: report.phone_number,
-      status: 'pending',
-      user_id: report.user_id,
-      execution_date: new Date().toISOString()
-    };
-
-    // Buscar Evolution API integration do usuário
-    const { data: integration, error: integrationError } = await supabase
-      .from('integrations')
-      .select('*')
-      .eq('user_id', report.user_id)
-      .eq('type', 'evolution_api')
-      .eq('is_active', true)
-      .single();
-
-    if (integrationError || !integration) {
-      console.error('❌ [SEND] Evolution API não configurada:', integrationError);
-      throw new Error(`Evolution API não configurada para este usuário: ${integrationError?.message || 'Integration not found'}`);
-    }
-
-    console.log(`🔌 [SEND] Integration encontrada: ${integration.name}`);
-
-    // Buscar template da mensagem por ID
+    // Buscar template da mensagem por ID PRIMEIRO para verificar o tipo
     console.log(`🔍 [SEND] Buscando template por ID: ${report.report_type}`);
-    // Removendo filtro user_id para busca por ID específico para evitar erro "multiple rows"
     const { data: template, error: templateError } = await supabase
       .from('whatsapp_message_templates')
       .select('*')
@@ -113,7 +87,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`📝 [SEND] Template encontrado: ${template.name} (tipo: ${template.template_type})`);
 
-    // Check if it's a Mikrotik Dashboard report - delegate to specialized function
+    // Check if it's a Mikrotik Dashboard report - delegate to specialized function BEFORE checking Evolution API
     if (template.template_type === 'mikrotik_dashboard') {
       console.log('📊 [SEND] Tipo Mikrotik Dashboard detectado - delegando para função especializada');
       
@@ -139,6 +113,32 @@ const handler = async (req: Request): Promise<Response> => {
         }
       );
     }
+
+    // For other report types, we need Evolution API integration
+    // Criar log inicial
+    reportLog = {
+      report_id: report_id,
+      phone_number: report.phone_number,
+      status: 'pending',
+      user_id: report.user_id,
+      execution_date: new Date().toISOString()
+    };
+
+    // Buscar Evolution API integration do usuário
+    const { data: integration, error: integrationError } = await supabase
+      .from('integrations')
+      .select('*')
+      .eq('user_id', report.user_id)
+      .eq('type', 'evolution_api')
+      .eq('is_active', true)
+      .single();
+
+    if (integrationError || !integration) {
+      console.error('❌ [SEND] Evolution API não configurada:', integrationError);
+      throw new Error(`Evolution API não configurada para este usuário: ${integrationError?.message || 'Integration not found'}`);
+    }
+
+    console.log(`🔌 [SEND] Integration encontrada: ${integration.name}`);
 
     // Gerar conteúdo baseado no template com autenticação correta
     const authHeader = req.headers.get('authorization') || '';
