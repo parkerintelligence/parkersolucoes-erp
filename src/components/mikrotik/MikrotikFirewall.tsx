@@ -15,6 +15,19 @@ import {
 } from '@/components/ui/table';
 import { MikrotikFirewallDialog } from './MikrotikFirewallDialog';
 
+const getChainColor = (chain: string) => {
+  switch (chain) {
+    case 'input':
+      return 'bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/30';
+    case 'forward':
+      return 'bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-950/30';
+    case 'output':
+      return 'bg-yellow-50 dark:bg-yellow-950/20 hover:bg-yellow-100 dark:hover:bg-yellow-950/30';
+    default:
+      return 'hover:bg-muted/50';
+  }
+};
+
 export const MikrotikFirewall = () => {
   const { callAPI, loading } = useMikrotikAPI();
   const { toast } = useToast();
@@ -111,7 +124,7 @@ export const MikrotikFirewall = () => {
           </TableHeader>
           <TableBody>
             {rules.map((rule) => (
-              <TableRow key={rule['.id']}>
+              <TableRow key={rule['.id']} className={getChainColor(rule.chain)}>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4 text-blue-500" />
