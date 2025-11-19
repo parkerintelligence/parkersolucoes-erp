@@ -4,6 +4,51 @@ import { supabase } from '@/integrations/supabase/client';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
+// Cache local para técnicos atribuídos (5 minutos de TTL)
+interface TicketUserCache {
+  users_id_assign: number | null;
+  timestamp: number;
+}
+
+const ticketUserCache = new Map<string, TicketUserCache>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos em milissegundos
+
+// Função para verificar se o cache é válido
+const isCacheValid = (cacheKey: string): boolean => {
+  const cached = ticketUserCache.get(cacheKey);
+  if (!cached) return false;
+  
+  const now = Date.now();
+  const isValid = (now - cached.timestamp) < CACHE_TTL;
+  
+  if (!isValid) {
+    ticketUserCache.delete(cacheKey);
+  }
+  
+  return isValid;
+};
+
+// Função para obter do cache
+const getCachedTicketUser = (ticketId: number, integrationId: string): number | null | undefined => {
+  const cacheKey = `${integrationId}:${ticketId}`;
+  if (isCacheValid(cacheKey)) {
+    const cached = ticketUserCache.get(cacheKey);
+    console.log(`✅ [CACHE HIT] Ticket ${ticketId} - Técnico: ${cached?.users_id_assign}`);
+    return cached?.users_id_assign;
+  }
+  return undefined;
+};
+
+// Função para salvar no cache
+const setCachedTicketUser = (ticketId: number, integrationId: string, userId: number | null): void => {
+  const cacheKey = `${integrationId}:${ticketId}`;
+  ticketUserCache.set(cacheKey, {
+    users_id_assign: userId,
+    timestamp: Date.now()
+  });
+  console.log(`💾 [CACHE SET] Ticket ${ticketId} - Técnico: ${userId}`);
+};
+
 // Interfaces para as entidades do GLPI
 export interface GLPITicket {
   id: number;
@@ -655,26 +700,49 @@ export const useGLPIExpanded = () => {
     queryFn: async () => {
       const ticketsData = await makeGLPIRequest('tickets');
       
-      // Para cada ticket, buscar os usuários atribuídos
+      // Para cada ticket, buscar os usuários atribuídos com cache
       if (Array.isArray(ticketsData) && ticketsData.length > 0) {
+        let cacheHits = 0;
+        let cacheMisses = 0;
+        
         const ticketsWithUsers = await Promise.all(
           ticketsData.map(async (ticket) => {
+            // Tentar obter do cache primeiro
+            const cachedUserId = getCachedTicketUser(ticket.id, glpiIntegration?.id || '');
+            
+            if (cachedUserId !== undefined) {
+              // Cache hit - usar valor do cache
+              ticket.users_id_assign = cachedUserId;
+              cacheHits++;
+              return ticket;
+            }
+            
+            // Cache miss - buscar da API
+            cacheMisses++;
             try {
               // Buscar usuários do ticket (tipo 2 = técnico atribuído)
               const ticketUsers = await makeGLPIRequest(
                 `tickets/${ticket.id}/Ticket_User?type=2`
               );
               
-              // Se houver técnico atribuído, adicionar ao ticket
+              // Se houver técnico atribuído, adicionar ao ticket e ao cache
               if (Array.isArray(ticketUsers) && ticketUsers.length > 0) {
                 ticket.users_id_assign = ticketUsers[0].users_id;
+                setCachedTicketUser(ticket.id, glpiIntegration?.id || '', ticketUsers[0].users_id);
+              } else {
+                // Salvar null no cache para evitar requisições futuras
+                setCachedTicketUser(ticket.id, glpiIntegration?.id || '', null);
               }
             } catch (error) {
               console.warn(`Não foi possível buscar usuários do ticket ${ticket.id}:`, error);
+              // Salvar null no cache mesmo em caso de erro
+              setCachedTicketUser(ticket.id, glpiIntegration?.id || '', null);
             }
             return ticket;
           })
         );
+        
+        console.log(`📊 [CACHE STATS] Hits: ${cacheHits} | Misses: ${cacheMisses} | Taxa: ${cacheHits > 0 ? ((cacheHits / (cacheHits + cacheMisses)) * 100).toFixed(1) : 0}%`);
         return ticketsWithUsers;
       }
       
