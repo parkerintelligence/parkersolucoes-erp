@@ -6,12 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, AlertCircle, Settings, LayoutDashboard, Wifi, Shield, Network } from "lucide-react";
+import { Loader2, AlertCircle, Settings, LayoutDashboard, Wifi, Shield, Network, Stethoscope } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MikrotikDashboard } from "@/components/mikrotik/MikrotikDashboard";
 import { MikrotikInterfaces } from "@/components/mikrotik/MikrotikInterfaces";
 import { MikrotikFirewall } from "@/components/mikrotik/MikrotikFirewall";
 import { MikrotikNAT } from "@/components/mikrotik/MikrotikNAT";
+import { MikrotikDiagnostic } from "@/components/MikrotikDiagnostic";
 
 const Winbox = () => {
   const { toast } = useToast();
@@ -120,8 +121,12 @@ const Winbox = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 pb-8">
-        <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs defaultValue="diagnostic" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="diagnostic">
+              <Stethoscope className="h-4 w-4 mr-2" />
+              Diagnóstico
+            </TabsTrigger>
             <TabsTrigger value="dashboard">
               <LayoutDashboard className="h-4 w-4 mr-2" />
               Dashboard
@@ -139,6 +144,10 @@ const Winbox = () => {
               NAT
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="diagnostic">
+            <MikrotikDiagnostic />
+          </TabsContent>
 
           <TabsContent value="dashboard">
             <MikrotikDashboard />
