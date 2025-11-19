@@ -164,24 +164,36 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
   const parseGLPIDate = (dateString: string | null): Date | null => {
     if (!dateString) return null;
     
-    // GLPI retorna datas no formato "YYYY-MM-DD HH:mm:ss" já no timezone local do servidor
-    // Vamos interpretar como datetime local sem conversão de timezone
-    const [datePart, timePart] = dateString.split(' ');
-    if (!datePart || !timePart) return null;
-    
-    const [year, month, day] = datePart.split('-').map(Number);
-    const [hour, minute, second] = timePart.split(':').map(Number);
-    
-    // Criar data usando os componentes locais (sem conversão UTC)
-    const localDate = new Date(year, month - 1, day, hour, minute, second || 0);
-    
-    console.log(`⏰ [GLPI] parseGLPIDate:`, {
-      input: dateString,
-      parsed: localDate.toLocaleString('pt-BR'),
-      components: { year, month, day, hour, minute, second }
-    });
-    
-    return localDate;
+    try {
+      // GLPI retorna datas no formato "YYYY-MM-DD HH:mm:ss" em UTC
+      // Precisamos interpretar como UTC e deixar o navegador converter para timezone local
+      const [datePart, timePart] = dateString.split(' ');
+      if (!datePart || !timePart) return null;
+      
+      const [year, month, day] = datePart.split('-').map(Number);
+      const [hour, minute, second] = timePart.split(':').map(Number);
+      
+      // Criar data UTC usando Date.UTC() para garantir interpretação correta
+      const timestamp = Date.UTC(year, month - 1, day, hour, minute, second || 0);
+      const utcDate = new Date(timestamp);
+      
+      console.log(`⏰ [GLPI] parseGLPIDate:`, {
+        input: dateString,
+        timestamp,
+        utcISO: utcDate.toISOString(),
+        localDisplay: utcDate.toLocaleString('pt-BR', { 
+          timeZone: 'America/Sao_Paulo',
+          dateStyle: 'short',
+          timeStyle: 'short'
+        }),
+        components: { year, month, day, hour, minute, second }
+      });
+      
+      return utcDate;
+    } catch (error) {
+      console.error('❌ [GLPI] Erro ao fazer parse de data:', error, dateString);
+      return null;
+    }
   };
 
   const getEntityColor = (entityId: number) => {
