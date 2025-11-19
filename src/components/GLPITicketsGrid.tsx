@@ -58,6 +58,11 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
 
+  // Resetar para primeira página quando filtros ou ordenação mudarem
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [showOpenOnly, sortColumn, sortDirection, itemsPerPage]);
+
   const getStatusColor = (status: number) => {
     switch (status) {
       case 1: return 'bg-blue-600 text-white';
@@ -277,11 +282,6 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const ticketsList = filteredAndSortedTickets.slice(startIndex, endIndex);
-
-  // Resetar para primeira página quando filtros ou ordenação mudarem
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [showOpenOnly, sortColumn, sortDirection, itemsPerPage]);
 
   return (
     <div className="space-y-4">
