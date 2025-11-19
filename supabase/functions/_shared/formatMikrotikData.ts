@@ -39,7 +39,11 @@ export const detectIssues = (clientData: ClientDashboardData): string[] => {
   
   // Check interfaces
   const totalInterfaces = clientData.interfaces?.length || 0;
-  const activeInterfaces = clientData.interfaces?.filter(i => i.running === true).length || 0;
+  const activeInterfaces = clientData.interfaces?.filter(i => {
+    const isRunning = i.running === true || i.running === 'true';
+    const isDisabled = i.disabled === true || i.disabled === 'true';
+    return isRunning && !isDisabled;
+  }).length || 0;
   if (totalInterfaces > 0 && activeInterfaces < totalInterfaces) {
     const downCount = totalInterfaces - activeInterfaces;
     issues.push(`${downCount} interface(s) inativa(s)`);
@@ -85,7 +89,11 @@ export const generateClientSummary = (clientData: ClientDashboardData): string =
   
   // Interfaces
   const totalInterfaces = clientData.interfaces?.length || 0;
-  const activeInterfaces = clientData.interfaces?.filter(i => i.running === true).length || 0;
+  const activeInterfaces = clientData.interfaces?.filter(i => {
+    const isRunning = i.running === true || i.running === 'true';
+    const isDisabled = i.disabled === true || i.disabled === 'true';
+    return isRunning && !isDisabled;
+  }).length || 0;
   summary += `🌐 Interfaces: ${activeInterfaces} ativas / ${totalInterfaces} total\n`;
   
   // Interface details - show status of each interface
@@ -93,7 +101,13 @@ export const generateClientSummary = (clientData: ClientDashboardData): string =
     summary += `\n📡 *Status das Interfaces:*\n`;
     
     clientData.interfaces.forEach((iface: any) => {
-      const isUp = iface.running === true && iface.disabled !== 'true';
+      // Check if interface is disabled (can be boolean true or string 'true')
+      const isDisabled = iface.disabled === true || iface.disabled === 'true';
+      // Check if interface is running (can be boolean true or string 'true')
+      const isRunning = iface.running === true || iface.running === 'true';
+      
+      // Interface is UP if it's running AND not disabled
+      const isUp = isRunning && !isDisabled;
       const statusIcon = isUp ? '✅' : '❌';
       const ifaceName = iface.name || 'N/A';
       const ifaceType = iface.type || 'unknown';
@@ -107,9 +121,9 @@ export const generateClientSummary = (clientData: ClientDashboardData): string =
       }
       
       // Add disabled indicator if interface is administratively disabled
-      if (iface.disabled === 'true') {
+      if (isDisabled) {
         summary += ` - DESABILITADA`;
-      } else if (!iface.running) {
+      } else if (!isRunning) {
         summary += ` - DOWN`;
       }
       
