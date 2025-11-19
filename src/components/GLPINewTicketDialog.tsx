@@ -62,6 +62,17 @@ export const GLPINewTicketDialog = ({
     }
   }, [glpiTicketParams]);
 
+  // Debug: Logging do estado das categorias
+  useEffect(() => {
+    console.log('🎫 [GLPINewTicketDialog] Estado das categorias:', {
+      isLoading: itilCategories.isLoading,
+      isError: itilCategories.isError,
+      hasData: !!itilCategories.data,
+      dataLength: itilCategories.data?.length || 0,
+      firstCategory: itilCategories.data?.[0]
+    });
+  }, [itilCategories]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     

@@ -170,6 +170,26 @@ export const MikrotikFirewall = () => {
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
+            <MikrotikExportActions
+              data={rules}
+              filteredData={filteredAndSortedRules}
+              columns={[
+                { key: 'chain', label: 'Chain' },
+                { key: 'action', label: 'Ação' },
+                { key: 'protocol', label: 'Protocolo' },
+                { key: 'src-address', label: 'Origem' },
+                { key: 'dst-address', label: 'Destino' },
+                { key: 'dst-port', label: 'Porta' },
+                { key: 'comment', label: 'Comentário' },
+                { 
+                  key: 'disabled', 
+                  label: 'Status',
+                  formatter: (val) => val === 'true' ? '❌ Desabilitado' : '✅ Ativo'
+                }
+              ]}
+              gridTitle="Firewall"
+              getSummary={() => generateFirewallSummary(rules)}
+            />
           </div>
         </div>
         <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar regras de firewall..." />

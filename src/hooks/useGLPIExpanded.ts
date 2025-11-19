@@ -863,17 +863,30 @@ export const useGLPIExpanded = () => {
     staleTime: 60000,
   });
 
+  // Debug: Verificar condições antes de executar query
+  console.log('🔍 [GLPI] Verificando condições para buscar categorias:', {
+    hasIntegration: !!glpiIntegration,
+    hasApiToken: !!glpiIntegration?.api_token,
+    integrationId: glpiIntegration?.id,
+    apiToken: glpiIntegration?.api_token?.substring(0, 10) + '...'
+  });
+
   // Nova query para categorias de tickets
   const itilCategories = useQuery({
     queryKey: ['glpi', 'itilcategories', glpiIntegration?.id],
     queryFn: async () => {
       console.log('📋 [GLPI] Buscando categorias de tickets (ITILCategory)...');
       const data = await makeGLPIRequest('ITILCategory');
-      console.log('✅ [GLPI] Categorias carregadas:', data);
+      console.log('✅ [GLPI] Categorias carregadas:', {
+        total: Array.isArray(data) ? data.length : 'N/A',
+        first5: Array.isArray(data) ? data.slice(0, 5) : data
+      });
       return data;
     },
     enabled: !!glpiIntegration && !!glpiIntegration.api_token,
     staleTime: 60000,
+    retry: 3,
+    retryDelay: 1000,
   });
 
   // Nova query para tipos de solicitação

@@ -167,6 +167,26 @@ export const MikrotikNAT = () => {
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
+            <MikrotikExportActions
+              data={natRules}
+              filteredData={filteredAndSortedRules}
+              columns={[
+                { key: 'chain', label: 'Chain' },
+                { key: 'action', label: 'Ação' },
+                { key: 'src-address', label: 'Origem' },
+                { key: 'dst-address', label: 'Destino' },
+                { key: 'to-addresses', label: 'Para Endereço' },
+                { key: 'to-ports', label: 'Para Porta' },
+                { key: 'comment', label: 'Comentário' },
+                { 
+                  key: 'disabled', 
+                  label: 'Status',
+                  formatter: (val) => val === 'true' ? '❌ Desabilitado' : '✅ Ativo'
+                }
+              ]}
+              gridTitle="NAT"
+              getSummary={() => generateNATSummary(natRules)}
+            />
           </div>
         </div>
         <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar regras NAT..." />
