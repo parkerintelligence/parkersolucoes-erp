@@ -656,6 +656,7 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
         open={remoteAccessDialogOpen}
         onOpenChange={setRemoteAccessDialogOpen}
         itemName={selectedTicketForRemote?.name}
+        entityName={getEntityName(selectedTicketForRemote?.entities_id)}
       />
     </div>
   );
