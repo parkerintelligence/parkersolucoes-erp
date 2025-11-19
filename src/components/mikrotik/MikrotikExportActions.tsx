@@ -28,7 +28,8 @@ export const MikrotikExportActions = ({
       data: filteredData,
       columns,
       gridTitle,
-      format: 'pdf'
+      format: 'pdf',
+      getSummary
     });
   };
 
@@ -37,7 +38,8 @@ export const MikrotikExportActions = ({
       data: filteredData,
       columns,
       gridTitle,
-      format: 'excel'
+      format: 'excel',
+      getSummary
     });
   };
 
