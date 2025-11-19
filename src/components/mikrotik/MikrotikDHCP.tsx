@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useMikrotikAPI } from '@/hooks/useMikrotikAPI';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Network, RefreshCw } from 'lucide-react';
+import { Loader2, Network, RefreshCw, ArrowUpDown } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -13,11 +13,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { MikrotikTableFilter } from './MikrotikTableFilter';
 
 export const MikrotikDHCP = () => {
   const { callAPI, loading } = useMikrotikAPI();
   const { toast } = useToast();
   const [leases, setLeases] = useState<any[]>([]);
+  const [filter, setFilter] = useState('');
+  const [sortField, setSortField] = useState<string>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     loadLeases();
@@ -50,6 +54,39 @@ export const MikrotikDHCP = () => {
     }
   };
 
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const filteredAndSortedLeases = useMemo(() => {
+    let filtered = leases.filter((lease) => {
+      const searchTerm = filter.toLowerCase();
+      return (
+        lease['host-name']?.toLowerCase().includes(searchTerm) ||
+        lease.comment?.toLowerCase().includes(searchTerm) ||
+        lease.address?.toLowerCase().includes(searchTerm) ||
+        lease['mac-address']?.toLowerCase().includes(searchTerm) ||
+        lease.server?.toLowerCase().includes(searchTerm)
+      );
+    });
+
+    if (sortField) {
+      filtered.sort((a, b) => {
+        const aVal = a[sortField] || '';
+        const bVal = b[sortField] || '';
+        const comparison = aVal.toString().localeCompare(bVal.toString());
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    return filtered;
+  }, [leases, filter, sortField, sortDirection]);
+
   if (loading && leases.length === 0) {
     return (
       <Card>
@@ -65,7 +102,7 @@ export const MikrotikDHCP = () => {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <CardTitle>Clientes DHCP</CardTitle>
             <CardDescription>
@@ -77,13 +114,24 @@ export const MikrotikDHCP = () => {
             Atualizar
           </Button>
         </div>
+        <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar clientes DHCP..." />
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Hostname</TableHead>
-              <TableHead>Endereço IP</TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" onClick={() => handleSort('host-name')} className="h-8 px-2">
+                  Hostname
+                  <ArrowUpDown className="ml-2 h-3 w-3" />
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" onClick={() => handleSort('address')} className="h-8 px-2">
+                  Endereço IP
+                  <ArrowUpDown className="ml-2 h-3 w-3" />
+                </Button>
+              </TableHead>
               <TableHead>MAC Address</TableHead>
               <TableHead>Servidor</TableHead>
               <TableHead>Status</TableHead>
@@ -91,7 +139,7 @@ export const MikrotikDHCP = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {leases.map((lease) => (
+            {filteredAndSortedLeases.map((lease) => (
               <TableRow key={lease['.id']}>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
@@ -114,6 +162,12 @@ export const MikrotikDHCP = () => {
             ))}
           </TableBody>
         </Table>
+
+        {filteredAndSortedLeases.length === 0 && leases.length > 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            Nenhum cliente encontrado com o filtro aplicado
+          </div>
+        )}
 
         {leases.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">

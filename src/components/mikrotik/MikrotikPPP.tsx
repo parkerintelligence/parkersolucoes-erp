@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMikrotikAPI } from "@/hooks/useMikrotikAPI";
 import { useToast } from "@/hooks/use-toast";
@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Power, PowerOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Power, PowerOff, ArrowUpDown } from "lucide-react";
 import { MikrotikPPPDialog } from "./MikrotikPPPDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { MikrotikTableFilter } from './MikrotikTableFilter';
 
 interface PPPSecret {
   ".id": string;
@@ -30,6 +31,9 @@ export const MikrotikPPP = () => {
   const [editingSecret, setEditingSecret] = useState<PPPSecret | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [secretToDelete, setSecretToDelete] = useState<PPPSecret | null>(null);
+  const [filter, setFilter] = useState('');
+  const [sortField, setSortField] = useState<string>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const { data: secrets = [], isLoading } = useQuery({
     queryKey: ["mikrotik-ppp-secrets"],
@@ -105,6 +109,39 @@ export const MikrotikPPP = () => {
     });
   };
 
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const filteredAndSortedSecrets = useMemo(() => {
+    let filtered = secrets.filter((secret: PPPSecret) => {
+      const searchTerm = filter.toLowerCase();
+      return (
+        secret.name?.toLowerCase().includes(searchTerm) ||
+        secret.service?.toLowerCase().includes(searchTerm) ||
+        secret['local-address']?.toLowerCase().includes(searchTerm) ||
+        secret['remote-address']?.toLowerCase().includes(searchTerm) ||
+        secret.comment?.toLowerCase().includes(searchTerm)
+      );
+    });
+
+    if (sortField) {
+      filtered.sort((a: any, b: any) => {
+        const aVal = a[sortField] || '';
+        const bVal = b[sortField] || '';
+        const comparison = aVal.toString().localeCompare(bVal.toString());
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    return filtered;
+  }, [secrets, filter, sortField, sortDirection]);
+
   const getServiceBadge = (service?: string) => {
     const variants: Record<string, { label: string; className: string }> = {
       pptp: { label: "PPTP", className: "bg-blue-500 text-white" },
@@ -123,23 +160,33 @@ export const MikrotikPPP = () => {
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Usuários VPN (PPP Secrets)</CardTitle>
-          <Button onClick={() => { setEditingSecret(null); setDialogOpen(true); }}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Usuário
-          </Button>
+        <CardHeader>
+          <div className="flex flex-row items-center justify-between mb-4">
+            <CardTitle>Usuários VPN (PPP Secrets)</CardTitle>
+            <Button onClick={() => { setEditingSecret(null); setDialogOpen(true); }}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Usuário
+            </Button>
+          </div>
+          <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar usuários VPN..." />
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <p className="text-center py-8 text-muted-foreground">Carregando...</p>
+          ) : filteredAndSortedSecrets.length === 0 && secrets.length > 0 ? (
+            <p className="text-center py-8 text-muted-foreground">Nenhum usuário encontrado com o filtro aplicado</p>
           ) : secrets.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">Nenhum usuário VPN cadastrado</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
+                  <TableHead>
+                    <Button variant="ghost" size="sm" onClick={() => handleSort('name')} className="h-8 px-2">
+                      Nome
+                      <ArrowUpDown className="ml-2 h-3 w-3" />
+                    </Button>
+                  </TableHead>
                   <TableHead>Serviço</TableHead>
                   <TableHead>IP Local</TableHead>
                   <TableHead>IP Remoto</TableHead>
