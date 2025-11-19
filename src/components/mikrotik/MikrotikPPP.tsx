@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Power, PowerOff, ArrowUpDown } from "lucide-react";
+import { Key, Plus, Pencil, Trash2, Power, PowerOff, ArrowUpDown, RefreshCw } from "lucide-react";
 import { MikrotikPPPDialog } from "./MikrotikPPPDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { MikrotikTableFilter } from './MikrotikTableFilter';
+import { MikrotikExportActions } from './MikrotikExportActions';
+import { generatePPPSummary } from '@/utils/mikrotikExportFormatters';
 
 interface PPPSecret {
   ".id": string;
@@ -163,10 +165,31 @@ export const MikrotikPPP = () => {
         <CardHeader>
           <div className="flex flex-row items-center justify-between mb-4">
             <CardTitle>Usuários VPN (PPP Secrets)</CardTitle>
-            <Button onClick={() => { setEditingSecret(null); setDialogOpen(true); }}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Usuário
-            </Button>
+            <div className="flex gap-2">
+              <MikrotikExportActions
+                data={secrets}
+                filteredData={filteredAndSortedSecrets}
+                columns={[
+                  { key: 'name', label: 'Nome' },
+                  { key: 'service', label: 'Serviço' },
+                  { key: 'caller-id', label: 'Caller ID' },
+                  { key: 'local-address', label: 'IP Local' },
+                  { key: 'remote-address', label: 'IP Remoto' },
+                  { key: 'profile', label: 'Perfil' },
+                  { key: 'comment', label: 'Comentário' },
+                  { key: 'disabled', label: 'Status', formatter: (val) => val === 'true' ? '❌ Desabilitado' : '✅ Ativo' }
+                ]}
+                gridTitle="VPN (PPP)"
+                getSummary={() => generatePPPSummary(filteredAndSortedSecrets)}
+              />
+              <Button onClick={() => { setEditingSecret(null); setDialogOpen(true); }}>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Usuário
+              </Button>
+              <Button onClick={() => queryClient.invalidateQueries({ queryKey: ["mikrotik-ppp-secrets"] })} disabled={isLoading} variant="outline">
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
           </div>
           <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar usuários VPN..." />
         </CardHeader>

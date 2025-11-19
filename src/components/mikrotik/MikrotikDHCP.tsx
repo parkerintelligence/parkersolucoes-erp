@@ -14,6 +14,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { MikrotikTableFilter } from './MikrotikTableFilter';
+import { MikrotikExportActions } from './MikrotikExportActions';
+import { generateDHCPSummary } from '@/utils/mikrotikExportFormatters';
 
 export const MikrotikDHCP = () => {
   const { callAPI, loading } = useMikrotikAPI();
@@ -143,10 +145,27 @@ export const MikrotikDHCP = () => {
               {activeLeases.length} dispositivos conectados
             </CardDescription>
           </div>
-          <Button onClick={loadLeases} disabled={loading} size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
+          <div className="flex gap-2">
+            <MikrotikExportActions
+              data={leases}
+              filteredData={filteredAndSortedLeases}
+              columns={[
+                { key: 'host-name', label: 'Hostname' },
+                { key: 'address', label: 'IP' },
+                { key: 'mac-address', label: 'MAC Address' },
+                { key: 'server', label: 'Servidor' },
+                { key: 'status', label: 'Status' },
+                { key: 'expires-after', label: 'Expira em' },
+                { key: 'comment', label: 'Comentário' }
+              ]}
+              gridTitle="DHCP Leases"
+              getSummary={() => generateDHCPSummary(filteredAndSortedLeases)}
+            />
+            <Button onClick={loadLeases} disabled={loading} size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+          </div>
         </div>
         <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar clientes DHCP..." />
       </CardHeader>

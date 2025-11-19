@@ -14,6 +14,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { MikrotikTableFilter } from './MikrotikTableFilter';
+import { MikrotikExportActions } from './MikrotikExportActions';
+import { generateInterfacesSummary, formatBytes } from '@/utils/mikrotikExportFormatters';
 
 export const MikrotikInterfaces = () => {
   const { callAPI, loading } = useMikrotikAPI();
@@ -117,6 +119,28 @@ export const MikrotikInterfaces = () => {
             <CardTitle className="text-white">Interfaces de Rede</CardTitle>
             <CardDescription className="text-slate-400">Gerenciar interfaces do MikroTik</CardDescription>
           </div>
+          <div className="flex gap-2">
+            <MikrotikExportActions
+              data={interfaces}
+              filteredData={filteredAndSortedInterfaces}
+              columns={[
+                { key: 'name', label: 'Nome' },
+                { key: 'type', label: 'Tipo' },
+                { key: 'running', label: 'Status', formatter: (val) => val === 'true' ? '✅ Conectado' : '❌ Desconectado' },
+                { key: 'rx-byte', label: 'RX', formatter: (val) => formatBytes(parseInt(val || '0')) },
+                { key: 'tx-byte', label: 'TX', formatter: (val) => formatBytes(parseInt(val || '0')) },
+                { key: 'comment', label: 'Comentário' }
+              ]}
+              gridTitle="Interfaces de Rede"
+              getSummary={() => generateInterfacesSummary(filteredAndSortedInterfaces)}
+            />
+            <Button onClick={loadInterfaces} disabled={loading} variant="outline">
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </div>
+        <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar interfaces..." />
+      </CardHeader>
           <Button onClick={loadInterfaces} disabled={loading} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Atualizar

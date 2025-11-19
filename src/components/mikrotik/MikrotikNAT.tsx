@@ -16,6 +16,8 @@ import {
 import { MikrotikNATDialog } from './MikrotikNATDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { MikrotikTableFilter } from './MikrotikTableFilter';
+import { MikrotikExportActions } from './MikrotikExportActions';
+import { generateNATSummary } from '@/utils/mikrotikExportFormatters';
 
 const getChainColor = (chain: string) => {
   switch (chain) {

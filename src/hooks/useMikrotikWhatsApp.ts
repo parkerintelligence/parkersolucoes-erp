@@ -1,0 +1,78 @@
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useIntegrations } from '@/hooks/useIntegrations';
+import { useMikrotikContext } from '@/contexts/MikrotikContext';
+
+export interface WhatsAppMessageOptions {
+  gridTitle: string;
+  data: any[];
+  summary: string;
+  includeDetails?: boolean;
+}
+
+export const useMikrotikWhatsApp = () => {
+  const { toast } = useToast();
+  const { data: integrations } = useIntegrations();
+  const { selectedClient } = useMikrotikContext();
+  const [sending, setSending] = useState(false);
+
+  const formatMessage = (options: WhatsAppMessageOptions): string => {
+    const clientName = selectedClient?.name || 'Cliente';
+    const timestamp = new Date().toLocaleString('pt-BR');
+
+    let message = `🔧 *RELATÓRIO MIKROTIK - ${options.gridTitle.toUpperCase()}*\n\n`;
+    message += `📍 Cliente: ${clientName}\n`;
+    message += `📅 Data/Hora: ${timestamp}\n`;
+    message += `📊 Total de itens: ${options.data.length}\n\n`;
+    message += `${options.summary}\n\n`;
+    message += `---\n`;
+    message += `Gerado automaticamente via Sistema Parker`;
+
+    return message;
+  };
+
+  const sendMessage = async (phoneNumber: string, message: string) => {
+    setSending(true);
+    try {
+      // Find active Evolution API integration
+      const evolutionIntegration = integrations?.find(
+        i => i.type === 'evolution_api' && i.is_active
+      );
+
+      if (!evolutionIntegration) {
+        throw new Error('Nenhuma integração Evolution API ativa encontrada');
+      }
+
+      // Send message via edge function
+      const { data, error } = await supabase.functions.invoke('send-whatsapp-message', {
+        body: {
+          integrationId: evolutionIntegration.id,
+          phoneNumber: phoneNumber.replace(/\D/g, ''), // Remove non-digits
+          message
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Mensagem enviada com sucesso',
+        description: `Relatório enviado para ${phoneNumber}`,
+      });
+
+      return data;
+    } catch (error: any) {
+      console.error('Erro ao enviar mensagem:', error);
+      toast({
+        title: 'Erro ao enviar mensagem',
+        description: error.message || 'Não foi possível enviar a mensagem via WhatsApp',
+        variant: 'destructive',
+      });
+      throw error;
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return { formatMessage, sendMessage, sending };
+};
