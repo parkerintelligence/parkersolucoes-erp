@@ -113,7 +113,9 @@ export const MikrotikPPP = () => {
       pppoe: { label: "PPPoE", className: "bg-orange-500 text-white" },
     };
 
-    const config = service ? variants[service] : { label: "N/A", className: "bg-muted" };
+    const config = service && variants[service] 
+      ? variants[service] 
+      : { label: service || "N/A", className: "bg-muted" };
     return <Badge className={config.className}>{config.label}</Badge>;
   };
 
