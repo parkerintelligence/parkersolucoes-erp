@@ -89,6 +89,11 @@ const menuItems = [{
   icon: LayoutDashboard,
   role: 'user'
 }, {
+  title: 'Security',
+  url: '/security',
+  icon: Shield,
+  role: 'user'
+}, {
   title: 'Admin',
   url: '/admin',
   icon: Settings,
