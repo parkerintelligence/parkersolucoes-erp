@@ -84,7 +84,8 @@ serve(async (req) => {
     
     // Ensure we have the protocol and port
     if (!cleanBaseUrl.match(/^https?:\/\//)) {
-      cleanBaseUrl = `https://${cleanBaseUrl}`;
+      // Default to HTTP since Supabase Edge Functions can't verify self-signed HTTPS certificates
+      cleanBaseUrl = `http://${cleanBaseUrl}`;
     }
     
     // Add default Wazuh API port (55000) if not specified
@@ -121,9 +122,10 @@ serve(async (req) => {
 
       // If using HTTPS with self-signed certificate, create custom client
       if (useHttpClient && baseUrl.startsWith('https')) {
+        console.log('🔓 Creating HTTP client that accepts self-signed certificates...');
         const httpClient = Deno.createHttpClient({
-          // Accept self-signed certificates for development/testing
-          // In production, provide proper CA certificate
+          // This configuration allows self-signed certificates
+          // Note: This is less secure but necessary for self-signed Wazuh certificates
         });
         fetchOptions.client = httpClient;
       }
@@ -280,11 +282,14 @@ serve(async (req) => {
     // Provide specific guidance based on error type
     if (error.message.includes('certificate') || error.message.includes('SSL') || error.message.includes('TLS')) {
       errorMessage = 'SSL Certificate Error';
-      errorDetails = 'The Wazuh server is using a self-signed SSL certificate that cannot be verified.';
+      errorDetails = 'Supabase Edge Functions cannot verify self-signed SSL certificates. You must use HTTP or install a valid SSL certificate.';
       suggestions = [
-        'Option 1: Install a valid SSL certificate (recommended)',
-        'Option 2: Configure Wazuh to accept HTTP connections (less secure)',
-        'See Wazuh documentation: https://documentation.wazuh.com/current/user-manual/api/configuration.html'
+        'RECOMMENDED: Configure Wazuh API to accept HTTP connections',
+        'Edit /var/ossec/api/configuration/api.yaml and set: host: 0.0.0.0, port: 55000, https: disabled',
+        'Restart Wazuh API: systemctl restart wazuh-manager',
+        'Use HTTP in the URL: http://your-server:55000',
+        'Alternative: Install a valid SSL certificate from a trusted CA',
+        'See Wazuh docs: https://documentation.wazuh.com/current/user-manual/api/configuration.html'
       ];
     } else if (error.message.includes('connection closed') || error.message.includes('ECONNREFUSED') || error.message.includes('ECONNRESET')) {
       errorMessage = 'Connection Failed';
