@@ -12,6 +12,12 @@ let tokenCache: { [key: string]: { token: string, expires: number } } = {};
 
 console.log("Wazuh-proxy function starting...");
 
+// Create HTTP client that allows self-signed certificates
+const httpClient = Deno.createHttpClient({
+  // This allows self-signed certificates
+  caCerts: [],
+});
+
 serve(async (req) => {
   console.log(`Received ${req.method} request to wazuh-proxy`);
   
@@ -130,6 +136,7 @@ serve(async (req) => {
             password: password
           }),
           signal: AbortSignal.timeout(15000),
+          client: httpClient, // Use custom client that allows self-signed certs
         });
 
         console.log('Auth response status:', authResponse.status);
@@ -187,6 +194,7 @@ serve(async (req) => {
         method: method || 'GET',
         headers: requestHeaders,
         signal: AbortSignal.timeout(30000),
+        client: httpClient, // Use custom client that allows self-signed certs
       });
 
       console.log('API response status:', apiResponse.status);
