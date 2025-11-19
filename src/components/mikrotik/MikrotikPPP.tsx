@@ -1,0 +1,223 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMikrotikAPI } from "@/hooks/useMikrotikAPI";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Pencil, Trash2, Power, PowerOff } from "lucide-react";
+import { MikrotikPPPDialog } from "./MikrotikPPPDialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+
+interface PPPSecret {
+  ".id": string;
+  name: string;
+  password?: string;
+  service?: string;
+  "local-address"?: string;
+  "remote-address"?: string;
+  profile?: string;
+  disabled?: string;
+  comment?: string;
+}
+
+export const MikrotikPPP = () => {
+  const { callAPI, loading } = useMikrotikAPI();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingSecret, setEditingSecret] = useState<PPPSecret | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [secretToDelete, setSecretToDelete] = useState<PPPSecret | null>(null);
+
+  const { data: secrets = [], isLoading } = useQuery({
+    queryKey: ["mikrotik-ppp-secrets"],
+    queryFn: async () => {
+      const result = await callAPI("/ppp/secret", "GET");
+      return Array.isArray(result) ? result : [];
+    },
+    refetchInterval: 5000,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await callAPI(`/ppp/secret/${id}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mikrotik-ppp-secrets"] });
+      toast({
+        title: "Sucesso",
+        description: "Usuário VPN excluído com sucesso",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao excluir usuário VPN",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, disabled }: { id: string; disabled: boolean }) => {
+      await callAPI(`/ppp/secret/${id}`, "PATCH", { disabled: disabled ? "false" : "true" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mikrotik-ppp-secrets"] });
+      toast({
+        title: "Sucesso",
+        description: "Status atualizado com sucesso",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao atualizar status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEdit = (secret: PPPSecret) => {
+    setEditingSecret(secret);
+    setDialogOpen(true);
+  };
+
+  const handleDelete = (secret: PPPSecret) => {
+    setSecretToDelete(secret);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (secretToDelete) {
+      deleteMutation.mutate(secretToDelete[".id"]);
+      setDeleteDialogOpen(false);
+      setSecretToDelete(null);
+    }
+  };
+
+  const handleToggle = (secret: PPPSecret) => {
+    toggleMutation.mutate({
+      id: secret[".id"],
+      disabled: secret.disabled === "true",
+    });
+  };
+
+  const getServiceBadge = (service?: string) => {
+    const variants: Record<string, { label: string; className: string }> = {
+      pptp: { label: "PPTP", className: "bg-blue-500 text-white" },
+      l2tp: { label: "L2TP", className: "bg-green-500 text-white" },
+      sstp: { label: "SSTP", className: "bg-purple-500 text-white" },
+      pppoe: { label: "PPPoE", className: "bg-orange-500 text-white" },
+    };
+
+    const config = service ? variants[service] : { label: "N/A", className: "bg-muted" };
+    return <Badge className={config.className}>{config.label}</Badge>;
+  };
+
+  return (
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Usuários VPN (PPP Secrets)</CardTitle>
+          <Button onClick={() => { setEditingSecret(null); setDialogOpen(true); }}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Usuário
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <p className="text-center py-8 text-muted-foreground">Carregando...</p>
+          ) : secrets.length === 0 ? (
+            <p className="text-center py-8 text-muted-foreground">Nenhum usuário VPN cadastrado</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Serviço</TableHead>
+                  <TableHead>IP Local</TableHead>
+                  <TableHead>IP Remoto</TableHead>
+                  <TableHead>Perfil</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {secrets.map((secret) => (
+                  <TableRow key={secret[".id"]}>
+                    <TableCell className="font-medium">{secret.name}</TableCell>
+                    <TableCell>{getServiceBadge(secret.service)}</TableCell>
+                    <TableCell>{secret["local-address"] || "-"}</TableCell>
+                    <TableCell>{secret["remote-address"] || "-"}</TableCell>
+                    <TableCell>{secret.profile || "default"}</TableCell>
+                    <TableCell>
+                      {secret.disabled === "true" ? (
+                        <Badge variant="secondary">Inativo</Badge>
+                      ) : (
+                        <Badge variant="default">Ativo</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleToggle(secret)}
+                          disabled={loading}
+                        >
+                          {secret.disabled === "true" ? (
+                            <Power className="h-4 w-4" />
+                          ) : (
+                            <PowerOff className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleEdit(secret)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleDelete(secret)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <MikrotikPPPDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        secret={editingSecret}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o usuário VPN "{secretToDelete?.name}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+};
