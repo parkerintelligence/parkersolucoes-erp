@@ -76,10 +76,14 @@ serve(async (req) => {
     }
 
     console.log('✅ Integração encontrada:', integration.name);
+    console.log('🔗 Base URL:', integration.base_url);
+    console.log('👤 Username:', integration.username);
     
     console.log(`🔄 MikroTik API: ${method} ${endpoint}`);
 
     const mikrotikUrl = `${integration.base_url}/rest${endpoint}`;
+    console.log('📍 URL completa:', mikrotikUrl);
+    
     const auth = btoa(`${integration.username}:${integration.password}`);
 
     const mikrotikResponse = await fetch(mikrotikUrl, {
@@ -90,6 +94,12 @@ serve(async (req) => {
       },
       body: body ? JSON.stringify(body) : undefined,
     });
+    
+    console.log('📊 Status:', mikrotikResponse.status);
+    
+    if (mikrotikResponse.status === 401) {
+      console.error('❌ MikroTik retornou 401 - Verifique usuário/senha e se a API REST está habilitada');
+    }
 
     const responseText = await mikrotikResponse.text();
     let responseData;
@@ -101,6 +111,16 @@ serve(async (req) => {
     }
 
     console.log(`📊 Status: ${mikrotikResponse.status}`);
+
+    if (mikrotikResponse.status === 401) {
+      return new Response(JSON.stringify({ 
+        error: 'Falha na autenticação com MikroTik. Verifique usuário, senha e se a API REST está habilitada no MikroTik.',
+        details: 'O servidor MikroTik retornou 401 Unauthorized'
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     return new Response(JSON.stringify(responseData), {
       status: mikrotikResponse.status,
