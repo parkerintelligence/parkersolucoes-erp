@@ -1133,7 +1133,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
 🏢 Entidade: ${entityName}
 👤 Técnico: ${assignee}`;
       })
-      .join('\n\n─────────────────\n\n');
+      .join('\n\n\n');
 
     // Criar resumo dos tickets críticos
     const criticalSummary = criticalTickets
