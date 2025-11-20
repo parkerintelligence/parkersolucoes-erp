@@ -111,9 +111,8 @@ serve(async (req) => {
       
       try {
         const authResponse = await fetch(authUrl, {
-          method: 'POST',
+          method: 'GET',
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': `Basic ${basicAuth}`,
           },
           signal: AbortSignal.timeout(15000),
