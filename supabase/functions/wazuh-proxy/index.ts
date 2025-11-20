@@ -94,40 +94,76 @@ serve(async (req) => {
     console.log('Authenticating with Wazuh API...');
 
     const basicAuth = btoa(`${username}:${password}`);
+    const originalBaseUrl = cleanBaseUrl; // Save original URL for comparison
     
     // Simple authentication function using GET with Basic Auth
-    const authenticateWithWazuh = async (baseUrl: string): Promise<string> => {
+    const authenticateWithWazuh = async (baseUrl: string): Promise<{token: string, baseUrl: string}> => {
       const authUrl = `${baseUrl}/security/user/authenticate`;
       
       console.log(`🔐 Authenticating to: ${authUrl} (GET with Basic Auth)`);
       
-      const authResponse = await fetch(authUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Basic ${basicAuth}`,
-          'Content-Type': 'application/json'
+      try {
+        const authResponse = await fetch(authUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Basic ${basicAuth}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!authResponse.ok) {
+          const errorText = await authResponse.text();
+          console.error(`❌ Auth failed: ${authResponse.status} - ${errorText}`);
+          throw new Error(`Authentication failed: ${authResponse.status}`);
         }
-      });
 
-      if (!authResponse.ok) {
-        const errorText = await authResponse.text();
-        console.error(`❌ Auth failed: ${authResponse.status} - ${errorText}`);
-        throw new Error(`Authentication failed: ${authResponse.status}`);
+        const authData = await authResponse.json();
+        console.log('✅ Authentication successful');
+        console.log('Token data:', authData.data ? 'Present' : 'Missing');
+        
+        return { token: authData.data?.token, baseUrl };
+      } catch (error) {
+        // If HTTPS fails with certificate error, try HTTP
+        if (error.message.includes('certificate') || error.message.includes('UnknownIssuer')) {
+          console.log('⚠️ HTTPS certificate error, trying HTTP fallback...');
+          const httpUrl = baseUrl.replace('https://', 'http://');
+          const httpAuthUrl = `${httpUrl}/security/user/authenticate`;
+          
+          console.log(`🔄 Trying HTTP: ${httpAuthUrl}`);
+          
+          const httpResponse = await fetch(httpAuthUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Basic ${basicAuth}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!httpResponse.ok) {
+            const errorText = await httpResponse.text();
+            throw new Error(`HTTP auth failed: ${httpResponse.status} - ${errorText}`);
+          }
+
+          const httpData = await httpResponse.json();
+          console.log('✅ HTTP authentication successful (fallback)');
+          
+          return { token: httpData.data?.token, baseUrl: httpUrl };
+        }
+        
+        throw error;
       }
-
-      const authData = await authResponse.json();
-      console.log('✅ Authentication successful');
-      console.log('Token data:', authData.data ? 'Present' : 'Missing');
-      
-      return authData.data?.token;
     };
     
     // Get JWT token
     console.log('🔄 Getting JWT token...');
     
     let jwtToken: string;
+    let finalBaseUrl = cleanBaseUrl; // Track which URL worked
+    
     try {
-      jwtToken = await authenticateWithWazuh(cleanBaseUrl);
+      const result = await authenticateWithWazuh(cleanBaseUrl);
+      jwtToken = result.token;
+      finalBaseUrl = result.baseUrl;
     } catch (error) {
       console.error('❌ Authentication failed:', error.message);
       
@@ -164,8 +200,14 @@ serve(async (req) => {
     }
 
     // Make the API request with the JWT token
-    const apiUrl = `${cleanBaseUrl}${endpoint}`;
+    const apiUrl = `${finalBaseUrl}${endpoint}`;
     console.log(`📡 Making API request to: ${apiUrl}`);
+    
+    // Warn if using HTTP instead of HTTPS
+    if (finalBaseUrl.startsWith('http://') && originalBaseUrl.startsWith('https://')) {
+      console.warn('⚠️ Using HTTP fallback due to HTTPS certificate issues');
+      console.warn('⚠️ Consider configuring Wazuh with a valid SSL certificate or using a reverse proxy');
+    }
     
     const apiResponse = await fetch(apiUrl, {
       method: method || 'GET',
@@ -187,8 +229,15 @@ serve(async (req) => {
     const responseData = await apiResponse.json();
     console.log('✅ API response received successfully');
 
+    const responseHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
+    
+    // Add warning header if using HTTP fallback
+    if (finalBaseUrl.startsWith('http://') && originalBaseUrl.startsWith('https://')) {
+      responseHeaders['X-Wazuh-Connection'] = 'http-fallback';
+    }
+
     return new Response(JSON.stringify(responseData), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: responseHeaders,
     });
 
   } catch (error) {
