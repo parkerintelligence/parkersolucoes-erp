@@ -95,17 +95,17 @@ serve(async (req) => {
 
     const basicAuth = btoa(`${username}:${password}`);
     
-    // Simple authentication function - no fallbacks, no custom clients
+    // Simple authentication function using GET with Basic Auth
     const authenticateWithWazuh = async (baseUrl: string): Promise<string> => {
       const authUrl = `${baseUrl}/security/user/authenticate`;
       
-      console.log(`🔐 Authenticating to: ${authUrl}`);
+      console.log(`🔐 Authenticating to: ${authUrl} (GET with Basic Auth)`);
       
       const authResponse = await fetch(authUrl, {
-        method: 'POST',
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Basic ${basicAuth}`
+          'Authorization': `Basic ${basicAuth}`,
+          'Content-Type': 'application/json'
         }
       });
 
@@ -117,6 +117,7 @@ serve(async (req) => {
 
       const authData = await authResponse.json();
       console.log('✅ Authentication successful');
+      console.log('Token data:', authData.data ? 'Present' : 'Missing');
       
       return authData.data?.token;
     };
