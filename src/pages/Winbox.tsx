@@ -10,6 +10,7 @@ import { MikrotikAddresses } from "@/components/mikrotik/MikrotikAddresses";
 import { MikrotikLogs } from "@/components/mikrotik/MikrotikLogs";
 import { MikrotikClientSelector } from "@/components/mikrotik/MikrotikClientSelector";
 import { MikrotikDashboard } from "@/components/mikrotik/MikrotikDashboard";
+import { MikrotikHeaderSelector } from "@/components/mikrotik/MikrotikHeaderSelector";
 import { useMikrotikContext } from "@/contexts/MikrotikContext";
 import { useMikrotikAPI } from "@/hooks/useMikrotikAPI";
 import { toast } from "@/hooks/use-toast";
@@ -63,17 +64,14 @@ const Winbox = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-blue-600 p-2 rounded-lg">
-                <Network className="h-6 w-6 text-white" />
+                <Network className="h-5 w-5 text-white" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">
-                  MikroTik - {selectedClient.name}
-                </h1>
-                <p className="text-slate-400 text-sm">
-                  {selectedClient.base_url}
-                </p>
+              <div className="flex items-center gap-2">
+                <MikrotikHeaderSelector />
+                <Badge className="bg-green-600/20 text-green-400 border border-green-600/30 text-xs px-2 py-0.5">
+                  Conectado
+                </Badge>
               </div>
-              <Badge className="bg-green-600 text-white">Conectado</Badge>
             </div>
             <div className="flex items-center gap-2">
               <AlertDialog>
