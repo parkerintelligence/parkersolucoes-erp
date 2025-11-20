@@ -7,9 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
-// JWT token cache to avoid re-authentication on every request
-let tokenCache: { [key: string]: { token: string, expires: number } } = {};
-
 console.log("Wazuh-proxy function starting...");
 
 serve(async (req) => {
@@ -94,108 +91,75 @@ serve(async (req) => {
     }
 
     console.log(`Connecting to Wazuh API: ${cleanBaseUrl}${endpoint}`);
-    
-    // According to Wazuh docs, API uses HTTPS by default with self-signed certs
-    // Deno requires valid SSL certificates, so we'll try to connect and provide helpful errors
     console.log('Authenticating with Wazuh API...');
 
     const basicAuth = btoa(`${username}:${password}`);
-    const cacheKey = `${cleanBaseUrl}:${username}`;
     
-    // Function to authenticate with Wazuh API using Basic Auth (POST method)
-    const authenticateWithWazuh = async (baseUrl: string) => {
+    // Simple authentication function - no fallbacks, no custom clients
+    const authenticateWithWazuh = async (baseUrl: string): Promise<string> => {
       const authUrl = `${baseUrl}/security/user/authenticate`;
       
       console.log(`🔐 Authenticating to: ${authUrl}`);
-      console.log(`📋 Protocol: ${baseUrl.startsWith('https') ? 'HTTPS' : 'HTTP'}`);
       
-      try {
-        const authResponse = await fetch(authUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Basic ${basicAuth}`,
-          },
-          signal: AbortSignal.timeout(15000),
-        });
-
-        console.log(`✅ Auth response status: ${authResponse.status}`);
-        
-        if (!authResponse.ok) {
-          const errorText = await authResponse.text();
-          console.error('❌ Auth error:', errorText);
-          throw new Error(`Authentication failed: ${authResponse.status} - ${errorText}`);
+      const authResponse = await fetch(authUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${basicAuth}`
         }
+      });
 
-        const authData = await authResponse.json();
-        console.log('✅ Authentication successful');
-        
-        const token = authData.data?.token || authData.token;
-        
-        if (!token) {
-          throw new Error('No JWT token received from authentication');
-        }
-        
-        console.log(`🎫 Token received, length: ${token.length}`);
-        
-        // Cache token for 14 minutes (Wazuh tokens expire after 15 minutes)
-        tokenCache[cacheKey] = {
-          token,
-          expires: Date.now() + (14 * 60 * 1000)
-        };
-        
-        return token;
-      } catch (error) {
-        console.error('❌ Authentication error:', error.message);
-        throw error;
+      if (!authResponse.ok) {
+        const errorText = await authResponse.text();
+        console.error(`❌ Auth failed: ${authResponse.status} - ${errorText}`);
+        throw new Error(`Authentication failed: ${authResponse.status}`);
       }
+
+      const authData = await authResponse.json();
+      console.log('✅ Authentication successful');
+      
+      return authData.data?.token;
     };
     
-    // Check if we have a valid cached token
-    const cachedToken = tokenCache[cacheKey];
-    let jwtToken: string;
+    // Get JWT token
+    console.log('🔄 Getting JWT token...');
     
-    if (cachedToken && cachedToken.expires > Date.now()) {
-      console.log('♻️ Using cached JWT token');
-      jwtToken = cachedToken.token;
-    } else {
-      console.log('🔄 Getting new JWT token...');
+    let jwtToken: string;
+    try {
+      jwtToken = await authenticateWithWazuh(cleanBaseUrl);
+    } catch (error) {
+      console.error('❌ Authentication failed:', error.message);
       
-      try {
-        jwtToken = await authenticateWithWazuh(cleanBaseUrl);
-      } catch (error) {
-        console.error('❌ Authentication failed:', error.message);
-        
-        return new Response(
-          JSON.stringify({
-            error: '❌ Wazuh Authentication Failed',
-            details: error.message,
-            suggestions: [
-              '🔴 PROBLEM: Cannot authenticate with Wazuh API',
-              '',
-              '⚙️  Check the following:',
-              '',
-              '1️⃣  Verify the Wazuh URL is correct (should be https://your-server:55000)',
-              '',
-              '2️⃣  Verify username and password are correct',
-              '',
-              '3️⃣  Check that the Wazuh API is running:',
-              '   sudo systemctl status wazuh-manager',
-              '',
-              '4️⃣  Check firewall allows port 55000:',
-              '   sudo ufw status',
-              '   sudo ufw allow 55000/tcp',
-              '',
-              '5️⃣  Test authentication locally on the server:',
-              '   curl -u username:password -k -X POST https://localhost:55000/security/user/authenticate',
-              '',
-              '📖 See "Guia de Setup" tab for detailed instructions'
-            ]
-          }),
-          { 
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-      }
+      return new Response(
+        JSON.stringify({
+          error: '❌ Wazuh Authentication Failed',
+          details: error.message,
+          suggestions: [
+            '🔴 PROBLEM: Cannot authenticate with Wazuh API',
+            '',
+            '⚙️  Check the following:',
+            '',
+            '1️⃣  Verify the Wazuh URL is correct (should be https://your-server:55000)',
+            '',
+            '2️⃣  Verify username and password are correct',
+            '',
+            '3️⃣  Check that the Wazuh API is running:',
+            '   sudo systemctl status wazuh-manager',
+            '',
+            '4️⃣  Check firewall allows port 55000:',
+            '   sudo ufw status',
+            '   sudo ufw allow 55000/tcp',
+            '',
+            '5️⃣  If using HTTPS, ensure you have a valid SSL certificate (not self-signed)',
+            '',
+            '📖 See "Guia de Setup" tab for detailed instructions'
+          ]
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Make the API request with the JWT token
@@ -214,12 +178,6 @@ serve(async (req) => {
     console.log(`📊 API response status: ${apiResponse.status}`);
     
     if (!apiResponse.ok) {
-      // If token expired, clear cache for next request
-      if (apiResponse.status === 401) {
-        console.log('🔄 Token expired, clearing cache...');
-        delete tokenCache[cacheKey];
-      }
-      
       const errorText = await apiResponse.text();
       console.error('❌ API error:', errorText);
       throw new Error(`API request failed: ${apiResponse.status}`);
@@ -246,54 +204,35 @@ serve(async (req) => {
     // Provide specific guidance based on error type
     if (error.message.includes('certificate') || error.message.includes('SSL') || error.message.includes('TLS') || error.message.includes('UnknownIssuer')) {
       errorMessage = '🔒 SSL Certificate Problem';
-      errorDetails = 'Wazuh is using HTTPS with a self-signed certificate. Supabase Edge Functions cannot verify self-signed certificates.';
+      errorDetails = 'Wazuh HTTPS connection failed due to certificate issues. Deno (used by Supabase) requires valid SSL certificates.';
       suggestions = [
-        '⚠️  REQUIRED ACTION: Configure Wazuh for HTTP',
+        '⚠️  HTTPS with self-signed certificates is not supported',
         '',
-        '📋 Quick Setup Steps:',
-        '1. SSH into Wazuh server',
-        '2. sudo nano /var/ossec/api/configuration/api.yaml',
-        '3. Set: https: enabled: no',
-        '4. sudo systemctl restart wazuh-manager',
-        '5. Use http://your-server:55000 in the URL field',
+        '📋 Solutions:',
+        '1. Install a valid SSL certificate (Let\'s Encrypt recommended)',
+        '2. OR configure Wazuh for HTTP if on private network',
         '',
-        '📖 See "Guia de Setup" tab for detailed instructions',
-        '🔗 Wazuh docs: https://documentation.wazuh.com/current/user-manual/api/configuration.html'
+        '📖 See "Guia de Setup" tab for detailed instructions'
       ];
-    } else if (error.message.includes('connection closed') || error.message.includes('ECONNREFUSED') || error.message.includes('ECONNRESET') || error.message.includes('ETIMEDOUT')) {
-      errorMessage = '❌ Wazuh Server Not Configured for HTTP';
-      errorDetails = 'Connection attempts failed. The Wazuh server is rejecting both HTTP and HTTPS connections from Supabase. This means Wazuh is NOT configured to accept HTTP connections yet.';
+    } else if (error.message.includes('connection') || error.message.includes('ECONNREFUSED') || error.message.includes('fetch')) {
+      errorMessage = '❌ Cannot Connect to Wazuh';
+      errorDetails = `Connection to Wazuh server failed: ${error.message}`;
       suggestions = [
-        '🔴 PROBLEM: Wazuh is only accepting HTTPS with self-signed certificate',
-        '🟢 SOLUTION: Configure Wazuh API to accept HTTP connections',
+        '🔴 Check the following:',
         '',
-        '⚙️  Configuration Steps:',
+        '1️⃣  Verify the Wazuh URL is correct',
         '',
-        '1️⃣  Connect to your Wazuh server via SSH',
+        '2️⃣  Check that Wazuh API is running:',
+        '   sudo systemctl status wazuh-manager',
         '',
-        '2️⃣  Edit the API configuration:',
-        '   sudo nano /var/ossec/api/configuration/api.yaml',
-        '',
-        '3️⃣  Find and modify these settings:',
-        '   host: 0.0.0.0',
-        '   port: 55000',
-        '   https:',
-        '     enabled: no',
-        '',
-        '4️⃣  Save the file (Ctrl+X, Y, Enter) and restart:',
-        '   sudo systemctl restart wazuh-manager',
-        '',
-        '5️⃣  Verify locally on the server:',
-        '   curl http://localhost:55000',
-        '   (Should return: {"title": "Wazuh API REST"})',
-        '',
-        '6️⃣  Check firewall allows port 55000:',
+        '3️⃣  Check firewall allows port 55000:',
         '   sudo ufw status',
         '   sudo ufw allow 55000/tcp',
         '',
-        '7️⃣  Update URL in this form to: http://your-server:55000',
+        '4️⃣  Test locally on server:',
+        '   curl -k https://localhost:55000',
         '',
-        '📖 See "Guia de Setup" tab in the interface for detailed instructions'
+        '📖 See "Guia de Setup" tab for details'
       ];
     } else if (error.message.includes('Authentication failed') || error.message.includes('401')) {
       errorMessage = 'Authentication Failed';
