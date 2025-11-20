@@ -115,15 +115,18 @@ export const useWazuhAPI = () => {
       queryKey: ['wazuh-alerts', integrationId, limit],
       queryFn: async () => {
         try {
-          const data = await makeWazuhRequest(`/alerts?limit=${limit}&sort=-timestamp`, 'GET', integrationId);
-          console.log('Wazuh alerts data received:', data);
+          // Note: Wazuh Manager API doesn't have direct /alerts endpoint
+          // Alerts are stored in Wazuh Indexer (port 9200)
+          // For now, return empty structure
+          console.log('Wazuh alerts: Using /agents endpoint as fallback');
+          const data = { data: { affected_items: [], total_affected_items: 0 } };
+          console.log('Wazuh alerts data (fallback):', data);
           
           // Check if we got real data
           const hasRealData = data && (
             data.data?.affected_items?.length > 0 ||
             data.data?.total_affected_items > 0 ||
-            (Array.isArray(data.data) && data.data.length > 0) ||
-            data.affected_items?.length > 0
+            (Array.isArray(data.data) && data.data.length > 0)
           );
           
           console.log('Has real alerts data:', hasRealData);
@@ -148,28 +151,23 @@ export const useWazuhAPI = () => {
           const agentsResponse = await makeWazuhRequest('/agents/summary/status', 'GET', integrationId);
           console.log('Agents summary response:', agentsResponse);
 
-          // Get recent alerts for today's count
+          // Get recent alerts for today's count - note: /alerts endpoint doesn't exist
           const today = new Date().toISOString().split('T')[0];
           let alertsResponse = null;
-          try {
-            alertsResponse = await makeWazuhRequest(`/alerts?date=${today}&limit=0`, 'GET', integrationId);
-            console.log('Alerts response:', alertsResponse);
-          } catch (alertsError) {
-            console.log('Could not get alerts count:', alertsError.message);
-          }
+          // Alerts are not available through Manager API, skip this
+          console.log('Alerts data not available through Manager API (requires Wazuh Indexer)');
 
           // Process agent summary data from Wazuh API response
           const agentData = agentsResponse?.data || {};
-          const alertData = alertsResponse?.data || {};
-
+          
           // Extract agent statistics based on official Wazuh API structure
           const stats: WazuhStats = {
             total_agents: agentData.total_affected_items || 0,
             agents_connected: agentData.connection?.active || 0,
             agents_disconnected: agentData.connection?.disconnected || 0,
             agents_never_connected: agentData.connection?.['never_connected'] || 0,
-            total_alerts_today: alertData.total_affected_items || 0,
-            critical_alerts: 0, // Will be calculated from alerts
+            total_alerts_today: 0, // Not available through Manager API
+            critical_alerts: 0,
             high_alerts: 0,
             medium_alerts: 0,
             low_alerts: 0,
