@@ -84,8 +84,8 @@ serve(async (req) => {
     
     // Ensure we have the protocol and port
     if (!cleanBaseUrl.match(/^https?:\/\//)) {
-      // Default to HTTP since Supabase Edge Functions can't verify self-signed HTTPS certificates
-      cleanBaseUrl = `http://${cleanBaseUrl}`;
+      // Default to HTTPS for Wazuh API
+      cleanBaseUrl = `https://${cleanBaseUrl}`;
     }
     
     // Add default Wazuh API port (55000) if not specified
@@ -102,60 +102,53 @@ serve(async (req) => {
     const basicAuth = btoa(`${username}:${password}`);
     const cacheKey = `${cleanBaseUrl}:${username}`;
     
-    // Function to authenticate with Wazuh API following official documentation
-    const authenticateWithWazuh = async (baseUrl: string, useHttpClient: boolean = false) => {
-      // Per Wazuh docs: GET /security/user/authenticate?raw=true with Basic Auth
-      const authUrl = `${baseUrl}/security/user/authenticate?raw=true`;
+    // Function to authenticate with Wazuh API using Basic Auth (POST method)
+    const authenticateWithWazuh = async (baseUrl: string) => {
+      const authUrl = `${baseUrl}/security/user/authenticate`;
       
       console.log(`🔐 Authenticating to: ${authUrl}`);
       console.log(`📋 Protocol: ${baseUrl.startsWith('https') ? 'HTTPS' : 'HTTP'}`);
-      console.log(`🔧 Using custom HTTP client: ${useHttpClient}`);
       
-      // Create HTTP client that accepts self-signed certificates if needed
-      const fetchOptions: any = {
-        method: 'GET',  // CRITICAL: Wazuh docs specify GET, not POST
-        headers: {
-          'Authorization': `Basic ${basicAuth}`,
-        },
-        signal: AbortSignal.timeout(15000),
-      };
-
-      // If using HTTPS with self-signed certificate, create custom client
-      if (useHttpClient && baseUrl.startsWith('https')) {
-        console.log('🔓 Creating HTTP client that accepts self-signed certificates...');
-        const httpClient = Deno.createHttpClient({
-          // This configuration allows self-signed certificates
-          // Note: This is less secure but necessary for self-signed Wazuh certificates
+      try {
+        const authResponse = await fetch(authUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${basicAuth}`,
+          },
+          signal: AbortSignal.timeout(15000),
         });
-        fetchOptions.client = httpClient;
-      }
 
-      const authResponse = await fetch(authUrl, fetchOptions);
+        console.log(`✅ Auth response status: ${authResponse.status}`);
+        
+        if (!authResponse.ok) {
+          const errorText = await authResponse.text();
+          console.error('❌ Auth error:', errorText);
+          throw new Error(`Authentication failed: ${authResponse.status} - ${errorText}`);
+        }
 
-      console.log(`✅ Auth response status: ${authResponse.status}`);
-      
-      if (!authResponse.ok) {
-        const errorText = await authResponse.text();
-        console.error('❌ Auth error:', errorText);
-        throw new Error(`Authentication failed: ${authResponse.status} - ${errorText}`);
+        const authData = await authResponse.json();
+        console.log('✅ Authentication successful');
+        
+        const token = authData.data?.token || authData.token;
+        
+        if (!token) {
+          throw new Error('No JWT token received from authentication');
+        }
+        
+        console.log(`🎫 Token received, length: ${token.length}`);
+        
+        // Cache token for 14 minutes (Wazuh tokens expire after 15 minutes)
+        tokenCache[cacheKey] = {
+          token,
+          expires: Date.now() + (14 * 60 * 1000)
+        };
+        
+        return token;
+      } catch (error) {
+        console.error('❌ Authentication error:', error.message);
+        throw error;
       }
-
-      // With raw=true, response is the token as plain text
-      const token = await authResponse.text();
-      
-      if (!token || token.trim() === '') {
-        throw new Error('No JWT token received from authentication');
-      }
-      
-      console.log(`🎫 Authentication successful, token length: ${token.length}`);
-      
-      // Cache token for 15 minutes
-      tokenCache[cacheKey] = {
-        token: token.trim(),
-        expires: Date.now() + (15 * 60 * 1000)
-      };
-      
-      return token.trim();
     };
     
     // Check if we have a valid cached token
@@ -168,69 +161,41 @@ serve(async (req) => {
     } else {
       console.log('🔄 Getting new JWT token...');
       
-      // Try to authenticate with retry logic for HTTPS/HTTP
-      let authError: Error | null = null;
-      let useCustomClient = false;
-      
       try {
-        // First attempt: Try with default settings
-        jwtToken = await authenticateWithWazuh(cleanBaseUrl, false);
+        jwtToken = await authenticateWithWazuh(cleanBaseUrl);
       } catch (error) {
-        console.log('⚠️ First auth attempt failed:', error.message);
-        authError = error;
+        console.error('❌ Authentication failed:', error.message);
         
-        // If it's a certificate error, connection closed, or SSL issue - try alternatives
-        if (cleanBaseUrl.startsWith('https') && 
-            (error.message.includes('certificate') || 
-             error.message.includes('SSL') || 
-             error.message.includes('TLS') ||
-             error.message.includes('connection closed'))) {
-          
-          console.log('🔧 Retrying with custom HTTP client (accepting self-signed certs)...');
-          try {
-            jwtToken = await authenticateWithWazuh(cleanBaseUrl, true);
-            authError = null;
-          } catch (retryError) {
-            console.log('⚠️ Second auth attempt failed:', retryError.message);
-            
-            // Try HTTP as last resort
-            if (cleanBaseUrl.startsWith('https')) {
-              const httpUrl = cleanBaseUrl.replace('https://', 'http://');
-              console.log(`🔄 Trying HTTP fallback: ${httpUrl}`);
-              try {
-                jwtToken = await authenticateWithWazuh(httpUrl, false);
-                authError = null;
-                // Update base URL for subsequent requests
-                cleanBaseUrl = httpUrl;
-              } catch (httpError) {
-                authError = httpError;
-              }
-            }
+        return new Response(
+          JSON.stringify({
+            error: '❌ Wazuh Authentication Failed',
+            details: error.message,
+            suggestions: [
+              '🔴 PROBLEM: Cannot authenticate with Wazuh API',
+              '',
+              '⚙️  Check the following:',
+              '',
+              '1️⃣  Verify the Wazuh URL is correct (should be https://your-server:55000)',
+              '',
+              '2️⃣  Verify username and password are correct',
+              '',
+              '3️⃣  Check that the Wazuh API is running:',
+              '   sudo systemctl status wazuh-manager',
+              '',
+              '4️⃣  Check firewall allows port 55000:',
+              '   sudo ufw status',
+              '   sudo ufw allow 55000/tcp',
+              '',
+              '5️⃣  Test authentication locally on the server:',
+              '   curl -u username:password -k -X POST https://localhost:55000/security/user/authenticate',
+              '',
+              '📖 See "Guia de Setup" tab for detailed instructions'
+            ]
+          }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
-        } else if (cleanBaseUrl.startsWith('http://')) {
-          // If HTTP failed, try HTTPS
-          const httpsUrl = cleanBaseUrl.replace('http://', 'https://');
-          console.log(`🔄 Trying HTTPS: ${httpsUrl}`);
-          try {
-            jwtToken = await authenticateWithWazuh(httpsUrl, false);
-            authError = null;
-            cleanBaseUrl = httpsUrl;
-          } catch (httpsError) {
-            console.log('⚠️ HTTPS attempt failed:', httpsError.message);
-            // Try HTTPS with custom client
-            try {
-              jwtToken = await authenticateWithWazuh(httpsUrl, true);
-              authError = null;
-              cleanBaseUrl = httpsUrl;
-            } catch (finalError) {
-              authError = finalError;
-            }
-          }
-        }
-        
-        if (authError) {
-          throw authError;
-        }
       }
     }
 
