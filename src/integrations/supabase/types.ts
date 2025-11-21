@@ -687,6 +687,68 @@ export type Database = {
         }
         Relationships: []
       }
+      hostinger_snapshot_schedules: {
+        Row: {
+          created_at: string
+          cron_expression: string
+          description: string | null
+          execution_count: number
+          id: string
+          integration_id: string
+          is_active: boolean
+          last_execution: string | null
+          name: string
+          next_execution: string | null
+          retention_days: number | null
+          updated_at: string
+          user_id: string
+          vps_id: string
+          vps_name: string
+        }
+        Insert: {
+          created_at?: string
+          cron_expression: string
+          description?: string | null
+          execution_count?: number
+          id?: string
+          integration_id: string
+          is_active?: boolean
+          last_execution?: string | null
+          name: string
+          next_execution?: string | null
+          retention_days?: number | null
+          updated_at?: string
+          user_id: string
+          vps_id: string
+          vps_name: string
+        }
+        Update: {
+          created_at?: string
+          cron_expression?: string
+          description?: string | null
+          execution_count?: number
+          id?: string
+          integration_id?: string
+          is_active?: boolean
+          last_execution?: string | null
+          name?: string
+          next_execution?: string | null
+          retention_days?: number | null
+          updated_at?: string
+          user_id?: string
+          vps_id?: string
+          vps_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hostinger_snapshot_schedules_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integrations: {
         Row: {
           api_token: string | null
