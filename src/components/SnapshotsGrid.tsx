@@ -235,10 +235,14 @@ const SnapshotsGrid = () => {
               <div className="flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-blue-400 mt-0.5 flex-shrink-0" />
                 <div className="space-y-2 text-sm text-slate-300">
-                  <p className="font-medium text-blue-400">Sobre os Snapshots</p>
+                  <p className="font-medium text-blue-400">Importante sobre Snapshots Manuais</p>
                   <p>
-                    Os snapshots são criados através da API do Hostinger. Após a criação, você pode visualizá-los
-                    e gerenciá-los no painel web do Hostinger.
+                    A API do Hostinger não permite listar snapshots existentes. Os snapshots criados aqui
+                    ou via agendamento ficam disponíveis apenas no painel web do Hostinger.
+                  </p>
+                  <p>
+                    <strong>Recomendação:</strong> Use a aba "Agendamentos" para criar snapshots automáticos programados.
+                    Para gerenciar snapshots existentes, acesse o painel Hostinger.
                   </p>
                   <Button
                     variant="outline"
