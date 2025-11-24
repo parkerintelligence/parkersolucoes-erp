@@ -15,6 +15,8 @@ serve(async (req) => {
   try {
     const { integration_id, endpoint, method = 'GET', data } = await req.json()
 
+    console.log(`📥 Hostinger Proxy Request: ${method} ${endpoint}`)
+
     if (!integration_id || !endpoint) {
       return new Response(
         JSON.stringify({ error: 'integration_id e endpoint são obrigatórios' }),
@@ -22,9 +24,10 @@ serve(async (req) => {
       )
     }
 
-    // Interceptar tentativas de listar snapshots (API Hostinger não suporta)
-    if (method === 'GET' && endpoint.includes('/snapshots')) {
-      console.log('⚠️ Interceptando tentativa de listar snapshots - API não suportada')
+    // Interceptar QUALQUER tentativa de listar snapshots (API Hostinger não suporta)
+    // Verifica tanto /snapshots no final quanto /snapshots/ em qualquer lugar do path
+    if (endpoint.includes('/snapshots') && method.toUpperCase() === 'GET') {
+      console.log('🚫 INTERCEPTADO: Tentativa de listar snapshots bloqueada - API não suportada')
       return new Response(
         JSON.stringify({ 
           success: true, 
