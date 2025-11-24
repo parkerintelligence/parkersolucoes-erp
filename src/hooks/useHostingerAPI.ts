@@ -387,18 +387,14 @@ const useHostingerActions = () => {
 };
 
 const useHostingerSnapshots = (integrationId?: string, vpsId?: string) => {
-  return useQuery({
-    queryKey: ['hostinger-snapshots', integrationId, vpsId],
-    queryFn: async () => {
-      // A API do Hostinger não expõe endpoint de listagem de snapshots
-      // Snapshots devem ser gerenciados pelo painel web do Hostinger
-      console.log('ℹ️ API Hostinger não suporta listagem de snapshots via API');
-      return [];
-    },
-    enabled: false, // Desabilitado pois a API não suporta
-    refetchInterval: false,
-    retry: 0,
-  });
+  // A API do Hostinger NÃO suporta listagem de snapshots
+  // Retornar dados vazios sem fazer nenhuma chamada
+  return {
+    data: [],
+    isLoading: false,
+    error: null,
+    refetch: () => Promise.resolve({ data: [] }),
+  } as any;
 };
 
 export {

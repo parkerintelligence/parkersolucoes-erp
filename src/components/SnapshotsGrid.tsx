@@ -30,9 +30,11 @@ const SnapshotsGrid = () => {
   const updateSchedule = useUpdateSnapshotSchedule();
   const deleteSchedule = useDeleteSnapshotSchedule();
 
-  // Limpar cache de snapshots ao montar o componente
+  // Limpar TODOS os caches relacionados a Hostinger ao montar
   useEffect(() => {
     queryClient.removeQueries({ queryKey: ['hostinger-snapshots'] });
+    queryClient.removeQueries({ queryKey: ['hostinger'] });
+    queryClient.invalidateQueries({ queryKey: ['snapshot-schedules'] });
   }, [queryClient]);
 
   // Auto-select first integration and VPS
