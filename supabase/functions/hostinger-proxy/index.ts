@@ -22,6 +22,20 @@ serve(async (req) => {
       )
     }
 
+    // Interceptar tentativas de listar snapshots (API Hostinger não suporta)
+    if (method === 'GET' && endpoint.includes('/snapshots')) {
+      console.log('⚠️ Interceptando tentativa de listar snapshots - API não suportada')
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          data: [],
+          status: 200,
+          note: 'Listagem de snapshots não suportada pela API Hostinger' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Buscar a integração do Hostinger
     const { data: integration, error: integrationError } = await supabase
       .from('integrations')
