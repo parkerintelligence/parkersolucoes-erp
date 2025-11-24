@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 const SnapshotsGrid = () => {
+  const queryClient = useQueryClient();
   const [selectedIntegration, setSelectedIntegration] = useState<string>('');
   const [selectedVpsId, setSelectedVpsId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,6 +29,11 @@ const SnapshotsGrid = () => {
   const { createSnapshot } = useHostingerActions();
   const updateSchedule = useUpdateSnapshotSchedule();
   const deleteSchedule = useDeleteSnapshotSchedule();
+
+  // Limpar cache de snapshots ao montar o componente
+  useEffect(() => {
+    queryClient.removeQueries({ queryKey: ['hostinger-snapshots'] });
+  }, [queryClient]);
 
   // Auto-select first integration and VPS
   useEffect(() => {
