@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useHostingerIntegrations, useHostingerSnapshots, useHostingerVPS, useHostingerActions } from '@/hooks/useHostingerAPI';
+import { useHostingerIntegrations, useHostingerVPS, useHostingerActions } from '@/hooks/useHostingerAPI';
 import { useSnapshotSchedules, useUpdateSnapshotSchedule, useDeleteSnapshotSchedule } from '@/hooks/useHostingerSnapshots';
 import { HostingerSnapshotScheduleDialog } from '@/components/HostingerSnapshotScheduleDialog';
 import { Camera, Calendar, HardDrive, Search, Filter, RefreshCw, AlertCircle, Clock, Plus, Power, Trash2, Edit } from 'lucide-react';
