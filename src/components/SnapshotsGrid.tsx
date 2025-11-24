@@ -20,7 +20,9 @@ const SnapshotsGrid = () => {
   
   const { data: integrations, isLoading: integrationsLoading } = useHostingerIntegrations();
   const { data: vpsList } = useHostingerVPS(selectedIntegration);
-  const { data: snapshots, isLoading: snapshotsLoading, refetch: refetchSnapshots } = useHostingerSnapshots(selectedIntegration, selectedVpsId);
+  // API Hostinger não suporta listagem de snapshots - removido para evitar erros 404
+  const snapshots = [];
+  const snapshotsLoading = false;
   const { data: schedules } = useSnapshotSchedules(selectedIntegration);
   const { createSnapshot } = useHostingerActions();
   const updateSchedule = useUpdateSnapshotSchedule();
@@ -40,7 +42,8 @@ const SnapshotsGrid = () => {
   }, [vpsList, selectedVpsId]);
 
   const handleRefresh = () => {
-    refetchSnapshots();
+    // Snapshots não podem ser listados via API - apenas agendamentos
+    window.location.reload();
   };
 
   const handleCreateSnapshot = () => {
@@ -69,29 +72,8 @@ const SnapshotsGrid = () => {
     }
   };
 
-  const filteredSnapshots = useMemo(() => {
-    if (!snapshots) return [];
-    
-    let filtered = snapshots.filter((snapshot: any) =>
-      snapshot.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      snapshot.id?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    // Sort snapshots
-    filtered.sort((a: any, b: any) => {
-      switch (sortBy) {
-        case 'name':
-          return (a.name || '').localeCompare(b.name || '');
-        case 'size':
-          return (b.size || 0) - (a.size || 0);
-        case 'created_at':
-        default:
-          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-      }
-    });
-
-    return filtered;
-  }, [snapshots, searchTerm, sortBy]);
+  // API Hostinger não retorna snapshots - lista sempre vazia
+  const filteredSnapshots: any[] = [];
 
   const getVPSName = (vpsId: string) => {
     const vps = vpsList?.find((v: any) => v.id === vpsId);
