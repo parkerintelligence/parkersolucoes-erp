@@ -386,18 +386,18 @@ const useHostingerActions = () => {
   };
 };
 
-const useHostingerSnapshots = (integrationId?: string) => {
+const useHostingerSnapshots = (integrationId?: string, vpsId?: string) => {
   return useQuery({
-    queryKey: ['hostinger-snapshots', integrationId],
+    queryKey: ['hostinger-snapshots', integrationId, vpsId],
     queryFn: async () => {
-      if (!integrationId) return [];
+      if (!integrationId || !vpsId) return [];
       
-      console.log('📸 Buscando snapshots para integração:', integrationId);
+      console.log('📸 Buscando snapshots para VPS:', vpsId);
       
       const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
         body: {
           integration_id: integrationId,
-          endpoint: '/virtual-machines/snapshots',
+          endpoint: `/virtual-machines/${vpsId}/snapshots`,
           method: 'GET'
         }
       });
@@ -412,7 +412,7 @@ const useHostingerSnapshots = (integrationId?: string) => {
       
       return snapshotsList;
     },
-    enabled: !!integrationId,
+    enabled: !!integrationId && !!vpsId,
     refetchInterval: 30000, // Atualizar a cada 30 segundos
     retry: 1,
   });
