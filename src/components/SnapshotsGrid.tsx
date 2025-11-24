@@ -12,6 +12,7 @@ import { Camera, Calendar, HardDrive, Search, Filter, RefreshCw, AlertCircle, Cl
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from '@/hooks/use-toast';
 const SnapshotsGrid = () => {
   const queryClient = useQueryClient();
   const [selectedIntegration, setSelectedIntegration] = useState<string>('');
@@ -65,6 +66,20 @@ const SnapshotsGrid = () => {
       integrationId: selectedIntegration,
       vpsId: selectedVpsId,
       name: `snapshot-${format(new Date(), 'yyyy-MM-dd-HHmmss')}`,
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Snapshot criado com sucesso!",
+          description: `O snapshot do VPS ${vps.name || vps.hostname} foi criado.`,
+        });
+      },
+      onError: (error: any) => {
+        toast({
+          title: "Erro ao criar snapshot",
+          description: error?.message || "Não foi possível criar o snapshot. Tente novamente.",
+          variant: "destructive",
+        });
+      },
     });
   };
 
