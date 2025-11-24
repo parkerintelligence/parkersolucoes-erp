@@ -20,7 +20,7 @@ const SnapshotsGrid = () => {
   
   const { data: integrations, isLoading: integrationsLoading } = useHostingerIntegrations();
   const { data: vpsList } = useHostingerVPS(selectedIntegration);
-  const { data: snapshots, isLoading: snapshotsLoading, refetch: refetchSnapshots } = useHostingerSnapshots(selectedIntegration);
+  const { data: snapshots, isLoading: snapshotsLoading, refetch: refetchSnapshots } = useHostingerSnapshots(selectedIntegration, selectedVpsId);
   const { data: schedules } = useSnapshotSchedules(selectedIntegration);
   const { createSnapshot } = useHostingerActions();
   const updateSchedule = useUpdateSnapshotSchedule();
