@@ -390,31 +390,14 @@ const useHostingerSnapshots = (integrationId?: string, vpsId?: string) => {
   return useQuery({
     queryKey: ['hostinger-snapshots', integrationId, vpsId],
     queryFn: async () => {
-      if (!integrationId || !vpsId) return [];
-      
-      console.log('📸 Buscando snapshots para VPS:', vpsId);
-      
-      const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
-        body: {
-          integration_id: integrationId,
-          endpoint: `/virtual-machines/${vpsId}/snapshots`,
-          method: 'GET'
-        }
-      });
-
-      if (error) {
-        console.error('❌ Erro ao buscar snapshots:', error);
-        throw error;
-      }
-      
-      const snapshotsList = data?.data || [];
-      console.log('✅ Snapshots encontrados:', snapshotsList);
-      
-      return snapshotsList;
+      // A API do Hostinger não expõe endpoint de listagem de snapshots
+      // Snapshots devem ser gerenciados pelo painel web do Hostinger
+      console.log('ℹ️ API Hostinger não suporta listagem de snapshots via API');
+      return [];
     },
-    enabled: !!integrationId && !!vpsId,
-    refetchInterval: 30000, // Atualizar a cada 30 segundos
-    retry: 1,
+    enabled: false, // Desabilitado pois a API não suporta
+    refetchInterval: false,
+    retry: 0,
   });
 };
 
