@@ -123,9 +123,13 @@ serve(async (req) => {
         
         return { token: authData.data?.token, baseUrl };
       } catch (error) {
-        // If HTTPS fails with certificate error, try HTTP
-        if (error.message.includes('certificate') || error.message.includes('UnknownIssuer')) {
-          console.log('⚠️ HTTPS certificate error, trying HTTP fallback...');
+        // If HTTPS fails with certificate error or connection issues, try HTTP
+        if (error.message.includes('certificate') || 
+            error.message.includes('UnknownIssuer') || 
+            error.message.includes('connection closed') ||
+            error.message.includes('SendRequest')) {
+          console.log('⚠️ HTTPS connection error, trying HTTP fallback...');
+          console.log(`Error details: ${error.message}`);
           const httpUrl = baseUrl.replace('https://', 'http://');
           const httpAuthUrl = `${httpUrl}/security/user/authenticate`;
           
