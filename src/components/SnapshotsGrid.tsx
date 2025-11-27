@@ -31,8 +31,16 @@ const SnapshotsGrid = () => {
   const snapshots = [];
   const snapshotsLoading = false;
   const {
-    data: schedules
+    data: schedules,
+    isLoading: schedulesLoading
   } = useSnapshotSchedules(selectedIntegration);
+
+  // Debug: log schedules data
+  useEffect(() => {
+    console.log('Schedules data:', schedules);
+    console.log('Selected integration:', selectedIntegration);
+    console.log('Selected VPS ID:', selectedVpsId);
+  }, [schedules, selectedIntegration, selectedVpsId]);
   const {
     createSnapshot
   } = useHostingerActions();
@@ -241,12 +249,23 @@ const SnapshotsGrid = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {!schedules || schedules.length === 0 ? <div className="text-center py-8 text-slate-400">
+              {schedulesLoading ? (
+                <div className="text-center py-8 text-slate-400">
+                  <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-3" />
+                  <p>Carregando agendamentos...</p>
+                </div>
+              ) : !schedules || schedules.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">
                   <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
                   <p>Nenhum agendamento configurado</p>
                   <p className="text-sm mt-1">Clique em "Novo Agendamento" para criar o primeiro</p>
-                </div> : <div className="space-y-3">
-                  {schedules.filter(s => !selectedVpsId || s.vps_id === selectedVpsId).map(schedule => <Card key={schedule.id} className="bg-slate-900 border-slate-700">
+                </div>
+              ) : (
+                 <div className="space-y-3">
+                  {schedules
+                    .filter(s => !selectedVpsId || s.vps_id === selectedVpsId)
+                    .map(schedule => (
+                      <Card key={schedule.id} className="bg-slate-900 border-slate-700">
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">
                             <div className="space-y-1 flex-1">
@@ -282,8 +301,10 @@ const SnapshotsGrid = () => {
                             </div>
                           </div>
                         </CardContent>
-                      </Card>)}
-                </div>}
+                      </Card>
+                    ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
