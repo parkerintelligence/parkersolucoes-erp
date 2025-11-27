@@ -927,6 +927,24 @@ export const useGLPIExpanded = () => {
       const validValues = getValidValues();
       console.log('🎫 [useGLPIExpanded] Valores válidos obtidos:', validValues);
       
+      // Obter data/hora atual no timezone de Brasília (UTC-3)
+      const now = new Date();
+      const brasiliaOffset = -3 * 60; // -3 horas em minutos
+      const localOffset = now.getTimezoneOffset(); // offset do navegador
+      const offsetDiff = brasiliaOffset - localOffset;
+      const brasiliaTime = new Date(now.getTime() + offsetDiff * 60 * 1000);
+      
+      // Formatar data no formato que o GLPI espera: YYYY-MM-DD HH:MM:SS
+      const year = brasiliaTime.getFullYear();
+      const month = String(brasiliaTime.getMonth() + 1).padStart(2, '0');
+      const day = String(brasiliaTime.getDate()).padStart(2, '0');
+      const hours = String(brasiliaTime.getHours()).padStart(2, '0');
+      const minutes = String(brasiliaTime.getMinutes()).padStart(2, '0');
+      const seconds = String(brasiliaTime.getSeconds()).padStart(2, '0');
+      const dateFormatted = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      
+      console.log('🕐 [GLPI] Data/hora de Brasília para o ticket:', dateFormatted);
+      
       // Mesclar dados do ticket com valores válidos
       const enhancedTicketData = {
         name: ticketData.name,
@@ -940,7 +958,8 @@ export const useGLPIExpanded = () => {
         users_id_requester: validValues.users_id_requester,
         users_id_assign: ticketData.users_id_assign,
         itilcategories_id: ticketData.itilcategories_id || validValues.itilcategories_id,
-        requesttypes_id: validValues.requesttypes_id
+        requesttypes_id: validValues.requesttypes_id,
+        date: dateFormatted // Forçar data/hora de Brasília
       };
       
       console.log('🎫 [useGLPIExpanded] Dados finais do ticket:', {
@@ -957,6 +976,7 @@ export const useGLPIExpanded = () => {
         type: enhancedTicketData.type,
         itilcategories_id: enhancedTicketData.itilcategories_id,
         status: enhancedTicketData.status,
+        date: enhancedTicketData.date
       });
       
       // Verificar se temos uma sessão válida
