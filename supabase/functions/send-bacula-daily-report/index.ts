@@ -184,19 +184,34 @@ serve(async (req) => {
 
     console.log('🔌 [BACULA-DAILY] Integrações encontradas - Evolution API e Bacula');
 
-    // Definir período de análise (apenas dia anterior completo)
+    // Definir período de análise baseado no modo
     const brasiliaTime = new Date();
-    const brasiliaYesterday = new Date(brasiliaTime);
-    brasiliaYesterday.setDate(brasiliaYesterday.getDate() - 1);
+    let brasiliaStartTime: Date;
+    let brasiliaEndTime: Date;
+    let periodDescription: string;
     
-    const brasiliaStartTime = new Date(brasiliaYesterday);
-    brasiliaStartTime.setHours(0, 0, 0, 0);
+    if (test_mode) {
+      // MODO TESTE: Analisar últimas 24 horas (dados recentes)
+      brasiliaEndTime = new Date(brasiliaTime);
+      brasiliaStartTime = new Date(brasiliaTime);
+      brasiliaStartTime.setHours(brasiliaStartTime.getHours() - 24);
+      periodDescription = 'últimas 24 horas';
+      console.log(`🕐 [BACULA-DAILY] MODO TESTE - Analisando ${periodDescription}`);
+    } else {
+      // MODO AUTOMÁTICO: Analisar dia anterior completo (00:00 - 23:59)
+      const brasiliaYesterday = new Date(brasiliaTime);
+      brasiliaYesterday.setDate(brasiliaYesterday.getDate() - 1);
+      
+      brasiliaStartTime = new Date(brasiliaYesterday);
+      brasiliaStartTime.setHours(0, 0, 0, 0);
+      
+      brasiliaEndTime = new Date(brasiliaYesterday);
+      brasiliaEndTime.setHours(23, 59, 59, 999);
+      
+      periodDescription = brasiliaYesterday.toLocaleDateString('pt-BR');
+      console.log(`🕐 [BACULA-DAILY] MODO AUTOMÁTICO - Analisando dia anterior completo: ${periodDescription}`);
+    }
     
-    const brasiliaEndTime = new Date(brasiliaYesterday);
-    brasiliaEndTime.setHours(23, 59, 59, 999);
-    
-    const yesterdayFormatted = brasiliaYesterday.toLocaleDateString('pt-BR');
-    console.log(`🕐 [BACULA-DAILY] Analisando dia anterior completo: ${yesterdayFormatted}`);
     console.log(`🕐 [BACULA-DAILY] Período: ${brasiliaStartTime.toISOString()} até ${brasiliaEndTime.toISOString()}`);
     
     const startTimeUTC = brasiliaStartTime.toISOString();
@@ -334,7 +349,7 @@ serve(async (req) => {
 
     console.log(`📊 [BACULA-DAILY] Dados processados: ${jobs.length} jobs encontrados (fonte: ${dataSource})`);
 
-    // Filtrar jobs do dia anterior
+    // Filtrar jobs do período definido
     const filteredJobs = jobs.filter(job => {
       const possibleDates = [
         job.starttime,
@@ -361,12 +376,12 @@ serve(async (req) => {
       return false;
     });
 
-    console.log(`🎯 [BACULA-DAILY] Jobs filtrados do dia anterior (${yesterdayFormatted}): ${filteredJobs.length} de ${jobs.length} total`);
+    console.log(`🎯 [BACULA-DAILY] Jobs filtrados do período (${periodDescription}): ${filteredJobs.length} de ${jobs.length} total`);
 
     if (filteredJobs.length === 0) {
-      console.log('⚠️ [BACULA-DAILY] Nenhum job encontrado no dia anterior');
+      console.log('⚠️ [BACULA-DAILY] Nenhum job encontrado no período');
       const errorMessage = `⚠️ *ALERTA BACULA - SEM JOBS*\n\n` +
-        `📅 **Dia analisado**: ${yesterdayFormatted}\n` +
+        `📅 **Período analisado**: ${periodDescription}\n` +
         `❌ **Nenhum job encontrado no período**\n\n` +
         `🔍 **Ação necessária**: Verificar configuração dos jobs`;
 
@@ -386,7 +401,7 @@ serve(async (req) => {
 
       return new Response(JSON.stringify({ 
         success: false, 
-        message: `Nenhum job encontrado no dia anterior (${yesterdayFormatted})` 
+        message: `Nenhum job encontrado no período (${periodDescription})` 
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -506,7 +521,7 @@ serve(async (req) => {
 
     // Preparar dados para o template
     const templateData = {
-      analysis_date: yesterdayFormatted,
+      analysis_date: periodDescription,
       report_time: getBrasiliaTime(),
       
       // Estatísticas gerais
@@ -590,7 +605,7 @@ serve(async (req) => {
     finalMessage = finalMessage.replace(/• Taxa de Sucesso: ([0-9.]+)%🚫/g, '• Taxa de Sucesso: $1%\n\n🚫');
 
     console.log(`💬 [BACULA-DAILY] Mensagem final gerada (${finalMessage.length} caracteres)`);
-    console.log(`📊 [BACULA-DAILY] Resumo: ${totalJobs} jobs do dia ${yesterdayFormatted}`);
+    console.log(`📊 [BACULA-DAILY] Resumo: ${totalJobs} jobs do período ${periodDescription}`);
     console.log(`   ✅ ${successJobs} sucessos (${templateData.success_rate}%)`);
     console.log(`   ❌ ${errorJobs} erros`);
     console.log(`   🚫 ${cancelledJobs} cancelados`);
@@ -667,7 +682,7 @@ serve(async (req) => {
         recipients_total: recipients.length,
         recipients_success: successfulSends,
         execution_time_ms: executionTime,
-        analysis_date: yesterdayFormatted,
+        analysis_date: periodDescription,
         total_jobs: totalJobs,
         success_rate: templateData.success_rate
       },
