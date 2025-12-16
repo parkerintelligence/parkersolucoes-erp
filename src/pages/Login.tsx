@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Shield, Server, Database, Lock, Eye, EyeOff, Sparkles, Zap, BarChart3, Users } from 'lucide-react';
+import { Shield, Server, Database, Lock, Eye, EyeOff, Sparkles, Zap, BarChart3, Users, ArrowLeft, Mail } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 // import { useSystemSettings } from '@/hooks/useSystemSettings';
 
@@ -14,6 +15,8 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   // Temporarily remove useSystemSettings to fix the startup issue
@@ -82,6 +85,47 @@ const Login = () => {
         description: "Ocorreu um erro inesperado. Tente novamente.",
         variant: "destructive",
       });
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast({
+        title: "Email obrigatório",
+        description: "Digite seu email para recuperar a senha.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login`,
+      });
+
+      if (error) {
+        toast({
+          title: "Erro ao enviar email",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        setResetEmailSent(true);
+        toast({
+          title: "Email enviado!",
+          description: "Verifique sua caixa de entrada para redefinir sua senha.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro inesperado. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -207,68 +251,150 @@ const Login = () => {
             {/* Login form */}
             <Card className="bg-card/40 backdrop-blur-2xl border-gold/30 shadow-2xl shadow-black/20 animate-fade-in-up">
               <CardContent className="p-8">
-                <div className="text-center mb-8">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">Bem-vindo de volta</h2>
-                  <p className="text-muted-foreground">Entre com suas credenciais para acessar o sistema</p>
-                </div>
-
-                <form onSubmit={handleLogin} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-foreground font-medium">
-                      Email
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="bg-background/60 border-muted-foreground/30 text-foreground placeholder:text-muted-foreground focus:border-gold focus:ring-gold/30 h-12 transition-all duration-300"
-                      placeholder="Digite seu email"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-foreground font-medium">
-                      Senha
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="bg-background/60 border-muted-foreground/30 text-foreground placeholder:text-muted-foreground focus:border-gold focus:ring-gold/30 h-12 pr-12 transition-all duration-300"
-                        placeholder="Digite sua senha"
-                        required
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-gold hover:bg-transparent h-6 w-6 p-0"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
+                {isForgotPassword ? (
+                  // Forgot Password Form
+                  <>
+                    <div className="text-center mb-8">
+                      {resetEmailSent ? (
+                        <>
+                          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-green-500/20 to-green-500/10 rounded-full flex items-center justify-center">
+                            <Mail className="h-8 w-8 text-green-500" />
+                          </div>
+                          <h2 className="text-2xl font-bold text-foreground mb-2">Email enviado!</h2>
+                          <p className="text-muted-foreground">Verifique sua caixa de entrada e siga as instruções para redefinir sua senha.</p>
+                        </>
+                      ) : (
+                        <>
+                          <h2 className="text-2xl font-bold text-foreground mb-2">Recuperar senha</h2>
+                          <p className="text-muted-foreground">Digite seu email para receber o link de recuperação</p>
+                        </>
+                      )}
                     </div>
-                  </div>
 
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 bg-gradient-to-r from-gold to-gold-glow hover:from-gold-glow hover:to-gold text-gold-foreground font-semibold shadow-lg hover:shadow-gold/40 transition-all duration-300 transform hover:scale-[1.02]"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 border-2 border-gold-foreground/30 border-t-gold-foreground rounded-full animate-spin" />
-                        <span>Autenticando...</span>
-                      </div>
-                    ) : (
-                      'Entrar no Sistema'
+                    {!resetEmailSent && (
+                      <form onSubmit={handleForgotPassword} className="space-y-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="reset-email" className="text-foreground font-medium">
+                            Email
+                          </Label>
+                          <Input
+                            id="reset-email"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="bg-background/60 border-muted-foreground/30 text-foreground placeholder:text-muted-foreground focus:border-gold focus:ring-gold/30 h-12 transition-all duration-300"
+                            placeholder="Digite seu email"
+                            required
+                          />
+                        </div>
+
+                        <Button 
+                          type="submit" 
+                          className="w-full h-12 bg-gradient-to-r from-gold to-gold-glow hover:from-gold-glow hover:to-gold text-gold-foreground font-semibold shadow-lg hover:shadow-gold/40 transition-all duration-300 transform hover:scale-[1.02]"
+                          disabled={isLoading}
+                        >
+                          {isLoading ? (
+                            <div className="flex items-center space-x-2">
+                              <div className="w-4 h-4 border-2 border-gold-foreground/30 border-t-gold-foreground rounded-full animate-spin" />
+                              <span>Enviando...</span>
+                            </div>
+                          ) : (
+                            'Enviar link de recuperação'
+                          )}
+                        </Button>
+                      </form>
                     )}
-                  </Button>
-                </form>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full mt-4 text-muted-foreground hover:text-gold"
+                      onClick={() => {
+                        setIsForgotPassword(false);
+                        setResetEmailSent(false);
+                      }}
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Voltar ao login
+                    </Button>
+                  </>
+                ) : (
+                  // Login Form
+                  <>
+                    <div className="text-center mb-8">
+                      <h2 className="text-2xl font-bold text-foreground mb-2">Bem-vindo de volta</h2>
+                      <p className="text-muted-foreground">Entre com suas credenciais para acessar o sistema</p>
+                    </div>
+
+                    <form onSubmit={handleLogin} className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="email" className="text-foreground font-medium">
+                          Email
+                        </Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="bg-background/60 border-muted-foreground/30 text-foreground placeholder:text-muted-foreground focus:border-gold focus:ring-gold/30 h-12 transition-all duration-300"
+                          placeholder="Digite seu email"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="password" className="text-foreground font-medium">
+                            Senha
+                          </Label>
+                          <Button
+                            type="button"
+                            variant="link"
+                            className="text-sm text-gold hover:text-gold-glow p-0 h-auto font-normal"
+                            onClick={() => setIsForgotPassword(true)}
+                          >
+                            Esqueci minha senha
+                          </Button>
+                        </div>
+                        <div className="relative">
+                          <Input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="bg-background/60 border-muted-foreground/30 text-foreground placeholder:text-muted-foreground focus:border-gold focus:ring-gold/30 h-12 pr-12 transition-all duration-300"
+                            placeholder="Digite sua senha"
+                            required
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-gold hover:bg-transparent h-6 w-6 p-0"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+
+                      <Button 
+                        type="submit" 
+                        className="w-full h-12 bg-gradient-to-r from-gold to-gold-glow hover:from-gold-glow hover:to-gold text-gold-foreground font-semibold shadow-lg hover:shadow-gold/40 transition-all duration-300 transform hover:scale-[1.02]"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-4 h-4 border-2 border-gold-foreground/30 border-t-gold-foreground rounded-full animate-spin" />
+                            <span>Autenticando...</span>
+                          </div>
+                        ) : (
+                          'Entrar no Sistema'
+                        )}
+                      </Button>
+                    </form>
+                  </>
+                )}
 
                 {/* Support info */}
                 <div className="mt-8 p-4 bg-background/30 rounded-lg border border-gold/20">
