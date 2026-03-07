@@ -37,7 +37,7 @@ export class EvolutionApiService {
     });
   }
 
-  async createInstance(): Promise<{ success: boolean; error?: string }> {
+  async createInstance(): Promise<{ success: boolean; qrCode?: string; error?: string }> {
     try {
       console.log('🔧 Evolution API: Criando instância...');
       const response = await fetch(`${this.baseUrl}/instance/create`, {
@@ -64,10 +64,123 @@ export class EvolutionApiService {
 
       const data = await response.json();
       console.log('✅ Instância criada:', data);
-      return { success: true };
+      return { success: true, qrCode: data.qrcode?.base64 || data.qrcode };
     } catch (error) {
       console.error('❌ Erro ao criar instância:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido' };
+    }
+  }
+
+  static async fetchAllInstances(baseUrl: string, apiToken: string): Promise<any[]> {
+    try {
+      const url = `${baseUrl.replace(/\/$/, '')}/instance/fetchInstances`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': apiToken
+        }
+      });
+
+      if (!response.ok) {
+        console.error('❌ Erro ao listar instâncias:', response.status);
+        return [];
+      }
+
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    } catch (error) {
+      console.error('❌ Erro ao listar instâncias:', error);
+      return [];
+    }
+  }
+
+  static async deleteInstance(baseUrl: string, apiToken: string, instanceName: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const url = `${baseUrl.replace(/\/$/, '')}/instance/delete/${instanceName}`;
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': apiToken
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return { success: false, error: `Erro HTTP ${response.status}: ${errorText}` };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido' };
+    }
+  }
+
+  static async connectInstance(baseUrl: string, apiToken: string, instanceName: string): Promise<{ qrCode?: string; error?: string }> {
+    try {
+      const url = `${baseUrl.replace(/\/$/, '')}/instance/connect/${instanceName}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': apiToken
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return { error: `Erro HTTP ${response.status}: ${errorText}` };
+      }
+
+      const data = await response.json();
+      return { qrCode: data.base64 || data.qrcode?.base64 || data.qrcode };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Erro desconhecido' };
+    }
+  }
+
+  static async logoutInstance(baseUrl: string, apiToken: string, instanceName: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const url = `${baseUrl.replace(/\/$/, '')}/instance/logout/${instanceName}`;
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': apiToken
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return { success: false, error: `Erro HTTP ${response.status}: ${errorText}` };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido' };
+    }
+  }
+
+  static async getInstanceStatus(baseUrl: string, apiToken: string, instanceName: string): Promise<{ state: string; error?: string }> {
+    try {
+      const url = `${baseUrl.replace(/\/$/, '')}/instance/connectionState/${instanceName}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': apiToken
+        }
+      });
+
+      if (!response.ok) {
+        return { state: 'unknown', error: `Erro HTTP ${response.status}` };
+      }
+
+      const data = await response.json();
+      return { state: data.instance?.state || data.state || 'unknown' };
+    } catch (error) {
+      return { state: 'unknown', error: error instanceof Error ? error.message : 'Erro desconhecido' };
     }
   }
 
