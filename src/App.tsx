@@ -32,6 +32,7 @@ import { SafeAtendimentos } from '@/components/SafeAtendimentos';
 import Security from '@/pages/Security';
 import { SafeUniFi } from '@/components/SafeUniFi';
 import { Layout } from '@/components/Layout';
+import Webhooks from '@/pages/Webhooks';
 
 // Create single QueryClient instance
 const queryClient = new QueryClient({
