@@ -81,6 +81,7 @@ function App() {
               <Route path="/plano-de-acao" element={<Layout><SafeActionPlan /></Layout>} />
               <Route path="/security" element={<Layout><Security /></Layout>} />
               <Route path="/unifi" element={<Layout><SafeUniFi /></Layout>} />
+              <Route path="/webhooks" element={<Layout><Webhooks /></Layout>} />
             </Routes>
           </div>
           <Toaster position="bottom-right" />

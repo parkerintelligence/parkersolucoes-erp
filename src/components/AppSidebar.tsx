@@ -94,6 +94,11 @@ const menuItems = [{
   icon: Shield,
   role: 'user'
 }, {
+  title: 'Webhooks',
+  url: '/webhooks',
+  icon: Zap,
+  role: 'user'
+}, {
   title: 'Admin',
   url: '/admin',
   icon: Settings,
