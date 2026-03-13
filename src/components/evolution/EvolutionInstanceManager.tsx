@@ -73,6 +73,7 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
   const [loading, setLoading] = useState(false);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [loadingInstances, setLoadingInstances] = useState(false);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
 
   const integrationId = evolutionConfig?.id || '';
 
