@@ -3,8 +3,32 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
+
+async function fetchMikrotik(baseUrl: string, auth: string, endpoint: string, method: string = 'GET', body?: any) {
+  const url = `${baseUrl}/rest${endpoint}`;
+  const response = await fetch(url, {
+    method,
+    headers: {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/json',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(25000),
+  });
+
+  if (response.status === 401) {
+    throw new Error('AUTH_FAILED');
+  }
+
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { raw: text };
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -12,18 +36,10 @@ serve(async (req) => {
   }
 
   try {
-    // Parse request body first
-    const { endpoint, method = 'GET', body, clientId } = await req.json();
+    const requestBody = await req.json();
+    const { endpoint, method = 'GET', body, clientId, batch } = requestBody;
 
-    console.log('📥 Request:', { endpoint, method, clientId });
-
-    if (!endpoint) {
-      return new Response(JSON.stringify({ error: 'Campo obrigatório: endpoint' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
+    // Validate clientId
     if (!clientId) {
       return new Response(JSON.stringify({ error: 'Campo obrigatório: clientId' }), {
         status: 400,
@@ -31,10 +47,9 @@ serve(async (req) => {
       });
     }
 
-    // Get the JWT token from Authorization header
+    // Auth
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('❌ Missing Authorization header');
       return new Response(JSON.stringify({ error: 'Não autorizado' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -42,129 +57,141 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-
-    // Create Supabase client with the user's token for authenticated requests
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
+      { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Get user from JWT token
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     if (authError || !user) {
-      console.error('❌ Auth error:', authError);
       return new Response(JSON.stringify({ error: 'Não autorizado' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('✅ Usuário autenticado:', user.email);
-
+    // Get integration
     const { data: integration, error: integrationError } = await supabaseClient
       .from('integrations')
       .select('*')
       .eq('id', clientId)
       .eq('type', 'mikrotik')
-      .eq('user_id', user.id)
       .single();
 
     if (integrationError || !integration) {
-      console.error('❌ Integração não encontrada:', integrationError);
       return new Response(JSON.stringify({ error: 'Integração MikroTik não configurada' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('✅ Integração encontrada:', integration.name);
-    console.log('🔗 Base URL:', integration.base_url);
-    console.log('👤 Username:', integration.username);
-    
-    console.log(`🔄 MikroTik API: ${method} ${endpoint}`);
+    const mikrotikAuth = btoa(`${integration.username}:${integration.password}`);
+    const baseUrl = integration.base_url;
 
-    const mikrotikUrl = `${integration.base_url}/rest${endpoint}`;
-    console.log('📍 URL completa:', mikrotikUrl);
-    console.log('🔑 Tentando autenticar como:', integration.username);
-    console.log('🔐 Senha começa com:', integration.password?.substring(0, 3) + '***');
-    
-    const auth = btoa(`${integration.username}:${integration.password}`);
-    console.log('📦 Authorization header criado');
+    console.log(`🔗 MikroTik: ${integration.name} (${baseUrl})`);
 
-    let mikrotikResponse;
-    try {
-      mikrotikResponse = await fetch(mikrotikUrl, {
-        method,
-        headers: {
-          'Authorization': `Basic ${auth}`,
-          'Content-Type': 'application/json',
-        },
-        body: body ? JSON.stringify(body) : undefined,
-        signal: AbortSignal.timeout(30000), // 30 segundos timeout
+    // === BATCH MODE: Multiple endpoints in one call ===
+    if (batch && Array.isArray(batch)) {
+      console.log(`📦 Batch mode: ${batch.length} endpoints`);
+      
+      const results: Record<string, { data?: any; error?: string }> = {};
+      
+      // Execute sequentially to avoid overwhelming the MikroTik device
+      for (const item of batch) {
+        const ep = typeof item === 'string' ? item : item.endpoint;
+        const m = typeof item === 'string' ? 'GET' : (item.method || 'GET');
+        const b = typeof item === 'string' ? undefined : item.body;
+        
+        try {
+          const data = await fetchMikrotik(baseUrl, mikrotikAuth, ep, m, b);
+          results[ep] = { data };
+          console.log(`  ✅ ${ep}`);
+        } catch (err: any) {
+          if (err.message === 'AUTH_FAILED') {
+            // Auth failure — return immediately, no point continuing
+            return new Response(JSON.stringify({ 
+              error: 'Falha na autenticação com MikroTik. Verifique usuário, senha e se a API REST está habilitada.',
+              authFailed: true 
+            }), {
+              status: 401,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+          
+          const isTimeout = err.name === 'TimeoutError' || err.message?.includes('timeout') || err.message?.includes('timed out');
+          const errorMsg = isTimeout 
+            ? `Timeout ao conectar com ${baseUrl}` 
+            : err.message;
+          results[ep] = { error: errorMsg };
+          console.error(`  ❌ ${ep}: ${errorMsg}`);
+
+          // If first request times out, all will too — abort early
+          if (isTimeout) {
+            console.error('⚠️ Timeout detectado — abortando batch (MikroTik inacessível)');
+            for (const remaining of batch) {
+              const repEp = typeof remaining === 'string' ? remaining : remaining.endpoint;
+              if (!results[repEp]) {
+                results[repEp] = { error: errorMsg };
+              }
+            }
+            
+            return new Response(JSON.stringify({ 
+              results,
+              timeout: true,
+              error: `Não foi possível conectar com o MikroTik em ${baseUrl}. Verifique se o dispositivo está acessível e a API REST está habilitada.`
+            }), {
+              status: 504,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        }
+      }
+
+      return new Response(JSON.stringify({ results }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-      
-      console.log('📊 Status da resposta:', mikrotikResponse.status);
-      console.log('📋 Headers da resposta:', Object.fromEntries(mikrotikResponse.headers.entries()));
-      
-    } catch (fetchError: any) {
-      console.error('❌ Erro ao conectar com MikroTik:', fetchError.message);
-      
-      if (fetchError.name === 'TimeoutError' || fetchError.message?.includes('timeout')) {
+    }
+
+    // === SINGLE MODE: Original behavior ===
+    if (!endpoint) {
+      return new Response(JSON.stringify({ error: 'Campo obrigatório: endpoint' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`🔄 Single: ${method} ${endpoint}`);
+
+    try {
+      const data = await fetchMikrotik(baseUrl, mikrotikAuth, endpoint, method, body);
+      return new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (err: any) {
+      if (err.message === 'AUTH_FAILED') {
         return new Response(JSON.stringify({ 
-          error: 'Timeout ao conectar com MikroTik',
-          details: `Não foi possível conectar com ${mikrotikUrl} em 30 segundos. Verifique se o endereço está correto e acessível.`
+          error: 'Falha na autenticação com MikroTik.',
+          authFailed: true 
         }), {
-          status: 504,
+          status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      
+
+      const isTimeout = err.name === 'TimeoutError' || err.message?.includes('timeout') || err.message?.includes('timed out');
       return new Response(JSON.stringify({ 
-        error: 'Erro de conexão com MikroTik',
-        details: fetchError.message,
-        url: mikrotikUrl
+        error: isTimeout 
+          ? `Timeout ao conectar com ${baseUrl}. Verifique se o dispositivo está acessível.`
+          : err.message,
+        timeout: isTimeout,
       }), {
-        status: 500,
+        status: isTimeout ? 504 : 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    
-    if (mikrotikResponse.status === 401) {
-      console.error('❌ MikroTik retornou 401 - Credenciais inválidas ou sem permissões');
-      console.log('💡 Verifique: usuário tem permissão "api" ou "full" no MikroTik');
-      console.log('💡 Verifique: serviço www ou www-ssl está habilitado');
-    }
-
-    const responseText = await mikrotikResponse.text();
-    let responseData;
-
-    try {
-      responseData = JSON.parse(responseText);
-    } catch {
-      responseData = { raw: responseText };
-    }
-
-    console.log(`📊 Status: ${mikrotikResponse.status}`);
-
-    if (mikrotikResponse.status === 401) {
-      return new Response(JSON.stringify({ 
-        error: 'Falha na autenticação com MikroTik. Verifique usuário, senha e se a API REST está habilitada no MikroTik.',
-        details: 'O servidor MikroTik retornou 401 Unauthorized'
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    return new Response(JSON.stringify(responseData), {
-      status: mikrotikResponse.status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
 
   } catch (error: any) {
     console.error('❌ Erro:', error.message);
