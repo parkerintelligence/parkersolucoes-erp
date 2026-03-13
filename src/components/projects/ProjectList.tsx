@@ -23,6 +23,7 @@ interface ProjectListProps {
   columns: ActionColumn[];
   cards: ActionCard[];
   cardItems: ActionCardItem[];
+  onRefresh: () => Promise<void>;
 }
 
 // Helper to do direct DB operations and let parent refresh via hook
