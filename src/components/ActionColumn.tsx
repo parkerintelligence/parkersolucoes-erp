@@ -20,6 +20,7 @@ export function ActionColumn({ column, cards, cardItems, getItemsForCard }: Acti
   const [isCreateCardOpen, setIsCreateCardOpen] = useState(false);
   const [isEditColumnOpen, setIsEditColumnOpen] = useState(false);
   const { createCard, updateColumn, deleteColumn } = useActionPlan();
+  const { confirm } = useConfirmDialog();
 
   const handleCreateCard = async (data: any) => {
     await createCard({
