@@ -205,7 +205,7 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
     </button>
   );
 
-  const gridCols = "grid-cols-[24px_40px_1fr_100px_120px_100px_100px_70px_140px_80px]";
+  const gridCols = "grid-cols-[24px_40px_1fr_100px_120px_120px_100px_100px_70px_140px_80px]";
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
