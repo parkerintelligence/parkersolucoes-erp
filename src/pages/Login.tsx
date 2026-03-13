@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Shield, Server, Database, Lock, Eye, EyeOff, Sparkles, Zap, BarChart3, Users, ArrowLeft, Mail } from 'lucide-react';
+import { Shield, Server, Database, Lock, Eye, EyeOff, Sparkles, Zap, BarChart3, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const Login = () => {
