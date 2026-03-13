@@ -108,7 +108,9 @@ const Zabbix = () => {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedProblem, setSelectedProblem] = useState<any>(null);
   const [sortField, setSortField] = useState('clock');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   const handleCreateGLPITicket = async (problem: any) => {
     try {
