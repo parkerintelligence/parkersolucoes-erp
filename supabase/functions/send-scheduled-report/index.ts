@@ -959,15 +959,15 @@ async function getGLPIStandardData(glpiIntegration: any) {
     const resolvedTickets = allTickets.filter(t => [5, 6].includes(t.status || 0));
     
     // Calcular tickets vencidos (exemplo: > 3 dias em aberto)
-    // IMPORTANTE: parseGLPIDate já retorna UTC real (adiciona -03:00), então usamos now (UTC real) para comparações
+    // Usa data de criação real (date_creation), com fallback para date
     const now = new Date();
     const overdueTickets = allTickets.filter(ticket => {
-      if (ticket.date) {
-        const ticketDate = parseGLPIDate(ticket.date);
-        const daysDiff = (now.getTime() - ticketDate.getTime()) / (1000 * 60 * 60 * 24);
-        return daysDiff > 3;
-      }
-      return false;
+      const ticketDateString = getTicketCreatedAt(ticket);
+      if (!ticketDateString) return false;
+
+      const ticketDate = parseGLPIDate(ticketDateString);
+      const daysDiff = (now.getTime() - ticketDate.getTime()) / (1000 * 60 * 60 * 24);
+      return daysDiff > 3;
     });
 
     // Usar now (UTC real) para cálculos de tempo, pois parseGLPIDate já converte corretamente para UTC

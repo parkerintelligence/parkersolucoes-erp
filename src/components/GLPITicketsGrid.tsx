@@ -487,7 +487,7 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                     </TableCell>
                     <TableCell className="text-gray-300 py-2">
                       {(() => {
-                        const ticketDate = parseGLPIDate(ticket.date || ticket.date_creation);
+                        const ticketDate = parseGLPIDate(ticket.date_creation || ticket.date);
                         if (!ticketDate) return 'N/A';
                         
                         return (
