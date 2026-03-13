@@ -323,26 +323,43 @@ const Guacamole = () => {
             <div>
               <h1 className="text-2xl font-bold text-white">Conexão Remota</h1>
               <p className="text-slate-400">
-                Gerencie conexões remotas e sessões ativas do Guacamole
+                Gerencie conexões remotas via Guacamole e RustDesk
               </p>
             </div>
           </div>
 
-          <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="p-6 text-center">
-              <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-amber-400" />
-              <h3 className="text-lg font-semibold text-white mb-2">Guacamole não configurado</h3>
-              <p className="text-slate-400 mb-4">
-                Para usar o gerenciamento do Apache Guacamole, configure a integração no painel de administração.
-              </p>
-              <Button variant="outline" asChild className="border-slate-600 text-slate-300 hover:bg-slate-700">
-                <Link to="/admin">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Configurar Guacamole
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <Tabs defaultValue="rustdesk" className="space-y-4">
+            <TabsList className="bg-slate-800 border-slate-700">
+              <TabsTrigger value="guacamole" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+                Guacamole
+              </TabsTrigger>
+              <TabsTrigger value="rustdesk" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-slate-400">
+                🦀 RustDesk
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="guacamole" className="mt-6">
+              <Card className="bg-slate-800 border-slate-700">
+                <CardContent className="p-6 text-center">
+                  <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-amber-400" />
+                  <h3 className="text-lg font-semibold text-white mb-2">Guacamole não configurado</h3>
+                  <p className="text-slate-400 mb-4">
+                    Para usar o gerenciamento do Apache Guacamole, configure a integração no painel de administração.
+                  </p>
+                  <Button variant="outline" asChild className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                    <Link to="/admin">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Configurar Guacamole
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="rustdesk" className="mt-6">
+              <RustDeskPanel />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>;
   }
