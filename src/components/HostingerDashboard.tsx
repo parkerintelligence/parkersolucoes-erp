@@ -217,7 +217,7 @@ export const HostingerDashboard = () => {
               </p>
             </CardContent>
           </Card> : <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {vpsList.map((vps: any) => <VPSCard key={vps.id} vps={vps} integrationId={selectedIntegration} onRestart={() => handleRestart(vps.id)} onSnapshot={() => handleSnapshot(vps.id, vps.hostname || vps.name)} restarting={restartVPS.isPending} snapshotting={createSnapshot.isPending} />)}
+             {vpsList.map((vps: any, index: number) => <VPSCard key={vps.id} vps={vps} index={index} integrationId={selectedIntegration} onRestart={() => handleRestart(vps.id)} onSnapshot={() => handleSnapshot(vps.id, vps.hostname || vps.name)} restarting={restartVPS.isPending} snapshotting={createSnapshot.isPending} />)}
           </div>}
 
       {/* Dialog de Senha Master */}
