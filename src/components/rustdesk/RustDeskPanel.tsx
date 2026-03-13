@@ -286,12 +286,12 @@ export const RustDeskPanel = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Cliente / Empresa</label>
-                <Select value={form.company_id} onValueChange={v => setForm(p => ({ ...p, company_id: v }))}>
+                <Select value={form.company_id || "none"} onValueChange={v => setForm(p => ({ ...p, company_id: v === "none" ? "" : v }))}>
                   <SelectTrigger className="bg-slate-900 border-slate-600 text-white">
                     <SelectValue placeholder="Selecione um cliente" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {companies.map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
