@@ -955,6 +955,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
     const criticalTickets = allTickets.filter(t => (t.priority || 1) >= 4);
     const pendingTickets = allTickets.filter(t => t.status === 4);
     const newTickets = allTickets.filter(t => t.status === 1);
+    const resolvedTickets = allTickets.filter(t => [5, 6].includes(t.status || 0));
     
     // Calcular tickets vencidos (exemplo: > 3 dias em aberto)
     const now = new Date();
