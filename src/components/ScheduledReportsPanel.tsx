@@ -170,6 +170,10 @@ export const ScheduledReportsPanel = () => {
             </Card>
           )}
 
+          {activeTab === 'processes' && (
+            <AutomationProcessesPanel />
+          )}
+
           {activeTab === 'status' && (
             <ReportsStatusPanel />
           )}
