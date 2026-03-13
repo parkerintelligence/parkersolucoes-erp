@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Plus, MoreHorizontal, Settings, Trash2, GripVertical } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export function ProjectKanban({ boardId, columns, cards, cardItems }: ProjectKan
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [createCardColumnId, setCreateCardColumnId] = useState<string | null>(null);
   const { createColumn, updateColumn, deleteColumn, createCard, updateCard } = useActionPlan();
+  const { confirm } = useConfirmDialog();
 
   const handleCreateColumn = async (data: any) => {
     await createColumn({ ...data, board_id: boardId, position: columns.length });
@@ -35,9 +37,8 @@ export function ProjectKanban({ boardId, columns, cards, cardItems }: ProjectKan
   };
 
   const handleDeleteColumn = async (id: string) => {
-    if (window.confirm("Excluir esta coluna e todos os seus cards?")) {
-      await deleteColumn(id);
-    }
+    const confirmed = await confirm({ title: "Excluir coluna", description: "Excluir esta coluna e todos os seus cards?" });
+    if (confirmed) await deleteColumn(id);
   };
 
   const handleMoveCard = async (cardId: string, newColumnId: string) => {

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Plus, Settings, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ export function ActionColumn({ column, cards, cardItems, getItemsForCard }: Acti
   const [isCreateCardOpen, setIsCreateCardOpen] = useState(false);
   const [isEditColumnOpen, setIsEditColumnOpen] = useState(false);
   const { createCard, updateColumn, deleteColumn } = useActionPlan();
+  const { confirm } = useConfirmDialog();
 
   const handleCreateCard = async (data: any) => {
     await createCard({
@@ -35,9 +37,11 @@ export function ActionColumn({ column, cards, cardItems, getItemsForCard }: Acti
   };
 
   const handleDeleteColumn = async () => {
-    if (window.confirm("Tem certeza que deseja excluir esta coluna e todos os seus cards?")) {
-      await deleteColumn(column.id);
-    }
+    const confirmed = await confirm({
+      title: "Excluir coluna",
+      description: "Tem certeza que deseja excluir esta coluna e todos os seus cards? Esta ação não pode ser desfeita.",
+    });
+    if (confirmed) await deleteColumn(column.id);
   };
 
   return (

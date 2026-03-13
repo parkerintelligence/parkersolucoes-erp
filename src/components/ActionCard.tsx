@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Calendar, Edit, Trash2, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export function ActionCardComponent({ card, items }: ActionCardProps) {
     updateCardItem, 
     deleteCardItem 
   } = useActionPlan();
+  const { confirm } = useConfirmDialog();
 
   const handleUpdateCard = async (data: any) => {
     await updateCard(card.id, data);
@@ -35,9 +37,11 @@ export function ActionCardComponent({ card, items }: ActionCardProps) {
   };
 
   const handleDeleteCard = async () => {
-    if (window.confirm("Tem certeza que deseja excluir este card?")) {
-      await deleteCard(card.id);
-    }
+    const confirmed = await confirm({
+      title: "Excluir card",
+      description: "Tem certeza que deseja excluir este card e todos os seus itens?",
+    });
+    if (confirmed) await deleteCard(card.id);
   };
 
   const handleToggleItem = async (item: ActionCardItem) => {

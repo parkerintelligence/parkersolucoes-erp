@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Calendar, Edit, Trash2, Plus, CheckSquare, MessageSquare, Clock, ArrowRight, MoreHorizontal, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export function ProjectCard({ card, items, columns, onMoveCard }: ProjectCardPro
   const [isExpanded, setIsExpanded] = useState(false);
 
   const { updateCard, deleteCard, createCardItem, updateCardItem, deleteCardItem } = useActionPlan();
+  const { confirm } = useConfirmDialog();
 
   const handleUpdateCard = async (data: any) => {
     await updateCard(card.id, data);
@@ -34,7 +36,8 @@ export function ProjectCard({ card, items, columns, onMoveCard }: ProjectCardPro
   };
 
   const handleDeleteCard = async () => {
-    if (window.confirm("Excluir este card?")) await deleteCard(card.id);
+    const confirmed = await confirm({ title: "Excluir card", description: "Tem certeza que deseja excluir este card?" });
+    if (confirmed) await deleteCard(card.id);
   };
 
   const handleToggleItem = async (item: ActionCardItem) => {

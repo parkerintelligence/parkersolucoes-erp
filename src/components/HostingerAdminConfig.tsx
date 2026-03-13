@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -95,8 +96,11 @@ export const HostingerAdminConfig = () => {
     setEditingId(integration.id);
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDelete = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir esta integração?')) {
+    const confirmed = await confirm({ title: "Excluir integração", description: "Tem certeza que deseja excluir esta integração Hostinger?" });
+    if (confirmed) {
       try {
         await deleteIntegration.mutateAsync(id);
       } catch (error) {

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import {
   CheckSquare, Calendar, Clock, Edit, Trash2, AlertTriangle, ChevronRight, ChevronDown,
   Flag, ArrowUpDown, Plus, Square, CheckCircle2, Circle, MoreHorizontal, ListChecks
@@ -42,6 +43,7 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
   const [newItemText, setNewItemText] = useState<Record<string, string>>({});
   const { updateCard, deleteCard, createCard, createCardItem, updateCardItem, deleteCardItem, fetchData } = useActionPlan();
   const { toast } = useToast();
+  const { confirm } = useConfirmDialog();
 
   const toggleGroup = (id: string) => {
     const next = new Set(expandedGroups);
@@ -293,7 +295,7 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
                             <Edit className="h-3.5 w-3.5" />
                           </Button>
                           <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                            onClick={() => { if (window.confirm("Excluir esta tarefa?")) deleteCard(card.id); }}>
+                            onClick={async () => { const ok = await confirm({ title: "Excluir tarefa", description: "Tem certeza que deseja excluir esta tarefa?" }); if (ok) deleteCard(card.id); }}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>

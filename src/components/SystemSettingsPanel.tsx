@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,8 +89,11 @@ const SystemSettingsPanel = () => {
     setIsDialogOpen(true);
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDeleteSetting = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir esta configuração?')) {
+    const confirmed = await confirm({ title: "Excluir configuração", description: "Tem certeza que deseja excluir esta configuração?" });
+    if (confirmed) {
       try {
         await deleteSetting.mutateAsync(id);
         refetch();

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -117,8 +118,11 @@ const WhatsAppTemplates = () => {
     setShowForm(true);
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDelete = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este template?')) {
+    const confirmed = await confirm({ title: "Excluir template", description: "Tem certeza que deseja excluir este template?" });
+    if (confirmed) {
       try {
         await deleteTemplate.mutateAsync(id);
       } catch (error) {
