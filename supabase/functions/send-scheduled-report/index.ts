@@ -962,7 +962,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
     const nowBrasiliaForOverdue = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
     const overdueTickets = allTickets.filter(ticket => {
       if (ticket.date) {
-        const ticketDate = new Date(ticket.date);
+        const ticketDate = parseGLPIDate(ticket.date);
         const daysDiff = (nowBrasiliaForOverdue.getTime() - ticketDate.getTime()) / (1000 * 60 * 60 * 24);
         return daysDiff > 3;
       }
@@ -1087,7 +1087,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
         const priority = getPriorityIcon(ticket.priority || 1);
         const urgency = getUrgencyIcon(ticket.urgency || 1);
         const status = getStatusText(ticket.status || 1);
-        const timeOpen = ticket.date ? getTimeOpenText(new Date(ticket.date), nowBrasilia) : 'N/A';
+        const timeOpen = ticket.date ? getTimeOpenText(parseGLPIDate(ticket.date), nowBrasilia) : 'N/A';
         const assignee = ticket.users_id_recipient && ticket.users_id_recipient !== 0 
           ? userNames.get(ticket.users_id_recipient) || `Usuário #${ticket.users_id_recipient}` 
           : 'Não atribuído';
@@ -1120,7 +1120,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
       .map(ticket => {
         const priority = getPriorityIcon(ticket.priority || 1);
         const urgency = getUrgencyIcon(ticket.urgency || 1);
-        const timeOpen = ticket.date ? getTimeOpenText(new Date(ticket.date), nowBrasilia) : 'N/A';
+        const timeOpen = ticket.date ? getTimeOpenText(parseGLPIDate(ticket.date), nowBrasilia) : 'N/A';
         const categoryName = ticket.itilcategories_id && ticket.itilcategories_id !== 0
           ? categoryNames.get(ticket.itilcategories_id) || 'Sem categoria'
           : 'Sem categoria';
@@ -1217,6 +1217,15 @@ function getStatusText(status: number): string {
   return statusMap[status] || 'Desconhecido';
 }
 
+// Parsear data do GLPI como horário de Brasília (UTC-3)
+function parseGLPIDate(dateStr: string): Date {
+  // GLPI retorna datas em horário de Brasília sem timezone info
+  // Adicionamos o offset para que o JS interprete corretamente
+  const cleaned = dateStr.replace(' ', 'T');
+  const withTZ = cleaned.includes('+') || cleaned.includes('Z') ? cleaned : `${cleaned}-03:00`;
+  return new Date(withTZ);
+}
+
 function getTimeOpenText(createdDate: Date, now: Date): string {
   const diffMs = now.getTime() - createdDate.getTime();
   if (diffMs < 0) return 'agora';
@@ -1239,7 +1248,7 @@ function calculateAverageTimeOpen(tickets: any[], now: Date): string {
   
   const totalMinutes = tickets.reduce((sum, ticket) => {
     if (ticket.date) {
-      const ticketDate = new Date(ticket.date);
+      const ticketDate = parseGLPIDate(ticket.date);
       const diffMinutes = (now.getTime() - ticketDate.getTime()) / (1000 * 60);
       return sum + Math.max(0, diffMinutes);
     }
