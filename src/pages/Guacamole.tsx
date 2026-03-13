@@ -13,6 +13,7 @@ import { GuacamoleStatusPopover } from '@/components/guacamole/GuacamoleStatusPo
 import { GuacamoleConnectionTree } from '@/components/guacamole/GuacamoleConnectionTree';
 import { GuacamoleConnectionDialog } from '@/components/guacamole/GuacamoleConnectionDialog';
 import { GuacamoleLogs } from '@/components/guacamole/GuacamoleLogs';
+import { RustDeskPanel } from '@/components/rustdesk/RustDeskPanel';
 
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
