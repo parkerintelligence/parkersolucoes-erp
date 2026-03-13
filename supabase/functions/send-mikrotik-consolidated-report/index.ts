@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
       {
         body: {
           integrationId: evolutionIntegration.id,
-          instanceName: mikrotikInstanceName || undefined,
+          instanceName: preferredInstanceName || undefined,
           phoneNumber,
           message
         }
