@@ -61,6 +61,7 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
         createdAt: inst.instance?.createdAt || inst.createdAt,
       }));
       setInstances(mapped);
+      onInstancesChange?.(mapped);
     } catch (error) {
       console.error('Erro ao buscar instâncias:', error);
     } finally {
