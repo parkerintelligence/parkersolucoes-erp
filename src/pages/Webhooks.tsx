@@ -40,6 +40,9 @@ export default function Webhooks() {
   const [actionType, setActionType] = useState<'whatsapp' | 'email'>('whatsapp');
   const [actionDest, setActionDest] = useState('');
   const [actionTemplate, setActionTemplate] = useState('{text}');
+  const [lastPayloadKeys, setLastPayloadKeys] = useState<string[]>([]);
+  const [lastPayloadSample, setLastPayloadSample] = useState<Record<string, any> | null>(null);
+  const templateRef = useRef<HTMLTextAreaElement>(null);
 
   // History state
   const [historyDialog, setHistoryDialog] = useState(false);
