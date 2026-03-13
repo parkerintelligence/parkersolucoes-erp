@@ -70,7 +70,7 @@ function App() {
               <Route path="/alertas" element={<Layout><SafeAlertas /></Layout>} />
               <Route path="/links" element={<Layout><Links /></Layout>} />
               <Route path="/vps" element={<Layout><VPS /></Layout>} />
-              <Route path="/admin" element={<Layout><SafeAdmin /></Layout>} />
+              <Route path="/admin" element={<Layout><MasterRoute><SafeAdmin /></MasterRoute></Layout>} />
               <Route path="/glpi" element={<Layout><SafeGLPI /></Layout>} />
               <Route path="/conexao-remota" element={<Layout><SafeGuacamole /></Layout>} />
               <Route path="/backups" element={<Layout><Backups /></Layout>} />
