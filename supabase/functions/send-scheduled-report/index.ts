@@ -662,91 +662,80 @@ async function getScheduleData(userId: string, settings: any) {
     futuros: categorizedItems.future.length
   });
 
-  // Construir mensagem com layout melhorado e alinhado
-  let itemsText = `🔔 *AGENDA DE VENCIMENTOS*\n\n📅 *Data:* ${today.toLocaleDateString('pt-BR')}\n\n`;
-  
+  // Construir mensagem com layout limpo e organizado
   const criticalCount = categorizedItems.overdue.length + categorizedItems.today.length;
   
-  // Seção de itens vencidos
-  if (categorizedItems.overdue.length > 0) {
-    itemsText += `❌ *VENCIDOS (${categorizedItems.overdue.length} itens):*\n`;
-    categorizedItems.overdue.forEach(item => {
-      const formattedDate = new Date(item.due_date).toLocaleDateString('pt-BR');
-      itemsText += `• *${item.title}*\n`;
-      itemsText += `  🏢 ${item.company} • 📋 ${item.type}\n`;
-      itemsText += `  📅 Venceu há *${item.daysOverdue} dia(s)* (${formattedDate})\n`;
-      itemsText += `  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-    });
-    itemsText += '\n';
-  }
+  let itemsText = `━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  itemsText += `   📋 *AGENDA DE VENCIMENTOS*\n`;
+  itemsText += `━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  itemsText += `📅 ${today.toLocaleDateString('pt-BR')}  •  📊 ${allItems.length} itens\n\n`;
 
-  // Seção de itens vencendo hoje
-  if (categorizedItems.today.length > 0) {
-    itemsText += `⚠️ *VENCEM HOJE (${categorizedItems.today.length} itens):*\n`;
-    categorizedItems.today.forEach(item => {
-      const formattedDate = new Date(item.due_date).toLocaleDateString('pt-BR');
-      itemsText += `• *${item.title}*\n`;
-      itemsText += `  🏢 ${item.company} • 📋 ${item.type}\n`;
-      itemsText += `  📅 *VENCE HOJE* (${formattedDate})\n`;
-      itemsText += `  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  // Helper para renderizar seção
+  const renderSection = (title: string, icon: string, items: any[], renderItem: (item: any) => string) => {
+    if (items.length === 0) return '';
+    let section = `${icon} *${title}* (${items.length})\n`;
+    section += `┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n`;
+    
+    // Agrupar por empresa
+    const byCompany: Record<string, any[]> = {};
+    items.forEach(item => {
+      const company = item.company || 'Sem empresa';
+      if (!byCompany[company]) byCompany[company] = [];
+      byCompany[company].push(item);
     });
-    itemsText += '\n';
-  }
-
-  // Próximos 7 dias
-  if (categorizedItems.next7days.length > 0) {
-    itemsText += `📅 *PRÓXIMOS 7 DIAS (${categorizedItems.next7days.length} itens):*\n`;
-    categorizedItems.next7days.forEach(item => {
-      const formattedDate = new Date(item.due_date).toLocaleDateString('pt-BR');
-      itemsText += `• *${item.title}*\n`;
-      itemsText += `  🏢 ${item.company} • 📋 ${item.type}\n`;
-      itemsText += `  📅 Em *${item.daysUntil} dia(s)* (${formattedDate} - ${item.dayOfWeek})\n`;
-      itemsText += `  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    
+    Object.entries(byCompany).forEach(([company, companyItems]) => {
+      section += `\n🏢 *${company}*\n`;
+      companyItems.forEach(item => {
+        section += renderItem(item);
+      });
     });
-    itemsText += '\n';
-  }
+    
+    section += '\n';
+    return section;
+  };
 
-  // Próximos 30 dias
-  if (categorizedItems.next30days.length > 0) {
-    itemsText += `📆 *PRÓXIMOS 30 DIAS (${categorizedItems.next30days.length} itens):*\n`;
-    categorizedItems.next30days.forEach(item => {
-      const formattedDate = new Date(item.due_date).toLocaleDateString('pt-BR');
-      itemsText += `• *${item.title}*\n`;
-      itemsText += `  🏢 ${item.company} • 📋 ${item.type}\n`;
-      itemsText += `  📅 Em *${item.daysUntil} dia(s)* (${formattedDate})\n`;
-      itemsText += `  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-    });
-    itemsText += '\n';
-  }
+  // Seção VENCIDOS
+  itemsText += renderSection('VENCIDOS', '🔴', categorizedItems.overdue, (item) => {
+    const formattedDate = new Date(item.due_date).toLocaleDateString('pt-BR');
+    return `   ▸ ${item.title}\n     ${item.type} • Vencido há ${item.daysOverdue}d (${formattedDate})\n`;
+  });
 
-  // Itens futuros (além de 30 dias)
-  if (categorizedItems.future.length > 0) {
-    itemsText += `📋 *OUTROS A VENCER (${categorizedItems.future.length} itens):*\n`;
-    categorizedItems.future.forEach(item => {
-      const formattedDate = new Date(item.due_date).toLocaleDateString('pt-BR');
-      itemsText += `• *${item.title}*\n`;
-      itemsText += `  🏢 ${item.company} • 📋 ${item.type}\n`;
-      itemsText += `  📅 Em *${item.daysUntil} dia(s)* (${formattedDate})\n`;
-      itemsText += `  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-    });
-    itemsText += '\n';
-  }
+  // Seção VENCE HOJE
+  itemsText += renderSection('VENCE HOJE', '🟡', categorizedItems.today, (item) => {
+    return `   ▸ ${item.title}\n     ${item.type} • *Vence hoje*\n`;
+  });
 
-  // Resumo detalhado
+  // Seção PRÓXIMOS 7 DIAS
+  itemsText += renderSection('PRÓXIMOS 7 DIAS', '🟠', categorizedItems.next7days, (item) => {
+    const formattedDate = new Date(item.due_date).toLocaleDateString('pt-BR');
+    return `   ▸ ${item.title}\n     ${item.type} • Em ${item.daysUntil}d (${formattedDate}, ${item.dayOfWeek})\n`;
+  });
+
+  // Seção PRÓXIMOS 30 DIAS
+  itemsText += renderSection('PRÓXIMOS 30 DIAS', '🔵', categorizedItems.next30days, (item) => {
+    const formattedDate = new Date(item.due_date).toLocaleDateString('pt-BR');
+    return `   ▸ ${item.title}\n     ${item.type} • Em ${item.daysUntil}d (${formattedDate})\n`;
+  });
+
+  // Seção FUTUROS
+  itemsText += renderSection('A VENCER', '⚪', categorizedItems.future, (item) => {
+    const formattedDate = new Date(item.due_date).toLocaleDateString('pt-BR');
+    return `   ▸ ${item.title}\n     ${item.type} • Em ${item.daysUntil}d (${formattedDate})\n`;
+  });
+
+  // Resumo final compacto
   if (allItems.length > 0) {
-    itemsText += `📊 *RESUMO GERAL:*\n`;
-    itemsText += `• Total de itens: *${allItems.length}*\n`;
-    itemsText += `• Críticos (vencidos + hoje): *${criticalCount}*\n`;
-    itemsText += `• Próximos 7 dias: *${categorizedItems.next7days.length}*\n`;
-    itemsText += `• Próximos 30 dias: *${categorizedItems.next30days.length}*\n`;
-    itemsText += `• Outros futuros: *${categorizedItems.future.length}*\n\n`;
+    itemsText += `━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    itemsText += `   📊 *RESUMO*\n`;
+    itemsText += `━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    itemsText += `🔴 Vencidos: ${categorizedItems.overdue.length}  •  🟡 Hoje: ${categorizedItems.today.length}\n`;
+    itemsText += `🟠 7 dias: ${categorizedItems.next7days.length}  •  🔵 30 dias: ${categorizedItems.next30days.length}\n`;
+    itemsText += `⚪ Futuros: ${categorizedItems.future.length}\n`;
     
     if (criticalCount > 0) {
-      itemsText += `🚨 *ATENÇÃO:* ${criticalCount} item(ns) necessita(m) ação imediata!\n\n`;
+      itemsText += `\n🚨 *${criticalCount} item(ns) requer(em) ação imediata!*\n`;
     }
-
-    itemsText += `⏰ *Ação necessária:* Revisar e tomar as providências necessárias antes do vencimento.\n\n`;
-    itemsText += `📋 Total de itens: ${allItems.length}`;
   } else {
     itemsText = '✅ Nenhum item na agenda encontrado';
   }
