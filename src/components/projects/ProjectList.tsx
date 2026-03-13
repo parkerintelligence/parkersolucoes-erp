@@ -393,7 +393,7 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
 
       <Dialog open={!!editingCard} onOpenChange={(open) => !open && setEditingCard(null)}>
         {editingCard && (
-          <CardDialog card={editingCard} onSave={async (data) => { await updateCard(editingCard.id, data); setEditingCard(null); }} />
+          <CardDialog card={editingCard} columns={columns} onSave={async (data) => { await updateCard(editingCard.id, data); setEditingCard(null); }} />
         )}
       </Dialog>
     </div>

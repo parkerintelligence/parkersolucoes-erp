@@ -5,20 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { type ActionCard } from "@/hooks/useActionPlan";
+import { type ActionCard, type ActionColumn } from "@/hooks/useActionPlan";
 
 interface CardDialogProps {
   card?: ActionCard | null;
+  columns?: ActionColumn[];
   onSave: (data: Partial<ActionCard>) => void;
 }
 
-export function CardDialog({ card, onSave }: CardDialogProps) {
+export function CardDialog({ card, columns, onSave }: CardDialogProps) {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     color: "#f8fafc",
     priority: "medium" as 'low' | 'medium' | 'high' | 'urgent',
     due_date: "",
+    column_id: "",
   });
 
   useEffect(() => {
@@ -26,9 +28,10 @@ export function CardDialog({ card, onSave }: CardDialogProps) {
       setFormData({
         title: card.title,
         description: card.description || "",
-        color: card.color,
-        priority: card.priority as 'low' | 'medium' | 'high' | 'urgent',
+        color: card.color || "#f8fafc",
+        priority: (card.priority as 'low' | 'medium' | 'high' | 'urgent') || "medium",
         due_date: card.due_date || "",
+        column_id: card.column_id || "",
       });
     } else {
       setFormData({
@@ -37,16 +40,16 @@ export function CardDialog({ card, onSave }: CardDialogProps) {
         color: "#f8fafc",
         priority: "medium",
         due_date: "",
+        column_id: "",
       });
     }
   }, [card]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const data = { ...formData };
-    if (!data.due_date) {
-      delete (data as any).due_date;
-    }
+    const data: any = { ...formData };
+    if (!data.due_date) delete data.due_date;
+    if (!data.column_id) delete data.column_id;
     onSave(data);
   };
 
@@ -118,6 +121,28 @@ export function CardDialog({ card, onSave }: CardDialogProps) {
             />
           </div>
         </div>
+
+        {/* Column/Status Selector */}
+        {columns && columns.length > 0 && (
+          <div>
+            <Label>Fase / Status</Label>
+            <Select value={formData.column_id} onValueChange={(value) => setFormData({ ...formData, column_id: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a fase" />
+              </SelectTrigger>
+              <SelectContent>
+                {columns.map(col => (
+                  <SelectItem key={col.id} value={col.id}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: col.color || 'hsl(var(--muted))' }} />
+                      {col.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         
         <div>
           <Label>Cor</Label>
