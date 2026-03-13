@@ -164,19 +164,6 @@ export const EvolutionAPIAdminConfig = () => {
           </div>
 
           <div>
-            <Label htmlFor="instance_name">Nome da Instância *</Label>
-            <Input
-              id="instance_name"
-              value={formData.instance_name}
-              onChange={(e) => setFormData({ ...formData, instance_name: e.target.value })}
-              placeholder="minha-instancia"
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              Nome da instância configurada na Evolution API (ex: minha-instancia, suporte, vendas)
-            </p>
-          </div>
-
-          <div>
             <Label htmlFor="phone_number">Número do WhatsApp</Label>
             <Input
               id="phone_number"
