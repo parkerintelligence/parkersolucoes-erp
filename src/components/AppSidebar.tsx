@@ -33,8 +33,14 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const { isMaster, user, userProfile } = useAuth();
   const location = useLocation();
+  const { data: settings } = useSystemSettings('branding');
   const currentPath = location.pathname;
   const isCollapsed = state === 'collapsed';
+  const filteredMainItems = menuItems.filter(item => item.role === 'user' || (item.role === 'master' && isMaster));
+
+  const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Parker Soluções';
+  const companySubtitle = settings?.find(s => s.setting_key === 'company_subtitle')?.setting_value || 'ERP System';
+  const logoUrl = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value || '';
   const filteredMainItems = menuItems.filter(item => item.role === 'user' || (item.role === 'master' && isMaster));
 
   return (
