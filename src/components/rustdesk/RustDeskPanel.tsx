@@ -421,93 +421,108 @@ export const RustDeskPanel = () => {
                     <TableHead className="text-slate-400">Nome</TableHead>
                     <TableHead className="text-slate-400">ID RustDesk</TableHead>
                     <TableHead className="text-slate-400">Senha</TableHead>
-                    <TableHead className="text-slate-400">Cliente</TableHead>
                     <TableHead className="text-slate-400">SO</TableHead>
                     <TableHead className="text-slate-400">Tags</TableHead>
                     <TableHead className="text-slate-400 text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map(conn => (
-                    <TableRow key={conn.id} className="border-slate-700 hover:bg-slate-700/50">
-                      <TableCell className="text-white font-medium">
-                        <div>
-                          {conn.name}
-                          {conn.alias && <span className="text-slate-400 text-xs ml-1">({conn.alias})</span>}
-                        </div>
-                        {conn.hostname && <div className="text-xs text-slate-500">{conn.hostname}</div>}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <code className="text-orange-300 bg-orange-500/10 px-2 py-0.5 rounded text-sm">
-                            {conn.rustdesk_id}
-                          </code>
-                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-400 hover:text-white"
-                            onClick={() => copyToClipboard(conn.rustdesk_id, 'ID')}>
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {conn.password ? (
-                          <div className="flex items-center gap-1">
-                            <span className="text-slate-300 text-sm font-mono">
-                              {showPasswords[conn.id] ? conn.password : '••••••'}
-                            </span>
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-400 hover:text-white"
-                              onClick={() => togglePassword(conn.id)}>
-                              {showPasswords[conn.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-400 hover:text-white"
-                              onClick={() => copyToClipboard(conn.password!, 'Senha')}>
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-slate-500">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-slate-300 text-sm">{getCompanyName(conn.company_id)}</TableCell>
-                      <TableCell>
-                        {conn.os_type && (
-                          <Badge className="bg-slate-600/30 text-slate-300 border-slate-600/50 text-xs">
-                            {conn.os_type}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {conn.tags?.map(tag => (
-                            <Badge key={tag} className="bg-orange-500/10 text-orange-300 border-orange-500/20 text-xs">
-                              {tag}
+                  {groupedByCompany.map(([companyId, group]) => (
+                    <>
+                      {/* Company header row */}
+                      <TableRow key={`group-${companyId}`} className="border-slate-700 bg-slate-900/80 hover:bg-slate-900/80">
+                        <TableCell colSpan={6} className="py-2">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-orange-400" />
+                            <span className="text-sm font-semibold text-orange-300">{group.name}</span>
+                            <Badge className="bg-slate-700 text-slate-300 border-slate-600 text-xs">
+                              {group.connections.length}
                             </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            size="sm"
-                            onClick={() => handleConnect(conn)}
-                            className="h-7 bg-orange-600 hover:bg-orange-700 text-white text-xs"
-                          >
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            Conectar
-                          </Button>
-                          <Button variant="outline" size="sm"
-                            className="h-7 border-slate-600 text-slate-300 hover:bg-slate-700"
-                            onClick={() => handleEdit(conn)}>
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button variant="outline" size="sm"
-                            className="h-7 border-slate-600 text-red-400 hover:bg-red-500/10"
-                            onClick={() => handleDelete(conn.id)}
-                            disabled={deleteMutation.isPending}>
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      {/* Connection rows */}
+                      {group.connections.map(conn => (
+                        <TableRow key={conn.id} className="border-slate-700 hover:bg-slate-700/50">
+                          <TableCell className="text-white font-medium pl-8">
+                            <div>
+                              {conn.name}
+                              {conn.alias && <span className="text-slate-400 text-xs ml-1">({conn.alias})</span>}
+                            </div>
+                            {conn.hostname && <div className="text-xs text-slate-500">{conn.hostname}</div>}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <code className="text-orange-300 bg-orange-500/10 px-2 py-0.5 rounded text-sm">
+                                {conn.rustdesk_id}
+                              </code>
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-400 hover:text-white"
+                                onClick={() => copyToClipboard(conn.rustdesk_id, 'ID')}>
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {conn.password ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-slate-300 text-sm font-mono">
+                                  {showPasswords[conn.id] ? conn.password : '••••••'}
+                                </span>
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-400 hover:text-white"
+                                  onClick={() => togglePassword(conn.id)}>
+                                  {showPasswords[conn.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-400 hover:text-white"
+                                  onClick={() => copyToClipboard(conn.password!, 'Senha')}>
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-slate-500">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {conn.os_type && (
+                              <Badge className="bg-slate-600/30 text-slate-300 border-slate-600/50 text-xs">
+                                {conn.os_type}
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {conn.tags?.map(tag => (
+                                <Badge key={tag} className="bg-orange-500/10 text-orange-300 border-orange-500/20 text-xs">
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                size="sm"
+                                onClick={() => handleConnect(conn)}
+                                className="h-7 bg-orange-600 hover:bg-orange-700 text-white text-xs"
+                              >
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                Conectar
+                              </Button>
+                              <Button variant="outline" size="sm"
+                                className="h-7 border-slate-600 text-slate-300 hover:bg-slate-700"
+                                onClick={() => handleEdit(conn)}>
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button variant="outline" size="sm"
+                                className="h-7 border-slate-600 text-red-400 hover:bg-red-500/10"
+                                onClick={() => handleDelete(conn.id)}
+                                disabled={deleteMutation.isPending}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </>
                   ))}
                 </TableBody>
               </Table>
