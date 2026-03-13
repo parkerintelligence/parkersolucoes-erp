@@ -203,7 +203,7 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
                     <div key={card.id} className="border-b border-border/50 last:border-b-0">
                       {/* Main Task Row */}
                       <div
-                        className={`grid grid-cols-[40px_1fr_100px_100px_100px_70px_160px_80px] gap-0 px-4 py-2.5 items-center transition-colors cursor-pointer
+                        className={`grid grid-cols-[40px_1fr_100px_120px_100px_100px_70px_140px_80px] gap-0 px-4 py-2.5 items-center transition-colors cursor-pointer
                           ${overdue && !isDone ? 'bg-red-500/5 hover:bg-red-500/10' : isDone ? 'bg-green-500/5 hover:bg-green-500/8' : globalIdx % 2 === 0 ? 'bg-background hover:bg-primary/5' : 'bg-card hover:bg-primary/5'}
                         `}
                         onClick={() => toggleTask(card.id)}
