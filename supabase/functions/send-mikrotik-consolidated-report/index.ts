@@ -239,17 +239,33 @@ Deno.serve(async (req) => {
     console.log(`✅ [MIKROTIK-REPORT] Mensagem enviada com sucesso!`);
 
     // Update report execution
+    const executionTimestamp = new Date().toISOString();
+
+    const { data: nextExecution, error: nextExecutionError } = await supabase
+      .rpc('calculate_next_execution', {
+        cron_expr: report.cron_expression,
+        from_time: executionTimestamp
+      });
+
+    if (nextExecutionError) {
+      console.error('❌ [MIKROTIK-REPORT] Erro ao calcular próxima execução:', nextExecutionError);
+    }
+
+    const safeNextExecution = nextExecution || new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
     const { error: updateError } = await supabase
       .from('scheduled_reports')
       .update({
-        last_execution: new Date().toISOString(),
-        execution_count: report.execution_count + 1,
-        next_execution: null // Will be recalculated by trigger
+        last_execution: executionTimestamp,
+        execution_count: (report.execution_count || 0) + 1,
+        next_execution: safeNextExecution
       })
       .eq('id', report_id);
 
     if (updateError) {
       console.error('❌ [MIKROTIK-REPORT] Erro ao atualizar relatório:', updateError);
+    } else {
+      console.log(`⏰ [MIKROTIK-REPORT] Próxima execução atualizada para: ${safeNextExecution}`);
     }
 
     // Log execution
