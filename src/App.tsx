@@ -30,6 +30,7 @@ import ReportsDashboard from '@/pages/ReportsDashboard';
 import { SafeActionPlan } from '@/components/SafeActionPlan';
 import { SafeAlertas } from '@/components/SafeAlertas';
 import { SafeAtendimentos } from '@/components/SafeAtendimentos';
+import Dashboard from '@/pages/Dashboard';
 import Security from '@/pages/Security';
 import { SafeUniFi } from '@/components/SafeUniFi';
 import { Layout } from '@/components/Layout';
