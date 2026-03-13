@@ -47,6 +47,13 @@ const queryClient = new QueryClient({
   },
 });
 
+const MasterRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isMaster, isLoading } = useAuth();
+  if (isLoading) return null;
+  if (!isMaster) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
