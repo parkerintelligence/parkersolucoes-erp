@@ -171,6 +171,24 @@ serve(async (req) => {
       throw new Error('Integração Evolution API não encontrada');
     }
 
+    // Buscar configuração de instância por tela (whatsapp_screen_config)
+    let baculaInstanceName = '';
+    const { data: screenConfigSetting } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'whatsapp_screen_config')
+      .maybeSingle();
+
+    if (screenConfigSetting) {
+      try {
+        const screenConfig = JSON.parse(screenConfigSetting.setting_value);
+        baculaInstanceName = screenConfig['bacula'] || '';
+        console.log(`📱 [BACULA-DAILY] Instância da screen config (bacula): ${baculaInstanceName}`);
+      } catch (e) {
+        console.warn('⚠️ [BACULA-DAILY] Erro ao parsear screen config:', e);
+      }
+    }
+
     const { data: baculaIntegration } = await supabase
       .from('integrations')
       .select('*')
@@ -299,7 +317,8 @@ serve(async (req) => {
           try {
             await supabase.functions.invoke('send-whatsapp-message', {
               body: {
-                instanceName: evolutionIntegration.instance_name,
+                integrationId: evolutionIntegration.id,
+                instanceName: baculaInstanceName || undefined,
                 phoneNumber: recipient,
                 message: errorMessage
               }
@@ -389,7 +408,8 @@ serve(async (req) => {
         try {
           await supabase.functions.invoke('send-whatsapp-message', {
             body: {
-              instanceName: evolutionIntegration.instance_name,
+              integrationId: evolutionIntegration.id,
+              instanceName: baculaInstanceName || undefined,
               phoneNumber: recipient,
               message: errorMessage
             }
@@ -619,7 +639,8 @@ serve(async (req) => {
         
         const whatsappResponse = await supabase.functions.invoke('send-whatsapp-message', {
           body: {
-            instanceName: evolutionIntegration.instance_name,
+            integrationId: evolutionIntegration.id,
+            instanceName: baculaInstanceName || undefined,
             phoneNumber: recipient,
             message: finalMessage
           }

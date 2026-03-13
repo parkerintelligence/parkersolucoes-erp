@@ -167,6 +167,24 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`🔌 [SEND] Integration encontrada: ${integration.name}`);
 
+    // Buscar configuração de instância por tela (whatsapp_screen_config)
+    const { data: screenConfigSetting } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'whatsapp_screen_config')
+      .maybeSingle();
+
+    let screenInstanceName = '';
+    if (screenConfigSetting) {
+      try {
+        const screenConfig = JSON.parse(screenConfigSetting.setting_value);
+        screenInstanceName = screenConfig['agendamentos'] || '';
+        console.log(`📱 [SEND] Instância da screen config (agendamentos): ${screenInstanceName}`);
+      } catch (e) {
+        console.warn('⚠️ [SEND] Erro ao parsear screen config:', e);
+      }
+    }
+
     // Gerar conteúdo baseado no template com autenticação correta
     const authHeader = req.headers.get('authorization') || '';
     const message = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings, authHeader);
@@ -175,8 +193,8 @@ const handler = async (req: Request): Promise<Response> => {
     // Atualizar log com conteúdo da mensagem
     reportLog.message_content = message.substring(0, 1000); // Limitar tamanho
 
-    // Enviar mensagem via WhatsApp
-    const instanceName = integration.instance_name || 'main_instance';
+    // Enviar mensagem via WhatsApp - usar instância da screen config ou fallback para a da integração
+    const instanceName = screenInstanceName || integration.instance_name || 'main_instance';
     const cleanPhoneNumber = report.phone_number.replace(/\D/g, '');
     
     console.log(`📱 [SEND] Enviando para: ${cleanPhoneNumber} via instância: ${instanceName}`);
