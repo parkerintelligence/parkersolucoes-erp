@@ -205,8 +205,7 @@ export const HostingerDashboard = () => {
       </div>
 
       {/* Lista de VPS */}
-      <div className="grid gap-6">
-        {vpsLoading ? <div className="flex items-center justify-center p-8">
+      {vpsLoading ? <div className="flex items-center justify-center p-8">
             <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
             <span className="ml-2 text-slate-400">Carregando VPS...</span>
           </div> : !vpsList || vpsList.length === 0 ? <Card className="bg-slate-800 border-slate-700">
@@ -217,10 +216,9 @@ export const HostingerDashboard = () => {
                 Não foi possível encontrar VPS nesta integração ou houve um erro na conexão.
               </p>
             </CardContent>
-          </Card> : <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          </Card> : <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {vpsList.map((vps: any) => <VPSCard key={vps.id} vps={vps} integrationId={selectedIntegration} onRestart={() => handleRestart(vps.id)} onSnapshot={() => handleSnapshot(vps.id, vps.hostname || vps.name)} restarting={restartVPS.isPending} snapshotting={createSnapshot.isPending} />)}
           </div>}
-      </div>
 
       {/* Dialog de Senha Master */}
       <MasterPasswordDialog open={showMasterPasswordDialog} onOpenChange={setShowMasterPasswordDialog} onSuccess={handleMasterPasswordSuccess} title="Autorização para Reiniciar VPS" description="Esta ação irá reiniciar o servidor virtual. Para continuar, confirme sua senha master:" />
