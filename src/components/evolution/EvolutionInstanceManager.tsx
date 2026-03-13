@@ -54,10 +54,10 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
       const mapped: InstanceInfo[] = list.map((inst: any) => ({
         instanceName: inst.instance?.instanceName || inst.instanceName || inst.name || 'Sem nome',
         instanceId: inst.instance?.instanceId || inst.id,
-        status: inst.instance?.status || inst.status || 'unknown',
-        owner: inst.instance?.owner || inst.owner,
+        status: inst.instance?.connectionStatus || inst.instance?.status || inst.connectionStatus || inst.status || 'unknown',
+        owner: inst.instance?.owner || inst.owner || inst.ownerJid,
         profileName: inst.instance?.profileName || inst.profileName,
-        profilePictureUrl: inst.instance?.profilePictureUrl || inst.profilePictureUrl,
+        profilePictureUrl: inst.instance?.profilePictureUrl || inst.profilePictureUrl || inst.profilePicUrl,
         createdAt: inst.instance?.createdAt || inst.createdAt,
       }));
       setInstances(mapped);

@@ -35,7 +35,7 @@ const WhatsApp = () => {
       setInstances(list.map((inst: any) => ({
         instanceName: inst.instance?.instanceName || inst.instanceName || inst.name || 'Sem nome',
         instanceId: inst.instance?.instanceId || inst.id,
-        status: inst.instance?.status || inst.status || 'unknown',
+        status: inst.instance?.connectionStatus || inst.instance?.status || inst.connectionStatus || inst.status || 'unknown',
       })));
     } catch (error) {
       console.error('Erro ao buscar instâncias:', error);
