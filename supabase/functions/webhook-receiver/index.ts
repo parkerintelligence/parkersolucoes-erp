@@ -48,6 +48,12 @@ serve(async (req) => {
 
     const textContent = body.text || body.message || body.content || JSON.stringify(body);
 
+    // Build a flat map of all payload keys for template substitution
+    const templateVars: Record<string, string> = {};
+    for (const [key, value] of Object.entries(body)) {
+      templateVars[key] = typeof value === "string" ? value : JSON.stringify(value);
+    }
+
     // Get active actions
     const { data: actions } = await supabase
       .from("webhook_actions")
