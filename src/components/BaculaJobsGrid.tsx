@@ -320,6 +320,11 @@ Necessário investigar o motivo da falha no backup.`,
     );
   }
 
+  const ITEMS_PER_PAGE = 20;
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const totalPages = Math.ceil(sortedJobs.length / ITEMS_PER_PAGE);
+  const paginatedJobs = sortedJobs.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
   return (
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader>
@@ -383,7 +388,7 @@ Necessário investigar o motivo da falha no backup.`,
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedJobs.map((job: any, index: number) => (
+              {paginatedJobs.map((job: any, index: number) => (
                 <TableRow key={job.jobid || index} className="border-slate-700 hover:bg-slate-700/50">
                   <TableCell className="text-slate-300 font-mono text-sm">
                     {job.jobid || '-'}
@@ -432,6 +437,59 @@ Necessário investigar o motivo da falha no backup.`,
             </TableBody>
           </Table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-700">
+            <span className="text-sm text-slate-400">
+              Mostrando {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, sortedJobs.length)} de {sortedJobs.length}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              >
+                Anterior
+              </Button>
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                let page: number;
+                if (totalPages <= 5) {
+                  page = i + 1;
+                } else if (currentPage <= 3) {
+                  page = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  page = totalPages - 4 + i;
+                } else {
+                  page = currentPage - 2 + i;
+                }
+                return (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(page)}
+                    className={currentPage === page 
+                      ? "bg-primary text-primary-foreground" 
+                      : "border-slate-600 text-slate-300 hover:bg-slate-700"}
+                  >
+                    {page}
+                  </Button>
+                );
+              })}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              >
+                Próximo
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
       
       <GLPITicketConfirmDialog
