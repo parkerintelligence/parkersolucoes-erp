@@ -959,11 +959,12 @@ async function getGLPIStandardData(glpiIntegration: any) {
     
     // Calcular tickets vencidos (exemplo: > 3 dias em aberto)
     const now = new Date();
+    const nowBrasiliaForOverdue = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
     const overdueTickets = allTickets.filter(ticket => {
       if (ticket.date) {
         const ticketDate = new Date(ticket.date);
-        const daysDiff = (now.getTime() - ticketDate.getTime()) / (1000 * 60 * 60 * 24);
-        return daysDiff > 3; // Considera vencido após 3 dias
+        const daysDiff = (nowBrasiliaForOverdue.getTime() - ticketDate.getTime()) / (1000 * 60 * 60 * 24);
+        return daysDiff > 3;
       }
       return false;
     });
