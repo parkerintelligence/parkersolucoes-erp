@@ -229,6 +229,51 @@ export type Database = {
           },
         ]
       }
+      automation_processes: {
+        Row: {
+          created_at: string
+          description: string | null
+          destination: string | null
+          frequency: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          recipient: string | null
+          systems: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          destination?: string | null
+          frequency?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          recipient?: string | null
+          systems?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          destination?: string | null
+          frequency?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          recipient?: string | null
+          systems?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       budget_items: {
         Row: {
           budget_id: string
