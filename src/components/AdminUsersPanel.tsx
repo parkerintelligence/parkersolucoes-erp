@@ -221,6 +221,15 @@ const AdminUsersPanel = () => {
                     </SelectContent>
                   </Select>
 
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" onClick={() => { setPermUserId(user.id); setPermEmail(user.email); }} className="border-accent/30 text-accent hover:bg-accent/10">
+                        <ShieldCheck className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Permissões de telas</TooltipContent>
+                  </Tooltip>
+
                   <Dialog open={resetUserId === user.id} onOpenChange={(open) => { if (!open) { setResetUserId(null); setResetPassword(''); } }}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm" onClick={() => setResetUserId(user.id)} className="border-slate-500 text-slate-300 hover:bg-slate-600">
@@ -273,6 +282,16 @@ const AdminUsersPanel = () => {
         )}
       </CardContent>
     </Card>
+
+    {permUserId && (
+      <UserPermissionsDialog
+        open={!!permUserId}
+        onOpenChange={(open) => { if (!open) setPermUserId(null); }}
+        userId={permUserId}
+        userEmail={permEmail}
+      />
+    )}
+    </TooltipProvider>
   );
 };
 
