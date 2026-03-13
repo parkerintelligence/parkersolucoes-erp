@@ -33,7 +33,7 @@ export const ALL_SCREENS = [
   { key: 'winbox', label: 'Winbox', actions: ['view', 'create', 'edit', 'delete'] as ActionKey[] },
   { key: 'bacula', label: 'Bacula', actions: ['view'] as ActionKey[] },
   { key: 'vps', label: 'VPS', actions: ['view', 'create', 'edit', 'delete'] as ActionKey[] },
-  { key: 'security', label: 'Security', actions: ['view'] as ActionKey[] },
+  
   { key: 'webhooks', label: 'Webhooks', actions: ['view', 'create', 'edit', 'delete'] as ActionKey[] },
 ] as const;
 

@@ -32,7 +32,7 @@ import { SafeActionPlan } from '@/components/SafeActionPlan';
 import { SafeAlertas } from '@/components/SafeAlertas';
 import { SafeAtendimentos } from '@/components/SafeAtendimentos';
 import Dashboard from '@/pages/Dashboard';
-import Security from '@/pages/Security';
+
 import { SafeUniFi } from '@/components/SafeUniFi';
 import { Layout } from '@/components/Layout';
 import Webhooks from '@/pages/Webhooks';
@@ -91,7 +91,7 @@ function App() {
               <Route path="/bacula" element={<Layout><SafeBacula /></Layout>} />
               <Route path="/reports" element={<Layout><ReportsDashboard /></Layout>} />
               <Route path="/projetos" element={<Layout><SafeActionPlan /></Layout>} />
-              <Route path="/security" element={<Layout><Security /></Layout>} />
+              
               <Route path="/unifi" element={<Layout><SafeUniFi /></Layout>} />
               <Route path="/webhooks" element={<Layout><Webhooks /></Layout>} />
             </Routes>
