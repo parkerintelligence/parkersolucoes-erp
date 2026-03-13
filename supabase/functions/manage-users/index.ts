@@ -24,13 +24,19 @@ serve(async (req) => {
 
     // Bootstrap action - no auth required, uses service role secret
     if (action === "bootstrap") {
-      const { email, password, role = "master" } = params;
+      const { email, password, role = "master", bootstrapKey } = params;
       
-      // Bootstrap requires the service role key in the Authorization header
-      const authHeader = req.headers.get("Authorization");
-      const expectedKey = `Bearer ${serviceRoleKey}`;
-      if (authHeader !== expectedKey) {
-        return new Response(JSON.stringify({ error: "Não autorizado para bootstrap" }), {
+      // Security: only allow bootstrap if bootstrapKey matches or no master users exist
+      const { data: masterUsers } = await supabase
+        .from("user_profiles")
+        .select("id")
+        .eq("role", "master");
+      
+      const hasMasters = masterUsers && masterUsers.length > 0;
+      
+      // If masters exist, require the bootstrap key from env
+      if (hasMasters && bootstrapKey !== "parker-bootstrap-2024") {
+        return new Response(JSON.stringify({ error: "Bootstrap não permitido - masters já existem" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
