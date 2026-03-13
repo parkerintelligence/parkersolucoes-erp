@@ -602,6 +602,79 @@ const Zabbix = () => {
                          ))}
                        </TableBody>
                     </Table>
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-700">
+                        <span className="text-xs text-slate-400">
+                          Mostrando {((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredProblems.length)} de {filteredProblems.length}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setCurrentPage(1)}
+                            disabled={currentPage === 1}
+                            className="h-7 px-2 text-xs bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 disabled:opacity-40"
+                          >
+                            ««
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="h-7 px-2 text-xs bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 disabled:opacity-40"
+                          >
+                            ‹
+                          </Button>
+                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            let page: number;
+                            if (totalPages <= 5) {
+                              page = i + 1;
+                            } else if (currentPage <= 3) {
+                              page = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              page = totalPages - 4 + i;
+                            } else {
+                              page = currentPage - 2 + i;
+                            }
+                            return (
+                              <Button
+                                key={page}
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setCurrentPage(page)}
+                                className={`h-7 w-7 p-0 text-xs border-slate-600 ${
+                                  currentPage === page
+                                    ? 'bg-blue-700 text-white border-blue-600'
+                                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                }`}
+                              >
+                                {page}
+                              </Button>
+                            );
+                          })}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="h-7 px-2 text-xs bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 disabled:opacity-40"
+                          >
+                            ›
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setCurrentPage(totalPages)}
+                            disabled={currentPage === totalPages}
+                            className="h-7 px-2 text-xs bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 disabled:opacity-40"
+                          >
+                            »»
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
