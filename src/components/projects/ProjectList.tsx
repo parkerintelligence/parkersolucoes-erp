@@ -43,9 +43,22 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
   const [sortAsc, setSortAsc] = useState(true);
   const [newTaskTitle, setNewTaskTitle] = useState<Record<string, string>>({});
   const [newItemText, setNewItemText] = useState<Record<string, string>>({});
+  const [users, setUsers] = useState<Record<string, string>>({});
   const { updateCard, deleteCard, createCard, createCardItem, updateCardItem, deleteCardItem, fetchData } = useActionPlan();
   const { toast } = useToast();
   const { confirm } = useConfirmDialog();
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data } = await supabase.from('user_profiles').select('id, email');
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach(u => { map[u.id] = u.email; });
+        setUsers(map);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   const toggleGroup = (id: string) => {
     const next = new Set(expandedGroups);
