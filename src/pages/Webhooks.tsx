@@ -132,12 +132,50 @@ export default function Webhooks() {
     setWebhookDialog(false);
   };
 
+  const loadLastPayload = useCallback(async (webhookId: string) => {
+    try {
+      const { data } = await supabase
+        .from('webhook_logs' as any)
+        .select('request_body')
+        .eq('webhook_id', webhookId)
+        .eq('is_test', false)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      const body = (data as any)?.[0]?.request_body;
+      if (body && typeof body === 'object' && !Array.isArray(body)) {
+        setLastPayloadKeys(Object.keys(body));
+        setLastPayloadSample(body);
+      } else {
+        // fallback: try any log including tests
+        const { data: anyLog } = await supabase
+          .from('webhook_logs' as any)
+          .select('request_body')
+          .eq('webhook_id', webhookId)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        const anyBody = (anyLog as any)?.[0]?.request_body;
+        if (anyBody && typeof anyBody === 'object') {
+          setLastPayloadKeys(Object.keys(anyBody));
+          setLastPayloadSample(anyBody);
+        } else {
+          setLastPayloadKeys([]);
+          setLastPayloadSample(null);
+        }
+      }
+    } catch {
+      setLastPayloadKeys([]);
+      setLastPayloadSample(null);
+    }
+  }, []);
+
   const openNewAction = (webhookId: string) => {
     setEditingAction(null);
     setTargetWebhookId(webhookId);
     setActionType('whatsapp');
     setActionDest('');
     setActionTemplate('{text}');
+    loadLastPayload(webhookId);
     setActionDialog(true);
   };
 
@@ -147,7 +185,25 @@ export default function Webhooks() {
     setActionType(action.action_type);
     setActionDest(action.destination);
     setActionTemplate(action.message_template || '{text}');
+    loadLastPayload(action.webhook_id);
     setActionDialog(true);
+  };
+
+  const insertPlaceholder = (key: string) => {
+    const placeholder = `{${key}}`;
+    const textarea = templateRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newValue = actionTemplate.substring(0, start) + placeholder + actionTemplate.substring(end);
+      setActionTemplate(newValue);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + placeholder.length, start + placeholder.length);
+      }, 0);
+    } else {
+      setActionTemplate(prev => prev + placeholder);
+    }
   };
 
   const saveAction = async () => {
