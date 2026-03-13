@@ -1087,7 +1087,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
         const priority = getPriorityIcon(ticket.priority || 1);
         const urgency = getUrgencyIcon(ticket.urgency || 1);
         const status = getStatusText(ticket.status || 1);
-        const timeOpen = ticket.date ? getTimeOpenText(new Date(ticket.date), now) : 'N/A';
+        const timeOpen = ticket.date ? getTimeOpenText(new Date(ticket.date), nowBrasilia) : 'N/A';
         const assignee = ticket.users_id_recipient && ticket.users_id_recipient !== 0 
           ? userNames.get(ticket.users_id_recipient) || `Usuário #${ticket.users_id_recipient}` 
           : 'Não atribuído';
