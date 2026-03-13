@@ -35,8 +35,8 @@ export const GuacamoleConnectionDialog = ({
     security: '',
     ignoreServerCert: false
   });
+  const [showPassword, setShowPassword] = useState(false);
 
-  useEffect(() => {
     if (connection && open) {
       console.log('🔍 DEBUG: Carregando dados da conexão para edição:', {
         connectionFull: connection,
