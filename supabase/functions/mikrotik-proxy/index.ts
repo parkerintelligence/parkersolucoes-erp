@@ -87,9 +87,26 @@ serve(async (req) => {
     }
 
     const mikrotikAuth = btoa(`${integration.username}:${integration.password}`);
-    const baseUrl = integration.base_url;
-
-    console.log(`🔗 MikroTik: ${integration.name} (${baseUrl})`);
+    
+    // Build base URL with port if not already included
+    let baseUrl = integration.base_url?.replace(/\/+$/, '') || '';
+    if (integration.port) {
+      try {
+        const urlObj = new URL(baseUrl);
+        // Only add port if not already specified in the URL
+        if (!urlObj.port && urlObj.hostname) {
+          urlObj.port = String(integration.port);
+          baseUrl = urlObj.toString().replace(/\/+$/, '');
+        }
+      } catch {
+        // If URL parsing fails, try simple append
+        if (!baseUrl.match(/:\d+$/)) {
+          baseUrl = baseUrl + ':' + integration.port;
+        }
+      }
+    }
+    
+    console.log(`🔗 MikroTik: ${integration.name} → ${baseUrl}`);
 
     // === BATCH MODE: Multiple endpoints in one call ===
     if (batch && Array.isArray(batch)) {
