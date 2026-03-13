@@ -191,12 +191,6 @@ const Login = () => {
                     ) : 'Entrar no Sistema'}
                   </Button>
                 </form>
-                <div className="mt-6 p-3 bg-background/30 rounded-lg border border-border/50">
-                  <p className="text-[10px] text-muted-foreground text-center uppercase tracking-wider font-medium">Suporte Técnico</p>
-                  <p className="text-xs text-muted-foreground text-center mt-1">
-                    <span className="text-primary font-medium">contato@parkersolucoes.com.br</span>
-                  </p>
-                </div>
               </CardContent>
             </Card>
           </div>
