@@ -224,14 +224,6 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Smartphone className="h-6 w-6" />
-          WhatsApp — Evolution API
-        </h1>
-        <p className="text-muted-foreground">Gerencie instâncias do WhatsApp via Evolution API</p>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
