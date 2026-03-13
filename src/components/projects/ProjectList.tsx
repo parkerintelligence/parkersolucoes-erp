@@ -251,6 +251,7 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
                     <SortButton field="title">Tarefa</SortButton>
                     <SortButton field="priority">Prioridade</SortButton>
                     <span className="text-[10px] font-semibold uppercase tracking-wider">Status</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider">Responsável</span>
                     <span className="text-[10px] font-semibold uppercase tracking-wider">Início</span>
                     <SortButton field="due_date">Término</SortButton>
                     <span className="text-[10px] font-semibold uppercase tracking-wider">Duração</span>
