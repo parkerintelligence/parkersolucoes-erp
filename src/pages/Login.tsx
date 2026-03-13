@@ -141,86 +141,41 @@ const Login = () => {
 
             <Card className="bg-card/60 backdrop-blur-2xl border-border/50 shadow-2xl animate-fade-in-up">
               <CardContent className="p-8">
-                {isForgotPassword ? (
-                  <>
-                    <div className="text-center mb-8">
-                      {resetEmailSent ? (
-                        <>
-                          <div className="w-14 h-14 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
-                            <Mail className="h-7 w-7 text-primary" />
-                          </div>
-                          <h2 className="text-xl font-bold text-foreground mb-2">Email enviado!</h2>
-                          <p className="text-sm text-muted-foreground">Verifique sua caixa de entrada.</p>
-                        </>
-                      ) : (
-                        <>
-                          <h2 className="text-xl font-bold text-foreground mb-2">Recuperar senha</h2>
-                          <p className="text-sm text-muted-foreground">Digite seu email para receber o link</p>
-                        </>
-                      )}
-                    </div>
-                    {!resetEmailSent && (
-                      <form onSubmit={handleForgotPassword} className="space-y-5">
-                        <div className="space-y-2">
-                          <Label htmlFor="reset-email" className="text-foreground text-sm font-medium">Email</Label>
-                          <Input id="reset-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                            className="bg-background/60 border-border text-foreground h-11 focus:border-primary focus:ring-primary/30"
-                            placeholder="Digite seu email" required />
-                        </div>
-                        <Button type="submit" className="w-full h-11 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-primary-foreground font-semibold shadow-lg shadow-primary/20" disabled={isLoading}>
-                          {isLoading ? <div className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /><span>Enviando...</span></div> : 'Enviar link de recuperação'}
-                        </Button>
-                      </form>
-                    )}
-                    <Button type="button" variant="ghost" className="w-full mt-4 text-muted-foreground hover:text-foreground" onClick={() => { setIsForgotPassword(false); setResetEmailSent(false); }}>
-                      <ArrowLeft className="h-4 w-4 mr-2" />Voltar ao login
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-center mb-8">
-                      <h2 className="text-xl font-bold text-foreground mb-1">Bem-vindo de volta</h2>
-                      <p className="text-sm text-muted-foreground">Entre com suas credenciais para acessar o sistema</p>
-                    </div>
-                    <form onSubmit={handleLogin} className="space-y-5">
-                      <div className="space-y-2">
-                        <Label htmlFor="email" className="text-foreground text-sm font-medium">Email</Label>
-                        <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                          className="bg-background/60 border-border text-foreground h-11 focus:border-primary focus:ring-primary/30"
-                          placeholder="Digite seu email" required />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="password" className="text-foreground text-sm font-medium">Senha</Label>
-                          <Button type="button" variant="link" className="text-xs text-primary hover:text-primary/80 p-0 h-auto" onClick={() => setIsForgotPassword(true)}>
-                            Esqueci minha senha
-                          </Button>
-                        </div>
-                        <div className="relative">
-                          <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
-                            className="bg-background/60 border-border text-foreground h-11 pr-12 focus:border-primary focus:ring-primary/30"
-                            placeholder="Digite sua senha" required />
-                          <Button type="button" variant="ghost" size="sm"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground hover:bg-transparent h-7 w-7 p-0"
-                            onClick={() => setShowPassword(!showPassword)}>
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </div>
-                      <Button type="submit"
-                        className="w-full h-11 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-primary-foreground font-semibold shadow-lg shadow-primary/20 transition-all duration-300"
-                        disabled={isLoading}>
-                        {isLoading ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                            <span>Autenticando...</span>
-                          </div>
-                        ) : 'Entrar no Sistema'}
+                <div className="text-center mb-8">
+                  <h2 className="text-xl font-bold text-foreground mb-1">Bem-vindo de volta</h2>
+                  <p className="text-sm text-muted-foreground">Entre com suas credenciais para acessar o sistema</p>
+                </div>
+                <form onSubmit={handleLogin} className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-foreground text-sm font-medium">Email</Label>
+                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                      className="bg-background/60 border-border text-foreground h-11 focus:border-primary focus:ring-primary/30"
+                      placeholder="Digite seu email" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-foreground text-sm font-medium">Senha</Label>
+                    <div className="relative">
+                      <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
+                        className="bg-background/60 border-border text-foreground h-11 pr-12 focus:border-primary focus:ring-primary/30"
+                        placeholder="Digite sua senha" required />
+                      <Button type="button" variant="ghost" size="sm"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground hover:bg-transparent h-7 w-7 p-0"
+                        onClick={() => setShowPassword(!showPassword)}>
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
-                    </form>
-                  </>
-                )}
-
+                    </div>
+                  </div>
+                  <Button type="submit"
+                    className="w-full h-11 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-primary-foreground font-semibold shadow-lg shadow-primary/20 transition-all duration-300"
+                    disabled={isLoading}>
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                        <span>Autenticando...</span>
+                      </div>
+                    ) : 'Entrar no Sistema'}
+                  </Button>
+                </form>
                 <div className="mt-6 p-3 bg-background/30 rounded-lg border border-border/50">
                   <p className="text-[10px] text-muted-foreground text-center uppercase tracking-wider font-medium">Suporte Técnico</p>
                   <p className="text-xs text-muted-foreground text-center mt-1">
