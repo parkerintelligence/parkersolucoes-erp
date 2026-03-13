@@ -472,6 +472,12 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
                 <p className="text-sm text-muted-foreground">
                   Escaneie com o WhatsApp: <strong>{activeInstanceName}</strong>
                 </p>
+                {autoRefreshEnabled && (
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <RefreshCw className="h-3 w-3 animate-spin" />
+                    <span>Atualizando automaticamente a cada 10s</span>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center text-muted-foreground">
