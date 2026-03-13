@@ -667,7 +667,7 @@ serve(async (req) => {
     const criticalJobs = errorJobs + cancelledJobs;
 
     console.log(`📈 [BACULA-DAILY] Estatísticas completas:`);
-    console.log(`   Total: ${totalJobs} jobs do dia ${yesterdayFormatted}`);
+    console.log(`   Total: ${totalJobs} jobs do período ${periodDescription}`);
     console.log(`   Sucessos: ${successJobs}`);
     console.log(`   Erros: ${errorJobs}`);
     console.log(`   Cancelados: ${cancelledJobs}`);
