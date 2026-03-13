@@ -60,6 +60,41 @@ serve(async (req) => {
       }
     }
 
+    // All other actions require master auth
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const callerClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user: caller } } = await callerClient.auth.getUser();
+    
+    if (!caller) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: callerProfile } = await supabase
+      .from("user_profiles")
+      .select("role")
+      .eq("id", caller.id)
+      .single();
+
+    if (callerProfile?.role !== "master") {
+      return new Response(JSON.stringify({ error: "Acesso negado. Apenas master pode gerenciar usuários." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     switch (action) {
       case "list": {
         const { data: profiles, error } = await supabase
