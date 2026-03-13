@@ -211,46 +211,37 @@ export const BrandingSettingsPanel = () => {
   };
 
   const updateCompanyName = async (newName: string) => {
-    const nameSetting = settings?.find(s => s.setting_key === 'company_name');
+    await updateSettingByKey('company_name', newName, 'Nome da empresa exibido no sistema');
+  };
+
+  const updateSettingByKey = async (key: string, value: string, description: string) => {
+    const existing = settings?.find(s => s.setting_key === key);
     try {
-      if (nameSetting) {
-        const { error: updateError } = await supabase
+      if (existing) {
+        const { error } = await supabase
           .from('system_settings')
-          .update({ setting_value: newName })
-          .eq('id', nameSetting.id);
-          
-        if (updateError) throw updateError;
+          .update({ setting_value: value })
+          .eq('id', existing.id);
+        if (error) throw error;
       } else {
         const { data: userData } = await supabase.auth.getUser();
         if (!userData.user) throw new Error('Usuário não autenticado');
-        
-        const { error: insertError } = await supabase
+        const { error } = await supabase
           .from('system_settings')
           .insert({
             user_id: userData.user.id,
-            setting_key: 'company_name',
-            setting_value: newName,
+            setting_key: key,
+            setting_value: value,
             category: 'branding',
             setting_type: 'text',
-            description: 'Nome da empresa exibido no sistema'
+            description,
           });
-          
-        if (insertError) throw insertError;
+        if (error) throw error;
       }
-
-      // Refetch para atualizar a UI
       refetch();
-
-      toast({
-        title: "Nome atualizado!",
-        description: "O nome da empresa foi atualizado com sucesso.",
-      });
+      toast({ title: "Atualizado!", description: "Configuração salva com sucesso." });
     } catch (error: any) {
-      toast({
-        title: "Erro ao atualizar nome",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
     }
   };
 
