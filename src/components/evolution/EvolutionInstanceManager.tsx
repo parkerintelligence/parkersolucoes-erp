@@ -77,6 +77,27 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
     }
   }, [integrationId, fetchInstances]);
 
+  const extractQrCode = (data: any): string | null => {
+    if (!data || typeof data !== 'object') return null;
+    
+    // Direct base64 field (Evolution API v2 connect response)
+    if (typeof data.base64 === 'string' && data.base64.length > 50) return data.base64;
+    
+    // Nested qrcode object
+    if (data.qrcode) {
+      if (typeof data.qrcode === 'string' && data.qrcode.length > 50) return data.qrcode;
+      if (typeof data.qrcode === 'object') {
+        if (typeof data.qrcode.base64 === 'string' && data.qrcode.base64.length > 50) return data.qrcode.base64;
+        if (typeof data.qrcode.code === 'string' && data.qrcode.code.length > 50) return data.qrcode.code;
+      }
+    }
+    
+    // Code field
+    if (typeof data.code === 'string' && data.code.length > 100) return data.code;
+    
+    return null;
+  };
+
   const handleCreateInstance = async () => {
     if (!instanceName.trim()) {
       toast({ title: 'Nome obrigatório', description: 'Informe o nome da instância.', variant: 'destructive' });
@@ -95,42 +116,71 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
 
     setLoading(true);
     setQrCode(null);
+    const createdName = instanceName;
+    
     try {
       // Step 1: Create instance
       const result = await callEvolutionProxy(integrationId, '/instance/create', 'POST', {
-        instanceName,
+        instanceName: createdName,
         qrcode: true,
-        markMessagesRead: false,
-        delayMessage: 1000,
         integration: 'WHATSAPP-BAILEYS'
       });
 
       console.log('[Evolution] Create response:', JSON.stringify(result));
 
       // Try to extract QR from create response
-      let qr = result?.qrcode?.base64 || result?.base64 || result?.qrcode?.code;
-      
-      // If qrcode is a string (the base64 itself), use it
-      if (typeof result?.qrcode === 'string' && result.qrcode.length > 50) {
-        qr = result.qrcode;
+      const qr = extractQrCode(result);
+
+      if (qr) {
+        toast({ title: '✅ Instância criada!', description: `QR Code gerado para "${createdName}".` });
+        setQrCode(qr);
+        setActiveInstanceName(createdName);
+        setInstanceName('');
+        await fetchInstances();
+        return;
       }
 
-      if (qr && typeof qr === 'string' && qr.length > 50) {
-        toast({ title: '✅ Instância criada!', description: `Instância "${instanceName}" criada com sucesso.` });
-        setQrCode(qr);
-        setActiveInstanceName(instanceName);
-        setInstanceName('');
-        await fetchInstances();
-      } else {
-        // Step 2: Instance created but no QR yet — wait and call connect
-        toast({ title: '✅ Instância criada!', description: 'Aguarde, gerando QR Code...' });
-        setInstanceName('');
-        await fetchInstances();
+      // Step 2: QR not in create response — poll /instance/connect/{name}
+      toast({ title: '✅ Instância criada!', description: 'Aguarde, gerando QR Code...' });
+      setInstanceName('');
+      await fetchInstances();
+
+      // Poll with retries (up to 5 attempts, 3s apart)
+      for (let attempt = 1; attempt <= 5; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
         
-        // Wait a bit for the instance to be ready, then try connect
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        await handleGetQrCodeWithRetry(instanceName, 3);
+        try {
+          console.log(`[Evolution] Connect attempt ${attempt}/5 for "${createdName}"`);
+          const connectResult = await callEvolutionProxy(integrationId, `/instance/connect/${createdName}`);
+          console.log(`[Evolution] Connect response:`, JSON.stringify(connectResult));
+
+          // Check if already connected
+          if (connectResult?.instance?.state === 'open' || connectResult?.state === 'open') {
+            toast({ title: 'Já conectado', description: `A instância "${createdName}" já está conectada.` });
+            await fetchInstances();
+            return;
+          }
+
+          const connectQr = extractQrCode(connectResult);
+          if (connectQr) {
+            setQrCode(connectQr);
+            setActiveInstanceName(createdName);
+            toast({ title: '✅ QR Code gerado', description: `Escaneie o QR Code para conectar "${createdName}"` });
+            return;
+          }
+
+          // count: 0 means not ready yet, keep retrying
+          console.log(`[Evolution] Attempt ${attempt}: no QR yet (count: ${connectResult?.count || 0})`);
+        } catch (err: any) {
+          console.error(`[Evolution] Connect attempt ${attempt} error:`, err);
+        }
       }
+
+      toast({
+        title: 'QR Code indisponível',
+        description: 'A instância foi criada mas o QR não foi gerado. Clique em "Conectar" na instância.',
+        variant: 'destructive',
+      });
     } catch (error: any) {
       console.error('[Evolution] Create error:', error);
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
@@ -139,24 +189,12 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
     }
   };
 
-  const handleGetQrCodeWithRetry = async (name: string, retries: number) => {
-    for (let attempt = 0; attempt < retries; attempt++) {
-      try {
+  const handleGetQrCode = async (name: string) => {
+    setLoadingAction(name);
+    try {
+      for (let attempt = 1; attempt <= 3; attempt++) {
         const result = await callEvolutionProxy(integrationId, `/instance/connect/${name}`);
-        console.log(`[Evolution] Connect attempt ${attempt + 1}:`, JSON.stringify(result));
-
-        // Extract QR from multiple possible paths
-        let qr = result?.base64 || result?.qrcode?.base64 || result?.code;
-        if (typeof result?.qrcode === 'string' && result.qrcode.length > 50) {
-          qr = result.qrcode;
-        }
-
-        if (qr && typeof qr === 'string' && qr.length > 50) {
-          setQrCode(qr);
-          setActiveInstanceName(name);
-          toast({ title: '✅ QR Code gerado', description: `Escaneie o QR Code para conectar "${name}"` });
-          return;
-        }
+        console.log(`[Evolution] Connect "${name}" attempt ${attempt}:`, JSON.stringify(result));
 
         if (result?.instance?.state === 'open' || result?.state === 'open') {
           toast({ title: 'Já conectado', description: `A instância "${name}" já está conectada.` });
@@ -164,29 +202,24 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
           return;
         }
 
-        // Wait before retry
-        if (attempt < retries - 1) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
+        const qr = extractQrCode(result);
+        if (qr) {
+          setQrCode(qr);
+          setActiveInstanceName(name);
+          toast({ title: '✅ QR Code gerado', description: `Escaneie o QR Code para conectar "${name}"` });
+          return;
         }
-      } catch (error: any) {
-        console.error(`[Evolution] Connect attempt ${attempt + 1} error:`, error);
-        if (attempt === retries - 1) {
-          toast({ title: 'Erro ao gerar QR Code', description: error.message, variant: 'destructive' });
-        }
+
+        if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 2000));
       }
-    }
 
-    toast({
-      title: 'QR Code indisponível',
-      description: 'Não foi possível gerar o QR Code. Tente clicar em "Conectar" na instância.',
-      variant: 'destructive',
-    });
-  };
-
-  const handleGetQrCode = async (name: string) => {
-    setLoadingAction(name);
-    try {
-      await handleGetQrCodeWithRetry(name, 3);
+      toast({
+        title: 'QR Code indisponível',
+        description: 'Não foi possível gerar o QR Code. Tente novamente.',
+        variant: 'destructive',
+      });
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
     } finally {
       setLoadingAction(null);
     }
