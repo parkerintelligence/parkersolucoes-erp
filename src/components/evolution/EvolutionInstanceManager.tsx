@@ -139,37 +139,54 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
     }
   };
 
+  const handleGetQrCodeWithRetry = async (name: string, retries: number) => {
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        const result = await callEvolutionProxy(integrationId, `/instance/connect/${name}`);
+        console.log(`[Evolution] Connect attempt ${attempt + 1}:`, JSON.stringify(result));
+
+        // Extract QR from multiple possible paths
+        let qr = result?.base64 || result?.qrcode?.base64 || result?.code;
+        if (typeof result?.qrcode === 'string' && result.qrcode.length > 50) {
+          qr = result.qrcode;
+        }
+
+        if (qr && typeof qr === 'string' && qr.length > 50) {
+          setQrCode(qr);
+          setActiveInstanceName(name);
+          toast({ title: '✅ QR Code gerado', description: `Escaneie o QR Code para conectar "${name}"` });
+          return;
+        }
+
+        if (result?.instance?.state === 'open' || result?.state === 'open') {
+          toast({ title: 'Já conectado', description: `A instância "${name}" já está conectada.` });
+          await fetchInstances();
+          return;
+        }
+
+        // Wait before retry
+        if (attempt < retries - 1) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      } catch (error: any) {
+        console.error(`[Evolution] Connect attempt ${attempt + 1} error:`, error);
+        if (attempt === retries - 1) {
+          toast({ title: 'Erro ao gerar QR Code', description: error.message, variant: 'destructive' });
+        }
+      }
+    }
+
+    toast({
+      title: 'QR Code indisponível',
+      description: 'Não foi possível gerar o QR Code. Tente clicar em "Conectar" na instância.',
+      variant: 'destructive',
+    });
+  };
+
   const handleGetQrCode = async (name: string) => {
     setLoadingAction(name);
     try {
-      const result = await callEvolutionProxy(integrationId, `/instance/connect/${name}`);
-      console.log('[Evolution] Connect result:', JSON.stringify(result));
-      
-      // Try multiple possible QR code field paths
-      const qr = result?.base64 
-        || result?.qrcode?.base64 
-        || result?.qrcode 
-        || result?.code
-        || result?.pairingCode;
-      
-      if (qr && typeof qr === 'string') {
-        setQrCode(qr);
-        setActiveInstanceName(name);
-        toast({ title: '✅ QR Code gerado', description: `Escaneie o QR Code para conectar "${name}"` });
-      } else if (result?.instance?.state === 'open' || result?.state === 'open') {
-        toast({ title: 'Já conectado', description: `A instância "${name}" já está conectada.` });
-        await fetchInstances();
-      } else {
-        console.warn('[Evolution] QR Code not found in response. Keys:', Object.keys(result || {}));
-        toast({ 
-          title: 'QR Code indisponível', 
-          description: `Resposta: ${JSON.stringify(result).substring(0, 200)}`, 
-          variant: 'destructive' 
-        });
-      }
-    } catch (error: any) {
-      console.error('[Evolution] Connect error:', error);
-      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+      await handleGetQrCodeWithRetry(name, 3);
     } finally {
       setLoadingAction(null);
     }
