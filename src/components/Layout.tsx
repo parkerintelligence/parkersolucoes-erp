@@ -17,8 +17,8 @@ export const Layout = ({ children }: LayoutProps) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-lg text-gray-600">Carregando sistema...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-lg text-muted-foreground">Carregando sistema...</div>
       </div>
     );
   }
@@ -30,12 +30,12 @@ export const Layout = ({ children }: LayoutProps) => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-primary">
+      <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <SidebarInset className="flex-1 min-w-0 flex flex-col transition-all duration-200 md:ml-0">
           <TopHeader />
-          <main className="flex-1 overflow-auto bg-slate-900">
-            <div className="container-responsive py-4 sm:py-6 lg:py-8 bg-slate-900">
+          <main className="flex-1 overflow-auto bg-background">
+            <div className="container-responsive py-4 sm:py-6 lg:py-8">
               {children}
             </div>
           </main>

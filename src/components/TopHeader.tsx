@@ -63,19 +63,19 @@ export const TopHeader = () => {
     };
     return breadcrumbs[path] || 'Sistema';
   };
-  return <header className="sticky top-0 z-40 border-b border-border bg-slate-900 text-primary-foreground shadow-lg safe-area-top">
+  return <header className="sticky top-0 z-40 border-b border-sidebar-border bg-sidebar text-sidebar-foreground shadow-lg safe-area-top">
       <div className="flex items-center justify-between w-full px-2 sm:px-3 md:px-6 py-2 sm:py-3 md:py-4">
         {/* Menu Toggle e Título */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-          <SidebarTrigger className="h-6 w-6 sm:h-8 sm:w-8 text-primary-foreground hover:bg-primary-foreground/10 touch-target" />
-          {logoUrl ? <img src={logoUrl} alt="Logo da empresa" className="h-8 sm:h-10 w-auto object-contain flex-shrink-0" /> : <div className="bg-secondary p-1.5 sm:p-2 rounded-xl flex-shrink-0 shadow-sm">
-              <Shield className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-secondary-foreground" />
+          <SidebarTrigger className="h-6 w-6 sm:h-8 sm:w-8 text-white hover:bg-white/10 touch-target" />
+          {logoUrl ? <img src={logoUrl} alt="Logo da empresa" className="h-8 sm:h-10 w-auto object-contain flex-shrink-0" /> : <div className="bg-sidebar-primary p-1.5 sm:p-2 rounded-xl flex-shrink-0 shadow-sm">
+              <Shield className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-white" />
             </div>}
           <div className="min-w-0 hidden sm:block">
-            <h1 className="text-base sm:text-lg md:text-xl font-bold text-primary-foreground truncate">
+            <h1 className="text-base sm:text-lg md:text-xl font-bold text-white truncate">
               {companyName}
             </h1>
-            <p className="text-xs sm:text-sm text-primary-foreground/80 hidden md:block">Plataforma Integrada</p>
+            <p className="text-xs sm:text-sm text-white/70 hidden md:block">Plataforma Integrada</p>
           </div>
         </div>
 
@@ -91,9 +91,9 @@ export const TopHeader = () => {
           <Button 
             onClick={handleLogout} 
             variant="ghost" 
-            className="flex items-center gap-1 sm:gap-2 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg touch-target"
+            className="flex items-center gap-1 sm:gap-2 text-white hover:text-white hover:bg-white/10 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg touch-target"
           >
-            {isMaster ? <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-secondary" /> : <User className="h-3 w-3 sm:h-4 sm:w-4" />}
+            {isMaster ? <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-sidebar-primary" /> : <User className="h-3 w-3 sm:h-4 sm:w-4" />}
             <span className="hidden sm:inline text-xs sm:text-sm font-medium max-w-20 sm:max-w-32 lg:max-w-none truncate">
               {userProfile?.email || user?.email}
             </span>

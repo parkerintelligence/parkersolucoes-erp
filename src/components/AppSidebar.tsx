@@ -130,8 +130,8 @@ export function AppSidebar() {
   // const companyName = companyLogoSettings?.find(setting => setting.setting_key === 'company_name')?.setting_value;
   const companyLogo = null;
   const companyName = 'Parker Soluções ERP';
-  return <Sidebar className="border-r border-primary-foreground/20 bg-slate-900" collapsible="icon">
-      <SidebarHeader className="p-2 sm:p-4 border-b border-primary-foreground/20 bg-slate-900">
+  return <Sidebar className="border-r border-sidebar-border bg-sidebar" collapsible="icon">
+      <SidebarHeader className="p-2 sm:p-4 border-b border-sidebar-border bg-sidebar">
         <div className="flex items-center justify-center">
           {companyLogo ? (
             <img 
@@ -150,7 +150,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-slate-900">
+      <SidebarContent className="bg-sidebar">
         <SidebarGroup>
           <SidebarGroupLabel className="text-white font-medium text-xs sm:text-sm px-2 sm:px-0">
             {!isCollapsed && <span className="hidden sm:inline">Menu Principal</span>}
