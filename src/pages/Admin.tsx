@@ -20,6 +20,7 @@ import UniFiAdminConfig from "@/components/UniFiAdminConfig";
 import { AdminCompaniesPanel } from "@/components/AdminCompaniesPanel";
 import SystemSettingsPanel from "@/components/SystemSettingsPanel";
 import { BrandingSettingsPanel } from "@/components/BrandingSettingsPanel";
+import AdminUsersPanel from "@/components/AdminUsersPanel";
 import { 
   Settings, 
   Building, 
