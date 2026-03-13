@@ -1,16 +1,19 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useWebhooks, Webhook, WebhookAction } from '@/hooks/useWebhooks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Zap, Plus, Search, RefreshCw, MessageCircle, Mail, ChevronRight, Copy, Pencil, Settings, Trash2, Activity, List, LayoutGrid, Check, Filter } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Zap, Plus, Search, RefreshCw, MessageCircle, Mail, ChevronRight, Copy, Pencil, Settings, Trash2, Activity, List, LayoutGrid, Check, Filter, History, ChevronLeft, Eraser } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
 
 const SUPABASE_URL = 'https://mpvxppgoyadwukkfoccs.supabase.co';
 
@@ -37,6 +40,54 @@ export default function Webhooks() {
   const [actionType, setActionType] = useState<'whatsapp' | 'email'>('whatsapp');
   const [actionDest, setActionDest] = useState('');
   const [actionTemplate, setActionTemplate] = useState('{text}');
+
+  // History state
+  const [historyDialog, setHistoryDialog] = useState(false);
+  const [historyWebhook, setHistoryWebhook] = useState<Webhook | null>(null);
+  const [historyLogs, setHistoryLogs] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPage, setHistoryPage] = useState(0);
+  const LOGS_PER_PAGE = 5;
+
+  const openHistory = useCallback(async (webhook: Webhook) => {
+    setHistoryWebhook(webhook);
+    setHistoryDialog(true);
+    setHistoryPage(0);
+    setHistoryLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('webhook_logs' as any)
+        .select('*')
+        .eq('webhook_id', webhook.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      setHistoryLogs(data || []);
+    } catch (err: any) {
+      toast.error('Erro ao carregar histórico: ' + err.message);
+      setHistoryLogs([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  const clearHistory = useCallback(async () => {
+    if (!historyWebhook) return;
+    try {
+      const { error } = await supabase
+        .from('webhook_logs' as any)
+        .delete()
+        .eq('webhook_id', historyWebhook.id);
+      if (error) throw error;
+      setHistoryLogs([]);
+      toast.success('Histórico limpo com sucesso!');
+    } catch (err: any) {
+      toast.error('Erro ao limpar histórico: ' + err.message);
+    }
+  }, [historyWebhook]);
+
+  const pagedLogs = historyLogs.slice(historyPage * LOGS_PER_PAGE, (historyPage + 1) * LOGS_PER_PAGE);
+  const totalHistoryPages = Math.ceil(historyLogs.length / LOGS_PER_PAGE);
 
   const filtered = webhooks.filter(w => {
     if (search && !w.name.toLowerCase().includes(search.toLowerCase()) && !w.slug.toLowerCase().includes(search.toLowerCase())) return false;
@@ -280,6 +331,9 @@ export default function Webhooks() {
                           />
                         </div>
                         <div className="col-span-3 flex items-center justify-end gap-1">
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => openHistory(w)} title="Histórico">
+                            <History className="h-4 w-4" />
+                          </Button>
                           <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => testWebhook(w.id)} title="Testar">
                             <Activity className="h-4 w-4" />
                           </Button>
@@ -438,6 +492,122 @@ export default function Webhooks() {
             <Button variant="outline" onClick={() => setDeleteDialog(null)}>Cancelar</Button>
             <Button variant="destructive" onClick={handleDelete}>Excluir</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* History Dialog */}
+      <Dialog open={historyDialog} onOpenChange={setHistoryDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Histórico - {historyWebhook?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Últimas requisições recebidas por este webhook
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-muted-foreground">
+              {historyLogs.length} registro(s)
+            </span>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={clearHistory}
+              disabled={historyLogs.length === 0}
+            >
+              <Eraser className="h-4 w-4 mr-1" />
+              Limpar Histórico
+            </Button>
+          </div>
+
+          <ScrollArea className="max-h-[50vh]">
+            {historyLoading ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>
+            ) : historyLogs.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum registro encontrado</p>
+            ) : (
+              <div className="space-y-2">
+                {pagedLogs.map((log: any) => {
+                  const body = log.request_body || {};
+                  const resp = log.response_data || {};
+                  const results = resp.results || [];
+                  const isSuccess = log.status === 'success';
+
+                  return (
+                    <div key={log.id} className="border border-border rounded-lg p-3 bg-card">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={isSuccess ? 'default' : 'destructive'} className="text-[10px]">
+                            {isSuccess ? '✅ Sucesso' : '❌ Erro'}
+                          </Badge>
+                          {log.is_test && (
+                            <Badge variant="outline" className="text-[10px]">Teste</Badge>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">
+                          {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm:ss')}
+                        </span>
+                      </div>
+
+                      <div className="mt-1">
+                        <p className="text-xs font-medium text-muted-foreground mb-0.5">Payload recebido:</p>
+                        <pre className="text-[10px] bg-muted rounded p-2 overflow-x-auto max-h-24 whitespace-pre-wrap break-all">
+                          {JSON.stringify(body, null, 2)}
+                        </pre>
+                      </div>
+
+                      {results.length > 0 && (
+                        <div className="mt-1.5">
+                          <p className="text-xs font-medium text-muted-foreground mb-0.5">Resultados:</p>
+                          <div className="space-y-1">
+                            {results.map((r: any, i: number) => (
+                              <div key={i} className="flex items-center gap-2 text-[11px]">
+                                <span>{r.success ? '✅' : '❌'}</span>
+                                <Badge variant="outline" className="text-[10px]">{r.action}</Badge>
+                                <span className="text-muted-foreground">→ {r.destination}</span>
+                                {r.instance && <span className="text-muted-foreground text-[10px]">({r.instance})</span>}
+                                {!r.success && r.error && <span className="text-destructive text-[10px]">{r.error}</span>}
+                                {!r.success && r.result?.error && <span className="text-destructive text-[10px]">{r.result.error}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+
+          {totalHistoryPages > 1 && (
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setHistoryPage(p => Math.max(0, p - 1))}
+                disabled={historyPage === 0}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Anterior
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Página {historyPage + 1} de {totalHistoryPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setHistoryPage(p => Math.min(totalHistoryPages - 1, p + 1))}
+                disabled={historyPage >= totalHistoryPages - 1}
+              >
+                Próximo
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
