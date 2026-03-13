@@ -105,7 +105,11 @@ serve(async (req) => {
       has_token: !!integration.api_token
     });
 
-    const evolutionUrl = `${integration.base_url.replace(/\/$/, '')}/message/sendText/${integration.instance_name}`;
+    // Use instanceName override if provided (from screen config), otherwise use integration's instance_name
+    const finalInstanceName = instanceNameOverride || integration.instance_name;
+    console.log('📱 Instância a usar:', finalInstanceName, instanceNameOverride ? '(override da screen config)' : '(da integração)');
+
+    const evolutionUrl = `${integration.base_url.replace(/\/$/, '')}/message/sendText/${finalInstanceName}`;
     
     console.log('🚀 Sending to Evolution API:', evolutionUrl);
 
