@@ -55,18 +55,86 @@ const useDashboardData = () => {
     staleTime: 60000,
   });
 
-  // Bacula jobs from API (optional)
+  // FTP backup directories (root level)
+  const ftpIntegration = integrations.data?.find((i: any) => i.type === 'ftp' && i.is_active);
+  const ftpFiles = useQuery({
+    queryKey: ['dashboard-ftp-files', ftpIntegration?.id],
+    queryFn: async () => {
+      if (!ftpIntegration) return [];
+      const { data, error } = await supabase.functions.invoke('ftp-list', {
+        body: { path: '/', integrationId: ftpIntegration.id }
+      });
+      if (error) return [];
+      return data?.files || [];
+    },
+    enabled: !!ftpIntegration,
+    staleTime: 120000,
+  });
+
+  // Bacula recent jobs
   const baculaIntegration = integrations.data?.find((i: any) => i.type === 'bacula' && i.is_active);
+  const baculaJobs = useQuery({
+    queryKey: ['dashboard-bacula-errors'],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('bacula-proxy', {
+        body: { endpoint: 'jobs' }
+      });
+      if (error) return [];
+      // Filter error jobs
+      const jobs = Array.isArray(data) ? data : (data?.jobs || []);
+      return jobs
+        .filter((j: any) => j.jobstatus === 'E' || j.jobstatus === 'f' || j.jobstatus === 'A')
+        .slice(0, 5);
+    },
+    enabled: !!baculaIntegration,
+    staleTime: 120000,
+  });
+
+  // Zabbix recent problems
+  const zabbixIntegration = integrations.data?.find((i: any) => i.type === 'zabbix' && i.is_active);
+  const zabbixProblems = useQuery({
+    queryKey: ['dashboard-zabbix-problems'],
+    queryFn: async () => {
+      if (!zabbixIntegration) return [];
+      const { data, error } = await supabase.functions.invoke('zabbix-proxy', {
+        body: {
+          method: 'problem.get',
+          params: {
+            output: ['eventid', 'name', 'severity', 'clock'],
+            selectHosts: ['name'],
+            sortfield: 'eventid',
+            sortorder: 'DESC',
+            limit: 5,
+            recent: true,
+          },
+          integrationId: zabbixIntegration.id,
+        }
+      });
+      if (error) return [];
+      return data?.result || data || [];
+    },
+    enabled: !!zabbixIntegration,
+    staleTime: 120000,
+  });
 
   return {
     integrations: integrations.data || [],
     reports: reports.data || [],
     logs: logs.data || [],
+    ftpFiles: ftpFiles.data || [],
+    baculaErrors: baculaJobs.data || [],
+    zabbixProblems: zabbixProblems.data || [],
+    hasBacula: !!baculaIntegration,
+    hasZabbix: !!zabbixIntegration,
+    hasFtp: !!ftpIntegration,
     isLoading: integrations.isLoading || reports.isLoading || logs.isLoading,
     refetchAll: () => {
       integrations.refetch();
       reports.refetch();
       logs.refetch();
+      ftpFiles.refetch();
+      baculaJobs.refetch();
+      zabbixProblems.refetch();
     }
   };
 };
