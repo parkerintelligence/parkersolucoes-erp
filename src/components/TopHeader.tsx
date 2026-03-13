@@ -63,7 +63,7 @@ export const TopHeader = () => {
     };
     return breadcrumbs[path] || 'Sistema';
   };
-  return <header className="sticky top-0 z-40 border-b border-border bg-slate-900 text-primary-foreground shadow-lg safe-area-top">
+  return <header className="sticky top-0 z-40 border-b border-sidebar-border bg-sidebar text-sidebar-foreground shadow-lg safe-area-top">
       <div className="flex items-center justify-between w-full px-2 sm:px-3 md:px-6 py-2 sm:py-3 md:py-4">
         {/* Menu Toggle e Título */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
