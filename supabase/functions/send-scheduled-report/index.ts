@@ -1150,6 +1150,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
 • Total Ativo: ${allTickets.length}
 • Novos: ${newTickets.length}
 • Em Aberto: ${openTickets.length}
+• Resolvidos: ${resolvedTickets.length}
 • Críticos: ${criticalTickets.length}
 • Pendentes: ${pendingTickets.length}
 • Vencidos: ${overdueTickets.length}
@@ -1158,7 +1159,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
       // Dados para compatibilidade com outros templates
       list: detailedOpenTickets || '✅ Nenhum ticket em aberto',
       new_tickets: newTickets.length,
-      resolved_tickets: 0,
+      resolved_tickets: resolvedTickets.length,
       avg_resolution_time: avgTimeOpen,
       open_tickets_list: detailedOpenTickets || 'Nenhum ticket em aberto',
       productivity_summary: `${allTickets.length} tickets ativos • ${newTickets.length} novos • ${criticalTickets.length} críticos`,
