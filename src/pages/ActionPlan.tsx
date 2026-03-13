@@ -18,7 +18,7 @@ import { differenceInDays, isPast, isToday } from "date-fns";
 
 export default function ActionPlan() {
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
-  const [activeView, setActiveView] = useState("gantt");
+  const [activeView, setActiveView] = useState("list");
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
