@@ -656,6 +656,7 @@ const Annotations = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-700 border-slate-600">
+                    <SelectItem value="none" className="text-slate-400">Nenhuma (sem empresa)</SelectItem>
                     {companies.map((company) => (
                       <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>
                     ))}
