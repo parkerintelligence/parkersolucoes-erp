@@ -116,43 +116,35 @@ export const RustDeskPanel = () => {
     await deleteMutation.mutateAsync(id);
   };
 
-  const handleConnect = (conn: RustDeskConnection) => {
+  const handleConnect = async (conn: RustDeskConnection) => {
+    const confirmed = await confirm({
+      title: "Conectar ao dispositivo",
+      description: `Deseja abrir a conexão RustDesk com "${conn.name}" (ID: ${conn.rustdesk_id})?`,
+      confirmText: "Conectar",
+      cancelText: "Cancelar",
+      variant: "default",
+    });
+
+    if (!confirmed) return;
+
     // Update last_connected_at
     updateMutation.mutate({ id: conn.id, updates: { last_connected_at: new Date().toISOString() } });
 
-    // Build rustdesk:// URI to open the desktop client directly
-    // Format: rustdesk://connection/new/ID?password=PASS&relay=HBBR&key=KEY
-    let rustdeskUri = `rustdesk://connection/new/${conn.rustdesk_id}`;
-    const params = new URLSearchParams();
-    
-    if (conn.password) {
-      params.set('password', conn.password);
-    }
-    
-    // Add server config params if available
-    if (rustdeskIntegration) {
-      if (rustdeskIntegration.base_url) {
-        params.set('relay', rustdeskIntegration.base_url);
-      }
-      if (rustdeskIntegration.api_token) {
-        params.set('key', rustdeskIntegration.api_token);
-      }
-    }
-    
-    const paramString = params.toString();
-    if (paramString) {
-      rustdeskUri += `?${paramString}`;
-    }
+    // Copy ID and password to clipboard
+    const clipText = conn.password 
+      ? `ID: ${conn.rustdesk_id} | Senha: ${conn.password}`
+      : conn.rustdesk_id;
+    navigator.clipboard.writeText(clipText).catch(() => {});
 
-    // Copy ID to clipboard for easy paste in RustDesk
-    navigator.clipboard.writeText(conn.rustdesk_id).catch(() => {});
+    // Use the simple rustdesk:// URI - just the ID
+    // The RustDesk client uses its own configured server settings
+    const rustdeskUri = `rustdesk://connection/new/${conn.rustdesk_id}`;
 
-    // Open via URI scheme (launches RustDesk desktop app)
     window.location.href = rustdeskUri;
     
     toast({
       title: "🖥️ Abrindo RustDesk",
-      description: `Conectando a "${conn.name}" (ID: ${conn.rustdesk_id}). ID copiado para a área de transferência.`,
+      description: `ID${conn.password ? ' e senha' : ''} copiado(s). Conectando a "${conn.name}" (${conn.rustdesk_id}).`,
     });
   };
 
