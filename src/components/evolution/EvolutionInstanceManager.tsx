@@ -107,6 +107,35 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
     }
   }, [integrationId, fetchInstances]);
 
+  // Auto-refresh QR Code every 10s while disconnected
+  useEffect(() => {
+    if (!autoRefreshEnabled || !activeInstanceName || !integrationId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const result = await callEvolutionProxy(integrationId, `/instance/connect/${encodeURIComponent(activeInstanceName)}`);
+        const state = result?.instance?.state || result?.state;
+        
+        if (state === 'open') {
+          setAutoRefreshEnabled(false);
+          setQrCode(null);
+          toast({ title: '✅ Conectado!', description: `A instância "${activeInstanceName}" foi conectada com sucesso.` });
+          await fetchInstances();
+          return;
+        }
+
+        const qr = extractQrCode(result);
+        if (qr) {
+          setQrCode(qr);
+        }
+      } catch (error) {
+        console.error('[Evolution] Auto-refresh QR failed:', error);
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [autoRefreshEnabled, activeInstanceName, integrationId, fetchInstances]);
+
   const sanitizeInstanceName = (value: string) => {
     return value
       .trim()
