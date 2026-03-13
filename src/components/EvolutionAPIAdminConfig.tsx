@@ -24,7 +24,6 @@ export const EvolutionAPIAdminConfig = () => {
     base_url: evolutionIntegration?.base_url || '',
     api_token: evolutionIntegration?.api_token || '',
     phone_number: evolutionIntegration?.phone_number || '',
-    instance_name: (evolutionIntegration as any)?.instance_name || '',
     is_active: evolutionIntegration?.is_active ?? true,
   });
 
