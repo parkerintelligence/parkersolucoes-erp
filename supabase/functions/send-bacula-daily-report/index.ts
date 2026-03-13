@@ -105,10 +105,20 @@ serve(async (req) => {
     // Buscar template de mensagem
     let template;
     if (report_id) {
+      // report_id é o ID do scheduled_reports, precisamos buscar o template_id (report_type)
+      const { data: scheduledReport } = await supabase
+        .from('scheduled_reports')
+        .select('report_type')
+        .eq('id', report_id)
+        .single();
+      
+      const templateId = scheduledReport?.report_type || report_id;
+      console.log('🔍 [BACULA-DAILY] Template ID resolvido:', templateId);
+      
       const { data: templateData } = await supabase
         .from('whatsapp_message_templates')
         .select('*')
-        .eq('id', report_id)
+        .eq('id', templateId)
         .eq('is_active', true)
         .single();
       template = templateData;
@@ -116,8 +126,7 @@ serve(async (req) => {
       const { data: templateData } = await supabase
         .from('whatsapp_message_templates')
         .select('*')
-        .eq('name', 'Relatório Diário de Erros Bacula')
-        .eq('template_type', 'bacula_daily_report')
+        .or('template_type.eq.bacula_daily_report,template_type.eq.bacula_daily')
         .eq('is_active', true)
         .single();
       template = templateData;
