@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Calendar, Edit, Trash2, Plus, CheckSquare, MessageSquare, Clock, ArrowRight, MoreHorizontal, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
