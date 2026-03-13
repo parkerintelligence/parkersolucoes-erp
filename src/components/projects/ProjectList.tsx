@@ -63,7 +63,7 @@ const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
 
 type SortField = 'title' | 'priority' | 'due_date' | 'progress';
 
-export function ProjectList({ columns, cards, cardItems, onRefresh }: ProjectListProps) {
+export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(columns.map(c => c.id)));
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [editingCard, setEditingCard] = useState<ActionCard | null>(null);
