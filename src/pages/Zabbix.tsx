@@ -448,12 +448,12 @@ const Zabbix = () => {
                 <Input
                   placeholder="Buscar..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 h-8 text-sm"
                 />
               </div>
               
-              <Select value={severityFilter} onValueChange={setSeverityFilter}>
+              <Select value={severityFilter} onValueChange={handleSeverityChange}>
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white h-8 w-40">
                   <SelectValue placeholder="Severidade" />
                 </SelectTrigger>
