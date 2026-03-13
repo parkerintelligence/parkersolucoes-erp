@@ -958,22 +958,20 @@ async function getGLPIStandardData(glpiIntegration: any) {
     const resolvedTickets = allTickets.filter(t => [5, 6].includes(t.status || 0));
     
     // Calcular tickets vencidos (exemplo: > 3 dias em aberto)
+    // IMPORTANTE: parseGLPIDate já retorna UTC real (adiciona -03:00), então usamos now (UTC real) para comparações
     const now = new Date();
-    const nowBrasiliaForOverdue = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
     const overdueTickets = allTickets.filter(ticket => {
       if (ticket.date) {
         const ticketDate = parseGLPIDate(ticket.date);
-        const daysDiff = (nowBrasiliaForOverdue.getTime() - ticketDate.getTime()) / (1000 * 60 * 60 * 24);
+        const daysDiff = (now.getTime() - ticketDate.getTime()) / (1000 * 60 * 60 * 24);
         return daysDiff > 3;
       }
       return false;
     });
 
-    // Usar horário de Brasília para cálculos de tempo
-    const nowBrasilia = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-    
+    // Usar now (UTC real) para cálculos de tempo, pois parseGLPIDate já converte corretamente para UTC
     // Calcular tempo médio em aberto para tickets ativos
-    const avgTimeOpen = calculateAverageTimeOpen(openTickets, nowBrasilia);
+    const avgTimeOpen = calculateAverageTimeOpen(openTickets, now);
 
     // Organizar tickets por prioridade (críticos primeiro)
     const sortedTickets = [...allTickets].sort((a, b) => {
