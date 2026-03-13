@@ -415,8 +415,11 @@ const Guacamole = () => {
 
 
         {/* Main Content */}
-        <Tabs defaultValue="connections" className="space-y-4">
+        <Tabs defaultValue="rustdesk" className="space-y-4">
           <TabsList className="bg-slate-800 border-slate-700">
+            <TabsTrigger value="rustdesk" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-slate-400">
+              🦀 RustDesk
+            </TabsTrigger>
             <TabsTrigger value="connections" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
               Conexões ({connections?.length || 0})
             </TabsTrigger>
@@ -431,9 +434,6 @@ const Guacamole = () => {
             </TabsTrigger>
             <TabsTrigger value="logs" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
               Logs
-            </TabsTrigger>
-            <TabsTrigger value="rustdesk" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-slate-400">
-              🦀 RustDesk
             </TabsTrigger>
           </TabsList>
 

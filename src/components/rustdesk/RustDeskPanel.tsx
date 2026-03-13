@@ -67,6 +67,30 @@ export const RustDeskPanel = () => {
     );
   }, [connections, search]);
 
+  // Group connections by company
+  const groupedByCompany = useMemo(() => {
+    const groups: Record<string, { name: string; connections: typeof filtered }> = {};
+    
+    filtered.forEach(conn => {
+      const companyId = conn.company_id || '__none__';
+      if (!groups[companyId]) {
+        const company = companies.find(c => c.id === companyId);
+        groups[companyId] = {
+          name: company?.name || 'Sem cliente',
+          connections: [],
+        };
+      }
+      groups[companyId].connections.push(conn);
+    });
+
+    // Sort: named companies first alphabetically, "Sem cliente" last
+    return Object.entries(groups).sort(([aId, a], [bId, b]) => {
+      if (aId === '__none__') return 1;
+      if (bId === '__none__') return -1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [filtered, companies]);
+
   const getCompanyName = (companyId?: string) => {
     if (!companyId) return '-';
     return companies.find(c => c.id === companyId)?.name || '-';
