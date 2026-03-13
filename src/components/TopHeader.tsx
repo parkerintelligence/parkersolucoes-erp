@@ -66,7 +66,12 @@ export const TopHeader = () => {
               {userProfile?.email || user?.email}
             </span>
 
-            <PWAInstallButton />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span><PWAInstallButton /></span>
+              </TooltipTrigger>
+              <TooltipContent>Instalar App</TooltipContent>
+            </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>
