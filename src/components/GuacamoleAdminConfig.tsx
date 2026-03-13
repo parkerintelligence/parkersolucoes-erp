@@ -29,6 +29,7 @@ const GuacamoleAdminConfig = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const guacamoleIntegration = integrations?.find(i => i.type === 'guacamole');
 
