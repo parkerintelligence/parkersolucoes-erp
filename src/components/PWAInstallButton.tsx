@@ -82,19 +82,21 @@ export const PWAInstallButton = () => {
     );
   }
 
-  if (!isInstallable || !deferredPrompt) {
-    return null;
-  }
+  const handleManualInstall = () => {
+    toast({
+      title: "Como instalar",
+      description: "No navegador, clique no menu (⋮) e selecione 'Instalar aplicativo' ou 'Adicionar à tela inicial'.",
+    });
+  };
 
   return (
     <Button
-      onClick={handleInstall}
-      variant="outline"
-      size="sm"
-      className="flex items-center gap-2 text-xs px-2 py-1 h-8"
+      onClick={deferredPrompt ? handleInstall : handleManualInstall}
+      variant="ghost"
+      size="icon"
+      className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg"
     >
-      <Download className="h-3 w-3" />
-      <span className="hidden sm:inline">Instalar App</span>
+      <Download className="h-4 w-4" />
     </Button>
   );
 };
