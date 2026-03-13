@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useWebhooks, Webhook, WebhookAction } from '@/hooks/useWebhooks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +40,9 @@ export default function Webhooks() {
   const [actionType, setActionType] = useState<'whatsapp' | 'email'>('whatsapp');
   const [actionDest, setActionDest] = useState('');
   const [actionTemplate, setActionTemplate] = useState('{text}');
+  const [lastPayloadKeys, setLastPayloadKeys] = useState<string[]>([]);
+  const [lastPayloadSample, setLastPayloadSample] = useState<Record<string, any> | null>(null);
+  const templateRef = useRef<HTMLTextAreaElement>(null);
 
   // History state
   const [historyDialog, setHistoryDialog] = useState(false);
@@ -129,12 +132,50 @@ export default function Webhooks() {
     setWebhookDialog(false);
   };
 
+  const loadLastPayload = useCallback(async (webhookId: string) => {
+    try {
+      const { data } = await supabase
+        .from('webhook_logs' as any)
+        .select('request_body')
+        .eq('webhook_id', webhookId)
+        .eq('is_test', false)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      const body = (data as any)?.[0]?.request_body;
+      if (body && typeof body === 'object' && !Array.isArray(body)) {
+        setLastPayloadKeys(Object.keys(body));
+        setLastPayloadSample(body);
+      } else {
+        // fallback: try any log including tests
+        const { data: anyLog } = await supabase
+          .from('webhook_logs' as any)
+          .select('request_body')
+          .eq('webhook_id', webhookId)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        const anyBody = (anyLog as any)?.[0]?.request_body;
+        if (anyBody && typeof anyBody === 'object') {
+          setLastPayloadKeys(Object.keys(anyBody));
+          setLastPayloadSample(anyBody);
+        } else {
+          setLastPayloadKeys([]);
+          setLastPayloadSample(null);
+        }
+      }
+    } catch {
+      setLastPayloadKeys([]);
+      setLastPayloadSample(null);
+    }
+  }, []);
+
   const openNewAction = (webhookId: string) => {
     setEditingAction(null);
     setTargetWebhookId(webhookId);
     setActionType('whatsapp');
     setActionDest('');
     setActionTemplate('{text}');
+    loadLastPayload(webhookId);
     setActionDialog(true);
   };
 
@@ -144,7 +185,25 @@ export default function Webhooks() {
     setActionType(action.action_type);
     setActionDest(action.destination);
     setActionTemplate(action.message_template || '{text}');
+    loadLastPayload(action.webhook_id);
     setActionDialog(true);
+  };
+
+  const insertPlaceholder = (key: string) => {
+    const placeholder = `{${key}}`;
+    const textarea = templateRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newValue = actionTemplate.substring(0, start) + placeholder + actionTemplate.substring(end);
+      setActionTemplate(newValue);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + placeholder.length, start + placeholder.length);
+      }, 0);
+    } else {
+      setActionTemplate(prev => prev + placeholder);
+    }
   };
 
   const saveAction = async () => {
@@ -466,13 +525,46 @@ export default function Webhooks() {
             <div>
               <Label>Template da mensagem</Label>
               <Textarea
+                ref={templateRef}
                 value={actionTemplate}
                 onChange={e => setActionTemplate(e.target.value)}
                 placeholder="Use {text} para o conteúdo recebido"
-                rows={3}
+                rows={4}
               />
-              <p className="text-xs text-muted-foreground mt-1">Use <code className="bg-muted px-1 rounded">{'{text}'}</code> para inserir o conteúdo do webhook</p>
+              <p className="text-xs text-muted-foreground mt-1">Use <code className="bg-muted px-1 rounded">{'{text}'}</code> para o conteúdo completo, ou placeholders específicos como <code className="bg-muted px-1 rounded">{'{host}'}</code>, <code className="bg-muted px-1 rounded">{'{message}'}</code>, etc.</p>
             </div>
+
+            {lastPayloadKeys.length > 0 && (
+              <div className="border border-border rounded-lg p-3 bg-muted/30">
+                <p className="text-xs font-semibold text-foreground mb-2">📦 Campos do último payload recebido (clique para inserir):</p>
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {lastPayloadKeys.map(key => (
+                    <Button
+                      key={key}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs font-mono px-2 hover:bg-primary hover:text-primary-foreground"
+                      onClick={() => insertPlaceholder(key)}
+                    >
+                      {`{${key}}`}
+                    </Button>
+                  ))}
+                </div>
+                {lastPayloadSample && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Ver payload completo</summary>
+                    <pre className="mt-1 bg-muted rounded p-2 overflow-x-auto max-h-32 whitespace-pre-wrap break-all text-[10px]">
+                      {JSON.stringify(lastPayloadSample, null, 2)}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            )}
+
+            {lastPayloadKeys.length === 0 && (
+              <p className="text-xs text-muted-foreground italic">💡 Envie uma requisição para este webhook para visualizar os campos disponíveis do payload.</p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setActionDialog(false)}>Cancelar</Button>
