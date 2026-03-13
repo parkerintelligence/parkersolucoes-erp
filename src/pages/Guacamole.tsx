@@ -654,6 +654,10 @@ const Guacamole = () => {
             <GuacamoleLogs logs={logs} onClearLogs={clearLogs} onRefresh={handleRefreshAll} />
           </TabsContent>
 
+          <TabsContent value="rustdesk" className="mt-6">
+            <RustDeskPanel />
+          </TabsContent>
+
         </Tabs>
 
         {/* Connection Dialog */}
