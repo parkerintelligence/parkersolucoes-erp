@@ -25,7 +25,7 @@ const menuItems = [
   { title: 'Winbox', url: '/winbox', icon: Router, role: 'user' },
   { title: 'Bacula', url: '/bacula', icon: Database, role: 'user' },
   { title: 'VPS', url: '/vps', icon: LayoutDashboard, role: 'user' },
-  { title: 'Security', url: '/security', icon: Shield, role: 'user' },
+  
   { title: 'Webhooks', url: '/webhooks', icon: Zap, role: 'user' },
   { title: 'Admin', url: '/admin', icon: Settings, role: 'master' },
 ];
