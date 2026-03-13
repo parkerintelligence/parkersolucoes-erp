@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Shield, Server, Database, Lock, Eye, EyeOff, Sparkles, Zap, BarChart3, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useSystemSettings } from '@/hooks/useSystemSettings';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -16,7 +17,9 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const companyName = 'Parker Soluções ERP';
+  const { data: brandingSettings } = useSystemSettings('branding');
+  const companyName = brandingSettings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Parker Soluções ERP';
+  const logoUrl = brandingSettings?.find(s => s.setting_key === 'company_logo_url')?.setting_value || '';
 
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
