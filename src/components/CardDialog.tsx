@@ -76,6 +76,7 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
     const data: any = { ...formData };
     if (!data.due_date) delete data.due_date;
     if (!data.column_id) delete data.column_id;
+    if (!data.assigned_to) data.assigned_to = null;
     onSave(data);
   };
 
