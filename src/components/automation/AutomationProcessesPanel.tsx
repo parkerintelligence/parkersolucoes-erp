@@ -18,7 +18,7 @@ import {
   type AutomationProcess,
 } from '@/hooks/useAutomationProcesses';
 
-const SYSTEM_OPTIONS = [
+const SYSTEM_SUGGESTIONS = [
   'WhatsApp', 'GLPI', 'Zabbix', 'Bacula', 'Grafana', 'UniFi',
   'Mikrotik', 'Chatwoot', 'Wasabi', 'FTP', 'Hostinger', 'Guacamole', 'Wazuh',
 ];
