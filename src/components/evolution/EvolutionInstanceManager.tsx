@@ -73,6 +73,7 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
   const [loading, setLoading] = useState(false);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [loadingInstances, setLoadingInstances] = useState(false);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
 
   const integrationId = evolutionConfig?.id || '';
 
@@ -105,6 +106,35 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
       fetchInstances();
     }
   }, [integrationId, fetchInstances]);
+
+  // Auto-refresh QR Code every 10s while disconnected
+  useEffect(() => {
+    if (!autoRefreshEnabled || !activeInstanceName || !integrationId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const result = await callEvolutionProxy(integrationId, `/instance/connect/${encodeURIComponent(activeInstanceName)}`);
+        const state = result?.instance?.state || result?.state;
+        
+        if (state === 'open') {
+          setAutoRefreshEnabled(false);
+          setQrCode(null);
+          toast({ title: '✅ Conectado!', description: `A instância "${activeInstanceName}" foi conectada com sucesso.` });
+          await fetchInstances();
+          return;
+        }
+
+        const qr = extractQrCode(result);
+        if (qr) {
+          setQrCode(qr);
+        }
+      } catch (error) {
+        console.error('[Evolution] Auto-refresh QR failed:', error);
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [autoRefreshEnabled, activeInstanceName, integrationId, fetchInstances]);
 
   const sanitizeInstanceName = (value: string) => {
     return value
@@ -165,12 +195,14 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
         if (qr) {
           setQrCode(qr);
           setActiveInstanceName(name);
+          setAutoRefreshEnabled(true);
           return true;
         }
 
         const state = result?.instance?.state || result?.state;
         if (state === 'open') {
           toast({ title: 'Já conectado', description: `A instância "${name}" já está conectada.` });
+          setAutoRefreshEnabled(false);
           await fetchInstances();
           return false;
         }
@@ -342,6 +374,7 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
       if (activeInstanceName === name) {
         setQrCode(null);
         setActiveInstanceName(null);
+        setAutoRefreshEnabled(false);
       }
       await fetchInstances();
     } catch (error: any) {
@@ -439,6 +472,12 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
                 <p className="text-sm text-muted-foreground">
                   Escaneie com o WhatsApp: <strong>{activeInstanceName}</strong>
                 </p>
+                {autoRefreshEnabled && (
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <RefreshCw className="h-3 w-3 animate-spin" />
+                    <span>Atualizando automaticamente a cada 10s</span>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center text-muted-foreground">
