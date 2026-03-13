@@ -363,32 +363,75 @@ serve(async (req) => {
       for (const strategy of searchStrategies) {
         try {
           console.log(`🔄 [BACULA-DAILY] Tentando estratégia: ${strategy.description}`);
-          
-          const baculaResponse = await retryWithBackoff(async () => {
-            return await supabase.functions.invoke('bacula-proxy', {
-              body: {
-                endpoint: strategy.endpoint,
-                params: strategy.params
-              },
-              headers: {
-                'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
+
+          const endpointCandidatesMap: Record<string, string[]> = {
+            'jobs/last24h': [
+              '/api/v2/jobs?age=86400&limit=1000&order_by=starttime&order_direction=desc',
+              '/api/v1/jobs?age=86400&limit=1000',
+              '/api/v2/jobs?limit=1000&order_by=starttime&order_direction=desc',
+              '/api/v1/jobs?limit=1000',
+              '/api/jobs?limit=1000'
+            ],
+            'jobs': [
+              '/api/v2/jobs?limit=1000&order_by=starttime&order_direction=desc',
+              '/api/v1/jobs?limit=1000',
+              '/api/jobs?limit=1000'
+            ],
+            'jobs/all': [
+              '/api/v2/jobs?limit=1000&order_by=starttime&order_direction=desc',
+              '/api/v1/jobs?limit=1000',
+              '/api/jobs?limit=1000'
+            ]
+          };
+
+          const endpointCandidates = endpointCandidatesMap[strategy.endpoint] || [];
+          const baseUrl = (baculaIntegration.base_url || '').replace(/\/$/, '');
+          const auth = btoa(`${baculaIntegration.username || ''}:${baculaIntegration.password || ''}`);
+
+          let strategyData: any = null;
+          let strategyError: any = null;
+
+          for (const endpointPath of endpointCandidates) {
+            const endpointUrl = `${baseUrl}${endpointPath}`;
+
+            try {
+              const response = await retryWithBackoff(async () => {
+                return await fetch(endpointUrl, {
+                  method: 'GET',
+                  headers: {
+                    'Authorization': `Basic ${auth}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                  }
+                });
+              }, RETRY_CONFIG.maxRetries);
+
+              const responseText = await response.text();
+
+              if (!response.ok) {
+                strategyError = new Error(`HTTP ${response.status} no endpoint ${endpointPath}`);
+                console.warn(`⚠️ [BACULA-DAILY] Endpoint falhou ${endpointPath}: ${response.status}`);
+                continue;
               }
-            });
-          }, RETRY_CONFIG.maxRetries);
 
-          if (baculaResponse.error) {
-            console.error(`❌ [BACULA-DAILY] Erro na estratégia ${strategy.description}:`, baculaResponse.error.message);
-            lastError = baculaResponse.error;
-            continue;
+              strategyData = responseText ? JSON.parse(responseText) : {};
+              console.log(`✅ [BACULA-DAILY] Endpoint OK: ${endpointPath}`);
+              break;
+            } catch (endpointError: any) {
+              strategyError = endpointError;
+              console.warn(`⚠️ [BACULA-DAILY] Erro no endpoint ${endpointPath}:`, endpointError?.message || endpointError);
+            }
           }
 
-          if (baculaResponse.data) {
-            baculaData = baculaResponse.data;
-            successfulStrategy = strategy.description;
-            setCache(cacheKey, baculaData);
-            console.log(`✅ [BACULA-DAILY] Dados obtidos via ${successfulStrategy}`);
-            break;
+          if (!strategyData) {
+            throw strategyError || new Error(`Nenhum endpoint respondeu para ${strategy.description}`);
           }
+
+          baculaData = strategyData;
+          successfulStrategy = strategy.description;
+          setCache(cacheKey, baculaData);
+          console.log(`✅ [BACULA-DAILY] Dados obtidos via ${successfulStrategy}`);
+          break;
         } catch (error) {
           console.error(`❌ [BACULA-DAILY] Falha na estratégia ${strategy.description}:`, error);
           lastError = error;
