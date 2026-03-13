@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { MikrotikProvider } from '@/contexts/MikrotikContext';
+import { ConfirmDialogProvider } from '@/hooks/useConfirmDialog';
 import { Toaster } from '@/components/ui/sonner';
 import Login from '@/pages/Login';
 import VPS from '@/pages/VPS';
