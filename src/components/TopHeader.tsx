@@ -67,7 +67,7 @@ export const TopHeader = () => {
       <div className="flex items-center justify-between w-full px-2 sm:px-3 md:px-6 py-2 sm:py-3 md:py-4">
         {/* Menu Toggle e Título */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-          <SidebarTrigger className="h-6 w-6 sm:h-8 sm:w-8 text-primary-foreground hover:bg-primary-foreground/10 touch-target" />
+          <SidebarTrigger className="h-6 w-6 sm:h-8 sm:w-8 text-white hover:bg-white/10 touch-target" />
           {logoUrl ? <img src={logoUrl} alt="Logo da empresa" className="h-8 sm:h-10 w-auto object-contain flex-shrink-0" /> : <div className="bg-secondary p-1.5 sm:p-2 rounded-xl flex-shrink-0 shadow-sm">
               <Shield className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-secondary-foreground" />
             </div>}
