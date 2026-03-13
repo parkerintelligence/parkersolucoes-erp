@@ -847,7 +847,6 @@ serve(async (req) => {
       `📅 *Período:* ${templateData.period}`,
       `🕒 *Gerado em:* ${templateData.current_time}`,
       ``,
-      `📌 *RESUMO EXECUTIVO*`,
       `• Total de Jobs: ${templateData.total_jobs}`,
       `• Jobs com Sucesso: ${templateData.success_jobs}`,
       `• Jobs com Erro: ${templateData.error_jobs}`,
