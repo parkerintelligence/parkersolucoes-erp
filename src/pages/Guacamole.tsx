@@ -330,11 +330,11 @@ const Guacamole = () => {
 
           <Tabs defaultValue="rustdesk" className="space-y-4">
             <TabsList className="bg-slate-800 border-slate-700">
-              <TabsTrigger value="guacamole" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
-                Guacamole
-              </TabsTrigger>
               <TabsTrigger value="rustdesk" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-slate-400">
                 🦀 RustDesk
+              </TabsTrigger>
+              <TabsTrigger value="guacamole" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+                Guacamole
               </TabsTrigger>
             </TabsList>
 
@@ -415,8 +415,11 @@ const Guacamole = () => {
 
 
         {/* Main Content */}
-        <Tabs defaultValue="connections" className="space-y-4">
+        <Tabs defaultValue="rustdesk" className="space-y-4">
           <TabsList className="bg-slate-800 border-slate-700">
+            <TabsTrigger value="rustdesk" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-slate-400">
+              🦀 RustDesk
+            </TabsTrigger>
             <TabsTrigger value="connections" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
               Conexões ({connections?.length || 0})
             </TabsTrigger>
@@ -432,10 +435,11 @@ const Guacamole = () => {
             <TabsTrigger value="logs" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
               Logs
             </TabsTrigger>
-            <TabsTrigger value="rustdesk" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-slate-400">
-              🦀 RustDesk
-            </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="rustdesk" className="mt-6">
+            <RustDeskPanel />
+          </TabsContent>
 
           <TabsContent value="connections" className="mt-6">
             <Card className="bg-slate-800 border-slate-700">
@@ -671,9 +675,6 @@ const Guacamole = () => {
             <GuacamoleLogs logs={logs} onClearLogs={clearLogs} onRefresh={handleRefreshAll} />
           </TabsContent>
 
-          <TabsContent value="rustdesk" className="mt-6">
-            <RustDeskPanel />
-          </TabsContent>
 
         </Tabs>
 
