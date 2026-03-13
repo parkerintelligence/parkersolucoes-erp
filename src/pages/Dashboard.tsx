@@ -61,11 +61,30 @@ const useDashboardData = () => {
     queryKey: ['dashboard-ftp-files', ftpIntegration?.id],
     queryFn: async () => {
       if (!ftpIntegration) return [];
+
+      const cleanHost = (ftpIntegration.base_url || '')
+        .replace(/^(ftp:\/\/|ftps:\/\/|http:\/\/|https:\/\/)/, '')
+        .replace(/\/$/, '');
+
+      if (!cleanHost) return [];
+
       const { data, error } = await supabase.functions.invoke('ftp-list', {
-        body: { path: '/', integrationId: ftpIntegration.id }
+        body: {
+          host: cleanHost,
+          port: ftpIntegration.port || 21,
+          username: ftpIntegration.username || 'anonymous',
+          password: ftpIntegration.password || '',
+          secure: ftpIntegration.use_ssl || false,
+          path: ftpIntegration.directory || '/',
+          passive: ftpIntegration.passive_mode !== false,
+        }
       });
+
       if (error) return [];
-      return data?.files || [];
+      return (data?.files || []).map((file: any) => ({
+        ...file,
+        lastModified: file.lastModified || new Date().toISOString(),
+      }));
     },
     enabled: !!ftpIntegration,
     staleTime: 120000,
@@ -278,10 +297,18 @@ const Dashboard = () => {
               const now = new Date();
               const oldDirs = ftpFiles
                 .filter((f: any) => f.isDirectory || f.type === 'directory')
-                .map((f: any) => ({
-                  ...f,
-                  daysSince: Math.floor((now.getTime() - new Date(f.lastModified || f.date || f.rawModifiedAt || 0).getTime()) / (1000 * 60 * 60 * 24))
-                }))
+                .map((f: any) => {
+                  const modifiedAt = f.lastModified || f.date || f.rawModifiedAt;
+                  const modifiedDate = new Date(modifiedAt);
+                  const hasValidDate = !Number.isNaN(modifiedDate.getTime());
+
+                  return {
+                    ...f,
+                    daysSince: hasValidDate
+                      ? Math.floor((now.getTime() - modifiedDate.getTime()) / (1000 * 60 * 60 * 24))
+                      : 0,
+                  };
+                })
                 .filter((f: any) => f.daysSince > 2)
                 .sort((a: any, b: any) => b.daysSince - a.daysSince)
                 .slice(0, 6);
