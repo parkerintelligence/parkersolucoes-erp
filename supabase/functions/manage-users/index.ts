@@ -24,10 +24,13 @@ serve(async (req) => {
 
     // Bootstrap action - no auth required, uses service role secret
     if (action === "bootstrap") {
-      const { secret, email, password, role = "master" } = params;
-      const expectedSecret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      if (secret !== expectedSecret) {
-        return new Response(JSON.stringify({ error: "Secret inválido" }), {
+      const { email, password, role = "master" } = params;
+      
+      // Bootstrap requires the service role key in the Authorization header
+      const authHeader = req.headers.get("Authorization");
+      const expectedKey = `Bearer ${serviceRoleKey}`;
+      if (authHeader !== expectedKey) {
+        return new Response(JSON.stringify({ error: "Não autorizado para bootstrap" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
