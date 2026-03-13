@@ -993,6 +993,68 @@ export type Database = {
           },
         ]
       }
+      rustdesk_connections: {
+        Row: {
+          alias: string | null
+          company_id: string | null
+          created_at: string
+          hostname: string | null
+          id: string
+          is_online: boolean | null
+          last_connected_at: string | null
+          name: string
+          notes: string | null
+          os_type: string | null
+          password: string | null
+          rustdesk_id: string
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alias?: string | null
+          company_id?: string | null
+          created_at?: string
+          hostname?: string | null
+          id?: string
+          is_online?: boolean | null
+          last_connected_at?: string | null
+          name: string
+          notes?: string | null
+          os_type?: string | null
+          password?: string | null
+          rustdesk_id: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alias?: string | null
+          company_id?: string | null
+          created_at?: string
+          hostname?: string | null
+          id?: string
+          is_online?: boolean | null
+          last_connected_at?: string | null
+          name?: string
+          notes?: string | null
+          os_type?: string | null
+          password?: string | null
+          rustdesk_id?: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rustdesk_connections_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schedule_items: {
         Row: {
           color: string | null
