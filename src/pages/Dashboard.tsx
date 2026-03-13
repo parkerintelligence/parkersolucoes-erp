@@ -61,11 +61,30 @@ const useDashboardData = () => {
     queryKey: ['dashboard-ftp-files', ftpIntegration?.id],
     queryFn: async () => {
       if (!ftpIntegration) return [];
+
+      const cleanHost = (ftpIntegration.base_url || '')
+        .replace(/^(ftp:\/\/|ftps:\/\/|http:\/\/|https:\/\/)/, '')
+        .replace(/\/$/, '');
+
+      if (!cleanHost) return [];
+
       const { data, error } = await supabase.functions.invoke('ftp-list', {
-        body: { path: '/', integrationId: ftpIntegration.id }
+        body: {
+          host: cleanHost,
+          port: ftpIntegration.port || 21,
+          username: ftpIntegration.username || 'anonymous',
+          password: ftpIntegration.password || '',
+          secure: ftpIntegration.use_ssl || false,
+          path: ftpIntegration.directory || '/',
+          passive: ftpIntegration.passive_mode !== false,
+        }
       });
+
       if (error) return [];
-      return data?.files || [];
+      return (data?.files || []).map((file: any) => ({
+        ...file,
+        lastModified: file.lastModified || new Date().toISOString(),
+      }));
     },
     enabled: !!ftpIntegration,
     staleTime: 120000,
