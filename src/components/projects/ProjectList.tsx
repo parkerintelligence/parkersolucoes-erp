@@ -172,10 +172,11 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
             {isOpen && (
               <div>
                 {/* Column Header */}
-                <div className="grid grid-cols-[40px_1fr_100px_100px_100px_70px_160px_80px] gap-0 px-4 py-2 bg-secondary/10 border-b border-border text-muted-foreground">
+                <div className="grid grid-cols-[40px_1fr_100px_120px_100px_100px_70px_140px_80px] gap-0 px-4 py-2 bg-secondary/10 border-b border-border text-muted-foreground">
                   <span className="text-[10px] font-bold uppercase tracking-wider">#</span>
                   <SortButton field="title">Tarefa</SortButton>
                   <SortButton field="priority">Prioridade</SortButton>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider">Status</span>
                   <span className="text-[10px] font-semibold uppercase tracking-wider">Início</span>
                   <SortButton field="due_date">Término</SortButton>
                   <span className="text-[10px] font-semibold uppercase tracking-wider">Duração</span>
