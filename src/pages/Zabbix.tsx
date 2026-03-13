@@ -469,7 +469,9 @@ const Zabbix = () => {
 
               <div className="flex items-center gap-2 text-sm text-slate-400">
                 <Filter className="h-4 w-4" />
-                <span>{filteredProblems.length} problema{filteredProblems.length !== 1 ? 's' : ''} | {hosts.length} host{hosts.length !== 1 ? 's' : ''}</span>
+                <span>{filteredProblems.length} problema{filteredProblems.length !== 1 ? 's' : ''} | {hosts.length} host{hosts.length !== 1 ? 's' : ''}
+                  {totalPages > 1 && ` | Pág. ${currentPage}/${totalPages}`}
+                </span>
               </div>
 
               <div className="ml-auto flex items-center gap-2">
