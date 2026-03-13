@@ -23,6 +23,7 @@ interface ProjectListProps {
   columns: ActionColumn[];
   cards: ActionCard[];
   cardItems: ActionCardItem[];
+  onRefresh?: () => Promise<void>;
 }
 
 const priorityConfig: Record<string, { label: string; dotColor: string; bgColor: string }> = {
