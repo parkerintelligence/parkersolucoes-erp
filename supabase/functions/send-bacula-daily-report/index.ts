@@ -926,7 +926,7 @@ serve(async (req) => {
       try {
         await supabase.from('scheduled_reports_logs').insert({
           report_id: reportLogId,
-          user_id: template.user_id,
+          user_id: reportUserId || template.user_id,
           phone_number: recipients[0],
           status: successfulSends > 0 ? 'success' : 'failed',
           message_sent: successfulSends > 0,
