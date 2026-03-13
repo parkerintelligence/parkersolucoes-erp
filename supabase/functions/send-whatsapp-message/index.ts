@@ -58,7 +58,7 @@ serve(async (req) => {
       console.log('✅ Service role authenticated');
     }
 
-    const { integrationId, phoneNumber, message } = await req.json() as WhatsAppMessageRequest;
+    const { integrationId, phoneNumber, message, instanceName: instanceNameOverride } = await req.json() as WhatsAppMessageRequest;
 
     console.log('📋 Request:', { integrationId, phoneNumber: phoneNumber.substring(0, 4) + '****' });
 
