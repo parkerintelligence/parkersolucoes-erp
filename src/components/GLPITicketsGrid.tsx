@@ -163,11 +163,14 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
 
   const parseGLPIDate = (dateString: string | null): Date | null => {
     if (!dateString) return null;
-    
+
     try {
       const cleaned = dateString.trim().replace(' ', 'T');
       const hasTimezone = /([zZ]|[+\-]\d{2}:?\d{2})$/.test(cleaned);
-      const normalized = hasTimezone ? cleaned : `${cleaned}-03:00`;
+
+      // GLPI desta instância retorna timestamps sem timezone no fuso do servidor (UTC+2)
+      // Ao anexar +02:00, o JS converte corretamente para o timezone local do usuário
+      const normalized = hasTimezone ? cleaned : `${cleaned}+02:00`;
       return new Date(normalized);
     } catch (error) {
       console.error('❌ [GLPI] Erro ao fazer parse de data:', error, dateString);
