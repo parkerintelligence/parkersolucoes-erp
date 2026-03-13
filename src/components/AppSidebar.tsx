@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LayoutDashboard, Settings, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Smartphone, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, MessagesSquare, Router, Zap } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from '@/components/ui/sidebar';
-import { useAuth as useAuthContext } from '@/contexts/AuthContext';
+import { useSystemSettings } from '@/hooks/useSystemSettings';
 
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, role: 'user' },
@@ -33,9 +33,14 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const { isMaster, user, userProfile } = useAuth();
   const location = useLocation();
+  const { data: settings } = useSystemSettings('branding');
   const currentPath = location.pathname;
   const isCollapsed = state === 'collapsed';
   const filteredMainItems = menuItems.filter(item => item.role === 'user' || (item.role === 'master' && isMaster));
+
+  const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Parker Soluções';
+  const companySubtitle = settings?.find(s => s.setting_key === 'company_subtitle')?.setting_value || 'ERP System';
+  const logoUrl = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value || '';
 
   return (
     <Sidebar className="border-r border-sidebar-border" collapsible="icon">
@@ -43,13 +48,19 @@ export function AppSidebar() {
       <SidebarHeader className="p-3 sm:p-4 border-b border-sidebar-border relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/5" />
         <div className="relative flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg glow-primary flex-shrink-0">
-            <Shield className="h-5 w-5 text-primary-foreground" />
-          </div>
+          {logoUrl ? (
+            <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0 bg-card">
+              <img src={logoUrl} alt={companyName} className="w-full h-full object-contain" />
+            </div>
+          ) : (
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg glow-primary flex-shrink-0">
+              <Shield className="h-5 w-5 text-primary-foreground" />
+            </div>
+          )}
           {!isCollapsed && (
             <div className="min-w-0">
-              <h2 className="text-foreground font-bold text-sm truncate">Parker Soluções</h2>
-              <p className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase">ERP System</p>
+              <h2 className="text-foreground font-bold text-sm truncate">{companyName}</h2>
+              <p className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase">{companySubtitle}</p>
             </div>
           )}
         </div>

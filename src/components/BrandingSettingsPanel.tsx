@@ -14,7 +14,8 @@ export const BrandingSettingsPanel = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Sistema de Gestão de TI';
+  const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Parker Soluções';
+  const companySubtitle = settings?.find(s => s.setting_key === 'company_subtitle')?.setting_value || 'ERP System';
   const logoUrl = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value || '';
 
   const validateFile = (file: File): string | null => {
@@ -210,46 +211,37 @@ export const BrandingSettingsPanel = () => {
   };
 
   const updateCompanyName = async (newName: string) => {
-    const nameSetting = settings?.find(s => s.setting_key === 'company_name');
+    await updateSettingByKey('company_name', newName, 'Nome da empresa exibido no sistema');
+  };
+
+  const updateSettingByKey = async (key: string, value: string, description: string) => {
+    const existing = settings?.find(s => s.setting_key === key);
     try {
-      if (nameSetting) {
-        const { error: updateError } = await supabase
+      if (existing) {
+        const { error } = await supabase
           .from('system_settings')
-          .update({ setting_value: newName })
-          .eq('id', nameSetting.id);
-          
-        if (updateError) throw updateError;
+          .update({ setting_value: value })
+          .eq('id', existing.id);
+        if (error) throw error;
       } else {
         const { data: userData } = await supabase.auth.getUser();
         if (!userData.user) throw new Error('Usuário não autenticado');
-        
-        const { error: insertError } = await supabase
+        const { error } = await supabase
           .from('system_settings')
           .insert({
             user_id: userData.user.id,
-            setting_key: 'company_name',
-            setting_value: newName,
+            setting_key: key,
+            setting_value: value,
             category: 'branding',
             setting_type: 'text',
-            description: 'Nome da empresa exibido no sistema'
+            description,
           });
-          
-        if (insertError) throw insertError;
+        if (error) throw error;
       }
-
-      // Refetch para atualizar a UI
       refetch();
-
-      toast({
-        title: "Nome atualizado!",
-        description: "O nome da empresa foi atualizado com sucesso.",
-      });
+      toast({ title: "Atualizado!", description: "Configuração salva com sucesso." });
     } catch (error: any) {
-      toast({
-        title: "Erro ao atualizar nome",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
     }
   };
 
@@ -283,6 +275,23 @@ export const BrandingSettingsPanel = () => {
               onBlur={(e) => {
                 if (e.target.value !== companyName) {
                   updateCompanyName(e.target.value);
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Subtítulo */}
+        <div className="space-y-2">
+          <Label htmlFor="company_subtitle">Subtítulo (exibido abaixo do nome no menu)</Label>
+          <div className="flex gap-2">
+            <Input
+              id="company_subtitle"
+              defaultValue={companySubtitle}
+              placeholder="Ex: ERP System"
+              onBlur={(e) => {
+                if (e.target.value !== companySubtitle) {
+                  updateSettingByKey('company_subtitle', e.target.value, 'Subtítulo da empresa no menu lateral');
                 }
               }}
             />
