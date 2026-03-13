@@ -33,7 +33,7 @@ export const TopHeader = () => {
       '/schedule': 'Agenda',
       '/admin': 'Administração',
       '/annotations': 'Anotações',
-      '/plano-de-acao': 'Plano de Ação',
+      '/projetos': 'Gestão de Projetos',
       '/zabbix': 'Zabbix',
       '/winbox': 'Winbox',
       '/bacula': 'Bacula',

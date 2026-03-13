@@ -78,7 +78,7 @@ function App() {
               <Route path="/companies" element={<Layout><Companies /></Layout>} />
               <Route path="/bacula" element={<Layout><SafeBacula /></Layout>} />
               <Route path="/reports" element={<Layout><ReportsDashboard /></Layout>} />
-              <Route path="/plano-de-acao" element={<Layout><SafeActionPlan /></Layout>} />
+              <Route path="/projetos" element={<Layout><SafeActionPlan /></Layout>} />
               <Route path="/security" element={<Layout><Security /></Layout>} />
               <Route path="/unifi" element={<Layout><SafeUniFi /></Layout>} />
               <Route path="/webhooks" element={<Layout><Webhooks /></Layout>} />
