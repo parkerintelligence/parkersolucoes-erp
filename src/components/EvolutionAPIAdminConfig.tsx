@@ -79,7 +79,7 @@ export const EvolutionAPIAdminConfig = () => {
   };
 
   const testConnection = async () => {
-    if (!formData.base_url || !formData.api_token || !formData.instance_name) {
+    if (!formData.base_url || !formData.api_token) {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha todos os campos antes de testar a conexão.",
