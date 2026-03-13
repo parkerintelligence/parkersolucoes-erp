@@ -102,23 +102,36 @@ serve(async (req) => {
 
     console.log('📋 [BACULA-DAILY] Parâmetros recebidos:', { test_mode, phone_number, report_id });
 
-    // Buscar template de mensagem
+    // Buscar template e contexto do relatório
     let template;
+    let reportUserId: string | null = null;
+    let scheduledReportPhone: string | null = null;
+
     if (report_id) {
-      // report_id é o ID do scheduled_reports, precisamos buscar o template_id (report_type)
-      const { data: scheduledReport } = await supabase
+      // report_id é o ID do scheduled_reports
+      const { data: scheduledReport, error: scheduledReportError } = await supabase
         .from('scheduled_reports')
-        .select('report_type')
+        .select('report_type, user_id, phone_number')
         .eq('id', report_id)
-        .single();
-      
-      const templateId = scheduledReport?.report_type || report_id;
-      console.log('🔍 [BACULA-DAILY] Template ID resolvido:', templateId);
-      
+        .maybeSingle();
+
+      if (scheduledReportError || !scheduledReport) {
+        throw new Error(`Agendamento não encontrado para report_id ${report_id}`);
+      }
+
+      reportUserId = scheduledReport.user_id;
+      scheduledReportPhone = scheduledReport.phone_number;
+
+      console.log('🔍 [BACULA-DAILY] Contexto do agendamento:', {
+        report_id,
+        report_user_id: reportUserId,
+        phone: scheduledReportPhone,
+      });
+
       const { data: templateData } = await supabase
         .from('whatsapp_message_templates')
         .select('*')
-        .eq('id', templateId)
+        .eq('id', scheduledReport.report_type)
         .eq('is_active', true)
         .single();
       template = templateData;
@@ -142,15 +155,23 @@ serve(async (req) => {
     let recipients: string[] = [];
     if (test_mode && phone_number) {
       recipients = [phone_number];
+    } else if (scheduledReportPhone) {
+      recipients = [scheduledReportPhone];
     } else {
-      const { data: scheduledReports } = await supabase
+      let recipientsQuery = supabase
         .from('scheduled_reports')
         .select('phone_number')
         .eq('report_type', template.id)
         .eq('is_active', true);
 
+      if (reportUserId) {
+        recipientsQuery = recipientsQuery.eq('user_id', reportUserId);
+      }
+
+      const { data: scheduledReports } = await recipientsQuery;
+
       if (scheduledReports && scheduledReports.length > 0) {
-        recipients = scheduledReports.map(r => r.phone_number);
+        recipients = [...new Set(scheduledReports.map(r => r.phone_number))];
       }
     }
 
@@ -167,14 +188,34 @@ serve(async (req) => {
 
     console.log(`👥 [BACULA-DAILY] Destinatários encontrados: ${recipients.length}`);
 
-    // Buscar integrações globais
-    const { data: evolutionIntegration } = await supabase
-      .from('integrations')
-      .select('*')
-      .eq('type', 'evolution_api')
-      .eq('is_active', true)
-      .eq('is_global', true)
-      .maybeSingle();
+    // Buscar integração Evolution API (prioriza integração do usuário do relatório)
+    let evolutionIntegration: any = null;
+
+    if (reportUserId) {
+      const { data: userEvolutionIntegration } = await supabase
+        .from('integrations')
+        .select('*')
+        .eq('type', 'evolution_api')
+        .eq('is_active', true)
+        .eq('is_global', true)
+        .eq('user_id', reportUserId)
+        .maybeSingle();
+
+      evolutionIntegration = userEvolutionIntegration;
+    }
+
+    if (!evolutionIntegration) {
+      const { data: fallbackEvolutionIntegrations } = await supabase
+        .from('integrations')
+        .select('*')
+        .eq('type', 'evolution_api')
+        .eq('is_active', true)
+        .eq('is_global', true)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+
+      evolutionIntegration = fallbackEvolutionIntegrations?.[0] || null;
+    }
 
     if (!evolutionIntegration) {
       throw new Error('Integração Evolution API não encontrada');
@@ -182,28 +223,71 @@ serve(async (req) => {
 
     // Buscar configuração de instância por tela (whatsapp_screen_config)
     let baculaInstanceName = '';
-    const { data: screenConfigSetting } = await supabase
-      .from('system_settings')
-      .select('setting_value')
-      .eq('setting_key', 'whatsapp_screen_config')
-      .maybeSingle();
+    let screenConfigSetting: { setting_value: string } | null = null;
+
+    if (reportUserId) {
+      const { data: userScreenConfigSetting } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'whatsapp_screen_config')
+        .eq('user_id', reportUserId)
+        .maybeSingle();
+
+      screenConfigSetting = userScreenConfigSetting;
+    }
+
+    if (!screenConfigSetting) {
+      const { data: fallbackScreenConfigSetting } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'whatsapp_screen_config')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      screenConfigSetting = fallbackScreenConfigSetting;
+
+      if (screenConfigSetting && reportUserId) {
+        console.warn(`⚠️ [BACULA-DAILY] Screen config do usuário ${reportUserId} não encontrada. Usando configuração global mais recente.`);
+      }
+    }
 
     if (screenConfigSetting) {
       try {
         const screenConfig = JSON.parse(screenConfigSetting.setting_value);
-        baculaInstanceName = screenConfig['bacula'] || '';
-        console.log(`📱 [BACULA-DAILY] Instância da screen config (bacula): ${baculaInstanceName}`);
+        baculaInstanceName = screenConfig['agendamentos'] || screenConfig['bacula'] || '';
+        console.log(`📱 [BACULA-DAILY] Instância da screen config (agendamentos/bacula): ${baculaInstanceName || 'não definida'}`);
       } catch (e) {
         console.warn('⚠️ [BACULA-DAILY] Erro ao parsear screen config:', e);
       }
     }
 
-    const { data: baculaIntegration } = await supabase
-      .from('integrations')
-      .select('*')
-      .eq('type', 'bacula')
-      .eq('is_active', true)
-      .single();
+    // Buscar integração Bacula (prioriza integração do usuário do relatório)
+    let baculaIntegration: any = null;
+
+    if (reportUserId) {
+      const { data: userBaculaIntegration } = await supabase
+        .from('integrations')
+        .select('*')
+        .eq('type', 'bacula')
+        .eq('is_active', true)
+        .eq('user_id', reportUserId)
+        .maybeSingle();
+
+      baculaIntegration = userBaculaIntegration;
+    }
+
+    if (!baculaIntegration) {
+      const { data: fallbackBaculaIntegrations } = await supabase
+        .from('integrations')
+        .select('*')
+        .eq('type', 'bacula')
+        .eq('is_active', true)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+
+      baculaIntegration = fallbackBaculaIntegrations?.[0] || null;
+    }
 
     if (!baculaIntegration) {
       throw new Error('Integração Bacula não encontrada');
