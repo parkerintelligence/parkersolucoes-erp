@@ -14,7 +14,8 @@ export const BrandingSettingsPanel = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Sistema de Gestão de TI';
+  const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Parker Soluções';
+  const companySubtitle = settings?.find(s => s.setting_key === 'company_subtitle')?.setting_value || 'ERP System';
   const logoUrl = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value || '';
 
   const validateFile = (file: File): string | null => {
