@@ -89,6 +89,7 @@ export default function Webhooks() {
   const pagedLogs = historyLogs.slice(historyPage * LOGS_PER_PAGE, (historyPage + 1) * LOGS_PER_PAGE);
   const totalHistoryPages = Math.ceil(historyLogs.length / LOGS_PER_PAGE);
 
+  const filtered = webhooks.filter(w => {
     if (search && !w.name.toLowerCase().includes(search.toLowerCase()) && !w.slug.toLowerCase().includes(search.toLowerCase())) return false;
     if (filter === 'active' && !w.is_active) return false;
     if (filter === 'whatsapp' && !w.actions?.some(a => a.action_type === 'whatsapp')) return false;
