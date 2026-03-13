@@ -1292,6 +1292,83 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_actions: {
+        Row: {
+          action_type: string
+          created_at: string
+          destination: string
+          id: string
+          is_active: boolean
+          message_template: string | null
+          updated_at: string
+          user_id: string
+          webhook_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          destination: string
+          id?: string
+          is_active?: boolean
+          message_template?: string | null
+          updated_at?: string
+          user_id: string
+          webhook_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          destination?: string
+          id?: string
+          is_active?: boolean
+          message_template?: string | null
+          updated_at?: string
+          user_id?: string
+          webhook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_actions_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhooks: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_conversations: {
         Row: {
           contact_name: string
