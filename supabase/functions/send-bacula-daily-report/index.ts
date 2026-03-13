@@ -255,8 +255,8 @@ serve(async (req) => {
     if (screenConfigSetting) {
       try {
         const screenConfig = JSON.parse(screenConfigSetting.setting_value);
-        baculaInstanceName = screenConfig['agendamentos'] || screenConfig['bacula'] || '';
-        console.log(`📱 [BACULA-DAILY] Instância da screen config (agendamentos/bacula): ${baculaInstanceName || 'não definida'}`);
+        baculaInstanceName = screenConfig['bacula'] || screenConfig['agendamentos'] || '';
+        console.log(`📱 [BACULA-DAILY] Instância da screen config (bacula/agendamentos): ${baculaInstanceName || 'não definida'}`);
       } catch (e) {
         console.warn('⚠️ [BACULA-DAILY] Erro ao parsear screen config:', e);
       }
