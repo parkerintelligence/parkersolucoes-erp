@@ -173,10 +173,28 @@ export function useWebhooks() {
         body: JSON.stringify({ text: `Teste do webhook "${webhook.name}" em ${new Date().toLocaleString('pt-BR')}`, test: true }),
       });
 
+      const data = await response.json().catch(() => ({}));
+
       if (response.ok) {
-        toast.success('Webhook testado com sucesso!');
+        const results = data.results || [];
+        if (results.length === 0) {
+          toast.info(`Webhook "${webhook.name}": ${data.message || 'Nenhuma ação configurada'}`);
+        } else {
+          const details = results.map((r: any) => {
+            const status = r.success ? '✅' : '❌';
+            const dest = r.destination || '';
+            const err = r.result?.error ? ` - ${r.result.error}` : '';
+            return `${status} ${r.action} → ${dest}${err}`;
+          }).join('\n');
+          
+          const allSuccess = results.every((r: any) => r.success);
+          if (allSuccess) {
+            toast.success(`Webhook "${webhook.name}" testado!\n${details}`, { duration: 8000 });
+          } else {
+            toast.warning(`Webhook "${webhook.name}" com falhas:\n${details}`, { duration: 10000 });
+          }
+        }
       } else {
-        const data = await response.json().catch(() => ({}));
         toast.error(`Erro no teste: ${data.error || response.statusText}`);
       }
     } catch (error: any) {
