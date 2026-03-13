@@ -145,7 +145,7 @@ export default {
 				'particle': 'particle 15s linear infinite'
 			},
 			fontFamily: {
-				sans: ['Inter', 'system-ui', 'sans-serif']
+				sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif']
 			}
 		}
 	},

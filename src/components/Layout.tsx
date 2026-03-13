@@ -5,7 +5,6 @@ import { TopHeader } from '@/components/TopHeader';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
-
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -13,18 +12,20 @@ interface LayoutProps {
 export const Layout = ({ children }: LayoutProps) => {
   const { isAuthenticated, isLoading } = useAuth();
 
-  console.log('Layout - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-lg text-muted-foreground">Carregando sistema...</div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center animate-pulse glow-primary">
+            <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+          </div>
+          <p className="text-sm text-muted-foreground font-medium">Carregando sistema...</p>
+        </div>
       </div>
     );
   }
 
   if (!isAuthenticated) {
-    console.log('Usuário não autenticado, redirecionando para login');
     return <Navigate to="/login" replace />;
   }
 
@@ -34,7 +35,7 @@ export const Layout = ({ children }: LayoutProps) => {
         <AppSidebar />
         <SidebarInset className="flex-1 min-w-0 flex flex-col transition-all duration-200 md:ml-0">
           <TopHeader />
-          <main className="flex-1 overflow-auto bg-background">
+          <main className="flex-1 overflow-auto">
             <div className="container-responsive py-4 sm:py-6 lg:py-8">
               {children}
             </div>
