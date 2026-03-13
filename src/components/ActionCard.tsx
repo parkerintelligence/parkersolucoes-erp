@@ -29,6 +29,7 @@ export function ActionCardComponent({ card, items }: ActionCardProps) {
     updateCardItem, 
     deleteCardItem 
   } = useActionPlan();
+  const { confirm } = useConfirmDialog();
 
   const handleUpdateCard = async (data: any) => {
     await updateCard(card.id, data);
