@@ -959,15 +959,15 @@ async function getGLPIStandardData(glpiIntegration: any) {
     const resolvedTickets = allTickets.filter(t => [5, 6].includes(t.status || 0));
     
     // Calcular tickets vencidos (exemplo: > 3 dias em aberto)
-    // IMPORTANTE: parseGLPIDate já retorna UTC real (adiciona -03:00), então usamos now (UTC real) para comparações
+    // Usa data de criação real (date_creation), com fallback para date
     const now = new Date();
     const overdueTickets = allTickets.filter(ticket => {
-      if (ticket.date) {
-        const ticketDate = parseGLPIDate(ticket.date);
-        const daysDiff = (now.getTime() - ticketDate.getTime()) / (1000 * 60 * 60 * 24);
-        return daysDiff > 3;
-      }
-      return false;
+      const ticketDateString = getTicketCreatedAt(ticket);
+      if (!ticketDateString) return false;
+
+      const ticketDate = parseGLPIDate(ticketDateString);
+      const daysDiff = (now.getTime() - ticketDate.getTime()) / (1000 * 60 * 60 * 24);
+      return daysDiff > 3;
     });
 
     // Usar now (UTC real) para cálculos de tempo, pois parseGLPIDate já converte corretamente para UTC
@@ -1086,7 +1086,8 @@ async function getGLPIStandardData(glpiIntegration: any) {
         const priority = getPriorityIcon(ticket.priority || 1);
         const urgency = getUrgencyIcon(ticket.urgency || 1);
         const status = getStatusText(ticket.status || 1);
-        const timeOpen = ticket.date ? getTimeOpenText(parseGLPIDate(ticket.date), now) : 'N/A';
+        const createdAt = getTicketCreatedAt(ticket);
+        const timeOpen = createdAt ? getTimeOpenText(parseGLPIDate(createdAt), now) : 'N/A';
         const assignee = ticket.users_id_recipient && ticket.users_id_recipient !== 0 
           ? userNames.get(ticket.users_id_recipient) || `Usuário #${ticket.users_id_recipient}` 
           : 'Não atribuído';
@@ -1119,7 +1120,8 @@ async function getGLPIStandardData(glpiIntegration: any) {
       .map(ticket => {
         const priority = getPriorityIcon(ticket.priority || 1);
         const urgency = getUrgencyIcon(ticket.urgency || 1);
-        const timeOpen = ticket.date ? getTimeOpenText(parseGLPIDate(ticket.date), now) : 'N/A';
+        const createdAt = getTicketCreatedAt(ticket);
+        const timeOpen = createdAt ? getTimeOpenText(parseGLPIDate(createdAt), now) : 'N/A';
         const categoryName = ticket.itilcategories_id && ticket.itilcategories_id !== 0
           ? categoryNames.get(ticket.itilcategories_id) || 'Sem categoria'
           : 'Sem categoria';
@@ -1216,13 +1218,15 @@ function getStatusText(status: number): string {
   return statusMap[status] || 'Desconhecido';
 }
 
+function getTicketCreatedAt(ticket: any): string | null {
+  return ticket?.date_creation || ticket?.date || null;
+}
+
 // Parsear data do GLPI como horário de Brasília (UTC-3)
 function parseGLPIDate(dateStr: string): Date {
-  // GLPI retorna datas em horário de Brasília sem timezone info
-  // Adicionamos o offset para que o JS interprete corretamente
-  const cleaned = dateStr.replace(' ', 'T');
-  const withTZ = cleaned.includes('+') || cleaned.includes('Z') ? cleaned : `${cleaned}-03:00`;
-  return new Date(withTZ);
+  const cleaned = dateStr.trim().replace(' ', 'T');
+  const hasTimezone = /([zZ]|[+\-]\d{2}:?\d{2})$/.test(cleaned);
+  return new Date(hasTimezone ? cleaned : `${cleaned}-03:00`);
 }
 
 function getTimeOpenText(createdDate: Date, now: Date): string {
@@ -1246,12 +1250,12 @@ function calculateAverageTimeOpen(tickets: any[], now: Date): string {
   if (tickets.length === 0) return '0min';
   
   const totalMinutes = tickets.reduce((sum, ticket) => {
-    if (ticket.date) {
-      const ticketDate = parseGLPIDate(ticket.date);
-      const diffMinutes = (now.getTime() - ticketDate.getTime()) / (1000 * 60);
-      return sum + Math.max(0, diffMinutes);
-    }
-    return sum;
+    const createdAt = getTicketCreatedAt(ticket);
+    if (!createdAt) return sum;
+
+    const ticketDate = parseGLPIDate(createdAt);
+    const diffMinutes = (now.getTime() - ticketDate.getTime()) / (1000 * 60);
+    return sum + Math.max(0, diffMinutes);
   }, 0);
   
   const avgMinutes = Math.round(totalMinutes / tickets.length);

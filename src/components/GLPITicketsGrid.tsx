@@ -165,13 +165,10 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
     if (!dateString) return null;
     
     try {
-      // GLPI retorna datas no formato "YYYY-MM-DD HH:mm:ss" no fuso horário de Brasília (UTC-3)
-      // Interpretamos como Brasília adicionando o offset -03:00
-      const trimmed = dateString.trim();
-      const isoWithOffset = trimmed.replace(' ', 'T') + '-03:00';
-      const date = new Date(isoWithOffset);
-      
-      return date;
+      const cleaned = dateString.trim().replace(' ', 'T');
+      const hasTimezone = /([zZ]|[+\-]\d{2}:?\d{2})$/.test(cleaned);
+      const normalized = hasTimezone ? cleaned : `${cleaned}-03:00`;
+      return new Date(normalized);
     } catch (error) {
       console.error('❌ [GLPI] Erro ao fazer parse de data:', error, dateString);
       return null;
@@ -487,7 +484,7 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                     </TableCell>
                     <TableCell className="text-gray-300 py-2">
                       {(() => {
-                        const ticketDate = parseGLPIDate(ticket.date || ticket.date_creation);
+                        const ticketDate = parseGLPIDate(ticket.date_creation || ticket.date);
                         if (!ticketDate) return 'N/A';
                         
                         return (
@@ -665,10 +662,10 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
               <div>
                 <label className="text-sm font-medium text-gray-400">Data de Criação:</label>
                 <p className="text-white">
-                  {selectedTicket.date 
-                    ? new Date(selectedTicket.date).toLocaleString('pt-BR')
-                    : 'N/A'
-                  }
+                  {(() => {
+                    const createdAt = parseGLPIDate(selectedTicket.date_creation || selectedTicket.date);
+                    return createdAt ? createdAt.toLocaleString('pt-BR') : 'N/A';
+                  })()}
                 </p>
               </div>
             </div>
