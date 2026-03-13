@@ -55,18 +55,86 @@ const useDashboardData = () => {
     staleTime: 60000,
   });
 
-  // Bacula jobs from API (optional)
+  // FTP backup directories (root level)
+  const ftpIntegration = integrations.data?.find((i: any) => i.type === 'ftp' && i.is_active);
+  const ftpFiles = useQuery({
+    queryKey: ['dashboard-ftp-files', ftpIntegration?.id],
+    queryFn: async () => {
+      if (!ftpIntegration) return [];
+      const { data, error } = await supabase.functions.invoke('ftp-list', {
+        body: { path: '/', integrationId: ftpIntegration.id }
+      });
+      if (error) return [];
+      return data?.files || [];
+    },
+    enabled: !!ftpIntegration,
+    staleTime: 120000,
+  });
+
+  // Bacula recent jobs
   const baculaIntegration = integrations.data?.find((i: any) => i.type === 'bacula' && i.is_active);
+  const baculaJobs = useQuery({
+    queryKey: ['dashboard-bacula-errors'],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('bacula-proxy', {
+        body: { endpoint: 'jobs' }
+      });
+      if (error) return [];
+      // Filter error jobs
+      const jobs = Array.isArray(data) ? data : (data?.jobs || []);
+      return jobs
+        .filter((j: any) => j.jobstatus === 'E' || j.jobstatus === 'f' || j.jobstatus === 'A')
+        .slice(0, 5);
+    },
+    enabled: !!baculaIntegration,
+    staleTime: 120000,
+  });
+
+  // Zabbix recent problems
+  const zabbixIntegration = integrations.data?.find((i: any) => i.type === 'zabbix' && i.is_active);
+  const zabbixProblems = useQuery({
+    queryKey: ['dashboard-zabbix-problems'],
+    queryFn: async () => {
+      if (!zabbixIntegration) return [];
+      const { data, error } = await supabase.functions.invoke('zabbix-proxy', {
+        body: {
+          method: 'problem.get',
+          params: {
+            output: ['eventid', 'name', 'severity', 'clock'],
+            selectHosts: ['name'],
+            sortfield: 'eventid',
+            sortorder: 'DESC',
+            limit: 5,
+            recent: true,
+          },
+          integrationId: zabbixIntegration.id,
+        }
+      });
+      if (error) return [];
+      return data?.result || data || [];
+    },
+    enabled: !!zabbixIntegration,
+    staleTime: 120000,
+  });
 
   return {
     integrations: integrations.data || [],
     reports: reports.data || [],
     logs: logs.data || [],
+    ftpFiles: ftpFiles.data || [],
+    baculaErrors: baculaJobs.data || [],
+    zabbixProblems: zabbixProblems.data || [],
+    hasBacula: !!baculaIntegration,
+    hasZabbix: !!zabbixIntegration,
+    hasFtp: !!ftpIntegration,
     isLoading: integrations.isLoading || reports.isLoading || logs.isLoading,
     refetchAll: () => {
       integrations.refetch();
       reports.refetch();
       logs.refetch();
+      ftpFiles.refetch();
+      baculaJobs.refetch();
+      zabbixProblems.refetch();
     }
   };
 };
@@ -74,7 +142,7 @@ const useDashboardData = () => {
 const LOGS_PER_PAGE = 5;
 
 const Dashboard = () => {
-  const { integrations, reports, logs, isLoading, refetchAll } = useDashboardData();
+  const { integrations, reports, logs, ftpFiles, baculaErrors, zabbixProblems, hasBacula, hasZabbix, hasFtp, isLoading, refetchAll } = useDashboardData();
   const [logsPage, setLogsPage] = useState(0);
 
   // --- Compute stats ---
@@ -192,42 +260,139 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Alerts Section */}
-      {(staleReports.length > 0 || totalFailed > 0) && (
-        <Card className="bg-gradient-to-r from-amber-900/20 to-red-900/20 border-amber-600/30">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-amber-300 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              Alertas do Sistema
+      {/* Alerts Section - FTP Backups, Bacula Errors, Zabbix Problems */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* FTP Backups sem fazer há dias */}
+        <Card className="bg-gradient-to-br from-amber-900/20 to-amber-950/40 border-amber-600/30">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-xs font-semibold text-amber-300 flex items-center gap-2">
+              <HardDrive className="h-3.5 w-3.5" />
+              Backups FTP Desatualizados
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {staleReports.length > 0 && (
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-950/30 border border-amber-700/20">
-                <Clock className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-amber-200 font-medium">
-                    {staleReports.length} relatório(s) sem execução há mais de 2 dias
-                  </p>
-                  <p className="text-xs text-amber-300/60 mt-1">
-                    {staleReports.map((r: any) => r.name).join(', ')}
-                  </p>
+          <CardContent className="px-4 pb-4 pt-0">
+            {!hasFtp ? (
+              <p className="text-[10px] text-muted-foreground">FTP não configurado</p>
+            ) : (() => {
+              const now = new Date();
+              const oldDirs = ftpFiles
+                .filter((f: any) => f.isDirectory || f.type === 'directory')
+                .map((f: any) => ({
+                  ...f,
+                  daysSince: Math.floor((now.getTime() - new Date(f.lastModified || f.date || f.rawModifiedAt || 0).getTime()) / (1000 * 60 * 60 * 24))
+                }))
+                .filter((f: any) => f.daysSince > 3)
+                .sort((a: any, b: any) => b.daysSince - a.daysSince)
+                .slice(0, 6);
+
+              if (oldDirs.length === 0) {
+                return (
+                  <div className="flex items-center gap-2 py-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />
+                    <p className="text-xs text-green-300">Todos os backups estão em dia</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-1.5 mt-1">
+                  {oldDirs.map((dir: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <span className="text-amber-200/80 truncate max-w-[60%]">{dir.name}</span>
+                      <Badge variant="destructive" className="text-[9px] py-0 px-1.5 h-4">
+                        {dir.daysSince}d atrás
+                      </Badge>
+                    </div>
+                  ))}
                 </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
+
+        {/* Últimos 5 erros Bacula */}
+        <Card className="bg-gradient-to-br from-red-900/20 to-red-950/40 border-red-600/30">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-xs font-semibold text-red-300 flex items-center gap-2">
+              <Database className="h-3.5 w-3.5" />
+              Últimos Erros Bacula
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 pt-0">
+            {!hasBacula ? (
+              <p className="text-[10px] text-muted-foreground">Bacula não configurado</p>
+            ) : baculaErrors.length === 0 ? (
+              <div className="flex items-center gap-2 py-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />
+                <p className="text-xs text-green-300">Sem erros recentes</p>
               </div>
-            )}
-            {totalFailed > 0 && (
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-red-950/30 border border-red-700/20">
-                <XCircle className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-red-200 font-medium">
-                    {totalFailed} falha(s) de envio nas últimas 48h
-                  </p>
-                </div>
+            ) : (
+              <div className="space-y-1.5 mt-1">
+                {baculaErrors.slice(0, 5).map((job: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between text-xs gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                      <XCircle className="h-3 w-3 text-red-400 flex-shrink-0" />
+                      <span className="text-red-200/80 truncate">{job.name || job.jobname || 'Job'}</span>
+                    </div>
+                    <span className="text-[9px] text-red-300/50 flex-shrink-0">
+                      {job.endtime || job.starttime ? format(parseISO(job.endtime || job.starttime), "dd/MM HH:mm", { locale: ptBR }) : ''}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
         </Card>
-      )}
+
+        {/* Últimos 5 problemas Zabbix */}
+        <Card className="bg-gradient-to-br from-orange-900/20 to-orange-950/40 border-orange-600/30">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-xs font-semibold text-orange-300 flex items-center gap-2">
+              <Activity className="h-3.5 w-3.5" />
+              Últimos Problemas Zabbix
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 pt-0">
+            {!hasZabbix ? (
+              <p className="text-[10px] text-muted-foreground">Zabbix não configurado</p>
+            ) : zabbixProblems.length === 0 ? (
+              <div className="flex items-center gap-2 py-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />
+                <p className="text-xs text-green-300">Sem problemas ativos</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5 mt-1">
+                {zabbixProblems.slice(0, 5).map((problem: any, i: number) => {
+                  const severity = parseInt(problem.severity || '0');
+                  const severityColors: Record<number, string> = {
+                    0: 'text-muted-foreground', 1: 'text-blue-300', 2: 'text-yellow-300',
+                    3: 'text-orange-300', 4: 'text-red-300', 5: 'text-red-400 font-bold'
+                  };
+                  const severityLabels: Record<number, string> = {
+                    0: 'Info', 1: 'Info', 2: 'Aviso', 3: 'Médio', 4: 'Alto', 5: 'Desastre'
+                  };
+                  const hostName = problem.hosts?.[0]?.name || '';
+                  const timestamp = problem.clock ? new Date(parseInt(problem.clock) * 1000) : null;
+
+                  return (
+                    <div key={i} className="flex items-center justify-between text-xs gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <AlertTriangle className={`h-3 w-3 flex-shrink-0 ${severityColors[severity] || 'text-orange-400'}`} />
+                        <span className="text-orange-200/80 truncate" title={`${hostName}: ${problem.name}`}>
+                          {hostName ? `${hostName}: ` : ''}{problem.name}
+                        </span>
+                      </div>
+                      <Badge variant="outline" className={`text-[8px] py-0 px-1 h-3.5 border-orange-600/30 ${severityColors[severity]}`}>
+                        {severityLabels[severity] || 'N/A'}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Connections Grid */}
       <div>
