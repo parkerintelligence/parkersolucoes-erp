@@ -110,7 +110,7 @@ const Zabbix = () => {
   const [sortField, setSortField] = useState('clock');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
+  const itemsPerPage = 20;
 
   const handleCreateGLPITicket = async (problem: any) => {
     try {
