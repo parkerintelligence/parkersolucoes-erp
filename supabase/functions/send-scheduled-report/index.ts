@@ -665,9 +665,9 @@ async function getScheduleData(userId: string, settings: any) {
   // Construir mensagem com layout limpo e organizado
   const criticalCount = categorizedItems.overdue.length + categorizedItems.today.length;
   
-  let itemsText = `━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  let itemsText = `\n`;
   itemsText += `   📋 *AGENDA DE VENCIMENTOS*\n`;
-  itemsText += `━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  itemsText += `\n`;
   itemsText += `📅 ${today.toLocaleDateString('pt-BR')}  •  📊 ${allItems.length} itens\n\n`;
 
   // Helper para renderizar seção
