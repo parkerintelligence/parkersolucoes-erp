@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, MessageCircle, AlertTriangle, CheckCircle, Wifi, WifiOff } from 'lucide-react';
-import { EvolutionApiService } from '@/utils/evolutionApiService';
+import { supabase } from '@/integrations/supabase/client';
 
 export const EvolutionAPIAdminConfig = () => {
   const { data: integrations } = useIntegrations();
