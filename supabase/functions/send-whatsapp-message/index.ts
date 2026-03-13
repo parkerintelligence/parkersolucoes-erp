@@ -10,6 +10,7 @@ interface WhatsAppMessageRequest {
   integrationId: string;
   phoneNumber: string;
   message: string;
+  instanceName?: string; // Override para usar instância específica da screen config
 }
 
 serve(async (req) => {
