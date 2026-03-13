@@ -1,29 +1,39 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useMikrotikAPI } from '@/hooks/useMikrotikAPI';
 import { useMikrotikContext } from '@/contexts/MikrotikContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { 
   Loader2, RefreshCw, Wifi, Users, Clock, Shield, 
-  Network, KeyRound, Globe, Activity
+  Network, KeyRound, Globe, Activity, AlertTriangle
 } from 'lucide-react';
 import { MikrotikResourceMonitor } from './MikrotikResourceMonitor';
 import { cn } from '@/lib/utils';
 
+const ENDPOINTS = [
+  '/system/identity',
+  '/system/resource',
+  '/system/routerboard',
+  '/interface',
+  '/ip/dhcp-server/lease',
+  '/ip/firewall/filter',
+  '/ip/firewall/nat',
+  '/ppp/secret',
+  '/ppp/active',
+  '/ip/address',
+];
+
 export const MikrotikDashboard = () => {
-  const { callAPI } = useMikrotikAPI();
+  const { callBatchAPI } = useMikrotikAPI();
   const { selectedClient } = useMikrotikContext();
   
-  // Estados básicos
   const [identity, setIdentity] = useState<any>(null);
   const [resource, setResource] = useState<any>(null);
   const [routerboard, setRouterboard] = useState<any>(null);
   const [interfaces, setInterfaces] = useState<any[]>([]);
   const [dhcpLeases, setDhcpLeases] = useState<any[]>([]);
-  
-  // Estados de estatísticas
   const [firewallRules, setFirewallRules] = useState<any[]>([]);
   const [natRules, setNatRules] = useState<any[]>([]);
   const [vpnSecrets, setVpnSecrets] = useState<any[]>([]);
@@ -31,120 +41,62 @@ export const MikrotikDashboard = () => {
   const [ipAddresses, setIpAddresses] = useState<any[]>([]);
   
   const [loading, setLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   const loadData = async () => {
     try {
       setLoading(true);
-      console.log('Carregando dados do dashboard...');
+      setConnectionError(null);
       
-      const results = await Promise.allSettled([
-        callAPI('/system/identity'),
-        callAPI('/system/resource'),
-        callAPI('/system/routerboard'),
-        callAPI('/interface'),
-        callAPI('/ip/dhcp-server/lease'),
-        callAPI('/ip/firewall/filter'),
-        callAPI('/ip/firewall/nat'),
-        callAPI('/ppp/secret'),
-        callAPI('/ppp/active'),
-        callAPI('/ip/address'),
-      ]);
+      const results = await callBatchAPI(ENDPOINTS);
 
-      const [
-        identityResult,
-        resourceResult,
-        routerboardResult,
-        interfacesResult,
-        leasesResult,
-        firewallResult,
-        natResult,
-        vpnSecretsResult,
-        vpnActiveResult,
-        ipAddressesResult
-      ] = results;
+      // Helper to extract data
+      const get = (ep: string) => results[ep]?.data;
+      const getArr = (ep: string) => {
+        const d = get(ep);
+        return Array.isArray(d) ? d : d ? [d] : [];
+      };
+      const getSingle = (ep: string) => {
+        const d = get(ep);
+        return Array.isArray(d) ? d[0] : d;
+      };
 
-      if (identityResult.status === 'fulfilled' && identityResult.value) {
-        const data = Array.isArray(identityResult.value) ? identityResult.value[0] : identityResult.value;
-        setIdentity(data);
-        console.log('Identity loaded:', data);
+      // Check if all errored (timeout)
+      const allFailed = ENDPOINTS.every(ep => results[ep]?.error);
+      if (allFailed) {
+        const firstError = results[ENDPOINTS[0]]?.error;
+        setConnectionError(firstError || 'Não foi possível conectar com o MikroTik');
+        setLoading(false);
+        return;
       }
-      
-      if (resourceResult.status === 'fulfilled' && resourceResult.value) {
-        const data = Array.isArray(resourceResult.value) ? resourceResult.value[0] : resourceResult.value;
-        setResource(data);
-        console.log('Resource loaded:', data);
-      }
-      
-      if (routerboardResult.status === 'fulfilled' && routerboardResult.value) {
-        const data = Array.isArray(routerboardResult.value) ? routerboardResult.value[0] : routerboardResult.value;
-        setRouterboard(data);
-        console.log('Routerboard loaded:', data);
-      }
-      
-      if (interfacesResult.status === 'fulfilled' && interfacesResult.value) {
-        const data = Array.isArray(interfacesResult.value) ? interfacesResult.value : [interfacesResult.value];
-        setInterfaces(data);
-        console.log('Interfaces loaded:', data.length);
-      }
-      
-      if (leasesResult.status === 'fulfilled' && leasesResult.value) {
-        const data = Array.isArray(leasesResult.value) ? leasesResult.value : [leasesResult.value];
-        setDhcpLeases(data);
-        console.log('DHCP Leases loaded:', data.length, data);
-      } else {
-        console.error('DHCP failed:', leasesResult);
-      }
-      
-      if (firewallResult.status === 'fulfilled' && firewallResult.value) {
-        const data = Array.isArray(firewallResult.value) ? firewallResult.value : [firewallResult.value];
-        setFirewallRules(data);
-        console.log('Firewall rules loaded:', data.length);
-      }
-      
-      if (natResult.status === 'fulfilled' && natResult.value) {
-        const data = Array.isArray(natResult.value) ? natResult.value : [natResult.value];
-        setNatRules(data);
-        console.log('NAT rules loaded:', data.length);
-      }
-      
-      if (vpnSecretsResult.status === 'fulfilled' && vpnSecretsResult.value) {
-        const data = Array.isArray(vpnSecretsResult.value) ? vpnSecretsResult.value : [vpnSecretsResult.value];
-        setVpnSecrets(data);
-        console.log('VPN Secrets loaded:', data.length);
-      }
-      
-      if (vpnActiveResult.status === 'fulfilled' && vpnActiveResult.value) {
-        const data = Array.isArray(vpnActiveResult.value) ? vpnActiveResult.value : [vpnActiveResult.value];
-        setVpnActive(data);
-        console.log('VPN Active loaded:', data.length);
-      }
-      
-      if (ipAddressesResult.status === 'fulfilled' && ipAddressesResult.value) {
-        const data = Array.isArray(ipAddressesResult.value) ? ipAddressesResult.value : [ipAddressesResult.value];
-        setIpAddresses(data);
-        console.log('IP Addresses loaded:', data.length);
-      }
+
+      setIdentity(getSingle('/system/identity'));
+      setResource(getSingle('/system/resource'));
+      setRouterboard(getSingle('/system/routerboard'));
+      setInterfaces(getArr('/interface'));
+      setDhcpLeases(getArr('/ip/dhcp-server/lease'));
+      setFirewallRules(getArr('/ip/firewall/filter'));
+      setNatRules(getArr('/ip/firewall/nat'));
+      setVpnSecrets(getArr('/ppp/secret'));
+      setVpnActive(getArr('/ppp/active'));
+      setIpAddresses(getArr('/ip/address'));
       
       setLastUpdate(new Date());
-      console.log('Dashboard data loaded successfully');
-    } catch (error) {
-      console.error('Erro ao carregar dados do dashboard:', error);
+    } catch (error: any) {
+      console.error('Erro ao carregar dados:', error);
+      setConnectionError(error.message || 'Erro ao conectar com o MikroTik');
     } finally {
       setLoading(false);
     }
   };
 
-  // Carregar dados iniciais
   useEffect(() => {
     if (selectedClient) {
-      console.log('🎯 Dashboard carregando dados para:', selectedClient.name);
       loadData();
     }
   }, [selectedClient]);
 
-
-  // Cálculos memoizados
   const stats = useMemo(() => {
     const activeInterfaces = interfaces.filter(i => i.running).length;
     const activeFirewall = firewallRules.filter(r => r.disabled !== "true").length;
@@ -173,11 +125,9 @@ export const MikrotikDashboard = () => {
     if (!uptime) return 'N/A';
     const parts = uptime.match(/(\d+w)?(\d+d)?(\d+h)?(\d+m)?(\d+s)?/);
     if (!parts) return uptime;
-    
     const weeks = parts[1] ? parseInt(parts[1]) : 0;
     const days = parts[2] ? parseInt(parts[2]) : 0;
     const hours = parts[3] ? parseInt(parts[3]) : 0;
-    
     if (weeks > 0) return `${weeks}s ${days}d`;
     if (days > 0) return `${days}d ${hours}h`;
     return uptime;
@@ -187,7 +137,6 @@ export const MikrotikDashboard = () => {
     if (!uptime) return 'secondary';
     const days = parseInt(uptime.match(/(\d+)d/)?.[1] || '0');
     if (days >= 7) return 'default';
-    if (days >= 1) return 'secondary';
     return 'secondary';
   };
 
@@ -202,12 +151,54 @@ export const MikrotikDashboard = () => {
     );
   }
 
+  // Connection error state
+  if (connectionError && !identity) {
+    return (
+      <div className="space-y-4 p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-[400px] rounded-xl">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold tracking-tight text-white">Dashboard</h2>
+            <Badge variant="outline" className="text-sm border-red-500/30 text-red-400">
+              <Network className="h-3 w-3 mr-1" />
+              {selectedClient.name}
+            </Badge>
+          </div>
+          <Button onClick={loadData} disabled={loading} size="sm" variant="outline">
+            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+            Tentar novamente
+          </Button>
+        </div>
+        
+        <Card className="bg-red-950/30 border-red-600/30">
+          <CardContent className="py-12 text-center">
+            <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-red-400 mb-2">Falha na conexão com o MikroTik</h3>
+            <p className="text-red-300/80 text-sm max-w-md mx-auto mb-4">
+              {connectionError}
+            </p>
+            <div className="text-xs text-red-300/50 space-y-1 max-w-sm mx-auto">
+              <p>Verifique se:</p>
+              <ul className="list-disc list-inside text-left space-y-0.5">
+                <li>O dispositivo MikroTik está ligado e acessível pela internet</li>
+                <li>A API REST (www-ssl ou www) está habilitada no MikroTik</li>
+                <li>O endereço <code className="bg-red-900/50 px-1 rounded">{selectedClient.base_url}</code> está correto</li>
+                <li>As credenciais (usuário/senha) estão corretas</li>
+                <li>O firewall do MikroTik permite conexões na porta da API</li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (loading && !identity) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Carregando dados do cliente...</p>
+          <p className="text-muted-foreground">Conectando com {selectedClient.name}...</p>
+          <p className="text-xs text-muted-foreground/50 mt-1">Isso pode levar alguns segundos</p>
         </div>
       </div>
     );
@@ -215,7 +206,6 @@ export const MikrotikDashboard = () => {
 
   return (
     <div className="space-y-4 p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen rounded-xl">
-      {/* Header com botão de refresh */}
       <div className="flex items-center justify-between mb-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
@@ -243,9 +233,7 @@ export const MikrotikDashboard = () => {
           </CardHeader>
           <CardContent className="p-3 pt-1">
             <div className="text-sm font-bold text-purple-400">{identity?.name || 'MikroTik'}</div>
-            <p className="text-[10px] text-purple-300/70 mt-0.5">
-              {routerboard?.model || 'RouterOS'}
-            </p>
+            <p className="text-[10px] text-purple-300/70 mt-0.5">{routerboard?.model || 'RouterOS'}</p>
             <div className="flex items-center gap-1 mt-1 flex-wrap">
               <Badge variant="secondary" className="text-[9px] py-0 px-1.5 h-4 bg-purple-800/50 text-purple-200 border-purple-600/30">
                 RB: v{routerboard?.['current-firmware'] || routerboard?.version || 'N/A'}
@@ -265,7 +253,7 @@ export const MikrotikDashboard = () => {
           </CardHeader>
           <CardContent className="p-3 pt-1">
             <div className="text-sm font-bold text-blue-400">{stats.activeInterfaces}/{stats.totalInterfaces}</div>
-            <Progress value={(stats.activeInterfaces / stats.totalInterfaces) * 100} className="mt-1.5 h-1.5 bg-blue-900/30" />
+            <Progress value={stats.totalInterfaces > 0 ? (stats.activeInterfaces / stats.totalInterfaces) * 100 : 0} className="mt-1.5 h-1.5 bg-blue-900/30" />
             <p className="text-[10px] text-blue-300/70 mt-1.5">Ativas</p>
           </CardContent>
         </Card>
@@ -277,7 +265,7 @@ export const MikrotikDashboard = () => {
           </CardHeader>
           <CardContent className="p-3 pt-1">
             <div className="text-sm font-bold text-green-400">{stats.activeDhcp}</div>
-            <Progress value={(stats.activeDhcp / stats.totalDhcp) * 100} className="mt-1.5 h-1.5 bg-green-900/30" />
+            <Progress value={stats.totalDhcp > 0 ? (stats.activeDhcp / stats.totalDhcp) * 100 : 0} className="mt-1.5 h-1.5 bg-green-900/30" />
             <p className="text-[10px] text-green-300/70 mt-1.5">de {stats.totalDhcp} leases</p>
           </CardContent>
         </Card>
@@ -311,7 +299,7 @@ export const MikrotikDashboard = () => {
           </CardHeader>
           <CardContent className="p-3 pt-1">
             <div className="text-sm font-bold text-white">{stats.activeFirewall}/{stats.totalFirewall}</div>
-            <Progress value={(stats.activeFirewall / stats.totalFirewall) * 100} className="mt-1.5 h-1.5 bg-red-900/30" />
+            <Progress value={stats.totalFirewall > 0 ? (stats.activeFirewall / stats.totalFirewall) * 100 : 0} className="mt-1.5 h-1.5 bg-red-900/30" />
           </CardContent>
         </Card>
 
@@ -322,7 +310,7 @@ export const MikrotikDashboard = () => {
           </CardHeader>
           <CardContent className="p-3 pt-1">
             <div className="text-sm font-bold text-white">{stats.activeNat}/{stats.totalNat}</div>
-            <Progress value={(stats.activeNat / stats.totalNat) * 100} className="mt-1.5 h-1.5 bg-green-900/30" />
+            <Progress value={stats.totalNat > 0 ? (stats.activeNat / stats.totalNat) * 100 : 0} className="mt-1.5 h-1.5 bg-green-900/30" />
           </CardContent>
         </Card>
 
