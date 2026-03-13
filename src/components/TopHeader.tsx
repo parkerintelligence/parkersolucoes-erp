@@ -6,6 +6,7 @@ import { useLocation } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ChangePasswordDialog } from '@/components/ChangePasswordDialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { PWAInstallButton } from '@/components/PWAInstallButton';
 
 export const TopHeader = () => {
   const { user, userProfile, logout } = useAuth();
