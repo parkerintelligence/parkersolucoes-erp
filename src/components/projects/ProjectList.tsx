@@ -36,7 +36,7 @@ const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
 
 type SortField = 'title' | 'priority' | 'due_date' | 'progress';
 
-export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
+export function ProjectList({ columns, cards, cardItems, onRefresh }: ProjectListProps) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(columns.map(c => c.id)));
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [editingCard, setEditingCard] = useState<ActionCard | null>(null);
@@ -45,7 +45,6 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
   const [newTaskTitle, setNewTaskTitle] = useState<Record<string, string>>({});
   const [newItemText, setNewItemText] = useState<Record<string, string>>({});
   const [users, setUsers] = useState<Record<string, string>>({});
-  const { updateCard, deleteCard, createCard, createCardItem, updateCardItem, deleteCardItem, fetchData } = useActionPlan();
   const { toast } = useToast();
   const { confirm } = useConfirmDialog();
 
