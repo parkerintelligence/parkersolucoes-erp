@@ -404,7 +404,7 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
                 className="mt-1"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Use apenas letras, números e hífens (sem espaços)
+                Pode usar nome livre; o sistema converte automaticamente para o formato da Evolution API
               </p>
             </div>
             <Button
