@@ -674,7 +674,7 @@ async function getScheduleData(userId: string, settings: any) {
   const renderSection = (title: string, icon: string, items: any[], renderItem: (item: any) => string) => {
     if (items.length === 0) return '';
     let section = `${icon} *${title}* (${items.length})\n`;
-    section += `┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n`;
+    section += `\n`;
     
     // Agrupar por empresa
     const byCompany: Record<string, any[]> = {};
