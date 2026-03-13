@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Monitor, Plus, Search, Edit, Trash2, ExternalLink, Eye, EyeOff, Copy,
-  Server, Settings, X, Save, Tag
+  Server, Settings, X, Save, Tag, Building2
 } from 'lucide-react';
 import {
   useRustDeskConnections,
@@ -19,6 +19,7 @@ import {
 } from '@/hooks/useRustDesk';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useCompanies } from '@/hooks/useCompanies';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { toast } from '@/hooks/use-toast';
 import { RustDeskServerConfig } from './RustDeskServerConfig';
 
