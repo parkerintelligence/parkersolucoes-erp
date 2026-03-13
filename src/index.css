@@ -25,8 +25,8 @@
     --muted: 222 30% 20%;
     --muted-foreground: 215 20% 55%;
 
-    --accent: 262 83% 58%; /* Vivid purple accent */
-    --accent-foreground: 0 0% 100%;
+    --accent: 43 90% 55%; /* Vivid gold accent */
+    --accent-foreground: 0 0% 0%;
 
     /* Contextual colors */
     --success: 160 84% 39%;
@@ -56,7 +56,7 @@
     --sidebar-foreground: 215 20% 65%;
     --sidebar-primary: 160 84% 39%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 262 83% 58%;
+    --sidebar-accent: 43 90% 55%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 222 20% 18%;
     --sidebar-ring: 160 84% 39%;
@@ -66,7 +66,7 @@
     --chart-2: 199 89% 48%;
     --chart-3: 43 96% 56%;
     --chart-4: 0 84% 60%;
-    --chart-5: 262 83% 58%;
+    --chart-5: 43 90% 55%;
 
     /* Extended palette tokens */
     --gold: 160 84% 39%;
@@ -80,7 +80,7 @@
 
     /* Gradient tokens */
     --gradient-primary: linear-gradient(135deg, hsl(160 84% 39%), hsl(199 89% 48%));
-    --gradient-accent: linear-gradient(135deg, hsl(262 83% 58%), hsl(330 80% 55%));
+    --gradient-accent: linear-gradient(135deg, hsl(43 90% 55%), hsl(35 95% 50%));
     --gradient-sidebar: linear-gradient(180deg, hsl(225 44% 15%), hsl(225 44% 10%));
 
     /* PWA and Responsive Variables */
@@ -113,8 +113,8 @@
     --secondary-foreground: 210 40% 98%;
     --muted: 222 30% 14%;
     --muted-foreground: 215 20% 50%;
-    --accent: 262 83% 58%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 43 90% 55%;
+    --accent-foreground: 0 0% 0%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 222 20% 16%;
