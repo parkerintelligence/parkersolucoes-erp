@@ -1218,13 +1218,15 @@ function getStatusText(status: number): string {
   return statusMap[status] || 'Desconhecido';
 }
 
+function getTicketCreatedAt(ticket: any): string | null {
+  return ticket?.date_creation || ticket?.date || null;
+}
+
 // Parsear data do GLPI como horário de Brasília (UTC-3)
 function parseGLPIDate(dateStr: string): Date {
-  // GLPI retorna datas em horário de Brasília sem timezone info
-  // Adicionamos o offset para que o JS interprete corretamente
-  const cleaned = dateStr.replace(' ', 'T');
-  const withTZ = cleaned.includes('+') || cleaned.includes('Z') ? cleaned : `${cleaned}-03:00`;
-  return new Date(withTZ);
+  const cleaned = dateStr.trim().replace(' ', 'T');
+  const hasTimezone = /([zZ]|[+\-]\d{2}:?\d{2})$/.test(cleaned);
+  return new Date(hasTimezone ? cleaned : `${cleaned}-03:00`);
 }
 
 function getTimeOpenText(createdDate: Date, now: Date): string {
