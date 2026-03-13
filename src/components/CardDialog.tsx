@@ -176,6 +176,7 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
               ))}
             </SelectContent>
           </Select>
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
