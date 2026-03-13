@@ -108,7 +108,9 @@ const Zabbix = () => {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedProblem, setSelectedProblem] = useState<any>(null);
   const [sortField, setSortField] = useState('clock');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   const handleCreateGLPITicket = async (problem: any) => {
     try {
@@ -307,6 +309,23 @@ const Zabbix = () => {
     }
   });
 
+  // Pagination
+  const totalPages = Math.ceil(filteredProblems.length / itemsPerPage);
+  const paginatedProblems = filteredProblems.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset page when filters change
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+  const handleSeverityChange = (value: string) => {
+    setSeverityFilter(value);
+    setCurrentPage(1);
+  };
+
   // Agrupar problemas por host
   const groupedProblems = filteredProblems.reduce((acc, problem) => {
     const hostName = problem.hosts?.[0]?.name || 'Host Desconhecido';
@@ -429,12 +448,12 @@ const Zabbix = () => {
                 <Input
                   placeholder="Buscar..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 h-8 text-sm"
                 />
               </div>
               
-              <Select value={severityFilter} onValueChange={setSeverityFilter}>
+              <Select value={severityFilter} onValueChange={handleSeverityChange}>
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white h-8 w-40">
                   <SelectValue placeholder="Severidade" />
                 </SelectTrigger>
@@ -450,7 +469,9 @@ const Zabbix = () => {
 
               <div className="flex items-center gap-2 text-sm text-slate-400">
                 <Filter className="h-4 w-4" />
-                <span>{filteredProblems.length} problema{filteredProblems.length !== 1 ? 's' : ''} | {hosts.length} host{hosts.length !== 1 ? 's' : ''}</span>
+                <span>{filteredProblems.length} problema{filteredProblems.length !== 1 ? 's' : ''} | {hosts.length} host{hosts.length !== 1 ? 's' : ''}
+                  {totalPages > 1 && ` | Pág. ${currentPage}/${totalPages}`}
+                </span>
               </div>
 
               <div className="ml-auto flex items-center gap-2">
@@ -535,7 +556,7 @@ const Zabbix = () => {
                          </TableRow>
                        </TableHeader>
                        <TableBody>
-                         {filteredProblems.map((problem) => (
+                         {paginatedProblems.map((problem) => (
                            <TableRow key={problem.eventid} className="border-slate-700 hover:bg-slate-800/30 text-xs">
                              <TableCell className="py-1 text-slate-300 font-mono text-xs">
                                {formatDateTime(problem.clock)}
@@ -581,6 +602,79 @@ const Zabbix = () => {
                          ))}
                        </TableBody>
                     </Table>
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-700">
+                        <span className="text-xs text-slate-400">
+                          Mostrando {((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredProblems.length)} de {filteredProblems.length}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setCurrentPage(1)}
+                            disabled={currentPage === 1}
+                            className="h-7 px-2 text-xs bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 disabled:opacity-40"
+                          >
+                            ««
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="h-7 px-2 text-xs bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 disabled:opacity-40"
+                          >
+                            ‹
+                          </Button>
+                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            let page: number;
+                            if (totalPages <= 5) {
+                              page = i + 1;
+                            } else if (currentPage <= 3) {
+                              page = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              page = totalPages - 4 + i;
+                            } else {
+                              page = currentPage - 2 + i;
+                            }
+                            return (
+                              <Button
+                                key={page}
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setCurrentPage(page)}
+                                className={`h-7 w-7 p-0 text-xs border-slate-600 ${
+                                  currentPage === page
+                                    ? 'bg-blue-700 text-white border-blue-600'
+                                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                }`}
+                              >
+                                {page}
+                              </Button>
+                            );
+                          })}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="h-7 px-2 text-xs bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 disabled:opacity-40"
+                          >
+                            ›
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setCurrentPage(totalPages)}
+                            disabled={currentPage === totalPages}
+                            className="h-7 px-2 text-xs bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 disabled:opacity-40"
+                          >
+                            »»
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
