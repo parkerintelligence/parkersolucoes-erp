@@ -168,18 +168,39 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`🔌 [SEND] Integration encontrada: ${integration.name}`);
 
     // Buscar configuração de instância por tela (whatsapp_screen_config)
-    const { data: screenConfigSetting } = await supabase
+    let screenConfigSetting: { setting_value: string } | null = null;
+
+    const { data: userScreenConfigSetting } = await supabase
       .from('system_settings')
       .select('setting_value')
       .eq('setting_key', 'whatsapp_screen_config')
+      .eq('user_id', report.user_id)
       .maybeSingle();
+
+    screenConfigSetting = userScreenConfigSetting;
+
+    if (!screenConfigSetting) {
+      const { data: fallbackScreenConfigSetting } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'whatsapp_screen_config')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      screenConfigSetting = fallbackScreenConfigSetting;
+
+      if (screenConfigSetting) {
+        console.warn(`⚠️ [SEND] Screen config do usuário ${report.user_id} não encontrada. Usando configuração global mais recente.`);
+      }
+    }
 
     let screenInstanceName = '';
     if (screenConfigSetting) {
       try {
         const screenConfig = JSON.parse(screenConfigSetting.setting_value);
         screenInstanceName = screenConfig['agendamentos'] || '';
-        console.log(`📱 [SEND] Instância da screen config (agendamentos): ${screenInstanceName}`);
+        console.log(`📱 [SEND] Instância da screen config (agendamentos): ${screenInstanceName || 'não definida'}`);
       } catch (e) {
         console.warn('⚠️ [SEND] Erro ao parsear screen config:', e);
       }

@@ -173,19 +173,41 @@ Deno.serve(async (req) => {
 
     console.log(`📱 [MIKROTIK-REPORT] Evolution API encontrada: ${evolutionIntegration.name}`);
 
-    // Buscar configuração de instância por tela (whatsapp_screen_config)
-    let mikrotikInstanceName = '';
-    const { data: screenConfigSetting } = await supabase
+    // Buscar configuração de instância por tela (prioriza agendamentos, com fallback mikrotik)
+    let preferredInstanceName = '';
+    let screenConfigSetting: { setting_value: string } | null = null;
+
+    const { data: userScreenConfigSetting } = await supabase
       .from('system_settings')
       .select('setting_value')
       .eq('setting_key', 'whatsapp_screen_config')
+      .eq('user_id', report.user_id)
       .maybeSingle();
+
+    screenConfigSetting = userScreenConfigSetting;
+
+    if (!screenConfigSetting) {
+      const { data: fallbackScreenConfigSetting } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'whatsapp_screen_config')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      screenConfigSetting = fallbackScreenConfigSetting;
+
+      if (screenConfigSetting) {
+        console.warn(`⚠️ [MIKROTIK-REPORT] Screen config do usuário ${report.user_id} não encontrada. Usando configuração global mais recente.`);
+      }
+    }
 
     if (screenConfigSetting) {
       try {
         const screenConfig = JSON.parse(screenConfigSetting.setting_value);
-        mikrotikInstanceName = screenConfig['mikrotik'] || '';
-        console.log(`📱 [MIKROTIK-REPORT] Instância da screen config (mikrotik): ${mikrotikInstanceName}`);
+        preferredInstanceName = screenConfig['agendamentos'] || screenConfig['mikrotik'] || '';
+        const sourceKey = screenConfig['agendamentos'] ? 'agendamentos' : (screenConfig['mikrotik'] ? 'mikrotik' : 'fallback_default');
+        console.log(`📱 [MIKROTIK-REPORT] Instância da screen config (${sourceKey}): ${preferredInstanceName || 'não definida'}`);
       } catch (e) {
         console.warn('⚠️ [MIKROTIK-REPORT] Erro ao parsear screen config:', e);
       }
