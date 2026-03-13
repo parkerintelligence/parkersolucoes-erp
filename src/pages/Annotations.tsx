@@ -257,7 +257,10 @@ const Annotations = () => {
       return;
     }
 
-    createAnnotation.mutate(formData);
+    createAnnotation.mutate({
+      ...formData,
+      company_id: formData.company_id && formData.company_id !== 'none' ? formData.company_id : null,
+    } as any);
     setFormData({ 
       name: '', 
       company_id: '', 
