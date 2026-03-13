@@ -30,6 +30,7 @@ import ReportsDashboard from '@/pages/ReportsDashboard';
 import { SafeActionPlan } from '@/components/SafeActionPlan';
 import { SafeAlertas } from '@/components/SafeAlertas';
 import { SafeAtendimentos } from '@/components/SafeAtendimentos';
+import Dashboard from '@/pages/Dashboard';
 import Security from '@/pages/Security';
 import { SafeUniFi } from '@/components/SafeUniFi';
 import { Layout } from '@/components/Layout';
@@ -56,6 +57,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
               <Route path="/atendimentos" element={<Layout><SafeAtendimentos /></Layout>} />
               <Route path="/alertas" element={<Layout><SafeAlertas /></Layout>} />
               <Route path="/links" element={<Layout><Links /></Layout>} />

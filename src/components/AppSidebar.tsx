@@ -5,6 +5,7 @@ import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGrou
 import { useAuth as useAuthContext } from '@/contexts/AuthContext';
 
 const menuItems = [
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, role: 'user' },
   { title: 'Atendimentos', url: '/atendimentos', icon: MessagesSquare, role: 'user' },
   { title: 'Alertas', url: '/alertas', icon: AlertTriangle, role: 'user' },
   { title: 'Links de acesso', url: '/links', icon: Link, role: 'user' },
