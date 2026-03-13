@@ -23,6 +23,7 @@ export function ProjectKanban({ boardId, columns, cards, cardItems }: ProjectKan
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [createCardColumnId, setCreateCardColumnId] = useState<string | null>(null);
   const { createColumn, updateColumn, deleteColumn, createCard, updateCard } = useActionPlan();
+  const { confirm } = useConfirmDialog();
 
   const handleCreateColumn = async (data: any) => {
     await createColumn({ ...data, board_id: boardId, position: columns.length });
