@@ -293,7 +293,10 @@ const Annotations = () => {
       return;
     }
 
-    updateAnnotation.mutate({ id: editingAnnotation.id, updates: formData });
+    updateAnnotation.mutate({ id: editingAnnotation.id, updates: {
+      ...formData,
+      company_id: formData.company_id && formData.company_id !== 'none' ? formData.company_id : null,
+    } });
     setIsEditDialogOpen(false);
     setEditingAnnotation(null);
     setFormData({ 
