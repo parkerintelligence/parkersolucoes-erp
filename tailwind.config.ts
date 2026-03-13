@@ -72,7 +72,19 @@ export default {
 					muted: 'hsl(var(--gold-muted))',
 					glow: 'hsl(var(--gold-glow))'
 				},
-				'background-secondary': 'hsl(var(--background-secondary))'
+				'background-secondary': 'hsl(var(--background-secondary, var(--secondary)))',
+				success: {
+					DEFAULT: 'hsl(var(--success))',
+					foreground: 'hsl(var(--success-foreground))'
+				},
+				warning: {
+					DEFAULT: 'hsl(var(--warning))',
+					foreground: 'hsl(var(--warning-foreground))'
+				},
+				info: {
+					DEFAULT: 'hsl(var(--info))',
+					foreground: 'hsl(var(--info-foreground))'
+				}
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
