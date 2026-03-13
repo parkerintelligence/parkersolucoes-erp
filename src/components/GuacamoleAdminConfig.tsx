@@ -258,13 +258,23 @@ const GuacamoleAdminConfig = () => {
 
             <div className="space-y-2">
               <Label htmlFor="password">Senha *</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={config.password}
-                onChange={(e) => setConfig({ ...config, password: e.target.value })}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={config.password}
+                  onChange={(e) => setConfig({ ...config, password: e.target.value })}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2">
