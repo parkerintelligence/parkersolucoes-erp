@@ -251,6 +251,27 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
                           </Badge>
                         </div>
 
+                        {/* Status */}
+                        <div onClick={e => e.stopPropagation()}>
+                          <Select
+                            value={(card as any).status || 'not_started'}
+                            onValueChange={(value) => updateCard(card.id, { status: value } as any)}
+                          >
+                            <SelectTrigger className="h-6 text-[10px] border-0 bg-transparent p-0 w-auto gap-1 shadow-none focus:ring-0">
+                              <Badge variant="outline" className={`text-[10px] font-semibold px-2 py-0.5 border cursor-pointer ${statusConfig[(card as any).status || 'not_started']?.color || statusConfig.not_started.color}`}>
+                                {statusConfig[(card as any).status || 'not_started']?.icon} {statusConfig[(card as any).status || 'not_started']?.label}
+                              </Badge>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(statusConfig).map(([key, cfg]) => (
+                                <SelectItem key={key} value={key} className="text-xs">
+                                  {cfg.icon} {cfg.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
                         {/* Start Date */}
                         <div>
                           <span className="text-xs text-muted-foreground">{format(created, "dd/MM/yy")}</span>
