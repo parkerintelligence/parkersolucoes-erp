@@ -1250,12 +1250,12 @@ function calculateAverageTimeOpen(tickets: any[], now: Date): string {
   if (tickets.length === 0) return '0min';
   
   const totalMinutes = tickets.reduce((sum, ticket) => {
-    if (ticket.date) {
-      const ticketDate = parseGLPIDate(ticket.date);
-      const diffMinutes = (now.getTime() - ticketDate.getTime()) / (1000 * 60);
-      return sum + Math.max(0, diffMinutes);
-    }
-    return sum;
+    const createdAt = getTicketCreatedAt(ticket);
+    if (!createdAt) return sum;
+
+    const ticketDate = parseGLPIDate(createdAt);
+    const diffMinutes = (now.getTime() - ticketDate.getTime()) / (1000 * 60);
+    return sum + Math.max(0, diffMinutes);
   }, 0);
   
   const avgMinutes = Math.round(totalMinutes / tickets.length);

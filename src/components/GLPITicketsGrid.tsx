@@ -665,10 +665,10 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
               <div>
                 <label className="text-sm font-medium text-gray-400">Data de Criação:</label>
                 <p className="text-white">
-                  {selectedTicket.date 
-                    ? new Date(selectedTicket.date).toLocaleString('pt-BR')
-                    : 'N/A'
-                  }
+                  {(() => {
+                    const createdAt = parseGLPIDate(selectedTicket.date_creation || selectedTicket.date);
+                    return createdAt ? createdAt.toLocaleString('pt-BR') : 'N/A';
+                  })()}
                 </p>
               </div>
             </div>
