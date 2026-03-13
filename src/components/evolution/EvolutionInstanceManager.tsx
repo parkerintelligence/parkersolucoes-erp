@@ -202,6 +202,7 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
         const state = result?.instance?.state || result?.state;
         if (state === 'open') {
           toast({ title: 'Já conectado', description: `A instância "${name}" já está conectada.` });
+          setAutoRefreshEnabled(false);
           await fetchInstances();
           return false;
         }
