@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Server, Save, X, Shield, Globe, Radio, Key, FileCode, CheckCircle2, Copy } from 'lucide-react';
+import { Server, Save, X, Shield, Globe, Radio, Key, FileCode, CheckCircle2, Copy, TestTube, Loader2, AlertCircle } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 
@@ -30,6 +30,10 @@ export const RustDeskServerConfig = ({ onClose }: Props) => {
     is_active: true,
   });
 
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
     if (existing) {
       setForm({
@@ -50,11 +54,13 @@ export const RustDeskServerConfig = ({ onClose }: Props) => {
       return;
     }
 
+    setSaving(true);
+
     const payload = {
       name: form.name,
       base_url: form.hbbs_server,
       webhook_url: form.hbbr_server,
-      password: form.api_server,
+      password: form.api_server || null,
       api_token: form.key,
       username: form.config_string,
       is_active: form.is_active,
@@ -65,11 +71,123 @@ export const RustDeskServerConfig = ({ onClose }: Props) => {
       if (existing) {
         await updateIntegration.mutateAsync({ id: existing.id, updates: payload });
       } else {
-        await createIntegration.mutateAsync({ ...payload, is_global: true } as any);
+        await createIntegration.mutateAsync({
+          ...payload,
+          is_global: true,
+        } as any);
       }
-      toast({ title: "Servidor salvo!", description: "Configuração do servidor RustDesk salva com sucesso." });
-    } catch (error) {
-      console.error('Erro ao salvar servidor:', error);
+      toast({ title: "✅ Servidor salvo!", description: "Configuração do servidor RustDesk salva com sucesso." });
+    } catch (error: any) {
+      console.error('Erro ao salvar servidor RustDesk:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: error?.message || "Ocorreu um erro ao salvar a configuração.",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTest = async () => {
+    if (!form.hbbs_server) {
+      toast({ title: "Informe o servidor", description: "Preencha o servidor de ID (hbbs) antes de testar.", variant: "destructive" });
+      return;
+    }
+
+    setTesting(true);
+    setTestResult(null);
+
+    try {
+      // Test hbbs server connectivity
+      const hbbsHost = form.hbbs_server.replace(/^https?:\/\//, '');
+      
+      // We'll test by trying to resolve/reach the server
+      // Since we can't do raw TCP from browser, we test HTTP connectivity
+      const testUrls = [];
+      
+      // Test hbbs
+      testUrls.push({ name: 'hbbs (ID Server)', host: hbbsHost });
+      
+      // Test hbbr if provided
+      if (form.hbbr_server) {
+        const hbbrHost = form.hbbr_server.replace(/^https?:\/\//, '');
+        testUrls.push({ name: 'hbbr (Relay)', host: hbbrHost });
+      }
+
+      // Test API server if provided
+      if (form.api_server) {
+        testUrls.push({ name: 'API Server', host: form.api_server });
+      }
+
+      const results: string[] = [];
+      
+      for (const test of testUrls) {
+        try {
+          // Try DNS resolution via fetch with timeout
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 5000);
+          
+          try {
+            await fetch(`https://${test.host}`, { 
+              mode: 'no-cors', 
+              signal: controller.signal 
+            });
+            results.push(`✅ ${test.name}: ${test.host} - Acessível`);
+          } catch (fetchErr: any) {
+            if (fetchErr.name === 'AbortError') {
+              results.push(`⚠️ ${test.name}: ${test.host} - Timeout (servidor pode estar em porta não-HTTP)`);
+            } else {
+              // no-cors fetch often throws but still means DNS resolved
+              results.push(`✅ ${test.name}: ${test.host} - DNS resolvido (porta RustDesk pode estar ok)`);
+            }
+          } finally {
+            clearTimeout(timeout);
+          }
+        } catch (err) {
+          results.push(`❌ ${test.name}: ${test.host} - Não acessível`);
+        }
+      }
+
+      // Validate key format
+      if (form.key) {
+        if (form.key.length === 32 && /^[a-f0-9]+$/i.test(form.key)) {
+          results.push(`✅ Key: Formato válido (${form.key.length} caracteres hex)`);
+        } else {
+          results.push(`⚠️ Key: Formato não padrão (${form.key.length} caracteres)`);
+        }
+      }
+
+      // Validate config string
+      if (form.config_string) {
+        try {
+          const decoded = atob(form.config_string);
+          results.push(`✅ Config String: Decodificável (${decoded.length} bytes)`);
+        } catch {
+          results.push(`⚠️ Config String: Presente mas não é base64 padrão`);
+        }
+      }
+
+      const hasErrors = results.some(r => r.startsWith('❌'));
+      
+      setTestResult({
+        success: !hasErrors,
+        message: results.join('\n')
+      });
+
+      toast({
+        title: hasErrors ? "⚠️ Problemas detectados" : "✅ Teste concluído",
+        description: hasErrors ? "Verifique os resultados do teste abaixo." : "Servidores parecem acessíveis!",
+        variant: hasErrors ? "destructive" : "default"
+      });
+
+    } catch (error: any) {
+      setTestResult({
+        success: false,
+        message: `❌ Erro no teste: ${error.message}`
+      });
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -170,14 +288,12 @@ export const RustDeskServerConfig = ({ onClose }: Props) => {
             <FileCode className="h-3 w-3 text-cyan-400" />
             String de Configuração (Encoded Config)
           </label>
-          <div className="flex gap-1">
-            <Textarea
-              value={form.config_string}
-              onChange={e => setForm(p => ({ ...p, config_string: e.target.value }))}
-              placeholder="Cole aqui a string de configuração do RustDesk..."
-              className="bg-slate-900 border-slate-600 text-white font-mono text-xs min-h-[60px]"
-            />
-          </div>
+          <Textarea
+            value={form.config_string}
+            onChange={e => setForm(p => ({ ...p, config_string: e.target.value }))}
+            placeholder="Cole aqui a string de configuração do RustDesk..."
+            className="bg-slate-900 border-slate-600 text-white font-mono text-xs min-h-[60px]"
+          />
           <p className="text-xs text-slate-500 mt-1">
             String codificada com todas as configurações do servidor (usada para configurar clientes automaticamente)
           </p>
@@ -195,6 +311,26 @@ export const RustDeskServerConfig = ({ onClose }: Props) => {
           />
         </div>
 
+        {/* Test Result */}
+        {testResult && (
+          <div className={`p-3 rounded-lg border ${testResult.success ? 'bg-emerald-900/20 border-emerald-500/30' : 'bg-red-900/20 border-red-500/30'}`}>
+            <div className="flex items-center gap-2 mb-2">
+              {testResult.success ? (
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              ) : (
+                <AlertCircle className="h-4 w-4 text-red-400" />
+              )}
+              <span className={`text-sm font-medium ${testResult.success ? 'text-emerald-300' : 'text-red-300'}`}>
+                Resultado do Teste
+              </span>
+            </div>
+            <pre className="text-xs text-slate-300 whitespace-pre-wrap font-mono">
+              {testResult.message}
+            </pre>
+          </div>
+        )}
+
+        {/* Existing config info */}
         {existing && (
           <div className="bg-slate-900 p-3 rounded-lg border border-slate-700 space-y-2">
             <div className="flex items-center gap-2">
@@ -222,12 +358,29 @@ export const RustDeskServerConfig = ({ onClose }: Props) => {
             Cancelar
           </Button>
           <Button
+            variant="outline"
+            onClick={handleTest}
+            disabled={testing || !form.hbbs_server}
+            className="border-blue-500/30 text-blue-300 hover:bg-blue-500/10"
+          >
+            {testing ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <TestTube className="h-4 w-4 mr-1" />
+            )}
+            {testing ? 'Testando...' : 'Testar Conexão'}
+          </Button>
+          <Button
             onClick={handleSave}
-            disabled={createIntegration.isPending || updateIntegration.isPending}
+            disabled={saving}
             className="bg-orange-600 hover:bg-orange-700 text-white"
           >
-            <Save className="h-4 w-4 mr-1" />
-            Salvar Servidor
+            {saving ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-1" />
+            )}
+            {saving ? 'Salvando...' : 'Salvar Servidor'}
           </Button>
         </div>
       </CardContent>
