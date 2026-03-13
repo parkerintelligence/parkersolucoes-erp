@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Shield, Server, Database, Lock, Eye, EyeOff, Sparkles, Zap, BarChart3, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useSystemSettings } from '@/hooks/useSystemSettings';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -16,7 +17,9 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const companyName = 'Parker Soluções ERP';
+  const { data: brandingSettings } = useSystemSettings('branding');
+  const companyName = brandingSettings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Parker Soluções ERP';
+  const logoUrl = brandingSettings?.find(s => s.setting_key === 'company_logo_url')?.setting_value || '';
 
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
@@ -77,9 +80,15 @@ const Login = () => {
           <div className="max-w-2xl mx-auto">
             <div className="mb-12 animate-fade-in-up">
               <div className="mb-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mb-6 shadow-2xl glow-primary">
-                  <Shield className="h-8 w-8 text-primary-foreground" />
-                </div>
+                {logoUrl ? (
+                  <div className="w-24 h-24 rounded-2xl overflow-hidden flex items-center justify-center mb-6 shadow-2xl ring-2 ring-accent/30 bg-card/50 backdrop-blur-sm">
+                    <img src={logoUrl} alt={companyName} className="w-full h-full object-contain p-2" />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mb-6 shadow-2xl glow-primary">
+                    <Shield className="h-8 w-8 text-primary-foreground" />
+                  </div>
+                )}
               </div>
               <h1 className="text-5xl font-extrabold text-foreground mb-4 leading-tight">
                 <span className="gradient-text">{companyName}</span>
@@ -132,9 +141,15 @@ const Login = () => {
         <div className="flex-1 lg:w-2/5 flex items-center justify-center p-6 lg:p-12">
           <div className="w-full max-w-md">
             <div className="lg:hidden text-center mb-8">
-              <div className="w-14 h-14 mx-auto bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mb-4 shadow-2xl glow-primary">
-                <Shield className="h-7 w-7 text-primary-foreground" />
-              </div>
+              {logoUrl ? (
+                <div className="w-20 h-20 mx-auto rounded-2xl overflow-hidden flex items-center justify-center mb-4 shadow-2xl ring-2 ring-accent/30 bg-card/50 backdrop-blur-sm">
+                  <img src={logoUrl} alt={companyName} className="w-full h-full object-contain p-2" />
+                </div>
+              ) : (
+                <div className="w-14 h-14 mx-auto bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mb-4 shadow-2xl glow-primary">
+                  <Shield className="h-7 w-7 text-primary-foreground" />
+                </div>
+              )}
               <h1 className="text-2xl font-bold gradient-text mb-1">{companyName}</h1>
               <p className="text-sm text-muted-foreground">Acesse sua conta</p>
             </div>
