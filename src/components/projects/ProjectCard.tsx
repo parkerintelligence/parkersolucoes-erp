@@ -36,7 +36,8 @@ export function ProjectCard({ card, items, columns, onMoveCard }: ProjectCardPro
   };
 
   const handleDeleteCard = async () => {
-    if (window.confirm("Excluir este card?")) await deleteCard(card.id);
+    const confirmed = await confirm({ title: "Excluir card", description: "Tem certeza que deseja excluir este card?" });
+    if (confirmed) await deleteCard(card.id);
   };
 
   const handleToggleItem = async (item: ActionCardItem) => {

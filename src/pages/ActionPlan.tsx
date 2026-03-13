@@ -35,8 +35,14 @@ export default function ActionPlan() {
     setIsCreateBoardOpen(false);
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDeleteBoard = async (boardId: string) => {
-    if (window.confirm("Tem certeza que deseja excluir este projeto?")) {
+    const confirmed = await confirm({
+      title: "Excluir projeto",
+      description: "Tem certeza que deseja excluir este projeto e todas as suas tarefas?",
+    });
+    if (confirmed) {
       await deleteBoard(boardId);
       if (selectedBoard === boardId && boards.length > 1) {
         const remaining = boards.filter(b => b.id !== boardId);

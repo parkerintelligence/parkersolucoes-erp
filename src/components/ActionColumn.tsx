@@ -37,9 +37,11 @@ export function ActionColumn({ column, cards, cardItems, getItemsForCard }: Acti
   };
 
   const handleDeleteColumn = async () => {
-    if (window.confirm("Tem certeza que deseja excluir esta coluna e todos os seus cards?")) {
-      await deleteColumn(column.id);
-    }
+    const confirmed = await confirm({
+      title: "Excluir coluna",
+      description: "Tem certeza que deseja excluir esta coluna e todos os seus cards? Esta ação não pode ser desfeita.",
+    });
+    if (confirmed) await deleteColumn(column.id);
   };
 
   return (

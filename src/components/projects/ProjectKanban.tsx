@@ -37,9 +37,8 @@ export function ProjectKanban({ boardId, columns, cards, cardItems }: ProjectKan
   };
 
   const handleDeleteColumn = async (id: string) => {
-    if (window.confirm("Excluir esta coluna e todos os seus cards?")) {
-      await deleteColumn(id);
-    }
+    const confirmed = await confirm({ title: "Excluir coluna", description: "Excluir esta coluna e todos os seus cards?" });
+    if (confirmed) await deleteColumn(id);
   };
 
   const handleMoveCard = async (cardId: string, newColumnId: string) => {
