@@ -1,0 +1,1 @@
+ALTER TABLE public.action_cards ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'not_started';

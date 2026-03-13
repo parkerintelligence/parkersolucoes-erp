@@ -10,7 +10,8 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CardDialog } from "@/components/CardDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CardDialog, statusConfig } from "@/components/CardDialog";
 import { useActionPlan, type ActionColumn, type ActionCard, type ActionCardItem } from "@/hooks/useActionPlan";
 import { format, isPast, isToday, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -171,10 +172,11 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
             {isOpen && (
               <div>
                 {/* Column Header */}
-                <div className="grid grid-cols-[40px_1fr_100px_100px_100px_70px_160px_80px] gap-0 px-4 py-2 bg-secondary/10 border-b border-border text-muted-foreground">
+                <div className="grid grid-cols-[40px_1fr_100px_120px_100px_100px_70px_140px_80px] gap-0 px-4 py-2 bg-secondary/10 border-b border-border text-muted-foreground">
                   <span className="text-[10px] font-bold uppercase tracking-wider">#</span>
                   <SortButton field="title">Tarefa</SortButton>
                   <SortButton field="priority">Prioridade</SortButton>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider">Status</span>
                   <span className="text-[10px] font-semibold uppercase tracking-wider">Início</span>
                   <SortButton field="due_date">Término</SortButton>
                   <span className="text-[10px] font-semibold uppercase tracking-wider">Duração</span>
@@ -201,7 +203,7 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
                     <div key={card.id} className="border-b border-border/50 last:border-b-0">
                       {/* Main Task Row */}
                       <div
-                        className={`grid grid-cols-[40px_1fr_100px_100px_100px_70px_160px_80px] gap-0 px-4 py-2.5 items-center transition-colors cursor-pointer
+                        className={`grid grid-cols-[40px_1fr_100px_120px_100px_100px_70px_140px_80px] gap-0 px-4 py-2.5 items-center transition-colors cursor-pointer
                           ${overdue && !isDone ? 'bg-red-500/5 hover:bg-red-500/10' : isDone ? 'bg-green-500/5 hover:bg-green-500/8' : globalIdx % 2 === 0 ? 'bg-background hover:bg-primary/5' : 'bg-card hover:bg-primary/5'}
                         `}
                         onClick={() => toggleTask(card.id)}
@@ -247,6 +249,27 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
                             <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${p.dotColor}`} />
                             {p.label}
                           </Badge>
+                        </div>
+
+                        {/* Status */}
+                        <div onClick={e => e.stopPropagation()}>
+                          <Select
+                            value={(card as any).status || 'not_started'}
+                            onValueChange={(value) => updateCard(card.id, { status: value } as any)}
+                          >
+                            <SelectTrigger className="h-6 text-[10px] border-0 bg-transparent p-0 w-auto gap-1 shadow-none focus:ring-0">
+                              <Badge variant="outline" className={`text-[10px] font-semibold px-2 py-0.5 border cursor-pointer ${statusConfig[(card as any).status || 'not_started']?.color || statusConfig.not_started.color}`}>
+                                {statusConfig[(card as any).status || 'not_started']?.icon} {statusConfig[(card as any).status || 'not_started']?.label}
+                              </Badge>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(statusConfig).map(([key, cfg]) => (
+                                <SelectItem key={key} value={key} className="text-xs">
+                                  {cfg.icon} {cfg.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         {/* Start Date */}
