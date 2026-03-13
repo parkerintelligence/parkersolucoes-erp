@@ -437,6 +437,10 @@ const Guacamole = () => {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="rustdesk" className="mt-6">
+            <RustDeskPanel />
+          </TabsContent>
+
           <TabsContent value="connections" className="mt-6">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
