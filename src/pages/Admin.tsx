@@ -20,6 +20,7 @@ import UniFiAdminConfig from "@/components/UniFiAdminConfig";
 import { AdminCompaniesPanel } from "@/components/AdminCompaniesPanel";
 import SystemSettingsPanel from "@/components/SystemSettingsPanel";
 import { BrandingSettingsPanel } from "@/components/BrandingSettingsPanel";
+import AdminUsersPanel from "@/components/AdminUsersPanel";
 import { 
   Settings, 
   Building, 
@@ -34,7 +35,8 @@ import {
   Archive,
   Activity,
   Wifi,
-  Router
+  Router,
+  Users
 } from "lucide-react";
 
 const Admin = () => {
@@ -128,6 +130,12 @@ const Admin = () => {
   ];
 
   const systemButtons = [
+    {
+      id: "users",
+      label: "Usuários",
+      icon: <Users className="h-5 w-5" />,
+      component: AdminUsersPanel
+    },
     {
       id: "companies",
       label: "Empresas",
