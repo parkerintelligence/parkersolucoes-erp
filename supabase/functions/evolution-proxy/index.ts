@@ -71,7 +71,7 @@ serve(async (req) => {
     const response = await fetch(url, fetchOptions);
     const responseText = await response.text();
     console.log(`📥 Response status: ${response.status}`);
-    console.log(`📥 Response body (first 500 chars): ${responseText.substring(0, 500)}`);
+    console.log(`📥 Response body (first 1000 chars): ${responseText.substring(0, 1000)}`);
 
     let responseData;
     try {
@@ -80,17 +80,20 @@ serve(async (req) => {
       responseData = responseText;
     }
 
-    // For connect endpoint, log QR code availability
+    // For connect/create endpoints, log QR code details extensively
     if (endpoint.includes('/connect/') || endpoint.includes('/instance/create')) {
-      const hasQr = responseData?.base64 || responseData?.qrcode?.base64 || responseData?.qrcode || responseData?.code;
-      console.log(`🔑 QR Code available: ${!!hasQr}`);
-      if (responseData?.qrcode) {
-        console.log('QR code field type:', typeof responseData.qrcode);
-        console.log('QR code keys:', Object.keys(responseData.qrcode || {}));
-      }
-      // Log all top-level keys for debugging
       if (typeof responseData === 'object' && responseData !== null) {
-        console.log('Response top-level keys:', Object.keys(responseData));
+        console.log('🔑 Response keys:', Object.keys(responseData));
+        console.log('🔑 Has base64:', !!responseData.base64);
+        console.log('🔑 Has qrcode:', !!responseData.qrcode);
+        console.log('🔑 qrcode type:', typeof responseData.qrcode);
+        if (responseData.qrcode && typeof responseData.qrcode === 'object') {
+          console.log('🔑 qrcode keys:', Object.keys(responseData.qrcode));
+          console.log('🔑 qrcode.base64 exists:', !!responseData.qrcode.base64);
+          console.log('🔑 qrcode.count:', responseData.qrcode.count);
+        }
+        console.log('🔑 Has code:', !!responseData.code);
+        console.log('🔑 Has pairingCode:', !!responseData.pairingCode);
       }
     }
 
