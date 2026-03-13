@@ -111,7 +111,8 @@ const useDashboardData = () => {
         }
       });
       if (error) return [];
-      return data?.result || data || [];
+      const result = data?.result || data || [];
+      return Array.isArray(result) ? result : [];
     },
     enabled: !!zabbixIntegration,
     staleTime: 120000,
