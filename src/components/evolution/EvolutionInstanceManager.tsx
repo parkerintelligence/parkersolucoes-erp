@@ -20,9 +20,11 @@ interface InstanceInfo {
 }
 
 const callEvolutionProxy = async (integrationId: string, endpoint: string, method = 'GET', body?: any) => {
+  console.log(`[Evolution] Calling proxy: ${method} ${endpoint}`);
   const { data, error } = await supabase.functions.invoke('evolution-proxy', {
     body: { integrationId, endpoint, method, body }
   });
+  console.log(`[Evolution] Response:`, data, error);
   if (error) throw error;
   return data;
 };
@@ -127,14 +129,32 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
     setLoadingAction(name);
     try {
       const result = await callEvolutionProxy(integrationId, `/instance/connect/${name}`);
-      const qr = result?.base64 || result?.qrcode?.base64 || result?.qrcode;
-      if (qr) {
+      console.log('[Evolution] Connect result:', JSON.stringify(result));
+      
+      // Try multiple possible QR code field paths
+      const qr = result?.base64 
+        || result?.qrcode?.base64 
+        || result?.qrcode 
+        || result?.code
+        || result?.pairingCode;
+      
+      if (qr && typeof qr === 'string') {
         setQrCode(qr);
         setActiveInstanceName(name);
+        toast({ title: '✅ QR Code gerado', description: `Escaneie o QR Code para conectar "${name}"` });
+      } else if (result?.instance?.state === 'open' || result?.state === 'open') {
+        toast({ title: 'Já conectado', description: `A instância "${name}" já está conectada.` });
+        await fetchInstances();
       } else {
-        toast({ title: 'QR Code indisponível', description: 'Instância pode já estar conectada.', variant: 'destructive' });
+        console.warn('[Evolution] QR Code not found in response. Keys:', Object.keys(result || {}));
+        toast({ 
+          title: 'QR Code indisponível', 
+          description: `Resposta: ${JSON.stringify(result).substring(0, 200)}`, 
+          variant: 'destructive' 
+        });
       }
     } catch (error: any) {
+      console.error('[Evolution] Connect error:', error);
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
     } finally {
       setLoadingAction(null);
