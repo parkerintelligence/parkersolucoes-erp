@@ -10,7 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { Users, Plus, Trash2, KeyRound, Shield, User, Crown, Loader2 } from 'lucide-react';
+import { Users, Plus, Trash2, KeyRound, Shield, User, Crown, Loader2, ShieldCheck } from 'lucide-react';
+import { UserPermissionsDialog } from '@/components/UserPermissionsDialog';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 interface UserProfile {
   id: string;
@@ -34,6 +36,10 @@ const AdminUsersPanel = () => {
   // Reset password form
   const [resetUserId, setResetUserId] = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState('');
+
+  // Permissions dialog
+  const [permUserId, setPermUserId] = useState<string | null>(null);
+  const [permEmail, setPermEmail] = useState('');
 
   const callManageUsers = async (body: any) => {
     const { data, error } = await supabase.functions.invoke('manage-users', { body });
@@ -130,6 +136,7 @@ const AdminUsersPanel = () => {
   };
 
   return (
+    <TooltipProvider>
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
@@ -214,6 +221,15 @@ const AdminUsersPanel = () => {
                     </SelectContent>
                   </Select>
 
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" onClick={() => { setPermUserId(user.id); setPermEmail(user.email); }} className="border-accent/30 text-accent hover:bg-accent/10">
+                        <ShieldCheck className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Permissões de telas</TooltipContent>
+                  </Tooltip>
+
                   <Dialog open={resetUserId === user.id} onOpenChange={(open) => { if (!open) { setResetUserId(null); setResetPassword(''); } }}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm" onClick={() => setResetUserId(user.id)} className="border-slate-500 text-slate-300 hover:bg-slate-600">
@@ -266,6 +282,16 @@ const AdminUsersPanel = () => {
         )}
       </CardContent>
     </Card>
+
+    {permUserId && (
+      <UserPermissionsDialog
+        open={!!permUserId}
+        onOpenChange={(open) => { if (!open) setPermUserId(null); }}
+        userId={permUserId}
+        userEmail={permEmail}
+      />
+    )}
+    </TooltipProvider>
   );
 };
 

@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { LayoutDashboard, Settings, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Smartphone, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, MessagesSquare, Router, Zap } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from '@/components/ui/sidebar';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
+import { useMyPermissions } from '@/hooks/useUserPermissions';
 
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, role: 'user' },
@@ -34,9 +35,16 @@ export function AppSidebar() {
   const { isMaster, user, userProfile } = useAuth();
   const location = useLocation();
   const { data: settings } = useSystemSettings('branding');
+  const { hasAccess } = useMyPermissions();
   const currentPath = location.pathname;
   const isCollapsed = state === 'collapsed';
-  const filteredMainItems = menuItems.filter(item => item.role === 'user' || (item.role === 'master' && isMaster));
+  const filteredMainItems = menuItems.filter(item => {
+    if (item.role === 'master' && !isMaster) return false;
+    // Extract screen key from url (e.g. '/glpi' -> 'glpi')
+    const screenKey = item.url.replace('/', '');
+    if (item.role === 'master') return true; // Admin always for masters
+    return hasAccess(screenKey);
+  });
 
   const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Parker Soluções';
   const companySubtitle = settings?.find(s => s.setting_key === 'company_subtitle')?.setting_value || 'ERP System';
