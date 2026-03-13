@@ -947,10 +947,11 @@ async function getGLPIStandardData(glpiIntegration: any) {
 
     // A resposta do glpi-proxy vem como { result: [...] }
     const allTickets = glpiData.result || [];
-    console.log(`📊 [GLPI] ${allTickets.length} tickets em aberto encontrados`);
-    console.log(`📋 [GLPI] Primeiros tickets:`, allTickets.slice(0, 3).map(t => ({ id: t.id, name: t.name, status: t.status, priority: t.priority })));
+    const uniqueStatuses = [...new Set(allTickets.map(t => t.status))];
+    console.log(`📊 [GLPI] ${allTickets.length} tickets encontrados, statuses: ${JSON.stringify(uniqueStatuses)}`);
+    console.log(`📋 [GLPI] Todos os tickets:`, allTickets.map(t => ({ id: t.id, name: t.name, status: t.status, date: t.date })));
 
-    // Filtrar e categorizar tickets
+    // Filtrar e categorizar tickets (GLPI: 1=Novo, 2=Em atendimento, 3=Planejado, 4=Pendente, 5=Solucionado, 6=Fechado)
     const openTickets = allTickets.filter(t => [1, 2, 3, 4].includes(t.status || 1));
     const criticalTickets = allTickets.filter(t => (t.priority || 1) >= 4);
     const pendingTickets = allTickets.filter(t => t.status === 4);
