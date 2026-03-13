@@ -71,8 +71,11 @@ const GLPIScheduledTicketsView = () => {
     }
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDeleteTicket = async (ticketId: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este agendamento?')) {
+    const confirmed = await confirm({ title: "Excluir agendamento", description: "Tem certeza que deseja excluir este agendamento?" });
+    if (confirmed) {
       try {
         console.log('🗑️ [GLPI-DELETE] Deletando agendamento:', ticketId);
         await deleteTicket.mutateAsync(ticketId);

@@ -108,8 +108,11 @@ export const ZabbixWebhookManager = () => {
     }
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDeleteWebhook = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja remover este webhook?')) {
+    const confirmed = await confirm({ title: "Excluir webhook", description: "Tem certeza que deseja remover este webhook?" });
+    if (confirmed) {
       try {
         await deleteWebhook.mutateAsync(id);
       } catch (error) {

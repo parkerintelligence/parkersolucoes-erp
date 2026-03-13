@@ -116,10 +116,13 @@ const GuacamoleAdminConfig = () => {
     }
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDelete = async () => {
     if (!guacamoleIntegration) return;
 
-    if (window.confirm('Tem certeza que deseja excluir esta configuração?')) {
+    const confirmed = await confirm({ title: "Excluir configuração", description: "Tem certeza que deseja excluir esta configuração do Guacamole?" });
+    if (confirmed) {
       setIsLoading(true);
       try {
         await deleteIntegration.mutateAsync(guacamoleIntegration.id);

@@ -95,8 +95,11 @@ export const BaculaAdminConfig = () => {
     setIsCreating(false);
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDelete = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir esta integração?')) {
+    const confirmed = await confirm({ title: "Excluir integração", description: "Tem certeza que deseja excluir esta integração Bacula?" });
+    if (confirmed) {
       try {
         await deleteIntegration.mutateAsync(id);
       } catch (error) {

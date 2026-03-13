@@ -129,8 +129,11 @@ const WhatsAppTemplatesPanel = () => {
     }
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDeleteTemplate = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este template?')) {
+    const confirmed = await confirm({ title: "Excluir template", description: "Tem certeza que deseja excluir este template?" });
+    if (confirmed) {
       try {
         await deleteTemplate.mutateAsync(id);
         refetch();

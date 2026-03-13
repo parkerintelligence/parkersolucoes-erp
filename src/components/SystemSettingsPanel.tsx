@@ -88,8 +88,11 @@ const SystemSettingsPanel = () => {
     setIsDialogOpen(true);
   };
 
+  const { confirm } = useConfirmDialog();
+
   const handleDeleteSetting = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir esta configuração?')) {
+    const confirmed = await confirm({ title: "Excluir configuração", description: "Tem certeza que deseja excluir esta configuração?" });
+    if (confirmed) {
       try {
         await deleteSetting.mutateAsync(id);
         refetch();
