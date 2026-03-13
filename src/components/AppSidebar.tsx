@@ -150,7 +150,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-slate-900">
+      <SidebarContent className="bg-sidebar">
         <SidebarGroup>
           <SidebarGroupLabel className="text-white font-medium text-xs sm:text-sm px-2 sm:px-0">
             {!isCollapsed && <span className="hidden sm:inline">Menu Principal</span>}
