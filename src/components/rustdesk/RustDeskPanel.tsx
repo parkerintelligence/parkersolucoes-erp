@@ -117,25 +117,40 @@ export const RustDeskPanel = () => {
     // Update last_connected_at
     updateMutation.mutate({ id: conn.id, updates: { last_connected_at: new Date().toISOString() } });
 
-    // Try rustdesk:// URI scheme first
-    const rustdeskUri = `rustdesk://connection/new/${conn.rustdesk_id}${conn.password ? `?password=${encodeURIComponent(conn.password)}` : ''}`;
+    // Build rustdesk:// URI to open the desktop client directly
+    // Format: rustdesk://connection/new/ID?password=PASS&relay=HBBR&key=KEY
+    let rustdeskUri = `rustdesk://connection/new/${conn.rustdesk_id}`;
+    const params = new URLSearchParams();
     
-    // If we have a web client URL from the server config
-    if (rustdeskIntegration?.base_url) {
-      const webUrl = `${rustdeskIntegration.base_url.replace(/\/$/, '')}`;
-      window.open(webUrl, '_blank', 'noopener,noreferrer');
-      toast({
-        title: "Conectando via Web",
-        description: `Abrindo cliente web RustDesk para "${conn.name}". ID: ${conn.rustdesk_id}`,
-      });
-    } else {
-      // Fallback to URI scheme
-      window.location.href = rustdeskUri;
-      toast({
-        title: "Abrindo RustDesk",
-        description: `Conectando a "${conn.name}" (ID: ${conn.rustdesk_id}). Certifique-se de que o RustDesk está instalado.`,
-      });
+    if (conn.password) {
+      params.set('password', conn.password);
     }
+    
+    // Add server config params if available
+    if (rustdeskIntegration) {
+      if (rustdeskIntegration.base_url) {
+        params.set('relay', rustdeskIntegration.base_url);
+      }
+      if (rustdeskIntegration.api_token) {
+        params.set('key', rustdeskIntegration.api_token);
+      }
+    }
+    
+    const paramString = params.toString();
+    if (paramString) {
+      rustdeskUri += `?${paramString}`;
+    }
+
+    // Copy ID to clipboard for easy paste in RustDesk
+    navigator.clipboard.writeText(conn.rustdesk_id).catch(() => {});
+
+    // Open via URI scheme (launches RustDesk desktop app)
+    window.location.href = rustdeskUri;
+    
+    toast({
+      title: "🖥️ Abrindo RustDesk",
+      description: `Conectando a "${conn.name}" (ID: ${conn.rustdesk_id}). ID copiado para a área de transferência.`,
+    });
   };
 
   const copyToClipboard = (text: string, label: string) => {
