@@ -297,10 +297,18 @@ const Dashboard = () => {
               const now = new Date();
               const oldDirs = ftpFiles
                 .filter((f: any) => f.isDirectory || f.type === 'directory')
-                .map((f: any) => ({
-                  ...f,
-                  daysSince: Math.floor((now.getTime() - new Date(f.lastModified || f.date || f.rawModifiedAt || 0).getTime()) / (1000 * 60 * 60 * 24))
-                }))
+                .map((f: any) => {
+                  const modifiedAt = f.lastModified || f.date || f.rawModifiedAt;
+                  const modifiedDate = new Date(modifiedAt);
+                  const hasValidDate = !Number.isNaN(modifiedDate.getTime());
+
+                  return {
+                    ...f,
+                    daysSince: hasValidDate
+                      ? Math.floor((now.getTime() - modifiedDate.getTime()) / (1000 * 60 * 60 * 24))
+                      : 0,
+                  };
+                })
                 .filter((f: any) => f.daysSince > 2)
                 .sort((a: any, b: any) => b.daysSince - a.daysSince)
                 .slice(0, 6);
