@@ -1120,7 +1120,8 @@ async function getGLPIStandardData(glpiIntegration: any) {
       .map(ticket => {
         const priority = getPriorityIcon(ticket.priority || 1);
         const urgency = getUrgencyIcon(ticket.urgency || 1);
-        const timeOpen = ticket.date ? getTimeOpenText(parseGLPIDate(ticket.date), now) : 'N/A';
+        const createdAt = getTicketCreatedAt(ticket);
+        const timeOpen = createdAt ? getTimeOpenText(parseGLPIDate(createdAt), now) : 'N/A';
         const categoryName = ticket.itilcategories_id && ticket.itilcategories_id !== 0
           ? categoryNames.get(ticket.itilcategories_id) || 'Sem categoria'
           : 'Sem categoria';
