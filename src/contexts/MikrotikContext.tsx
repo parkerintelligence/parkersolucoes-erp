@@ -42,7 +42,6 @@ export const MikrotikProvider = ({ children }: { children: ReactNode }) => {
         .from('integrations')
         .select('*')
         .eq('type', 'mikrotik')
-        .eq('user_id', user.id)
         .order('name', { ascending: true });
 
       if (error) throw error;
