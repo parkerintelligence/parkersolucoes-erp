@@ -330,11 +330,11 @@ const Guacamole = () => {
 
           <Tabs defaultValue="rustdesk" className="space-y-4">
             <TabsList className="bg-slate-800 border-slate-700">
-              <TabsTrigger value="guacamole" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
-                Guacamole
-              </TabsTrigger>
               <TabsTrigger value="rustdesk" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-slate-400">
                 🦀 RustDesk
+              </TabsTrigger>
+              <TabsTrigger value="guacamole" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+                Guacamole
               </TabsTrigger>
             </TabsList>
 
