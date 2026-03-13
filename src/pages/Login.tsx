@@ -80,9 +80,15 @@ const Login = () => {
           <div className="max-w-2xl mx-auto">
             <div className="mb-12 animate-fade-in-up">
               <div className="mb-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mb-6 shadow-2xl glow-primary">
-                  <Shield className="h-8 w-8 text-primary-foreground" />
-                </div>
+                {logoUrl ? (
+                  <div className="w-24 h-24 rounded-2xl overflow-hidden flex items-center justify-center mb-6 shadow-2xl ring-2 ring-accent/30 bg-card/50 backdrop-blur-sm">
+                    <img src={logoUrl} alt={companyName} className="w-full h-full object-contain p-2" />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mb-6 shadow-2xl glow-primary">
+                    <Shield className="h-8 w-8 text-primary-foreground" />
+                  </div>
+                )}
               </div>
               <h1 className="text-5xl font-extrabold text-foreground mb-4 leading-tight">
                 <span className="gradient-text">{companyName}</span>
