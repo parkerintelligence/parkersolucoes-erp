@@ -374,6 +374,7 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
       if (activeInstanceName === name) {
         setQrCode(null);
         setActiveInstanceName(null);
+        setAutoRefreshEnabled(false);
       }
       await fetchInstances();
     } catch (error: any) {
