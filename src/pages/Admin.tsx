@@ -130,6 +130,12 @@ const Admin = () => {
 
   const systemButtons = [
     {
+      id: "users",
+      label: "Usuários",
+      icon: <Users className="h-5 w-5" />,
+      component: AdminUsersPanel
+    },
+    {
       id: "companies",
       label: "Empresas",
       icon: <Building className="h-5 w-5" />,
