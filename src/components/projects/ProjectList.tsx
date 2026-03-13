@@ -46,6 +46,7 @@ export function ProjectList({ columns, cards, cardItems, onRefresh }: ProjectLis
   const [newItemText, setNewItemText] = useState<Record<string, string>>({});
   const [users, setUsers] = useState<Record<string, string>>({});
   const { toast } = useToast();
+  const { updateCard, deleteCard, createCard, createCardItem, updateCardItem, deleteCardItem } = useActionPlan();
   const { confirm } = useConfirmDialog();
 
   useEffect(() => {
