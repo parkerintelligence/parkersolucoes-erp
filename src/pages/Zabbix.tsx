@@ -556,7 +556,7 @@ const Zabbix = () => {
                          </TableRow>
                        </TableHeader>
                        <TableBody>
-                         {filteredProblems.map((problem) => (
+                         {paginatedProblems.map((problem) => (
                            <TableRow key={problem.eventid} className="border-slate-700 hover:bg-slate-800/30 text-xs">
                              <TableCell className="py-1 text-slate-300 font-mono text-xs">
                                {formatDateTime(problem.clock)}
