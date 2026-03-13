@@ -10,7 +10,7 @@ const menuItems = [
   { title: 'Links de acesso', url: '/links', icon: Link, role: 'user' },
   { title: 'Conexão Remota', url: '/conexao-remota', icon: Monitor, role: 'user' },
   { title: 'GLPI', url: '/glpi', icon: Headphones, role: 'user' },
-  { title: 'Plano de Ação', url: '/plano-de-acao', icon: Kanban, role: 'user' },
+  { title: 'Projetos', url: '/projetos', icon: Kanban, role: 'user' },
   { title: 'Senhas', url: '/passwords', icon: Lock, role: 'user' },
   { title: 'Anotações', url: '/annotations', icon: Notebook, role: 'user' },
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
