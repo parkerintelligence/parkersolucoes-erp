@@ -1235,25 +1235,29 @@ function getTimeOpenText(createdDate: Date, now: Date): string {
 }
 
 function calculateAverageTimeOpen(tickets: any[], now: Date): string {
-  if (tickets.length === 0) return '0h';
+  if (tickets.length === 0) return '0min';
   
-  const totalHours = tickets.reduce((sum, ticket) => {
+  const totalMinutes = tickets.reduce((sum, ticket) => {
     if (ticket.date) {
       const ticketDate = new Date(ticket.date);
-      const diffHours = (now.getTime() - ticketDate.getTime()) / (1000 * 60 * 60);
-      return sum + diffHours;
+      const diffMinutes = (now.getTime() - ticketDate.getTime()) / (1000 * 60);
+      return sum + Math.max(0, diffMinutes);
     }
     return sum;
   }, 0);
   
-  const avgHours = Math.round(totalHours / tickets.length);
-  const days = Math.floor(avgHours / 24);
-  const hours = avgHours % 24;
+  const avgMinutes = Math.round(totalMinutes / tickets.length);
+  const days = Math.floor(avgMinutes / (60 * 24));
+  const hours = Math.floor((avgMinutes % (60 * 24)) / 60);
+  const minutes = avgMinutes % 60;
   
   if (days > 0) {
     return `${days}d ${hours}h`;
   }
-  return `${hours}h`;
+  if (hours > 0) {
+    return `${hours}h ${minutes}min`;
+  }
+  return `${minutes}min`;
 }
 
 // Dados mock para performance semanal
