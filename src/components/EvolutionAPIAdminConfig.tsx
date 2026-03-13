@@ -28,10 +28,10 @@ export const EvolutionAPIAdminConfig = () => {
   });
 
   const handleSave = async () => {
-    if (!formData.base_url || !formData.api_token || !formData.instance_name) {
+    if (!formData.base_url || !formData.api_token) {
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha todos os campos obrigatórios (URL Base, API Token e Nome da Instância).",
+        description: "Preencha todos os campos obrigatórios (URL Base e API Token).",
         variant: "destructive"
       });
       return;
