@@ -86,7 +86,24 @@ serve(async (req) => {
     const results: any[] = [];
 
     for (const action of actions) {
-      const message = (action.message_template || "{text}").replace(/{text}/g, textContent);
+      // Replace {text} with textContent, and any {key} with payload values
+      let message = action.message_template || "{text}";
+      message = message.replace(/\{text\}/g, textContent);
+      for (const [key, val] of Object.entries(templateVars)) {
+        message = message.replaceAll(`{${key}}`, val);
+      }
+
+      // If template is the default {text} and payload has structured data, build a rich message
+      if ((action.message_template || "{text}") === "{text}" && typeof body === "object" && !body.text) {
+        const parts: string[] = [];
+        for (const [key, val] of Object.entries(body)) {
+          const label = key.charAt(0).toUpperCase() + key.slice(1);
+          parts.push(`*${label}:* ${typeof val === "string" ? val : JSON.stringify(val)}`);
+        }
+        if (parts.length > 1) {
+          message = parts.join("\n");
+        }
+      }
 
       try {
         if (action.action_type === "whatsapp") {
