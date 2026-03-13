@@ -816,20 +816,23 @@ serve(async (req) => {
     });
 
     // Salvar log do relatório
-    try {
-      await supabase.from('scheduled_reports_logs').insert({
-        report_id: template.id,
-        user_id: template.user_id,
-        phone_number: recipients[0],
-        status: successfulSends > 0 ? 'success' : 'failed',
-        message_sent: successfulSends > 0,
-        message_content: finalMessage,
-        execution_time_ms: executionTime,
-        whatsapp_response: { results },
-        error_details: successfulSends === 0 ? 'Falha no envio para todos os destinatários' : null
-      });
-    } catch (logError) {
-      console.error('❌ [BACULA-DAILY] Erro ao salvar log:', logError);
+    const reportLogId = report_id || null;
+    if (reportLogId) {
+      try {
+        await supabase.from('scheduled_reports_logs').insert({
+          report_id: reportLogId,
+          user_id: template.user_id,
+          phone_number: recipients[0],
+          status: successfulSends > 0 ? 'success' : 'failed',
+          message_sent: successfulSends > 0,
+          message_content: finalMessage,
+          execution_time_ms: executionTime,
+          whatsapp_response: { results },
+          error_details: successfulSends === 0 ? 'Falha no envio para todos os destinatários' : null
+        });
+      } catch (logError) {
+        console.error('❌ [BACULA-DAILY] Erro ao salvar log:', logError);
+      }
     }
 
     return new Response(JSON.stringify({
