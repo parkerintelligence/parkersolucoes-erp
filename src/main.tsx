@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+import { registerServiceWorker } from './pwaRegistration';
 
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error('Failed to find the root element');
@@ -12,3 +13,6 @@ root.render(
     <App />
   </React.StrictMode>
 );
+
+// Register PWA Service Worker
+registerServiceWorker();

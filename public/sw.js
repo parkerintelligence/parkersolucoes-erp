@@ -1,139 +1,120 @@
-const CACHE_NAME = 'azure-it-control-v2.0';
-const STATIC_CACHE = 'static-cache-v2.0';
-const DYNAMIC_CACHE = 'dynamic-cache-v2.0';
-
-const urlsToCache = [
+const CACHE_VERSION = 'parker-erp-v1';
+const PRECACHE_URLS = [
   '/',
-  '/index.html',
   '/manifest.json',
   '/icon-192.png',
-  '/icon-512.png',
-  '/static/js/bundle.js',
-  '/static/css/main.css'
+  '/icon-512.png'
 ];
 
-// Install Service Worker
+// Install: precache shell assets
 self.addEventListener('install', (event) => {
-  console.log('Service Worker installing');
+  console.log('[SW] Installing version:', CACHE_VERSION);
   event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then((cache) => {
-        console.log('Caching static assets');
-        return cache.addAll(urlsToCache);
-      })
-      .then(() => {
-        return self.skipWaiting();
-      })
+    caches.open(CACHE_VERSION)
+      .then(cache => cache.addAll(PRECACHE_URLS))
+      .then(() => self.skipWaiting()) // Activate immediately
   );
 });
 
-// Activate Service Worker
+// Activate: clear old caches and take control
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating - clearing ALL caches');
+  console.log('[SW] Activating version:', CACHE_VERSION);
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      console.log('Found caches:', cacheNames);
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          console.log('Deleting cache:', cacheName);
-          return caches.delete(cacheName);
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(key => key !== CACHE_VERSION)
+          .map(key => {
+            console.log('[SW] Removing old cache:', key);
+            return caches.delete(key);
+          })
+      )
+    ).then(() => self.clients.claim()) // Take control of all pages
+  );
+});
+
+// Fetch: Network-first for navigations & API, Cache-first for static assets
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+
+  const url = new URL(event.request.url);
+
+  // Skip Supabase/API requests - never cache
+  if (url.hostname.includes('supabase') || url.pathname.startsWith('/rest/') || url.pathname.startsWith('/auth/')) {
+    return;
+  }
+
+  // Navigation requests: network-first (always get latest HTML)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone));
+          return response;
         })
-      );
-    }).then(() => {
-      console.log('All caches cleared');
-      return self.clients.claim();
+        .catch(() => caches.match(event.request) || caches.match('/'))
+    );
+    return;
+  }
+
+  // JS/CSS with hash in filename: cache-first (immutable)
+  if (/\.[a-f0-9]{8,}\.(js|css)$/.test(url.pathname)) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        return fetch(event.request).then(response => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Other assets: stale-while-revalidate
+  event.respondWith(
+    caches.match(event.request).then(cached => {
+      const fetchPromise = fetch(event.request).then(response => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => cached);
+
+      return cached || fetchPromise;
     })
   );
 });
 
-// Clear all caches on message
+// Listen for skip waiting message from client
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'CLEAR_ALL_CACHES') {
-    console.log('Clearing all caches on request');
-    event.waitUntil(
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            console.log('Deleting cache:', cacheName);
-            return caches.delete(cacheName);
-          })
-        );
-      }).then(() => {
-        console.log('All caches cleared on request');
-        event.ports[0].postMessage({ success: true });
-      })
-    );
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
   }
 });
 
-// Fetch Strategy: Cache First with Network Fallback
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
-        
-        return fetch(event.request)
-          .then((response) => {
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-            
-            const responseToCache = response.clone();
-            caches.open(DYNAMIC_CACHE)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-            
-            return response;
-          })
-          .catch(() => {
-            // Return offline page or basic response
-            if (event.request.destination === 'document') {
-              return caches.match('/');
-            }
-          });
-      })
-  );
-});
-
-// Background Sync
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'background-sync') {
-    console.log('Background sync triggered');
-  }
-});
-
-// Push Notifications
+// Push notifications
 self.addEventListener('push', (event) => {
   if (event.data) {
     const data = event.data.json();
-    const options = {
-      body: data.body,
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      vibrate: [100, 50, 100],
-      data: {
-        dateOfArrival: Date.now(),
-        primaryKey: 1
-      }
-    };
-    
     event.waitUntil(
-      self.registration.showNotification(data.title, options)
+      self.registration.showNotification(data.title, {
+        body: data.body,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        vibrate: [100, 50, 100],
+      })
     );
   }
 });
 
-// Notification Click
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  
-  event.waitUntil(
-    clients.openWindow('/')
-  );
+  event.waitUntil(clients.openWindow('/'));
 });
+

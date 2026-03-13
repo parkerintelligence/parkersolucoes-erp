@@ -33,33 +33,6 @@
   <body>
     <div id="root"></div>
     
-    <!-- Critical: Force cache bust and clean old service workers -->
-    <script>
-      // IMMEDIATE: Unregister ALL service workers before loading app
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for(let registration of registrations) {
-            registration.unregister();
-            console.log('🧹 Service Worker unregistered');
-          }
-        });
-      }
-      
-      // Clear old Vite caches
-      if ('caches' in window) {
-        caches.keys().then(function(names) {
-          for (let name of names) {
-            if (name.includes('vite') || name.includes('workbox')) {
-              caches.delete(name);
-              console.log('🧹 Deleted cache:', name);
-            }
-          }
-        });
-      }
-      
-      console.log('🚀 Cache cleared, loading app...');
-    </script>
-    
-    <script type="module" src="/src/main.tsx?t=1762774400"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
