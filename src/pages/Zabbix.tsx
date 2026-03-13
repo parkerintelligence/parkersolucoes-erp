@@ -309,6 +309,23 @@ const Zabbix = () => {
     }
   });
 
+  // Pagination
+  const totalPages = Math.ceil(filteredProblems.length / itemsPerPage);
+  const paginatedProblems = filteredProblems.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset page when filters change
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+  const handleSeverityChange = (value: string) => {
+    setSeverityFilter(value);
+    setCurrentPage(1);
+  };
+
   // Agrupar problemas por host
   const groupedProblems = filteredProblems.reduce((acc, problem) => {
     const hostName = problem.hosts?.[0]?.name || 'Host Desconhecido';
