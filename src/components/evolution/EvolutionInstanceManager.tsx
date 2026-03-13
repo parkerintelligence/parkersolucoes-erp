@@ -96,6 +96,7 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
     setLoading(true);
     setQrCode(null);
     try {
+      // Step 1: Create instance
       const result = await callEvolutionProxy(integrationId, '/instance/create', 'POST', {
         instanceName,
         qrcode: true,
@@ -104,21 +105,34 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
         integration: 'WHATSAPP-BAILEYS'
       });
 
-      const qr = result?.qrcode?.base64 || result?.qrcode;
-      if (qr) {
+      console.log('[Evolution] Create response:', JSON.stringify(result));
+
+      // Try to extract QR from create response
+      let qr = result?.qrcode?.base64 || result?.base64 || result?.qrcode?.code;
+      
+      // If qrcode is a string (the base64 itself), use it
+      if (typeof result?.qrcode === 'string' && result.qrcode.length > 50) {
+        qr = result.qrcode;
+      }
+
+      if (qr && typeof qr === 'string' && qr.length > 50) {
         toast({ title: '✅ Instância criada!', description: `Instância "${instanceName}" criada com sucesso.` });
         setQrCode(qr);
         setActiveInstanceName(instanceName);
         setInstanceName('');
         await fetchInstances();
-      } else if (result?.instance) {
-        toast({ title: '✅ Instância criada!', description: `Instância "${instanceName}" criada. Clique em Conectar para gerar o QR Code.` });
+      } else {
+        // Step 2: Instance created but no QR yet — wait and call connect
+        toast({ title: '✅ Instância criada!', description: 'Aguarde, gerando QR Code...' });
         setInstanceName('');
         await fetchInstances();
-      } else {
-        toast({ title: 'Erro ao criar instância', description: JSON.stringify(result), variant: 'destructive' });
+        
+        // Wait a bit for the instance to be ready, then try connect
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        await handleGetQrCodeWithRetry(instanceName, 3);
       }
     } catch (error: any) {
+      console.error('[Evolution] Create error:', error);
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
     } finally {
       setLoading(false);
