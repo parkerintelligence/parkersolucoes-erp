@@ -35,7 +35,8 @@ import {
   Archive,
   Activity,
   Wifi,
-  Router
+  Router,
+  Users
 } from "lucide-react";
 
 const Admin = () => {
