@@ -41,7 +41,54 @@ export default function Webhooks() {
   const [actionDest, setActionDest] = useState('');
   const [actionTemplate, setActionTemplate] = useState('{text}');
 
-  const filtered = webhooks.filter(w => {
+  // History state
+  const [historyDialog, setHistoryDialog] = useState(false);
+  const [historyWebhook, setHistoryWebhook] = useState<Webhook | null>(null);
+  const [historyLogs, setHistoryLogs] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPage, setHistoryPage] = useState(0);
+  const LOGS_PER_PAGE = 5;
+
+  const openHistory = useCallback(async (webhook: Webhook) => {
+    setHistoryWebhook(webhook);
+    setHistoryDialog(true);
+    setHistoryPage(0);
+    setHistoryLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('webhook_logs' as any)
+        .select('*')
+        .eq('webhook_id', webhook.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      setHistoryLogs(data || []);
+    } catch (err: any) {
+      toast.error('Erro ao carregar histórico: ' + err.message);
+      setHistoryLogs([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  const clearHistory = useCallback(async () => {
+    if (!historyWebhook) return;
+    try {
+      const { error } = await supabase
+        .from('webhook_logs' as any)
+        .delete()
+        .eq('webhook_id', historyWebhook.id);
+      if (error) throw error;
+      setHistoryLogs([]);
+      toast.success('Histórico limpo com sucesso!');
+    } catch (err: any) {
+      toast.error('Erro ao limpar histórico: ' + err.message);
+    }
+  }, [historyWebhook]);
+
+  const pagedLogs = historyLogs.slice(historyPage * LOGS_PER_PAGE, (historyPage + 1) * LOGS_PER_PAGE);
+  const totalHistoryPages = Math.ceil(historyLogs.length / LOGS_PER_PAGE);
+
     if (search && !w.name.toLowerCase().includes(search.toLowerCase()) && !w.slug.toLowerCase().includes(search.toLowerCase())) return false;
     if (filter === 'active' && !w.is_active) return false;
     if (filter === 'whatsapp' && !w.actions?.some(a => a.action_type === 'whatsapp')) return false;
