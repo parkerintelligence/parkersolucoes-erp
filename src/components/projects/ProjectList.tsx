@@ -23,8 +23,35 @@ interface ProjectListProps {
   columns: ActionColumn[];
   cards: ActionCard[];
   cardItems: ActionCardItem[];
-  onRefresh?: () => Promise<void>;
 }
+
+// Helper to do direct DB operations and let parent refresh via hook
+const dbOps = {
+  createCard: async (data: any) => {
+    const { error } = await supabase.from('action_cards').insert(data);
+    if (error) throw error;
+  },
+  updateCard: async (id: string, data: any) => {
+    const { error } = await supabase.from('action_cards').update(data).eq('id', id);
+    if (error) throw error;
+  },
+  deleteCard: async (id: string) => {
+    const { error } = await supabase.from('action_cards').delete().eq('id', id);
+    if (error) throw error;
+  },
+  createCardItem: async (data: any) => {
+    const { error } = await supabase.from('action_card_items').insert(data);
+    if (error) throw error;
+  },
+  updateCardItem: async (id: string, data: any) => {
+    const { error } = await supabase.from('action_card_items').update(data).eq('id', id);
+    if (error) throw error;
+  },
+  deleteCardItem: async (id: string) => {
+    const { error } = await supabase.from('action_card_items').delete().eq('id', id);
+    if (error) throw error;
+  },
+};
 
 const priorityConfig: Record<string, { label: string; dotColor: string; bgColor: string }> = {
   urgent: { label: "Urgente", dotColor: "bg-red-500", bgColor: "bg-red-500/10 text-red-400 border-red-500/20" },
