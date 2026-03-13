@@ -91,30 +91,22 @@ export const EvolutionAPIAdminConfig = () => {
     setIsTestingConnection(true);
 
     try {
-      // Criar integração temporária para teste
-      const tempIntegration = {
-        base_url: formData.base_url,
-        api_token: formData.api_token,
-        instance_name: formData.instance_name
-      } as any;
+      // Test by fetching instances via proxy
+      const { data, error } = await supabase.functions.invoke('evolution-proxy', {
+        body: {
+          integrationId: evolutionIntegration?.id,
+          endpoint: '/instance/fetchInstances',
+          method: 'GET'
+        }
+      });
 
-      const evolutionService = new EvolutionApiService(tempIntegration);
-      
-      // Verificar status da instância
-      const instanceStatus = await evolutionService.checkInstanceStatus();
-      
-      if (instanceStatus.active) {
-        toast({
-          title: "✅ Conexão bem-sucedida!",
-          description: "A conexão com a Evolution API está funcionando e a instância está ativa.",
-        });
-      } else {
-        toast({
-          title: "⚠️ Instância inativa",
-          description: instanceStatus.error || "A instância não está ativa ou não foi encontrada.",
-          variant: "destructive"
-        });
-      }
+      if (error) throw error;
+
+      const instanceCount = Array.isArray(data) ? data.length : 0;
+      toast({
+        title: "✅ Conexão bem-sucedida!",
+        description: `API respondeu corretamente. ${instanceCount} instância(s) encontrada(s).`,
+      });
     } catch (error) {
       console.error('Erro no teste de conexão:', error);
       toast({
