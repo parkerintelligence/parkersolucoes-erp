@@ -37,6 +37,10 @@ const AdminUsersPanel = () => {
   const [resetUserId, setResetUserId] = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState('');
 
+  // Permissions dialog
+  const [permUserId, setPermUserId] = useState<string | null>(null);
+  const [permEmail, setPermEmail] = useState('');
+
   const callManageUsers = async (body: any) => {
     const { data, error } = await supabase.functions.invoke('manage-users', { body });
     if (error) throw error;
