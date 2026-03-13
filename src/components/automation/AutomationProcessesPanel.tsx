@@ -45,6 +45,7 @@ export const AutomationProcessesPanel = () => {
   const [form, setForm] = useState(emptyForm);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [systemInput, setSystemInput] = useState('');
 
   const openNew = () => {
     setEditingId(null);
