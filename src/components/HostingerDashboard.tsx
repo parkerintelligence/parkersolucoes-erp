@@ -309,144 +309,105 @@ const VPSCard = ({
     if (usage >= 70) return 'text-orange-300';
     return 'text-blue-300';
   };
-  return <Card className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-all hover-scale">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-white text-lg flex items-center gap-2 min-w-0">
-            <Server className="h-5 w-5 text-blue-400 flex-shrink-0" />
-            <span className="truncate flex-1 min-w-0">
+  return <Card className="bg-slate-800/80 border-slate-700 hover:border-blue-500/40 transition-all duration-200 group">
+      <CardHeader className="pb-3 pt-4 px-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-1.5 bg-blue-500/20 rounded-lg flex-shrink-0">
+              <Server className="h-4 w-4 text-blue-400" />
+            </div>
+            <span className="text-white font-semibold text-sm truncate">
               {safeValue(vps.hostname) || safeValue(vps.name) || safeValue(vps.id)}
             </span>
-          </CardTitle>
-          <Badge variant="outline" className={`${getStatusColor(getVpsStatus(vps))} flex items-center gap-1`}>
+          </div>
+          <Badge variant="outline" className={`${getStatusColor(getVpsStatus(vps))} flex items-center gap-1 text-[10px] px-2 py-0.5`}>
             {getStatusIcon(getVpsStatus(vps))}
             {getVpsStatus(vps)}
           </Badge>
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-6">
-        {/* Informações Principais */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-slate-400">
-              <Wifi className="h-4 w-4 text-blue-400" />
-              <span className="text-sm">IP Principal</span>
-            </div>
-            <p className="text-white font-mono text-sm">{safeValue(vps.ipv4)}</p>
+      <CardContent className="space-y-3 px-4 pb-4 pt-0">
+        {/* IP & Location row */}
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="flex items-center gap-1.5 text-slate-400">
+            <Wifi className="h-3 w-3 text-blue-400 flex-shrink-0" />
+            <span className="font-mono text-slate-300 truncate">{safeValue(vps.ipv4)}</span>
           </div>
-          
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-slate-400">
-              <MapPin className="h-4 w-4 text-blue-400" />
-              <span className="text-sm">Localização</span>
-            </div>
-            <p className="text-white text-sm">{safeValue(vps.region)}</p>
+          <div className="flex items-center gap-1.5 text-slate-400">
+            <MapPin className="h-3 w-3 text-blue-400 flex-shrink-0" />
+            <span className="text-slate-300 truncate">{safeValue(vps.region)}</span>
           </div>
         </div>
 
-        {/* Especificações */}
-        <div className="space-y-3 pt-2 border-t border-slate-600">
-          <h4 className="text-sm font-medium text-slate-300 flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-blue-400" />
-            Especificações
-          </h4>
-          
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="space-y-1">
-              <div className="p-2 bg-blue-500/20 rounded-lg">
-                <Cpu className="h-4 w-4 text-blue-400 mx-auto" />
-              </div>
-              <p className="text-xs text-slate-400">CPU</p>
-              <p className="text-white font-semibold">{safeValue(vps.cpus || vps.cpu, '0')}</p>
-            </div>
-            
-            <div className="space-y-1">
-              <div className="p-2 bg-blue-500/20 rounded-lg">
-                <Zap className="h-4 w-4 text-blue-400 mx-auto" />
-              </div>
-              <p className="text-xs text-slate-400">RAM</p>
-              <p className="text-white font-semibold">{formatMemory(safeValue(vps.memory, 0))}</p>
-            </div>
-            
-            <div className="space-y-1">
-              <div className="p-2 bg-blue-500/20 rounded-lg">
-                <HardDrive className="h-4 w-4 text-blue-400 mx-auto" />
-              </div>
-              <p className="text-xs text-slate-400">Disco</p>
-              <p className="text-white font-semibold">{formatDisk(safeValue(vps.disk, 0))}</p>
-            </div>
+        {/* Specs row */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-slate-700/50 rounded-lg p-2 text-center">
+            <Cpu className="h-3.5 w-3.5 text-blue-400 mx-auto mb-1" />
+            <p className="text-[10px] text-slate-500">CPU</p>
+            <p className="text-white font-bold text-sm">{safeValue(vps.cpus || vps.cpu, '0')}</p>
+          </div>
+          <div className="bg-slate-700/50 rounded-lg p-2 text-center">
+            <Zap className="h-3.5 w-3.5 text-blue-400 mx-auto mb-1" />
+            <p className="text-[10px] text-slate-500">RAM</p>
+            <p className="text-white font-bold text-sm">{formatMemory(safeValue(vps.memory, 0))}</p>
+          </div>
+          <div className="bg-slate-700/50 rounded-lg p-2 text-center">
+            <HardDrive className="h-3.5 w-3.5 text-blue-400 mx-auto mb-1" />
+            <p className="text-[10px] text-slate-500">Disco</p>
+            <p className="text-white font-bold text-sm">{formatDisk(safeValue(vps.disk, 0))}</p>
           </div>
         </div>
 
-        {/* Métricas de Performance */}
-        {metrics && <div className="space-y-3 pt-2 border-t border-slate-600">
+        {/* Performance metrics */}
+        {metrics && <div className="space-y-2 pt-2 border-t border-slate-700">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                <Gauge className="h-4 w-4 text-blue-400" />
-                Performance
-                <span className="text-xs text-slate-500">
-                  ({metrics.isReal ? 'Real-time' : 'Live Simulation'})
-                </span>
-              </h4>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full animate-pulse ${metrics.isReal ? 'bg-blue-400' : 'bg-orange-400'}`} />
-                <Badge variant="outline" className={metrics.isReal ? "bg-blue-500/20 text-blue-300 border-blue-500/40 text-xs" : "bg-orange-500/20 text-orange-300 border-orange-500/40 text-xs"}>
-                  {metrics.isReal ? 'Real' : 'Sim'}
-                </Badge>
-              </div>
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-medium">Performance</span>
+              <Badge variant="outline" className={`${metrics.isReal ? "bg-blue-500/20 text-blue-300 border-blue-500/40" : "bg-orange-500/20 text-orange-300 border-orange-500/40"} text-[9px] px-1.5 py-0`}>
+                {metrics.isReal ? 'Real' : 'Sim'}
+              </Badge>
             </div>
             
-            <div className="space-y-3">
-              {/* CPU Usage */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">CPU</span>
-                  <span className={`font-mono ${getUsageColor(metrics.cpu_usage)}`}>
-                    {Math.round(metrics.cpu_usage)}%
-                  </span>
+            <div className="space-y-1.5">
+              <div className="space-y-1">
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-500">CPU</span>
+                  <span className={`font-mono ${getUsageColor(metrics.cpu_usage)}`}>{Math.round(metrics.cpu_usage)}%</span>
                 </div>
-                <Progress value={metrics.cpu_usage} className="h-2" />
+                <Progress value={metrics.cpu_usage} className="h-1.5" />
               </div>
-              
-              {/* Memory Usage */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Memória</span>
-                  <span className={`font-mono ${getUsageColor(metrics.memory_usage)}`}>
-                    {Math.round(metrics.memory_usage)}%
-                  </span>
+              <div className="space-y-1">
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-500">Memória</span>
+                  <span className={`font-mono ${getUsageColor(metrics.memory_usage)}`}>{Math.round(metrics.memory_usage)}%</span>
                 </div>
-                <Progress value={metrics.memory_usage} className="h-2" />
+                <Progress value={metrics.memory_usage} className="h-1.5" />
               </div>
-              
-              {/* Disk Usage */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Disco</span>
-                  <span className={`font-mono ${getUsageColor(metrics.disk_usage)}`}>
-                    {Math.round(metrics.disk_usage)}%
-                  </span>
+              <div className="space-y-1">
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-500">Disco</span>
+                  <span className={`font-mono ${getUsageColor(metrics.disk_usage)}`}>{Math.round(metrics.disk_usage)}%</span>
                 </div>
-                <Progress value={metrics.disk_usage} className="h-2" />
+                <Progress value={metrics.disk_usage} className="h-1.5" />
               </div>
             </div>
           </div>}
 
-        {/* Ações */}
-        <div className="flex gap-2 pt-2">
-          <Button onClick={onRestart} variant="outline" size="sm" disabled={restarting} title="Reiniciar VPS" className="p-3 border-slate-600 hover:border-red-500 hover:text-red-300 bg-slate-50">
-            {restarting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+        {/* Actions */}
+        <div className="flex gap-2 pt-1">
+          <Button onClick={onRestart} variant="outline" size="sm" disabled={restarting} title="Reiniciar VPS" className="flex-1 h-8 text-xs border-slate-600 hover:border-red-500 hover:text-red-300 bg-slate-700/50">
+            {restarting ? <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1" /> : <RotateCcw className="h-3.5 w-3.5 mr-1" />}
+            Reiniciar
           </Button>
-          
           <Button 
             onClick={() => window.open('https://hpanel.hostinger.com.br/hosting/vps-list', '_blank')} 
             variant="outline" 
             size="sm" 
-            title="Criar Snapshot no Painel Hostinger (API não suporta)" 
-            className="p-3 border-slate-600 hover:border-blue-500 text-slate-950 bg-slate-50"
+            title="Abrir no Painel Hostinger" 
+            className="flex-1 h-8 text-xs border-slate-600 hover:border-blue-500 hover:text-blue-300 bg-slate-700/50"
           >
-            <Camera className="h-4 w-4" />
+            <Camera className="h-3.5 w-3.5 mr-1" />
+            Snapshot
           </Button>
         </div>
       </CardContent>
