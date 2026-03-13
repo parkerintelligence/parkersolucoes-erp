@@ -136,6 +136,7 @@ const AdminUsersPanel = () => {
   };
 
   return (
+    <TooltipProvider>
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
