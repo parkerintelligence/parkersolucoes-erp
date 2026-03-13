@@ -142,7 +142,7 @@ const useDashboardData = () => {
 const LOGS_PER_PAGE = 5;
 
 const Dashboard = () => {
-  const { integrations, reports, logs, isLoading, refetchAll } = useDashboardData();
+  const { integrations, reports, logs, ftpFiles, baculaErrors, zabbixProblems, hasBacula, hasZabbix, hasFtp, isLoading, refetchAll } = useDashboardData();
   const [logsPage, setLogsPage] = useState(0);
 
   // --- Compute stats ---
