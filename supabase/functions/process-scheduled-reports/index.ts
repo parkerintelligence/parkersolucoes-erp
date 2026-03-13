@@ -214,6 +214,46 @@ const handler = async (req: Request): Promise<Response> => {
       timestamp: currentTime.toISOString()
     });
 
+    // Corrigir relatórios ativos sem próxima execução (evita agendamentos travados)
+    const { data: reportsWithoutNextExecution, error: missingNextExecError } = await supabase
+      .from('scheduled_reports')
+      .select('id, name, cron_expression')
+      .eq('is_active', true)
+      .is('next_execution', null);
+
+    if (missingNextExecError) {
+      console.error('⚠️ [UNIFIED-CRON] Erro ao buscar relatórios sem next_execution:', missingNextExecError);
+    }
+
+    if (reportsWithoutNextExecution && reportsWithoutNextExecution.length > 0) {
+      console.log(`🛠️ [UNIFIED-CRON] Recalculando next_execution para ${reportsWithoutNextExecution.length} relatório(s) sem agendamento`);
+
+      for (const report of reportsWithoutNextExecution) {
+        const { data: recalculatedNextExecution, error: recalcError } = await supabase
+          .rpc('calculate_next_execution', {
+            cron_expr: report.cron_expression,
+            from_time: currentTime.toISOString()
+          });
+
+        if (recalcError) {
+          console.error(`❌ [UNIFIED-CRON] Falha ao recalcular next_execution de ${report.name}:`, recalcError);
+          continue;
+        }
+
+        const { error: updateMissingNextExecError } = await supabase
+          .from('scheduled_reports')
+          .update({ next_execution: recalculatedNextExecution })
+          .eq('id', report.id);
+
+        if (updateMissingNextExecError) {
+          console.error(`❌ [UNIFIED-CRON] Falha ao atualizar next_execution de ${report.name}:`, updateMissingNextExecError);
+          continue;
+        }
+
+        console.log(`✅ [UNIFIED-CRON] next_execution recalculado para ${report.name}: ${recalculatedNextExecution}`);
+      }
+    }
+
     // Buscar relatórios que devem ser executados agora
     console.log(`🔍 [UNIFIED-CRON] Buscando relatórios com next_execution <= ${currentTime.toISOString()}`);
     
