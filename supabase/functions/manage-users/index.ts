@@ -34,9 +34,9 @@ serve(async (req) => {
       
       const hasMasters = masterUsers && masterUsers.length > 0;
       
-      // If masters exist, require the bootstrap key from env
-      if (hasMasters && bootstrapKey !== "parker-bootstrap-2024") {
-        return new Response(JSON.stringify({ error: "Bootstrap não permitido - masters já existem" }), {
+      // If masters exist, bootstrap is not allowed (use the UI instead)
+      if (hasMasters) {
+        return new Response(JSON.stringify({ error: "Bootstrap não permitido - masters já existem. Use o painel admin." }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
