@@ -20,9 +20,11 @@ interface InstanceInfo {
 }
 
 const callEvolutionProxy = async (integrationId: string, endpoint: string, method = 'GET', body?: any) => {
+  console.log(`[Evolution] Calling proxy: ${method} ${endpoint}`);
   const { data, error } = await supabase.functions.invoke('evolution-proxy', {
     body: { integrationId, endpoint, method, body }
   });
+  console.log(`[Evolution] Response:`, data, error);
   if (error) throw error;
   return data;
 };
