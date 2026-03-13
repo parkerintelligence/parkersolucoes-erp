@@ -212,7 +212,7 @@ export const EvolutionAPIAdminConfig = () => {
           <Button
             onClick={testConnection}
             variant="outline"
-            disabled={!formData.base_url || !formData.api_token || !formData.instance_name || isTestingConnection}
+            disabled={!formData.base_url || !formData.api_token || isTestingConnection}
           >
             {isTestingConnection ? (
               <>
