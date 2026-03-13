@@ -50,6 +50,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <MikrotikProvider>
+          <ConfirmDialogProvider>
           <BrowserRouter>
           <div className="min-h-screen bg-background">
             <Routes>
