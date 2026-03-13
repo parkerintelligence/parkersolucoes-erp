@@ -55,6 +55,7 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
         due_date: card.due_date || "",
         column_id: card.column_id || "",
         status: (card as any).status || "not_started",
+        assigned_to: (card as any).assigned_to || "",
       });
     } else {
       setFormData({
@@ -65,6 +66,7 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
         due_date: "",
         column_id: "",
         status: "not_started",
+        assigned_to: "",
       });
     }
   }, [card]);
