@@ -45,13 +45,13 @@ Deno.serve(async (req) => {
     console.log(`✅ [MIKROTIK-REPORT] Relatório encontrado: ${report.name}`);
     console.log(`👤 [MIKROTIK-REPORT] User ID: ${report.user_id}`);
 
-    // Fetch all active Mikrotik integrations for this user
+    // Fetch all active Mikrotik integrations (global + user's own)
     const { data: mikrotikClients, error: clientsError } = await supabase
       .from('integrations')
       .select('*')
-      .eq('user_id', report.user_id)
       .eq('type', 'mikrotik')
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .or(`is_global.eq.true,user_id.eq.${report.user_id}`);
 
     if (clientsError) throw clientsError;
     if (!mikrotikClients || mikrotikClients.length === 0) {
