@@ -27,7 +27,11 @@ const callEvolutionProxy = async (integrationId: string, endpoint: string, metho
   return data;
 };
 
-export const EvolutionInstanceManager = () => {
+interface EvolutionInstanceManagerProps {
+  onInstancesChange?: (instances: InstanceInfo[]) => void;
+}
+
+export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanceManagerProps = {}) => {
   const { data: integrations } = useIntegrations();
   const evolutionConfig = integrations?.find(i => i.type === 'evolution_api');
 
