@@ -665,9 +665,9 @@ async function getScheduleData(userId: string, settings: any) {
   // Construir mensagem com layout limpo e organizado
   const criticalCount = categorizedItems.overdue.length + categorizedItems.today.length;
   
-  let itemsText = `━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  let itemsText = `\n`;
   itemsText += `   📋 *AGENDA DE VENCIMENTOS*\n`;
-  itemsText += `━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  itemsText += `\n`;
   itemsText += `📅 ${today.toLocaleDateString('pt-BR')}  •  📊 ${allItems.length} itens\n\n`;
 
   // Helper para renderizar seção
@@ -726,9 +726,9 @@ async function getScheduleData(userId: string, settings: any) {
 
   // Resumo final compacto
   if (allItems.length > 0) {
-    itemsText += `━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    itemsText += `\n`;
     itemsText += `   📊 *RESUMO*\n`;
-    itemsText += `━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    itemsText += `\n`;
     itemsText += `🔴 Vencidos: ${categorizedItems.overdue.length}  •  🟡 Hoje: ${categorizedItems.today.length}\n`;
     itemsText += `🟠 7 dias: ${categorizedItems.next7days.length}  •  🔵 30 dias: ${categorizedItems.next30days.length}\n`;
     itemsText += `⚪ Futuros: ${categorizedItems.future.length}\n`;
