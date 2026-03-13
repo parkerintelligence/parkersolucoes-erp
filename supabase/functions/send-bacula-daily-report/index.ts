@@ -639,7 +639,8 @@ serve(async (req) => {
         
         const whatsappResponse = await supabase.functions.invoke('send-whatsapp-message', {
           body: {
-            instanceName: evolutionIntegration.instance_name,
+            integrationId: evolutionIntegration.id,
+            instanceName: baculaInstanceName || undefined,
             phoneNumber: recipient,
             message: finalMessage
           }
