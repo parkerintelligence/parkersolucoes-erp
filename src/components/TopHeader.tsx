@@ -6,6 +6,7 @@ import { useLocation } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ChangePasswordDialog } from '@/components/ChangePasswordDialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { PWAInstallButton } from '@/components/PWAInstallButton';
 
 export const TopHeader = () => {
   const { user, userProfile, logout } = useAuth();
@@ -64,6 +65,8 @@ export const TopHeader = () => {
             <span className="hidden sm:inline text-xs font-medium text-muted-foreground max-w-32 truncate mr-2">
               {userProfile?.email || user?.email}
             </span>
+
+            <PWAInstallButton />
 
             <Tooltip>
               <TooltipTrigger asChild>
