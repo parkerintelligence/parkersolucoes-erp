@@ -8,69 +8,77 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Dark Luxury Theme - Deep Blue-Black & Gold */
-    --background: 222 84% 5%; /* Very dark blue-black */
-    --foreground: 45 96% 89%; /* Soft gold text */
+    /* Dark Navy Professional Theme */
+    --background: 225 30% 8%; /* Very dark navy */
+    --foreground: 210 40% 96%; /* Near-white text */
 
-    --card: 215 25% 12%; /* Dark navy cards */
-    --card-foreground: 45 96% 89%;
+    --card: 225 25% 12%; /* Dark navy cards */
+    --card-foreground: 210 40% 96%;
 
-    --popover: 215 25% 12%;
-    --popover-foreground: 45 96% 89%;
+    --popover: 225 25% 14%;
+    --popover-foreground: 210 40% 96%;
 
-    --primary: 215 25% 15%; /* Deep navy blue */
-    --primary-foreground: 45 96% 89%;
+    --primary: 215 70% 50%; /* Vibrant blue */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 43 96% 56%; /* Rich golden */
-    --secondary-foreground: 215 25% 15%;
+    --secondary: 225 20% 18%; /* Subtle dark secondary */
+    --secondary-foreground: 210 40% 96%;
 
-    --muted: 215 20% 20%; /* Dark muted */
-    --muted-foreground: 45 50% 70%;
+    --muted: 225 20% 16%; /* Dark muted */
+    --muted-foreground: 215 20% 60%;
 
-    --accent: 43 96% 56%; /* Rich golden accent */
-    --accent-foreground: 215 25% 15%;
+    --accent: 215 70% 50%; /* Blue accent */
+    --accent-foreground: 0 0% 100%;
 
-    /* Custom luxury colors */
-    --gold: 43 96% 56%; /* Pure gold */
-    --gold-foreground: 215 25% 15%;
-    --gold-muted: 43 86% 70%;
-    --gold-glow: 43 100% 65%;
-    --navy-deep: 215 25% 15%;
-    --navy-light: 215 30% 25%;
-    --glass-bg: 215 25% 12% / 0.2;
-    --glass-border: 45 96% 56% / 0.2;
+    /* Contextual colors */
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 200 80% 50%;
+    --info-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 88%; /* Light blue-gray borders */
-    --input: 220 20% 95%; /* Light input backgrounds */
-    --ring: 43 96% 56%; /* Golden focus rings */
+    --border: 225 15% 20%; /* Subtle dark borders */
+    --input: 225 20% 16%; /* Dark input backgrounds */
+    --ring: 215 70% 50%; /* Blue focus rings */
 
-    --radius: 0.75rem; /* Increased border radius for modern look */
+    --radius: 0.75rem;
 
     /* Navigation specific colors */
-    --nav-background: 0 0% 100%;
-    --nav-card: 220 13% 98%;
-    --nav-card-active: 43 96% 56%;
-    --nav-card-hover: 220 13% 95%;
+    --nav-background: 225 30% 10%;
+    --nav-card: 225 25% 14%;
+    --nav-card-active: 215 70% 50%;
+    --nav-card-hover: 225 25% 18%;
 
-    /* Sidebar colors */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 220 20% 30%;
-    --sidebar-primary: 220 50% 15%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 43 96% 56%;
-    --sidebar-accent-foreground: 220 50% 15%;
-    --sidebar-border: 220 20% 88%;
-    --sidebar-ring: 43 96% 56%;
+    /* Sidebar colors - dark navy like the screenshot */
+    --sidebar-background: 225 35% 10%;
+    --sidebar-foreground: 215 20% 70%;
+    --sidebar-primary: 215 70% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 70% 50%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 225 15% 18%;
+    --sidebar-ring: 215 70% 50%;
 
-    /* Chart colors using the theme */
-    --chart-1: 220 50% 15%; /* Deep blue */
-    --chart-2: 43 96% 56%; /* Golden */
-    --chart-3: 195 100% 50%; /* Cyan */
-    --chart-4: 142 76% 36%; /* Green */
-    --chart-5: 31 100% 50%; /* Orange */
+    /* Chart colors */
+    --chart-1: 215 70% 50%; /* Blue */
+    --chart-2: 142 70% 45%; /* Green */
+    --chart-3: 38 92% 50%; /* Amber */
+    --chart-4: 0 72% 51%; /* Red */
+    --chart-5: 280 65% 60%; /* Purple */
+
+    /* Legacy gold tokens mapped to blue */
+    --gold: 215 70% 50%;
+    --gold-foreground: 0 0% 100%;
+    --gold-muted: 215 50% 60%;
+    --gold-glow: 215 80% 60%;
+    --navy-deep: 225 30% 12%;
+    --navy-light: 225 25% 22%;
+    --glass-bg: 225 25% 12% / 0.4;
+    --glass-border: 215 70% 50% / 0.2;
 
     /* PWA and Responsive Variables */
     --header-height: 4rem;
@@ -88,38 +96,37 @@ All colors MUST be HSL.
     --transition-slow: 350ms ease-in-out;
     
     /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.2);
   }
 
   .dark {
-    /* Dark theme colors */
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --background: 225 30% 6%;
+    --foreground: 210 40% 96%;
+    --card: 225 25% 10%;
+    --card-foreground: 210 40% 96%;
+    --popover: 225 25% 10%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 215 70% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 225 20% 14%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 225 20% 14%;
+    --muted-foreground: 215 20% 55%;
+    --accent: 215 70% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 225 15% 16%;
+    --input: 225 20% 14%;
+    --ring: 215 70% 50%;
+    --chart-1: 215 70% 50%;
+    --chart-2: 142 70% 45%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 0 72% 51%;
+    --chart-5: 280 65% 60%;
   }
 
   * {
