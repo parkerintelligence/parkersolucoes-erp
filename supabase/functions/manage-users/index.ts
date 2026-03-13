@@ -18,46 +18,11 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Verify caller is master
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const callerClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user: caller } } = await callerClient.auth.getUser();
-    
-    if (!caller) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Check if caller is master
-    const { data: callerProfile } = await supabase
-      .from("user_profiles")
-      .select("role")
-      .eq("id", caller.id)
-      .single();
-
-    if (callerProfile?.role !== "master") {
-      return new Response(JSON.stringify({ error: "Acesso negado. Apenas master pode gerenciar usuários." }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
+    // Parse body first to check for bootstrap action
     const body = await req.json();
     const { action, ...params } = body;
 
-    // Bootstrap action - uses service role key directly for initial setup
+    // Bootstrap action - no auth required, uses service role secret
     if (action === "bootstrap") {
       const { secret, email, password, role = "master" } = params;
       const expectedSecret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
