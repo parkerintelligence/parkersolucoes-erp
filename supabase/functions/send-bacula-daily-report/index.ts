@@ -505,40 +505,54 @@ serve(async (req) => {
     console.log(`📊 [BACULA-DAILY] Dados processados: ${jobs.length} jobs encontrados (fonte: ${dataSource})`);
 
     // Filtrar jobs do período definido
-    const filteredJobs = jobs.filter(job => {
-      const possibleDates = [
+    const getJobDate = (job: any): number => {
+      const candidateDates = [
         job.starttime,
-        job.schedtime, 
+        job.schedtime,
         job.endtime,
         job.realendtime,
         job.created_at,
         job.timestamp
       ].filter(Boolean);
 
-      if (possibleDates.length === 0) return false;
-
-      for (const dateStr of possibleDates) {
-        try {
-          const jobTime = new Date(dateStr);
-          if (!isNaN(jobTime.getTime()) && jobTime >= brasiliaStartTime && jobTime <= brasiliaEndTime) {
-            return true;
-          }
-        } catch (error) {
-          continue;
+      for (const dateValue of candidateDates) {
+        const parsedDate = new Date(dateValue);
+        if (!isNaN(parsedDate.getTime())) {
+          return parsedDate.getTime();
         }
       }
-      
-      return false;
-    });
+
+      return 0;
+    };
+
+    const filteredJobs = jobs
+      .filter((job: any) => {
+        const possibleDates = [
+          job.starttime,
+          job.schedtime,
+          job.endtime,
+          job.realendtime,
+          job.created_at,
+          job.timestamp
+        ].filter(Boolean);
+
+        if (possibleDates.length === 0) return false;
+
+        return possibleDates.some((dateStr: string) => {
+          const jobTime = new Date(dateStr);
+          return !isNaN(jobTime.getTime()) && jobTime >= brasiliaStartTime && jobTime <= brasiliaEndTime;
+        });
+      })
+      .sort((a: any, b: any) => getJobDate(b) - getJobDate(a));
 
     console.log(`🎯 [BACULA-DAILY] Jobs filtrados do período (${periodDescription}): ${filteredJobs.length} de ${jobs.length} total`);
 
     if (filteredJobs.length === 0) {
       console.log('⚠️ [BACULA-DAILY] Nenhum job encontrado no período');
       const errorMessage = `⚠️ *ALERTA BACULA - SEM JOBS*\n\n` +
-        `📅 **Período analisado**: ${periodDescription}\n` +
-        `❌ **Nenhum job encontrado no período**\n\n` +
-        `🔍 **Ação necessária**: Verificar configuração dos jobs`;
+        `📅 *Período analisado:* ${periodDescription}\n` +
+        `❌ Nenhum job encontrado no período\n\n` +
+        `🔍 Ação necessária: Verificar configuração dos jobs`;
 
       for (const recipient of recipients) {
         try {
@@ -555,108 +569,136 @@ serve(async (req) => {
         }
       }
 
-      return new Response(JSON.stringify({ 
-        success: false, 
-        message: `Nenhum job encontrado no período (${periodDescription})` 
+      return new Response(JSON.stringify({
+        success: false,
+        message: `Nenhum job encontrado no período (${periodDescription})`
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Mapear todos os status possíveis do Bacula
-    const statusMap = {
-      'T': 'Concluído com Sucesso',
-      'E': 'Erro (com diferenças)',
-      'f': 'Erro Fatal',
-      'A': 'Cancelado pelo usuário',
-      'R': 'Executando',
-      'C': 'Criado (aguardando)',
-      'c': 'Aguardando recurso',
-      'B': 'Bloqueado',
-      'D': 'Verificação com diferenças',
-      'I': 'Incompleto',
-      'F': 'Aguardando no File Daemon',
-      'S': 'Aguardando no Storage Daemon',
-      'M': 'Aguardando nova mídia',
-      'Q': 'Na fila (aguardando dispositivo)',
-      'W': 'Aguardando'
+    const statusMap: Record<string, string> = {
+      T: 'Concluído com Sucesso',
+      E: 'Erro (com diferenças)',
+      f: 'Erro Fatal',
+      A: 'Cancelado pelo usuário',
+      R: 'Executando',
+      C: 'Criado (aguardando)',
+      c: 'Aguardando recurso',
+      B: 'Bloqueado',
+      D: 'Verificação com diferenças',
+      I: 'Incompleto',
+      F: 'Aguardando no File Daemon',
+      S: 'Aguardando no Storage Daemon',
+      M: 'Aguardando nova mídia',
+      Q: 'Na fila (aguardando dispositivo)',
+      W: 'Aguardando',
+      success: 'Concluído com Sucesso',
+      ok: 'Concluído com Sucesso',
+      error: 'Erro',
+      fatal: 'Erro Fatal',
+      running: 'Executando',
+      cancelled: 'Cancelado'
     };
 
-    // Categorizar jobs por status
-    const jobsByStatus = {
-      success: [],     // T
-      errors: [],      // E, f
-      cancelled: [],   // A
-      running: [],     // R, C, c
-      blocked: [],     // B, Q, W, F, S, M
-      other: []        // D, I, outros
+    const jobsByStatus: Record<string, any[]> = {
+      success: [],
+      errors: [],
+      cancelled: [],
+      running: [],
+      blocked: [],
+      other: []
+    };
+
+    const getNumericValue = (job: any, fieldNames: string[]): number => {
+      for (const fieldName of fieldNames) {
+        const rawValue = job[fieldName];
+        if (rawValue === null || rawValue === undefined || rawValue === '') continue;
+        const parsed = Number(rawValue);
+        if (!Number.isNaN(parsed)) return parsed;
+      }
+      return 0;
+    };
+
+    const getRawStatus = (job: any): string => {
+      return String(job.jobstatus ?? job.status ?? job.job_status ?? 'U').trim();
     };
 
     let totalBytes = 0;
     let totalFiles = 0;
 
-    filteredJobs.forEach(job => {
-      const jobStatus = job.jobstatus || job.status || 'U';
-      
-      // Calcular estatísticas
-      if (job.jobbytes) totalBytes += parseInt(job.jobbytes) || 0;
-      if (job.jobfiles) totalFiles += parseInt(job.jobfiles) || 0;
-      
-      // Categorizar por status
-      if (jobStatus === 'T') {
+    filteredJobs.forEach((job: any) => {
+      const jobStatus = getRawStatus(job);
+      const statusLower = jobStatus.toLowerCase();
+
+      totalBytes += getNumericValue(job, ['jobbytes', 'job_bytes', 'bytes', 'byte_count']);
+      totalFiles += getNumericValue(job, ['jobfiles', 'job_files', 'files', 'file_count']);
+
+      if (jobStatus === 'T' || statusLower === 'success' || statusLower === 'ok' || statusLower === 'terminated') {
         jobsByStatus.success.push(job);
-      } else if (jobStatus === 'f' || jobStatus === 'E') {
+      } else if (jobStatus === 'f' || jobStatus === 'E' || statusLower.includes('error') || statusLower.includes('fatal')) {
         jobsByStatus.errors.push(job);
-      } else if (jobStatus === 'A') {
+      } else if (jobStatus === 'A' || statusLower.includes('cancel')) {
         jobsByStatus.cancelled.push(job);
-      } else if (jobStatus === 'R' || jobStatus === 'C' || jobStatus === 'c') {
+      } else if (jobStatus === 'R' || jobStatus === 'C' || jobStatus === 'c' || statusLower.includes('run') || statusLower.includes('wait')) {
         jobsByStatus.running.push(job);
-      } else if (['B', 'Q', 'W', 'F', 'S', 'M'].includes(jobStatus)) {
+      } else if (['B', 'Q', 'W', 'F', 'S', 'M'].includes(jobStatus) || statusLower.includes('block') || statusLower.includes('queue')) {
         jobsByStatus.blocked.push(job);
       } else {
         jobsByStatus.other.push(job);
       }
     });
 
-    // Função para limpar nome do job (remove timestamp)
-    const cleanJobName = (jobName) => {
+    const cleanJobName = (jobName: string | undefined) => {
       if (!jobName) return 'Job desconhecido';
-      // Remove padrão .YYYY-MM-DD_HH.MM.SS_XX
       return jobName.replace(/\.\d{4}-\d{2}-\d{2}_\d{2}\.\d{2}\.\d{2}_\d+$/, '');
     };
 
-    // Função para formatar detalhes do job
-    const formatJobDetails = (job) => ({
-      name: cleanJobName(job.job || job.jobname || job.name),
-      client: job.client || job.clientname || 'Cliente desconhecido',
-      level: job.level || 'N/A',
-      starttime: job.starttime ? getBrasiliaTime(new Date(job.starttime)) : 'N/A',
-      endtime: job.endtime ? getBrasiliaTime(new Date(job.endtime)) : 'N/A',
-      duration: job.starttime && job.endtime ? 
-        Math.round((new Date(job.endtime) - new Date(job.starttime)) / 60000) + ' min' : 'N/A',
-      jobbytes: job.jobbytes ? formatBytes(parseInt(job.jobbytes)) : '0',
-      jobfiles: job.jobfiles ? parseInt(job.jobfiles).toLocaleString('pt-BR') : '0',
-      jobstatus: job.jobstatus || 'N/A',
-      jobstatus_desc: statusMap[job.jobstatus] || `Status ${job.jobstatus}`,
-      jobstatus_emoji: getStatusEmoji(job.jobstatus)
-    });
+    const getStatusEmoji = (status: string) => {
+      const normalizedStatus = (status || 'U').trim();
+      const statusLower = normalizedStatus.toLowerCase();
 
-    // Função para obter emoji do status
-    function getStatusEmoji(status) {
-      switch (status) {
-        case 'T': return '✅';
-        case 'f': return '❌';
-        case 'E': return '⚠️';
-        case 'A': return '🚫';
-        case 'R': return '🔄';
-        case 'C': case 'c': return '⏳';
-        case 'B': case 'Q': case 'W': case 'F': case 'S': case 'M': return '⏸️';
-        default: return '❓';
+      if (normalizedStatus === 'T' || statusLower === 'ok' || statusLower === 'success') return '✅';
+      if (normalizedStatus === 'f' || normalizedStatus === 'E' || statusLower.includes('error') || statusLower.includes('fatal')) return '❌';
+      if (normalizedStatus === 'A' || statusLower.includes('cancel')) return '🚫';
+      if (normalizedStatus === 'R' || normalizedStatus === 'C' || normalizedStatus === 'c' || statusLower.includes('run')) return '🔄';
+      if (['B', 'Q', 'W', 'F', 'S', 'M'].includes(normalizedStatus)) return '⏸️';
+      return '❓';
+    };
+
+    const formatJobDetails = (job: any) => {
+      const rawStatus = getRawStatus(job);
+      const statusDescription = statusMap[rawStatus] || statusMap[rawStatus.toLowerCase()] || `Status ${rawStatus}`;
+      const startDate = job.starttime || job.schedtime;
+      const endDate = job.endtime || job.realendtime;
+      const bytesValue = getNumericValue(job, ['jobbytes', 'job_bytes', 'bytes', 'byte_count']);
+      const filesValue = getNumericValue(job, ['jobfiles', 'job_files', 'files', 'file_count']);
+
+      let duration = 'N/A';
+      if (startDate && endDate) {
+        const startMs = new Date(startDate).getTime();
+        const endMs = new Date(endDate).getTime();
+        if (!Number.isNaN(startMs) && !Number.isNaN(endMs) && endMs > startMs) {
+          duration = `${Math.round((endMs - startMs) / 60000)} min`;
+        }
       }
-    }
 
-    // Estatísticas gerais
+      return {
+        name: cleanJobName(job.job || job.jobname || job.name),
+        client: job.client || job.clientname || 'Cliente desconhecido',
+        level: job.level || 'N/A',
+        starttime: startDate ? getBrasiliaTime(new Date(startDate)) : 'N/A',
+        endtime: endDate ? getBrasiliaTime(new Date(endDate)) : 'N/A',
+        duration,
+        jobbytes: formatBytes(bytesValue),
+        jobfiles: filesValue.toLocaleString('pt-BR'),
+        jobstatus: rawStatus,
+        jobstatus_desc: statusDescription,
+        jobstatus_emoji: getStatusEmoji(rawStatus)
+      };
+    };
+
     const totalJobs = filteredJobs.length;
     const successJobs = jobsByStatus.success.length;
     const errorJobs = jobsByStatus.errors.length;
@@ -665,6 +707,34 @@ serve(async (req) => {
     const blockedJobs = jobsByStatus.blocked.length;
     const otherJobs = jobsByStatus.other.length;
     const criticalJobs = errorJobs + cancelledJobs;
+
+    const averageDurationInMinutes = filteredJobs
+      .map((job: any) => {
+        const startDate = job.starttime || job.schedtime;
+        const endDate = job.endtime || job.realendtime;
+        if (!startDate || !endDate) return 0;
+        const startMs = new Date(startDate).getTime();
+        const endMs = new Date(endDate).getTime();
+        if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs) return 0;
+        return Math.round((endMs - startMs) / 60000);
+      })
+      .filter((minutes: number) => minutes > 0);
+
+    const avgDuration = averageDurationInMinutes.length > 0
+      ? `${Math.round(averageDurationInMinutes.reduce((acc: number, value: number) => acc + value, 0) / averageDurationInMinutes.length)} min`
+      : 'N/A';
+
+    const uniqueClients = new Set(
+      filteredJobs
+        .map((job: any) => job.client || job.clientname)
+        .filter(Boolean)
+    );
+
+    const affectedClients = new Set(
+      [...jobsByStatus.errors, ...jobsByStatus.cancelled, ...jobsByStatus.blocked]
+        .map((job: any) => job.client || job.clientname)
+        .filter(Boolean)
+    );
 
     console.log(`📈 [BACULA-DAILY] Estatísticas completas:`);
     console.log(`   Total: ${totalJobs} jobs do período ${periodDescription}`);
@@ -675,12 +745,9 @@ serve(async (req) => {
     console.log(`   Bloqueados: ${blockedJobs}`);
     console.log(`   Outros: ${otherJobs}`);
 
-    // Preparar dados para o template
     const templateData = {
       analysis_date: periodDescription,
       report_time: getBrasiliaTime(),
-      
-      // Estatísticas gerais
       total_jobs: totalJobs,
       success_jobs: successJobs,
       error_jobs: errorJobs,
@@ -690,25 +757,56 @@ serve(async (req) => {
       other_jobs: otherJobs,
       critical_jobs: criticalJobs,
       success_rate: totalJobs > 0 ? Math.round((successJobs / totalJobs) * 100) : 0,
-      
-      // Dados processados
       total_bytes: formatBytes(totalBytes),
       total_files: totalFiles.toLocaleString('pt-BR'),
-      
-      // Detalhes dos jobs por categoria
+      avg_duration: avgDuration,
+      date: periodDescription,
+      period: `${getBrasiliaTime(brasiliaStartTime)} até ${getBrasiliaTime(brasiliaEndTime)}`,
+      current_time: getBrasiliaTime(),
+      start_date: getBrasiliaTime(brasiliaStartTime),
+      end_date: getBrasiliaTime(brasiliaEndTime),
+      has_issues: criticalJobs + blockedJobs > 0,
+      total_issues: criticalJobs + blockedJobs,
+      affected_clients: affectedClients.size,
+      total_clients: uniqueClients.size,
       success_details: jobsByStatus.success.map(formatJobDetails),
       error_details: jobsByStatus.errors.map(formatJobDetails),
       cancelled_details: jobsByStatus.cancelled.map(formatJobDetails),
       running_details: jobsByStatus.running.map(formatJobDetails),
       blocked_details: jobsByStatus.blocked.map(formatJobDetails),
       other_details: jobsByStatus.other.map(formatJobDetails),
-      
-      // Manter compatibilidade com template antigo
       fatal_jobs: errorJobs,
       fatal_details: jobsByStatus.errors.map(formatJobDetails)
     };
 
-    console.log('📋 [BACULA-DAILY] Dados estruturados para template:', {
+    const formatJobsList = (jobsList: any[], maxItems = 8) => {
+      if (!jobsList || jobsList.length === 0) return '• Nenhum job encontrado';
+
+      const displayed = jobsList.slice(0, maxItems);
+      const lines = displayed.map((job, index) => {
+        return `${index + 1}) ${job.jobstatus_emoji} ${job.name}\n` +
+          `   • Cliente: ${job.client}\n` +
+          `   • Início: ${job.starttime}\n` +
+          `   • Fim: ${job.endtime}\n` +
+          `   • Status: ${job.jobstatus_desc}\n` +
+          `   • Dados: ${job.jobbytes} | Arquivos: ${job.jobfiles}`;
+      });
+
+      if (jobsList.length > maxItems) {
+        lines.push(`… +${jobsList.length - maxItems} job(s) adicionais`);
+      }
+
+      return lines.join('\n\n');
+    };
+
+    const successJobsDetails = formatJobsList(templateData.success_details);
+    const errorJobsDetails = formatJobsList(templateData.error_details);
+    const cancelledJobsDetails = formatJobsList(templateData.cancelled_details);
+    const runningJobsDetails = formatJobsList(templateData.running_details);
+    const blockedJobsDetails = formatJobsList(templateData.blocked_details);
+    const otherJobsDetails = formatJobsList(templateData.other_details);
+
+    console.log('📋 [BACULA-DAILY] Dados estruturados para envio:', {
       analysis_date: templateData.analysis_date,
       total_jobs: templateData.total_jobs,
       success_jobs: templateData.success_jobs,
@@ -718,47 +816,54 @@ serve(async (req) => {
       success_rate: templateData.success_rate
     });
 
-    // Processar template da mensagem
-    let finalMessage = template.body;
+    const sections: string[] = [];
 
-    // Substituir variáveis básicas
-    Object.entries(templateData).forEach(([key, value]) => {
-      const placeholder = `{{${key}}}`;
-      if (typeof value === 'string' || typeof value === 'number') {
-        finalMessage = finalMessage.replace(new RegExp(placeholder, 'g'), value);
-      }
-    });
+    if (errorJobs > 0) {
+      sections.push(`🔴 *JOBS COM ERRO (${errorJobs})*\n${errorJobsDetails}`);
+    }
 
-    // Função para formatar lista de jobs
-    const formatJobsList = (jobs, showDuration = false) => {
-      if (!jobs || jobs.length === 0) return '• Nenhum job encontrado';
-      
-      return jobs.map(job => {
-        return `${job.jobstatus_emoji} ${job.name}\n(${job.client})\n${job.starttime}\n${job.jobstatus_desc} - ${job.jobbytes}\n__________________________________________________________`;
-      }).join('\n');
-    };
+    if (cancelledJobs > 0) {
+      sections.push(`⚠️ *JOBS CANCELADOS (${cancelledJobs})*\n${cancelledJobsDetails}`);
+    }
 
-    // Processar listas de jobs por categoria
-    finalMessage = finalMessage.replace(/\{\{success_jobs_details\}\}/g, formatJobsList(templateData.success_details, true));
-    finalMessage = finalMessage.replace(/\{\{error_jobs_details\}\}/g, formatJobsList(templateData.error_details, true));
-    finalMessage = finalMessage.replace(/\{\{cancelled_jobs_details\}\}/g, formatJobsList(templateData.cancelled_details, true));
-    finalMessage = finalMessage.replace(/\{\{running_jobs_details\}\}/g, formatJobsList(templateData.running_details));
-    finalMessage = finalMessage.replace(/\{\{blocked_jobs_details\}\}/g, formatJobsList(templateData.blocked_details));
-    finalMessage = finalMessage.replace(/\{\{other_jobs_details\}\}/g, formatJobsList(templateData.other_details, true));
+    if (runningJobs > 0) {
+      sections.push(`🔄 *JOBS EM EXECUÇÃO (${runningJobs})*\n${runningJobsDetails}`);
+    }
 
-    // Manter compatibilidade com template antigo
-    finalMessage = finalMessage.replace(/\{\{fatal_jobs_details\}\}/g, formatJobsList(templateData.error_details, true));
+    if (blockedJobs > 0) {
+      sections.push(`⏸️ *JOBS BLOQUEADOS (${blockedJobs})*\n${blockedJobsDetails}`);
+    }
 
-    // Processar blocos condicionais
-    finalMessage = processConditionalBlocks(finalMessage, templateData);
+    if (otherJobs > 0) {
+      sections.push(`📋 *OUTROS STATUS (${otherJobs})*\n${otherJobsDetails}`);
+    }
 
-    // Garantir quebras de linha específicas solicitadas pelo usuário
-    finalMessage = finalMessage.replace(/📅 \*Período\*: ([^\n]+)📊/g, '📅 *Período*: $1\n\n📊');
-    finalMessage = finalMessage.replace(/• Taxa de Sucesso: ([0-9.]+)%✅/g, '• Taxa de Sucesso: $1%\n\n✅');
-    finalMessage = finalMessage.replace(/• Taxa de Sucesso: ([0-9.]+)%❌/g, '• Taxa de Sucesso: $1%\n\n❌');
-    finalMessage = finalMessage.replace(/• Taxa de Sucesso: ([0-9.]+)%⚠️/g, '• Taxa de Sucesso: $1%\n\n⚠️');
-    finalMessage = finalMessage.replace(/• Taxa de Sucesso: ([0-9.]+)%🔄/g, '• Taxa de Sucesso: $1%\n\n🔄');
-    finalMessage = finalMessage.replace(/• Taxa de Sucesso: ([0-9.]+)%🚫/g, '• Taxa de Sucesso: $1%\n\n🚫');
+    if (successJobs > 0) {
+      sections.push(`✅ *JOBS COM SUCESSO (${successJobs})*\n${successJobsDetails}`);
+    }
+
+    let finalMessage = [
+      `📊 *RELATÓRIO DIÁRIO DE ERROS - BACULA*`,
+      `📅 *Período:* ${templateData.period}`,
+      `🕒 *Gerado em:* ${templateData.current_time}`,
+      ``,
+      `📌 *RESUMO EXECUTIVO*`,
+      `• Total de Jobs: ${templateData.total_jobs}`,
+      `• Jobs com Sucesso: ${templateData.success_jobs}`,
+      `• Jobs com Erro: ${templateData.error_jobs}`,
+      `• Jobs Cancelados: ${templateData.cancelled_jobs}`,
+      `• Jobs em Execução: ${templateData.running_jobs}`,
+      `• Jobs Bloqueados: ${templateData.blocked_jobs}`,
+      `• Taxa de Sucesso: ${templateData.success_rate}%`,
+      `• Dados Processados: ${templateData.total_bytes}`,
+      `• Arquivos Processados: ${templateData.total_files}`,
+      `• Duração Média: ${templateData.avg_duration}`,
+      `• Clientes afetados: ${templateData.affected_clients}/${templateData.total_clients}`,
+      `• Fonte dos dados: API Bacula (dados reais)`,
+      ...sections
+    ].join('\n\n');
+
+    finalMessage = finalMessage.replace(/\n{3,}/g, '\n\n').trim();
 
     console.log(`💬 [BACULA-DAILY] Mensagem final gerada (${finalMessage.length} caracteres)`);
     console.log(`📊 [BACULA-DAILY] Resumo: ${totalJobs} jobs do período ${periodDescription}`);
