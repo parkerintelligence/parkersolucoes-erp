@@ -27,7 +27,7 @@ export default function ActionPlan() {
   const {
     boards, columns, cards, cardItems, isLoading,
     selectedBoard, setSelectedBoard,
-    createBoard, deleteBoard,
+    createBoard, deleteBoard, fetchData,
   } = useActionPlan();
 
   const handleCreateBoard = async (data: any) => {
@@ -311,6 +311,7 @@ export default function ActionPlan() {
                   columns={boardColumns}
                   cards={filteredCards}
                   cardItems={cardItems}
+                  onRefresh={async () => { await fetchData(); }}
                 />
               )}
               {activeView === "calendar" && (

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CardDialog, statusConfig } from "@/components/CardDialog";
-import { useActionPlan, type ActionColumn, type ActionCard, type ActionCardItem } from "@/hooks/useActionPlan";
+import { type ActionColumn, type ActionCard, type ActionCardItem } from "@/hooks/useActionPlan";
 import { format, isPast, isToday, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +23,9 @@ interface ProjectListProps {
   columns: ActionColumn[];
   cards: ActionCard[];
   cardItems: ActionCardItem[];
+  onRefresh: () => Promise<void>;
 }
+
 
 const priorityConfig: Record<string, { label: string; dotColor: string; bgColor: string }> = {
   urgent: { label: "Urgente", dotColor: "bg-red-500", bgColor: "bg-red-500/10 text-red-400 border-red-500/20" },
@@ -35,7 +37,7 @@ const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
 
 type SortField = 'title' | 'priority' | 'due_date' | 'progress';
 
-export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
+export function ProjectList({ columns, cards, cardItems, onRefresh }: ProjectListProps) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(columns.map(c => c.id)));
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [editingCard, setEditingCard] = useState<ActionCard | null>(null);
@@ -44,9 +46,41 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
   const [newTaskTitle, setNewTaskTitle] = useState<Record<string, string>>({});
   const [newItemText, setNewItemText] = useState<Record<string, string>>({});
   const [users, setUsers] = useState<Record<string, string>>({});
-  const { updateCard, deleteCard, createCard, createCardItem, updateCardItem, deleteCardItem, fetchData } = useActionPlan();
   const { toast } = useToast();
   const { confirm } = useConfirmDialog();
+
+  const createCard = async (data: any) => {
+    const { error } = await supabase.from('action_cards').insert(data);
+    if (error) throw error;
+    await onRefresh();
+    toast({ title: "Tarefa criada", description: "Tarefa criada com sucesso!" });
+  };
+  const updateCard = async (id: string, data: any) => {
+    const { error } = await supabase.from('action_cards').update(data).eq('id', id);
+    if (error) throw error;
+    await onRefresh();
+  };
+  const deleteCard = async (id: string) => {
+    const { error } = await supabase.from('action_cards').delete().eq('id', id);
+    if (error) throw error;
+    await onRefresh();
+    toast({ title: "Tarefa excluída" });
+  };
+  const createCardItem = async (data: any) => {
+    const { error } = await supabase.from('action_card_items').insert(data);
+    if (error) throw error;
+    await onRefresh();
+  };
+  const updateCardItem = async (id: string, data: any) => {
+    const { error } = await supabase.from('action_card_items').update(data).eq('id', id);
+    if (error) throw error;
+    await onRefresh();
+  };
+  const deleteCardItem = async (id: string) => {
+    const { error } = await supabase.from('action_card_items').delete().eq('id', id);
+    if (error) throw error;
+    await onRefresh();
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
