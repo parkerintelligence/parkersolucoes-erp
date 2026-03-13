@@ -35,9 +35,16 @@ export function AppSidebar() {
   const { isMaster, user, userProfile } = useAuth();
   const location = useLocation();
   const { data: settings } = useSystemSettings('branding');
+  const { hasAccess } = useMyPermissions();
   const currentPath = location.pathname;
   const isCollapsed = state === 'collapsed';
-  const filteredMainItems = menuItems.filter(item => item.role === 'user' || (item.role === 'master' && isMaster));
+  const filteredMainItems = menuItems.filter(item => {
+    if (item.role === 'master' && !isMaster) return false;
+    // Extract screen key from url (e.g. '/glpi' -> 'glpi')
+    const screenKey = item.url.replace('/', '');
+    if (item.role === 'master') return true; // Admin always for masters
+    return hasAccess(screenKey);
+  });
 
   const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Parker Soluções';
   const companySubtitle = settings?.find(s => s.setting_key === 'company_subtitle')?.setting_value || 'ERP System';
