@@ -57,6 +57,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
               <Route path="/atendimentos" element={<Layout><SafeAtendimentos /></Layout>} />
               <Route path="/alertas" element={<Layout><SafeAlertas /></Layout>} />
               <Route path="/links" element={<Layout><Links /></Layout>} />
