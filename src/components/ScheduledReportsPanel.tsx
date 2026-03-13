@@ -8,6 +8,7 @@ import { ScheduledReportForm } from './automation/ScheduledReportForm';
 import { ReportsLogsPanel } from './automation/ReportsLogsPanel';
 import { ReportsStatusPanel } from './automation/ReportsStatusPanel';
 import { LazyAutomationStats } from './LazyAutomationStats';
+import { AutomationProcessesPanel } from './automation/AutomationProcessesPanel';
 import { useToast } from "@/hooks/use-toast"
 import { useScheduledReports, useDeleteScheduledReport, useToggleScheduledReportActive, useTestScheduledReport } from '@/hooks/useScheduledReports';
 import type { ScheduledReport } from '@/hooks/useScheduledReports';
