@@ -12,6 +12,7 @@ interface LayoutProps {
 
 export const Layout = ({ children }: LayoutProps) => {
   const { isAuthenticated, isLoading } = useAuth();
+  useWebhookNotifications();
 
   if (isLoading) {
     return (
