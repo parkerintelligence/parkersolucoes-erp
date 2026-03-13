@@ -10,7 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { Users, Plus, Trash2, KeyRound, Shield, User, Crown, Loader2 } from 'lucide-react';
+import { Users, Plus, Trash2, KeyRound, Shield, User, Crown, Loader2, ShieldCheck } from 'lucide-react';
+import { UserPermissionsDialog } from '@/components/UserPermissionsDialog';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 interface UserProfile {
   id: string;
