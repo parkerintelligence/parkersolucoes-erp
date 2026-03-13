@@ -1248,7 +1248,7 @@ function calculateAverageTimeOpen(tickets: any[], now: Date): string {
   
   const totalMinutes = tickets.reduce((sum, ticket) => {
     if (ticket.date) {
-      const ticketDate = new Date(ticket.date);
+      const ticketDate = parseGLPIDate(ticket.date);
       const diffMinutes = (now.getTime() - ticketDate.getTime()) / (1000 * 60);
       return sum + Math.max(0, diffMinutes);
     }
