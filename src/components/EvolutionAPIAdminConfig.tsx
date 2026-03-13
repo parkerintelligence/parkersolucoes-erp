@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, MessageCircle, AlertTriangle, CheckCircle, Wifi, WifiOff } from 'lucide-react';
-import { EvolutionApiService } from '@/utils/evolutionApiService';
+import { supabase } from '@/integrations/supabase/client';
 
 export const EvolutionAPIAdminConfig = () => {
   const { data: integrations } = useIntegrations();
@@ -24,15 +24,14 @@ export const EvolutionAPIAdminConfig = () => {
     base_url: evolutionIntegration?.base_url || '',
     api_token: evolutionIntegration?.api_token || '',
     phone_number: evolutionIntegration?.phone_number || '',
-    instance_name: (evolutionIntegration as any)?.instance_name || '',
     is_active: evolutionIntegration?.is_active ?? true,
   });
 
   const handleSave = async () => {
-    if (!formData.base_url || !formData.api_token || !formData.instance_name) {
+    if (!formData.base_url || !formData.api_token) {
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha todos os campos obrigatórios (URL Base, API Token e Nome da Instância).",
+        description: "Preencha todos os campos obrigatórios (URL Base e API Token).",
         variant: "destructive"
       });
       return;
@@ -44,7 +43,6 @@ export const EvolutionAPIAdminConfig = () => {
       base_url: formData.base_url,
       api_token: formData.api_token,
       phone_number: formData.phone_number || null,
-      instance_name: formData.instance_name,
       is_active: formData.is_active,
       is_global: true,
       username: null,
@@ -81,7 +79,7 @@ export const EvolutionAPIAdminConfig = () => {
   };
 
   const testConnection = async () => {
-    if (!formData.base_url || !formData.api_token || !formData.instance_name) {
+    if (!formData.base_url || !formData.api_token) {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha todos os campos antes de testar a conexão.",
@@ -93,30 +91,22 @@ export const EvolutionAPIAdminConfig = () => {
     setIsTestingConnection(true);
 
     try {
-      // Criar integração temporária para teste
-      const tempIntegration = {
-        base_url: formData.base_url,
-        api_token: formData.api_token,
-        instance_name: formData.instance_name
-      } as any;
+      // Test by fetching instances via proxy
+      const { data, error } = await supabase.functions.invoke('evolution-proxy', {
+        body: {
+          integrationId: evolutionIntegration?.id,
+          endpoint: '/instance/fetchInstances',
+          method: 'GET'
+        }
+      });
 
-      const evolutionService = new EvolutionApiService(tempIntegration);
-      
-      // Verificar status da instância
-      const instanceStatus = await evolutionService.checkInstanceStatus();
-      
-      if (instanceStatus.active) {
-        toast({
-          title: "✅ Conexão bem-sucedida!",
-          description: "A conexão com a Evolution API está funcionando e a instância está ativa.",
-        });
-      } else {
-        toast({
-          title: "⚠️ Instância inativa",
-          description: instanceStatus.error || "A instância não está ativa ou não foi encontrada.",
-          variant: "destructive"
-        });
-      }
+      if (error) throw error;
+
+      const instanceCount = Array.isArray(data) ? data.length : 0;
+      toast({
+        title: "✅ Conexão bem-sucedida!",
+        description: `API respondeu corretamente. ${instanceCount} instância(s) encontrada(s).`,
+      });
     } catch (error) {
       console.error('Erro no teste de conexão:', error);
       toast({
@@ -174,19 +164,6 @@ export const EvolutionAPIAdminConfig = () => {
           </div>
 
           <div>
-            <Label htmlFor="instance_name">Nome da Instância *</Label>
-            <Input
-              id="instance_name"
-              value={formData.instance_name}
-              onChange={(e) => setFormData({ ...formData, instance_name: e.target.value })}
-              placeholder="minha-instancia"
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              Nome da instância configurada na Evolution API (ex: minha-instancia, suporte, vendas)
-            </p>
-          </div>
-
-          <div>
             <Label htmlFor="phone_number">Número do WhatsApp</Label>
             <Input
               id="phone_number"
@@ -235,7 +212,7 @@ export const EvolutionAPIAdminConfig = () => {
           <Button
             onClick={testConnection}
             variant="outline"
-            disabled={!formData.base_url || !formData.api_token || !formData.instance_name || isTestingConnection}
+            disabled={!formData.base_url || !formData.api_token || isTestingConnection}
           >
             {isTestingConnection ? (
               <>
