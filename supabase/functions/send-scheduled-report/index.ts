@@ -968,8 +968,11 @@ async function getGLPIStandardData(glpiIntegration: any) {
       return false;
     });
 
+    // Usar horário de Brasília para cálculos de tempo
+    const nowBrasilia = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    
     // Calcular tempo médio em aberto para tickets ativos
-    const avgTimeOpen = calculateAverageTimeOpen(openTickets, now);
+    const avgTimeOpen = calculateAverageTimeOpen(openTickets, nowBrasilia);
 
     // Organizar tickets por prioridade (críticos primeiro)
     const sortedTickets = [...allTickets].sort((a, b) => {
