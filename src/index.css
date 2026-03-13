@@ -80,7 +80,7 @@
 
     /* Gradient tokens */
     --gradient-primary: linear-gradient(135deg, hsl(160 84% 39%), hsl(199 89% 48%));
-    --gradient-accent: linear-gradient(135deg, hsl(262 83% 58%), hsl(330 80% 55%));
+    --gradient-accent: linear-gradient(135deg, hsl(43 90% 55%), hsl(35 95% 50%));
     --gradient-sidebar: linear-gradient(180deg, hsl(225 44% 15%), hsl(225 44% 10%));
 
     /* PWA and Responsive Variables */
