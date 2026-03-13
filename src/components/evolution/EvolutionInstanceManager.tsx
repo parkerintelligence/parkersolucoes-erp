@@ -195,6 +195,7 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
         if (qr) {
           setQrCode(qr);
           setActiveInstanceName(name);
+          setAutoRefreshEnabled(true);
           return true;
         }
 
