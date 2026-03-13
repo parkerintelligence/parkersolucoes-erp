@@ -68,14 +68,14 @@ export const TopHeader = () => {
         {/* Menu Toggle e Título */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <SidebarTrigger className="h-6 w-6 sm:h-8 sm:w-8 text-white hover:bg-white/10 touch-target" />
-          {logoUrl ? <img src={logoUrl} alt="Logo da empresa" className="h-8 sm:h-10 w-auto object-contain flex-shrink-0" /> : <div className="bg-secondary p-1.5 sm:p-2 rounded-xl flex-shrink-0 shadow-sm">
-              <Shield className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-secondary-foreground" />
+          {logoUrl ? <img src={logoUrl} alt="Logo da empresa" className="h-8 sm:h-10 w-auto object-contain flex-shrink-0" /> : <div className="bg-sidebar-primary p-1.5 sm:p-2 rounded-xl flex-shrink-0 shadow-sm">
+              <Shield className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-white" />
             </div>}
           <div className="min-w-0 hidden sm:block">
-            <h1 className="text-base sm:text-lg md:text-xl font-bold text-primary-foreground truncate">
+            <h1 className="text-base sm:text-lg md:text-xl font-bold text-white truncate">
               {companyName}
             </h1>
-            <p className="text-xs sm:text-sm text-primary-foreground/80 hidden md:block">Plataforma Integrada</p>
+            <p className="text-xs sm:text-sm text-white/70 hidden md:block">Plataforma Integrada</p>
           </div>
         </div>
 
