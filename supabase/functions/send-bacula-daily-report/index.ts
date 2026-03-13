@@ -842,11 +842,7 @@ serve(async (req) => {
       sections.push(`✅ *JOBS COM SUCESSO (${successJobs})*\n${successJobsDetails}`);
     }
 
-    let finalMessage = [
-      `📊 *RELATÓRIO DIÁRIO DE ERROS - BACULA*`,
-      `📅 *Período:* ${templateData.period}`,
-      `🕒 *Gerado em:* ${templateData.current_time}`,
-      ``,
+    const summaryLines = [
       `• Total de Jobs: ${templateData.total_jobs}`,
       `• Jobs com Sucesso: ${templateData.success_jobs}`,
       `• Jobs com Erro: ${templateData.error_jobs}`,
@@ -859,6 +855,14 @@ serve(async (req) => {
       `• Duração Média: ${templateData.avg_duration}`,
       `• Clientes afetados: ${templateData.affected_clients}/${templateData.total_clients}`,
       `• Fonte dos dados: API Bacula (dados reais)`,
+    ].join('\n');
+
+    let finalMessage = [
+      `📊 *RELATÓRIO DIÁRIO DE ERROS - BACULA*`,
+      `📅 *Período:* ${templateData.period}`,
+      `🕒 *Gerado em:* ${templateData.current_time}`,
+      ``,
+      summaryLines,
       ...sections
     ].join('\n\n');
 
