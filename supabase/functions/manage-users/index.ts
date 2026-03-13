@@ -54,7 +54,46 @@ serve(async (req) => {
       });
     }
 
-    const { action, ...params } = await req.json();
+    const body = await req.json();
+    const { action, ...params } = body;
+
+    // Bootstrap action - uses service role key directly for initial setup
+    if (action === "bootstrap") {
+      const { secret, email, password, role = "master" } = params;
+      const expectedSecret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (secret !== expectedSecret) {
+        return new Response(JSON.stringify({ error: "Secret inválido" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Check if user exists
+      const { data: existingUsers } = await supabase.auth.admin.listUsers();
+      const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
+
+      if (existingUser) {
+        // Reset password
+        await supabase.auth.admin.updateUserById(existingUser.id, { password, email_confirm: true });
+        await supabase.from("user_profiles").upsert({ id: existingUser.id, email, role }, { onConflict: "id" });
+        await supabase.from("user_roles").delete().eq("user_id", existingUser.id);
+        await supabase.from("user_roles").insert({ user_id: existingUser.id, role: role as any });
+        return new Response(JSON.stringify({ success: true, action: "reset", userId: existingUser.id }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } else {
+        // Create new user
+        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+          email, password, email_confirm: true, user_metadata: { role },
+        });
+        if (createError) throw createError;
+        await supabase.from("user_profiles").upsert({ id: newUser.user.id, email, role }, { onConflict: "id" });
+        await supabase.from("user_roles").insert({ user_id: newUser.user.id, role: role as any });
+        return new Response(JSON.stringify({ success: true, action: "created", userId: newUser.user.id }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     switch (action) {
       case "list": {
