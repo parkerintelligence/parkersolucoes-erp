@@ -106,6 +106,18 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
     }
   }, [integrationId, fetchInstances]);
 
+  const sanitizeInstanceName = (value: string) => {
+    return value
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  };
+
   const normalizeQrImage = (value: unknown): string | null => {
     if (typeof value !== 'string') return null;
 
@@ -175,13 +187,10 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
   };
 
   const handleCreateInstance = async () => {
-    if (!instanceName.trim()) {
-      toast({ title: 'Nome obrigatório', description: 'Informe o nome da instância.', variant: 'destructive' });
-      return;
-    }
+    const rawName = instanceName.trim();
 
-    if (!/^[a-zA-Z0-9-]+$/.test(instanceName)) {
-      toast({ title: 'Nome inválido', description: 'Use apenas letras, números e hífens (sem espaços).', variant: 'destructive' });
+    if (!rawName) {
+      toast({ title: 'Nome obrigatório', description: 'Informe o nome da instância.', variant: 'destructive' });
       return;
     }
 
@@ -190,9 +199,26 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
       return;
     }
 
+    const createdName = sanitizeInstanceName(rawName);
+
+    if (!createdName) {
+      toast({
+        title: 'Nome inválido',
+        description: 'Use pelo menos letras ou números no nome da instância.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (createdName !== rawName) {
+      toast({
+        title: 'Nome ajustado automaticamente',
+        description: `Criando a instância como "${createdName}" para compatibilidade com a Evolution API.`,
+      });
+    }
+
     setLoading(true);
     setQrCode(null);
-    const createdName = instanceName.trim();
 
     try {
       const result = await callEvolutionProxy(integrationId, '/instance/create', 'POST', {
@@ -275,7 +301,8 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
   const handleCheckStatus = async (name: string) => {
     setLoadingAction(`status-${name}`);
     try {
-      const result = await callEvolutionProxy(integrationId, `/instance/connectionState/${name}`);
+      const encodedName = encodeURIComponent(name);
+      const result = await callEvolutionProxy(integrationId, `/instance/connectionState/${encodedName}`);
       const state = result?.instance?.state || result?.state || 'unknown';
       const stateMap: Record<string, string> = {
         open: 'Conectado',
@@ -294,7 +321,8 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
   const handleLogout = async (name: string) => {
     setLoadingAction(`logout-${name}`);
     try {
-      await callEvolutionProxy(integrationId, `/instance/logout/${name}`, 'DELETE');
+      const encodedName = encodeURIComponent(name);
+      await callEvolutionProxy(integrationId, `/instance/logout/${encodedName}`, 'DELETE');
       toast({ title: '✅ Desconectado', description: `Instância "${name}" desconectada.` });
       await fetchInstances();
     } catch (error: any) {
@@ -308,7 +336,8 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
     if (!confirm(`Tem certeza que deseja excluir a instância "${name}"?`)) return;
     setLoadingAction(`delete-${name}`);
     try {
-      await callEvolutionProxy(integrationId, `/instance/delete/${name}`, 'DELETE');
+      const encodedName = encodeURIComponent(name);
+      await callEvolutionProxy(integrationId, `/instance/delete/${encodedName}`, 'DELETE');
       toast({ title: '✅ Excluída', description: `Instância "${name}" excluída.` });
       if (activeInstanceName === name) {
         setQrCode(null);
@@ -375,7 +404,7 @@ export const EvolutionInstanceManager = ({ onInstancesChange }: EvolutionInstanc
                 className="mt-1"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Use apenas letras, números e hífens (sem espaços)
+                Pode usar nome livre; o sistema converte automaticamente para o formato da Evolution API
               </p>
             </div>
             <Button
