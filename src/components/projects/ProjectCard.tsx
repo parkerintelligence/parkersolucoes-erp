@@ -28,6 +28,7 @@ export function ProjectCard({ card, items, columns, onMoveCard }: ProjectCardPro
   const [isExpanded, setIsExpanded] = useState(false);
 
   const { updateCard, deleteCard, createCardItem, updateCardItem, deleteCardItem } = useActionPlan();
+  const { confirm } = useConfirmDialog();
 
   const handleUpdateCard = async (data: any) => {
     await updateCard(card.id, data);
