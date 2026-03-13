@@ -962,7 +962,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
     const nowBrasiliaForOverdue = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
     const overdueTickets = allTickets.filter(ticket => {
       if (ticket.date) {
-        const ticketDate = new Date(ticket.date);
+        const ticketDate = parseGLPIDate(ticket.date);
         const daysDiff = (nowBrasiliaForOverdue.getTime() - ticketDate.getTime()) / (1000 * 60 * 60 * 24);
         return daysDiff > 3;
       }
