@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Calendar, FileText, BarChart3 } from 'lucide-react';
+import { Plus, Calendar, FileText, BarChart3, Cog } from 'lucide-react';
 import { ScheduledReportsTable } from './automation/ScheduledReportsTable';
 import { ScheduledReportForm } from './automation/ScheduledReportForm';
 import { ReportsLogsPanel } from './automation/ReportsLogsPanel';
