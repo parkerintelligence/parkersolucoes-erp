@@ -162,6 +162,20 @@ serve(async (req) => {
       }
     }
 
+    // Log the webhook execution
+    try {
+      await supabase.from("webhook_logs").insert({
+        webhook_id: webhook.id,
+        user_id: webhook.user_id,
+        request_body: body,
+        response_data: { results },
+        status: results.every((r: any) => r.success) ? "success" : "error",
+        is_test: !!body.test,
+      });
+    } catch (logErr) {
+      console.error("Failed to log webhook:", logErr);
+    }
+
     return new Response(JSON.stringify({ success: true, webhook: webhook.name, results }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
