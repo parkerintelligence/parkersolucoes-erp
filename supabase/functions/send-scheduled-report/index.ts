@@ -1217,6 +1217,15 @@ function getStatusText(status: number): string {
   return statusMap[status] || 'Desconhecido';
 }
 
+// Parsear data do GLPI como horário de Brasília (UTC-3)
+function parseGLPIDate(dateStr: string): Date {
+  // GLPI retorna datas em horário de Brasília sem timezone info
+  // Adicionamos o offset para que o JS interprete corretamente
+  const cleaned = dateStr.replace(' ', 'T');
+  const withTZ = cleaned.includes('+') || cleaned.includes('Z') ? cleaned : `${cleaned}-03:00`;
+  return new Date(withTZ);
+}
+
 function getTimeOpenText(createdDate: Date, now: Date): string {
   const diffMs = now.getTime() - createdDate.getTime();
   if (diffMs < 0) return 'agora';
