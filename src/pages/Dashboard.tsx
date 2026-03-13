@@ -321,43 +321,67 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Recent Logs */}
-      {logs.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-foreground mb-3">Últimos Envios</h2>
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-0">
-              <div className="divide-y divide-border">
-                {logs.slice(0, 8).map((log: any) => (
-                  <div key={log.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
-                    <div className="flex items-center gap-3">
-                      {log.status === 'success' ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
-                      )}
-                      <div>
-                        <p className="text-sm text-foreground">{log.phone_number}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {format(parseISO(log.execution_date), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                        </p>
+      {/* Recent Logs - Compact Card with Pagination */}
+      {logs.length > 0 && (() => {
+        const limitedLogs = logs.slice(0, 20);
+        const totalPages = Math.ceil(limitedLogs.length / LOGS_PER_PAGE);
+        const pagedLogs = limitedLogs.slice(logsPage * LOGS_PER_PAGE, (logsPage + 1) * LOGS_PER_PAGE);
+
+        return (
+          <div>
+            <h2 className="text-lg font-semibold text-foreground mb-3">Últimos Envios</h2>
+            <Card className="bg-card/50 border-border max-w-md">
+              <CardContent className="p-0">
+                <div className="divide-y divide-border">
+                  {pagedLogs.map((log: any) => (
+                    <div key={log.id} className="flex items-center justify-between px-3 py-2 hover:bg-muted/30 transition-colors">
+                      <div className="flex items-center gap-2">
+                        {log.status === 'success' ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />
+                        ) : (
+                          <XCircle className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
+                        )}
+                        <div>
+                          <p className="text-xs text-foreground">{log.phone_number}</p>
+                          <p className="text-[9px] text-muted-foreground">
+                            {format(parseISO(log.execution_date), "dd/MM HH:mm", { locale: ptBR })}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <Badge variant={log.status === 'success' ? 'default' : 'destructive'} className="text-[9px]">
+                      <Badge variant={log.status === 'success' ? 'default' : 'destructive'} className="text-[9px] py-0 px-1.5 h-4">
                         {log.status === 'success' ? 'Enviado' : 'Falha'}
                       </Badge>
-                      {log.execution_time_ms && (
-                        <p className="text-[9px] text-muted-foreground mt-0.5">{log.execution_time_ms}ms</p>
-                      )}
                     </div>
+                  ))}
+                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between px-3 py-2 border-t border-border">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      disabled={logsPage === 0}
+                      onClick={() => setLogsPage(p => p - 1)}
+                    >
+                      <ChevronLeft className="h-3 w-3 mr-1" /> Anterior
+                    </Button>
+                    <span className="text-[10px] text-muted-foreground">{logsPage + 1}/{totalPages}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      disabled={logsPage >= totalPages - 1}
+                      onClick={() => setLogsPage(p => p + 1)}
+                    >
+                      Próximo <ChevronRight className="h-3 w-3 ml-1" />
+                    </Button>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
     </div>
   );
 };
