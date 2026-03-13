@@ -494,6 +494,122 @@ export default function Webhooks() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* History Dialog */}
+      <Dialog open={historyDialog} onOpenChange={setHistoryDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Histórico - {historyWebhook?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Últimas requisições recebidas por este webhook
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-muted-foreground">
+              {historyLogs.length} registro(s)
+            </span>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={clearHistory}
+              disabled={historyLogs.length === 0}
+            >
+              <Eraser className="h-4 w-4 mr-1" />
+              Limpar Histórico
+            </Button>
+          </div>
+
+          <ScrollArea className="max-h-[50vh]">
+            {historyLoading ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>
+            ) : historyLogs.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum registro encontrado</p>
+            ) : (
+              <div className="space-y-2">
+                {pagedLogs.map((log: any) => {
+                  const body = log.request_body || {};
+                  const resp = log.response_data || {};
+                  const results = resp.results || [];
+                  const isSuccess = log.status === 'success';
+
+                  return (
+                    <div key={log.id} className="border border-border rounded-lg p-3 bg-card">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={isSuccess ? 'default' : 'destructive'} className="text-[10px]">
+                            {isSuccess ? '✅ Sucesso' : '❌ Erro'}
+                          </Badge>
+                          {log.is_test && (
+                            <Badge variant="outline" className="text-[10px]">Teste</Badge>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">
+                          {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm:ss')}
+                        </span>
+                      </div>
+
+                      <div className="mt-1">
+                        <p className="text-xs font-medium text-muted-foreground mb-0.5">Payload recebido:</p>
+                        <pre className="text-[10px] bg-muted rounded p-2 overflow-x-auto max-h-24 whitespace-pre-wrap break-all">
+                          {JSON.stringify(body, null, 2)}
+                        </pre>
+                      </div>
+
+                      {results.length > 0 && (
+                        <div className="mt-1.5">
+                          <p className="text-xs font-medium text-muted-foreground mb-0.5">Resultados:</p>
+                          <div className="space-y-1">
+                            {results.map((r: any, i: number) => (
+                              <div key={i} className="flex items-center gap-2 text-[11px]">
+                                <span>{r.success ? '✅' : '❌'}</span>
+                                <Badge variant="outline" className="text-[10px]">{r.action}</Badge>
+                                <span className="text-muted-foreground">→ {r.destination}</span>
+                                {r.instance && <span className="text-muted-foreground text-[10px]">({r.instance})</span>}
+                                {!r.success && r.error && <span className="text-destructive text-[10px]">{r.error}</span>}
+                                {!r.success && r.result?.error && <span className="text-destructive text-[10px]">{r.result.error}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+
+          {totalHistoryPages > 1 && (
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setHistoryPage(p => Math.max(0, p - 1))}
+                disabled={historyPage === 0}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Anterior
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Página {historyPage + 1} de {totalHistoryPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setHistoryPage(p => Math.min(totalHistoryPages - 1, p + 1))}
+                disabled={historyPage >= totalHistoryPages - 1}
+              >
+                Próximo
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
