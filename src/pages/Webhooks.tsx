@@ -525,13 +525,46 @@ export default function Webhooks() {
             <div>
               <Label>Template da mensagem</Label>
               <Textarea
+                ref={templateRef}
                 value={actionTemplate}
                 onChange={e => setActionTemplate(e.target.value)}
                 placeholder="Use {text} para o conteúdo recebido"
-                rows={3}
+                rows={4}
               />
-              <p className="text-xs text-muted-foreground mt-1">Use <code className="bg-muted px-1 rounded">{'{text}'}</code> para inserir o conteúdo do webhook</p>
+              <p className="text-xs text-muted-foreground mt-1">Use <code className="bg-muted px-1 rounded">{'{text}'}</code> para o conteúdo completo, ou placeholders específicos como <code className="bg-muted px-1 rounded">{'{host}'}</code>, <code className="bg-muted px-1 rounded">{'{message}'}</code>, etc.</p>
             </div>
+
+            {lastPayloadKeys.length > 0 && (
+              <div className="border border-border rounded-lg p-3 bg-muted/30">
+                <p className="text-xs font-semibold text-foreground mb-2">📦 Campos do último payload recebido (clique para inserir):</p>
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {lastPayloadKeys.map(key => (
+                    <Button
+                      key={key}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs font-mono px-2 hover:bg-primary hover:text-primary-foreground"
+                      onClick={() => insertPlaceholder(key)}
+                    >
+                      {`{${key}}`}
+                    </Button>
+                  ))}
+                </div>
+                {lastPayloadSample && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Ver payload completo</summary>
+                    <pre className="mt-1 bg-muted rounded p-2 overflow-x-auto max-h-32 whitespace-pre-wrap break-all text-[10px]">
+                      {JSON.stringify(lastPayloadSample, null, 2)}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            )}
+
+            {lastPayloadKeys.length === 0 && (
+              <p className="text-xs text-muted-foreground italic">💡 Envie uma requisição para este webhook para visualizar os campos disponíveis do payload.</p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setActionDialog(false)}>Cancelar</Button>
