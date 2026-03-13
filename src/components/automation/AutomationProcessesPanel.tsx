@@ -18,7 +18,7 @@ import {
   type AutomationProcess,
 } from '@/hooks/useAutomationProcesses';
 
-const SYSTEM_OPTIONS = [
+const SYSTEM_SUGGESTIONS = [
   'WhatsApp', 'GLPI', 'Zabbix', 'Bacula', 'Grafana', 'UniFi',
   'Mikrotik', 'Chatwoot', 'Wasabi', 'FTP', 'Hostinger', 'Guacamole', 'Wazuh',
 ];
@@ -45,6 +45,7 @@ export const AutomationProcessesPanel = () => {
   const [form, setForm] = useState(emptyForm);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [systemInput, setSystemInput] = useState('');
 
   const openNew = () => {
     setEditingId(null);
@@ -241,22 +242,47 @@ export const AutomationProcessesPanel = () => {
 
             <div>
               <Label className="text-gray-300 mb-2 block">Sistemas utilizados</Label>
-              <div className="flex flex-wrap gap-2">
-                {SYSTEM_OPTIONS.map(sys => (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {form.systems.map(sys => (
                   <Badge
                     key={sys}
-                    className={`cursor-pointer transition-colors ${
-                      form.systems.includes(sys)
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
-                    onClick={() => toggleSystem(sys)}
+                    className="bg-blue-600 text-white cursor-pointer hover:bg-blue-700"
+                    onClick={() => setForm(prev => ({ ...prev, systems: prev.systems.filter(s => s !== sys) }))}
                   >
-                    {form.systems.includes(sys) && '✓ '}
-                    {sys}
+                    {sys} <X className="h-3 w-3 ml-1" />
                   </Badge>
                 ))}
               </div>
+              <div className="flex gap-2">
+                <Input
+                  value={systemInput}
+                  onChange={e => setSystemInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && systemInput.trim()) {
+                      e.preventDefault();
+                      if (!form.systems.includes(systemInput.trim())) {
+                        setForm(prev => ({ ...prev, systems: [...prev.systems, systemInput.trim()] }));
+                      }
+                      setSystemInput('');
+                    }
+                  }}
+                  placeholder="Digite o nome do sistema e pressione Enter"
+                  className="bg-gray-700 border-gray-600 text-white"
+                />
+              </div>
+              {SYSTEM_SUGGESTIONS.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {SYSTEM_SUGGESTIONS.filter(s => !form.systems.includes(s)).slice(0, 8).map(sys => (
+                    <Badge
+                      key={sys}
+                      className="bg-gray-700 text-gray-400 cursor-pointer hover:bg-gray-600 text-xs"
+                      onClick={() => setForm(prev => ({ ...prev, systems: [...prev.systems, sys] }))}
+                    >
+                      + {sys}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
