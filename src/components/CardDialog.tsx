@@ -13,6 +13,15 @@ interface CardDialogProps {
   onSave: (data: Partial<ActionCard>) => void;
 }
 
+export const statusConfig: Record<string, { label: string; color: string; icon: string }> = {
+  not_started: { label: "Não Iniciada", color: "bg-muted text-muted-foreground border-border", icon: "⏳" },
+  in_progress: { label: "Em Andamento", color: "bg-blue-500/10 text-blue-400 border-blue-500/20", icon: "🔄" },
+  on_hold: { label: "Pausada", color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20", icon: "⏸️" },
+  review: { label: "Em Revisão", color: "bg-purple-500/10 text-purple-400 border-purple-500/20", icon: "🔍" },
+  completed: { label: "Concluída", color: "bg-green-500/10 text-green-400 border-green-500/20", icon: "✅" },
+  cancelled: { label: "Cancelada", color: "bg-red-500/10 text-red-400 border-red-500/20", icon: "❌" },
+};
+
 export function CardDialog({ card, columns, onSave }: CardDialogProps) {
   const [formData, setFormData] = useState({
     title: "",
@@ -21,6 +30,7 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
     priority: "medium" as 'low' | 'medium' | 'high' | 'urgent',
     due_date: "",
     column_id: "",
+    status: "not_started",
   });
 
   useEffect(() => {
@@ -32,6 +42,7 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
         priority: (card.priority as 'low' | 'medium' | 'high' | 'urgent') || "medium",
         due_date: card.due_date || "",
         column_id: card.column_id || "",
+        status: (card as any).status || "not_started",
       });
     } else {
       setFormData({
@@ -41,6 +52,7 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
         priority: "medium",
         due_date: "",
         column_id: "",
+        status: "not_started",
       });
     }
   }, [card]);
@@ -68,7 +80,7 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
     <DialogContent>
       <DialogHeader>
         <DialogTitle>
-          {card ? "Editar Card" : "Novo Card"}
+          {card ? "Editar Tarefa" : "Nova Tarefa"}
         </DialogTitle>
       </DialogHeader>
       
@@ -79,7 +91,7 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
             id="title"
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            placeholder="Título do card"
+            placeholder="Título da tarefa"
             required
           />
         </div>
@@ -90,7 +102,7 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
             id="description"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="Descrição do card (opcional)"
+            placeholder="Descrição da tarefa (opcional)"
             rows={3}
           />
         </div>
@@ -103,14 +115,32 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="low">Baixa</SelectItem>
-                <SelectItem value="medium">Média</SelectItem>
-                <SelectItem value="high">Alta</SelectItem>
-                <SelectItem value="urgent">Urgente</SelectItem>
+                <SelectItem value="low">🟢 Baixa</SelectItem>
+                <SelectItem value="medium">🔵 Média</SelectItem>
+                <SelectItem value="high">🟠 Alta</SelectItem>
+                <SelectItem value="urgent">🔴 Urgente</SelectItem>
               </SelectContent>
             </Select>
           </div>
           
+          <div>
+            <Label htmlFor="status">Status</Label>
+            <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(statusConfig).map(([key, cfg]) => (
+                  <SelectItem key={key} value={key}>
+                    {cfg.icon} {cfg.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="due_date">Data de Vencimento</Label>
             <Input
@@ -120,29 +150,29 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
               onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
             />
           </div>
-        </div>
 
-        {/* Column/Status Selector */}
-        {columns && columns.length > 0 && (
-          <div>
-            <Label>Fase / Status</Label>
-            <Select value={formData.column_id} onValueChange={(value) => setFormData({ ...formData, column_id: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a fase" />
-              </SelectTrigger>
-              <SelectContent>
-                {columns.map(col => (
-                  <SelectItem key={col.id} value={col.id}>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: col.color || 'hsl(var(--muted))' }} />
-                      {col.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+          {/* Column/Phase Selector */}
+          {columns && columns.length > 0 && (
+            <div>
+              <Label>Fase</Label>
+              <Select value={formData.column_id} onValueChange={(value) => setFormData({ ...formData, column_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a fase" />
+                </SelectTrigger>
+                <SelectContent>
+                  {columns.map(col => (
+                    <SelectItem key={col.id} value={col.id}>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: col.color || 'hsl(var(--muted))' }} />
+                        {col.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
         
         <div>
           <Label>Cor</Label>
