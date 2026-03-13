@@ -115,7 +115,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Check if it's a Bacula Daily Report - delegate to specialized function BEFORE checking Evolution API
-    if (template.template_type === 'bacula_daily_report') {
+    if (template.template_type === 'bacula_daily_report' || template.template_type === 'bacula_daily') {
       console.log('📊 [SEND] Tipo Bacula Daily Report detectado - delegando para função especializada');
       
       const { data: baculaData, error: baculaError } = await supabase.functions.invoke(
