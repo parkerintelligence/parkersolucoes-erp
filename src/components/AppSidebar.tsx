@@ -48,13 +48,19 @@ export function AppSidebar() {
       <SidebarHeader className="p-3 sm:p-4 border-b border-sidebar-border relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/5" />
         <div className="relative flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg glow-primary flex-shrink-0">
-            <Shield className="h-5 w-5 text-primary-foreground" />
-          </div>
+          {logoUrl ? (
+            <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0 bg-card">
+              <img src={logoUrl} alt={companyName} className="w-full h-full object-contain" />
+            </div>
+          ) : (
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg glow-primary flex-shrink-0">
+              <Shield className="h-5 w-5 text-primary-foreground" />
+            </div>
+          )}
           {!isCollapsed && (
             <div className="min-w-0">
-              <h2 className="text-foreground font-bold text-sm truncate">Parker Soluções</h2>
-              <p className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase">ERP System</p>
+              <h2 className="text-foreground font-bold text-sm truncate">{companyName}</h2>
+              <p className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase">{companySubtitle}</p>
             </div>
           )}
         </div>
