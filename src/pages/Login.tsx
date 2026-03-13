@@ -56,30 +56,6 @@ const Login = () => {
     }
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
-      toast({ title: "Email obrigatório", description: "Digite seu email para recuperar a senha.", variant: "destructive" });
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login`,
-      });
-      if (error) {
-        toast({ title: "Erro ao enviar email", description: error.message, variant: "destructive" });
-      } else {
-        setResetEmailSent(true);
-        toast({ title: "Email enviado!", description: "Verifique sua caixa de entrada." });
-      }
-    } catch {
-      toast({ title: "Erro", description: "Ocorreu um erro inesperado.", variant: "destructive" });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Ambient background effects */}
