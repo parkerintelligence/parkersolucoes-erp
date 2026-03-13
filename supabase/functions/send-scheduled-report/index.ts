@@ -955,20 +955,25 @@ async function getGLPIStandardData(glpiIntegration: any) {
     const criticalTickets = allTickets.filter(t => (t.priority || 1) >= 4);
     const pendingTickets = allTickets.filter(t => t.status === 4);
     const newTickets = allTickets.filter(t => t.status === 1);
+    const resolvedTickets = allTickets.filter(t => [5, 6].includes(t.status || 0));
     
     // Calcular tickets vencidos (exemplo: > 3 dias em aberto)
     const now = new Date();
+    const nowBrasiliaForOverdue = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
     const overdueTickets = allTickets.filter(ticket => {
       if (ticket.date) {
         const ticketDate = new Date(ticket.date);
-        const daysDiff = (now.getTime() - ticketDate.getTime()) / (1000 * 60 * 60 * 24);
-        return daysDiff > 3; // Considera vencido após 3 dias
+        const daysDiff = (nowBrasiliaForOverdue.getTime() - ticketDate.getTime()) / (1000 * 60 * 60 * 24);
+        return daysDiff > 3;
       }
       return false;
     });
 
+    // Usar horário de Brasília para cálculos de tempo
+    const nowBrasilia = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    
     // Calcular tempo médio em aberto para tickets ativos
-    const avgTimeOpen = calculateAverageTimeOpen(openTickets, now);
+    const avgTimeOpen = calculateAverageTimeOpen(openTickets, nowBrasilia);
 
     // Organizar tickets por prioridade (críticos primeiro)
     const sortedTickets = [...allTickets].sort((a, b) => {
@@ -1082,7 +1087,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
         const priority = getPriorityIcon(ticket.priority || 1);
         const urgency = getUrgencyIcon(ticket.urgency || 1);
         const status = getStatusText(ticket.status || 1);
-        const timeOpen = ticket.date ? getTimeOpenText(new Date(ticket.date), now) : 'N/A';
+        const timeOpen = ticket.date ? getTimeOpenText(new Date(ticket.date), nowBrasilia) : 'N/A';
         const assignee = ticket.users_id_recipient && ticket.users_id_recipient !== 0 
           ? userNames.get(ticket.users_id_recipient) || `Usuário #${ticket.users_id_recipient}` 
           : 'Não atribuído';
@@ -1115,7 +1120,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
       .map(ticket => {
         const priority = getPriorityIcon(ticket.priority || 1);
         const urgency = getUrgencyIcon(ticket.urgency || 1);
-        const timeOpen = ticket.date ? getTimeOpenText(new Date(ticket.date), now) : 'N/A';
+        const timeOpen = ticket.date ? getTimeOpenText(new Date(ticket.date), nowBrasilia) : 'N/A';
         const categoryName = ticket.itilcategories_id && ticket.itilcategories_id !== 0
           ? categoryNames.get(ticket.itilcategories_id) || 'Sem categoria'
           : 'Sem categoria';
@@ -1145,6 +1150,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
 • Total Ativo: ${allTickets.length}
 • Novos: ${newTickets.length}
 • Em Aberto: ${openTickets.length}
+• Resolvidos: ${resolvedTickets.length}
 • Críticos: ${criticalTickets.length}
 • Pendentes: ${pendingTickets.length}
 • Vencidos: ${overdueTickets.length}
@@ -1153,7 +1159,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
       // Dados para compatibilidade com outros templates
       list: detailedOpenTickets || '✅ Nenhum ticket em aberto',
       new_tickets: newTickets.length,
-      resolved_tickets: 0,
+      resolved_tickets: resolvedTickets.length,
       avg_resolution_time: avgTimeOpen,
       open_tickets_list: detailedOpenTickets || 'Nenhum ticket em aberto',
       productivity_summary: `${allTickets.length} tickets ativos • ${newTickets.length} novos • ${criticalTickets.length} críticos`,
@@ -1213,35 +1219,45 @@ function getStatusText(status: number): string {
 
 function getTimeOpenText(createdDate: Date, now: Date): string {
   const diffMs = now.getTime() - createdDate.getTime();
+  if (diffMs < 0) return 'agora';
+  
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
   
   if (diffDays > 0) {
     return `${diffDays}d${diffHours > 0 ? ` ${diffHours}h` : ''}`;
   }
-  return `${diffHours}h`;
+  if (diffHours > 0) {
+    return `${diffHours}h${diffMinutes > 0 ? ` ${diffMinutes}min` : ''}`;
+  }
+  return `${diffMinutes}min`;
 }
 
 function calculateAverageTimeOpen(tickets: any[], now: Date): string {
-  if (tickets.length === 0) return '0h';
+  if (tickets.length === 0) return '0min';
   
-  const totalHours = tickets.reduce((sum, ticket) => {
+  const totalMinutes = tickets.reduce((sum, ticket) => {
     if (ticket.date) {
       const ticketDate = new Date(ticket.date);
-      const diffHours = (now.getTime() - ticketDate.getTime()) / (1000 * 60 * 60);
-      return sum + diffHours;
+      const diffMinutes = (now.getTime() - ticketDate.getTime()) / (1000 * 60);
+      return sum + Math.max(0, diffMinutes);
     }
     return sum;
   }, 0);
   
-  const avgHours = Math.round(totalHours / tickets.length);
-  const days = Math.floor(avgHours / 24);
-  const hours = avgHours % 24;
+  const avgMinutes = Math.round(totalMinutes / tickets.length);
+  const days = Math.floor(avgMinutes / (60 * 24));
+  const hours = Math.floor((avgMinutes % (60 * 24)) / 60);
+  const minutes = avgMinutes % 60;
   
   if (days > 0) {
     return `${days}d ${hours}h`;
   }
-  return `${hours}h`;
+  if (hours > 0) {
+    return `${hours}h ${minutes}min`;
+  }
+  return `${minutes}min`;
 }
 
 // Dados mock para performance semanal
