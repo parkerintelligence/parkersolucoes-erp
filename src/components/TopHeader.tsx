@@ -91,9 +91,9 @@ export const TopHeader = () => {
           <Button 
             onClick={handleLogout} 
             variant="ghost" 
-            className="flex items-center gap-1 sm:gap-2 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg touch-target"
+            className="flex items-center gap-1 sm:gap-2 text-white hover:text-white hover:bg-white/10 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg touch-target"
           >
-            {isMaster ? <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-secondary" /> : <User className="h-3 w-3 sm:h-4 sm:w-4" />}
+            {isMaster ? <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-sidebar-primary" /> : <User className="h-3 w-3 sm:h-4 sm:w-4" />}
             <span className="hidden sm:inline text-xs sm:text-sm font-medium max-w-20 sm:max-w-32 lg:max-w-none truncate">
               {userProfile?.email || user?.email}
             </span>
