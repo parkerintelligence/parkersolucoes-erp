@@ -27,7 +27,7 @@ export default function ActionPlan() {
   const {
     boards, columns, cards, cardItems, isLoading,
     selectedBoard, setSelectedBoard,
-    createBoard, deleteBoard,
+    createBoard, deleteBoard, fetchData,
   } = useActionPlan();
 
   const handleCreateBoard = async (data: any) => {
