@@ -290,6 +290,23 @@ export const BrandingSettingsPanel = () => {
           </div>
         </div>
 
+        {/* Subtítulo */}
+        <div className="space-y-2">
+          <Label htmlFor="company_subtitle">Subtítulo (exibido abaixo do nome no menu)</Label>
+          <div className="flex gap-2">
+            <Input
+              id="company_subtitle"
+              defaultValue={companySubtitle}
+              placeholder="Ex: ERP System"
+              onBlur={(e) => {
+                if (e.target.value !== companySubtitle) {
+                  updateSettingByKey('company_subtitle', e.target.value, 'Subtítulo da empresa no menu lateral');
+                }
+              }}
+            />
+          </div>
+        </div>
+
         {/* Logo Atual */}
         {logoUrl && (
           <div className="space-y-2">
