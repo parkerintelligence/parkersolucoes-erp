@@ -6,6 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type ActionCard, type ActionColumn } from "@/hooks/useActionPlan";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "lucide-react";
 
 interface CardDialogProps {
   card?: ActionCard | null;
@@ -23,6 +25,7 @@ export const statusConfig: Record<string, { label: string; color: string; icon: 
 };
 
 export function CardDialog({ card, columns, onSave }: CardDialogProps) {
+  const [users, setUsers] = useState<{ id: string; email: string }[]>([]);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -31,7 +34,16 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
     due_date: "",
     column_id: "",
     status: "not_started",
+    assigned_to: "",
   });
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data } = await supabase.from('user_profiles').select('id, email');
+      if (data) setUsers(data);
+    };
+    fetchUsers();
+  }, []);
 
   useEffect(() => {
     if (card) {
@@ -43,6 +55,7 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
         due_date: card.due_date || "",
         column_id: card.column_id || "",
         status: (card as any).status || "not_started",
+        assigned_to: (card as any).assigned_to || "",
       });
     } else {
       setFormData({
@@ -53,6 +66,7 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
         due_date: "",
         column_id: "",
         status: "not_started",
+        assigned_to: "",
       });
     }
   }, [card]);
@@ -62,6 +76,7 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
     const data: any = { ...formData };
     if (!data.due_date) delete data.due_date;
     if (!data.column_id) delete data.column_id;
+    if (!data.assigned_to || data.assigned_to === 'none') data.assigned_to = null;
     onSave(data);
   };
 
@@ -138,6 +153,29 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        {/* Assignee */}
+        <div>
+          <Label>Responsável</Label>
+          <Select value={formData.assigned_to} onValueChange={(value) => setFormData({ ...formData, assigned_to: value })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o responsável" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">
+                <span className="text-muted-foreground">Nenhum</span>
+              </SelectItem>
+              {users.map(u => (
+                <SelectItem key={u.id} value={u.id}>
+                  <div className="flex items-center gap-2">
+                    <User className="h-3.5 w-3.5" />
+                    {u.email}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="grid grid-cols-2 gap-4">

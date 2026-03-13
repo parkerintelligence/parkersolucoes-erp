@@ -1,8 +1,8 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import {
   CheckSquare, Calendar, Clock, Edit, Trash2, AlertTriangle, ChevronRight, ChevronDown,
-  Flag, ArrowUpDown, Plus, Square, CheckCircle2, Circle, MoreHorizontal, ListChecks, GripVertical
+  Flag, ArrowUpDown, Plus, Square, CheckCircle2, Circle, MoreHorizontal, ListChecks, GripVertical, User
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,9 +43,22 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
   const [sortAsc, setSortAsc] = useState(true);
   const [newTaskTitle, setNewTaskTitle] = useState<Record<string, string>>({});
   const [newItemText, setNewItemText] = useState<Record<string, string>>({});
+  const [users, setUsers] = useState<Record<string, string>>({});
   const { updateCard, deleteCard, createCard, createCardItem, updateCardItem, deleteCardItem, fetchData } = useActionPlan();
   const { toast } = useToast();
   const { confirm } = useConfirmDialog();
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data } = await supabase.from('user_profiles').select('id, email');
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach(u => { map[u.id] = u.email; });
+        setUsers(map);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   const toggleGroup = (id: string) => {
     const next = new Set(expandedGroups);
@@ -192,7 +205,7 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
     </button>
   );
 
-  const gridCols = "grid-cols-[24px_40px_1fr_100px_120px_100px_100px_70px_140px_80px]";
+  const gridCols = "grid-cols-[24px_40px_1fr_100px_120px_120px_100px_100px_70px_140px_80px]";
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
@@ -238,6 +251,7 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
                     <SortButton field="title">Tarefa</SortButton>
                     <SortButton field="priority">Prioridade</SortButton>
                     <span className="text-[10px] font-semibold uppercase tracking-wider">Status</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider">Responsável</span>
                     <span className="text-[10px] font-semibold uppercase tracking-wider">Início</span>
                     <SortButton field="due_date">Término</SortButton>
                     <span className="text-[10px] font-semibold uppercase tracking-wider">Duração</span>
@@ -354,6 +368,20 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
                                           ))}
                                         </SelectContent>
                                       </Select>
+                                    </div>
+
+                                    {/* Responsável */}
+                                    <div className="truncate" title={(card as any).assigned_to ? users[(card as any).assigned_to] || '' : ''}>
+                                      {(card as any).assigned_to && users[(card as any).assigned_to] ? (
+                                        <div className="flex items-center gap-1.5">
+                                          <div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                            <User className="h-3 w-3 text-primary" />
+                                          </div>
+                                          <span className="text-[11px] text-foreground truncate">{users[(card as any).assigned_to].split('@')[0]}</span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground/30">—</span>
+                                      )}
                                     </div>
 
                                     {/* Start Date */}

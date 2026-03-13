@@ -87,6 +87,7 @@ export type Database = {
       }
       action_cards: {
         Row: {
+          assigned_to: string | null
           color: string | null
           column_id: string
           created_at: string
@@ -101,6 +102,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assigned_to?: string | null
           color?: string | null
           column_id: string
           created_at?: string
@@ -115,6 +117,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assigned_to?: string | null
           color?: string | null
           column_id?: string
           created_at?: string
