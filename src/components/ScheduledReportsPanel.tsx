@@ -2,12 +2,13 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Calendar, FileText, BarChart3 } from 'lucide-react';
+import { Plus, Calendar, FileText, BarChart3, Cog } from 'lucide-react';
 import { ScheduledReportsTable } from './automation/ScheduledReportsTable';
 import { ScheduledReportForm } from './automation/ScheduledReportForm';
 import { ReportsLogsPanel } from './automation/ReportsLogsPanel';
 import { ReportsStatusPanel } from './automation/ReportsStatusPanel';
 import { LazyAutomationStats } from './LazyAutomationStats';
+import { AutomationProcessesPanel } from './automation/AutomationProcessesPanel';
 import { useToast } from "@/hooks/use-toast"
 import { useScheduledReports, useDeleteScheduledReport, useToggleScheduledReportActive, useTestScheduledReport } from '@/hooks/useScheduledReports';
 import type { ScheduledReport } from '@/hooks/useScheduledReports';
@@ -83,7 +84,7 @@ export const ScheduledReportsPanel = () => {
 
         <div className="space-y-6">
           {/* Custom Tab Navigation */}
-          <div className="grid w-full grid-cols-4 bg-gray-800 border-gray-700 rounded-lg p-1 gap-1">
+          <div className="grid w-full grid-cols-5 bg-gray-800 border-gray-700 rounded-lg p-1 gap-1">
             <button
               onClick={() => setActiveTab('reports')}
               className={`flex items-center justify-center gap-2 py-3 px-4 rounded text-sm font-medium transition-colors ${
@@ -94,6 +95,17 @@ export const ScheduledReportsPanel = () => {
             >
               <Calendar className="h-4 w-4" />
               Agendamentos
+            </button>
+            <button
+              onClick={() => setActiveTab('processes')}
+              className={`flex items-center justify-center gap-2 py-3 px-4 rounded text-sm font-medium transition-colors ${
+                activeTab === 'processes' 
+                  ? 'bg-gray-700 text-white' 
+                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+              }`}
+            >
+              <Cog className="h-4 w-4" />
+              Processos de Automação
             </button>
             <button
               onClick={() => setActiveTab('status')}
@@ -156,6 +168,10 @@ export const ScheduledReportsPanel = () => {
                 />
               </CardContent>
             </Card>
+          )}
+
+          {activeTab === 'processes' && (
+            <AutomationProcessesPanel />
           )}
 
           {activeTab === 'status' && (
