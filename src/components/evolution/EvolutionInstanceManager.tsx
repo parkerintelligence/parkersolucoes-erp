@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Smartphone, Plus, QrCode, RefreshCw, Wifi, LogOut, Trash2, Loader2 } from 'lucide-react';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
-import { EvolutionApiService } from '@/utils/evolutionApiService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface InstanceInfo {
   instanceName: string;
@@ -18,6 +18,14 @@ interface InstanceInfo {
   profilePictureUrl?: string;
   createdAt?: string;
 }
+
+const callEvolutionProxy = async (integrationId: string, endpoint: string, method = 'GET', body?: any) => {
+  const { data, error } = await supabase.functions.invoke('evolution-proxy', {
+    body: { integrationId, endpoint, method, body }
+  });
+  if (error) throw error;
+  return data;
+};
 
 export const EvolutionInstanceManager = () => {
   const { data: integrations } = useIntegrations();
@@ -31,15 +39,15 @@ export const EvolutionInstanceManager = () => {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [loadingInstances, setLoadingInstances] = useState(false);
 
-  const baseUrl = evolutionConfig?.base_url || '';
-  const apiToken = evolutionConfig?.api_token || '';
+  const integrationId = evolutionConfig?.id || '';
 
   const fetchInstances = useCallback(async () => {
-    if (!baseUrl || !apiToken) return;
+    if (!integrationId) return;
     setLoadingInstances(true);
     try {
-      const data = await EvolutionApiService.fetchAllInstances(baseUrl, apiToken);
-      const mapped: InstanceInfo[] = data.map((inst: any) => ({
+      const data = await callEvolutionProxy(integrationId, '/instance/fetchInstances');
+      const list = Array.isArray(data) ? data : [];
+      const mapped: InstanceInfo[] = list.map((inst: any) => ({
         instanceName: inst.instance?.instanceName || inst.instanceName || inst.name || 'Sem nome',
         instanceId: inst.instance?.instanceId || inst.id,
         status: inst.instance?.status || inst.status || 'unknown',
@@ -54,14 +62,13 @@ export const EvolutionInstanceManager = () => {
     } finally {
       setLoadingInstances(false);
     }
-  }, [baseUrl, apiToken]);
+  }, [integrationId]);
 
-  // Auto-fetch on mount
-  useState(() => {
-    if (baseUrl && apiToken) {
+  useEffect(() => {
+    if (integrationId) {
       fetchInstances();
     }
-  });
+  }, [integrationId, fetchInstances]);
 
   const handleCreateInstance = async () => {
     if (!instanceName.trim()) {
@@ -74,7 +81,7 @@ export const EvolutionInstanceManager = () => {
       return;
     }
 
-    if (!baseUrl || !apiToken) {
+    if (!integrationId) {
       toast({ title: 'Configuração ausente', description: 'Configure a Evolution API no painel de Administração primeiro.', variant: 'destructive' });
       return;
     }
@@ -82,20 +89,27 @@ export const EvolutionInstanceManager = () => {
     setLoading(true);
     setQrCode(null);
     try {
-      const tempIntegration = { base_url: baseUrl, api_token: apiToken, instance_name: instanceName } as any;
-      const service = new EvolutionApiService(tempIntegration);
-      const result = await service.createInstance();
+      const result = await callEvolutionProxy(integrationId, '/instance/create', 'POST', {
+        instanceName,
+        qrcode: true,
+        markMessagesRead: false,
+        delayMessage: 1000,
+        integration: 'WHATSAPP-BAILEYS'
+      });
 
-      if (result.success) {
+      const qr = result?.qrcode?.base64 || result?.qrcode;
+      if (qr) {
         toast({ title: '✅ Instância criada!', description: `Instância "${instanceName}" criada com sucesso.` });
-        if (result.qrCode) {
-          setQrCode(result.qrCode);
-          setActiveInstanceName(instanceName);
-        }
+        setQrCode(qr);
+        setActiveInstanceName(instanceName);
+        setInstanceName('');
+        await fetchInstances();
+      } else if (result?.instance) {
+        toast({ title: '✅ Instância criada!', description: `Instância "${instanceName}" criada. Clique em Conectar para gerar o QR Code.` });
         setInstanceName('');
         await fetchInstances();
       } else {
-        toast({ title: 'Erro ao criar instância', description: result.error, variant: 'destructive' });
+        toast({ title: 'Erro ao criar instância', description: JSON.stringify(result), variant: 'destructive' });
       }
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
@@ -107,12 +121,13 @@ export const EvolutionInstanceManager = () => {
   const handleGetQrCode = async (name: string) => {
     setLoadingAction(name);
     try {
-      const result = await EvolutionApiService.connectInstance(baseUrl, apiToken, name);
-      if (result.qrCode) {
-        setQrCode(result.qrCode);
+      const result = await callEvolutionProxy(integrationId, `/instance/connect/${name}`);
+      const qr = result?.base64 || result?.qrcode?.base64 || result?.qrcode;
+      if (qr) {
+        setQrCode(qr);
         setActiveInstanceName(name);
       } else {
-        toast({ title: 'QR Code indisponível', description: result.error || 'Instância pode já estar conectada.', variant: 'destructive' });
+        toast({ title: 'QR Code indisponível', description: 'Instância pode já estar conectada.', variant: 'destructive' });
       }
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
@@ -124,13 +139,14 @@ export const EvolutionInstanceManager = () => {
   const handleCheckStatus = async (name: string) => {
     setLoadingAction(`status-${name}`);
     try {
-      const result = await EvolutionApiService.getInstanceStatus(baseUrl, apiToken, name);
+      const result = await callEvolutionProxy(integrationId, `/instance/connectionState/${name}`);
+      const state = result?.instance?.state || result?.state || 'unknown';
       const stateMap: Record<string, string> = {
         open: 'Conectado',
         close: 'Desconectado',
         connecting: 'Conectando...',
       };
-      toast({ title: `Status: ${stateMap[result.state] || result.state}`, description: `Instância "${name}"` });
+      toast({ title: `Status: ${stateMap[state] || state}`, description: `Instância "${name}"` });
       await fetchInstances();
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
@@ -142,13 +158,9 @@ export const EvolutionInstanceManager = () => {
   const handleLogout = async (name: string) => {
     setLoadingAction(`logout-${name}`);
     try {
-      const result = await EvolutionApiService.logoutInstance(baseUrl, apiToken, name);
-      if (result.success) {
-        toast({ title: '✅ Desconectado', description: `Instância "${name}" desconectada.` });
-        await fetchInstances();
-      } else {
-        toast({ title: 'Erro', description: result.error, variant: 'destructive' });
-      }
+      await callEvolutionProxy(integrationId, `/instance/logout/${name}`, 'DELETE');
+      toast({ title: '✅ Desconectado', description: `Instância "${name}" desconectada.` });
+      await fetchInstances();
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
     } finally {
@@ -160,17 +172,13 @@ export const EvolutionInstanceManager = () => {
     if (!confirm(`Tem certeza que deseja excluir a instância "${name}"?`)) return;
     setLoadingAction(`delete-${name}`);
     try {
-      const result = await EvolutionApiService.deleteInstance(baseUrl, apiToken, name);
-      if (result.success) {
-        toast({ title: '✅ Excluída', description: `Instância "${name}" excluída.` });
-        if (activeInstanceName === name) {
-          setQrCode(null);
-          setActiveInstanceName(null);
-        }
-        await fetchInstances();
-      } else {
-        toast({ title: 'Erro', description: result.error, variant: 'destructive' });
+      await callEvolutionProxy(integrationId, `/instance/delete/${name}`, 'DELETE');
+      toast({ title: '✅ Excluída', description: `Instância "${name}" excluída.` });
+      if (activeInstanceName === name) {
+        setQrCode(null);
+        setActiveInstanceName(null);
       }
+      await fetchInstances();
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
     } finally {
@@ -211,7 +219,6 @@ export const EvolutionInstanceManager = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Smartphone className="h-6 w-6" />
@@ -220,9 +227,7 @@ export const EvolutionInstanceManager = () => {
         <p className="text-muted-foreground">Gerencie instâncias do WhatsApp via Evolution API</p>
       </div>
 
-      {/* Top row: Create + QR Code */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Create Instance */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -259,7 +264,6 @@ export const EvolutionInstanceManager = () => {
           </CardContent>
         </Card>
 
-        {/* QR Code Display */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -290,7 +294,6 @@ export const EvolutionInstanceManager = () => {
         </Card>
       </div>
 
-      {/* Instances List */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
