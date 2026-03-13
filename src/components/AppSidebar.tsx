@@ -41,7 +41,6 @@ export function AppSidebar() {
   const companyName = settings?.find(s => s.setting_key === 'company_name')?.setting_value || 'Parker Soluções';
   const companySubtitle = settings?.find(s => s.setting_key === 'company_subtitle')?.setting_value || 'ERP System';
   const logoUrl = settings?.find(s => s.setting_key === 'company_logo_url')?.setting_value || '';
-  const filteredMainItems = menuItems.filter(item => item.role === 'user' || (item.role === 'master' && isMaster));
 
   return (
     <Sidebar className="border-r border-sidebar-border" collapsible="icon">
