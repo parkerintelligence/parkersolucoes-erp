@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import {
   Server, Wifi, Router, ShieldCheck, Send, SendHorizonal,
   AlertTriangle, CheckCircle2, XCircle, Clock, HardDrive,
-  Activity, Database, RefreshCw, BarChart3, Zap
+  Activity, Database, RefreshCw, BarChart3, Zap, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, differenceInDays, parseISO } from 'date-fns';
