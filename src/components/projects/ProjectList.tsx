@@ -370,6 +370,20 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
                                       </Select>
                                     </div>
 
+                                    {/* Responsável */}
+                                    <div className="truncate" title={(card as any).assigned_to ? users[(card as any).assigned_to] || '' : ''}>
+                                      {(card as any).assigned_to && users[(card as any).assigned_to] ? (
+                                        <div className="flex items-center gap-1.5">
+                                          <div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                            <User className="h-3 w-3 text-primary" />
+                                          </div>
+                                          <span className="text-[11px] text-foreground truncate">{users[(card as any).assigned_to].split('@')[0]}</span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground/30">—</span>
+                                      )}
+                                    </div>
+
                                     {/* Start Date */}
                                     <div>
                                       <span className="text-xs text-muted-foreground">{format(created, "dd/MM/yy")}</span>
