@@ -311,6 +311,7 @@ export default function ActionPlan() {
                   columns={boardColumns}
                   cards={filteredCards}
                   cardItems={cardItems}
+                  onRefresh={async () => { await fetchData(); }}
                 />
               )}
               {activeView === "calendar" && (
