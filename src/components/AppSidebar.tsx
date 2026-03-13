@@ -49,11 +49,11 @@ export function AppSidebar() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/5" />
         <div className="relative flex items-center gap-3">
           {logoUrl ? (
-            <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0 bg-card">
-              <img src={logoUrl} alt={companyName} className="w-full h-full object-contain" />
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0 bg-card shadow-lg ring-2 ring-accent/30">
+              <img src={logoUrl} alt={companyName} className="w-full h-full object-contain p-0.5" />
             </div>
           ) : (
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg glow-primary flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg glow-primary flex-shrink-0">
               <Shield className="h-5 w-5 text-primary-foreground" />
             </div>
           )}
