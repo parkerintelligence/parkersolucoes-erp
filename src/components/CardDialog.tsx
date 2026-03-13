@@ -25,6 +25,7 @@ export const statusConfig: Record<string, { label: string; color: string; icon: 
 };
 
 export function CardDialog({ card, columns, onSave }: CardDialogProps) {
+  const [users, setUsers] = useState<{ id: string; email: string }[]>([]);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -33,7 +34,16 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
     due_date: "",
     column_id: "",
     status: "not_started",
+    assigned_to: "",
   });
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data } = await supabase.from('user_profiles').select('id, email');
+      if (data) setUsers(data);
+    };
+    fetchUsers();
+  }, []);
 
   useEffect(() => {
     if (card) {
