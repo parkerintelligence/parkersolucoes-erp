@@ -331,6 +331,9 @@ export default function Webhooks() {
                           />
                         </div>
                         <div className="col-span-3 flex items-center justify-end gap-1">
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => openHistory(w)} title="Histórico">
+                            <History className="h-4 w-4" />
+                          </Button>
                           <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => testWebhook(w.id)} title="Testar">
                             <Activity className="h-4 w-4" />
                           </Button>
