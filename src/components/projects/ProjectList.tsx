@@ -43,6 +43,7 @@ export function ProjectList({ columns, cards, cardItems }: ProjectListProps) {
   const [newItemText, setNewItemText] = useState<Record<string, string>>({});
   const { updateCard, deleteCard, createCard, createCardItem, updateCardItem, deleteCardItem, fetchData } = useActionPlan();
   const { toast } = useToast();
+  const { confirm } = useConfirmDialog();
 
   const toggleGroup = (id: string) => {
     const next = new Set(expandedGroups);
