@@ -49,6 +49,11 @@ const menuItems = [{
   icon: Calendar,
   role: 'user'
 }, {
+  title: 'WhatsApp',
+  url: '/whatsapp',
+  icon: Smartphone,
+  role: 'user'
+}, {
   title: 'Modelos WhatsApp',
   url: '/whatsapp-templates',
   icon: MessageCircle,
