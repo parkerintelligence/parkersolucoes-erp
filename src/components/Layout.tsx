@@ -4,6 +4,7 @@ import { Navigate } from 'react-router-dom';
 import { TopHeader } from '@/components/TopHeader';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { useWebhookNotifications } from '@/hooks/useWebhookNotifications';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,6 +12,7 @@ interface LayoutProps {
 
 export const Layout = ({ children }: LayoutProps) => {
   const { isAuthenticated, isLoading } = useAuth();
+  useWebhookNotifications();
 
   if (isLoading) {
     return (
