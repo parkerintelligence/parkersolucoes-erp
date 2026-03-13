@@ -155,6 +155,28 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
           </div>
         </div>
 
+        {/* Assignee */}
+        <div>
+          <Label>Responsável</Label>
+          <Select value={formData.assigned_to} onValueChange={(value) => setFormData({ ...formData, assigned_to: value })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o responsável" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">
+                <span className="text-muted-foreground">Nenhum</span>
+              </SelectItem>
+              {users.map(u => (
+                <SelectItem key={u.id} value={u.id}>
+                  <div className="flex items-center gap-2">
+                    <User className="h-3.5 w-3.5" />
+                    {u.email}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="due_date">Data de Vencimento</Label>
