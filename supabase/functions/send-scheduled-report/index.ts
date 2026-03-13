@@ -1213,13 +1213,19 @@ function getStatusText(status: number): string {
 
 function getTimeOpenText(createdDate: Date, now: Date): string {
   const diffMs = now.getTime() - createdDate.getTime();
+  if (diffMs < 0) return 'agora';
+  
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
   
   if (diffDays > 0) {
     return `${diffDays}d${diffHours > 0 ? ` ${diffHours}h` : ''}`;
   }
-  return `${diffHours}h`;
+  if (diffHours > 0) {
+    return `${diffHours}h${diffMinutes > 0 ? ` ${diffMinutes}min` : ''}`;
+  }
+  return `${diffMinutes}min`;
 }
 
 function calculateAverageTimeOpen(tickets: any[], now: Date): string {
