@@ -165,31 +165,13 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
     if (!dateString) return null;
     
     try {
-      // GLPI retorna datas no formato "YYYY-MM-DD HH:mm:ss" em UTC
-      // Precisamos interpretar como UTC e deixar o navegador converter para timezone local
-      const [datePart, timePart] = dateString.split(' ');
-      if (!datePart || !timePart) return null;
+      // GLPI retorna datas no formato "YYYY-MM-DD HH:mm:ss" no fuso horário de Brasília (UTC-3)
+      // Interpretamos como Brasília adicionando o offset -03:00
+      const trimmed = dateString.trim();
+      const isoWithOffset = trimmed.replace(' ', 'T') + '-03:00';
+      const date = new Date(isoWithOffset);
       
-      const [year, month, day] = datePart.split('-').map(Number);
-      const [hour, minute, second] = timePart.split(':').map(Number);
-      
-      // Criar data UTC usando Date.UTC() para garantir interpretação correta
-      const timestamp = Date.UTC(year, month - 1, day, hour, minute, second || 0);
-      const utcDate = new Date(timestamp);
-      
-      console.log(`⏰ [GLPI] parseGLPIDate:`, {
-        input: dateString,
-        timestamp,
-        utcISO: utcDate.toISOString(),
-        localDisplay: utcDate.toLocaleString('pt-BR', { 
-          timeZone: 'America/Sao_Paulo',
-          dateStyle: 'short',
-          timeStyle: 'short'
-        }),
-        components: { year, month, day, hour, minute, second }
-      });
-      
-      return utcDate;
+      return date;
     } catch (error) {
       console.error('❌ [GLPI] Erro ao fazer parse de data:', error, dateString);
       return null;
