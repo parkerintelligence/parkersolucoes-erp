@@ -21,11 +21,40 @@ interface InstanceInfo {
 
 const callEvolutionProxy = async (integrationId: string, endpoint: string, method = 'GET', body?: any) => {
   console.log(`[Evolution] Calling proxy: ${method} ${endpoint}`);
+
   const { data, error } = await supabase.functions.invoke('evolution-proxy', {
     body: { integrationId, endpoint, method, body }
   });
-  console.log(`[Evolution] Response:`, data, error);
-  if (error) throw error;
+
+  if (error) {
+    const response = (error as any)?.context;
+    let details = '';
+
+    try {
+      if (response && typeof response.text === 'function') {
+        details = await response.text();
+      }
+    } catch {
+      // noop
+    }
+
+    let parsedMessage = '';
+    if (details) {
+      try {
+        const parsed = JSON.parse(details);
+        const responseMessage = parsed?.response?.message;
+        parsedMessage = Array.isArray(responseMessage)
+          ? responseMessage.join(', ')
+          : responseMessage || parsed?.message || parsed?.error || '';
+      } catch {
+        // noop
+      }
+    }
+
+    throw new Error(parsedMessage || details || (error as any)?.message || 'Erro ao chamar Evolution API');
+  }
+
+  console.log(`[Evolution] Response:`, data);
   return data;
 };
 
