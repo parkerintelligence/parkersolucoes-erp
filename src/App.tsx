@@ -88,6 +88,7 @@ function App() {
           </div>
           <Toaster position="bottom-right" />
         </BrowserRouter>
+        </ConfirmDialogProvider>
         </MikrotikProvider>
       </AuthProvider>
     </QueryClientProvider>
