@@ -112,7 +112,14 @@ export const RustDeskPanel = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja remover esta conexão?')) return;
+    const confirmed = await confirm({
+      title: "Remover conexão",
+      description: "Tem certeza que deseja remover esta conexão RustDesk? Esta ação não pode ser desfeita.",
+      confirmText: "Remover",
+      cancelText: "Cancelar",
+      variant: "destructive",
+    });
+    if (!confirmed) return;
     await deleteMutation.mutateAsync(id);
   };
 
