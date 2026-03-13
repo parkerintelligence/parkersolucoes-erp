@@ -71,8 +71,11 @@ const useDashboardData = () => {
   };
 };
 
+const LOGS_PER_PAGE = 5;
+
 const Dashboard = () => {
   const { integrations, reports, logs, isLoading, refetchAll } = useDashboardData();
+  const [logsPage, setLogsPage] = useState(0);
 
   // --- Compute stats ---
   const activeIntegrations = integrations.filter((i: any) => i.is_active);
