@@ -947,10 +947,11 @@ async function getGLPIStandardData(glpiIntegration: any) {
 
     // A resposta do glpi-proxy vem como { result: [...] }
     const allTickets = glpiData.result || [];
-    console.log(`📊 [GLPI] ${allTickets.length} tickets em aberto encontrados`);
-    console.log(`📋 [GLPI] Primeiros tickets:`, allTickets.slice(0, 3).map(t => ({ id: t.id, name: t.name, status: t.status, priority: t.priority })));
+    const uniqueStatuses = [...new Set(allTickets.map(t => t.status))];
+    console.log(`📊 [GLPI] ${allTickets.length} tickets encontrados, statuses: ${JSON.stringify(uniqueStatuses)}`);
+    console.log(`📋 [GLPI] Todos os tickets:`, allTickets.map(t => ({ id: t.id, name: t.name, status: t.status, date: t.date })));
 
-    // Filtrar e categorizar tickets
+    // Filtrar e categorizar tickets (GLPI: 1=Novo, 2=Em atendimento, 3=Planejado, 4=Pendente, 5=Solucionado, 6=Fechado)
     const openTickets = allTickets.filter(t => [1, 2, 3, 4].includes(t.status || 1));
     const criticalTickets = allTickets.filter(t => (t.priority || 1) >= 4);
     const pendingTickets = allTickets.filter(t => t.status === 4);
@@ -958,22 +959,20 @@ async function getGLPIStandardData(glpiIntegration: any) {
     const resolvedTickets = allTickets.filter(t => [5, 6].includes(t.status || 0));
     
     // Calcular tickets vencidos (exemplo: > 3 dias em aberto)
+    // IMPORTANTE: parseGLPIDate já retorna UTC real (adiciona -03:00), então usamos now (UTC real) para comparações
     const now = new Date();
-    const nowBrasiliaForOverdue = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
     const overdueTickets = allTickets.filter(ticket => {
       if (ticket.date) {
         const ticketDate = parseGLPIDate(ticket.date);
-        const daysDiff = (nowBrasiliaForOverdue.getTime() - ticketDate.getTime()) / (1000 * 60 * 60 * 24);
+        const daysDiff = (now.getTime() - ticketDate.getTime()) / (1000 * 60 * 60 * 24);
         return daysDiff > 3;
       }
       return false;
     });
 
-    // Usar horário de Brasília para cálculos de tempo
-    const nowBrasilia = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-    
+    // Usar now (UTC real) para cálculos de tempo, pois parseGLPIDate já converte corretamente para UTC
     // Calcular tempo médio em aberto para tickets ativos
-    const avgTimeOpen = calculateAverageTimeOpen(openTickets, nowBrasilia);
+    const avgTimeOpen = calculateAverageTimeOpen(openTickets, now);
 
     // Organizar tickets por prioridade (críticos primeiro)
     const sortedTickets = [...allTickets].sort((a, b) => {
@@ -1087,7 +1086,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
         const priority = getPriorityIcon(ticket.priority || 1);
         const urgency = getUrgencyIcon(ticket.urgency || 1);
         const status = getStatusText(ticket.status || 1);
-        const timeOpen = ticket.date ? getTimeOpenText(parseGLPIDate(ticket.date), nowBrasilia) : 'N/A';
+        const timeOpen = ticket.date ? getTimeOpenText(parseGLPIDate(ticket.date), now) : 'N/A';
         const assignee = ticket.users_id_recipient && ticket.users_id_recipient !== 0 
           ? userNames.get(ticket.users_id_recipient) || `Usuário #${ticket.users_id_recipient}` 
           : 'Não atribuído';
@@ -1120,7 +1119,7 @@ async function getGLPIStandardData(glpiIntegration: any) {
       .map(ticket => {
         const priority = getPriorityIcon(ticket.priority || 1);
         const urgency = getUrgencyIcon(ticket.urgency || 1);
-        const timeOpen = ticket.date ? getTimeOpenText(parseGLPIDate(ticket.date), nowBrasilia) : 'N/A';
+        const timeOpen = ticket.date ? getTimeOpenText(parseGLPIDate(ticket.date), now) : 'N/A';
         const categoryName = ticket.itilcategories_id && ticket.itilcategories_id !== 0
           ? categoryNames.get(ticket.itilcategories_id) || 'Sem categoria'
           : 'Sem categoria';
