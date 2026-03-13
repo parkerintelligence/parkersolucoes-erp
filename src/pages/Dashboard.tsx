@@ -282,7 +282,7 @@ const Dashboard = () => {
                   ...f,
                   daysSince: Math.floor((now.getTime() - new Date(f.lastModified || f.date || f.rawModifiedAt || 0).getTime()) / (1000 * 60 * 60 * 24))
                 }))
-                .filter((f: any) => f.daysSince > 3)
+                .filter((f: any) => f.daysSince > 2)
                 .sort((a: any, b: any) => b.daysSince - a.daysSince)
                 .slice(0, 6);
 
