@@ -114,7 +114,8 @@ const useDashboardData = () => {
   const zabbixProblems = useQuery({
     queryKey: ['dashboard-zabbix-problems'],
     queryFn: async () => {
-      if (!zabbixIntegration) return [];
+      if (!zabbixIntegration) return { active: [], disasters: [] };
+      // Fetch active problems
       const { data, error } = await supabase.functions.invoke('zabbix-proxy', {
         body: {
           method: 'problem.get',
@@ -129,9 +130,27 @@ const useDashboardData = () => {
           integrationId: zabbixIntegration.id,
         }
       });
-      if (error) return [];
-      const result = data?.result || data || [];
-      return Array.isArray(result) ? result : [];
+      const activeProblems = !error ? (Array.isArray(data?.result || data) ? (data?.result || data) : []) : [];
+
+      // Fetch last 5 disaster events (severity 5) from event history
+      const { data: evtData } = await supabase.functions.invoke('zabbix-proxy', {
+        body: {
+          method: 'event.get',
+          params: {
+            output: ['eventid', 'name', 'severity', 'clock', 'r_eventid'],
+            selectHosts: ['name'],
+            sortfield: ['clock'],
+            sortorder: 'DESC',
+            limit: 5,
+            severities: [5],
+            value: 1,
+          },
+          integrationId: zabbixIntegration.id,
+        }
+      });
+      const disasters = Array.isArray(evtData?.result || evtData) ? (evtData?.result || evtData) : [];
+
+      return { active: activeProblems, disasters };
     },
     enabled: !!zabbixIntegration,
     staleTime: 120000,
@@ -143,7 +162,8 @@ const useDashboardData = () => {
     logs: logs.data || [],
     ftpFiles: ftpFiles.data || [],
     baculaErrors: baculaJobs.data || [],
-    zabbixProblems: zabbixProblems.data || [],
+    zabbixProblems: (zabbixProblems.data as any)?.active || [],
+    zabbixDisasters: (zabbixProblems.data as any)?.disasters || [],
     hasBacula: !!baculaIntegration,
     hasZabbix: !!zabbixIntegration,
     hasFtp: !!ftpIntegration,
@@ -162,7 +182,7 @@ const useDashboardData = () => {
 const LOGS_PER_PAGE = 5;
 
 const Dashboard = () => {
-  const { integrations, reports, logs, ftpFiles, baculaErrors, zabbixProblems, hasBacula, hasZabbix, hasFtp, isLoading, refetchAll } = useDashboardData();
+  const { integrations, reports, logs, ftpFiles, baculaErrors, zabbixProblems, zabbixDisasters, hasBacula, hasZabbix, hasFtp, isLoading, refetchAll } = useDashboardData();
   const [logsPage, setLogsPage] = useState(0);
 
   // --- Compute stats ---
@@ -377,47 +397,69 @@ const Dashboard = () => {
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-xs font-semibold text-orange-300 flex items-center gap-2">
               <Activity className="h-3.5 w-3.5" />
-              Últimos Problemas Zabbix
+              {zabbixProblems.length > 0 ? 'Problemas Ativos Zabbix' : 'Últimos Alertas de Desastre'}
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4 pt-0">
             {!hasZabbix ? (
               <p className="text-[10px] text-muted-foreground">Zabbix não configurado</p>
-            ) : zabbixProblems.length === 0 ? (
-              <div className="flex items-center gap-2 py-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />
-                <p className="text-xs text-green-300">Sem problemas ativos</p>
-              </div>
-            ) : (
-              <div className="space-y-1.5 mt-1">
-                {zabbixProblems.slice(0, 5).map((problem: any, i: number) => {
-                  const severity = parseInt(problem.severity || '0');
-                  const severityColors: Record<number, string> = {
-                    0: 'text-muted-foreground', 1: 'text-blue-300', 2: 'text-yellow-300',
-                    3: 'text-orange-300', 4: 'text-red-300', 5: 'text-red-400 font-bold'
-                  };
-                  const severityLabels: Record<number, string> = {
-                    0: 'Info', 1: 'Info', 2: 'Aviso', 3: 'Médio', 4: 'Alto', 5: 'Desastre'
-                  };
-                  const hostName = problem.hosts?.[0]?.name || '';
-                  const timestamp = problem.clock ? new Date(parseInt(problem.clock) * 1000) : null;
+            ) : (() => {
+              const items = zabbixProblems.length > 0 ? zabbixProblems : zabbixDisasters;
+              const isDisasterFallback = zabbixProblems.length === 0;
 
-                  return (
-                    <div key={i} className="flex items-center justify-between text-xs gap-2">
-                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                        <AlertTriangle className={`h-3 w-3 flex-shrink-0 ${severityColors[severity] || 'text-orange-400'}`} />
-                        <span className="text-orange-200/80 truncate" title={`${hostName}: ${problem.name}`}>
-                          {hostName ? `${hostName}: ` : ''}{problem.name}
-                        </span>
-                      </div>
-                      <Badge variant="outline" className={`text-[8px] py-0 px-1 h-3.5 border-orange-600/30 ${severityColors[severity]}`}>
-                        {severityLabels[severity] || 'N/A'}
-                      </Badge>
+              if (items.length === 0) {
+                return (
+                  <div className="flex items-center gap-2 py-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />
+                    <p className="text-xs text-green-300">Sem problemas ativos</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-1.5 mt-1">
+                  {isDisasterFallback && (
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <CheckCircle2 className="h-3 w-3 text-green-400" />
+                      <span className="text-[10px] text-green-300/80">Sem problemas ativos — histórico recente:</span>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  )}
+                  {items.slice(0, 5).map((problem: any, i: number) => {
+                    const severity = parseInt(problem.severity || '0');
+                    const severityColors: Record<number, string> = {
+                      0: 'text-muted-foreground', 1: 'text-blue-300', 2: 'text-yellow-300',
+                      3: 'text-orange-300', 4: 'text-red-300', 5: 'text-red-400 font-bold'
+                    };
+                    const severityLabels: Record<number, string> = {
+                      0: 'Info', 1: 'Info', 2: 'Aviso', 3: 'Médio', 4: 'Alto', 5: 'Desastre'
+                    };
+                    const hostName = problem.hosts?.[0]?.name || '';
+                    const timestamp = problem.clock ? new Date(parseInt(problem.clock) * 1000) : null;
+
+                    return (
+                      <div key={i} className="flex items-center justify-between text-xs gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          <AlertTriangle className={`h-3 w-3 flex-shrink-0 ${severityColors[severity] || 'text-orange-400'}`} />
+                          <span className={`truncate ${isDisasterFallback ? 'text-orange-200/60' : 'text-orange-200/80'}`} title={`${hostName}: ${problem.name}`}>
+                            {hostName ? `${hostName}: ` : ''}{problem.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {timestamp && (
+                            <span className="text-[8px] text-orange-300/40">
+                              {format(timestamp, "dd/MM HH:mm", { locale: ptBR })}
+                            </span>
+                          )}
+                          <Badge variant="outline" className={`text-[8px] py-0 px-1 h-3.5 border-orange-600/30 ${severityColors[severity]}`}>
+                            {severityLabels[severity] || 'N/A'}
+                          </Badge>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
