@@ -226,6 +226,7 @@ export const HostingerDashboard = () => {
 };
 interface VPSCardProps {
   vps: any;
+  index: number;
   integrationId: string;
   onRestart: () => void;
   onSnapshot: () => void;
