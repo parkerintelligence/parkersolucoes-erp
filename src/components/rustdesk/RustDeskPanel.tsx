@@ -43,7 +43,6 @@ export const RustDeskPanel = () => {
   const updateMutation = useUpdateRustDeskConnection();
   const deleteMutation = useDeleteRustDeskConnection();
   const { confirm } = useConfirmDialog();
-  const deleteMutation = useDeleteRustDeskConnection();
 
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
