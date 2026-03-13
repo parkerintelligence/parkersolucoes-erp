@@ -257,7 +257,10 @@ const Annotations = () => {
       return;
     }
 
-    createAnnotation.mutate(formData);
+    createAnnotation.mutate({
+      ...formData,
+      company_id: formData.company_id && formData.company_id !== 'none' ? formData.company_id : null,
+    } as any);
     setFormData({ 
       name: '', 
       company_id: '', 
@@ -290,7 +293,10 @@ const Annotations = () => {
       return;
     }
 
-    updateAnnotation.mutate({ id: editingAnnotation.id, updates: formData });
+    updateAnnotation.mutate({ id: editingAnnotation.id, updates: {
+      ...formData,
+      company_id: formData.company_id && formData.company_id !== 'none' ? formData.company_id : null,
+    } });
     setIsEditDialogOpen(false);
     setEditingAnnotation(null);
     setFormData({ 
@@ -486,6 +492,7 @@ const Annotations = () => {
                         <SelectValue placeholder="Selecione a empresa" />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-700 border-slate-600">
+                        <SelectItem value="none" className="text-slate-400">Nenhuma (sem empresa)</SelectItem>
                         {companies.map((company) => (
                           <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>
                         ))}
@@ -649,6 +656,7 @@ const Annotations = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-700 border-slate-600">
+                    <SelectItem value="none" className="text-slate-400">Nenhuma (sem empresa)</SelectItem>
                     {companies.map((company) => (
                       <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>
                     ))}
