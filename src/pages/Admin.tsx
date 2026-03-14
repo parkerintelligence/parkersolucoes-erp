@@ -17,6 +17,7 @@ import { BaculaAdminConfig } from "@/components/BaculaAdminConfig";
 import { HostingerAdminConfig } from "@/components/HostingerAdminConfig";
 import { MikrotikAdminConfig } from "@/components/MikrotikAdminConfig";
 import UniFiAdminConfig from "@/components/UniFiAdminConfig";
+import RustDeskAdminConfig from "@/components/RustDeskAdminConfig";
 import { AdminCompaniesPanel } from "@/components/AdminCompaniesPanel";
 import SystemSettingsPanel from "@/components/SystemSettingsPanel";
 import { BrandingSettingsPanel } from "@/components/BrandingSettingsPanel";
@@ -36,7 +37,8 @@ import {
   Activity,
   Wifi,
   Router,
-  Users
+  Users,
+  Monitor
 } from "lucide-react";
 
 const Admin = () => {
@@ -126,6 +128,12 @@ const Admin = () => {
       label: "Winbox",
       icon: <Router className="h-5 w-5 text-cyan-400" />,
       component: MikrotikAdminConfig
+    },
+    {
+      id: "rustdesk",
+      label: "RustDesk",
+      icon: <Monitor className="h-5 w-5 text-orange-400" />,
+      component: RustDeskAdminConfig
     }
   ];
 

@@ -998,6 +998,8 @@ export type Database = {
           alias: string | null
           company_id: string | null
           created_at: string
+          glpi_asset_id: number | null
+          glpi_asset_name: string | null
           hostname: string | null
           id: string
           is_online: boolean | null
@@ -1015,6 +1017,8 @@ export type Database = {
           alias?: string | null
           company_id?: string | null
           created_at?: string
+          glpi_asset_id?: number | null
+          glpi_asset_name?: string | null
           hostname?: string | null
           id?: string
           is_online?: boolean | null
@@ -1032,6 +1036,8 @@ export type Database = {
           alias?: string | null
           company_id?: string | null
           created_at?: string
+          glpi_asset_id?: number | null
+          glpi_asset_name?: string | null
           hostname?: string | null
           id?: string
           is_online?: boolean | null

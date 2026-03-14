@@ -11,9 +11,10 @@ import { toast } from '@/hooks/use-toast';
 
 interface Props {
   onClose: () => void;
+  embedded?: boolean;
 }
 
-export const RustDeskServerConfig = ({ onClose }: Props) => {
+export const RustDeskServerConfig = ({ onClose, embedded = false }: Props) => {
   const { data: integrations = [] } = useIntegrations();
   const createIntegration = useCreateIntegration();
   const updateIntegration = useUpdateIntegration();
@@ -197,21 +198,23 @@ export const RustDeskServerConfig = ({ onClose }: Props) => {
   };
 
   return (
-    <Card className="bg-slate-800 border-orange-500/30">
+    <Card className={embedded ? "border-border" : "bg-slate-800 border-orange-500/30"}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2 text-white text-base">
+            <CardTitle className="flex items-center gap-2 text-foreground text-base">
               <Server className="h-5 w-5 text-orange-400" />
               Configuração do Servidor RustDesk
             </CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardDescription>
               Configure seu servidor RustDesk próprio (hbbs/hbbr) para conexões seguras e centralizadas
             </CardDescription>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose} className="text-slate-400 hover:text-white">
-            <X className="h-4 w-4" />
-          </Button>
+          {!embedded && (
+            <Button variant="ghost" size="sm" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

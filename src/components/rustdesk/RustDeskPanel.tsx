@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Monitor, Plus, Search, Edit, Trash2, ExternalLink, Eye, EyeOff, Copy,
-  Server, Settings, X, Save, Tag, Building2
+  X, Save, Building2, Package
 } from 'lucide-react';
 import {
   useRustDeskConnections,
@@ -17,11 +17,10 @@ import {
   useDeleteRustDeskConnection,
   RustDeskConnection,
 } from '@/hooks/useRustDesk';
-import { useIntegrations } from '@/hooks/useIntegrations';
 import { useCompanies } from '@/hooks/useCompanies';
+import { useGLPI } from '@/hooks/useGLPI';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { toast } from '@/hooks/use-toast';
-import { RustDeskServerConfig } from './RustDeskServerConfig';
 
 const EMPTY_FORM = {
   name: '',
@@ -33,27 +32,30 @@ const EMPTY_FORM = {
   os_type: '',
   notes: '',
   tags: [] as string[],
+  glpi_asset_id: null as number | null,
+  glpi_asset_name: '',
 };
 
 export const RustDeskPanel = () => {
   const { data: connections = [], isLoading } = useRustDeskConnections();
-  const { data: integrations = [] } = useIntegrations();
   const { data: companies = [] } = useCompanies();
   const createMutation = useCreateRustDeskConnection();
   const updateMutation = useUpdateRustDeskConnection();
   const deleteMutation = useDeleteRustDeskConnection();
   const { confirm } = useConfirmDialog();
 
+  // GLPI inventory
+  const glpi = useGLPI();
+  const glpiComputers = glpi.computers?.data || [];
+
   const [search, setSearch] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [tagInput, setTagInput] = useState('');
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
-  const [showServerConfig, setShowServerConfig] = useState(false);
-
-  // Get RustDesk server config from integrations
-  const rustdeskIntegration = integrations.find(i => i.type === 'rustdesk' && i.is_active);
+  const [glpiSearch, setGlpiSearch] = useState('');
 
   const filtered = useMemo(() => {
     if (!search) return connections;
@@ -83,18 +85,21 @@ export const RustDeskPanel = () => {
       groups[companyId].connections.push(conn);
     });
 
-    // Sort: named companies first alphabetically, "Sem cliente" last
-    return Object.entries(groups).sort(([aId, a], [bId, b]) => {
+    return Object.entries(groups).sort(([aId], [bId]) => {
       if (aId === '__none__') return 1;
       if (bId === '__none__') return -1;
-      return a.name.localeCompare(b.name);
+      return 0;
     });
   }, [filtered, companies]);
 
-  const getCompanyName = (companyId?: string) => {
-    if (!companyId) return '-';
-    return companies.find(c => c.id === companyId)?.name || '-';
-  };
+  const filteredGlpiComputers = useMemo(() => {
+    if (!glpiSearch) return glpiComputers.slice(0, 20);
+    const s = glpiSearch.toLowerCase();
+    return glpiComputers.filter((c: any) => 
+      c.name?.toLowerCase().includes(s) || 
+      c.serial?.toLowerCase().includes(s)
+    ).slice(0, 20);
+  }, [glpiComputers, glpiSearch]);
 
   const handleEdit = (conn: RustDeskConnection) => {
     setForm({
@@ -107,6 +112,8 @@ export const RustDeskPanel = () => {
       os_type: conn.os_type || '',
       notes: conn.notes || '',
       tags: conn.tags || [],
+      glpi_asset_id: (conn as any).glpi_asset_id || null,
+      glpi_asset_name: (conn as any).glpi_asset_name || '',
     });
     setEditingId(conn.id);
     setShowForm(true);
@@ -121,6 +128,8 @@ export const RustDeskPanel = () => {
     const payload = {
       ...form,
       company_id: form.company_id || null,
+      glpi_asset_id: form.glpi_asset_id || null,
+      glpi_asset_name: form.glpi_asset_name || null,
     } as any;
 
     if (editingId) {
@@ -137,7 +146,7 @@ export const RustDeskPanel = () => {
   const handleDelete = async (id: string) => {
     const confirmed = await confirm({
       title: "Remover conexão",
-      description: "Tem certeza que deseja remover esta conexão RustDesk? Esta ação não pode ser desfeita.",
+      description: "Tem certeza que deseja remover esta conexão RustDesk?",
       confirmText: "Remover",
       cancelText: "Cancelar",
       variant: "destructive",
@@ -149,7 +158,7 @@ export const RustDeskPanel = () => {
   const handleConnect = async (conn: RustDeskConnection) => {
     const confirmed = await confirm({
       title: "Conectar ao dispositivo",
-      description: `Deseja abrir a conexão RustDesk com "${conn.name}" (ID: ${conn.rustdesk_id})?`,
+      description: `Abrir conexão com "${conn.name}" (ID: ${conn.rustdesk_id})?`,
       confirmText: "Conectar",
       cancelText: "Cancelar",
       variant: "default",
@@ -157,24 +166,18 @@ export const RustDeskPanel = () => {
 
     if (!confirmed) return;
 
-    // Update last_connected_at
     updateMutation.mutate({ id: conn.id, updates: { last_connected_at: new Date().toISOString() } });
 
-    // Copy ID and password to clipboard
     const clipText = conn.password 
       ? `ID: ${conn.rustdesk_id} | Senha: ${conn.password}`
       : conn.rustdesk_id;
     navigator.clipboard.writeText(clipText).catch(() => {});
 
-    // Use the simple rustdesk:// URI - just the ID
-    // The RustDesk client uses its own configured server settings
-    const rustdeskUri = `rustdesk://connection/new/${conn.rustdesk_id}`;
-
-    window.location.href = rustdeskUri;
+    window.location.href = `rustdesk://connection/new/${conn.rustdesk_id}`;
     
     toast({
       title: "🖥️ Abrindo RustDesk",
-      description: `ID${conn.password ? ' e senha' : ''} copiado(s). Conectando a "${conn.name}" (${conn.rustdesk_id}).`,
+      description: `ID${conn.password ? ' e senha' : ''} copiado(s). Conectando a "${conn.name}".`,
     });
   };
 
@@ -198,118 +201,125 @@ export const RustDeskPanel = () => {
     setForm(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
   };
 
+  const selectGlpiAsset = (computer: any) => {
+    setForm(prev => ({
+      ...prev,
+      glpi_asset_id: computer.id,
+      glpi_asset_name: computer.name,
+    }));
+    setGlpiSearch('');
+  };
+
   return (
     <div className="space-y-4">
-      {/* Server Config */}
-      {showServerConfig && (
-        <RustDeskServerConfig onClose={() => setShowServerConfig(false)} />
-      )}
-
       {/* Header */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Monitor className="h-5 w-5 text-orange-400" />
-                RustDesk - Conexões Remotas
-              </CardTitle>
-              <CardDescription className="text-slate-400">
-                Gerencie suas conexões RustDesk e acesse máquinas remotamente
-                {rustdeskIntegration && (
-                  <Badge className="ml-2 bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
-                    <Server className="h-3 w-3 mr-1" />
-                    Servidor próprio configurado
-                  </Badge>
-                )}
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowServerConfig(!showServerConfig)}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700"
-              >
-                <Settings className="h-4 w-4 mr-1" />
-                Servidor
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => { setForm(EMPTY_FORM); setEditingId(null); setShowForm(!showForm); }}
-                className="bg-orange-600 hover:bg-orange-700 text-white"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Nova Conexão
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Monitor className="h-5 w-5 text-orange-400" />
+          <h2 className="text-lg font-semibold text-foreground">RustDesk - Conexões</h2>
+          <Badge variant="secondary" className="text-xs">{connections.length}</Badge>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { setShowSearch(!showSearch); if (showSearch) setSearch(''); }}
+            className="h-8 w-8 p-0"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => { setForm(EMPTY_FORM); setEditingId(null); setShowForm(!showForm); }}
+            className="bg-orange-600 hover:bg-orange-700 text-white"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Nova Conexão
+          </Button>
+        </div>
+      </div>
+
+      {/* Discrete search bar */}
+      {showSearch && (
+        <div className="flex items-center gap-2">
+          <Input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar por nome, ID, hostname, tag..."
+            className="h-8 text-sm"
+            autoFocus
+          />
+          {search && (
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setSearch('')}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Form */}
       {showForm && (
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white text-base">
+        <Card className="border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base text-foreground">
               {editingId ? 'Editar Conexão' : 'Nova Conexão RustDesk'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Nome *</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Nome *</label>
                 <Input
                   value={form.name}
                   onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                   placeholder="Ex: PC Recepção - Cliente X"
-                  className="bg-slate-900 border-slate-600 text-white"
+                  className="h-8 text-sm"
                 />
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">ID RustDesk *</label>
+                <label className="text-xs text-muted-foreground mb-1 block">ID RustDesk *</label>
                 <Input
                   value={form.rustdesk_id}
                   onChange={e => setForm(p => ({ ...p, rustdesk_id: e.target.value }))}
                   placeholder="Ex: 123 456 789"
-                  className="bg-slate-900 border-slate-600 text-white"
+                  className="h-8 text-sm"
                 />
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Senha</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Senha</label>
                 <Input
                   type="password"
                   value={form.password}
                   onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
                   placeholder="Senha de acesso"
-                  className="bg-slate-900 border-slate-600 text-white"
+                  className="h-8 text-sm"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Apelido</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Apelido</label>
                 <Input
                   value={form.alias}
                   onChange={e => setForm(p => ({ ...p, alias: e.target.value }))}
-                  placeholder="Apelido para a máquina"
-                  className="bg-slate-900 border-slate-600 text-white"
+                  placeholder="Apelido"
+                  className="h-8 text-sm"
                 />
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Hostname</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Hostname</label>
                 <Input
                   value={form.hostname}
                   onChange={e => setForm(p => ({ ...p, hostname: e.target.value }))}
                   placeholder="Nome do computador"
-                  className="bg-slate-900 border-slate-600 text-white"
+                  className="h-8 text-sm"
                 />
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Sistema Operacional</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Sistema Operacional</label>
                 <Select value={form.os_type} onValueChange={v => setForm(p => ({ ...p, os_type: v }))}>
-                  <SelectTrigger className="bg-slate-900 border-slate-600 text-white">
+                  <SelectTrigger className="h-8 text-sm">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
@@ -323,11 +333,11 @@ export const RustDeskPanel = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Cliente / Empresa</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Cliente / Empresa</label>
                 <Select value={form.company_id || "none"} onValueChange={v => setForm(p => ({ ...p, company_id: v === "none" ? "" : v }))}>
-                  <SelectTrigger className="bg-slate-900 border-slate-600 text-white">
+                  <SelectTrigger className="h-8 text-sm">
                     <SelectValue placeholder="Selecione um cliente" />
                   </SelectTrigger>
                   <SelectContent>
@@ -339,20 +349,60 @@ export const RustDeskPanel = () => {
                 </Select>
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Tags</label>
+                <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                  <Package className="h-3 w-3" />
+                  Inventário GLPI (opcional)
+                </label>
+                {form.glpi_asset_id ? (
+                  <div className="flex items-center gap-2 h-8 px-2 rounded border border-border bg-muted/30 text-sm">
+                    <Package className="h-3.5 w-3.5 text-blue-400" />
+                    <span className="truncate flex-1 text-foreground">{form.glpi_asset_name}</span>
+                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0" 
+                      onClick={() => setForm(p => ({ ...p, glpi_asset_id: null, glpi_asset_name: '' }))}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <Input
+                      value={glpiSearch}
+                      onChange={e => setGlpiSearch(e.target.value)}
+                      placeholder="Buscar ativo no GLPI..."
+                      className="h-8 text-sm"
+                    />
+                    {glpiSearch && filteredGlpiComputers.length > 0 && (
+                      <div className="absolute z-50 mt-1 w-full border border-border rounded-md bg-popover shadow-lg max-h-40 overflow-auto">
+                        {filteredGlpiComputers.map((comp: any) => (
+                          <button
+                            key={comp.id}
+                            className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent text-foreground flex items-center gap-2"
+                            onClick={() => selectGlpiAsset(comp)}
+                          >
+                            <Package className="h-3 w-3 text-muted-foreground" />
+                            <span>{comp.name}</span>
+                            {comp.serial && <span className="text-xs text-muted-foreground">({comp.serial})</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Tags</label>
                 <div className="flex gap-2">
                   <Input
                     value={tagInput}
                     onChange={e => setTagInput(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                    placeholder="Digite e pressione Enter"
-                    className="bg-slate-900 border-slate-600 text-white"
+                    placeholder="Digite e Enter"
+                    className="h-8 text-sm"
                   />
                 </div>
                 {form.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
+                  <div className="flex flex-wrap gap-1 mt-1.5">
                     {form.tags.map(tag => (
-                      <Badge key={tag} className="bg-orange-500/20 text-orange-300 border-orange-500/30">
+                      <Badge key={tag} variant="secondary" className="text-xs">
                         {tag}
                         <X className="h-3 w-3 ml-1 cursor-pointer" onClick={() => removeTag(tag)} />
                       </Badge>
@@ -363,24 +413,25 @@ export const RustDeskPanel = () => {
             </div>
 
             <div>
-              <label className="text-sm text-slate-400 mb-1 block">Observações</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Observações</label>
               <Textarea
                 value={form.notes}
                 onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
                 placeholder="Notas sobre esta conexão..."
-                className="bg-slate-900 border-slate-600 text-white min-h-[60px]"
+                className="min-h-[50px] text-sm"
               />
             </div>
 
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => { setShowForm(false); setEditingId(null); setForm(EMPTY_FORM); }}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700"
               >
                 Cancelar
               </Button>
               <Button
+                size="sm"
                 onClick={handleSave}
                 disabled={createMutation.isPending || updateMutation.isPending}
                 className="bg-orange-600 hover:bg-orange-700 text-white"
@@ -393,49 +444,39 @@ export const RustDeskPanel = () => {
         </Card>
       )}
 
-      {/* Search & List */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-slate-400" />
-            <Input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar por nome, ID, hostname, tag..."
-              className="bg-slate-900 border-slate-600 text-white"
-            />
-          </div>
-        </CardHeader>
+      {/* Connections List */}
+      <Card className="border-border">
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-8 text-center text-slate-400">Carregando conexões...</div>
+            <div className="p-8 text-center text-muted-foreground">Carregando conexões...</div>
           ) : filtered.length === 0 ? (
-            <div className="p-8 text-center text-slate-400">
+            <div className="p-8 text-center text-muted-foreground">
               {connections.length === 0 ? 'Nenhuma conexão cadastrada. Clique em "Nova Conexão" para começar.' : 'Nenhuma conexão encontrada.'}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-700 hover:bg-transparent">
-                    <TableHead className="text-slate-400">Nome</TableHead>
-                    <TableHead className="text-slate-400">ID RustDesk</TableHead>
-                    <TableHead className="text-slate-400">Senha</TableHead>
-                    <TableHead className="text-slate-400">SO</TableHead>
-                    <TableHead className="text-slate-400">Tags</TableHead>
-                    <TableHead className="text-slate-400 text-right">Ações</TableHead>
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableHead className="text-muted-foreground text-xs">Nome</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">ID RustDesk</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">Senha</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">SO</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">GLPI</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">Tags</TableHead>
+                    <TableHead className="text-muted-foreground text-xs text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {groupedByCompany.map(([companyId, group]) => (
                     <>
                       {/* Company header row */}
-                      <TableRow key={`group-${companyId}`} className="border-slate-700 bg-slate-900/80 hover:bg-slate-900/80">
-                        <TableCell colSpan={6} className="py-2">
+                      <TableRow key={`group-${companyId}`} className="border-border bg-muted/30 hover:bg-muted/30">
+                        <TableCell colSpan={7} className="py-1.5">
                           <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-orange-400" />
-                            <span className="text-sm font-semibold text-orange-300">{group.name}</span>
-                            <Badge className="bg-slate-700 text-slate-300 border-slate-600 text-xs">
+                            <Building2 className="h-3.5 w-3.5 text-orange-400" />
+                            <span className="text-xs font-semibold text-orange-400">{group.name}</span>
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                               {group.connections.length}
                             </Badge>
                           </div>
@@ -443,20 +484,20 @@ export const RustDeskPanel = () => {
                       </TableRow>
                       {/* Connection rows */}
                       {group.connections.map(conn => (
-                        <TableRow key={conn.id} className="border-slate-700 hover:bg-slate-700/50">
-                          <TableCell className="text-white font-medium pl-8">
+                        <TableRow key={conn.id} className="border-border/50 hover:bg-muted/20">
+                          <TableCell className="text-foreground font-medium text-sm pl-8">
                             <div>
                               {conn.name}
-                              {conn.alias && <span className="text-slate-400 text-xs ml-1">({conn.alias})</span>}
+                              {conn.alias && <span className="text-muted-foreground text-xs ml-1">({conn.alias})</span>}
                             </div>
-                            {conn.hostname && <div className="text-xs text-slate-500">{conn.hostname}</div>}
+                            {conn.hostname && <div className="text-xs text-muted-foreground">{conn.hostname}</div>}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
-                              <code className="text-orange-300 bg-orange-500/10 px-2 py-0.5 rounded text-sm">
+                              <code className="text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded text-xs">
                                 {conn.rustdesk_id}
                               </code>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-400 hover:text-white"
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0"
                                 onClick={() => copyToClipboard(conn.rustdesk_id, 'ID')}>
                                 <Copy className="h-3 w-3" />
                               </Button>
@@ -465,33 +506,43 @@ export const RustDeskPanel = () => {
                           <TableCell>
                             {conn.password ? (
                               <div className="flex items-center gap-1">
-                                <span className="text-slate-300 text-sm font-mono">
+                                <span className="text-sm font-mono text-muted-foreground">
                                   {showPasswords[conn.id] ? conn.password : '••••••'}
                                 </span>
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-400 hover:text-white"
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0"
                                   onClick={() => togglePassword(conn.id)}>
                                   {showPasswords[conn.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                                 </Button>
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-400 hover:text-white"
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0"
                                   onClick={() => copyToClipboard(conn.password!, 'Senha')}>
                                   <Copy className="h-3 w-3" />
                                 </Button>
                               </div>
                             ) : (
-                              <span className="text-slate-500">-</span>
+                              <span className="text-muted-foreground/50">-</span>
                             )}
                           </TableCell>
                           <TableCell>
                             {conn.os_type && (
-                              <Badge className="bg-slate-600/30 text-slate-300 border-slate-600/50 text-xs">
+                              <Badge variant="secondary" className="text-[10px]">
                                 {conn.os_type}
                               </Badge>
                             )}
                           </TableCell>
                           <TableCell>
+                            {(conn as any).glpi_asset_name ? (
+                              <div className="flex items-center gap-1">
+                                <Package className="h-3 w-3 text-blue-400" />
+                                <span className="text-xs text-foreground">{(conn as any).glpi_asset_name}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground/50 text-xs">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             <div className="flex flex-wrap gap-1">
                               {conn.tags?.map(tag => (
-                                <Badge key={tag} className="bg-orange-500/10 text-orange-300 border-orange-500/20 text-xs">
+                                <Badge key={tag} variant="outline" className="text-[10px] text-orange-400 border-orange-500/20">
                                   {tag}
                                 </Badge>
                               ))}
@@ -508,12 +559,12 @@ export const RustDeskPanel = () => {
                                 Conectar
                               </Button>
                               <Button variant="outline" size="sm"
-                                className="h-7 border-slate-600 text-slate-300 hover:bg-slate-700"
+                                className="h-7"
                                 onClick={() => handleEdit(conn)}>
                                 <Edit className="h-3 w-3" />
                               </Button>
                               <Button variant="outline" size="sm"
-                                className="h-7 border-slate-600 text-red-400 hover:bg-red-500/10"
+                                className="h-7 text-destructive hover:bg-destructive/10"
                                 onClick={() => handleDelete(conn.id)}
                                 disabled={deleteMutation.isPending}>
                                 <Trash2 className="h-3 w-3" />
