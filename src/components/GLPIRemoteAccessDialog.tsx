@@ -6,8 +6,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Monitor, Server, Terminal, Search, AlertTriangle, Loader2, ExternalLink } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Monitor, Server, Terminal, Search, AlertTriangle, Loader2, ExternalLink, Copy, Eye, EyeOff } from 'lucide-react';
 import { useGuacamoleAPI } from '@/hooks/useGuacamoleAPI';
+import { useRustDeskConnections } from '@/hooks/useRustDesk';
+import { useCompanies } from '@/hooks/useCompanies';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -26,18 +29,19 @@ export const GLPIRemoteAccessDialog = ({
 }: GLPIRemoteAccessDialogProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const { useConnections, useConnectionGroups, integration, isConfigured } = useGuacamoleAPI();
   const { data: connections, isLoading, error, refetch } = useConnections();
   const { data: groups } = useConnectionGroups();
+  const { data: rustdeskConnections = [], isLoading: rustdeskLoading } = useRustDeskConnections();
+  const { data: companies = [] } = useCompanies();
 
-  // Pré-selecionar grupo baseado na entidade quando o dialog abrir
   useEffect(() => {
     if (open && entityName && groups) {
       const matchingGroup = groups.find(g => 
         g.name.toLowerCase().includes(entityName.toLowerCase()) ||
         entityName.toLowerCase().includes(g.name.toLowerCase())
       );
-      
       if (matchingGroup) {
         setSelectedGroup(matchingGroup.identifier);
       } else {
@@ -50,24 +54,20 @@ export const GLPIRemoteAccessDialog = ({
     switch (protocol?.toLowerCase()) {
       case 'rdp':
       case 'vnc':
-        return <Monitor className="h-4 w-4" />;
+        return <Monitor className="h-3.5 w-3.5" />;
       case 'ssh':
-        return <Terminal className="h-4 w-4" />;
+        return <Terminal className="h-3.5 w-3.5" />;
       default:
-        return <Server className="h-4 w-4" />;
+        return <Server className="h-3.5 w-3.5" />;
     }
   };
 
   const getProtocolColor = (protocol: string) => {
     switch (protocol?.toLowerCase()) {
-      case 'rdp':
-        return 'bg-blue-600 text-white';
-      case 'vnc':
-        return 'bg-purple-600 text-white';
-      case 'ssh':
-        return 'bg-green-600 text-white';
-      default:
-        return 'bg-gray-600 text-white';
+      case 'rdp': return 'bg-blue-600 text-white';
+      case 'vnc': return 'bg-purple-600 text-white';
+      case 'ssh': return 'bg-green-600 text-white';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -80,265 +80,295 @@ export const GLPIRemoteAccessDialog = ({
 
   const handleConnect = async (connection: any) => {
     if (!integration?.base_url) {
-      toast({
-        title: "Erro de configuração",
-        description: "URL base do Guacamole não configurada.",
-        variant: "destructive"
-      });
+      toast({ title: "Erro", description: "URL base do Guacamole não configurada.", variant: "destructive" });
       return;
     }
-
     try {
       const { data: sessionData, error } = await supabase.functions.invoke('guacamole-proxy', {
-        body: {
-          integrationId: integration.id,
-          endpoint: `connect/${connection.identifier}`,
-          method: 'POST'
-        }
+        body: { integrationId: integration.id, endpoint: `connect/${connection.identifier}`, method: 'POST' }
       });
-
-      if (error) {
-        console.error('Erro na função Edge:', error);
-        throw new Error(error.message || 'Erro na comunicação com o servidor');
+      if (error) throw new Error(error.message);
+      if (!sessionData?.result?.success || !sessionData?.result?.sessionUrl) {
+        throw new Error(sessionData?.result?.warning || 'URL de sessão não fornecida');
       }
-
-      if (!sessionData?.result) {
-        throw new Error('Resposta inválida do servidor');
-      }
-
-      const result = sessionData.result;
-      
-      if (!result.success || !result.sessionUrl) {
-        throw new Error(result.warning || 'URL de sessão não fornecida');
-      }
-
-      window.open(result.sessionUrl, '_blank', 'noopener,noreferrer');
-
-      let toastMessage = '';
-      let toastDescription = '';
-      
-      switch (result.method) {
-        case 'tunnel':
-          toastMessage = 'Conectado com túnel!';
-          toastDescription = `Conexão "${connection.name}" aberta com túnel direto. Autenticação automática ativa.`;
-          break;
-        case 'direct':
-          toastMessage = result.hasCredentials ? 'Conectado com credenciais!' : 'Conectando...';
-          toastDescription = result.hasCredentials 
-            ? `Conexão "${connection.name}" aberta com credenciais incorporadas.`
-            : `Conexão "${connection.name}" aberta. Pode ser necessário inserir credenciais.`;
-          break;
-        case 'fallback':
-          toastMessage = 'Conectando (modo básico)';
-          toastDescription = `Conexão "${connection.name}" aberta. Autenticação manual pode ser necessária.`;
-          break;
-        default:
-          toastMessage = 'Conectando...';
-          toastDescription = `Abrindo conexão "${connection.name}".`;
-      }
-
-      toast({
-        title: toastMessage,
-        description: toastDescription
-      });
-
-      if (result.warning) {
-        setTimeout(() => {
-          toast({
-            title: "Atenção",
-            description: result.warning,
-            variant: "default"
-          });
-        }, 2000);
-      }
-
+      window.open(sessionData.result.sessionUrl, '_blank', 'noopener,noreferrer');
+      toast({ title: 'Conectando...', description: `Abrindo conexão "${connection.name}".` });
       onOpenChange(false);
-
     } catch (error: any) {
-      console.error('Erro ao conectar:', error);
-      toast({
-        title: "Erro ao conectar",
-        description: error.message || "Não foi possível estabelecer a conexão remota.",
-        variant: "destructive"
-      });
+      toast({ title: "Erro ao conectar", description: error.message, variant: "destructive" });
     }
   };
 
-  const filteredConnections = connections?.filter(conn => {
-    // Filtro de texto
+  const handleRustDeskConnect = (conn: any) => {
+    const url = `rustdesk://connection/new/${conn.rustdesk_id}`;
+    if (conn.password) {
+      navigator.clipboard.writeText(conn.password);
+      toast({ title: 'Senha copiada!', description: `Conectando a "${conn.name}" via RustDesk. Senha copiada para a área de transferência.` });
+    } else {
+      toast({ title: 'Conectando...', description: `Abrindo "${conn.name}" via RustDesk.` });
+    }
+    window.open(url, '_blank');
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: 'Copiado!', description: `${label} copiado para a área de transferência.` });
+  };
+
+  const getCompanyName = (companyId?: string) => {
+    if (!companyId) return null;
+    return companies.find(c => c.id === companyId)?.name || null;
+  };
+
+  const filteredGuacamole = connections?.filter(conn => {
     const matchesSearch = conn.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       conn.protocol?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Filtro de grupo
-    const matchesGroup = selectedGroup === 'all' || 
-      conn.parentIdentifier === selectedGroup;
-    
+    const matchesGroup = selectedGroup === 'all' || conn.parentIdentifier === selectedGroup;
     return matchesSearch && matchesGroup;
   }) || [];
 
-  if (!isConfigured) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="bg-gray-800 border-gray-700 max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-white">Acesso Remoto</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            <AlertTriangle className="h-12 w-12 text-yellow-500" />
-            <p className="text-gray-300 text-center">
-              Configure a integração do Guacamole primeiro
-            </p>
-            <Button
-              variant="outline"
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
-              onClick={() => {
-                onOpenChange(false);
-                window.location.href = '/admin';
-              }}
-            >
-              Ir para Configurações
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const filteredRustDesk = rustdeskConnections.filter(conn => {
+    if (!searchTerm) return true;
+    const s = searchTerm.toLowerCase();
+    return conn.name.toLowerCase().includes(s) ||
+      conn.rustdesk_id.toLowerCase().includes(s) ||
+      conn.alias?.toLowerCase().includes(s) ||
+      conn.hostname?.toLowerCase().includes(s);
+  });
+
+  const hasGuacamole = isConfigured;
+  const hasRustDesk = rustdeskConnections.length > 0 || rustdeskLoading;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 max-w-2xl max-h-[70vh]">
+      <DialogContent className="bg-card border-border max-w-2xl max-h-[75vh]">
         <DialogHeader>
-          <DialogTitle className="text-white">Conexões Remotas Disponíveis</DialogTitle>
+          <DialogTitle className="text-foreground text-base">Conexões Remotas</DialogTitle>
           {itemName && (
-            <DialogDescription className="text-gray-400">
-              Selecione uma conexão remota para acessar: {itemName}
+            <DialogDescription className="text-muted-foreground text-xs">
+              Acesso remoto para: {itemName}
             </DialogDescription>
           )}
         </DialogHeader>
 
-        {/* Search and filters */}
-        <div className="space-y-3">
-          {/* Search bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Buscar por nome ou protocolo..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-gray-900 border-gray-600 text-white placeholder:text-gray-500"
-            />
-          </div>
-
-          {/* Group filter */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-400">Filtrar por grupo:</span>
-            <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-              <SelectTrigger className="flex-1 bg-gray-900 border-gray-600 text-white z-50">
-                <SelectValue placeholder="Todos os grupos" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-600 z-50">
-                <SelectItem value="all" className="text-white hover:bg-gray-700">
-                  Todos os grupos
-                </SelectItem>
-                {groups?.map((group) => (
-                  <SelectItem 
-                    key={group.identifier} 
-                    value={group.identifier}
-                    className="text-white hover:bg-gray-700"
-                  >
-                    {group.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Buscar conexão..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 h-8 text-xs bg-background border-border"
+          />
         </div>
 
-        {/* Content area */}
-        <ScrollArea className="h-[400px] pr-4">
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 space-y-3">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
-              <p className="text-gray-400">Carregando conexões remotas...</p>
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center py-12 space-y-4">
-              <AlertTriangle className="h-12 w-12 text-red-500" />
-              <p className="text-red-400 text-center">Erro ao carregar conexões</p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => refetch()}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
-              >
-                Tentar Novamente
-              </Button>
-            </div>
-          ) : filteredConnections.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 space-y-4">
-              <Monitor className="h-12 w-12 text-gray-500" />
-              <p className="text-gray-400 text-center">
-                {searchTerm ? 'Nenhuma conexão encontrada' : 'Nenhuma conexão remota configurada'}
-              </p>
-              {!searchTerm && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    onOpenChange(false);
-                    window.location.href = '/guacamole';
-                  }}
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                >
-                  Ir para Conexão Remota
-                </Button>
+        <Tabs defaultValue={hasRustDesk ? "rustdesk" : "guacamole"} className="w-full">
+          <TabsList className="w-full bg-muted/30 h-8">
+            <TabsTrigger value="rustdesk" className="flex-1 text-xs h-7 gap-1.5">
+              <Monitor className="h-3.5 w-3.5" />
+              RustDesk ({filteredRustDesk.length})
+            </TabsTrigger>
+            {hasGuacamole && (
+              <TabsTrigger value="guacamole" className="flex-1 text-xs h-7 gap-1.5">
+                <Server className="h-3.5 w-3.5" />
+                Guacamole ({filteredGuacamole.length})
+              </TabsTrigger>
+            )}
+          </TabsList>
+
+          {/* RustDesk Tab */}
+          <TabsContent value="rustdesk" className="mt-2">
+            <ScrollArea className="h-[380px] pr-2">
+              {rustdeskLoading ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <p className="text-muted-foreground text-xs mt-2">Carregando...</p>
+                </div>
+              ) : filteredRustDesk.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Monitor className="h-10 w-10 text-muted-foreground/50" />
+                  <p className="text-muted-foreground text-xs mt-2">
+                    {searchTerm ? 'Nenhuma conexão encontrada' : 'Nenhuma conexão RustDesk cadastrada'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {filteredRustDesk.map((conn) => {
+                    const companyName = getCompanyName(conn.company_id);
+                    const showPw = showPasswords[conn.id];
+                    return (
+                      <Card key={conn.id} className="bg-background border-border/50 hover:border-primary/30 transition-colors">
+                        <CardContent className="p-3">
+                          <div className="flex items-center gap-3">
+                            {/* Icon */}
+                            <div className="w-8 h-8 rounded-md bg-orange-500/10 border border-orange-500/20 flex items-center justify-center flex-shrink-0">
+                              <Monitor className="h-4 w-4 text-orange-500" />
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0 space-y-0.5">
+                              <div className="flex items-center gap-2">
+                                <h4 className="text-xs font-semibold text-foreground truncate">{conn.name}</h4>
+                                {conn.alias && (
+                                  <span className="text-[10px] text-muted-foreground truncate">({conn.alias})</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono border-orange-500/30 text-orange-400">
+                                  ID: {conn.rustdesk_id}
+                                </Badge>
+                                {companyName && (
+                                  <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                    <Server className="h-2.5 w-2.5" /> {companyName}
+                                  </span>
+                                )}
+                                {conn.hostname && (
+                                  <span className="text-[10px] text-muted-foreground">{conn.hostname}</span>
+                                )}
+                                {conn.glpi_asset_name && (
+                                  <span className="text-[10px] text-blue-400">GLPI: {conn.glpi_asset_name}</span>
+                                )}
+                              </div>
+                              {/* Password row */}
+                              {conn.password && (
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-[10px] text-muted-foreground">Senha:</span>
+                                  <code className="text-[10px] font-mono bg-muted/50 px-1 rounded text-foreground">
+                                    {showPw ? conn.password : '••••••'}
+                                  </code>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-4 w-4 p-0"
+                                    onClick={() => setShowPasswords(p => ({ ...p, [conn.id]: !p[conn.id] }))}
+                                  >
+                                    {showPw ? <EyeOff className="h-2.5 w-2.5" /> : <Eye className="h-2.5 w-2.5" />}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-4 w-4 p-0"
+                                    onClick={() => copyToClipboard(conn.password!, 'Senha')}
+                                  >
+                                    <Copy className="h-2.5 w-2.5" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => copyToClipboard(conn.rustdesk_id, 'ID')}
+                                title="Copiar ID"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                onClick={() => handleRustDeskConnect(conn)}
+                                size="sm"
+                                className="h-7 text-[11px] bg-orange-600 hover:bg-orange-700 text-white px-2.5"
+                              >
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                Conectar
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
               )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {filteredConnections.map((connection) => {
-                const status = getConnectionStatus(connection);
-                return (
-                  <Card key={connection.identifier} className="bg-gray-900 border-gray-700 hover:bg-gray-850 transition-colors">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-4">
-                        {/* Icon */}
-                        <div className="flex-shrink-0">
-                          <div className="w-10 h-10 rounded-lg bg-gray-800 border border-gray-600 flex items-center justify-center text-gray-300">
-                            {getProtocolIcon(connection.protocol)}
-                          </div>
-                        </div>
+            </ScrollArea>
+          </TabsContent>
 
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-white font-medium truncate">{connection.name}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge className={`text-xs ${getProtocolColor(connection.protocol)}`}>
-                              {connection.protocol?.toUpperCase()}
-                            </Badge>
-                            <Badge className={`text-xs ${status.color}`}>
-                              {status.label}
-                            </Badge>
-                          </div>
-                        </div>
+          {/* Guacamole Tab */}
+          {hasGuacamole && (
+            <TabsContent value="guacamole" className="mt-2">
+              {/* Group filter */}
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[11px] text-muted-foreground">Grupo:</span>
+                <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                  <SelectTrigger className="flex-1 h-7 text-xs bg-background border-border">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border z-50">
+                    <SelectItem value="all" className="text-xs">Todos os grupos</SelectItem>
+                    {groups?.map((group) => (
+                      <SelectItem key={group.identifier} value={group.identifier} className="text-xs">
+                        {group.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                        {/* Connect button */}
-                        <Button
-                          onClick={() => handleConnect(connection)}
-                          size="sm"
-                          className="bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0"
-                        >
-                          <ExternalLink className="h-4 w-4 mr-1" />
-                          Conectar
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+              <ScrollArea className="h-[340px] pr-2">
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <p className="text-muted-foreground text-xs mt-2">Carregando...</p>
+                  </div>
+                ) : error ? (
+                  <div className="flex flex-col items-center justify-center py-12 space-y-3">
+                    <AlertTriangle className="h-8 w-8 text-destructive" />
+                    <p className="text-destructive text-xs">Erro ao carregar conexões</p>
+                    <Button variant="outline" size="sm" onClick={() => refetch()} className="h-7 text-xs">
+                      Tentar Novamente
+                    </Button>
+                  </div>
+                ) : filteredGuacamole.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Monitor className="h-10 w-10 text-muted-foreground/50" />
+                    <p className="text-muted-foreground text-xs mt-2">
+                      {searchTerm ? 'Nenhuma conexão encontrada' : 'Nenhuma conexão configurada'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {filteredGuacamole.map((connection) => {
+                      const status = getConnectionStatus(connection);
+                      return (
+                        <Card key={connection.identifier} className="bg-background border-border/50 hover:border-primary/30 transition-colors">
+                          <CardContent className="p-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-md bg-muted border border-border flex items-center justify-center flex-shrink-0 text-muted-foreground">
+                                {getProtocolIcon(connection.protocol)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-xs font-semibold text-foreground truncate">{connection.name}</h4>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <Badge className={`text-[10px] px-1.5 py-0 ${getProtocolColor(connection.protocol)}`}>
+                                    {connection.protocol?.toUpperCase()}
+                                  </Badge>
+                                  <Badge className={`text-[10px] px-1.5 py-0 ${status.color}`}>
+                                    {status.label}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <Button
+                                onClick={() => handleConnect(connection)}
+                                size="sm"
+                                className="h-7 text-[11px] bg-blue-600 hover:bg-blue-700 text-white px-2.5"
+                              >
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                Conectar
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </ScrollArea>
+            </TabsContent>
           )}
-        </ScrollArea>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
