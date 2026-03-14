@@ -454,13 +454,6 @@ export const RustDeskPanel = () => {
                             )}
                           </TableCell>
                           <TableCell>
-                            {conn.os_type && (
-                              <Badge variant="secondary" className="text-[10px]">
-                                {conn.os_type}
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
                             {conn.glpi_asset_name ? (
                               <div className="flex items-center gap-1">
                                 <Package className="h-3 w-3 text-blue-400" />
@@ -469,15 +462,6 @@ export const RustDeskPanel = () => {
                             ) : (
                               <span className="text-muted-foreground/50 text-xs">-</span>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {conn.tags?.map(tag => (
-                                <Badge key={tag} variant="outline" className="text-[10px] text-orange-400 border-orange-500/20">
-                                  {tag}
-                                </Badge>
-                              ))}
-                            </div>
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
