@@ -347,86 +347,54 @@ const Passwords = () => {
   const renderPasswordTable = (passwordsToShow: Password[]) => <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="border-slate-600">
-            <TableHead className="font-semibold text-white">Sistema</TableHead>
-            <TableHead className="font-semibold text-white">Empresa</TableHead>
-            <TableHead className="font-semibold text-white">URL</TableHead>
-            <TableHead className="font-semibold text-white">Usuário</TableHead>
-            <TableHead className="font-semibold text-white">Senha</TableHead>
-            <TableHead className="font-semibold text-white">Link</TableHead>
-            <TableHead className="font-semibold text-white">Ações</TableHead>
+          <TableRow className="border-border hover:bg-transparent">
+            <TableHead className="text-muted-foreground text-xs">Sistema</TableHead>
+            <TableHead className="text-muted-foreground text-xs">Empresa</TableHead>
+            <TableHead className="text-muted-foreground text-xs">URL</TableHead>
+            <TableHead className="text-muted-foreground text-xs">Usuário</TableHead>
+            <TableHead className="text-muted-foreground text-xs">Senha</TableHead>
+            <TableHead className="text-muted-foreground text-xs">Link</TableHead>
+            <TableHead className="text-muted-foreground text-xs text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {passwordsToShow.map(item => {
           const company = companies.find(c => c.id === item.company_id);
-          return <TableRow key={item.id} className="hover:bg-slate-700/50 border-slate-600 h-10">
-                <TableCell className="font-medium text-white py-1">{item.name}</TableCell>
-                <TableCell className="font-medium text-white py-1">{company?.name || 'N/A'}</TableCell>
+          return <TableRow key={item.id} className="border-border/50 hover:bg-muted/20">
+                <TableCell className="text-xs font-medium text-foreground py-1">{item.name}</TableCell>
+                <TableCell className="text-xs text-muted-foreground py-1">{company?.name || 'N/A'}</TableCell>
                 <TableCell className="py-1">
-                  {item.url ? <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white h-7" onClick={() => window.open(item.url, '_blank')}>
+                  {item.url ? <Button size="sm" variant="outline" className="h-6 text-[11px] px-2" onClick={() => window.open(item.url, '_blank')}>
                       Acessar
-                    </Button> : <span className="text-white text-sm">Sem URL</span>}
+                    </Button> : <span className="text-muted-foreground/50 text-[11px]">-</span>}
                 </TableCell>
-                <TableCell className="font-mono text-sm text-white py-1">{item.username}</TableCell>
+                <TableCell className="font-mono text-[11px] text-foreground py-1">{item.username}</TableCell>
                 <TableCell className="py-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm text-white">
-                      {showPassword[item.id] ? item.password : '••••••••'}
+                  <div className="flex items-center gap-0.5">
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      {showPassword[item.id] ? item.password : '••••'}
                     </span>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => togglePasswordVisibility(item.id)} 
-                      className="h-7 w-7 p-0 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
-                      title={showPassword[item.id] ? "Ocultar senha" : "Mostrar senha"}
-                    >
-                      {showPassword[item.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                    <Button variant="ghost" size="sm" onClick={() => togglePasswordVisibility(item.id)} className="h-5 w-5 p-0" title={showPassword[item.id] ? "Ocultar" : "Mostrar"}>
+                      {showPassword[item.id] ? <EyeOff className="h-2.5 w-2.5" /> : <Eye className="h-2.5 w-2.5" />}
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleCopyPassword(item.password || '')} 
-                      className="h-7 w-7 p-0 bg-green-600 border-green-500 text-white hover:bg-green-700"
-                      title="Copiar senha"
-                    >
-                      <Copy className="h-3 w-3" />
+                    <Button variant="ghost" size="sm" onClick={() => handleCopyPassword(item.password || '')} className="h-5 w-5 p-0" title="Copiar">
+                      <Copy className="h-2.5 w-2.5" />
                     </Button>
                   </div>
                 </TableCell>
                 <TableCell className="py-1">
-                  {item.gera_link && <Badge className="bg-green-700 text-green-100 border-green-600">
-                      Ativo
-                    </Badge>}
+                  {item.gera_link && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Ativo</Badge>}
                 </TableCell>
-                <TableCell className="py-1">
-                  <div className="flex items-center gap-1">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleWhatsAppShare(item)}
-                      className="h-7 w-7 p-0 bg-green-600 border-green-500 text-white hover:bg-green-700"
-                      title="WhatsApp"
-                    >
-                      <MessageCircle className="h-3 w-3" />
+                <TableCell className="py-1 text-right">
+                  <div className="flex justify-end gap-0.5">
+                    <Button variant="ghost" size="sm" onClick={() => handleWhatsAppShare(item)} className="h-6 w-6 p-0 text-green-500" title="WhatsApp">
+                      <MessageCircle className="h-2.5 w-2.5" />
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleEditPassword(item)}
-                      className="h-7 w-7 p-0 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
-                      title="Editar"
-                    >
-                      <Edit className="h-3 w-3" />
+                    <Button variant="outline" size="sm" onClick={() => handleEditPassword(item)} className="h-6 w-6 p-0" title="Editar">
+                      <Edit className="h-2.5 w-2.5" />
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-7 w-7 p-0 text-red-400 hover:text-red-300 border-red-600 hover:bg-red-900/20"
-                      onClick={() => setDeleteConfirmDialog({ open: true, passwordId: item.id, passwordName: item.name })}
-                      title="Excluir"
-                    >
-                      <Trash2 className="h-3 w-3" />
+                    <Button variant="outline" size="sm" className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10" onClick={() => setDeleteConfirmDialog({ open: true, passwordId: item.id, passwordName: item.name })} title="Excluir">
+                      <Trash2 className="h-2.5 w-2.5" />
                     </Button>
                   </div>
                 </TableCell>
@@ -434,7 +402,7 @@ const Passwords = () => {
         })}
         </TableBody>
       </Table>
-      {passwordsToShow.length === 0 && <div className="text-center py-8 text-white">
+      {passwordsToShow.length === 0 && <div className="text-center py-6 text-muted-foreground text-sm">
           Nenhuma senha encontrada nesta categoria.
         </div>}
     </div>;
