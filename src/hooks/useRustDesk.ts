@@ -18,6 +18,9 @@ export interface RustDeskConnection {
   last_connected_at?: string;
   glpi_asset_id?: number;
   glpi_asset_name?: string;
+  glpi_asset_serial?: string;
+  glpi_asset_entity?: string;
+  glpi_asset_comment?: string;
   created_at: string;
   updated_at: string;
 }
