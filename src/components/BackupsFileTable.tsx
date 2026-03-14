@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { HardDrive, RefreshCw, Database, CheckCircle, XCircle, Folder, Download, Trash2, Clock, ArrowUpDown, Calendar, FileText, Type } from 'lucide-react';
 import { formatFileSize, getDaysFromLastModification } from '@/utils/ftpUtils';
+
 interface BackupsFileTableProps {
   files: any[];
   isLoadingFiles: boolean;
@@ -22,283 +22,180 @@ type SortOption = 'name' | 'size' | 'date' | 'type';
 type SortOrder = 'asc' | 'desc';
 
 const BackupsFileTable: React.FC<BackupsFileTableProps> = ({
-  files,
-  isLoadingFiles,
-  currentPath,
-  onFolderClick,
-  onDownload,
-  onDelete,
-  onRefresh,
-  downloadFile,
-  deleteFile
+  files, isLoadingFiles, currentPath, onFolderClick, onDownload, onDelete, onRefresh, downloadFile, deleteFile
 }) => {
   const [sortBy, setSortBy] = useState<SortOption>('date');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc'); // Padrão: menor data primeiro
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
   const getStatusBadge = (fileName: string, isDirectory: boolean) => {
-    if (isDirectory) {
-      return <Badge className="bg-blue-900/20 text-blue-400 border-blue-600">Pasta</Badge>;
-    }
+    if (isDirectory) return <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">Pasta</Badge>;
     const today = new Date().toISOString().split('T')[0];
-    if (fileName.includes(today)) {
-      return <Badge className="bg-green-900/20 text-green-400 border-green-600">Atual</Badge>;
-    } else if (fileName.includes('error') || fileName.includes('failed')) {
-      return <Badge className="bg-red-900/20 text-red-400 border-red-600">Erro</Badge>;
-    } else {
-      return <Badge className="bg-blue-900/20 text-blue-400 border-blue-600">Completo</Badge>;
-    }
+    if (fileName.includes(today)) return <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-green-500/30 text-green-400">Atual</Badge>;
+    if (fileName.includes('error') || fileName.includes('failed')) return <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive/30 text-destructive">Erro</Badge>;
+    return <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">Completo</Badge>;
   };
+
   const getStatusIcon = (fileName: string, isDirectory: boolean) => {
-    if (isDirectory) {
-      return <Folder className="h-4 w-4 text-blue-400" />;
-    }
+    if (isDirectory) return <Folder className="h-3.5 w-3.5 text-primary" />;
     const today = new Date().toISOString().split('T')[0];
-    if (fileName.includes(today)) {
-      return <CheckCircle className="h-4 w-4 text-green-400" />;
-    } else if (fileName.includes('error') || fileName.includes('failed')) {
-      return <XCircle className="h-4 w-4 text-red-400" />;
-    } else {
-      return <CheckCircle className="h-4 w-4 text-blue-400" />;
-    }
+    if (fileName.includes(today)) return <CheckCircle className="h-3.5 w-3.5 text-green-500" />;
+    if (fileName.includes('error') || fileName.includes('failed')) return <XCircle className="h-3.5 w-3.5 text-destructive" />;
+    return <CheckCircle className="h-3.5 w-3.5 text-primary" />;
   };
+
   const getTimeLabel = (lastModified: string | Date, isDirectory: boolean) => {
     if (!isDirectory) return null;
     const days = getDaysFromLastModification(lastModified);
-    const isOld = days > 2; // Mais de 48 horas (2 dias)
-
-    return <div className="flex items-center gap-1">
-        <Clock className="h-3 w-3" />
-        <span className={`text-xs px-2 py-1 rounded ${isOld ? 'bg-red-900/20 text-red-400' : 'bg-green-900/20 text-green-400'}`}>
+    const isOld = days > 2;
+    return (
+      <div className="flex items-center gap-1">
+        <Clock className="h-2.5 w-2.5" />
+        <span className={`text-[10px] px-1.5 py-0.5 rounded ${isOld ? 'bg-destructive/10 text-destructive' : 'bg-green-500/10 text-green-400'}`}>
           {days} {days === 1 ? 'dia' : 'dias'}
         </span>
-      </div>;
+      </div>
+    );
   };
 
   const getSortedFiles = () => {
-    const sorted = [...files].sort((a, b) => {
-      let comparison = 0;
-      
-      // Sempre mostrar pastas primeiro, independente da ordenação
+    return [...files].sort((a, b) => {
       if (a.isDirectory && !b.isDirectory) return -1;
       if (!a.isDirectory && b.isDirectory) return 1;
-      
+      let comparison = 0;
       switch (sortBy) {
-        case 'name':
-          comparison = a.name.localeCompare(b.name, 'pt-BR', { 
-            numeric: true, 
-            sensitivity: 'base' 
-          });
-          break;
-        case 'size':
-          comparison = (a.size || 0) - (b.size || 0);
-          break;
-        case 'date':
-          const dateA = new Date(a.lastModified);
-          const dateB = new Date(b.lastModified);
-          comparison = dateA.getTime() - dateB.getTime();
-          break;
-        case 'type':
-          const getFileExtension = (name: string) => {
-            if (a.isDirectory || b.isDirectory) return '';
-            return name.split('.').pop()?.toLowerCase() || '';
-          };
-          const extA = getFileExtension(a.name);
-          const extB = getFileExtension(b.name);
-          comparison = extA.localeCompare(extB);
-          break;
-        default:
-          comparison = 0;
+        case 'name': comparison = a.name.localeCompare(b.name, 'pt-BR', { numeric: true, sensitivity: 'base' }); break;
+        case 'size': comparison = (a.size || 0) - (b.size || 0); break;
+        case 'date': comparison = new Date(a.lastModified).getTime() - new Date(b.lastModified).getTime(); break;
+        case 'type': comparison = (a.name.split('.').pop() || '').localeCompare(b.name.split('.').pop() || ''); break;
       }
-      
       return sortOrder === 'desc' ? -comparison : comparison;
     });
-    
-    return sorted;
   };
 
   const handleSortChange = (newSortBy: SortOption) => {
-    if (sortBy === newSortBy) {
-      // Se clicou na mesma coluna, inverte a ordem
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      // Nova coluna, usa ordem padrão
-      setSortBy(newSortBy);
-      setSortOrder(newSortBy === 'date' ? 'asc' : 'asc'); // Data padrão asc (menor para maior)
-    }
+    if (sortBy === newSortBy) { setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }
+    else { setSortBy(newSortBy); setSortOrder('asc'); }
   };
 
   const getSortIcon = (option: SortOption) => {
-    if (sortBy !== option) return <ArrowUpDown className="h-3 w-3 text-slate-500" />;
-    return sortOrder === 'asc' ? 
-      <ArrowUpDown className="h-3 w-3 text-blue-400 rotate-180" /> : 
-      <ArrowUpDown className="h-3 w-3 text-blue-400" />;
+    if (sortBy !== option) return <ArrowUpDown className="h-2.5 w-2.5 text-muted-foreground/50" />;
+    return <ArrowUpDown className={`h-2.5 w-2.5 text-primary ${sortOrder === 'asc' ? 'rotate-180' : ''}`} />;
   };
 
   const sortedFiles = getSortedFiles();
+
   return (
-    <Card className="bg-slate-800 border-slate-700">
-      <CardHeader>
+    <Card className="border-border bg-card">
+      <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle className="text-white flex items-center gap-2">
-              <HardDrive className="h-5 w-5" />
+            <CardTitle className="text-foreground text-sm flex items-center gap-2">
+              <HardDrive className="h-4 w-4 text-primary" />
               Arquivos de Backup
             </CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-muted-foreground text-xs">
               Arquivos e pastas disponíveis no servidor FTP
             </CardDescription>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400">Ordenar por:</span>
-              <Select value={sortBy} onValueChange={(value: SortOption) => handleSortChange(value)}>
-                <SelectTrigger className="w-[180px] bg-slate-700 border-slate-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="date" className="text-white">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      Data de Modificação
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="name" className="text-white">
-                    <div className="flex items-center gap-2">
-                      <Type className="h-4 w-4" />
-                      Nome
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="size" className="text-white">
-                    <div className="flex items-center gap-2">
-                      <HardDrive className="h-4 w-4" />
-                      Tamanho
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="type" className="text-white">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      Tipo
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button 
-              variant="outline" 
-              onClick={onRefresh} 
-              disabled={isLoadingFiles} 
-              className="border-slate-600 text-slate-200 hover:bg-slate-700"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingFiles ? 'animate-spin' : ''}`} />
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-muted-foreground">Ordenar:</span>
+            <Select value={sortBy} onValueChange={(value: SortOption) => handleSortChange(value)}>
+              <SelectTrigger className="w-[150px] h-7 text-xs bg-background border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date" className="text-xs"><div className="flex items-center gap-2"><Calendar className="h-3 w-3" />Data</div></SelectItem>
+                <SelectItem value="name" className="text-xs"><div className="flex items-center gap-2"><Type className="h-3 w-3" />Nome</div></SelectItem>
+                <SelectItem value="size" className="text-xs"><div className="flex items-center gap-2"><HardDrive className="h-3 w-3" />Tamanho</div></SelectItem>
+                <SelectItem value="type" className="text-xs"><div className="flex items-center gap-2"><FileText className="h-3 w-3" />Tipo</div></SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={onRefresh} disabled={isLoadingFiles} className="h-7 text-xs">
+              <RefreshCw className={`h-3 w-3 mr-1 ${isLoadingFiles ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         {isLoadingFiles ? (
           <div className="text-center py-8">
-            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
-            <p className="text-slate-400">Carregando backups do FTP...</p>
+            <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-3 text-primary" />
+            <p className="text-muted-foreground text-xs">Carregando backups do FTP...</p>
           </div>
         ) : sortedFiles.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">
-            <Database className="h-12 w-12 mx-auto mb-4 text-slate-600" />
-            <p className="text-slate-400">Nenhum arquivo ou pasta encontrado</p>
-            <p className="text-slate-500 text-sm mt-2">
-              Diretório: {currentPath}
-            </p>
+          <div className="text-center py-10">
+            <Database className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+            <p className="text-muted-foreground text-xs">Nenhum arquivo ou pasta encontrado</p>
+            <p className="text-muted-foreground/50 text-[11px] mt-1">Diretório: {currentPath}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-700 hover:bg-slate-800/50">
-                  <TableHead className="text-slate-300">Status</TableHead>
-                  <TableHead 
-                    className="text-slate-300 cursor-pointer hover:text-white transition-colors" 
-                    onClick={() => handleSortChange('name')}
-                  >
-                    <div className="flex items-center gap-1">
-                      Nome
-                      {getSortIcon('name')}
-                    </div>
+                <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="text-muted-foreground text-xs">Status</TableHead>
+                  <TableHead className="text-muted-foreground text-xs cursor-pointer" onClick={() => handleSortChange('name')}>
+                    <div className="flex items-center gap-1">Nome {getSortIcon('name')}</div>
                   </TableHead>
-                  <TableHead 
-                    className="text-slate-300 cursor-pointer hover:text-white transition-colors" 
-                    onClick={() => handleSortChange('size')}
-                  >
-                    <div className="flex items-center gap-1">
-                      Tamanho
-                      {getSortIcon('size')}
-                    </div>
+                  <TableHead className="text-muted-foreground text-xs cursor-pointer" onClick={() => handleSortChange('size')}>
+                    <div className="flex items-center gap-1">Tamanho {getSortIcon('size')}</div>
                   </TableHead>
-                  <TableHead 
-                    className="text-slate-300 cursor-pointer hover:text-white transition-colors" 
-                    onClick={() => handleSortChange('date')}
-                  >
-                    <div className="flex items-center gap-1">
-                      Data de Modificação
-                      {getSortIcon('date')}
-                    </div>
+                  <TableHead className="text-muted-foreground text-xs cursor-pointer" onClick={() => handleSortChange('date')}>
+                    <div className="flex items-center gap-1">Modificação {getSortIcon('date')}</div>
                   </TableHead>
-                  <TableHead className="text-slate-300">Tempo</TableHead>
-                  <TableHead className="text-slate-300">Permissões</TableHead>
-                  <TableHead className="text-right text-slate-300">Ações</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">Tempo</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">Permissões</TableHead>
+                  <TableHead className="text-muted-foreground text-xs text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sortedFiles.map(file => (
                   <TableRow 
                     key={file.name} 
-                    className={`border-slate-700 hover:bg-slate-800/30 ${file.isDirectory ? 'cursor-pointer' : ''}`} 
+                    className={`border-border/50 hover:bg-muted/20 ${file.isDirectory ? 'cursor-pointer' : ''}`}
                     onClick={() => file.isDirectory && onFolderClick(file)}
                   >
-                    <TableCell>
-                      <div className="flex items-center gap-2">
+                    <TableCell className="py-1">
+                      <div className="flex items-center gap-1.5">
                         {getStatusIcon(file.name, file.isDirectory)}
                         {getStatusBadge(file.name, file.isDirectory)}
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium text-slate-200">{file.name}</TableCell>
-                    <TableCell className="text-slate-300">
+                    <TableCell className="text-xs font-medium text-foreground py-1">{file.name}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground py-1">
                       {file.isDirectory ? '-' : formatFileSize(file.size)}
                     </TableCell>
-                    <TableCell className="text-slate-300">
+                    <TableCell className="text-xs text-muted-foreground py-1">
                       {new Date(file.lastModified).toLocaleString('pt-BR')}
                     </TableCell>
-                    <TableCell className="text-slate-300">
+                    <TableCell className="py-1">
                       {getTimeLabel(file.lastModified, file.isDirectory)}
                     </TableCell>
-                    <TableCell className="text-slate-300">
+                    <TableCell className="text-xs text-muted-foreground py-1">
                       {file.permissions || '-'}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1">
+                    <TableCell className="py-1 text-right">
+                      <div className="flex items-center justify-end gap-0.5">
                         {!file.isDirectory && (
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDownload(file.name);
-                            }} 
+                            onClick={(e) => { e.stopPropagation(); onDownload(file.name); }}
                             disabled={downloadFile.isPending} 
-                            className="border-slate-600 text-slate-200 hover:bg-slate-700"
+                            className="h-6 w-6 p-0"
                           >
-                            <Download className="h-4 w-4" />
+                            <Download className="h-2.5 w-2.5" />
                           </Button>
                         )}
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(file.name);
-                          }} 
+                          onClick={(e) => { e.stopPropagation(); onDelete(file.name); }}
                           disabled={deleteFile.isPending} 
-                          className="border-red-600 bg-red-900 hover:bg-red-800 text-slate-50"
+                          className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-2.5 w-2.5" />
                         </Button>
                       </div>
                     </TableCell>

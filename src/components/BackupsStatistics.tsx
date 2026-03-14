@@ -18,54 +18,50 @@ const BackupsStatistics: React.FC<BackupsStatisticsProps> = ({
   totalFiles
 }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-      <Card className="bg-gray-800 border-gray-700">
-        <CardContent className="p-4 md:p-6">
-          <div className="flex items-center gap-2 md:gap-3">
-            <Database className="h-6 w-6 md:h-8 md:w-8 text-blue-400 flex-shrink-0" />
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <Card className="border-border bg-card">
+        <CardContent className="p-3">
+          <div className="flex items-center gap-2">
+            <Database className="h-5 w-5 text-primary flex-shrink-0" />
             <div className="min-w-0">
-              <p className="text-xl md:text-2xl font-bold text-white">{totalBackups}</p>
-              <p className="text-xs md:text-sm text-gray-400">Total de Backups</p>
+              <p className="text-lg font-bold text-foreground">{totalBackups}</p>
+              <p className="text-[11px] text-muted-foreground">Total de Backups</p>
             </div>
           </div>
         </CardContent>
       </Card>
       
-      <Card className="bg-gray-800 border-gray-700">
-        <CardContent className="p-4 md:p-6">
-          <div className="flex items-center gap-2 md:gap-3">
-            <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-green-400 flex-shrink-0" />
+      <Card className="border-border bg-card">
+        <CardContent className="p-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
             <div className="min-w-0">
-              <p className="text-xl md:text-2xl font-bold text-white">{recentBackups}</p>
-              <p className="text-xs md:text-sm text-gray-400">Recentes (7 dias)</p>
+              <p className="text-lg font-bold text-foreground">{recentBackups}</p>
+              <p className="text-[11px] text-muted-foreground">Recentes (7 dias)</p>
             </div>
           </div>
         </CardContent>
       </Card>
       
-      <Card className="bg-gray-800 border-gray-700">
-        <CardContent className="p-4 md:p-6">
-          <div className="flex items-center gap-2 md:gap-3">
-            <HardDrive className="h-6 w-6 md:h-8 md:w-8 text-purple-400 flex-shrink-0" />
+      <Card className="border-border bg-card">
+        <CardContent className="p-3">
+          <div className="flex items-center gap-2">
+            <HardDrive className="h-5 w-5 text-purple-500 flex-shrink-0" />
             <div className="min-w-0">
-              <p className="text-xl md:text-2xl font-bold text-white">
-                {formatFileSize(totalSize)}
-              </p>
-              <p className="text-xs md:text-sm text-gray-400">Tamanho Total</p>
+              <p className="text-lg font-bold text-foreground">{formatFileSize(totalSize)}</p>
+              <p className="text-[11px] text-muted-foreground">Tamanho Total</p>
             </div>
           </div>
         </CardContent>
       </Card>
       
-      <Card className="bg-gray-800 border-gray-700">
-        <CardContent className="p-4 md:p-6">
-          <div className="flex items-center gap-2 md:gap-3">
-            <Calendar className="h-6 w-6 md:h-8 md:w-8 text-orange-400 flex-shrink-0" />
+      <Card className="border-border bg-card">
+        <CardContent className="p-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-orange-500 flex-shrink-0" />
             <div className="min-w-0">
-              <p className="text-xl md:text-2xl font-bold text-white">
-                {totalFiles}
-              </p>
-              <p className="text-xs md:text-sm text-gray-400">Total de Arquivos</p>
+              <p className="text-lg font-bold text-foreground">{totalFiles}</p>
+              <p className="text-[11px] text-muted-foreground">Total de Arquivos</p>
             </div>
           </div>
         </CardContent>
