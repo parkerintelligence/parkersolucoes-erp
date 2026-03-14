@@ -407,82 +407,70 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
               </TableHeader>
               <TableBody>
                 {ticketsList.map((ticket: any) => (
-                  <TableRow key={ticket.id} className="border-gray-700">
-                    <TableCell className="text-gray-300 font-mono py-2">
+                  <TableRow key={ticket.id} className="border-border/50 hover:bg-muted/20">
+                    <TableCell className="text-muted-foreground font-mono text-[11px] py-1">
                       #{ticket.id}
                     </TableCell>
-                    <TableCell className="py-2">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-white font-medium">{ticket.name || 'Sem título'}</span>
+                    <TableCell className="py-1">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium text-foreground truncate max-w-[250px]">{ticket.name || 'Sem título'}</span>
                         {ticket.content && (
-                          <span className="text-gray-400 text-sm line-clamp-1">
+                          <span className="text-[10px] text-muted-foreground line-clamp-1 max-w-[250px]">
                             {ticket.content}
                           </span>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-300 py-2 text-sm">
+                    <TableCell className="text-muted-foreground py-1 text-[11px]">
                       {(() => {
-                        console.log('🎫 [TICKET] Renderizando técnico:', {
-                          ticketId: ticket.id,
-                          users_id_assign: ticket.users_id_assign,
-                          _users_id_assign: ticket._users_id_assign,
-                          hasUsers: !!users.data,
-                          usersCount: users.data?.length || 0
-                        });
                         return ticket.users_id_assign || ticket._users_id_assign 
                           ? getUserName(ticket.users_id_assign || ticket._users_id_assign)
-                          : <span className="text-gray-500 italic">Não atribuído</span>;
+                          : <span className="text-muted-foreground/50 italic">Não atribuído</span>;
                       })()}
                     </TableCell>
-                    <TableCell className="py-2">
+                    <TableCell className="py-1">
                       {ticket.itilcategories_id || ticket.categories_id ? (
-                        <Badge className={getCategoryColor(ticket.itilcategories_id || ticket.categories_id)}>
+                        <Badge className={`text-[10px] px-1.5 py-0 ${getCategoryColor(ticket.itilcategories_id || ticket.categories_id)}`}>
                           {getCategoryName(ticket.itilcategories_id || ticket.categories_id)}
                         </Badge>
                       ) : (
-                        <span className="text-gray-400 text-sm">-</span>
+                        <span className="text-muted-foreground/50 text-[11px]">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="py-2">
-                      <Badge className={`${getEntityColor(ticket.entities_id)}`}>
+                    <TableCell className="py-1">
+                      <Badge className={`text-[10px] px-1.5 py-0 ${getEntityColor(ticket.entities_id)}`}>
                         {getEntityName(ticket.entities_id)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-2">
-                      <Badge className={getStatusColor(ticket.status)}>
-                        <div className="flex items-center gap-1">
+                    <TableCell className="py-1">
+                      <Badge className={`text-[10px] px-1.5 py-0 ${getStatusColor(ticket.status)}`}>
+                        <div className="flex items-center gap-0.5">
                           {getStatusIcon(ticket.status)}
                           {getStatusText(ticket.status)}
                         </div>
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-2">
-                      <Badge className={getPriorityColor(ticket.priority)}>
+                    <TableCell className="py-1">
+                      <Badge className={`text-[10px] px-1.5 py-0 ${getPriorityColor(ticket.priority)}`}>
                         {getPriorityText(ticket.priority)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-gray-300 py-2">
+                    <TableCell className="text-muted-foreground py-1 text-[11px]">
                       {(() => {
                         const ticketDate = parseGLPIDate(ticket.date_creation || ticket.date);
                         if (!ticketDate) return 'N/A';
-                        
                         return (
-                          <div className="flex items-center gap-2">
-                            <span>{ticketDate.toLocaleDateString('pt-BR')}</span>
-                            <span className="text-gray-500">•</span>
-                            <span className="text-gray-400">
-                              {ticketDate.toLocaleTimeString('pt-BR', { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                              })}
+                          <span>
+                            {ticketDate.toLocaleDateString('pt-BR')}
+                            <span className="text-muted-foreground/50 ml-1">
+                              {ticketDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                             </span>
-                          </div>
+                          </span>
                         );
                       })()}
                     </TableCell>
-                    <TableCell className="py-2">
-                      <div className="flex items-center gap-2">
+                    <TableCell className="py-1 text-right">
+                      <div className="flex justify-end gap-0.5">
                         <Button
                           variant="outline"
                           size="sm"
@@ -490,19 +478,10 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                             setSelectedTicketForRemote(ticket);
                             setRemoteAccessDialogOpen(true);
                           }}
-                          className="border-gray-600 text-blue-400 hover:bg-blue-900/20"
+                          className="h-6 w-6 p-0"
                           title="Acesso Remoto"
                         >
-                          <Monitor className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setTicketToDelete(ticket)}
-                          className="border-gray-600 text-red-400 hover:bg-red-900/20"
-                          title="Excluir Chamado"
-                        >
-                          <Trash2 className="h-4 w-4" />
+                          <Monitor className="h-2.5 w-2.5" />
                         </Button>
                         {ticket.status !== 5 && ticket.status !== 6 && (
                           <Button
@@ -510,18 +489,28 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                             size="sm"
                             onClick={() => handleCloseTicket(ticket.id)}
                             disabled={updateTicket.isPending}
-                            className="border-gray-600 text-green-400 hover:bg-green-900/20"
+                            className="h-6 w-6 p-0 text-green-500 hover:bg-green-500/10"
                             title="Encerrar Chamado"
                           >
-                            <CheckCheck className="h-4 w-4" />
+                            <CheckCheck className="h-2.5 w-2.5" />
                           </Button>
                         )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTicketToDelete(ticket)}
+                          className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                          title="Excluir Chamado"
+                        >
+                          <Trash2 className="h-2.5 w-2.5" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
 
           {/* Controles de Paginação */}
