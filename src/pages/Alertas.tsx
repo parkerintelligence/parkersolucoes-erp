@@ -337,127 +337,85 @@ export default function Alertas() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 space-y-3">
+      {/* Header compacto */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Alertas Zabbix</h1>
-          <p className="text-muted-foreground">Monitor em tempo real do status dos dispositivos</p>
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-bold text-foreground">Alertas Zabbix</h1>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-green-500 inline-block" />
+              {onlineCount}
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-red-500 inline-block" />
+              {offlineCount}
+            </span>
+            <span className="text-muted-foreground/60">/ {devices.length} total</span>
+          </div>
         </div>
         <Button 
           onClick={handleRefresh}
           disabled={hostsLoading || problemsLoading || itemsLoading}
           size="sm"
-          variant="outline"
+          variant="ghost"
+          className="h-7 px-2 text-xs"
         >
-          <RefreshCw className={cn("h-4 w-4 mr-2", (hostsLoading || problemsLoading || itemsLoading) && "animate-spin")} />
-          Atualizar
+          <RefreshCw className={cn("h-3.5 w-3.5", (hostsLoading || problemsLoading || itemsLoading) && "animate-spin")} />
         </Button>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-slate-300 mb-1">{devices.length}</div>
-            <div className="text-sm text-slate-300 font-medium">Total</div>
-            <div className="text-xs text-slate-400 mt-1">Dispositivos</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-400 mb-1">{onlineCount}</div>
-            <div className="text-sm text-slate-300 font-medium">Online</div>
-            <div className="text-xs text-slate-400 mt-1">Dispositivos ativos</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-red-400 mb-1">{offlineCount}</div>
-            <div className="text-sm text-slate-300 font-medium">Offline</div>
-            <div className="text-xs text-slate-400 mt-1">Dispositivos inativos</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabs for Status and Performance */}
+      {/* Tabs */}
       <Tabs defaultValue="status" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="status">Status Server</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 h-8">
+          <TabsTrigger value="status" className="text-xs h-7">Status</TabsTrigger>
+          <TabsTrigger value="performance" className="text-xs h-7">Performance</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="status" className="space-y-4">
-          {/* Devices Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+        <TabsContent value="status" className="mt-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1.5">
             {devices.map((device) => {
               const perf = device.status === 'online' ? getPerformanceData(device.id) : null;
+              const isOnline = device.status === 'online';
               return (
-                <Card 
+                <div 
                   key={device.id} 
                   className={cn(
-                    "transition-all duration-200 hover:shadow-md",
-                    getStatusColor(device.status)
+                    "rounded-md px-2 py-2 border transition-all text-center",
+                    isOnline 
+                      ? "bg-green-500/10 border-green-500/25 hover:bg-green-500/20" 
+                      : "bg-red-500/10 border-red-500/25 hover:bg-red-500/20"
                   )}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex flex-col items-center space-y-3">
-                      {getStatusIcon(device.status)}
-                      <h3 className="font-medium text-xs text-center text-white break-words w-full" title={device.name}>
-                        {device.name}
-                      </h3>
-                      {getStatusBadge(device.status)}
-                      {device.status === 'online' && perf?.itemsFound?.uptime && (
-                        <div className="flex items-center gap-1 text-xs text-slate-400">
-                          <Clock className="h-3 w-3" />
-                          <span>{formatUptime(perf.uptime)}</span>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    {isOnline 
+                      ? <Wifi className="h-3 w-3 text-green-400" /> 
+                      : <WifiOff className="h-3 w-3 text-red-400" />
+                    }
+                  </div>
+                  <p className="text-[10px] font-medium text-foreground truncate leading-tight" title={device.name}>
+                    {device.name}
+                  </p>
+                  {isOnline && perf?.itemsFound?.uptime && (
+                    <p className="text-[9px] text-muted-foreground mt-0.5">
+                      {formatUptime(perf.uptime)}
+                    </p>
+                  )}
+                </div>
               );
             })}
           </div>
         </TabsContent>
         
-        <TabsContent value="performance" className="space-y-4">
-          {/* Performance Table */}
-          <Card className="bg-slate-800 border-slate-700">
+        <TabsContent value="performance" className="mt-3">
+          <Card className="border-border/40">
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-700 hover:bg-slate-700/50">
-                  <TableHead className="text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <Server className="h-4 w-4" />
-                      Device
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <Wifi className="h-4 w-4" />
-                      Status
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <Cpu className="h-4 w-4" />
-                      CPU
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <HardDrive className="h-4 w-4" />
-                      Memória
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      Uptime
-                    </div>
-                  </TableHead>
+                <TableRow className="hover:bg-transparent border-border/40">
+                  <TableHead className="text-xs h-8 text-muted-foreground">Device</TableHead>
+                  <TableHead className="text-xs h-8 text-muted-foreground">CPU</TableHead>
+                  <TableHead className="text-xs h-8 text-muted-foreground">Memória</TableHead>
+                  <TableHead className="text-xs h-8 text-muted-foreground">Uptime</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -467,63 +425,47 @@ export default function Alertas() {
                     const perf = getPerformanceData(device.id);
                     return { device, perf };
                   })
-                  .sort((a, b) => b.perf.uptime - a.perf.uptime) // Sort by uptime descending
+                  .sort((a, b) => b.perf.uptime - a.perf.uptime)
                   .map(({ device, perf }) => (
-                    <TableRow key={device.id} className="border-slate-700 hover:bg-slate-700/30">
-                      <TableCell className="font-medium text-white">
-                        <div className="flex items-center gap-2">
-                          <Server className="h-4 w-4 text-blue-400" />
-                          {device.name}
-                        </div>
+                    <TableRow key={device.id} className="border-border/30 hover:bg-muted/30">
+                      <TableCell className="py-1.5 text-xs font-medium text-foreground">
+                        {device.name}
                       </TableCell>
-                      <TableCell>
-                        {getStatusBadge(device.status)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-slate-300">
-                              {perf.itemsFound?.cpu ? `${perf.cpu.toFixed(1)}%` : (
-                                <span className="text-red-400">N/A</span>
-                              )}
-                            </span>
-                          </div>
-                          {perf.itemsFound?.cpu && (
+                      <TableCell className="py-1.5">
+                        {perf.itemsFound?.cpu ? (
+                          <div className="flex items-center gap-2">
                             <Progress 
                               value={perf.cpu} 
-                              className="h-2 w-24"
+                              className="h-1.5 w-16"
                               style={{
                                 '--progress-foreground': perf.cpu > 80 ? 'hsl(0 70% 50%)' : perf.cpu > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
                               } as React.CSSProperties}
                             />
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-slate-300">
-                              {perf.itemsFound?.memory ? `${perf.memory.toFixed(1)}%` : (
-                                <span className="text-red-400">N/A</span>
-                              )}
-                            </span>
+                            <span className="text-[10px] text-muted-foreground w-8">{perf.cpu.toFixed(0)}%</span>
                           </div>
-                          {perf.itemsFound?.memory && (
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/50">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-1.5">
+                        {perf.itemsFound?.memory ? (
+                          <div className="flex items-center gap-2">
                             <Progress 
                               value={perf.memory} 
-                              className="h-2 w-24"
+                              className="h-1.5 w-16"
                               style={{
                                 '--progress-foreground': perf.memory > 80 ? 'hsl(0 70% 50%)' : perf.memory > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
                               } as React.CSSProperties}
                             />
-                          )}
-                        </div>
+                            <span className="text-[10px] text-muted-foreground w-8">{perf.memory.toFixed(0)}%</span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/50">—</span>
+                        )}
                       </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-slate-300">
-                          {perf.itemsFound?.uptime ? formatUptime(perf.uptime) : (
-                            <span className="text-red-400">N/A</span>
-                          )}
+                      <TableCell className="py-1.5">
+                        <span className="text-[10px] text-muted-foreground">
+                          {perf.itemsFound?.uptime ? formatUptime(perf.uptime) : '—'}
                         </span>
                       </TableCell>
                     </TableRow>
@@ -532,14 +474,11 @@ export default function Alertas() {
             </Table>
           </Card>
 
-          {devices.filter(device => device.status === 'online').length === 0 && (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center space-y-4">
-                <Server className="h-12 w-12 mx-auto text-muted-foreground" />
-                <div>
-                  <h3 className="text-lg font-semibold">Nenhum dispositivo online</h3>
-                  <p className="text-muted-foreground">Dados de performance só são exibidos para dispositivos online.</p>
-                </div>
+          {devices.filter(d => d.status === 'online').length === 0 && (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center space-y-2">
+                <Server className="h-8 w-8 mx-auto text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Nenhum dispositivo online</p>
               </div>
             </div>
           )}
@@ -547,22 +486,16 @@ export default function Alertas() {
       </Tabs>
 
       {(hostsLoading || problemsLoading) && devices.length === 0 && (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center space-y-4">
-            <RefreshCw className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-            <p className="text-muted-foreground">Carregando dispositivos...</p>
-          </div>
+        <div className="flex items-center justify-center py-8">
+          <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       )}
 
       {!hostsLoading && !problemsLoading && devices.length === 0 && (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center space-y-4">
-            <Server className="h-12 w-12 mx-auto text-muted-foreground" />
-            <div>
-              <h3 className="text-lg font-semibold">Nenhum dispositivo encontrado</h3>
-              <p className="text-muted-foreground">Verifique a configuração do Zabbix na página de Administração.</p>
-            </div>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center space-y-2">
+            <Server className="h-8 w-8 mx-auto text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Nenhum dispositivo encontrado. Verifique a configuração do Zabbix.</p>
           </div>
         </div>
       )}
