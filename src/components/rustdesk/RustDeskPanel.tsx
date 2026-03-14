@@ -33,6 +33,9 @@ const EMPTY_FORM = {
   notes: '',
   glpi_asset_id: null as number | null,
   glpi_asset_name: '',
+  glpi_asset_serial: '',
+  glpi_asset_entity: '',
+  glpi_asset_comment: '',
 };
 
 export const RustDeskPanel = () => {
