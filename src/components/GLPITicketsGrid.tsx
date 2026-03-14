@@ -597,26 +597,16 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!ticketToDelete} onOpenChange={() => setTicketToDelete(null)}>
-        <AlertDialogContent className="bg-gray-800 border-gray-700">
+        <AlertDialogContent className="border-border bg-card">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Confirmar Exclusão</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-300">
+            <AlertDialogTitle className="text-foreground">Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
               Tem certeza que deseja excluir o chamado #{ticketToDelete?.id} - "{ticketToDelete?.name}"?
-              Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel 
-              onClick={() => setTicketToDelete(null)}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteTicket}
-              disabled={deleteTicket.isPending}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
+            <AlertDialogCancel onClick={() => setTicketToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTicket} disabled={deleteTicket.isPending} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
               {deleteTicket.isPending ? 'Excluindo...' : 'Excluir'}
             </AlertDialogAction>
           </AlertDialogFooter>
