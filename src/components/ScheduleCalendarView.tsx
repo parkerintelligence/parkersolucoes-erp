@@ -145,9 +145,9 @@ const WeeklyView = ({ schedules, companies, onEdit }: WeeklyViewProps) => {
             <div className="relative">
               {hours.map(hour => {
                 return (
-                  <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] min-h-[56px] border-b border-border/50">
+                  <div key={hour} className="grid grid-cols-[50px_repeat(7,1fr)] min-h-[44px] border-b border-border/30">
                     {/* Hour label */}
-                    <div className="p-1 text-right pr-2 text-[11px] text-muted-foreground font-mono border-r border-border">
+                    <div className="py-1 text-right pr-1.5 text-[10px] text-muted-foreground font-mono border-r border-border/50">
                       {hour.toString().padStart(2, '0')}:00
                     </div>
 
@@ -161,7 +161,7 @@ const WeeklyView = ({ schedules, companies, onEdit }: WeeklyViewProps) => {
                         <div
                           key={dayIndex}
                           className={cn(
-                            "border-l border-border/50 p-0.5 relative",
+                            "border-l border-border/30 px-0.5 py-0.5",
                             isToday && "bg-primary/[0.03]"
                           )}
                         >
@@ -171,42 +171,22 @@ const WeeklyView = ({ schedules, companies, onEdit }: WeeklyViewProps) => {
                               <div
                                 key={schedule.id}
                                 onClick={() => onEdit(schedule)}
-                                className="rounded-md p-1.5 mb-0.5 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md border"
+                                className="rounded px-1.5 py-1 mb-0.5 cursor-pointer transition-all hover:brightness-95 hover:shadow-sm border text-left"
                                 style={{
-                                  backgroundColor: (schedule.color || '#3b82f6') + '20',
-                                  borderColor: (schedule.color || '#3b82f6') + '60',
+                                  backgroundColor: (schedule.color || '#3b82f6') + '18',
+                                  borderColor: (schedule.color || '#3b82f6') + '40',
+                                  borderLeftWidth: '3px',
+                                  borderLeftColor: schedule.color || '#3b82f6',
                                 }}
                               >
-                                <div className="flex items-center gap-1 mb-0.5">
-                                  <div
-                                    className="w-2 h-2 rounded-full flex-shrink-0"
-                                    style={{ backgroundColor: schedule.color || '#3b82f6' }}
-                                  />
-                                  <span className="text-[11px] font-semibold text-foreground truncate">
-                                    {schedule.name}
-                                  </span>
+                                <div className="text-[10px] font-semibold text-foreground truncate leading-tight">
+                                  {schedule.name}
                                 </div>
-                                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                                  <Clock className="h-2.5 w-2.5" />
+                                <div className="text-[9px] text-muted-foreground leading-tight mt-0.5 truncate">
                                   {formatTime(schedule.time_hour, schedule.time_minute)}
+                                  {company ? ` · ${company}` : ''}
+                                  {schedule.system_name ? ` · ${schedule.system_name}` : ''}
                                 </div>
-                                {company && (
-                                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground truncate">
-                                    <Building className="h-2.5 w-2.5 flex-shrink-0" />
-                                    {company}
-                                  </div>
-                                )}
-                                {schedule.system_name && (
-                                  <div className="text-[10px] text-muted-foreground truncate">
-                                    📱 {schedule.system_name}
-                                  </div>
-                                )}
-                                {schedule.location && (
-                                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground truncate">
-                                    <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
-                                    {schedule.location}
-                                  </div>
-                                )}
                               </div>
                             );
                           })}
