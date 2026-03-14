@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Edit, Trash2, Calendar, Building, Search, ExternalLink, MessageCircle, AlertTriangle, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { format, differenceInDays } from 'date-fns';
@@ -13,6 +13,7 @@ import { ScheduleDialog } from './ScheduleDialog';
 import { toast } from '@/hooks/use-toast';
 import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { WhatsAppScheduleDialog } from './WhatsAppScheduleDialog';
+
 interface ScheduleItem {
   id: string;
   title: string;
@@ -22,16 +23,14 @@ interface ScheduleItem {
   due_date: string;
   description?: string;
 }
+
 interface ScheduleTableProps {
   items: ScheduleItem[];
   onUpdate: (id: string, updates: Partial<ScheduleItem>) => void;
   onDelete: (id: string) => void;
 }
-export const ScheduleTable = ({
-  items,
-  onUpdate,
-  onDelete
-}: ScheduleTableProps) => {
+
+export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -40,277 +39,221 @@ export const ScheduleTable = ({
   const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
   const [showGLPIConfirm, setShowGLPIConfirm] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ScheduleItem | null>(null);
-  const {
-    createTicket
-  } = useGLPIExpanded();
+  const { createTicket } = useGLPIExpanded();
+
   const handleOpenGLPITicket = (item: ScheduleItem) => {
     setSelectedItem(item);
     setShowGLPIConfirm(true);
   };
+
   const confirmCreateTicket = async () => {
     if (!selectedItem) return;
     try {
       const ticketData = {
         name: `${selectedItem.title} - ${selectedItem.type}`,
-        content: `Empresa: ${selectedItem.company}\nTipo: ${selectedItem.type}\nVencimento: ${format(new Date(selectedItem.due_date), 'dd/MM/yyyy', {
-          locale: ptBR
-        })}\nDescrição: ${selectedItem.description || 'N/A'}`,
-        urgency: 3,
-        impact: 3,
-        priority: 3,
-        status: 1,
-        type: 1
+        content: `Empresa: ${selectedItem.company}\nTipo: ${selectedItem.type}\nVencimento: ${format(new Date(selectedItem.due_date), 'dd/MM/yyyy', { locale: ptBR })}\nDescrição: ${selectedItem.description || 'N/A'}`,
+        urgency: 3, impact: 3, priority: 3, status: 1, type: 1
       };
       await createTicket.mutateAsync(ticketData);
-      toast({
-        title: "✅ Ticket criado com sucesso!",
-        description: "O ticket foi criado no GLPI."
-      });
+      toast({ title: "✅ Ticket criado com sucesso!", description: "O ticket foi criado no GLPI." });
       setShowGLPIConfirm(false);
       setSelectedItem(null);
     } catch (error) {
       console.error('Erro ao criar ticket:', error);
-      toast({
-        title: "❌ Erro ao criar ticket",
-        description: "Não foi possível criar o ticket no GLPI. Verifique a configuração.",
-        variant: "destructive"
-      });
+      toast({ title: "❌ Erro ao criar ticket", description: "Não foi possível criar o ticket no GLPI.", variant: "destructive" });
     }
-  };
-  const handleWhatsAppShare = (item: ScheduleItem) => {
-    setSelectedItem(item);
-    setShowWhatsAppDialog(true);
-  };
-  const handleEditItem = (item: ScheduleItem) => {
-    setEditingItem(item);
-    setShowEditDialog(true);
-  };
-  const getDaysUntilDue = (dueDate: string) => {
-    return differenceInDays(new Date(dueDate), new Date());
-  };
-  const getStatusBadge = (status: string, daysUntil: number) => {
-    if (status === 'completed') {
-      return <Badge className="bg-green-800 text-green-100 border-green-700">Concluído</Badge>;
-    }
-    if (daysUntil < 0) {
-      return <Badge className="bg-red-800 text-red-100 border-red-700">Vencido</Badge>;
-    }
-    if (daysUntil <= 30) {
-      return <Badge className="bg-orange-800 text-orange-100 border-orange-700">Crítico</Badge>;
-    }
-    return <Badge className="bg-blue-800 text-blue-100 border-blue-700">Pendente</Badge>;
-  };
-  const getTypeBadge = (type: string) => {
-    // Usar cores escuras seguindo o padrão do sistema
-    const typeColors = {
-      'Backup': 'bg-blue-800 text-blue-100 border-blue-700',
-      'Manutenção': 'bg-green-800 text-green-100 border-green-700',
-      'Atualização': 'bg-purple-800 text-purple-100 border-purple-700',
-      'Renovação': 'bg-orange-800 text-orange-100 border-orange-700',
-      'Instalação': 'bg-cyan-800 text-cyan-100 border-cyan-700',
-      'Configuração': 'bg-indigo-800 text-indigo-100 border-indigo-700',
-      'Monitoramento': 'bg-emerald-800 text-emerald-100 border-emerald-700',
-      'Suporte': 'bg-pink-800 text-pink-100 border-pink-700',
-      'Migração': 'bg-violet-800 text-violet-100 border-violet-700',
-      'Teste': 'bg-amber-800 text-amber-100 border-amber-700'
-    };
-    
-    // Se o tipo não estiver mapeado, gerar uma cor baseada no hash do texto
-    const defaultColor = typeColors[type as keyof typeof typeColors];
-    if (defaultColor) {
-      return <Badge className={defaultColor}>{type}</Badge>;
-    }
-    
-    // Gerar cor automática para tipos não mapeados usando cores escuras
-    const hash = type.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-    const colors = [
-      'bg-slate-800 text-slate-100 border-slate-700',
-      'bg-gray-800 text-gray-100 border-gray-700',
-      'bg-zinc-800 text-zinc-100 border-zinc-700',
-      'bg-stone-800 text-stone-100 border-stone-700',
-      'bg-red-800 text-red-100 border-red-700',
-      'bg-yellow-800 text-yellow-100 border-yellow-700',
-      'bg-lime-800 text-lime-100 border-lime-700',
-      'bg-teal-800 text-teal-100 border-teal-700',
-      'bg-sky-800 text-sky-100 border-sky-700',
-      'bg-rose-800 text-rose-100 border-rose-700'
-    ];
-    
-    const colorIndex = hash % colors.length;
-    return <Badge className={colors[colorIndex]}>{type}</Badge>;
   };
 
+  const getDaysUntilDue = (dueDate: string) => differenceInDays(new Date(dueDate), new Date());
+
   const getStatusIcon = (daysUntil: number) => {
-    if (daysUntil < 0) {
-      // Vencido - ícone de X vermelho
-      return (
-        <div className="flex items-center gap-1" title="Vencido">
-          <XCircle className="h-5 w-5 text-red-500" />
-          <span className="text-xs text-red-500 font-medium whitespace-nowrap">Vencido</span>
-        </div>
-      );
-    }
-    if (daysUntil < 7) {
-      // Crítico <7 dias - ícone de alerta amarelo
-      return (
-        <div className="flex items-center gap-1" title="Crítico - vence em menos de 7 dias">
-          <AlertTriangle className="h-5 w-5 text-yellow-500" />
-          <span className="text-xs text-yellow-500 font-medium whitespace-nowrap">Crítico</span>
-        </div>
-      );
-    }
-    if (daysUntil >= 10) {
-      // Bom >10 dias - ícone de check verde
-      return (
-        <div className="flex items-center gap-1" title="Ok - vence em mais de 10 dias">
-          <CheckCircle2 className="h-5 w-5 text-green-500" />
-          <span className="text-xs text-green-500 font-medium whitespace-nowrap">A Vencer</span>
-        </div>
-      );
-    }
-    // Entre 7-10 dias - ícone de relógio amarelo
-    return (
-      <div className="flex items-center gap-1" title="Atenção - vence entre 7-10 dias">
-        <Clock className="h-5 w-5 text-yellow-500" />
-        <span className="text-xs text-yellow-500 font-medium whitespace-nowrap">Atenção</span>
-      </div>
-    );
+    if (daysUntil < 0) return <XCircle className="h-3.5 w-3.5 text-red-500" />;
+    if (daysUntil < 7) return <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />;
+    if (daysUntil < 10) return <Clock className="h-3.5 w-3.5 text-amber-400" />;
+    return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
   };
+
+  const getStatusLabel = (daysUntil: number) => {
+    if (daysUntil < 0) return { text: 'Vencido', cls: 'border-red-500/30 text-red-400 bg-red-500/10' };
+    if (daysUntil < 7) return { text: 'Crítico', cls: 'border-amber-500/30 text-amber-400 bg-amber-500/10' };
+    if (daysUntil < 10) return { text: 'Atenção', cls: 'border-amber-400/30 text-amber-300 bg-amber-400/10' };
+    return { text: 'A Vencer', cls: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' };
+  };
+
+  const getTypeBadge = (type: string) => {
+    const typeColors: Record<string, string> = {
+      'Backup': 'border-blue-500/30 text-blue-400 bg-blue-500/10',
+      'Manutenção': 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10',
+      'Atualização': 'border-purple-500/30 text-purple-400 bg-purple-500/10',
+      'Renovação': 'border-orange-500/30 text-orange-400 bg-orange-500/10',
+      'Instalação': 'border-cyan-500/30 text-cyan-400 bg-cyan-500/10',
+      'Configuração': 'border-indigo-500/30 text-indigo-400 bg-indigo-500/10',
+      'Monitoramento': 'border-teal-500/30 text-teal-400 bg-teal-500/10',
+      'Suporte': 'border-pink-500/30 text-pink-400 bg-pink-500/10',
+    };
+    return typeColors[type] || 'border-muted text-muted-foreground bg-muted/30';
+  };
+
   const filteredItems = items.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || item.company.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === '' || statusFilter === 'all' || item.status === statusFilter;
     const matchesType = typeFilter === '' || typeFilter === 'all' || item.type === typeFilter;
     return matchesSearch && matchesStatus && matchesType;
   });
+
   const uniqueTypes = [...new Set(items.map(item => item.type))];
-  return <Card className="bg-gray-800 border-gray-700">
-      <CardHeader className="rounded-sm bg-gray-800">
-        <CardTitle className="flex items-center gap-2 text-white">
-          <Calendar className="h-5 w-5" />
-          Lista de Agendamentos
-        </CardTitle>
-        
-        {/* Filtros */}
-        <div className="flex gap-4 mt-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-              <Input placeholder="Buscar por título ou empresa..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-8 bg-gray-700 border-gray-600 text-white placeholder:text-gray-400" />
-            </div>
+
+  return (
+    <TooltipProvider>
+      <div className="space-y-3">
+        {/* Filters */}
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Buscar título ou empresa..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-7 h-8 text-xs bg-background border-border"
+            />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40 bg-gray-700 border-gray-600 text-white">
+            <SelectTrigger className="w-32 h-8 text-xs bg-background border-border">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent className="bg-gray-700 border-gray-600">
-              <SelectItem value="all" className="text-white hover:bg-gray-600">Todos</SelectItem>
-              <SelectItem value="pending" className="text-white hover:bg-gray-600">Pendente</SelectItem>
-              <SelectItem value="completed" className="text-white hover:bg-gray-600">Concluído</SelectItem>
+            <SelectContent>
+              <SelectItem value="all" className="text-xs">Todos</SelectItem>
+              <SelectItem value="pending" className="text-xs">Pendente</SelectItem>
+              <SelectItem value="completed" className="text-xs">Concluído</SelectItem>
             </SelectContent>
           </Select>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-48 bg-gray-700 border-gray-600 text-white">
+            <SelectTrigger className="w-36 h-8 text-xs bg-background border-border">
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
-            <SelectContent className="bg-gray-700 border-gray-600">
-              <SelectItem value="all" className="text-white hover:bg-gray-600">Todos os tipos</SelectItem>
-              {uniqueTypes.map(type => <SelectItem key={type} value={type} className="text-white hover:bg-gray-600">{type}</SelectItem>)}
+            <SelectContent>
+              <SelectItem value="all" className="text-xs">Todos os tipos</SelectItem>
+              {uniqueTypes.map(type => (
+                <SelectItem key={type} value={type} className="text-xs">{type}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
-      </CardHeader>
-      
-      <CardContent className="bg-gray-800">
-        <Table>
-          <TableHeader>
-            <TableRow className="h-10 border-gray-700">
-              <TableHead className="bg-gray-800 py-2 text-gray-300">Título</TableHead>
-              <TableHead className="py-2 text-gray-300">Empresa</TableHead>
-              <TableHead className="py-2 text-gray-300">Tipo</TableHead>
-              <TableHead className="py-2 text-gray-300">Status</TableHead>
-              <TableHead className="py-2 text-gray-300">Vencimento</TableHead>
-              <TableHead className="py-2 w-32 text-gray-300">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredItems.map(item => {
-            const daysUntil = getDaysUntilDue(item.due_date);
-            return <TableRow key={item.id} className="h-12 hover:bg-gray-700 border-gray-700">
-                  <TableCell className="font-medium py-2 text-white max-w-xs">
-                    <div className="whitespace-normal break-words">{item.title}</div>
-                  </TableCell>
-                  <TableCell className="py-2">
-                    <div className="flex items-center gap-2">
-                      <Building className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                      <span className="text-gray-300 whitespace-normal break-words">{item.company}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-2">{getTypeBadge(item.type)}</TableCell>
-                  <TableCell className="py-2">{getStatusIcon(daysUntil)}</TableCell>
-                  <TableCell className="py-2">
-                    <div className="flex items-center gap-2">
-                      <div className="font-medium text-white">
-                        {format(new Date(item.due_date), 'dd/MM/yyyy', {
-                      locale: ptBR
-                    })}
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        ({daysUntil >= 0 ? `${daysUntil}d` : `${Math.abs(daysUntil)}d atrás`})
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button variant="outline" size="icon" onClick={() => handleEditItem(item)} className="h-8 w-8 text-white bg-blue-800 hover:bg-blue-700 border-blue-700" title="Editar">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={() => handleOpenGLPITicket(item)} className="h-8 w-8 bg-blue-800 hover:bg-blue-700 text-white border-blue-700" title="Criar ticket GLPI">
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => onDelete(item.id)} className="h-8 w-8 bg-red-800 hover:bg-red-700 text-white" title="Excluir">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={() => handleWhatsAppShare(item)} className="h-8 w-8 bg-green-700 hover:bg-green-600 text-white border-green-600" title="Compartilhar via WhatsApp">
-                        <MessageCircle className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>;
-          })}
-          </TableBody>
-        </Table>
-        
-        {filteredItems.length === 0 && <div className="text-center py-8 text-gray-400">
-            <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhum agendamento encontrado com os filtros aplicados.</p>
-          </div>}
-      </CardContent>
 
-      {/* Dialog para edição */}
+        {/* Table */}
+        <div className="rounded-lg border border-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border hover:bg-transparent">
+                <TableHead className="text-muted-foreground text-xs h-8 px-3">Título</TableHead>
+                <TableHead className="text-muted-foreground text-xs h-8 px-3">Empresa</TableHead>
+                <TableHead className="text-muted-foreground text-xs h-8 px-3">Tipo</TableHead>
+                <TableHead className="text-muted-foreground text-xs h-8 px-3">Status</TableHead>
+                <TableHead className="text-muted-foreground text-xs h-8 px-3">Vencimento</TableHead>
+                <TableHead className="text-muted-foreground text-xs h-8 px-3 w-28">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredItems.map(item => {
+                const daysUntil = getDaysUntilDue(item.due_date);
+                const statusInfo = getStatusLabel(daysUntil);
+                return (
+                  <Tooltip key={item.id}>
+                    <TooltipTrigger asChild>
+                      <TableRow className="border-border hover:bg-muted/30 cursor-default group">
+                        <TableCell className="py-1.5 px-3">
+                          <span className="text-xs font-medium text-foreground line-clamp-1">{item.title}</span>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-3">
+                          <div className="flex items-center gap-1.5">
+                            <Building className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                            <span className="text-xs text-muted-foreground line-clamp-1">{item.company}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-3">
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${getTypeBadge(item.type)}`}>
+                            {item.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-3">
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 gap-1 ${statusInfo.cls}`}>
+                            {getStatusIcon(daysUntil)}
+                            {statusInfo.text}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-3">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-medium text-foreground">
+                              {format(new Date(item.due_date), 'dd/MM/yyyy', { locale: ptBR })}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              ({daysUntil >= 0 ? `${daysUntil}d` : `${Math.abs(daysUntil)}d atrás`})
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-3">
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="sm" onClick={() => { setEditingItem(item); setShowEditDialog(true); }} className="h-6 w-6 p-0 text-muted-foreground hover:text-primary" title="Editar">
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleOpenGLPITicket(item)} className="h-6 w-6 p-0 text-muted-foreground hover:text-blue-400" title="Criar ticket GLPI">
+                              <ExternalLink className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => { setSelectedItem(item); setShowWhatsAppDialog(true); }} className="h-6 w-6 p-0 text-muted-foreground hover:text-emerald-400" title="WhatsApp">
+                              <MessageCircle className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => onDelete(item.id)} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" title="Excluir">
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" align="start" className="max-w-sm">
+                      <div className="space-y-1 text-xs">
+                        <p className="font-semibold">{item.title}</p>
+                        <p><span className="text-muted-foreground">Empresa:</span> {item.company}</p>
+                        <p><span className="text-muted-foreground">Tipo:</span> {item.type}</p>
+                        <p><span className="text-muted-foreground">Vencimento:</span> {format(new Date(item.due_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
+                        {item.description && <p><span className="text-muted-foreground">Descrição:</span> {item.description}</p>}
+                        <p><span className="text-muted-foreground">Situação:</span> {statusInfo.text} — {daysUntil >= 0 ? `faltam ${daysUntil} dias` : `vencido há ${Math.abs(daysUntil)} dias`}</p>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </TableBody>
+          </Table>
+
+          {filteredItems.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground text-xs">
+              <Calendar className="h-8 w-8 mx-auto mb-2 opacity-40" />
+              Nenhum agendamento encontrado.
+            </div>
+          )}
+        </div>
+      </div>
+
       {editingItem && <ScheduleDialog open={showEditDialog} onOpenChange={setShowEditDialog} editingItem={editingItem} onUpdate={onUpdate} />}
-
-      {/* Dialog para WhatsApp */}
       {selectedItem && <WhatsAppScheduleDialog open={showWhatsAppDialog} onOpenChange={setShowWhatsAppDialog} scheduleItem={selectedItem} />}
 
-      {/* Dialog de confirmação GLPI */}
       <AlertDialog open={showGLPIConfirm} onOpenChange={setShowGLPIConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <ExternalLink className="h-5 w-5 text-blue-600" />
+            <AlertDialogTitle className="flex items-center gap-2 text-sm">
+              <ExternalLink className="h-4 w-4 text-primary" />
               Criar Ticket GLPI
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Deseja criar um ticket no GLPI para o agendamento "{selectedItem?.title}" da empresa "{selectedItem?.company}"?
+            <AlertDialogDescription className="text-xs">
+              Criar ticket para "{selectedItem?.title}" — {selectedItem?.company}?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600">Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmCreateTicket} className="bg-blue-800 hover:bg-blue-700 text-white">
-              Criar Ticket
-            </AlertDialogAction>
+            <AlertDialogCancel className="h-8 text-xs">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCreateTicket} className="h-8 text-xs">Criar Ticket</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>;
+    </TooltipProvider>
+  );
 };
