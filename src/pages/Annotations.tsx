@@ -554,59 +554,59 @@ const Annotations = () => {
         />
 
         {/* Filtros */}
-        <div className="flex items-center gap-3 p-3 bg-slate-800/50 border border-slate-700 rounded-lg">
-          <Filter className="h-4 w-4 text-slate-400" />
+        <div className="flex items-center gap-3 p-2.5 bg-muted/30 border border-border rounded-lg">
+          <Filter className="h-3.5 w-3.5 text-muted-foreground" />
           <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-2 top-2 h-3 w-3 text-slate-400" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
             <Input
               placeholder="Buscar..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-7 h-8 text-sm bg-slate-700 border-slate-600 text-white"
+              className="pl-7 h-7 text-xs bg-card border-border"
             />
           </div>
           
           <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-            <SelectTrigger className="h-8 w-40 text-sm bg-slate-700 border-slate-600 text-white">
+            <SelectTrigger className="h-7 w-40 text-xs bg-card border-border">
               <SelectValue placeholder="Empresa" />
             </SelectTrigger>
-            <SelectContent className="bg-slate-700 border-slate-600">
-              <SelectItem value="all" className="text-white">Todas</SelectItem>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
               {companies.map((company) => (
-                <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>
+                <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
 
           <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="h-8 w-32 text-sm bg-slate-700 border-slate-600 text-white">
+            <SelectTrigger className="h-7 w-32 text-xs bg-card border-border">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent className="bg-slate-700 border-slate-600">
-              <SelectItem value="all" className="text-white">Todos</SelectItem>
-              <SelectItem value="with_link" className="text-white">Com link</SelectItem>
-              <SelectItem value="without_link" className="text-white">Sem link</SelectItem>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="with_link">Com link</SelectItem>
+              <SelectItem value="without_link">Sem link</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Abas por Tipo de Serviço */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="p-6">
+        <Card className="border-border bg-card">
+          <CardContent className="p-4">
             <Tabs value={activeServiceTab} onValueChange={setActiveServiceTab}>
-              <TabsList className="bg-slate-700 mb-6 h-auto flex-wrap">
+              <TabsList className="bg-muted/50 mb-4 h-auto flex-wrap border border-border">
                 {getServiceTabs().map((tab) => (
                   <TabsTrigger 
                     key={tab.name} 
                     value={tab.name}
-                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 m-1"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-muted-foreground text-xs m-0.5"
                   >
-                    <div className="flex items-center gap-2">
-                      {tab.name === 'all' && <Globe className="h-4 w-4" />}
-                      {tab.name === 'no_service' && <Settings className="h-4 w-4" />}
+                    <div className="flex items-center gap-1.5">
+                      {tab.name === 'all' && <Globe className="h-3 w-3" />}
+                      {tab.name === 'no_service' && <Settings className="h-3 w-3" />}
                       {tab.name !== 'all' && tab.name !== 'no_service' && getServiceIcon(tab.name)}
                       <span>{tab.label}</span>
-                      <Badge variant="secondary" className="bg-blue-600 text-white ml-1">
+                      <Badge variant="secondary" className="text-[10px] px-1 py-0 ml-0.5">
                         {tab.count}
                       </Badge>
                     </div>
