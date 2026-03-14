@@ -446,7 +446,7 @@ export const ScheduleCalendarView = () => {
   const [showDialog, setShowDialog] = useState(false);
   const [showServicesDialog, setShowServicesDialog] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<RecurringSchedule | null>(null);
-  const [activeView, setActiveView] = useState<'week' | 'month' | 'list'>('week');
+  const [activeView, setActiveView] = useState<'week' | 'month' | 'list'>('month');
 
   const { getCompanyName } = useCompanyHelpers(companies as Company[]);
 
