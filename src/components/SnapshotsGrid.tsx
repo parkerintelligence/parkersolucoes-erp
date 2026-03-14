@@ -1,80 +1,55 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useHostingerIntegrations, useHostingerVPS, useHostingerActions } from '@/hooks/useHostingerAPI';
 import { useSnapshotSchedules, useUpdateSnapshotSchedule, useDeleteSnapshotSchedule } from '@/hooks/useHostingerSnapshots';
 import { HostingerSnapshotScheduleDialog } from '@/components/HostingerSnapshotScheduleDialog';
-import { Camera, Calendar, HardDrive, Search, Filter, RefreshCw, AlertCircle, Clock, Plus, Power, Trash2, Edit } from 'lucide-react';
+import { Camera, Calendar, Clock, Plus, Power, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+const TABS = [
+  { id: 'manual', label: 'Snapshots Manuais', icon: Camera },
+  { id: 'scheduled', label: 'Agendamentos', icon: Clock },
+] as const;
+
+type TabId = typeof TABS[number]['id'];
+
 const SnapshotsGrid = () => {
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<TabId>('manual');
   const [selectedIntegration, setSelectedIntegration] = useState<string>('');
   const [selectedVpsId, setSelectedVpsId] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'created_at' | 'size'>('created_at');
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
-  const {
-    data: integrations,
-    isLoading: integrationsLoading
-  } = useHostingerIntegrations();
-  const {
-    data: vpsList
-  } = useHostingerVPS(selectedIntegration);
-  // API Hostinger não suporta listagem de snapshots - removido para evitar erros 404
-  const snapshots = [];
-  const snapshotsLoading = false;
-  const {
-    data: schedules,
-    isLoading: schedulesLoading
-  } = useSnapshotSchedules(selectedIntegration);
 
-  // Debug: log schedules data
-  useEffect(() => {
-    console.log('Schedules data:', schedules);
-    console.log('Selected integration:', selectedIntegration);
-    console.log('Selected VPS ID:', selectedVpsId);
-  }, [schedules, selectedIntegration, selectedVpsId]);
-  const {
-    createSnapshot
-  } = useHostingerActions();
+  const { data: integrations, isLoading: integrationsLoading } = useHostingerIntegrations();
+  const { data: vpsList } = useHostingerVPS(selectedIntegration);
+  const { data: schedules, isLoading: schedulesLoading } = useSnapshotSchedules(selectedIntegration);
+  const { createSnapshot } = useHostingerActions();
   const updateSchedule = useUpdateSnapshotSchedule();
   const deleteSchedule = useDeleteSnapshotSchedule();
 
-  // Limpar TODOS os caches relacionados a Hostinger ao montar
   useEffect(() => {
-    queryClient.removeQueries({
-      queryKey: ['hostinger-snapshots']
-    });
-    queryClient.removeQueries({
-      queryKey: ['hostinger']
-    });
-    queryClient.invalidateQueries({
-      queryKey: ['snapshot-schedules']
-    });
+    queryClient.removeQueries({ queryKey: ['hostinger-snapshots'] });
+    queryClient.invalidateQueries({ queryKey: ['snapshot-schedules'] });
   }, [queryClient]);
 
-  // Auto-select first integration and VPS
   useEffect(() => {
     if (integrations && integrations.length > 0 && !selectedIntegration) {
       setSelectedIntegration(integrations[0].id);
     }
   }, [integrations, selectedIntegration]);
+
   useEffect(() => {
     if (vpsList && vpsList.length > 0 && !selectedVpsId) {
       setSelectedVpsId(vpsList[0].id);
     }
   }, [vpsList, selectedVpsId]);
-  const handleRefresh = () => {
-    // Snapshots não podem ser listados via API - apenas agendamentos
-    window.location.reload();
-  };
+
   const handleCreateSnapshot = () => {
     if (!selectedVpsId) return;
     const vps = vpsList?.find((v: any) => v.id === selectedVpsId);
@@ -84,233 +59,195 @@ const SnapshotsGrid = () => {
       vpsId: selectedVpsId,
       name: `snapshot-${format(new Date(), 'yyyy-MM-dd-HHmmss')}`
     }, {
-      onSuccess: () => {
-        toast({
-          title: "Snapshot criado com sucesso!",
-          description: `O snapshot do VPS ${vps.name || vps.hostname} foi criado.`
-        });
-      },
-      onError: (error: any) => {
-        toast({
-          title: "Erro ao criar snapshot",
-          description: error?.message || "Não foi possível criar o snapshot. Tente novamente.",
-          variant: "destructive"
-        });
-      }
+      onSuccess: () => { toast({ title: "Snapshot criado!", description: `Snapshot do VPS ${vps.name || vps.hostname} criado.` }); },
+      onError: (error: any) => { toast({ title: "Erro ao criar snapshot", description: error?.message || "Tente novamente.", variant: "destructive" }); }
     });
   };
+
   const handleToggleSchedule = (scheduleId: string, isActive: boolean) => {
-    updateSchedule.mutate({
-      id: scheduleId,
-      updates: {
-        is_active: !isActive
-      }
-    });
+    updateSchedule.mutate({ id: scheduleId, updates: { is_active: !isActive } });
   };
+
   const handleDeleteSchedule = (scheduleId: string) => {
-    if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-      deleteSchedule.mutate(scheduleId);
-    }
+    if (confirm('Excluir este agendamento?')) deleteSchedule.mutate(scheduleId);
   };
 
-  // API Hostinger não retorna snapshots - lista sempre vazia
-  const filteredSnapshots: any[] = [];
-  const getVPSName = (vpsId: string) => {
-    const vps = vpsList?.find((v: any) => v.id === vpsId);
-    return vps?.name || vps?.hostname || vpsId;
-  };
-  const formatSize = (bytes: number) => {
-    if (!bytes) return 'N/A';
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
-  };
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'completed':
-      case 'available':
-        return 'bg-green-900/20 text-green-400 border-green-600';
-      case 'creating':
-      case 'pending':
-        return 'bg-yellow-900/20 text-yellow-400 border-yellow-600';
-      case 'error':
-      case 'failed':
-        return 'bg-red-900/20 text-red-400 border-red-600';
-      default:
-        return 'bg-slate-700 text-slate-300 border-slate-600';
-    }
-  };
   if (integrationsLoading) {
-    return <div className="flex items-center justify-center p-8">
-        <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
-        <span className="ml-2 text-slate-400">Carregando integrações...</span>
-      </div>;
+    return (
+      <div className="flex items-center justify-center p-6">
+        <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+        <span className="ml-2 text-xs text-muted-foreground">Carregando...</span>
+      </div>
+    );
   }
+
   if (!integrations || integrations.length === 0) {
-    return <Card className="bg-slate-800 border-slate-700">
-        <CardContent className="p-8 text-center">
-          <AlertCircle className="h-16 w-16 mx-auto mb-4 text-slate-400" />
-          <h3 className="text-lg font-semibold text-white mb-2">Nenhuma Integração Hostinger</h3>
-          <p className="text-slate-400">
-            Configure uma integração Hostinger para visualizar snapshots.
-          </p>
-        </CardContent>
-      </Card>;
+    return (
+      <div className="bg-card border border-border rounded-lg p-6 text-center">
+        <AlertCircle className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+        <h3 className="text-sm font-semibold text-foreground mb-1">Nenhuma Integração</h3>
+        <p className="text-xs text-muted-foreground">Configure uma integração Hostinger.</p>
+      </div>
+    );
   }
+
+  const filteredSchedules = schedules?.filter((s: any) => !selectedVpsId || s.vps_id === selectedVpsId) || [];
   const selectedVps = vpsList?.find((v: any) => v.id === selectedVpsId);
-  return <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Gerenciamento de Snapshots</h2>
-          <p className="text-slate-400">
-            Crie snapshots manualmente ou configure agendamentos automáticos
-          </p>
+
+  return (
+    <div className="space-y-3">
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Selectors */}
+        <div className="flex items-center gap-2">
+          {integrations && integrations.length > 1 && (
+            <Select value={selectedIntegration} onValueChange={setSelectedIntegration}>
+              <SelectTrigger className="h-7 text-xs w-[160px]">
+                <SelectValue placeholder="Integração" />
+              </SelectTrigger>
+              <SelectContent>
+                {integrations.map((i: any) => (
+                  <SelectItem key={i.id} value={i.id} className="text-xs">{i.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {vpsList && vpsList.length > 0 && (
+            <Select value={selectedVpsId} onValueChange={setSelectedVpsId}>
+              <SelectTrigger className="h-7 text-xs w-[180px]">
+                <SelectValue placeholder="VPS" />
+              </SelectTrigger>
+              <SelectContent>
+                {vpsList.map((v: any) => (
+                  <SelectItem key={v.id} value={v.id} className="text-xs">{v.name || v.hostname}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
-        <div className="flex gap-2">
-          <Button onClick={handleRefresh} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
-          </Button>
+
+        {/* Stats */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-primary/10 text-primary border-primary/30">
+            <Calendar className="h-2.5 w-2.5 mr-1" />
+            {filteredSchedules.length} agendamentos
+          </Badge>
         </div>
       </div>
 
-      {/* Integration and VPS Selector */}
-      <div className="flex gap-4">
-        {integrations && integrations.length > 1 && <Select value={selectedIntegration} onValueChange={setSelectedIntegration}>
-            <SelectTrigger className="w-[200px] bg-slate-800 border-slate-700 text-white">
-              <SelectValue placeholder="Integração" />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
-              {integrations.map((integration: any) => <SelectItem key={integration.id} value={integration.id} className="text-white">
-                  {integration.name}
-                </SelectItem>)}
-            </SelectContent>
-          </Select>}
-
-        {vpsList && vpsList.length > 0 && <Select value={selectedVpsId} onValueChange={setSelectedVpsId}>
-            <SelectTrigger className="w-[250px] bg-slate-800 border-slate-700 text-white">
-              <SelectValue placeholder="Selecione um VPS" />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
-              {vpsList.map((vps: any) => <SelectItem key={vps.id} value={vps.id} className="text-white">
-                  {vps.name || vps.hostname}
-                </SelectItem>)}
-            </SelectContent>
-          </Select>}
+      {/* Pill Tabs */}
+      <div className="flex gap-0.5 p-1 bg-muted/50 border border-border rounded-lg w-fit">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-1.5 py-1 px-3 rounded-md text-xs font-medium transition-colors ${
+              activeTab === tab.id
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            <tab.icon className="h-3 w-3" />
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      <Tabs defaultValue="manual" className="w-full">
-        <TabsList className="bg-slate-800 border-slate-700">
-          <TabsTrigger value="manual" className="data-[state=active]:bg-slate-700">
-            <Camera className="h-4 w-4 mr-2" />
-            Snapshots Manuais
-          </TabsTrigger>
-          <TabsTrigger value="scheduled" className="data-[state=active]:bg-slate-700">
-            <Clock className="h-4 w-4 mr-2" />
-            Agendamentos
-          </TabsTrigger>
-        </TabsList>
+      {/* Manual Tab */}
+      {activeTab === 'manual' && (
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-xs font-semibold text-foreground">Criar Snapshot Manual</h3>
+              <p className="text-[10px] text-muted-foreground">Crie um snapshot imediato do VPS selecionado</p>
+            </div>
+            <Button onClick={handleCreateSnapshot} disabled={!selectedVpsId || createSnapshot.isPending} size="sm" className="h-7 text-xs">
+              <Camera className="h-3 w-3 mr-1" />
+              Criar Snapshot
+            </Button>
+          </div>
+        </div>
+      )}
 
-        <TabsContent value="manual" className="space-y-4">
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center justify-between">
-                <span>Criar Snapshot Manual</span>
-                <Button onClick={handleCreateSnapshot} disabled={!selectedVpsId || createSnapshot.isPending} className="bg-green-600 hover:bg-green-700">
-                  <Camera className="h-4 w-4 mr-2" />
-                  Criar Snapshot Agora
-                </Button>
-              </CardTitle>
-              <CardDescription className="text-slate-400">
-                Crie um snapshot imediato do VPS selecionado
-              </CardDescription>
-            </CardHeader>
-          </Card>
+      {/* Scheduled Tab */}
+      {activeTab === 'scheduled' && (
+        <div className="bg-card border border-border rounded-lg">
+          <div className="flex items-center justify-between p-3 border-b border-border">
+            <h3 className="text-xs font-semibold text-foreground">Agendamentos</h3>
+            <Button onClick={() => setShowScheduleDialog(true)} disabled={!selectedVpsId} size="sm" className="h-7 text-xs">
+              <Plus className="h-3 w-3 mr-1" />
+              Novo
+            </Button>
+          </div>
 
-          {/* Info sobre limitações da API */}
-          <Card className="bg-blue-900/20 border-blue-600/30">
-            
-          </Card>
-        </TabsContent>
+          {schedulesLoading ? (
+            <div className="flex items-center justify-center p-6">
+              <RefreshCw className="h-4 w-4 animate-spin text-primary" />
+              <span className="ml-2 text-xs text-muted-foreground">Carregando...</span>
+            </div>
+          ) : filteredSchedules.length === 0 ? (
+            <div className="text-center py-6">
+              <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+              <p className="text-xs text-muted-foreground">Nenhum agendamento configurado</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Clique em "Novo" para criar</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border">
+                  <TableHead className="text-[10px] h-8">Nome</TableHead>
+                  <TableHead className="text-[10px] h-8">VPS</TableHead>
+                  <TableHead className="text-[10px] h-8">Cron</TableHead>
+                  <TableHead className="text-[10px] h-8">Próximo</TableHead>
+                  <TableHead className="text-[10px] h-8">Retenção</TableHead>
+                  <TableHead className="text-[10px] h-8">Status</TableHead>
+                  <TableHead className="text-[10px] h-8 text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredSchedules.map((schedule: any) => (
+                  <TableRow key={schedule.id} className="border-border hover:bg-muted/30">
+                    <TableCell className="text-xs py-1.5 font-medium">{schedule.name}</TableCell>
+                    <TableCell className="text-xs py-1.5 text-muted-foreground">{schedule.vps_name}</TableCell>
+                    <TableCell className="text-[10px] py-1.5 font-mono text-muted-foreground">{schedule.cron_expression}</TableCell>
+                    <TableCell className="text-[10px] py-1.5 text-muted-foreground">
+                      {schedule.next_execution ? format(new Date(schedule.next_execution), 'dd/MM HH:mm', { locale: ptBR }) : '-'}
+                    </TableCell>
+                    <TableCell className="text-[10px] py-1.5 text-muted-foreground">{schedule.retention_days}d</TableCell>
+                    <TableCell className="py-1.5">
+                      <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 ${schedule.is_active ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'bg-muted text-muted-foreground border-border'}`}>
+                        {schedule.is_active ? 'Ativo' : 'Inativo'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-1.5 text-right">
+                      <div className="flex items-center justify-end gap-0.5">
+                        <Button size="sm" variant="ghost" onClick={() => handleToggleSchedule(schedule.id, schedule.is_active)} className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground">
+                          <Power className="h-3 w-3" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDeleteSchedule(schedule.id)} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive">
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      )}
 
-        <TabsContent value="scheduled" className="space-y-4">
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center justify-between">
-                <span>Agendamentos Ativos</span>
-                <Button onClick={() => setShowScheduleDialog(true)} disabled={!selectedVpsId} className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Agendamento
-                </Button>
-              </CardTitle>
-              <CardDescription className="text-slate-400">
-                Configure snapshots automáticos programados
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {schedulesLoading ? (
-                <div className="text-center py-8 text-slate-400">
-                  <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-3" />
-                  <p>Carregando agendamentos...</p>
-                </div>
-              ) : !schedules || schedules.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">
-                  <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>Nenhum agendamento configurado</p>
-                  <p className="text-sm mt-1">Clique em "Novo Agendamento" para criar o primeiro</p>
-                </div>
-              ) : (
-                 <div className="space-y-3">
-                  {schedules
-                    .filter(s => !selectedVpsId || s.vps_id === selectedVpsId)
-                    .map(schedule => (
-                      <Card key={schedule.id} className="bg-slate-900 border-slate-700">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="space-y-1 flex-1">
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-semibold text-white">{schedule.name}</h4>
-                                <Badge variant={schedule.is_active ? "default" : "secondary"} className={schedule.is_active ? "bg-green-600" : "bg-slate-700"}>
-                                  {schedule.is_active ? 'Ativo' : 'Inativo'}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-slate-400">{schedule.vps_name}</p>
-                              {schedule.description && <p className="text-sm text-slate-500">{schedule.description}</p>}
-                              <div className="flex items-center gap-4 text-xs text-slate-500 mt-2">
-                                <span className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {schedule.cron_expression}
-                                </span>
-                                {schedule.next_execution && <span className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
-                                    Próximo: {format(new Date(schedule.next_execution), 'dd/MM/yyyy HH:mm', {
-                            locale: ptBR
-                          })}
-                                  </span>}
-                                <span>Retenção: {schedule.retention_days} dias</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 ml-4">
-                              <Button size="sm" variant="ghost" onClick={() => handleToggleSchedule(schedule.id, schedule.is_active)} className="text-slate-400 hover:text-white">
-                                <Power className="h-4 w-4" />
-                              </Button>
-                              <Button size="sm" variant="ghost" onClick={() => handleDeleteSchedule(schedule.id)} className="text-red-400 hover:text-red-300">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {selectedVps && <HostingerSnapshotScheduleDialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog} integrationId={selectedIntegration} vpsId={selectedVpsId} vpsName={selectedVps.name || selectedVps.hostname} />}
-    </div>;
+      {selectedVps && (
+        <HostingerSnapshotScheduleDialog
+          open={showScheduleDialog}
+          onOpenChange={setShowScheduleDialog}
+          integrationId={selectedIntegration}
+          vpsId={selectedVpsId}
+          vpsName={selectedVps.name || selectedVps.hostname}
+        />
+      )}
+    </div>
+  );
 };
+
 export { SnapshotsGrid };
