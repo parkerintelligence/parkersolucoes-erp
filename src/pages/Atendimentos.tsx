@@ -510,15 +510,14 @@ const Atendimentos = () => {
         </Card>
       </div>;
   }
-  return <div className="min-h-screen bg-slate-900 text-white p-2">
-      <div className="h-[calc(100vh-2rem)] flex flex-col gap-1.5">
+  return <div className="h-[calc(100vh-8rem)] flex flex-col gap-1.5">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-blue-400" />
+            <MessageSquare className="h-5 w-5 text-primary" />
             <div>
-              <h1 className="text-xl font-bold text-white">Atendimentos</h1>
-              <p className="text-xs text-slate-400">
+              <h1 className="text-xl font-bold text-foreground">Atendimentos</h1>
+              <p className="text-xs text-muted-foreground">
                 {filteredConversations.length} conversas • {safeConversations.filter(c => c.status === 'open').length} abertas
               </p>
             </div>
@@ -1041,7 +1040,6 @@ const Atendimentos = () => {
         setViewMode('conversations');
         setSelectedLabels([label]);
       }} />}
-      </div>
     </div>;
 };
 export default Atendimentos;

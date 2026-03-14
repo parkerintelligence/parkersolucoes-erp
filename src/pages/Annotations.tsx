@@ -433,39 +433,36 @@ const Annotations = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <div className="text-white">Carregando anotações...</div>
+        <div className="text-muted-foreground">Carregando anotações...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
-      <div className="space-y-6 p-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-white">Anotações</h1>
+    <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <StickyNote className="h-5 w-5 text-primary" />
+              Anotações
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Gerencie suas anotações e documentações</p>
+          </div>
           <div className="flex gap-2">
             {isMaster && (
-              <Button
-                variant="outline"
-                onClick={exportToPDF}
-                className="bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
-              >
-                <FileDown className="mr-2 h-4 w-4" />
+              <Button variant="outline" onClick={exportToPDF} size="sm" className="h-8 text-xs">
+                <FileDown className="mr-1.5 h-3.5 w-3.5" />
                 Exportar PDF
               </Button>
             )}
-            <Button
-              variant="outline"
-              onClick={() => setIsServiceDialogOpen(true)}
-              className="bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
-            >
-              <Settings className="mr-2 h-4 w-4" />
+            <Button variant="outline" onClick={() => setIsServiceDialogOpen(true)} size="sm" className="h-8 text-xs">
+              <Settings className="mr-1.5 h-3.5 w-3.5" />
               Gerenciar Serviços
             </Button>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                  <Plus className="mr-2 h-4 w-4" />
+                <Button size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20">
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
                   Adicionar Anotação
                 </Button>
               </DialogTrigger>
@@ -737,7 +734,6 @@ const Annotations = () => {
           itemType="anotação"
           onConfirm={handleDeleteAnnotation}
         />
-      </div>
     </div>
   );
 };
