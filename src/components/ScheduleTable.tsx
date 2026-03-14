@@ -204,7 +204,14 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
                             <Button variant="ghost" size="sm" onClick={() => { setSelectedItem(item); setShowWhatsAppDialog(true); }} className="h-6 w-6 p-0 text-muted-foreground hover:text-emerald-400" title="WhatsApp">
                               <MessageCircle className="h-3 w-3" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => onDelete(item.id)} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" title="Excluir">
+                            <Button variant="ghost" size="sm" onClick={async () => {
+                              const ok = await confirm({
+                                title: 'Excluir agendamento',
+                                description: `Deseja excluir "${item.title}" (${item.company})? Esta ação não pode ser desfeita.`,
+                                variant: 'destructive',
+                              });
+                              if (ok) onDelete(item.id);
+                            }} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" title="Excluir">
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>

@@ -142,7 +142,7 @@ export const RecurringScheduleGrid = ({ onEdit }: RecurringScheduleGridProps) =>
                           >
                             {schedule.is_active ? <PowerOff className="h-3 w-3" /> : <Power className="h-3 w-3" />}
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDelete(schedule.id)} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" title="Excluir">
+                          <Button variant="ghost" size="sm" onClick={() => handleDelete(schedule.id, schedule.name)} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" title="Excluir">
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
