@@ -193,13 +193,19 @@ export const RustDeskPanel = () => {
     setForm(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
   };
 
-  const selectGlpiAsset = (computer: any) => {
-    setForm(prev => ({
-      ...prev,
-      glpi_asset_id: computer.id,
-      glpi_asset_name: computer.name,
-    }));
-    setGlpiSearch('');
+  const selectGlpiAsset = (assetId: string) => {
+    if (assetId === 'none') {
+      setForm(prev => ({ ...prev, glpi_asset_id: null, glpi_asset_name: '' }));
+      return;
+    }
+    const computer = glpiComputers.find((c: any) => String(c.id) === assetId);
+    if (computer) {
+      setForm(prev => ({
+        ...prev,
+        glpi_asset_id: computer.id,
+        glpi_asset_name: computer.name,
+      }));
+    }
   };
 
   return (
