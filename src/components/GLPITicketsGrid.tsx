@@ -318,114 +318,91 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
   const ticketsList = filteredAndSortedTickets.slice(startIndex, endIndex);
 
   return (
-    <div className="space-y-4">
-      <Card className="bg-gray-800 border-gray-700">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-white">Chamados GLPI</CardTitle>
+    <div className="space-y-2">
+      <Card className="border-border bg-card">
+        <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
+          <CardTitle className="text-foreground text-base">Chamados GLPI</CardTitle>
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
               <input
                 type="checkbox"
                 checked={showOpenOnly}
                 onChange={(e) => setShowOpenOnly(e.target.checked)}
-                className="rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
+                className="rounded border-border bg-muted"
               />
-              Apenas chamados em aberto
+              Apenas em aberto
             </label>
             <Button 
               size="sm" 
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="h-7 text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
               onClick={() => setIsNewTicketDialogOpen(true)}
             >
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-1 h-3.5 w-3.5" />
               Novo Chamado
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {ticketsList.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
-              <Clock className="h-12 w-12 mx-auto mb-4 text-gray-500" />
-              <p className="text-lg font-medium mb-2">Nenhum chamado encontrado</p>
-              <p>Não há chamados disponíveis no momento.</p>
+            <div className="text-center py-8 text-muted-foreground">
+              <Clock className="h-10 w-10 mx-auto mb-3 opacity-40" />
+              <p className="text-sm font-medium mb-1">Nenhum chamado encontrado</p>
+              <p className="text-xs">Não há chamados disponíveis no momento.</p>
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-gray-700">
+                <TableRow className="border-border hover:bg-transparent">
                   <TableHead 
-                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort('id')}
                   >
-                    <div className="flex items-center">
-                      ID
-                      {getSortIcon('id')}
-                    </div>
+                    <div className="flex items-center">ID{getSortIcon('id')}</div>
                   </TableHead>
                   <TableHead 
-                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort('name')}
                   >
-                    <div className="flex items-center">
-                      Título
-                      {getSortIcon('name')}
-                    </div>
+                    <div className="flex items-center">Título{getSortIcon('name')}</div>
                   </TableHead>
                   <TableHead 
-                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort('technician')}
                   >
-                    <div className="flex items-center">
-                      Técnico
-                      {getSortIcon('technician')}
-                    </div>
+                    <div className="flex items-center">Técnico{getSortIcon('technician')}</div>
                   </TableHead>
                   <TableHead 
-                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort('category')}
                   >
-                    <div className="flex items-center">
-                      Categoria
-                      {getSortIcon('category')}
-                    </div>
+                    <div className="flex items-center">Categoria{getSortIcon('category')}</div>
                   </TableHead>
                   <TableHead 
-                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort('entity')}
                   >
-                    <div className="flex items-center">
-                      Entidade
-                      {getSortIcon('entity')}
-                    </div>
+                    <div className="flex items-center">Entidade{getSortIcon('entity')}</div>
                   </TableHead>
                   <TableHead 
-                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort('status')}
                   >
-                    <div className="flex items-center">
-                      Status
-                      {getSortIcon('status')}
-                    </div>
+                    <div className="flex items-center">Status{getSortIcon('status')}</div>
                   </TableHead>
                   <TableHead 
-                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort('priority')}
                   >
-                    <div className="flex items-center">
-                      Prioridade
-                      {getSortIcon('priority')}
-                    </div>
+                    <div className="flex items-center">Prioridade{getSortIcon('priority')}</div>
                   </TableHead>
                   <TableHead 
-                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort('date')}
                   >
-                    <div className="flex items-center">
-                      Data
-                      {getSortIcon('date')}
-                    </div>
+                    <div className="flex items-center">Data{getSortIcon('date')}</div>
                   </TableHead>
-                  <TableHead className="text-gray-300">Ações</TableHead>
+                  <TableHead className="text-muted-foreground text-xs text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
