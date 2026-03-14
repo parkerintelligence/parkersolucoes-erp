@@ -16,6 +16,8 @@ export interface RustDeskConnection {
   tags?: string[];
   is_online?: boolean;
   last_connected_at?: string;
+  glpi_asset_id?: number;
+  glpi_asset_name?: string;
   created_at: string;
   updated_at: string;
 }
