@@ -403,7 +403,7 @@ export const RustDeskPanel = () => {
                     <>
                       {/* Company header row */}
                       <TableRow key={`group-${companyId}`} className="border-border bg-muted/30 hover:bg-muted/30">
-                        <TableCell colSpan={7} className="py-1.5">
+                        <TableCell colSpan={5} className="py-1.5">
                           <div className="flex items-center gap-2">
                             <Building2 className="h-3.5 w-3.5 text-orange-400" />
                             <span className="text-xs font-semibold text-orange-400">{group.name}</span>
