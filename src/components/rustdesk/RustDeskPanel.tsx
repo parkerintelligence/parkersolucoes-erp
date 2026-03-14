@@ -92,14 +92,6 @@ export const RustDeskPanel = () => {
     });
   }, [filtered, companies]);
 
-  const filteredGlpiComputers = useMemo(() => {
-    if (!glpiSearch) return glpiComputers.slice(0, 20);
-    const s = glpiSearch.toLowerCase();
-    return glpiComputers.filter((c: any) => 
-      c.name?.toLowerCase().includes(s) || 
-      c.serial?.toLowerCase().includes(s)
-    ).slice(0, 20);
-  }, [glpiComputers, glpiSearch]);
 
   const handleEdit = (conn: RustDeskConnection) => {
     setForm({
