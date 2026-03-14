@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Clock, Calendar, Edit, Trash2, Power, PowerOff, Building, MapPin } from 'lucide-react';
 import { useRecurringSchedules, useDeleteRecurringSchedule, useUpdateRecurringSchedule } from '@/hooks/useRecurringSchedules';
 import { useCompanies } from '@/hooks/useCompanies';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
 type RecurringSchedule = Tables<'recurring_schedules'>;
@@ -28,6 +29,7 @@ export const RecurringScheduleGrid = ({ onEdit }: RecurringScheduleGridProps) =>
   const { data: companies = [] } = useCompanies();
   const deleteSchedule = useDeleteRecurringSchedule();
   const updateSchedule = useUpdateRecurringSchedule();
+  const { confirm } = useConfirmDialog();
 
   const getCompanyName = (clientId: string | null) => {
     if (!clientId) return null;
@@ -44,10 +46,13 @@ export const RecurringScheduleGrid = ({ onEdit }: RecurringScheduleGridProps) =>
     updateSchedule.mutate({ id: schedule.id, updates: { is_active: !schedule.is_active } });
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-      deleteSchedule.mutate(id);
-    }
+  const handleDelete = async (id: string, name: string) => {
+    const ok = await confirm({
+      title: 'Excluir agendamento recorrente',
+      description: `Deseja excluir o agendamento "${name}"? Esta ação não pode ser desfeita.`,
+      variant: 'destructive',
+    });
+    if (ok) deleteSchedule.mutate(id);
   };
 
   if (schedules.length === 0) {
@@ -137,7 +142,7 @@ export const RecurringScheduleGrid = ({ onEdit }: RecurringScheduleGridProps) =>
                           >
                             {schedule.is_active ? <PowerOff className="h-3 w-3" /> : <Power className="h-3 w-3" />}
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDelete(schedule.id)} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" title="Excluir">
+                          <Button variant="ghost" size="sm" onClick={() => handleDelete(schedule.id, schedule.name)} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" title="Excluir">
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
