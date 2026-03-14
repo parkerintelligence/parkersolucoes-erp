@@ -179,16 +179,6 @@ export const RustDeskPanel = () => {
     setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const addTag = () => {
-    if (tagInput.trim() && !form.tags.includes(tagInput.trim())) {
-      setForm(prev => ({ ...prev, tags: [...prev.tags, tagInput.trim()] }));
-      setTagInput('');
-    }
-  };
-
-  const removeTag = (tag: string) => {
-    setForm(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
-  };
 
   const selectGlpiAsset = (assetId: string) => {
     if (assetId === 'none') {
