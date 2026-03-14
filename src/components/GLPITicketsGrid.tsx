@@ -228,10 +228,10 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
 
   if (tickets.isLoading) {
     return (
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="border-border bg-card">
         <CardContent className="p-6">
           <div className="flex justify-center items-center h-32">
-            <div className="text-gray-400">Carregando chamados...</div>
+            <div className="text-muted-foreground">Carregando chamados...</div>
           </div>
         </CardContent>
       </Card>
@@ -240,9 +240,9 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
 
   if (tickets.error) {
     return (
-      <Card className="bg-red-900/20 border-red-700">
+      <Card className="border-destructive/30 bg-destructive/5">
         <CardContent className="p-6">
-          <div className="flex items-center gap-2 text-red-400">
+          <div className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
             <span>Erro ao carregar chamados: {tickets.error.message}</span>
           </div>
