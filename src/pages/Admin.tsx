@@ -127,6 +127,12 @@ const Admin = () => {
       label: "Winbox",
       icon: <Router className="h-5 w-5 text-cyan-400" />,
       component: MikrotikAdminConfig
+    },
+    {
+      id: "rustdesk",
+      label: "RustDesk",
+      icon: <Monitor className="h-5 w-5 text-orange-400" />,
+      component: RustDeskAdminConfig
     }
   ];
 
