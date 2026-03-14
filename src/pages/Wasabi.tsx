@@ -3,298 +3,233 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Cloud, RefreshCcw, AlertTriangle, CheckCircle, Settings, FileText, Folder, Download, Upload, Trash2, Eye, FolderPlus, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Cloud, RefreshCcw, AlertTriangle, CheckCircle, Settings, FileText, Folder, Download, Upload, Trash2, FolderPlus, ArrowLeft, ChevronRight } from 'lucide-react';
 import { useWasabi } from '@/hooks/useWasabi';
 import { WasabiCreateBucketDialog } from '@/components/WasabiCreateBucketDialog';
 import { WasabiUploadDialog } from '@/components/WasabiUploadDialog';
 import { WasabiBucketSelector } from '@/components/WasabiBucketSelector';
 import { toast } from '@/hooks/use-toast';
+
 const Wasabi = () => {
   const {
-    wasabiIntegration,
-    buckets,
-    objects,
-    currentPath,
-    isLoading,
-    isLoadingBuckets,
-    createBucket,
-    uploadFile,
-    downloadObject,
-    deleteObject,
-    listObjects,
-    listBuckets,
-    navigateToFolder,
-    navigateBack
+    wasabiIntegration, buckets, objects, currentPath, isLoading, isLoadingBuckets,
+    createBucket, uploadFile, downloadObject, deleteObject, listObjects, listBuckets, navigateToFolder, navigateBack
   } = useWasabi();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedBucket, setSelectedBucket] = useState<string>('');
   const [createBucketDialogOpen, setCreateBucketDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const isConfigured = !!wasabiIntegration;
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
       listBuckets();
-      if (selectedBucket) {
-        listObjects(selectedBucket);
-      }
-      toast({
-        title: "Dados atualizados",
-        description: "Informações do Wasabi foram atualizadas com sucesso."
-      });
+      if (selectedBucket) listObjects(selectedBucket);
+      toast({ title: "Dados atualizados", description: "Informações do Wasabi foram atualizadas." });
     } catch (error) {
-      toast({
-        title: "Erro ao atualizar",
-        description: "Não foi possível atualizar os dados do Wasabi.",
-        variant: "destructive"
-      });
-    } finally {
-      setRefreshing(false);
-    }
+      toast({ title: "Erro ao atualizar", description: "Não foi possível atualizar os dados.", variant: "destructive" });
+    } finally { setRefreshing(false); }
   };
+
   const onBucketChange = (bucketName: string) => {
-    console.log('Bucket selecionado:', bucketName);
     setSelectedBucket(bucketName);
-    if (bucketName) {
-      listObjects(bucketName, ''); // Reset para raiz quando trocar bucket
-    }
+    if (bucketName) listObjects(bucketName, '');
   };
+
   const handleCreateBucket = (bucketName: string) => {
-    createBucket.mutate(bucketName, {
-      onSuccess: () => {
-        setCreateBucketDialogOpen(false);
-        listBuckets();
-      }
-    });
-  };
-  const handleUpload = (files: FileList, bucketName: string) => {
-    uploadFile(files, bucketName);
-    setUploadDialogOpen(false);
-  };
-  const handleDownload = (fileName: string) => {
-    if (selectedBucket) {
-      const fullPath = currentPath ? `${currentPath}${fileName}` : fileName;
-      downloadObject(selectedBucket, fullPath);
-    }
+    createBucket.mutate(bucketName, { onSuccess: () => { setCreateBucketDialogOpen(false); listBuckets(); } });
   };
 
-  const handleDelete = (fileName: string) => {
-    if (selectedBucket) {
-      const fullPath = currentPath ? `${currentPath}${fileName}` : fileName;
-      deleteObject(selectedBucket, fullPath);
-    }
-  };
+  const handleUpload = (files: FileList, bucketName: string) => { uploadFile(files, bucketName); setUploadDialogOpen(false); };
+  const handleDownload = (fileName: string) => { if (selectedBucket) downloadObject(selectedBucket, currentPath ? `${currentPath}${fileName}` : fileName); };
+  const handleDelete = (fileName: string) => { if (selectedBucket) deleteObject(selectedBucket, currentPath ? `${currentPath}${fileName}` : fileName); };
+  const handleFileClick = (file: any) => { if (file.isFolder) navigateToFolder(file.name); };
+  const getFileIcon = (file: any) => file.isFolder ? <Folder className="h-4 w-4 text-primary" /> : <FileText className="h-4 w-4 text-primary" />;
+  const getCurrentPathDisplay = () => !currentPath ? selectedBucket : `${selectedBucket}/${currentPath.replace(/\/$/, '')}`;
 
-  const handleFileClick = (file: any) => {
-    if (file.isFolder) {
-      navigateToFolder(file.name);
-    }
-  };
-
-  const getFileIcon = (file: any) => {
-    if (file.isFolder) {
-      return <Folder className="h-5 w-5 text-blue-400" />;
-    }
-    return <FileText className="h-5 w-5 text-blue-400" />;
-  };
-
-  const getCurrentPathDisplay = () => {
-    if (!currentPath) return selectedBucket;
-    return `${selectedBucket}/${currentPath.replace(/\/$/, '')}`;
-  };
   if (!isConfigured) {
-    return <div className="min-h-screen bg-slate-900 text-white p-6">
-        <Card className="border-yellow-600 bg-yellow-900/20">
+    return (
+      <div className="space-y-4">
+        <Card className="border-border bg-card">
           <CardContent className="p-6 text-center">
-            <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-400" />
-            <h3 className="text-lg font-semibold text-yellow-200 mb-2">Wasabi não configurado</h3>
-            <p className="text-yellow-300 mb-4">
-              Para usar o armazenamento Wasabi, configure a integração no painel de administração.
-            </p>
-            <Button onClick={() => window.location.href = '/admin'} className="bg-blue-800 hover:bg-blue-700 text-white border border-yellow-600">
-              <Settings className="mr-2 h-4 w-4" />
-              Configurar Wasabi
+            <AlertTriangle className="h-10 w-10 mx-auto mb-3 text-yellow-500" />
+            <h3 className="text-base font-semibold text-foreground mb-2">Wasabi não configurado</h3>
+            <p className="text-muted-foreground text-sm mb-4">Configure a integração no painel de administração.</p>
+            <Button onClick={() => window.location.href = '/admin'} size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Settings className="mr-1.5 h-3.5 w-3.5" /> Configurar Wasabi
             </Button>
           </CardContent>
         </Card>
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen bg-slate-900 text-white">
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            
-            <div>
-              <h1 className="text-2xl font-bold text-white">Wasabi Cloud Storage</h1>
-              <p className="text-gray-400">
-                Gerencie seus arquivos no armazenamento em nuvem Wasabi
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-400" />
-              <span className="text-sm text-green-400">Conectado</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button onClick={handleRefresh} disabled={refreshing} className="bg-blue-800 hover:bg-blue-700 text-white">
-                <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                Atualizar
-              </Button>
-              <Button onClick={() => setCreateBucketDialogOpen(true)} className="bg-blue-800 hover:bg-blue-700 text-white">
-                <FolderPlus className="mr-2 h-4 w-4" />
-                Criar Bucket
-              </Button>
-              <Button onClick={() => setUploadDialogOpen(true)} disabled={!selectedBucket} className="bg-blue-800 hover:bg-blue-700 text-white disabled:opacity-50">
-                <Upload className="mr-2 h-4 w-4" />
-                Upload
-              </Button>
-            </div>
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <Cloud className="h-5 w-5 text-primary" />
+            Wasabi Cloud Storage
+          </h1>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-xs text-muted-foreground">Gerencie seus arquivos no armazenamento em nuvem</p>
+            <Badge variant="outline" className="text-[10px] border-green-500/30 text-green-400">
+              <CheckCircle className="h-2.5 w-2.5 mr-1" /> Conectado
+            </Badge>
           </div>
         </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="h-8 text-xs">
+            <RefreshCcw className={`h-3.5 w-3.5 mr-1 ${refreshing ? 'animate-spin' : ''}`} /> Atualizar
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setCreateBucketDialogOpen(true)} className="h-8 text-xs">
+            <FolderPlus className="h-3.5 w-3.5 mr-1" /> Criar Bucket
+          </Button>
+          <Button size="sm" onClick={() => setUploadDialogOpen(true)} disabled={!selectedBucket} className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20">
+            <Upload className="h-3.5 w-3.5 mr-1" /> Upload
+          </Button>
+        </div>
+      </div>
 
-        <Tabs defaultValue="storage" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-800 border-gray-700">
-            <TabsTrigger value="storage" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-              Armazenamento
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-              Análise de Uso
-            </TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="storage" className="w-full">
+        <TabsList className="bg-muted/50 border border-border h-8">
+          <TabsTrigger value="storage" className="text-xs h-7 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            Armazenamento
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="text-xs h-7 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            Análise de Uso
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="storage" className="mt-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <WasabiBucketSelector buckets={buckets || []} selectedBucket={selectedBucket} onBucketChange={onBucketChange} isLoading={isLoadingBuckets} />
+        <TabsContent value="storage" className="mt-3">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <WasabiBucketSelector buckets={buckets || []} selectedBucket={selectedBucket} onBucketChange={onBucketChange} isLoading={isLoadingBuckets} />
+            </div>
+
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-foreground text-sm flex items-center gap-2">
+                    <Folder className="h-4 w-4 text-primary" />
+                    {selectedBucket ? `Arquivos em: ${getCurrentPathDisplay()}` : 'Selecione um bucket'}
+                  </CardTitle>
+                  {currentPath && (
+                    <Button variant="outline" size="sm" onClick={navigateBack} className="h-7 text-xs">
+                      <ArrowLeft className="h-3 w-3 mr-1" /> Voltar
+                    </Button>
+                  )}
                 </div>
-              </div>
-
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Folder className="h-5 w-5" />
-                      {selectedBucket ? `Arquivos em: ${getCurrentPathDisplay()}` : 'Selecione um bucket'}
-                    </CardTitle>
-                    {currentPath && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={navigateBack}
-                        className="bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+                <CardDescription className="text-muted-foreground text-xs">
+                  {selectedBucket ? 'Gerencie os arquivos no bucket selecionado' : 'Escolha um bucket para visualizar os arquivos'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!selectedBucket ? (
+                  <div className="text-center py-10">
+                    <Cloud className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Nenhum bucket selecionado</p>
+                    <p className="text-xs text-muted-foreground/70">Selecione um bucket no menu acima.</p>
+                  </div>
+                ) : isLoading ? (
+                  <div className="text-center py-8">
+                    <RefreshCcw className="h-6 w-6 animate-spin mx-auto mb-3 text-primary" />
+                    <p className="text-xs text-muted-foreground">Carregando arquivos...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {objects && objects.length > 0 ? objects.map((object: any, index: number) => (
+                      <div
+                        key={object.id || `file-${index}`}
+                        className={`flex items-center justify-between p-2.5 rounded-md border border-border/50 hover:bg-muted/20 transition-colors ${object.isFolder ? 'cursor-pointer' : ''}`}
+                        onClick={() => object.isFolder ? handleFileClick(object) : undefined}
                       >
-                        <ArrowLeft className="h-4 w-4 mr-1" />
-                        Voltar
-                      </Button>
+                        <div className="flex items-center gap-2.5">
+                          {getFileIcon(object)}
+                          <div>
+                            <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                              {object.name || object.Key || `arquivo-${index + 1}`}
+                              {object.isFolder && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {object.isFolder ? 'Pasta' : (
+                                <>
+                                  {object.size || object.Size ? `${typeof (object.size || object.Size) === 'number' ? ((object.size || object.Size) / 1024).toFixed(2) : object.size || object.Size} ${typeof (object.size || object.Size) === 'number' ? 'KB' : ''}` : 'Tamanho desconhecido'} • 
+                                  {object.lastModified || object.LastModified ? new Date(object.lastModified || object.LastModified).toLocaleDateString('pt-BR') : 'Data desconhecida'}
+                                </>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        {!object.isFolder && (
+                          <div className="flex items-center gap-1">
+                            <Button size="sm" variant="outline" onClick={() => handleDownload(object.name || object.Key)} className="h-6 w-6 p-0">
+                              <Download className="h-2.5 w-2.5" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => handleDelete(object.name || object.Key)} className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10">
+                              <Trash2 className="h-2.5 w-2.5" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )) : (
+                      <div className="text-center py-10">
+                        <FileText className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+                        <p className="text-sm font-medium text-muted-foreground mb-1">Pasta vazia</p>
+                        <p className="text-xs text-muted-foreground/70">Esta pasta não contém nenhum arquivo.</p>
+                      </div>
                     )}
                   </div>
-                  <CardDescription className="text-gray-400">
-                    {selectedBucket ? 'Gerencie os arquivos no bucket selecionado' : 'Escolha um bucket para visualizar os arquivos'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {!selectedBucket ? <div className="text-center py-8 text-gray-400">
-                      <Cloud className="h-12 w-12 mx-auto mb-4 text-gray-500" />
-                      <p className="text-lg font-medium mb-2">Nenhum bucket selecionado</p>
-                      <p>Selecione um bucket no menu acima para visualizar os arquivos.</p>
-                    </div> : isLoading ? <div className="text-center py-8 text-gray-400">
-                      <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4" />
-                      <p>Carregando arquivos...</p>
-                    </div> : <div className="space-y-2">
-                      {objects && objects.length > 0 ? objects.map((object: any, index: number) => (
-                        <div 
-                          key={object.id || `file-${index}`} 
-                          className={`flex items-center justify-between p-3 bg-gray-700/50 rounded-lg border border-gray-600 ${object.isFolder ? 'cursor-pointer hover:bg-gray-600/50' : ''}`}
-                          onClick={() => object.isFolder ? handleFileClick(object) : undefined}
-                        >
-                          <div className="flex items-center gap-3">
-                            {getFileIcon(object)}
-                            <div>
-                              <p className="text-white font-medium flex items-center gap-2">
-                                {object.name || object.Key || `arquivo-${index + 1}`}
-                                {object.isFolder && <ChevronRight className="h-4 w-4 text-gray-400" />}
-                              </p>
-                              <p className="text-gray-400 text-sm">
-                                {object.isFolder ? 'Pasta' : (
-                                  <>
-                                    {object.size || object.Size ? `${typeof (object.size || object.Size) === 'number' ? ((object.size || object.Size) / 1024).toFixed(2) : object.size || object.Size} ${typeof (object.size || object.Size) === 'number' ? 'KB' : ''}` : 'Tamanho desconhecido'} • 
-                                    {object.lastModified || object.LastModified ? new Date(object.lastModified || object.LastModified).toLocaleDateString('pt-BR') : 'Data desconhecida'}
-                                  </>
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                          {!object.isFolder && (
-                            <div className="flex items-center gap-2">
-                              <Button size="sm" variant="outline" onClick={() => handleDownload(object.name || object.Key)} className="border-gray-600 bg-blue-950 hover:bg-blue-800 text-slate-50">
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => handleDelete(object.name || object.Key)} className="border-gray-600 bg-red-800 hover:bg-red-700 text-slate-50">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      )) : <div className="text-center py-8 text-gray-400">
-                          <FileText className="h-12 w-12 mx-auto mb-4 text-gray-500" />
-                          <p className="text-lg font-medium mb-2">Pasta vazia</p>
-                          <p>Esta pasta não contém nenhum arquivo.</p>
-                        </div>}
-                    </div>}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
-          <TabsContent value="analytics" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-white">Total de Buckets</CardTitle>
-                  <Folder className="h-4 w-4 text-blue-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">{buckets?.length || 0}</div>
-                  <p className="text-xs text-gray-400">Buckets configurados</p>
-                </CardContent>
-              </Card>
+        <TabsContent value="analytics" className="mt-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Card className="border-border bg-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-foreground">Total de Buckets</CardTitle>
+                <Folder className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold text-foreground">{buckets?.length || 0}</div>
+                <p className="text-[11px] text-muted-foreground">Buckets configurados</p>
+              </CardContent>
+            </Card>
 
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-white">Arquivos Totais</CardTitle>
-                  <FileText className="h-4 w-4 text-green-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">{objects?.length || 0}</div>
-                  <p className="text-xs text-gray-400">Arquivos armazenados</p>
-                </CardContent>
-              </Card>
+            <Card className="border-border bg-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-foreground">Arquivos Totais</CardTitle>
+                <FileText className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold text-foreground">{objects?.length || 0}</div>
+                <p className="text-[11px] text-muted-foreground">Arquivos armazenados</p>
+              </CardContent>
+            </Card>
 
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-white">Status</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-green-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-green-100 text-green-800">
-                      Operacional
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-gray-400">Serviço ativo</p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+            <Card className="border-border bg-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-foreground">Status</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <Badge variant="outline" className="text-[10px] border-green-500/30 text-green-400">Operacional</Badge>
+                <p className="text-[11px] text-muted-foreground mt-1">Serviço ativo</p>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
 
-        {/* Dialogs */}
-        <WasabiCreateBucketDialog open={createBucketDialogOpen} onOpenChange={setCreateBucketDialogOpen} onCreateBucket={handleCreateBucket} isCreating={createBucket.isPending} />
-
-        <WasabiUploadDialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen} selectedBucket={selectedBucket} onUpload={handleUpload} isUploading={false} />
-      </div>
-    </div>;
+      <WasabiCreateBucketDialog open={createBucketDialogOpen} onOpenChange={setCreateBucketDialogOpen} onCreateBucket={handleCreateBucket} isCreating={createBucket.isPending} />
+      <WasabiUploadDialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen} selectedBucket={selectedBucket} onUpload={handleUpload} isUploading={false} />
+    </div>
+  );
 };
+
 export default Wasabi;

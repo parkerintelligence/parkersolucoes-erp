@@ -337,29 +337,29 @@ const Annotations = () => {
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="border-slate-600">
-            <TableHead className="font-semibold text-white">Nome</TableHead>
-            <TableHead className="font-semibold text-white">Empresa</TableHead>
-            <TableHead className="font-semibold text-white">Anotação</TableHead>
-            <TableHead className="font-semibold text-white">Observações</TableHead>
-            <TableHead className="font-semibold text-white">Serviço</TableHead>
-            <TableHead className="font-semibold text-white w-32">Ações</TableHead>
+          <TableRow className="border-border hover:bg-transparent">
+            <TableHead className="text-muted-foreground text-xs">Nome</TableHead>
+            <TableHead className="text-muted-foreground text-xs">Empresa</TableHead>
+            <TableHead className="text-muted-foreground text-xs">Anotação</TableHead>
+            <TableHead className="text-muted-foreground text-xs">Observações</TableHead>
+            <TableHead className="text-muted-foreground text-xs">Serviço</TableHead>
+            <TableHead className="text-muted-foreground text-xs w-32 text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {annotationsToShow.map((item) => {
             const company = companies.find(c => c.id === item.company_id);
             return (
-              <TableRow key={item.id} className="hover:bg-slate-700/50 border-slate-600 h-10">
-                <TableCell className="font-medium text-white py-1">{item.name}</TableCell>
-                <TableCell className="font-medium text-white py-1">{company?.name || 'N/A'}</TableCell>
+              <TableRow key={item.id} className="border-border/50 hover:bg-muted/20">
+                <TableCell className="text-xs font-medium text-foreground py-1">{item.name}</TableCell>
+                <TableCell className="text-xs text-muted-foreground py-1">{company?.name || 'N/A'}</TableCell>
                 <TableCell className="py-1 max-w-xs">
-                  <div className="truncate text-white" title={item.annotation || ''}>
+                  <div className="truncate text-xs text-foreground" title={item.annotation || ''}>
                     {item.annotation || 'N/A'}
                   </div>
                 </TableCell>
                 <TableCell className="py-1 max-w-xs">
-                  <div className="truncate text-white" title={item.notes || ''}>
+                  <div className="truncate text-xs text-muted-foreground" title={item.notes || ''}>
                     {item.notes || '-'}
                   </div>
                 </TableCell>
@@ -367,43 +367,43 @@ const Annotations = () => {
                   {item.service && (
                     <div className="flex items-center gap-1">
                       {getServiceIcon(item.service)}
-                      <span className="text-sm text-white">{item.service}</span>
+                      <span className="text-xs text-foreground">{item.service}</span>
                     </div>
                   )}
                 </TableCell>
-                <TableCell className="py-1">
-                  <div className="flex items-center gap-1">
+                <TableCell className="py-1 text-right">
+                  <div className="flex justify-end gap-0.5">
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => handleViewAnnotation(item)}
-                      className="h-7 w-7 p-0 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+                      className="h-6 w-6 p-0"
                       title="Ver"
                     >
-                      <Eye className="h-3 w-3" />
+                      <Eye className="h-2.5 w-2.5" />
                     </Button>
                     <Button 
-                      variant="outline" 
+                      variant="ghost" 
                       size="sm"
                       onClick={() => handleWhatsAppShare(item)}
-                      className="h-7 w-7 p-0 bg-green-600 border-green-500 text-white hover:bg-green-700"
+                      className="h-6 w-6 p-0 text-green-500"
                       title="WhatsApp"
                     >
-                      <MessageCircle className="h-3 w-3" />
+                      <MessageCircle className="h-2.5 w-2.5" />
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => handleEditAnnotation(item)}
-                      className="h-7 w-7 p-0 bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
+                      className="h-6 w-6 p-0"
                       title="Editar"
                     >
-                      <Edit className="h-3 w-3" />
+                      <Edit className="h-2.5 w-2.5" />
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="h-7 w-7 p-0 text-red-400 hover:text-red-300 border-red-600 hover:bg-red-900/20"
+                      className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
                       onClick={() => setDeleteConfirmDialog({ 
                         open: true, 
                         annotationId: item.id, 
@@ -411,7 +411,7 @@ const Annotations = () => {
                       })}
                       title="Excluir"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-2.5 w-2.5" />
                     </Button>
                   </div>
                 </TableCell>
@@ -421,11 +421,9 @@ const Annotations = () => {
         </TableBody>
       </Table>
       {annotationsToShow.length === 0 && (
-        <tr>
-          <td colSpan={6} className="text-center py-8 text-white">
-            Nenhuma anotação encontrada nesta categoria.
-          </td>
-        </tr>
+        <div className="text-center py-6 text-muted-foreground text-sm">
+          Nenhuma anotação encontrada nesta categoria.
+        </div>
       )}
     </div>
   );
@@ -466,55 +464,55 @@ const Annotations = () => {
                   Adicionar Anotação
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] bg-slate-800 border-slate-700">
+              <DialogContent className="sm:max-w-[425px] border-border bg-card">
                 <DialogHeader>
-                  <DialogTitle className="text-white">Adicionar Nova Anotação</DialogTitle>
-                  <DialogDescription className="text-slate-400">Preencha os dados para adicionar uma nova anotação.</DialogDescription>
+                  <DialogTitle className="text-foreground">Adicionar Nova Anotação</DialogTitle>
+                  <DialogDescription className="text-muted-foreground">Preencha os dados para adicionar uma nova anotação.</DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name" className="text-white">Nome da Anotação *</Label>
+                <div className="grid gap-3 py-3">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="name" className="text-foreground text-xs">Nome da Anotação *</Label>
                     <Input 
                       id="name" 
                       placeholder="Nome da anotação"
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-background border-border h-8 text-xs"
                     />
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="company" className="text-white">Empresa Cliente</Label>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="company" className="text-foreground text-xs">Empresa Cliente</Label>
                     <Select value={formData.company_id} onValueChange={(value) => setFormData({...formData, company_id: value})}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectTrigger className="bg-background border-border h-8 text-xs">
                         <SelectValue placeholder="Selecione a empresa" />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-700 border-slate-600">
-                        <SelectItem value="none" className="text-slate-400">Nenhuma (sem empresa)</SelectItem>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhuma (sem empresa)</SelectItem>
                         {companies.map((company) => (
-                          <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>
+                          <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="annotation" className="text-white">Anotação *</Label>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="annotation" className="text-foreground text-xs">Anotação *</Label>
                     <Textarea 
                       id="annotation" 
                       placeholder="Sua anotação aqui..."
                       value={formData.annotation}
                       onChange={(e) => setFormData({...formData, annotation: e.target.value})}
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-background border-border text-xs"
                     />
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="service" className="text-white">Serviço</Label>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="service" className="text-foreground text-xs">Serviço</Label>
                     <Select value={formData.service} onValueChange={(value) => setFormData({...formData, service: value})}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectTrigger className="bg-background border-border h-8 text-xs">
                         <SelectValue placeholder="Selecione o serviço" />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-700 border-slate-600">
+                      <SelectContent>
                         {availableServices.map((service) => (
-                          <SelectItem key={service.name} value={service.name} className="text-white">
+                          <SelectItem key={service.name} value={service.name}>
                             <div className="flex items-center gap-2">
                               {getServiceIcon(service.name)}
                               {service.name}
@@ -524,24 +522,20 @@ const Annotations = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="notes" className="text-white">Observações</Label>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="notes" className="text-foreground text-xs">Observações</Label>
                     <Textarea 
                       id="notes" 
                       placeholder="Observações adicionais"
                       value={formData.notes}
                       onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-background border-border text-xs"
                     />
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSaveAnnotation}>
-                    Salvar
-                  </Button>
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-slate-600 text-white hover:bg-slate-700">
-                    Cancelar
-                  </Button>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" size="sm" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                  <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleSaveAnnotation}>Salvar</Button>
                 </div>
               </DialogContent>
             </Dialog>
@@ -560,59 +554,59 @@ const Annotations = () => {
         />
 
         {/* Filtros */}
-        <div className="flex items-center gap-3 p-3 bg-slate-800/50 border border-slate-700 rounded-lg">
-          <Filter className="h-4 w-4 text-slate-400" />
+        <div className="flex items-center gap-3 p-2.5 bg-muted/30 border border-border rounded-lg">
+          <Filter className="h-3.5 w-3.5 text-muted-foreground" />
           <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-2 top-2 h-3 w-3 text-slate-400" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
             <Input
               placeholder="Buscar..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-7 h-8 text-sm bg-slate-700 border-slate-600 text-white"
+              className="pl-7 h-7 text-xs bg-card border-border"
             />
           </div>
           
           <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-            <SelectTrigger className="h-8 w-40 text-sm bg-slate-700 border-slate-600 text-white">
+            <SelectTrigger className="h-7 w-40 text-xs bg-card border-border">
               <SelectValue placeholder="Empresa" />
             </SelectTrigger>
-            <SelectContent className="bg-slate-700 border-slate-600">
-              <SelectItem value="all" className="text-white">Todas</SelectItem>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
               {companies.map((company) => (
-                <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>
+                <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
 
           <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="h-8 w-32 text-sm bg-slate-700 border-slate-600 text-white">
+            <SelectTrigger className="h-7 w-32 text-xs bg-card border-border">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent className="bg-slate-700 border-slate-600">
-              <SelectItem value="all" className="text-white">Todos</SelectItem>
-              <SelectItem value="with_link" className="text-white">Com link</SelectItem>
-              <SelectItem value="without_link" className="text-white">Sem link</SelectItem>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="with_link">Com link</SelectItem>
+              <SelectItem value="without_link">Sem link</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Abas por Tipo de Serviço */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="p-6">
+        <Card className="border-border bg-card">
+          <CardContent className="p-4">
             <Tabs value={activeServiceTab} onValueChange={setActiveServiceTab}>
-              <TabsList className="bg-slate-700 mb-6 h-auto flex-wrap">
+              <TabsList className="bg-muted/50 mb-4 h-auto flex-wrap border border-border">
                 {getServiceTabs().map((tab) => (
                   <TabsTrigger 
                     key={tab.name} 
                     value={tab.name}
-                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 m-1"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-muted-foreground text-xs m-0.5"
                   >
-                    <div className="flex items-center gap-2">
-                      {tab.name === 'all' && <Globe className="h-4 w-4" />}
-                      {tab.name === 'no_service' && <Settings className="h-4 w-4" />}
+                    <div className="flex items-center gap-1.5">
+                      {tab.name === 'all' && <Globe className="h-3 w-3" />}
+                      {tab.name === 'no_service' && <Settings className="h-3 w-3" />}
                       {tab.name !== 'all' && tab.name !== 'no_service' && getServiceIcon(tab.name)}
                       <span>{tab.label}</span>
-                      <Badge variant="secondary" className="bg-blue-600 text-white ml-1">
+                      <Badge variant="secondary" className="text-[10px] px-1 py-0 ml-0.5">
                         {tab.count}
                       </Badge>
                     </div>
@@ -631,53 +625,53 @@ const Annotations = () => {
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[425px] bg-slate-800 border-slate-700">
+          <DialogContent className="sm:max-w-[425px] border-border bg-card">
             <DialogHeader>
-              <DialogTitle className="text-white">Editar Anotação</DialogTitle>
-              <DialogDescription className="text-slate-400">Atualize as informações da anotação.</DialogDescription>
+              <DialogTitle className="text-foreground">Editar Anotação</DialogTitle>
+              <DialogDescription className="text-muted-foreground">Atualize as informações da anotação.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-name" className="text-white">Nome da Anotação *</Label>
+            <div className="grid gap-3 py-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-name" className="text-foreground text-xs">Nome da Anotação *</Label>
                 <Input 
                   id="edit-name" 
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-background border-border h-8 text-xs"
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-company" className="text-white">Empresa Cliente</Label>
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-company" className="text-foreground text-xs">Empresa Cliente</Label>
                 <Select value={formData.company_id} onValueChange={(value) => setFormData({...formData, company_id: value})}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectTrigger className="bg-background border-border h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-700 border-slate-600">
-                    <SelectItem value="none" className="text-slate-400">Nenhuma (sem empresa)</SelectItem>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma (sem empresa)</SelectItem>
                     {companies.map((company) => (
-                      <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>
+                      <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-annotation" className="text-white">Anotação *</Label>
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-annotation" className="text-foreground text-xs">Anotação *</Label>
                 <Textarea 
                   id="edit-annotation" 
                   value={formData.annotation}
                   onChange={(e) => setFormData({...formData, annotation: e.target.value})}
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-background border-border text-xs"
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-service" className="text-white">Serviço</Label>
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-service" className="text-foreground text-xs">Serviço</Label>
                 <Select value={formData.service} onValueChange={(value) => setFormData({...formData, service: value})}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectTrigger className="bg-background border-border h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-700 border-slate-600">
+                  <SelectContent>
                     {availableServices.map((service) => (
-                      <SelectItem key={service.name} value={service.name} className="text-white">
+                      <SelectItem key={service.name} value={service.name}>
                         <div className="flex items-center gap-2">
                           {getServiceIcon(service.name)}
                           {service.name}
@@ -687,23 +681,19 @@ const Annotations = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-notes" className="text-white">Observações</Label>
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-notes" className="text-foreground text-xs">Observações</Label>
                 <Textarea 
                   id="edit-notes" 
                   value={formData.notes}
                   onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-background border-border text-xs"
                 />
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSaveEdit}>
-                Atualizar
-              </Button>
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="border-slate-600 text-white hover:bg-slate-700">
-                Cancelar
-              </Button>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+              <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleSaveEdit}>Atualizar</Button>
             </div>
           </DialogContent>
         </Dialog>

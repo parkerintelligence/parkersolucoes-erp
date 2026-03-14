@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { HardDrive, Plus, ArrowLeft } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,70 +38,69 @@ const BackupsHeader: React.FC<BackupsHeaderProps> = ({
   const getAvailabilityBadge = () => {
     switch (availability) {
       case 'checking':
-        return <span className="bg-yellow-900/20 text-yellow-400 border-yellow-600 px-2 py-1 rounded text-xs">Verificando...</span>;
+        return <Badge variant="outline" className="text-[10px] border-yellow-500/30 text-yellow-400">Verificando...</Badge>;
       case 'available':
-        return <span className="bg-green-900/20 text-green-400 border-green-600 px-2 py-1 rounded text-xs">Disponível</span>;
+        return <Badge variant="outline" className="text-[10px] border-green-500/30 text-green-400">Disponível</Badge>;
       case 'unavailable':
-        return <span className="bg-red-900/20 text-red-400 border-red-600 px-2 py-1 rounded text-xs">Indisponível</span>;
+        return <Badge variant="outline" className="text-[10px] border-destructive/30 text-destructive">Indisponível</Badge>;
       default:
-        return <span className="bg-slate-900/20 text-gray-400 border-gray-600 px-2 py-1 rounded text-xs">Desconhecido</span>;
+        return <Badge variant="outline" className="text-[10px]">Desconhecido</Badge>;
     }
   };
 
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
       <div>
-        <h1 className="text-2xl font-bold text-white">Backups - {integrationName}</h1>
-        <div className="flex items-center gap-4 mt-2">
-          <p className="text-gray-400">Servidor: {baseUrl}</p>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400">Disponibilidade:</span>
-            {getAvailabilityBadge()}
-          </div>
+        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+          <HardDrive className="h-5 w-5 text-primary" />
+          Backups - {integrationName}
+        </h1>
+        <div className="flex items-center gap-3 mt-0.5">
+          <p className="text-xs text-muted-foreground">Servidor: {baseUrl}</p>
+          {getAvailabilityBadge()}
+          <span className="text-xs text-primary">{currentPath}</span>
         </div>
-        <p className="text-gray-400">Diretório: {currentPath}</p>
       </div>
       <div className="flex gap-2">
         <FtpOldFoldersDialog files={files} />
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="mr-2 h-4 w-4" />
+            <Button size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20">
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
               Upload Backup
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-gray-800 border-gray-700">
+          <DialogContent className="border-border bg-card">
             <DialogHeader>
-              <DialogTitle className="text-white">Upload de Backup</DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogTitle className="text-foreground">Upload de Backup</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
                 Selecione um arquivo de backup para enviar ao servidor FTP.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="backup-file" className="text-gray-200">Arquivo de Backup</Label>
+            <div className="grid gap-3 py-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="backup-file" className="text-foreground text-xs">Arquivo de Backup</Label>
                 <Input 
                   id="backup-file" 
                   type="file" 
                   accept=".sql,.zip,.tar,.gz,.tar.gz" 
                   onChange={onFileUpload} 
                   disabled={uploadFile.isPending} 
-                  className="bg-gray-700 border-gray-600 text-white" 
+                  className="bg-background border-border text-xs" 
                 />
               </div>
               {uploadingFile && (
-                <div className="text-sm text-gray-400">
-                  Enviando: {uploadingFile.name}...
-                </div>
+                <p className="text-xs text-muted-foreground">Enviando: {uploadingFile.name}...</p>
               )}
             </div>
           </DialogContent>
         </Dialog>
         
         {currentPath !== '/' && (
-          <Button variant="outline" onClick={goToParentDirectory} className="border-gray-600 text-gray-200 hover:bg-gray-700">
-            ← Voltar
+          <Button variant="outline" size="sm" onClick={goToParentDirectory} className="h-8 text-xs">
+            <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+            Voltar
           </Button>
         )}
       </div>
