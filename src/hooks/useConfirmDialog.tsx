@@ -9,14 +9,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Trash2, ShieldAlert, Info } from "lucide-react";
 
 interface ConfirmOptions {
   title?: string;
   description?: string;
   confirmText?: string;
   cancelText?: string;
-  variant?: "destructive" | "default";
+  variant?: "destructive" | "default" | "warning";
+  icon?: "trash" | "alert" | "shield" | "info";
 }
 
 interface ConfirmDialogContextType {
@@ -24,6 +25,13 @@ interface ConfirmDialogContextType {
 }
 
 const ConfirmDialogContext = createContext<ConfirmDialogContextType | null>(null);
+
+const iconMap = {
+  trash: Trash2,
+  alert: AlertTriangle,
+  shield: ShieldAlert,
+  info: Info,
+};
 
 export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -38,6 +46,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
         confirmText: opts.confirmText || "Excluir",
         cancelText: opts.cancelText || "Cancelar",
         variant: opts.variant || "destructive",
+        icon: opts.icon || (opts.variant === "destructive" || !opts.variant ? "trash" : "alert"),
       });
       setResolveRef(() => resolve);
       setOpen(true);
@@ -54,48 +63,63 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
     resolveRef?.(false);
   };
 
+  const isDestructive = options.variant === "destructive";
+  const isWarning = options.variant === "warning";
+  const IconComponent = iconMap[options.icon || "trash"] || Trash2;
+
+  const accentColor = isDestructive
+    ? "text-destructive"
+    : isWarning
+    ? "text-yellow-500"
+    : "text-primary";
+
+  const accentBg = isDestructive
+    ? "bg-destructive/10 ring-destructive/20"
+    : isWarning
+    ? "bg-yellow-500/10 ring-yellow-500/20"
+    : "bg-primary/10 ring-primary/20";
+
   return (
     <ConfirmDialogContext.Provider value={{ confirm }}>
       {children}
       <AlertDialog open={open} onOpenChange={(o) => { if (!o) handleCancel(); }}>
-        <AlertDialogContent className="border-border bg-card sm:max-w-[440px]">
-          <AlertDialogHeader>
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                options.variant === "destructive" 
-                  ? "bg-destructive/10" 
-                  : "bg-primary/10"
-              }`}>
-                <AlertTriangle className={`h-5 w-5 ${
-                  options.variant === "destructive" 
-                    ? "text-destructive" 
-                    : "text-primary"
-                }`} />
-              </div>
-              <div>
-                <AlertDialogTitle className="text-foreground text-base">
+        <AlertDialogContent className="border-border bg-card sm:max-w-[420px] p-0 overflow-hidden gap-0">
+          {/* Accent top bar */}
+          <div className={`h-1 w-full ${isDestructive ? 'bg-destructive' : isWarning ? 'bg-yellow-500' : 'bg-primary'}`} />
+
+          <div className="p-6 pb-4">
+            <AlertDialogHeader className="gap-0">
+              <div className="flex flex-col items-center text-center gap-3">
+                {/* Icon circle with ring */}
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center ring-4 ${accentBg} transition-transform`}>
+                  <IconComponent className={`h-6 w-6 ${accentColor}`} />
+                </div>
+                <AlertDialogTitle className="text-foreground text-base font-semibold">
                   {options.title}
                 </AlertDialogTitle>
-                <AlertDialogDescription className="text-muted-foreground text-sm mt-1">
+                <AlertDialogDescription className="text-muted-foreground text-sm leading-relaxed max-w-[320px]">
                   {options.description}
                 </AlertDialogDescription>
               </div>
-            </div>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="mt-2">
-            <AlertDialogCancel 
+            </AlertDialogHeader>
+          </div>
+
+          <AlertDialogFooter className="px-6 pb-5 pt-0 flex-row gap-2 sm:justify-center">
+            <AlertDialogCancel
               onClick={handleCancel}
-              className="bg-secondary text-secondary-foreground hover:bg-secondary/80 border-border"
+              className="flex-1 bg-muted/50 text-foreground hover:bg-muted border-border font-medium text-sm h-9"
             >
               {options.cancelText}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirm}
-              className={
-                options.variant === "destructive"
-                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm shadow-destructive/20"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90"
-              }
+              className={`flex-1 font-medium text-sm h-9 shadow-lg ${
+                isDestructive
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-destructive/25"
+                  : isWarning
+                  ? "bg-yellow-500 text-white hover:bg-yellow-600 shadow-yellow-500/25"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/25"
+              }`}
             >
               {options.confirmText}
             </AlertDialogAction>
