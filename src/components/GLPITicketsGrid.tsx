@@ -513,79 +513,37 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
             </div>
           )}
 
-          {/* Controles de Paginação */}
           {ticketsList.length > 0 && (
-            <div className="mt-4 flex items-center justify-between border-t border-gray-700 pt-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-400">
-                  Exibindo {startIndex + 1} - {Math.min(endIndex, totalItems)} de {totalItems} chamados
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                {/* Select de itens por página */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-400">Registros por página:</span>
-                  <Select
-                    value={itemsPerPage.toString()}
-                    onValueChange={(value) => setItemsPerPage(Number(value))}
-                  >
-                    <SelectTrigger className="w-20 bg-gray-700 border-gray-600 text-white z-50">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-700 border-gray-600 z-50">
-                      <SelectItem value="25" className="text-white hover:bg-gray-600">25</SelectItem>
-                      <SelectItem value="50" className="text-white hover:bg-gray-600">50</SelectItem>
-                      <SelectItem value="100" className="text-white hover:bg-gray-600">100</SelectItem>
-                      <SelectItem value="200" className="text-white hover:bg-gray-600">200</SelectItem>
+            <div className="mt-2 flex items-center justify-between border-t border-border px-4 py-2">
+              <span className="text-[11px] text-muted-foreground">
+                {startIndex + 1}–{Math.min(endIndex, totalItems)} de {totalItems}
+              </span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-muted-foreground">Por página:</span>
+                  <Select value={itemsPerPage.toString()} onValueChange={(v) => setItemsPerPage(Number(v))}>
+                    <SelectTrigger className="w-16 h-6 text-[11px] bg-muted border-border"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                      <SelectItem value="200">200</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-
-                {/* Navegação de páginas */}
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
-                    title="Primeira página"
-                  >
-                    <ChevronsLeft className="h-4 w-4" />
+                <div className="flex items-center gap-0.5">
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-6 w-6 p-0" title="Primeira página">
+                    <ChevronsLeft className="h-3 w-3" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
-                    title="Página anterior"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="h-6 w-6 p-0">
+                    <ChevronLeft className="h-3 w-3" />
                   </Button>
-                  <span className="text-sm text-gray-300 px-3">
-                    Página {currentPage} de {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
-                    title="Próxima página"
-                  >
-                    <ChevronRight className="h-4 w-4" />
+                  <span className="text-[11px] text-muted-foreground px-2">{currentPage}/{totalPages}</span>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="h-6 w-6 p-0">
+                    <ChevronRight className="h-3 w-3" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={currentPage === totalPages}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
-                    title="Última página"
-                  >
-                    <ChevronsRight className="h-4 w-4" />
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-6 w-6 p-0" title="Última página">
+                    <ChevronsRight className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
