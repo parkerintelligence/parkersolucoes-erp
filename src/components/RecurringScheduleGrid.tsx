@@ -46,10 +46,13 @@ export const RecurringScheduleGrid = ({ onEdit }: RecurringScheduleGridProps) =>
     updateSchedule.mutate({ id: schedule.id, updates: { is_active: !schedule.is_active } });
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-      deleteSchedule.mutate(id);
-    }
+  const handleDelete = async (id: string, name: string) => {
+    const ok = await confirm({
+      title: 'Excluir agendamento recorrente',
+      description: `Deseja excluir o agendamento "${name}"? Esta ação não pode ser desfeita.`,
+      variant: 'destructive',
+    });
+    if (ok) deleteSchedule.mutate(id);
   };
 
   if (schedules.length === 0) {
