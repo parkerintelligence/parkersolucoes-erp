@@ -560,95 +560,54 @@ const Passwords = () => {
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[425px] bg-slate-800 border-slate-700">
+          <DialogContent className="sm:max-w-[425px] border-border bg-card">
             <DialogHeader>
-              <DialogTitle className="text-white">Editar Senha</DialogTitle>
-              <DialogDescription className="text-slate-400">Atualize as informações da senha.</DialogDescription>
+              <DialogTitle className="text-foreground">Editar Senha</DialogTitle>
+              <DialogDescription className="text-muted-foreground">Atualize as informações da senha.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-name" className="text-white">Nome do Sistema *</Label>
-                <Input id="edit-name" value={formData.name} onChange={e => setFormData({
-                ...formData,
-                name: e.target.value
-              })} className="bg-slate-700 border-slate-600 text-white" />
+            <div className="grid gap-3 py-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-name" className="text-foreground text-xs">Nome do Sistema *</Label>
+                <Input id="edit-name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="bg-background border-border h-8 text-xs" />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-company" className="text-white">Empresa Cliente</Label>
-                <Select value={formData.company_id} onValueChange={value => setFormData({
-                ...formData,
-                company_id: value
-              })}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-700 border-slate-600">
-                    {companies.map(company => <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>)}
-                  </SelectContent>
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-company" className="text-foreground text-xs">Empresa Cliente</Label>
+                <Select value={formData.company_id} onValueChange={value => setFormData({...formData, company_id: value})}>
+                  <SelectTrigger className="bg-background border-border h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>{companies.map(company => <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-url" className="text-white">URL</Label>
-                <Input id="edit-url" value={formData.url} onChange={e => setFormData({
-                ...formData,
-                url: e.target.value
-              })} className="bg-slate-700 border-slate-600 text-white" />
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-url" className="text-foreground text-xs">URL</Label>
+                <Input id="edit-url" value={formData.url} onChange={e => setFormData({...formData, url: e.target.value})} className="bg-background border-border h-8 text-xs" />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-username" className="text-white">Usuário *</Label>
-                <Input id="edit-username" value={formData.username} onChange={e => setFormData({
-                ...formData,
-                username: e.target.value
-              })} className="bg-slate-700 border-slate-600 text-white" />
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-username" className="text-foreground text-xs">Usuário *</Label>
+                <Input id="edit-username" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} className="bg-background border-border h-8 text-xs" />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-password" className="text-white">Senha *</Label>
-                <Input id="edit-password" type="password" value={formData.password} onChange={e => setFormData({
-                ...formData,
-                password: e.target.value
-              })} className="bg-slate-700 border-slate-600 text-white" />
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-password" className="text-foreground text-xs">Senha *</Label>
+                <Input id="edit-password" type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="bg-background border-border h-8 text-xs" />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-service" className="text-white">Serviço</Label>
-                <Select value={formData.service} onValueChange={value => setFormData({
-                ...formData,
-                service: value
-              })}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-700 border-slate-600">
-                    {availableServices.map(service => <SelectItem key={service.name} value={service.name} className="text-white">
-                        <div className="flex items-center gap-2">
-                          {getServiceIcon(service.name)}
-                          {service.name}
-                        </div>
-                      </SelectItem>)}
-                  </SelectContent>
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-service" className="text-foreground text-xs">Serviço</Label>
+                <Select value={formData.service} onValueChange={value => setFormData({...formData, service: value})}>
+                  <SelectTrigger className="bg-background border-border h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>{availableServices.map(service => <SelectItem key={service.name} value={service.name}><div className="flex items-center gap-2">{getServiceIcon(service.name)}{service.name}</div></SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox id="edit-gera_link" checked={formData.gera_link} onCheckedChange={checked => setFormData({
-                ...formData,
-                gera_link: checked as boolean
-              })} />
-                <Label htmlFor="edit-gera_link" className="text-white">Gerar Link na tela de Links</Label>
+                <Checkbox id="edit-gera_link" checked={formData.gera_link} onCheckedChange={checked => setFormData({...formData, gera_link: checked as boolean})} />
+                <Label htmlFor="edit-gera_link" className="text-foreground text-xs">Gerar Link na tela de Links</Label>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-notes" className="text-white">Observações</Label>
-                <Textarea id="edit-notes" value={formData.notes} onChange={e => setFormData({
-                ...formData,
-                notes: e.target.value
-              })} className="bg-slate-700 border-slate-600 text-white" />
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-notes" className="text-foreground text-xs">Observações</Label>
+                <Textarea id="edit-notes" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} className="bg-background border-border text-xs" />
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSaveEdit}>
-                Atualizar
-              </Button>
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="border-slate-600 text-white hover:bg-slate-700">
-                Cancelar
-              </Button>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+              <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleSaveEdit}>Atualizar</Button>
             </div>
           </DialogContent>
         </Dialog>
