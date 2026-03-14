@@ -13,13 +13,24 @@ import { MikrotikDashboard } from "@/components/mikrotik/MikrotikDashboard";
 import { MikrotikHeaderSelector } from "@/components/mikrotik/MikrotikHeaderSelector";
 import { useMikrotikContext } from "@/contexts/MikrotikContext";
 import { useMikrotikAPI } from "@/hooks/useMikrotikAPI";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { toast } from "@/hooks/use-toast";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useState } from "react";
+
+const TABS = [
+  { value: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { value: 'dhcp', label: 'DHCP', icon: Users },
+  { value: 'ppp', label: 'VPN (PPP)', icon: KeyRound },
+  { value: 'addresses', label: 'IP Addresses', icon: Globe },
+  { value: 'firewall', label: 'Firewall', icon: Shield },
+  { value: 'nat', label: 'NAT', icon: Network },
+  { value: 'logs', label: 'Logs', icon: FileText },
+] as const;
 
 const Winbox = () => {
   const { selectedClient, disconnectClient } = useMikrotikContext();
   const { callAPI } = useMikrotikAPI();
+  const { confirm } = useConfirmDialog();
   const [isRebooting, setIsRebooting] = useState(false);
 
   if (!selectedClient) {
@@ -27,159 +38,87 @@ const Winbox = () => {
   }
 
   const handleReboot = async () => {
+    const ok = await confirm({
+      title: 'Confirmar Reinício',
+      description: `Reiniciar o MikroTik "${selectedClient.name}"? Todos os clientes serão desconectados temporariamente.`,
+      confirmText: 'Sim, Reiniciar',
+      variant: 'destructive',
+    });
+    if (!ok) return;
+
     try {
       setIsRebooting(true);
-      toast({
-        title: "Reiniciando MikroTik",
-        description: "O dispositivo está sendo reiniciado. Aguarde alguns instantes...",
-      });
-      
+      toast({ title: "Reiniciando MikroTik", description: "O dispositivo está sendo reiniciado..." });
       await callAPI('/system/reboot', 'POST');
-      
-      toast({
-        title: "Reinício iniciado",
-        description: "O MikroTik foi reiniciado com sucesso. A conexão será restabelecida em breve.",
-      });
-      
-      // Desconectar após 2 segundos
-      setTimeout(() => {
-        disconnectClient();
-      }, 2000);
+      toast({ title: "Reinício iniciado", description: "A conexão será restabelecida em breve." });
+      setTimeout(() => disconnectClient(), 2000);
     } catch (error) {
       console.error('Erro ao reiniciar MikroTik:', error);
-      toast({
-        title: "Erro ao reiniciar",
-        description: error instanceof Error ? error.message : "Não foi possível reiniciar o MikroTik.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao reiniciar", description: error instanceof Error ? error.message : "Não foi possível reiniciar.", variant: "destructive" });
     } finally {
       setIsRebooting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <div className="bg-slate-900 p-6 mb-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <Network className="h-5 w-5 text-white" />
-              </div>
-              <div className="flex items-center gap-2">
-                <MikrotikHeaderSelector />
-                <Badge className="bg-green-600/20 text-green-400 border border-green-600/30 text-xs px-2 py-0.5">
-                  Conectado
-                </Badge>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className="border-orange-600/50 text-orange-400 hover:bg-orange-600/20"
-                    disabled={isRebooting}
-                  >
-                    <RotateCcw className={`mr-2 h-4 w-4 ${isRebooting ? 'animate-spin' : ''}`} />
-                    Reiniciar
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="bg-slate-800 border-slate-700">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="text-white">Confirmar Reinício</AlertDialogTitle>
-                    <AlertDialogDescription className="text-slate-300">
-                      Tem certeza que deseja reiniciar o MikroTik <strong>{selectedClient.name}</strong>?
-                      <br /><br />
-                      Esta ação irá desconectar todos os clientes temporariamente e você precisará reconectar após o reinício.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel className="bg-slate-700 text-slate-300 hover:bg-slate-600 border-slate-600">
-                      Cancelar
-                    </AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={handleReboot}
-                      className="bg-orange-600 text-white hover:bg-orange-700"
-                      disabled={isRebooting}
-                    >
-                      {isRebooting ? 'Reiniciando...' : 'Sim, Reiniciar'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-              
-              <Button variant="outline" onClick={disconnectClient} className="border-slate-600 text-slate-300 hover:bg-slate-700">
-                <Power className="mr-2 h-4 w-4" />
-                Desconectar
-              </Button>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <Network className="h-5 w-5 text-primary" />
+              MikroTik
+            </h1>
+            <div className="flex items-center gap-2 mt-0.5">
+              <MikrotikHeaderSelector />
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
+                Conectado
+              </Badge>
             </div>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+            onClick={handleReboot}
+            disabled={isRebooting}
+          >
+            <RotateCcw className={`mr-1.5 h-3.5 w-3.5 ${isRebooting ? 'animate-spin' : ''}`} />
+            Reiniciar
+          </Button>
+          <Button variant="outline" size="sm" onClick={disconnectClient} className="h-8 text-xs">
+            <Power className="mr-1.5 h-3.5 w-3.5" />
+            Desconectar
+          </Button>
+        </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 pb-8">
-        <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
-              <LayoutDashboard className="h-4 w-4" />
-              Dashboard
+      {/* Tabs */}
+      <Tabs defaultValue="dashboard" className="space-y-4">
+        <TabsList className="bg-muted/50 border border-border flex-wrap h-auto gap-0.5 p-1">
+          {TABS.map(tab => (
+            <TabsTrigger
+              key={tab.value}
+              value={tab.value}
+              className="gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <tab.icon className="h-3.5 w-3.5" />
+              {tab.label}
             </TabsTrigger>
-            <TabsTrigger value="dhcp" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              DHCP
-            </TabsTrigger>
-            <TabsTrigger value="ppp" className="flex items-center gap-2">
-              <KeyRound className="h-4 w-4" />
-              VPN (PPP)
-            </TabsTrigger>
-            <TabsTrigger value="addresses" className="flex items-center gap-2">
-              <Globe className="h-4 w-4" />
-              IP Addresses
-            </TabsTrigger>
-            <TabsTrigger value="firewall" className="flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              Firewall
-            </TabsTrigger>
-            <TabsTrigger value="nat" className="flex items-center gap-2">
-              <Network className="h-4 w-4" />
-              NAT
-            </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Logs
-            </TabsTrigger>
-          </TabsList>
+          ))}
+        </TabsList>
 
-          <TabsContent value="dashboard" className="mt-6">
-            <MikrotikDashboard />
-          </TabsContent>
-
-          <TabsContent value="dhcp" className="mt-6">
-            <MikrotikDHCP />
-          </TabsContent>
-
-          <TabsContent value="ppp" className="mt-6">
-            <MikrotikPPP />
-          </TabsContent>
-
-          <TabsContent value="addresses" className="mt-6">
-            <MikrotikAddresses />
-          </TabsContent>
-
-          <TabsContent value="firewall" className="mt-6">
-            <MikrotikFirewall />
-          </TabsContent>
-
-          <TabsContent value="nat" className="mt-6">
-            <MikrotikNAT />
-          </TabsContent>
-
-          <TabsContent value="logs" className="mt-6">
-            <MikrotikLogs />
-          </TabsContent>
-        </Tabs>
-      </div>
+        <TabsContent value="dashboard"><MikrotikDashboard /></TabsContent>
+        <TabsContent value="dhcp"><MikrotikDHCP /></TabsContent>
+        <TabsContent value="ppp"><MikrotikPPP /></TabsContent>
+        <TabsContent value="addresses"><MikrotikAddresses /></TabsContent>
+        <TabsContent value="firewall"><MikrotikFirewall /></TabsContent>
+        <TabsContent value="nat"><MikrotikNAT /></TabsContent>
+        <TabsContent value="logs"><MikrotikLogs /></TabsContent>
+      </Tabs>
     </div>
   );
 };
