@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { ScheduleTable } from '@/components/ScheduleTable';
 import { ScheduleDialog } from '@/components/ScheduleDialog';
@@ -7,14 +6,11 @@ import { ScheduleCalendarView } from '@/components/ScheduleCalendarView';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Plus, Settings, Clock, CalendarDays, Target, AlertTriangle } from 'lucide-react';
+import { Plus, Settings, Clock, CalendarDays, Target, AlertTriangle } from 'lucide-react';
 import { useScheduleItems, useUpdateScheduleItem, useDeleteScheduleItem } from '@/hooks/useScheduleItems';
 
 const Schedule = () => {
-  const {
-    data: scheduleItems = [],
-    isLoading
-  } = useScheduleItems();
+  const { data: scheduleItems = [], isLoading } = useScheduleItems();
   const updateScheduleItem = useUpdateScheduleItem();
   const deleteScheduleItem = useDeleteScheduleItem();
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
@@ -29,12 +25,14 @@ const Schedule = () => {
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-96">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-        <p className="text-sm text-muted-foreground">Carregando agenda...</p>
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground">Carregando agenda...</p>
+        </div>
       </div>
-    </div>;
+    );
   }
 
   const pendingCount = scheduleItems.filter(item => item.status === 'pending').length;
@@ -108,14 +106,19 @@ const Schedule = () => {
           {/* Schedule Table */}
           <Card className="border-border bg-card">
             <CardHeader className="pb-3">
-              <CardTitle className="text-foreground text-base">Agenda de Vencimentos</CardTitle>
-              <CardDescription className="text-muted-foreground text-xs">Controle de certificados, licenças e atualizações</CardDescription>
+              <CardTitle className="text-foreground text-sm flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                Agenda de Vencimentos
+              </CardTitle>
+              <CardDescription className="text-muted-foreground text-xs">
+                Controle de certificados, licenças e atualizações — passe o mouse para detalhes
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ScheduleTable items={scheduleItems} onUpdate={handleUpdateScheduleItem} onDelete={handleDeleteScheduleItem} />
             </CardContent>
           </Card>
-          
+
           <ScheduleDialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog} />
           <ScheduleTypeDialog open={showTypeDialog} onOpenChange={setShowTypeDialog} />
         </TabsContent>
