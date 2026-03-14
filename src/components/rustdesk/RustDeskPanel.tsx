@@ -52,7 +52,6 @@ export const RustDeskPanel = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [tagInput, setTagInput] = useState('');
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   
 
