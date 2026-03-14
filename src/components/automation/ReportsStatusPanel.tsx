@@ -3,14 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Calendar, 
-  Clock, 
-  AlertTriangle, 
-  CheckCircle,
-  Play,
-  RefreshCw
-} from 'lucide-react';
+import { Calendar, Clock, AlertTriangle, CheckCircle, Play, RefreshCw } from 'lucide-react';
 import { useScheduledReports, useTestScheduledReport } from '@/hooks/useScheduledReports';
 import { useWhatsAppTemplates } from '@/hooks/useWhatsAppTemplates';
 import { toast } from '@/hooks/use-toast';
@@ -22,258 +15,124 @@ export const ReportsStatusPanel = () => {
 
   const getTemplateInfo = (reportType: string) => {
     const template = templates.find(t => t.id === reportType);
-    if (template) {
-      return {
-        name: template.name,
-        type: template.template_type,
-        isActive: template.is_active,
-        exists: true
-      };
-    }
-    
-    return {
-      name: 'Template não encontrado',
-      type: 'unknown',
-      isActive: false,
-      exists: false
-    };
+    if (template) return { name: template.name, type: template.template_type, isActive: template.is_active, exists: true };
+    return { name: 'Template não encontrado', type: 'unknown', isActive: false, exists: false };
   };
 
   const formatNextExecution = (dateString?: string) => {
     if (!dateString) return 'N/A';
-    
     const utcDate = new Date(dateString);
-    
-    // Verificar se a data é válida
     if (isNaN(utcDate.getTime())) return 'Data inválida';
-    
-    // Obter o horário atual em UTC
     const nowUtc = new Date();
-    
-    // Calcular diferença em milissegundos
     const diffMs = utcDate.getTime() - nowUtc.getTime();
-    
     if (diffMs < 0) return 'Atrasado';
-    
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMinutes / 60);
     const diffDays = Math.floor(diffHours / 24);
-    
-    if (diffDays > 0) {
-      return `Em ${diffDays} dia${diffDays > 1 ? 's' : ''}`;
-    } else if (diffHours > 0) {
-      const remainingMinutes = diffMinutes % 60;
-      if (remainingMinutes > 0) {
-        return `Em ${diffHours}h ${remainingMinutes}min`;
-      }
-      return `Em ${diffHours}h`;
-    } else if (diffMinutes > 0) {
-      return `Em ${diffMinutes}min`;
-    } else {
-      return 'Agora';
-    }
-  };
-
-  const getExecutionStatus = (nextExecution?: string) => {
-    if (!nextExecution) return 'inactive';
-    
-    const utcDate = new Date(nextExecution);
-    
-    if (isNaN(utcDate.getTime())) return 'error';
-    
-    // Obter o horário atual em UTC
-    const nowUtc = new Date();
-    
-    // Calcular diferença em milissegundos
-    const diffMs = utcDate.getTime() - nowUtc.getTime();
-    
-    if (diffMs < 0) return 'overdue';
-    if (diffMs < 60 * 60 * 1000) return 'upcoming'; // Próxima 1 hora
-    return 'scheduled';
+    if (diffDays > 0) return `Em ${diffDays} dia${diffDays > 1 ? 's' : ''}`;
+    if (diffHours > 0) return `Em ${diffHours}h${diffMinutes % 60 > 0 ? ` ${diffMinutes % 60}min` : ''}`;
+    if (diffMinutes > 0) return `Em ${diffMinutes}min`;
+    return 'Agora';
   };
 
   const formatDateTime = (dateString?: string) => {
     if (!dateString) return 'N/A';
-    
     const utcDate = new Date(dateString);
-    
     if (isNaN(utcDate.getTime())) return 'Data inválida';
-    
-    // Formatar diretamente para horário de Brasília
-    return utcDate.toLocaleString('pt-BR', {
-      timeZone: 'America/Sao_Paulo',
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    return utcDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
   const handleExecuteReport = async (reportId: string, reportName: string) => {
     try {
       await testReport.mutateAsync(reportId);
-      toast({
-        title: "Execução iniciada",
-        description: `O relatório "${reportName}" está sendo executado manualmente.`,
-      });
+      toast({ title: "Execução iniciada", description: `O relatório "${reportName}" está sendo executado.` });
     } catch (error: any) {
-      toast({
-        title: "Erro na execução",
-        description: error.message,
-        variant: "destructive"
-      });
+      toast({ title: "Erro na execução", description: error.message, variant: "destructive" });
     }
   };
 
-  // Separar relatórios por status
   const activeReports = reports.filter(r => r.is_active);
-  
-  const upcomingReports = activeReports
-    .filter(r => {
-      if (!r.next_execution) return false;
-      const utcDate = new Date(r.next_execution);
-      const nowUtc = new Date();
-      return utcDate > nowUtc;
-    })
-    .sort((a, b) => {
-      const aUtc = new Date(a.next_execution!);
-      const bUtc = new Date(b.next_execution!);
-      return aUtc.getTime() - bUtc.getTime();
-    });
-  
-  const overdueReports = activeReports
-    .filter(r => {
-      if (!r.next_execution) return false;
-      const utcDate = new Date(r.next_execution);
-      const nowUtc = new Date();
-      return utcDate < nowUtc;
-    });
-
-  const recentExecutions = reports
-    .filter(r => r.last_execution)
-    .sort((a, b) => new Date(b.last_execution!).getTime() - new Date(a.last_execution!).getTime())
-    .slice(0, 5);
+  const nowUtc = new Date();
+  const upcomingReports = activeReports.filter(r => r.next_execution && new Date(r.next_execution) > nowUtc).sort((a, b) => new Date(a.next_execution!).getTime() - new Date(b.next_execution!).getTime());
+  const overdueReports = activeReports.filter(r => r.next_execution && new Date(r.next_execution) < nowUtc);
+  const recentExecutions = reports.filter(r => r.last_execution).sort((a, b) => new Date(b.last_execution!).getTime() - new Date(a.last_execution!).getTime()).slice(0, 5);
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-400">Carregando status...</span>
+        <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground text-xs">Carregando status...</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Cards de Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400">Total Ativo</p>
-                <p className="text-2xl font-bold text-white">{activeReports.length}</p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-green-500" />
+    <div className="space-y-4">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="border-border bg-card">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+              <div><p className="text-lg font-bold text-foreground">{activeReports.length}</p><p className="text-[11px] text-muted-foreground">Total Ativo</p></div>
             </div>
           </CardContent>
         </Card>
-
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400">Próximas</p>
-                <p className="text-2xl font-bold text-white">{upcomingReports.length}</p>
-              </div>
-              <Clock className="h-8 w-8 text-blue-500" />
+        <Card className="border-border bg-card">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary flex-shrink-0" />
+              <div><p className="text-lg font-bold text-foreground">{upcomingReports.length}</p><p className="text-[11px] text-muted-foreground">Próximas</p></div>
             </div>
           </CardContent>
         </Card>
-
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400">Atrasados</p>
-                <p className="text-2xl font-bold text-red-400">{overdueReports.length}</p>
-              </div>
-              <AlertTriangle className="h-8 w-8 text-red-500" />
+        <Card className="border-border bg-card">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0" />
+              <div><p className="text-lg font-bold text-destructive">{overdueReports.length}</p><p className="text-[11px] text-muted-foreground">Atrasados</p></div>
             </div>
           </CardContent>
         </Card>
-
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400">Total Execuções</p>
-                <p className="text-2xl font-bold text-white">
-                  {reports.reduce((acc, r) => acc + r.execution_count, 0)}
-                </p>
-              </div>
-              <Calendar className="h-8 w-8 text-purple-500" />
+        <Card className="border-border bg-card">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-purple-500 flex-shrink-0" />
+              <div><p className="text-lg font-bold text-foreground">{reports.reduce((acc, r) => acc + r.execution_count, 0)}</p><p className="text-[11px] text-muted-foreground">Execuções</p></div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Próximas Execuções Agendadas */}
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Clock className="h-5 w-5 text-blue-500" />
-              Próximas Execuções Agendadas
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Upcoming */}
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-foreground text-sm">
+              <Clock className="h-4 w-4 text-primary" /> Próximas Execuções
             </CardTitle>
           </CardHeader>
           <CardContent>
             {upcomingReports.length === 0 ? (
-              <p className="text-gray-400 text-center py-4">
-                Nenhuma execução agendada encontrada
-              </p>
+              <p className="text-muted-foreground text-center text-xs py-4">Nenhuma execução agendada</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {upcomingReports.slice(0, 8).map((report) => {
-                  const status = getExecutionStatus(report.next_execution);
                   const templateInfo = getTemplateInfo(report.report_type);
                   const canExecute = templateInfo.exists && templateInfo.isActive;
-                  
                   return (
-                    <div key={report.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border border-gray-600">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm text-white">{report.name}</span>
-                          <Badge 
-                            variant={status === 'upcoming' ? 'default' : 'secondary'}
-                            className="text-xs bg-blue-600 text-white"
-                          >
-                            {formatNextExecution(report.next_execution)}
-                          </Badge>
-                          {!canExecute && (
-                            <Badge className="text-xs bg-red-600 text-white">
-                              Template inativo
-                            </Badge>
-                          )}
+                    <div key={report.id} className="flex items-center justify-between p-2.5 rounded-md border border-border/50 hover:bg-muted/20">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-xs font-medium text-foreground truncate">{report.name}</span>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">{formatNextExecution(report.next_execution)}</Badge>
+                          {!canExecute && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive/30 text-destructive">Template inativo</Badge>}
                         </div>
-                        <p className="text-xs text-gray-400">
-                          Template: {templateInfo.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Próxima execução: {formatDateTime(report.next_execution)}
-                        </p>
+                        <p className="text-[10px] text-muted-foreground">Template: {templateInfo.name}</p>
+                        <p className="text-[10px] text-muted-foreground/70">{formatDateTime(report.next_execution)}</p>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleExecuteReport(report.id, report.name)}
-                        disabled={testReport.isPending || !canExecute}
-                        className="ml-2 border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white"
-                        title={canExecute ? "Executar agora" : "Template inativo ou não encontrado"}
-                      >
-                        <Play className="h-3 w-3" />
+                      <Button variant="outline" size="sm" onClick={() => handleExecuteReport(report.id, report.name)} disabled={testReport.isPending || !canExecute} className="h-6 w-6 p-0 ml-2">
+                        <Play className="h-2.5 w-2.5" />
                       </Button>
                     </div>
                   );
@@ -283,55 +142,33 @@ export const ReportsStatusPanel = () => {
           </CardContent>
         </Card>
 
-        {/* Execuções Atrasadas */}
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              Execuções Atrasadas
+        {/* Overdue */}
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-foreground text-sm">
+              <AlertTriangle className="h-4 w-4 text-destructive" /> Execuções Atrasadas
             </CardTitle>
           </CardHeader>
           <CardContent>
             {overdueReports.length === 0 ? (
-              <p className="text-gray-400 text-center py-4">
-                ✅ Nenhuma execução atrasada
-              </p>
+              <p className="text-muted-foreground text-center text-xs py-4">✅ Nenhuma execução atrasada</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {overdueReports.map((report) => {
                   const templateInfo = getTemplateInfo(report.report_type);
                   const canExecute = templateInfo.exists && templateInfo.isActive;
-                  
                   return (
-                    <div key={report.id} className="flex items-center justify-between p-3 bg-red-900/20 border border-red-800 rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm text-white">{report.name}</span>
-                          <Badge className="text-xs bg-red-600 text-white">
-                            Atrasado
-                          </Badge>
-                          {!canExecute && (
-                            <Badge className="text-xs bg-gray-600 text-gray-200">
-                              Template inativo
-                            </Badge>
-                          )}
+                    <div key={report.id} className="flex items-center justify-between p-2.5 rounded-md border border-destructive/30 bg-destructive/5">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-xs font-medium text-foreground truncate">{report.name}</span>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive/30 text-destructive">Atrasado</Badge>
                         </div>
-                        <p className="text-xs text-gray-400">
-                          Template: {templateInfo.name}
-                        </p>
-                        <p className="text-xs text-red-400">
-                          Deveria ter executado: {formatDateTime(report.next_execution)}
-                        </p>
+                        <p className="text-[10px] text-muted-foreground">Template: {templateInfo.name}</p>
+                        <p className="text-[10px] text-destructive/70">Deveria: {formatDateTime(report.next_execution)}</p>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleExecuteReport(report.id, report.name)}
-                        disabled={testReport.isPending || !canExecute}
-                        className="ml-2 border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
-                        title={canExecute ? "Executar agora" : "Template inativo ou não encontrado"}
-                      >
-                        <Play className="h-3 w-3" />
+                      <Button variant="outline" size="sm" onClick={() => handleExecuteReport(report.id, report.name)} disabled={testReport.isPending || !canExecute} className="h-6 w-6 p-0 ml-2">
+                        <Play className="h-2.5 w-2.5" />
                       </Button>
                     </div>
                   );
@@ -342,39 +179,29 @@ export const ReportsStatusPanel = () => {
         </Card>
       </div>
 
-      {/* Últimas Execuções */}
-      <Card className="bg-gray-800 border-gray-700">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Calendar className="h-5 w-5 text-purple-500" />
-            Últimas Execuções
+      {/* Recent */}
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-foreground text-sm">
+            <Calendar className="h-4 w-4 text-purple-500" /> Últimas Execuções
           </CardTitle>
         </CardHeader>
         <CardContent>
           {recentExecutions.length === 0 ? (
-            <p className="text-gray-400 text-center py-4">
-              Nenhuma execução registrada ainda
-            </p>
+            <p className="text-muted-foreground text-center text-xs py-4">Nenhuma execução registrada</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {recentExecutions.map((report) => {
                 const templateInfo = getTemplateInfo(report.report_type);
-                
                 return (
-                  <div key={report.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border border-gray-600">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm text-white">{report.name}</span>
-                        <Badge className="text-xs bg-gray-600 text-gray-200">
-                          {report.execution_count} execuções
-                        </Badge>
+                  <div key={report.id} className="flex items-center justify-between p-2.5 rounded-md border border-border/50 hover:bg-muted/20">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="text-xs font-medium text-foreground truncate">{report.name}</span>
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{report.execution_count} exec</Badge>
                       </div>
-                      <p className="text-xs text-gray-400">
-                        Template: {templateInfo.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Última execução: {formatDateTime(report.last_execution)}
-                      </p>
+                      <p className="text-[10px] text-muted-foreground">Template: {templateInfo.name}</p>
+                      <p className="text-[10px] text-muted-foreground/70">Última: {formatDateTime(report.last_execution)}</p>
                     </div>
                   </div>
                 );

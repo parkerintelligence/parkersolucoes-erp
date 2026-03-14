@@ -9,12 +9,9 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, Cog, Search, X, Send, Users, Monitor } from 'lucide-react';
+import { Plus, Pencil, Trash2, Cog, Search, X, Send, Users } from 'lucide-react';
 import {
-  useAutomationProcesses,
-  useCreateAutomationProcess,
-  useUpdateAutomationProcess,
-  useDeleteAutomationProcess,
+  useAutomationProcesses, useCreateAutomationProcess, useUpdateAutomationProcess, useDeleteAutomationProcess,
   type AutomationProcess,
 } from '@/hooks/useAutomationProcesses';
 
@@ -23,16 +20,7 @@ const SYSTEM_SUGGESTIONS = [
   'Mikrotik', 'Chatwoot', 'Wasabi', 'FTP', 'Hostinger', 'Guacamole', 'Wazuh',
 ];
 
-const emptyForm = {
-  name: '',
-  description: '',
-  systems: [] as string[],
-  destination: '',
-  recipient: '',
-  frequency: '',
-  is_active: true,
-  notes: '',
-};
+const emptyForm = { name: '', description: '', systems: [] as string[], destination: '', recipient: '', frequency: '', is_active: true, notes: '' };
 
 export const AutomationProcessesPanel = () => {
   const { data: processes = [], isLoading } = useAutomationProcesses();
@@ -47,44 +35,17 @@ export const AutomationProcessesPanel = () => {
   const [search, setSearch] = useState('');
   const [systemInput, setSystemInput] = useState('');
 
-  const openNew = () => {
-    setEditingId(null);
-    setForm(emptyForm);
-    setDialogOpen(true);
-  };
-
+  const openNew = () => { setEditingId(null); setForm(emptyForm); setDialogOpen(true); };
   const openEdit = (p: AutomationProcess) => {
     setEditingId(p.id);
-    setForm({
-      name: p.name,
-      description: p.description || '',
-      systems: p.systems || [],
-      destination: p.destination || '',
-      recipient: p.recipient || '',
-      frequency: p.frequency || '',
-      is_active: p.is_active,
-      notes: p.notes || '',
-    });
+    setForm({ name: p.name, description: p.description || '', systems: p.systems || [], destination: p.destination || '', recipient: p.recipient || '', frequency: p.frequency || '', is_active: p.is_active, notes: p.notes || '' });
     setDialogOpen(true);
-  };
-
-  const toggleSystem = (sys: string) => {
-    setForm(prev => ({
-      ...prev,
-      systems: prev.systems.includes(sys)
-        ? prev.systems.filter(s => s !== sys)
-        : [...prev.systems, sys],
-    }));
   };
 
   const handleSave = async () => {
     if (!form.name.trim()) return;
-
-    if (editingId) {
-      await updateProcess.mutateAsync({ id: editingId, updates: form });
-    } else {
-      await createProcess.mutateAsync(form);
-    }
+    if (editingId) { await updateProcess.mutateAsync({ id: editingId, updates: form }); }
+    else { await createProcess.mutateAsync(form); }
     setDialogOpen(false);
   };
 
@@ -96,108 +57,84 @@ export const AutomationProcessesPanel = () => {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-gray-800 border-gray-700">
-        <CardHeader>
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Cog className="h-5 w-5 text-blue-400" />
+            <CardTitle className="flex items-center gap-2 text-foreground text-sm">
+              <Cog className="h-4 w-4 text-primary" />
               Processos de Automação
             </CardTitle>
-            <Button onClick={openNew} className="bg-blue-600 hover:bg-blue-700 text-white">
-              <Plus className="h-4 w-4 mr-2" />
+            <Button onClick={openNew} size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20">
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
               Novo Processo
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          {/* Search */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Buscar processos..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pl-10 bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
-            />
+          <div className="flex items-center gap-3 p-2.5 bg-muted/30 border border-border rounded-lg mb-4">
+            <Search className="h-3.5 w-3.5 text-muted-foreground" />
+            <Input placeholder="Buscar processos..." value={search} onChange={e => setSearch(e.target.value)} className="h-7 text-xs bg-card border-border flex-1" />
           </div>
 
           {isLoading ? (
-            <p className="text-gray-400 text-center py-8">Carregando...</p>
+            <p className="text-muted-foreground text-center text-xs py-8">Carregando...</p>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
-              <Cog className="h-12 w-12 mx-auto mb-4 text-gray-600" />
-              <p className="text-lg font-medium mb-1">Nenhum processo cadastrado</p>
-              <p className="text-sm">Cadastre seus processos de automação para ter controle total.</p>
+            <div className="text-center py-10">
+              <Cog className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+              <p className="text-sm font-medium text-foreground mb-1">Nenhum processo cadastrado</p>
+              <p className="text-xs text-muted-foreground">Cadastre seus processos de automação.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-gray-700">
-                    <TableHead className="text-gray-300">Nome</TableHead>
-                    <TableHead className="text-gray-300">Sistemas</TableHead>
-                    <TableHead className="text-gray-300">Destino</TableHead>
-                    <TableHead className="text-gray-300">Destinatário</TableHead>
-                    <TableHead className="text-gray-300">Frequência</TableHead>
-                    <TableHead className="text-gray-300">Status</TableHead>
-                    <TableHead className="text-gray-300 text-right">Ações</TableHead>
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableHead className="text-muted-foreground text-xs">Nome</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">Sistemas</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">Destino</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">Destinatário</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">Frequência</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">Status</TableHead>
+                    <TableHead className="text-muted-foreground text-xs text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.map(p => (
-                    <TableRow key={p.id} className="border-gray-700 hover:bg-gray-750">
-                      <TableCell>
-                        <div>
-                          <span className="text-white font-medium">{p.name}</span>
-                          {p.description && (
-                            <p className="text-gray-400 text-xs mt-0.5 line-clamp-1">{p.description}</p>
-                          )}
-                        </div>
+                    <TableRow key={p.id} className="border-border/50 hover:bg-muted/20">
+                      <TableCell className="py-1">
+                        <span className="text-xs font-medium text-foreground">{p.name}</span>
+                        {p.description && <p className="text-[11px] text-muted-foreground line-clamp-1">{p.description}</p>}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                      <TableCell className="py-1">
+                        <div className="flex flex-wrap gap-0.5 max-w-[180px]">
                           {(p.systems || []).map(s => (
-                            <Badge key={s} variant="secondary" className="bg-blue-900/40 text-blue-300 text-xs">
-                              {s}
-                            </Badge>
+                            <Badge key={s} variant="secondary" className="text-[10px] px-1.5 py-0">{s}</Badge>
                           ))}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-1">
                         {p.destination ? (
-                          <div className="flex items-center gap-1 text-gray-300 text-sm">
-                            <Send className="h-3 w-3" />
-                            {p.destination}
-                          </div>
-                        ) : (
-                          <span className="text-gray-500 text-sm">-</span>
-                        )}
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground"><Send className="h-2.5 w-2.5" />{p.destination}</div>
+                        ) : <span className="text-xs text-muted-foreground/50">-</span>}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-1">
                         {p.recipient ? (
-                          <div className="flex items-center gap-1 text-gray-300 text-sm">
-                            <Users className="h-3 w-3" />
-                            {p.recipient}
-                          </div>
-                        ) : (
-                          <span className="text-gray-500 text-sm">-</span>
-                        )}
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground"><Users className="h-2.5 w-2.5" />{p.recipient}</div>
+                        ) : <span className="text-xs text-muted-foreground/50">-</span>}
                       </TableCell>
-                      <TableCell className="text-gray-300 text-sm">
-                        {p.frequency || '-'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={p.is_active ? 'bg-green-900/40 text-green-300' : 'bg-gray-700 text-gray-400'}>
+                      <TableCell className="py-1 text-xs text-muted-foreground">{p.frequency || '-'}</TableCell>
+                      <TableCell className="py-1">
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.is_active ? 'border-green-500/30 text-green-400' : 'border-border text-muted-foreground'}`}>
                           {p.is_active ? 'Ativo' : 'Inativo'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => openEdit(p)} className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20">
-                            <Pencil className="h-4 w-4" />
+                      <TableCell className="py-1 text-right">
+                        <div className="flex items-center justify-end gap-0.5">
+                          <Button variant="outline" size="sm" onClick={() => openEdit(p)} className="h-6 w-6 p-0" title="Editar">
+                            <Pencil className="h-2.5 w-2.5" />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => setDeleteId(p.id)} className="text-red-400 hover:text-red-300 hover:bg-red-900/20">
-                            <Trash2 className="h-4 w-4" />
+                          <Button variant="outline" size="sm" onClick={() => setDeleteId(p.id)} className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10" title="Excluir">
+                            <Trash2 className="h-2.5 w-2.5" />
                           </Button>
                         </div>
                       </TableCell>
@@ -210,161 +147,85 @@ export const AutomationProcessesPanel = () => {
         </CardContent>
       </Card>
 
-      {/* Form Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg bg-gray-800 border-gray-700 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg border-border bg-card max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-white">
-              {editingId ? 'Editar Processo' : 'Novo Processo de Automação'}
-            </DialogTitle>
+            <DialogTitle className="text-foreground">{editingId ? 'Editar Processo' : 'Novo Processo de Automação'}</DialogTitle>
           </DialogHeader>
-
-          <div className="space-y-4">
-            <div>
-              <Label className="text-gray-300">Nome *</Label>
-              <Input
-                value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                placeholder="Ex: Relatório Diário Zabbix"
-                className="bg-gray-700 border-gray-600 text-white"
-              />
+          <div className="space-y-3">
+            <div className="grid gap-1.5">
+              <Label className="text-foreground text-xs">Nome *</Label>
+              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Relatório Diário Zabbix" className="bg-background border-border h-8 text-xs" />
             </div>
-
-            <div>
-              <Label className="text-gray-300">Descrição</Label>
-              <Textarea
-                value={form.description}
-                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="Descreva o que este processo faz..."
-                className="bg-gray-700 border-gray-600 text-white min-h-[80px]"
-              />
+            <div className="grid gap-1.5">
+              <Label className="text-foreground text-xs">Descrição</Label>
+              <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Descreva o que este processo faz..." className="bg-background border-border text-xs min-h-[60px]" />
             </div>
-
-            <div>
-              <Label className="text-gray-300 mb-2 block">Sistemas utilizados</Label>
-              <div className="flex flex-wrap gap-2 mb-2">
+            <div className="grid gap-1.5">
+              <Label className="text-foreground text-xs">Sistemas utilizados</Label>
+              <div className="flex flex-wrap gap-1 mb-1">
                 {form.systems.map(sys => (
-                  <Badge
-                    key={sys}
-                    className="bg-blue-600 text-white cursor-pointer hover:bg-blue-700"
-                    onClick={() => setForm(prev => ({ ...prev, systems: prev.systems.filter(s => s !== sys) }))}
-                  >
-                    {sys} <X className="h-3 w-3 ml-1" />
+                  <Badge key={sys} className="bg-primary text-primary-foreground text-[10px] cursor-pointer hover:bg-primary/80" onClick={() => setForm(prev => ({ ...prev, systems: prev.systems.filter(s => s !== sys) }))}>
+                    {sys} <X className="h-2.5 w-2.5 ml-0.5" />
                   </Badge>
                 ))}
               </div>
-              <div className="flex gap-2">
-                <Input
-                  value={systemInput}
-                  onChange={e => setSystemInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && systemInput.trim()) {
-                      e.preventDefault();
-                      if (!form.systems.includes(systemInput.trim())) {
-                        setForm(prev => ({ ...prev, systems: [...prev.systems, systemInput.trim()] }));
-                      }
-                      setSystemInput('');
-                    }
-                  }}
-                  placeholder="Digite o nome do sistema e pressione Enter"
-                  className="bg-gray-700 border-gray-600 text-white"
-                />
-              </div>
-              {SYSTEM_SUGGESTIONS.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {SYSTEM_SUGGESTIONS.filter(s => !form.systems.includes(s)).slice(0, 8).map(sys => (
-                    <Badge
-                      key={sys}
-                      className="bg-gray-700 text-gray-400 cursor-pointer hover:bg-gray-600 text-xs"
-                      onClick={() => setForm(prev => ({ ...prev, systems: [...prev.systems, sys] }))}
-                    >
-                      + {sys}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-gray-300">Destino (onde envia)</Label>
-                <Input
-                  value={form.destination}
-                  onChange={e => setForm(f => ({ ...f, destination: e.target.value }))}
-                  placeholder="Ex: WhatsApp, E-mail, GLPI"
-                  className="bg-gray-700 border-gray-600 text-white"
-                />
-              </div>
-              <div>
-                <Label className="text-gray-300">Destinatário (para quem)</Label>
-                <Input
-                  value={form.recipient}
-                  onChange={e => setForm(f => ({ ...f, recipient: e.target.value }))}
-                  placeholder="Ex: Equipe TI, Cliente X"
-                  className="bg-gray-700 border-gray-600 text-white"
-                />
+              <Input value={systemInput} onChange={e => setSystemInput(e.target.value)} onKeyDown={e => {
+                if (e.key === 'Enter' && systemInput.trim()) {
+                  e.preventDefault();
+                  if (!form.systems.includes(systemInput.trim())) setForm(prev => ({ ...prev, systems: [...prev.systems, systemInput.trim()] }));
+                  setSystemInput('');
+                }
+              }} placeholder="Digite e pressione Enter" className="bg-background border-border h-8 text-xs" />
+              <div className="flex flex-wrap gap-1 mt-1">
+                {SYSTEM_SUGGESTIONS.filter(s => !form.systems.includes(s)).slice(0, 8).map(sys => (
+                  <Badge key={sys} variant="outline" className="text-[10px] cursor-pointer hover:bg-muted" onClick={() => setForm(prev => ({ ...prev, systems: [...prev.systems, sys] }))}>
+                    + {sys}
+                  </Badge>
+                ))}
               </div>
             </div>
-
-            <div>
-              <Label className="text-gray-300">Frequência</Label>
-              <Input
-                value={form.frequency}
-                onChange={e => setForm(f => ({ ...f, frequency: e.target.value }))}
-                placeholder="Ex: Diário, Semanal, Seg a Sex 08h"
-                className="bg-gray-700 border-gray-600 text-white"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label className="text-foreground text-xs">Destino</Label>
+                <Input value={form.destination} onChange={e => setForm(f => ({ ...f, destination: e.target.value }))} placeholder="Ex: WhatsApp, E-mail" className="bg-background border-border h-8 text-xs" />
+              </div>
+              <div className="grid gap-1.5">
+                <Label className="text-foreground text-xs">Destinatário</Label>
+                <Input value={form.recipient} onChange={e => setForm(f => ({ ...f, recipient: e.target.value }))} placeholder="Ex: Equipe TI" className="bg-background border-border h-8 text-xs" />
+              </div>
             </div>
-
-            <div>
-              <Label className="text-gray-300">Observações</Label>
-              <Textarea
-                value={form.notes}
-                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                placeholder="Anotações extras sobre este processo..."
-                className="bg-gray-700 border-gray-600 text-white min-h-[60px]"
-              />
+            <div className="grid gap-1.5">
+              <Label className="text-foreground text-xs">Frequência</Label>
+              <Input value={form.frequency} onChange={e => setForm(f => ({ ...f, frequency: e.target.value }))} placeholder="Ex: Diário, Semanal" className="bg-background border-border h-8 text-xs" />
             </div>
-
-            <div className="flex items-center gap-3">
-              <Switch
-                checked={form.is_active}
-                onCheckedChange={v => setForm(f => ({ ...f, is_active: v }))}
-              />
-              <Label className="text-gray-300">Processo ativo</Label>
+            <div className="grid gap-1.5">
+              <Label className="text-foreground text-xs">Observações</Label>
+              <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Anotações extras..." className="bg-background border-border text-xs min-h-[50px]" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={form.is_active} onCheckedChange={v => setForm(f => ({ ...f, is_active: v }))} />
+              <Label className="text-foreground text-xs">Processo ativo</Label>
             </div>
           </div>
-
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-gray-600 text-gray-300">
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={!form.name.trim() || createProcess.isPending || updateProcess.isPending}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {editingId ? 'Salvar Alterações' : 'Cadastrar'}
+            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleSave} disabled={!form.name.trim() || createProcess.isPending || updateProcess.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              {editingId ? 'Salvar' : 'Cadastrar'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent className="bg-gray-800 border-gray-700">
+        <AlertDialogContent className="border-border bg-card">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Excluir processo?</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-300">
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
+            <AlertDialogTitle className="text-foreground">Excluir processo?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">Esta ação não pode ser desfeita.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-gray-600 text-gray-300">Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => { if (deleteId) { deleteProcess.mutate(deleteId); setDeleteId(null); } }}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (deleteId) { deleteProcess.mutate(deleteId); setDeleteId(null); } }} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
