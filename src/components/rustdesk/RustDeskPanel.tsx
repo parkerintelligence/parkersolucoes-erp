@@ -18,7 +18,7 @@ import {
   RustDeskConnection,
 } from '@/hooks/useRustDesk';
 import { useCompanies } from '@/hooks/useCompanies';
-import { useGLPI } from '@/hooks/useGLPI';
+import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { toast } from '@/hooks/use-toast';
 
@@ -44,9 +44,9 @@ export const RustDeskPanel = () => {
   const deleteMutation = useDeleteRustDeskConnection();
   const { confirm } = useConfirmDialog();
 
-  // GLPI inventory
-  const glpi = useGLPI();
-  const glpiComputers = glpi.computers?.data || [];
+  // GLPI inventory via proxy
+  const glpiExpanded = useGLPIExpanded();
+  const glpiComputers = glpiExpanded.computers?.data || [];
 
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -55,7 +55,7 @@ export const RustDeskPanel = () => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [tagInput, setTagInput] = useState('');
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
-  const [glpiSearch, setGlpiSearch] = useState('');
+  
 
   const filtered = useMemo(() => {
     if (!search) return connections;
@@ -92,14 +92,6 @@ export const RustDeskPanel = () => {
     });
   }, [filtered, companies]);
 
-  const filteredGlpiComputers = useMemo(() => {
-    if (!glpiSearch) return glpiComputers.slice(0, 20);
-    const s = glpiSearch.toLowerCase();
-    return glpiComputers.filter((c: any) => 
-      c.name?.toLowerCase().includes(s) || 
-      c.serial?.toLowerCase().includes(s)
-    ).slice(0, 20);
-  }, [glpiComputers, glpiSearch]);
 
   const handleEdit = (conn: RustDeskConnection) => {
     setForm({
@@ -112,8 +104,8 @@ export const RustDeskPanel = () => {
       os_type: conn.os_type || '',
       notes: conn.notes || '',
       tags: conn.tags || [],
-      glpi_asset_id: (conn as any).glpi_asset_id || null,
-      glpi_asset_name: (conn as any).glpi_asset_name || '',
+      glpi_asset_id: conn.glpi_asset_id || null,
+      glpi_asset_name: conn.glpi_asset_name || '',
     });
     setEditingId(conn.id);
     setShowForm(true);
@@ -201,13 +193,19 @@ export const RustDeskPanel = () => {
     setForm(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
   };
 
-  const selectGlpiAsset = (computer: any) => {
-    setForm(prev => ({
-      ...prev,
-      glpi_asset_id: computer.id,
-      glpi_asset_name: computer.name,
-    }));
-    setGlpiSearch('');
+  const selectGlpiAsset = (assetId: string) => {
+    if (assetId === 'none') {
+      setForm(prev => ({ ...prev, glpi_asset_id: null, glpi_asset_name: '' }));
+      return;
+    }
+    const computer = glpiComputers.find((c: any) => String(c.id) === assetId);
+    if (computer) {
+      setForm(prev => ({
+        ...prev,
+        glpi_asset_id: computer.id,
+        glpi_asset_name: computer.name,
+      }));
+    }
   };
 
   return (
@@ -353,39 +351,24 @@ export const RustDeskPanel = () => {
                   <Package className="h-3 w-3" />
                   Inventário GLPI (opcional)
                 </label>
-                {form.glpi_asset_id ? (
-                  <div className="flex items-center gap-2 h-8 px-2 rounded border border-border bg-muted/30 text-sm">
-                    <Package className="h-3.5 w-3.5 text-blue-400" />
-                    <span className="truncate flex-1 text-foreground">{form.glpi_asset_name}</span>
-                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0" 
-                      onClick={() => setForm(p => ({ ...p, glpi_asset_id: null, glpi_asset_name: '' }))}>
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <Input
-                      value={glpiSearch}
-                      onChange={e => setGlpiSearch(e.target.value)}
-                      placeholder="Buscar ativo no GLPI..."
-                      className="h-8 text-sm"
-                    />
-                    {glpiSearch && filteredGlpiComputers.length > 0 && (
-                      <div className="absolute z-50 mt-1 w-full border border-border rounded-md bg-popover shadow-lg max-h-40 overflow-auto">
-                        {filteredGlpiComputers.map((comp: any) => (
-                          <button
-                            key={comp.id}
-                            className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent text-foreground flex items-center gap-2"
-                            onClick={() => selectGlpiAsset(comp)}
-                          >
-                            <Package className="h-3 w-3 text-muted-foreground" />
-                            <span>{comp.name}</span>
-                            {comp.serial && <span className="text-xs text-muted-foreground">({comp.serial})</span>}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                <Select 
+                  value={form.glpi_asset_id ? String(form.glpi_asset_id) : "none"} 
+                  onValueChange={v => selectGlpiAsset(v)}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Vincular a um ativo GLPI" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {glpiComputers.map((comp: any) => (
+                      <SelectItem key={comp.id} value={String(comp.id)}>
+                        {comp.name}{comp.serial ? ` (${comp.serial})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {glpiComputers.length === 0 && (
+                  <p className="text-[10px] text-muted-foreground mt-1">Nenhum ativo encontrado. Verifique a conexão com o GLPI.</p>
                 )}
               </div>
               <div>
@@ -530,10 +513,10 @@ export const RustDeskPanel = () => {
                             )}
                           </TableCell>
                           <TableCell>
-                            {(conn as any).glpi_asset_name ? (
+                            {conn.glpi_asset_name ? (
                               <div className="flex items-center gap-1">
                                 <Package className="h-3 w-3 text-blue-400" />
-                                <span className="text-xs text-foreground">{(conn as any).glpi_asset_name}</span>
+                                <span className="text-xs text-foreground">{conn.glpi_asset_name}</span>
                               </div>
                             ) : (
                               <span className="text-muted-foreground/50 text-xs">-</span>
