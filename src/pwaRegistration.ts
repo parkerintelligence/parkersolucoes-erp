@@ -6,6 +6,19 @@ export function registerServiceWorker() {
 
   window.addEventListener('load', async () => {
     try {
+      if (!import.meta.env.PROD) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+        }
+
+        console.log('[PWA] Development mode: service workers and caches cleared');
+        return;
+      }
+
       const registration = await navigator.serviceWorker.register('/sw.js', {
         scope: '/',
       });
