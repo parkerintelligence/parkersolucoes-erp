@@ -228,10 +228,10 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
 
   if (tickets.isLoading) {
     return (
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="border-border bg-card">
         <CardContent className="p-6">
           <div className="flex justify-center items-center h-32">
-            <div className="text-gray-400">Carregando chamados...</div>
+            <div className="text-muted-foreground">Carregando chamados...</div>
           </div>
         </CardContent>
       </Card>
@@ -240,9 +240,9 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
 
   if (tickets.error) {
     return (
-      <Card className="bg-red-900/20 border-red-700">
+      <Card className="border-destructive/30 bg-destructive/5">
         <CardContent className="p-6">
-          <div className="flex items-center gap-2 text-red-400">
+          <div className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
             <span>Erro ao carregar chamados: {tickets.error.message}</span>
           </div>
@@ -318,194 +318,159 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
   const ticketsList = filteredAndSortedTickets.slice(startIndex, endIndex);
 
   return (
-    <div className="space-y-4">
-      <Card className="bg-gray-800 border-gray-700">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-white">Chamados GLPI</CardTitle>
+    <div className="space-y-2">
+      <Card className="border-border bg-card">
+        <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
+          <CardTitle className="text-foreground text-base">Chamados GLPI</CardTitle>
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
               <input
                 type="checkbox"
                 checked={showOpenOnly}
                 onChange={(e) => setShowOpenOnly(e.target.checked)}
-                className="rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
+                className="rounded border-border bg-muted"
               />
-              Apenas chamados em aberto
+              Apenas em aberto
             </label>
             <Button 
               size="sm" 
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="h-7 text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
               onClick={() => setIsNewTicketDialogOpen(true)}
             >
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-1 h-3.5 w-3.5" />
               Novo Chamado
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {ticketsList.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
-              <Clock className="h-12 w-12 mx-auto mb-4 text-gray-500" />
-              <p className="text-lg font-medium mb-2">Nenhum chamado encontrado</p>
-              <p>Não há chamados disponíveis no momento.</p>
+            <div className="text-center py-8 text-muted-foreground">
+              <Clock className="h-10 w-10 mx-auto mb-3 opacity-40" />
+              <p className="text-sm font-medium mb-1">Nenhum chamado encontrado</p>
+              <p className="text-xs">Não há chamados disponíveis no momento.</p>
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-gray-700">
+                <TableRow className="border-border hover:bg-transparent">
                   <TableHead 
-                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort('id')}
                   >
-                    <div className="flex items-center">
-                      ID
-                      {getSortIcon('id')}
-                    </div>
+                    <div className="flex items-center">ID{getSortIcon('id')}</div>
                   </TableHead>
                   <TableHead 
-                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort('name')}
                   >
-                    <div className="flex items-center">
-                      Título
-                      {getSortIcon('name')}
-                    </div>
+                    <div className="flex items-center">Título{getSortIcon('name')}</div>
                   </TableHead>
                   <TableHead 
-                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort('technician')}
                   >
-                    <div className="flex items-center">
-                      Técnico
-                      {getSortIcon('technician')}
-                    </div>
+                    <div className="flex items-center">Técnico{getSortIcon('technician')}</div>
                   </TableHead>
                   <TableHead 
-                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort('category')}
                   >
-                    <div className="flex items-center">
-                      Categoria
-                      {getSortIcon('category')}
-                    </div>
+                    <div className="flex items-center">Categoria{getSortIcon('category')}</div>
                   </TableHead>
                   <TableHead 
-                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort('entity')}
                   >
-                    <div className="flex items-center">
-                      Entidade
-                      {getSortIcon('entity')}
-                    </div>
+                    <div className="flex items-center">Entidade{getSortIcon('entity')}</div>
                   </TableHead>
                   <TableHead 
-                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort('status')}
                   >
-                    <div className="flex items-center">
-                      Status
-                      {getSortIcon('status')}
-                    </div>
+                    <div className="flex items-center">Status{getSortIcon('status')}</div>
                   </TableHead>
                   <TableHead 
-                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort('priority')}
                   >
-                    <div className="flex items-center">
-                      Prioridade
-                      {getSortIcon('priority')}
-                    </div>
+                    <div className="flex items-center">Prioridade{getSortIcon('priority')}</div>
                   </TableHead>
                   <TableHead 
-                    className="text-gray-300 cursor-pointer hover:text-white transition-colors"
+                    className="text-muted-foreground text-xs cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort('date')}
                   >
-                    <div className="flex items-center">
-                      Data
-                      {getSortIcon('date')}
-                    </div>
+                    <div className="flex items-center">Data{getSortIcon('date')}</div>
                   </TableHead>
-                  <TableHead className="text-gray-300">Ações</TableHead>
+                  <TableHead className="text-muted-foreground text-xs text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {ticketsList.map((ticket: any) => (
-                  <TableRow key={ticket.id} className="border-gray-700">
-                    <TableCell className="text-gray-300 font-mono py-2">
+                  <TableRow key={ticket.id} className="border-border/50 hover:bg-muted/20">
+                    <TableCell className="text-muted-foreground font-mono text-[11px] py-1">
                       #{ticket.id}
                     </TableCell>
-                    <TableCell className="py-2">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-white font-medium">{ticket.name || 'Sem título'}</span>
+                    <TableCell className="py-1">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium text-foreground truncate max-w-[250px]">{ticket.name || 'Sem título'}</span>
                         {ticket.content && (
-                          <span className="text-gray-400 text-sm line-clamp-1">
+                          <span className="text-[10px] text-muted-foreground line-clamp-1 max-w-[250px]">
                             {ticket.content}
                           </span>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-300 py-2 text-sm">
+                    <TableCell className="text-muted-foreground py-1 text-[11px]">
                       {(() => {
-                        console.log('🎫 [TICKET] Renderizando técnico:', {
-                          ticketId: ticket.id,
-                          users_id_assign: ticket.users_id_assign,
-                          _users_id_assign: ticket._users_id_assign,
-                          hasUsers: !!users.data,
-                          usersCount: users.data?.length || 0
-                        });
                         return ticket.users_id_assign || ticket._users_id_assign 
                           ? getUserName(ticket.users_id_assign || ticket._users_id_assign)
-                          : <span className="text-gray-500 italic">Não atribuído</span>;
+                          : <span className="text-muted-foreground/50 italic">Não atribuído</span>;
                       })()}
                     </TableCell>
-                    <TableCell className="py-2">
+                    <TableCell className="py-1">
                       {ticket.itilcategories_id || ticket.categories_id ? (
-                        <Badge className={getCategoryColor(ticket.itilcategories_id || ticket.categories_id)}>
+                        <Badge className={`text-[10px] px-1.5 py-0 ${getCategoryColor(ticket.itilcategories_id || ticket.categories_id)}`}>
                           {getCategoryName(ticket.itilcategories_id || ticket.categories_id)}
                         </Badge>
                       ) : (
-                        <span className="text-gray-400 text-sm">-</span>
+                        <span className="text-muted-foreground/50 text-[11px]">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="py-2">
-                      <Badge className={`${getEntityColor(ticket.entities_id)}`}>
+                    <TableCell className="py-1">
+                      <Badge className={`text-[10px] px-1.5 py-0 ${getEntityColor(ticket.entities_id)}`}>
                         {getEntityName(ticket.entities_id)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-2">
-                      <Badge className={getStatusColor(ticket.status)}>
-                        <div className="flex items-center gap-1">
+                    <TableCell className="py-1">
+                      <Badge className={`text-[10px] px-1.5 py-0 ${getStatusColor(ticket.status)}`}>
+                        <div className="flex items-center gap-0.5">
                           {getStatusIcon(ticket.status)}
                           {getStatusText(ticket.status)}
                         </div>
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-2">
-                      <Badge className={getPriorityColor(ticket.priority)}>
+                    <TableCell className="py-1">
+                      <Badge className={`text-[10px] px-1.5 py-0 ${getPriorityColor(ticket.priority)}`}>
                         {getPriorityText(ticket.priority)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-gray-300 py-2">
+                    <TableCell className="text-muted-foreground py-1 text-[11px]">
                       {(() => {
                         const ticketDate = parseGLPIDate(ticket.date_creation || ticket.date);
                         if (!ticketDate) return 'N/A';
-                        
                         return (
-                          <div className="flex items-center gap-2">
-                            <span>{ticketDate.toLocaleDateString('pt-BR')}</span>
-                            <span className="text-gray-500">•</span>
-                            <span className="text-gray-400">
-                              {ticketDate.toLocaleTimeString('pt-BR', { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                              })}
+                          <span>
+                            {ticketDate.toLocaleDateString('pt-BR')}
+                            <span className="text-muted-foreground/50 ml-1">
+                              {ticketDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                             </span>
-                          </div>
+                          </span>
                         );
                       })()}
                     </TableCell>
-                    <TableCell className="py-2">
-                      <div className="flex items-center gap-2">
+                    <TableCell className="py-1 text-right">
+                      <div className="flex justify-end gap-0.5">
                         <Button
                           variant="outline"
                           size="sm"
@@ -513,19 +478,10 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                             setSelectedTicketForRemote(ticket);
                             setRemoteAccessDialogOpen(true);
                           }}
-                          className="border-gray-600 text-blue-400 hover:bg-blue-900/20"
+                          className="h-6 w-6 p-0"
                           title="Acesso Remoto"
                         >
-                          <Monitor className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setTicketToDelete(ticket)}
-                          className="border-gray-600 text-red-400 hover:bg-red-900/20"
-                          title="Excluir Chamado"
-                        >
-                          <Trash2 className="h-4 w-4" />
+                          <Monitor className="h-2.5 w-2.5" />
                         </Button>
                         {ticket.status !== 5 && ticket.status !== 6 && (
                           <Button
@@ -533,93 +489,61 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
                             size="sm"
                             onClick={() => handleCloseTicket(ticket.id)}
                             disabled={updateTicket.isPending}
-                            className="border-gray-600 text-green-400 hover:bg-green-900/20"
+                            className="h-6 w-6 p-0 text-green-500 hover:bg-green-500/10"
                             title="Encerrar Chamado"
                           >
-                            <CheckCheck className="h-4 w-4" />
+                            <CheckCheck className="h-2.5 w-2.5" />
                           </Button>
                         )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTicketToDelete(ticket)}
+                          className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                          title="Excluir Chamado"
+                        >
+                          <Trash2 className="h-2.5 w-2.5" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
 
-          {/* Controles de Paginação */}
           {ticketsList.length > 0 && (
-            <div className="mt-4 flex items-center justify-between border-t border-gray-700 pt-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-400">
-                  Exibindo {startIndex + 1} - {Math.min(endIndex, totalItems)} de {totalItems} chamados
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                {/* Select de itens por página */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-400">Registros por página:</span>
-                  <Select
-                    value={itemsPerPage.toString()}
-                    onValueChange={(value) => setItemsPerPage(Number(value))}
-                  >
-                    <SelectTrigger className="w-20 bg-gray-700 border-gray-600 text-white z-50">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-700 border-gray-600 z-50">
-                      <SelectItem value="25" className="text-white hover:bg-gray-600">25</SelectItem>
-                      <SelectItem value="50" className="text-white hover:bg-gray-600">50</SelectItem>
-                      <SelectItem value="100" className="text-white hover:bg-gray-600">100</SelectItem>
-                      <SelectItem value="200" className="text-white hover:bg-gray-600">200</SelectItem>
+            <div className="mt-2 flex items-center justify-between border-t border-border px-4 py-2">
+              <span className="text-[11px] text-muted-foreground">
+                {startIndex + 1}–{Math.min(endIndex, totalItems)} de {totalItems}
+              </span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-muted-foreground">Por página:</span>
+                  <Select value={itemsPerPage.toString()} onValueChange={(v) => setItemsPerPage(Number(v))}>
+                    <SelectTrigger className="w-16 h-6 text-[11px] bg-muted border-border"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                      <SelectItem value="200">200</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-
-                {/* Navegação de páginas */}
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
-                    title="Primeira página"
-                  >
-                    <ChevronsLeft className="h-4 w-4" />
+                <div className="flex items-center gap-0.5">
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-6 w-6 p-0" title="Primeira página">
+                    <ChevronsLeft className="h-3 w-3" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
-                    title="Página anterior"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="h-6 w-6 p-0">
+                    <ChevronLeft className="h-3 w-3" />
                   </Button>
-                  <span className="text-sm text-gray-300 px-3">
-                    Página {currentPage} de {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
-                    title="Próxima página"
-                  >
-                    <ChevronRight className="h-4 w-4" />
+                  <span className="text-[11px] text-muted-foreground px-2">{currentPage}/{totalPages}</span>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="h-6 w-6 p-0">
+                    <ChevronRight className="h-3 w-3" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={currentPage === totalPages}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
-                    title="Última página"
-                  >
-                    <ChevronsRight className="h-4 w-4" />
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-6 w-6 p-0" title="Última página">
+                    <ChevronsRight className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
@@ -630,46 +554,35 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
 
       {/* View Ticket Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-2xl bg-gray-800 border-gray-700">
+        <DialogContent className="max-w-2xl border-border bg-card">
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               Detalhes do Chamado #{selectedTicket?.id}
             </DialogTitle>
           </DialogHeader>
           {selectedTicket && (
-            <div className="space-y-4 text-gray-300">
+            <div className="space-y-4 text-muted-foreground">
               <div>
-                <label className="text-sm font-medium text-gray-400">Título:</label>
-                <p className="text-white">{selectedTicket.name || 'Sem título'}</p>
+                <label className="text-xs font-medium text-muted-foreground">Título:</label>
+                <p className="text-foreground">{selectedTicket.name || 'Sem título'}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-400">Conteúdo:</label>
-                <p className="text-white whitespace-pre-wrap">
-                  {selectedTicket.content || 'Sem conteúdo'}
-                </p>
+                <label className="text-xs font-medium text-muted-foreground">Conteúdo:</label>
+                <p className="text-foreground whitespace-pre-wrap">{selectedTicket.content || 'Sem conteúdo'}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-400">Status:</label>
-                  <Badge className={getStatusColor(selectedTicket.status)}>
-                    {getStatusText(selectedTicket.status)}
-                  </Badge>
+                  <label className="text-xs font-medium text-muted-foreground">Status:</label>
+                  <Badge className={getStatusColor(selectedTicket.status)}>{getStatusText(selectedTicket.status)}</Badge>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-400">Prioridade:</label>
-                  <Badge className={getPriorityColor(selectedTicket.priority)}>
-                    {getPriorityText(selectedTicket.priority)}
-                  </Badge>
+                  <label className="text-xs font-medium text-muted-foreground">Prioridade:</label>
+                  <Badge className={getPriorityColor(selectedTicket.priority)}>{getPriorityText(selectedTicket.priority)}</Badge>
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-400">Data de Criação:</label>
-                <p className="text-white">
-                  {(() => {
-                    const createdAt = parseGLPIDate(selectedTicket.date_creation || selectedTicket.date);
-                    return createdAt ? createdAt.toLocaleString('pt-BR') : 'N/A';
-                  })()}
-                </p>
+                <label className="text-xs font-medium text-muted-foreground">Data de Criação:</label>
+                <p className="text-foreground">{(() => { const d = parseGLPIDate(selectedTicket.date_creation || selectedTicket.date); return d ? d.toLocaleString('pt-BR') : 'N/A'; })()}</p>
               </div>
             </div>
           )}
@@ -684,26 +597,16 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!ticketToDelete} onOpenChange={() => setTicketToDelete(null)}>
-        <AlertDialogContent className="bg-gray-800 border-gray-700">
+        <AlertDialogContent className="border-border bg-card">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Confirmar Exclusão</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-300">
+            <AlertDialogTitle className="text-foreground">Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
               Tem certeza que deseja excluir o chamado #{ticketToDelete?.id} - "{ticketToDelete?.name}"?
-              Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel 
-              onClick={() => setTicketToDelete(null)}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteTicket}
-              disabled={deleteTicket.isPending}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
+            <AlertDialogCancel onClick={() => setTicketToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTicket} disabled={deleteTicket.isPending} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
               {deleteTicket.isPending ? 'Excluindo...' : 'Excluir'}
             </AlertDialogAction>
           </AlertDialogFooter>
