@@ -41,6 +41,7 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
   const [showGLPIConfirm, setShowGLPIConfirm] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ScheduleItem | null>(null);
   const { createTicket } = useGLPIExpanded();
+  const { confirm } = useConfirmDialog();
 
   const handleOpenGLPITicket = (item: ScheduleItem) => {
     setSelectedItem(item);
