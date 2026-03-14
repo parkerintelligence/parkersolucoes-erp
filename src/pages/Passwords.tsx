@@ -436,95 +436,54 @@ const Passwords = () => {
                   Adicionar Senha
                 </Button>
               </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] bg-slate-800 border-slate-700">
+            <DialogContent className="sm:max-w-[425px] border-border bg-card">
               <DialogHeader>
-                <DialogTitle className="text-white">Adicionar Nova Senha</DialogTitle>
-                <DialogDescription className="text-slate-400">Preencha os dados para adicionar uma nova senha ao cofre.</DialogDescription>
+                <DialogTitle className="text-foreground">Adicionar Nova Senha</DialogTitle>
+                <DialogDescription className="text-muted-foreground">Preencha os dados para adicionar uma nova senha ao cofre.</DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name" className="text-white">Nome do Sistema *</Label>
-                  <Input id="name" placeholder="Nome do sistema" value={formData.name} onChange={e => setFormData({
-                    ...formData,
-                    name: e.target.value
-                  })} className="bg-slate-700 border-slate-600 text-white" />
+              <div className="grid gap-3 py-3">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="name" className="text-foreground text-xs">Nome do Sistema *</Label>
+                  <Input id="name" placeholder="Nome do sistema" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="bg-background border-border h-8 text-xs" />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="company" className="text-white">Empresa Cliente</Label>
-                  <Select value={formData.company_id} onValueChange={value => setFormData({
-                    ...formData,
-                    company_id: value
-                  })}>
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                      <SelectValue placeholder="Selecione a empresa" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-700 border-slate-600">
-                      {companies.map(company => <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>)}
-                    </SelectContent>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="company" className="text-foreground text-xs">Empresa Cliente</Label>
+                  <Select value={formData.company_id} onValueChange={value => setFormData({...formData, company_id: value})}>
+                    <SelectTrigger className="bg-background border-border h-8 text-xs"><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
+                    <SelectContent>{companies.map(company => <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="url" className="text-white">URL</Label>
-                  <Input id="url" placeholder="https://..." value={formData.url} onChange={e => setFormData({
-                    ...formData,
-                    url: e.target.value
-                  })} className="bg-slate-700 border-slate-600 text-white" />
+                <div className="grid gap-1.5">
+                  <Label htmlFor="url" className="text-foreground text-xs">URL</Label>
+                  <Input id="url" placeholder="https://..." value={formData.url} onChange={e => setFormData({...formData, url: e.target.value})} className="bg-background border-border h-8 text-xs" />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="username" className="text-white">Usuário *</Label>
-                  <Input id="username" placeholder="Nome de usuário" value={formData.username} onChange={e => setFormData({
-                    ...formData,
-                    username: e.target.value
-                  })} className="bg-slate-700 border-slate-600 text-white" />
+                <div className="grid gap-1.5">
+                  <Label htmlFor="username" className="text-foreground text-xs">Usuário *</Label>
+                  <Input id="username" placeholder="Nome de usuário" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} className="bg-background border-border h-8 text-xs" />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="password" className="text-white">Senha *</Label>
-                  <Input id="password" type="password" placeholder="Senha segura" value={formData.password} onChange={e => setFormData({
-                    ...formData,
-                    password: e.target.value
-                  })} className="bg-slate-700 border-slate-600 text-white" />
+                <div className="grid gap-1.5">
+                  <Label htmlFor="password" className="text-foreground text-xs">Senha *</Label>
+                  <Input id="password" type="password" placeholder="Senha segura" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="bg-background border-border h-8 text-xs" />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="service" className="text-white">Serviço</Label>
-                  <Select value={formData.service} onValueChange={value => setFormData({
-                    ...formData,
-                    service: value
-                  })}>
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                      <SelectValue placeholder="Selecione o serviço" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-700 border-slate-600">
-                      {availableServices.map(service => <SelectItem key={service.name} value={service.name} className="text-white">
-                          <div className="flex items-center gap-2">
-                            {getServiceIcon(service.name)}
-                            {service.name}
-                          </div>
-                        </SelectItem>)}
-                    </SelectContent>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="service" className="text-foreground text-xs">Serviço</Label>
+                  <Select value={formData.service} onValueChange={value => setFormData({...formData, service: value})}>
+                    <SelectTrigger className="bg-background border-border h-8 text-xs"><SelectValue placeholder="Selecione o serviço" /></SelectTrigger>
+                    <SelectContent>{availableServices.map(service => <SelectItem key={service.name} value={service.name}><div className="flex items-center gap-2">{getServiceIcon(service.name)}{service.name}</div></SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="gera_link" checked={formData.gera_link} onCheckedChange={checked => setFormData({
-                    ...formData,
-                    gera_link: checked as boolean
-                  })} />
-                  <Label htmlFor="gera_link" className="text-white">Gerar Link na tela de Links</Label>
+                  <Checkbox id="gera_link" checked={formData.gera_link} onCheckedChange={checked => setFormData({...formData, gera_link: checked as boolean})} />
+                  <Label htmlFor="gera_link" className="text-foreground text-xs">Gerar Link na tela de Links</Label>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="notes" className="text-white">Observações</Label>
-                  <Textarea id="notes" placeholder="Observações adicionais" value={formData.notes} onChange={e => setFormData({
-                    ...formData,
-                    notes: e.target.value
-                  })} className="bg-slate-700 border-slate-600 text-white" />
+                <div className="grid gap-1.5">
+                  <Label htmlFor="notes" className="text-foreground text-xs">Observações</Label>
+                  <Textarea id="notes" placeholder="Observações adicionais" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} className="bg-background border-border text-xs" />
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSavePassword}>
-                  Salvar
-                </Button>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-slate-600 text-white hover:bg-slate-700">
-                  Cancelar
-                </Button>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleSavePassword}>Salvar</Button>
               </div>
             </DialogContent>
           </Dialog>
