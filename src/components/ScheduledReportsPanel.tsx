@@ -32,11 +32,7 @@ export const ScheduledReportsPanel = () => {
     try {
       await deleteReport.mutateAsync(id);
     } catch (error: any) {
-      toast({
-        title: "Erro ao excluir",
-        description: error.message,
-        variant: "destructive"
-      })
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" })
     }
   };
 
@@ -44,27 +40,16 @@ export const ScheduledReportsPanel = () => {
     try {
       await toggleActive.mutateAsync({ id: report.id, is_active: report.is_active });
     } catch (error: any) {
-      toast({
-        title: "Erro ao alterar status",
-        description: error.message,
-        variant: "destructive"
-      })
+      toast({ title: "Erro ao alterar status", description: error.message, variant: "destructive" })
     }
   };
 
   const handleTestReport = async (reportId: string) => {
     try {
       await testReport.mutateAsync(reportId);
-      toast({
-        title: "Teste enviado",
-        description: "O relatório de teste foi enviado para o número configurado.",
-      })
+      toast({ title: "Teste enviado", description: "O relatório de teste foi enviado para o número configurado." })
     } catch (error: any) {
-      toast({
-        title: "Erro ao testar",
-        description: error.message,
-        variant: "destructive"
-      })
+      toast({ title: "Erro ao testar", description: error.message, variant: "destructive" })
     }
   };
 
@@ -72,138 +57,103 @@ export const ScheduledReportsPanel = () => {
     setEditingReport(null);
   };
 
+  const tabs = [
+    { id: 'reports', label: 'Agendamentos', icon: Calendar },
+    { id: 'processes', label: 'Processos', icon: Cog },
+    { id: 'status', label: 'Status & Próximos', icon: BarChart3 },
+    { id: 'logs', label: 'Logs', icon: FileText },
+    { id: 'stats', label: 'Estatísticas', icon: BarChart3 },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Automação de Relatórios</h1>
-          <p className="text-gray-300">
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <Cog className="h-5 w-5 text-primary" />
+            Automação de Relatórios
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
             Gerencie relatórios automáticos enviados via WhatsApp
           </p>
         </div>
+      </div>
 
-        <div className="space-y-6">
-          {/* Custom Tab Navigation */}
-          <div className="grid w-full grid-cols-5 bg-gray-800 border-gray-700 rounded-lg p-1 gap-1">
-            <button
-              onClick={() => setActiveTab('reports')}
-              className={`flex items-center justify-center gap-2 py-3 px-4 rounded text-sm font-medium transition-colors ${
-                activeTab === 'reports' 
-                  ? 'bg-gray-700 text-white' 
-                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-              }`}
-            >
-              <Calendar className="h-4 w-4" />
-              Agendamentos
-            </button>
-            <button
-              onClick={() => setActiveTab('processes')}
-              className={`flex items-center justify-center gap-2 py-3 px-4 rounded text-sm font-medium transition-colors ${
-                activeTab === 'processes' 
-                  ? 'bg-gray-700 text-white' 
-                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-              }`}
-            >
-              <Cog className="h-4 w-4" />
-              Processos de Automação
-            </button>
-            <button
-              onClick={() => setActiveTab('status')}
-              className={`flex items-center justify-center gap-2 py-3 px-4 rounded text-sm font-medium transition-colors ${
-                activeTab === 'status' 
-                  ? 'bg-gray-700 text-white' 
-                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-              }`}
-            >
-              <BarChart3 className="h-4 w-4" />
-              Status & Próximos
-            </button>
-            <button
-              onClick={() => setActiveTab('logs')}
-              className={`flex items-center justify-center gap-2 py-3 px-4 rounded text-sm font-medium transition-colors ${
-                activeTab === 'logs' 
-                  ? 'bg-gray-700 text-white' 
-                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-              }`}
-            >
-              <FileText className="h-4 w-4" />
-              Logs de Execução
-            </button>
-            <button
-              onClick={() => setActiveTab('stats')}
-              className={`flex items-center justify-center gap-2 py-3 px-4 rounded text-sm font-medium transition-colors ${
-                activeTab === 'stats' 
-                  ? 'bg-gray-700 text-white' 
-                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-              }`}
-            >
-              <BarChart3 className="h-4 w-4" />
-              Estatísticas
-            </button>
-          </div>
-
-          {/* Tab Content */}
-          {activeTab === 'reports' && (
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <Calendar className="h-5 w-5" />
-                    Relatórios Agendados
-                  </CardTitle>
-                  <Button onClick={() => setFormOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Novo Agendamento
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ScheduledReportsTable
-                  reports={scheduledReports}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onToggleActive={handleToggleActive}
-                  onTest={handleTestReport}
-                  isTestingReport={testReport.isPending}
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {activeTab === 'processes' && (
-            <AutomationProcessesPanel />
-          )}
-
-          {activeTab === 'status' && (
-            <ReportsStatusPanel />
-          )}
-
-          {activeTab === 'logs' && (
-            <ReportsLogsPanel />
-          )}
-
-          {activeTab === 'stats' && (
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <BarChart3 className="h-5 w-5 text-blue-400" />
-                  Estatísticas Detalhadas
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <LazyAutomationStats />
-              </CardContent>
-            </Card>
-          )}
+      <div className="space-y-4">
+        {/* Tab Navigation */}
+        <div className="flex gap-1 p-1 bg-muted/50 border border-border rounded-lg">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded text-xs font-medium transition-colors flex-1 ${
+                  activeTab === tab.id
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
-        <ScheduledReportForm
-          open={formOpen}
-          onOpenChange={setFormOpen}
-          editingReport={editingReport}
-          onSuccess={handleFormSuccess}
-        />
+        {/* Tab Content */}
+        {activeTab === 'reports' && (
+          <Card className="border-border bg-card">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-foreground text-sm">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  Relatórios Agendados
+                </CardTitle>
+                <Button onClick={() => setFormOpen(true)} size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20">
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  Novo Agendamento
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ScheduledReportsTable
+                reports={scheduledReports}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onToggleActive={handleToggleActive}
+                onTest={handleTestReport}
+                isTestingReport={testReport.isPending}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'processes' && <AutomationProcessesPanel />}
+        {activeTab === 'status' && <ReportsStatusPanel />}
+        {activeTab === 'logs' && <ReportsLogsPanel />}
+
+        {activeTab === 'stats' && (
+          <Card className="border-border bg-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-foreground text-sm">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                Estatísticas Detalhadas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <LazyAutomationStats />
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      <ScheduledReportForm
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        editingReport={editingReport}
+        onSuccess={handleFormSuccess}
+      />
     </div>
   );
 };
