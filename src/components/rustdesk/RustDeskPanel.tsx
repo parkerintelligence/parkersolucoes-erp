@@ -46,6 +46,12 @@ export const RustDeskPanel = () => {
   // GLPI inventory via proxy
   const glpiExpanded = useGLPIExpanded();
   const glpiComputers = glpiExpanded.computers?.data || [];
+  const glpiEntities = glpiExpanded.entities?.data || [];
+
+  const getGlpiEntityName = (entityId: number) => {
+    const entity = glpiEntities.find((e: any) => e.id === entityId);
+    return entity?.name || '';
+  };
 
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
