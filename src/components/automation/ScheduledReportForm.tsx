@@ -276,98 +276,64 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-700 text-white">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto border-border bg-card">
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               {editingReport ? 'Editar Agendamento' : 'Novo Agendamento'}
             </DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-muted-foreground">
               Configure um relatório automático para ser enviado via WhatsApp
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
+          <div className="space-y-4 py-3">
             {/* Informações Básicas */}
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-lg text-white">Informações Básicas</CardTitle>
-                <CardDescription className="text-gray-400">
-                  Configure as informações básicas do agendamento
-                </CardDescription>
+            <Card className="border-border bg-muted/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm text-foreground">Informações Básicas</CardTitle>
+                <CardDescription className="text-muted-foreground text-xs">Configure as informações básicas do agendamento</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium text-gray-300">Nome do Agendamento *</Label>
+              <CardContent className="space-y-3">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="name" className="text-foreground text-xs">Nome do Agendamento *</Label>
                   <Input 
                     id="name" 
                     placeholder="ex: Relatório Diário de Backups"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className={`w-full bg-gray-700 border-gray-600 text-white placeholder-gray-400 ${formErrors.name ? 'border-red-500' : ''}`}
+                    className={`bg-background border-border h-8 text-xs ${formErrors.name ? 'border-destructive' : ''}`}
                   />
-                  {formErrors.name && (
-                    <p className="text-sm text-red-400 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {formErrors.name}
-                    </p>
-                  )}
+                  {formErrors.name && <p className="text-xs text-destructive flex items-center gap-1"><AlertCircle className="h-2.5 w-2.5" />{formErrors.name}</p>}
                 </div>
                 
-                <div className="space-y-2">
+                <div className="grid gap-1.5">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="report_type" className="text-sm font-medium text-gray-300">Template WhatsApp *</Label>
+                    <Label htmlFor="report_type" className="text-foreground text-xs">Template WhatsApp *</Label>
                     {!templatesLoading && activeTemplates.length === 0 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open('/whatsapp-templates', '_blank')}
-                        className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Criar Template
+                      <Button variant="outline" size="sm" onClick={() => window.open('/whatsapp-templates', '_blank')} className="h-6 text-[10px]">
+                        <Plus className="h-2.5 w-2.5 mr-1" /> Criar Template
                       </Button>
                     )}
                   </div>
-                  <Select 
-                    value={formData.report_type} 
-                    onValueChange={(value) => {
-                      console.log('🎯 Template selecionado:', value);
-                      setFormData({...formData, report_type: value});
-                      setFormErrors({...formErrors, report_type: ''});
-                    }}
-                  >
-                    <SelectTrigger className={`w-full bg-gray-700 border-gray-600 text-white ${formErrors.report_type ? 'border-red-500' : ''}`}>
+                  <Select value={formData.report_type} onValueChange={(value) => { setFormData({...formData, report_type: value}); setFormErrors({...formErrors, report_type: ''}); }}>
+                    <SelectTrigger className={`bg-background border-border h-8 text-xs ${formErrors.report_type ? 'border-destructive' : ''}`}>
                       <SelectValue placeholder="Selecione um template" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-700 border-gray-600">
+                    <SelectContent>
                       {templatesLoading ? (
-                        <div className="p-4 text-center text-gray-400">
-                          <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">Carregando templates...</p>
-                        </div>
+                        <div className="p-3 text-center text-muted-foreground"><p className="text-xs">Carregando templates...</p></div>
                       ) : activeTemplates.length === 0 ? (
-                        <div className="p-4 text-center text-gray-400">
-                          <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">Nenhum template ativo encontrado.</p>
-                          <p className="text-xs mt-1">Crie templates na página "Templates WhatsApp".</p>
-                        </div>
+                        <div className="p-3 text-center text-muted-foreground"><p className="text-xs">Nenhum template ativo encontrado.</p></div>
                       ) : (
                         activeTemplates.map((template) => {
                           const Icon = templateTypeIcons[template.template_type as keyof typeof templateTypeIcons] || MessageCircle;
-                          const isBackupAlert = template.template_type === 'backup_alert';
                           return (
-                            <SelectItem key={template.id} value={template.id} className="text-white hover:bg-gray-600">
+                            <SelectItem key={template.id} value={template.id}>
                               <div className="flex items-center gap-2">
-                                <Icon className="h-4 w-4" />
+                                <Icon className="h-3.5 w-3.5" />
                                 <div className="flex flex-col">
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-medium">{template.name}</span>
-                                    {isBackupAlert && <span className="text-xs">📂</span>}
-                                  </div>
-                                  <span className="text-xs text-gray-400">{template.subject}</span>
-                                  {isBackupAlert && (
-                                    <span className="text-xs text-amber-400">⚠️ Analisa pastas há +24h sem modificação</span>
-                                  )}
+                                  <span className="text-xs font-medium">{template.name}</span>
+                                  <span className="text-[10px] text-muted-foreground">{template.subject}</span>
                                 </div>
                               </div>
                             </SelectItem>
@@ -376,201 +342,115 @@ export const ScheduledReportForm = ({ open, onOpenChange, editingReport, onSucce
                       )}
                     </SelectContent>
                   </Select>
-                  {formErrors.report_type && (
-                    <p className="text-sm text-red-400 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {formErrors.report_type}
-                    </p>
-                  )}
+                  {formErrors.report_type && <p className="text-xs text-destructive flex items-center gap-1"><AlertCircle className="h-2.5 w-2.5" />{formErrors.report_type}</p>}
                   
                   {selectedTemplate && (
-                    <div className="mt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowTemplatePreview(true)}
-                        className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Visualizar Template Selecionado
-                      </Button>
-                    </div>
-                  )}
-                  
-                  {!templatesLoading && activeTemplates.length === 0 && (
-                    <p className="text-xs text-amber-400 mt-1">
-                      ⚠️ Configure templates ativos na página "Templates WhatsApp" para criar agendamentos.
-                    </p>
+                    <Button variant="outline" size="sm" onClick={() => setShowTemplatePreview(true)} className="w-full h-7 text-xs mt-1">
+                      <Eye className="h-3 w-3 mr-1.5" /> Visualizar Template
+                    </Button>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="phone_number" className="text-sm font-medium text-gray-300">Número WhatsApp *</Label>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="phone_number" className="text-foreground text-xs">Número WhatsApp *</Label>
                   <Input 
                     id="phone_number" 
                     placeholder="5511999999999"
                     value={formData.phone_number}
-                    onChange={(e) => {
-                      const cleaned = e.target.value.replace(/\D/g, '');
-                      setFormData({...formData, phone_number: cleaned});
-                      setFormErrors({...formErrors, phone_number: ''});
-                    }}
-                    className={`w-full bg-gray-700 border-gray-600 text-white placeholder-gray-400 ${formErrors.phone_number ? 'border-red-500' : ''}`}
+                    onChange={(e) => { const cleaned = e.target.value.replace(/\D/g, ''); setFormData({...formData, phone_number: cleaned}); setFormErrors({...formErrors, phone_number: ''}); }}
+                    className={`bg-background border-border h-8 text-xs ${formErrors.phone_number ? 'border-destructive' : ''}`}
                     maxLength={13}
                   />
-                  {formErrors.phone_number && (
-                    <p className="text-sm text-red-400 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {formErrors.phone_number}
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-500">Digite apenas números (ex: 5511999999999)</p>
+                  {formErrors.phone_number && <p className="text-xs text-destructive flex items-center gap-1"><AlertCircle className="h-2.5 w-2.5" />{formErrors.phone_number}</p>}
+                  <p className="text-[10px] text-muted-foreground">Digite apenas números (ex: 5511999999999)</p>
                 </div>
 
-                <div className="flex items-center justify-between p-4 rounded-lg border bg-gray-700 border-gray-600">
+                <div className="flex items-center justify-between p-3 rounded-md border border-border bg-background">
                   <div className="flex-1">
-                    <Label htmlFor="is_active" className="text-sm font-medium text-gray-300">Ativar agendamento</Label>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Quando ativo, o relatório será enviado automaticamente
-                    </p>
+                    <Label htmlFor="is_active" className="text-foreground text-xs">Ativar agendamento</Label>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Quando ativo, será enviado automaticamente</p>
                   </div>
-                  <Switch 
-                    id="is_active"
-                    checked={formData.is_active}
-                    onCheckedChange={(checked) => setFormData({...formData, is_active: checked})}
-                  />
+                  <Switch id="is_active" checked={formData.is_active} onCheckedChange={(checked) => setFormData({...formData, is_active: checked})} />
                 </div>
               </CardContent>
             </Card>
 
-            {/* Configuração de Horário */}
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
+            {/* Horário */}
+            <Card className="border-border bg-muted/20">
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-lg text-white">Configuração de Horário</CardTitle>
-                    <CardDescription className="text-gray-400">
-                      Defina quando o relatório deve ser enviado automaticamente
-                    </CardDescription>
+                    <CardTitle className="text-sm text-foreground">Configuração de Horário</CardTitle>
+                    <CardDescription className="text-muted-foreground text-xs">Defina quando o relatório deve ser enviado</CardDescription>
                   </div>
                   {formData.cron_expression && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-blue-400" />
-                      <span className="text-gray-300">
-                        Atual: {formatCronForDisplay(formData.cron_expression)}
-                      </span>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <Clock className="h-3 w-3 text-primary" />
+                      <span className="text-muted-foreground">Atual: {formatCronForDisplay(formData.cron_expression)}</span>
                     </div>
                   )}
                 </div>
               </CardHeader>
               <CardContent>
-                <AdvancedCronBuilder
-                  value={formData.cron_expression}
-                  onChange={handleCronChange}
-                />
-                {formErrors.cron_expression && (
-                  <p className="text-sm text-red-400 flex items-center gap-1 mt-2">
-                    <AlertCircle className="h-3 w-3" />
-                    {formErrors.cron_expression}
-                  </p>
-                )}
+                <AdvancedCronBuilder value={formData.cron_expression} onChange={handleCronChange} />
+                {formErrors.cron_expression && <p className="text-xs text-destructive flex items-center gap-1 mt-2"><AlertCircle className="h-2.5 w-2.5" />{formErrors.cron_expression}</p>}
               </CardContent>
             </Card>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-700">
-            <Button 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
-            >
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleSave} 
-              disabled={isLoading || (activeTemplates.length === 0 && !templatesLoading)}
-              className="min-w-24 bg-blue-600 hover:bg-blue-700"
-            >
-              {isLoading ? (
-                'Salvando...'
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  {editingReport ? 'Atualizar' : 'Criar'}
-                </>
-              )}
+          <div className="flex justify-end gap-2 pt-3 border-t border-border">
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancelar</Button>
+            <Button size="sm" onClick={handleSave} disabled={isLoading || (activeTemplates.length === 0 && !templatesLoading)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              {isLoading ? 'Salvando...' : (<><Save className="h-3.5 w-3.5 mr-1.5" />{editingReport ? 'Atualizar' : 'Criar'}</>)}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Template Preview Dialog */}
+      {/* Template Preview */}
       {selectedTemplate && (
         <Dialog open={showTemplatePreview} onOpenChange={setShowTemplatePreview}>
-          <DialogContent className="sm:max-w-2xl bg-gray-900 border-gray-700">
+          <DialogContent className="sm:max-w-2xl border-border bg-card">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-white">
-                <MessageCircle className="h-5 w-5" />
-                Preview do Template WhatsApp
+              <DialogTitle className="flex items-center gap-2 text-foreground text-sm">
+                <MessageCircle className="h-4 w-4 text-primary" /> Preview do Template
               </DialogTitle>
-              <DialogDescription className="text-gray-400">
-                Visualização do template que será usado no agendamento
-              </DialogDescription>
+              <DialogDescription className="text-muted-foreground text-xs">Visualização do template do agendamento</DialogDescription>
             </DialogHeader>
             
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
+            <Card className="border-border bg-muted/20">
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg text-white">{selectedTemplate.name}</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-green-600 text-white border-green-500">
-                      {selectedTemplate.is_active ? 'Ativo' : 'Inativo'}
-                    </Badge>
-                    <Badge variant="outline" className="border-gray-600 text-gray-300">
-                      {selectedTemplate.template_type}
-                    </Badge>
+                  <CardTitle className="text-sm text-foreground">{selectedTemplate.name}</CardTitle>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-green-500/30 text-green-400">{selectedTemplate.is_active ? 'Ativo' : 'Inativo'}</Badge>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{selectedTemplate.template_type}</Badge>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 <div>
-                  <Label className="text-sm font-medium text-gray-300">Assunto:</Label>
-                  <p className="text-sm bg-gray-700 p-2 rounded mt-1 text-white">{selectedTemplate.subject}</p>
+                  <Label className="text-foreground text-xs">Assunto:</Label>
+                  <p className="text-xs bg-background p-2 rounded border border-border mt-1 text-foreground">{selectedTemplate.subject}</p>
                 </div>
-                
                 <div>
-                  <Label className="text-sm font-medium text-gray-300">Conteúdo:</Label>
-                  <div className="bg-gray-700 p-3 rounded mt-1 whitespace-pre-wrap text-sm text-white">
-                    {selectedTemplate.body}
-                  </div>
+                  <Label className="text-foreground text-xs">Conteúdo:</Label>
+                  <div className="bg-background p-2.5 rounded border border-border mt-1 whitespace-pre-wrap text-xs text-foreground">{selectedTemplate.body}</div>
                 </div>
-                
                 {(selectedTemplate.template_type as string) === 'mikrotik_dashboard' && (
-                  <div className="mt-3">
-                    <Badge variant="outline" className="text-xs border-blue-500 text-blue-400">
-                      <Activity className="h-3 w-3 mr-1" />
-                      Relatório consolidado de todos os clientes Mikrotik
+                  <div className="mt-2">
+                    <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                      <Activity className="h-2.5 w-2.5 mr-1" /> Relatório consolidado Mikrotik
                     </Badge>
-                    <p className="text-xs text-gray-400 mt-2">
-                      Este relatório coleta automaticamente dados do Dashboard de todos os clientes Mikrotik cadastrados, incluindo: CPU, RAM, interfaces, DHCP, firewall, NAT, VPN e alertas.
-                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">Coleta dados de todos os clientes Mikrotik cadastrados.</p>
                   </div>
                 )}
-                
-                <div className="text-xs text-gray-400">
-                  <p>As variáveis serão substituídas automaticamente quando o relatório for enviado.</p>
-                </div>
+                <p className="text-[10px] text-muted-foreground">As variáveis serão substituídas automaticamente.</p>
               </CardContent>
             </Card>
             
             <div className="flex justify-end">
-              <Button 
-                onClick={() => setShowTemplatePreview(false)}
-                className="bg-gray-700 text-white hover:bg-gray-600"
-              >
-                Fechar
-              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowTemplatePreview(false)}>Fechar</Button>
             </div>
           </DialogContent>
         </Dialog>
