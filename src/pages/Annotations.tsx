@@ -742,7 +742,6 @@ const Annotations = () => {
           itemType="anotação"
           onConfirm={handleDeleteAnnotation}
         />
-      </div>
     </div>
   );
 };

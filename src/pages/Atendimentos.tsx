@@ -1040,7 +1040,6 @@ const Atendimentos = () => {
         setViewMode('conversations');
         setSelectedLabels([label]);
       }} />}
-      </div>
     </div>;
 };
 export default Atendimentos;

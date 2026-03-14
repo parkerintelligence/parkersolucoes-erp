@@ -734,7 +734,6 @@ const Passwords = () => {
           itemName={deleteConfirmDialog.passwordName}
           itemType="a senha"
         />
-      </div>
     </div>;
 };
 export default Passwords;
