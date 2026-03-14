@@ -343,28 +343,6 @@ export const RustDeskPanel = () => {
                   <p className="text-[10px] text-muted-foreground mt-1">Nenhum ativo encontrado. Verifique a conexão com o GLPI.</p>
                 )}
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Tags</label>
-                <div className="flex gap-2">
-                  <Input
-                    value={tagInput}
-                    onChange={e => setTagInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                    placeholder="Digite e Enter"
-                    className="h-8 text-sm"
-                  />
-                </div>
-                {form.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1.5">
-                    {form.tags.map(tag => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        {tag}
-                        <X className="h-3 w-3 ml-1 cursor-pointer" onClick={() => removeTag(tag)} />
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
 
             <div>
