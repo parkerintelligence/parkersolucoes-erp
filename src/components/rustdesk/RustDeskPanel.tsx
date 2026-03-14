@@ -301,21 +301,6 @@ export const RustDeskPanel = () => {
                   className="h-8 text-sm"
                 />
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Sistema Operacional</label>
-                <Select value={form.os_type} onValueChange={v => setForm(p => ({ ...p, os_type: v }))}>
-                  <SelectTrigger className="h-8 text-sm">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="windows">Windows</SelectItem>
-                    <SelectItem value="linux">Linux</SelectItem>
-                    <SelectItem value="macos">macOS</SelectItem>
-                    <SelectItem value="android">Android</SelectItem>
-                    <SelectItem value="other">Outro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
