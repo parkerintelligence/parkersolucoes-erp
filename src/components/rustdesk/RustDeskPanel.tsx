@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -432,9 +432,9 @@ export const RustDeskPanel = () => {
                 </TableHeader>
                 <TableBody>
                   {groupedByCompany.map(([companyId, group]) => (
-                    <>
+                    <React.Fragment key={`group-${companyId}`}>
                       {/* Company header row */}
-                      <TableRow key={`group-${companyId}`} className="border-border bg-muted/30 hover:bg-muted/30">
+                      <TableRow className="border-border bg-muted/30 hover:bg-muted/30">
                         <TableCell colSpan={5} className="py-1.5">
                           <div className="flex items-center gap-2">
                             <Building2 className="h-3.5 w-3.5 text-orange-400" />
@@ -520,7 +520,7 @@ export const RustDeskPanel = () => {
                           </TableCell>
                         </TableRow>
                       ))}
-                    </>
+                    </React.Fragment>
                   ))}
                 </TableBody>
               </Table>
