@@ -17,6 +17,7 @@ import { BaculaAdminConfig } from "@/components/BaculaAdminConfig";
 import { HostingerAdminConfig } from "@/components/HostingerAdminConfig";
 import { MikrotikAdminConfig } from "@/components/MikrotikAdminConfig";
 import UniFiAdminConfig from "@/components/UniFiAdminConfig";
+import RustDeskAdminConfig from "@/components/RustDeskAdminConfig";
 import { AdminCompaniesPanel } from "@/components/AdminCompaniesPanel";
 import SystemSettingsPanel from "@/components/SystemSettingsPanel";
 import { BrandingSettingsPanel } from "@/components/BrandingSettingsPanel";
