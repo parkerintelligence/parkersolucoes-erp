@@ -115,7 +115,7 @@ const WeeklyView = ({ schedules, companies, onEdit }: WeeklyViewProps) => {
         <div className="overflow-x-auto">
           <div className="min-w-[900px]">
             {/* Day headers */}
-            <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border sticky top-0 bg-card z-10">
+            <div className="grid grid-cols-[50px_repeat(7,1fr)] border-b border-border sticky top-0 bg-card z-10">
               <div className="p-2" /> {/* time gutter */}
               {weekDates.map((date, i) => {
                 const isToday = date.toDateString() === today;
