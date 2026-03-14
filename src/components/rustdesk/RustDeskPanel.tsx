@@ -513,10 +513,10 @@ export const RustDeskPanel = () => {
                             )}
                           </TableCell>
                           <TableCell>
-                            {(conn as any).glpi_asset_name ? (
+                            {conn.glpi_asset_name ? (
                               <div className="flex items-center gap-1">
                                 <Package className="h-3 w-3 text-blue-400" />
-                                <span className="text-xs text-foreground">{(conn as any).glpi_asset_name}</span>
+                                <span className="text-xs text-foreground">{conn.glpi_asset_name}</span>
                               </div>
                             ) : (
                               <span className="text-muted-foreground/50 text-xs">-</span>
