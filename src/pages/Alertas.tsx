@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useZabbixAPI } from '@/hooks/useZabbixAPI';
-import { RefreshCw, Wifi, WifiOff, Server, AlertTriangle, Cpu, HardDrive, Clock } from 'lucide-react';
+import { RefreshCw, Wifi, WifiOff, Server, AlertTriangle, Cpu, HardDrive, Clock, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DeviceStatus {
@@ -17,6 +17,8 @@ interface DeviceStatus {
 }
 
 export default function Alertas() {
+  const [sortColumn, setSortColumn] = React.useState<'device' | 'cpu' | 'memory' | 'uptime'>('device');
+  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
   const { useHosts, useProblems, useItems } = useZabbixAPI();
   
   const { data: hosts = [], isLoading: hostsLoading, refetch: refetchHosts } = useHosts({}, {
@@ -421,18 +423,35 @@ export default function Alertas() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-border/40">
-                  <TableHead className="text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2"><Server className="h-4 w-4" />Device</div>
-                  </TableHead>
-                  <TableHead className="text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2"><Cpu className="h-4 w-4" />CPU</div>
-                  </TableHead>
-                  <TableHead className="text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2"><HardDrive className="h-4 w-4" />Memória</div>
-                  </TableHead>
-                  <TableHead className="text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2"><Clock className="h-4 w-4" />Uptime</div>
-                  </TableHead>
+                  {([
+                    { key: 'device' as const, icon: Server, label: 'Device' },
+                    { key: 'cpu' as const, icon: Cpu, label: 'CPU' },
+                    { key: 'memory' as const, icon: HardDrive, label: 'Memória' },
+                    { key: 'uptime' as const, icon: Clock, label: 'Uptime' },
+                  ]).map(col => {
+                    const isSorted = sortColumn === col.key;
+                    const SortIcon = isSorted ? (sortDirection === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown;
+                    return (
+                      <TableHead
+                        key={col.key}
+                        className="text-sm text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors"
+                        onClick={() => {
+                          if (sortColumn === col.key) {
+                            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                          } else {
+                            setSortColumn(col.key);
+                            setSortDirection(col.key === 'device' ? 'asc' : 'desc');
+                          }
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <col.icon className="h-4 w-4" />
+                          {col.label}
+                          <SortIcon className={cn("h-3 w-3", isSorted ? "text-foreground" : "text-muted-foreground/40")} />
+                        </div>
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -442,7 +461,18 @@ export default function Alertas() {
                     const perf = getPerformanceData(device.id);
                     return { device, perf };
                   })
-                  .sort((a, b) => b.perf.uptime - a.perf.uptime)
+                  .sort((a, b) => {
+                    let valA: number | string, valB: number | string;
+                    switch (sortColumn) {
+                      case 'device': valA = a.device.name.toLowerCase(); valB = b.device.name.toLowerCase(); break;
+                      case 'cpu': valA = a.perf.cpu; valB = b.perf.cpu; break;
+                      case 'memory': valA = a.perf.memory; valB = b.perf.memory; break;
+                      case 'uptime': valA = a.perf.uptime; valB = b.perf.uptime; break;
+                      default: valA = 0; valB = 0;
+                    }
+                    const cmp = valA < valB ? -1 : valA > valB ? 1 : 0;
+                    return sortDirection === 'asc' ? cmp : -cmp;
+                  })
                   .map(({ device, perf }) => (
                     <TableRow key={device.id} className="border-border/30 hover:bg-muted/30">
                       <TableCell className="py-2.5 text-sm font-medium text-foreground">
