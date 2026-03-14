@@ -453,18 +453,18 @@ const Passwords = () => {
             <p className="text-xs text-muted-foreground mt-0.5">Gerencie credenciais de acesso de forma segura</p>
           </div>
           <div className="flex gap-2">
-            {isMaster && <Button variant="outline" onClick={exportToPDF} className="bg-blue-600 border-blue-500 text-white hover:bg-blue-700">
-                <FileDown className="mr-2 h-4 w-4" />
+            {isMaster && <Button variant="outline" onClick={exportToPDF} size="sm" className="h-8 text-xs">
+                <FileDown className="mr-1.5 h-3.5 w-3.5" />
                 Exportar PDF
               </Button>}
-            <Button variant="outline" onClick={() => setIsServiceDialogOpen(true)} className="bg-blue-600 border-blue-500 text-white hover:bg-blue-700">
-              <Settings className="mr-2 h-4 w-4" />
+            <Button variant="outline" onClick={() => setIsServiceDialogOpen(true)} size="sm" className="h-8 text-xs">
+              <Settings className="mr-1.5 h-3.5 w-3.5" />
               Gerenciar Serviços
             </Button>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                  <Plus className="mr-2 h-4 w-4" />
+                <Button size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20">
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
                   Adicionar Senha
                 </Button>
               </DialogTrigger>
