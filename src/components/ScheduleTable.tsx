@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Edit, Trash2, Calendar, Building, Search, ExternalLink, MessageCircle, AlertTriangle, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
