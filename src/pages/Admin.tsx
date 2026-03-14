@@ -1,6 +1,4 @@
-
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BomControleAdminConfig } from "@/components/BomControleAdminConfig";
@@ -38,217 +36,159 @@ import {
   Wifi,
   Router,
   Users,
-  Monitor
+  Monitor,
+  ArrowLeft,
+  Plug,
+  Cog
 } from "lucide-react";
+
+interface AdminButton {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  component: React.ComponentType;
+  description?: string;
+}
+
+const integrationButtons: AdminButton[] = [
+  { id: "chatwoot", label: "Chatwoot", icon: <MessageCircle className="h-4 w-4" />, component: ChatwootSimpleConfig, description: "Atendimento" },
+  { id: "evolution", label: "Evolution API", icon: <MessageCircle className="h-4 w-4" />, component: EvolutionAPIAdminConfig, description: "WhatsApp" },
+  { id: "wasabi", label: "Wasabi", icon: <Cloud className="h-4 w-4" />, component: WasabiAdminConfig, description: "Storage S3" },
+  { id: "grafana", label: "Grafana", icon: <BarChart3 className="h-4 w-4" />, component: GrafanaAdminConfig, description: "Dashboards" },
+  { id: "zabbix", label: "Zabbix", icon: <Shield className="h-4 w-4" />, component: ZabbixAdminConfig, description: "Monitoramento" },
+  { id: "wazuh", label: "Wazuh", icon: <Shield className="h-4 w-4" />, component: WazuhAdminConfig, description: "Segurança" },
+  { id: "ftp", label: "FTP", icon: <HardDrive className="h-4 w-4" />, component: FtpAdminConfig, description: "Transferência" },
+  { id: "glpi", label: "GLPI", icon: <Database className="h-4 w-4" />, component: GLPIConfig, description: "Helpdesk" },
+  { id: "guacamole", label: "Guacamole", icon: <Server className="h-4 w-4" />, component: GuacamoleAdminConfig, description: "Acesso Remoto" },
+  { id: "bacula", label: "Bacula", icon: <Archive className="h-4 w-4" />, component: BaculaAdminConfig, description: "Backup" },
+  { id: "hostinger", label: "Hostinger", icon: <Server className="h-4 w-4" />, component: HostingerAdminConfig, description: "VPS" },
+  { id: "bomcontrole", label: "BomControle", icon: <Activity className="h-4 w-4" />, component: BomControleAdminConfig, description: "ERP" },
+  { id: "unifi", label: "UniFi", icon: <Wifi className="h-4 w-4" />, component: UniFiAdminConfig, description: "Rede Wi-Fi" },
+  { id: "mikrotik", label: "Winbox", icon: <Router className="h-4 w-4" />, component: MikrotikAdminConfig, description: "Roteadores" },
+  { id: "rustdesk", label: "RustDesk", icon: <Monitor className="h-4 w-4" />, component: RustDeskAdminConfig, description: "Desktop Remoto" },
+];
+
+const systemButtons: AdminButton[] = [
+  { id: "users", label: "Usuários", icon: <Users className="h-4 w-4" />, component: AdminUsersPanel, description: "Gerenciar acessos" },
+  { id: "companies", label: "Empresas", icon: <Building className="h-4 w-4" />, component: AdminCompaniesPanel, description: "Cadastros" },
+  { id: "settings", label: "Configurações", icon: <Settings className="h-4 w-4" />, component: SystemSettingsPanel, description: "Parâmetros" },
+  { id: "branding", label: "Visual", icon: <Palette className="h-4 w-4" />, component: BrandingSettingsPanel, description: "Aparência" },
+];
 
 const Admin = () => {
   const [activePanel, setActivePanel] = useState("");
-
-  const integrationButtons = [
-    {
-      id: "chatwoot",
-      label: "Chatwoot",
-      icon: <MessageCircle className="h-5 w-5" />,
-      component: ChatwootSimpleConfig
-    },
-    {
-      id: "evolution",
-      label: "Evolution API",
-      icon: <MessageCircle className="h-5 w-5" />,
-      component: EvolutionAPIAdminConfig
-    },
-    {
-      id: "wasabi",
-      label: "Wasabi",
-      icon: <Cloud className="h-5 w-5" />,
-      component: WasabiAdminConfig
-    },
-    {
-      id: "grafana",
-      label: "Grafana",
-      icon: <BarChart3 className="h-5 w-5" />,
-      component: GrafanaAdminConfig
-    },
-    {
-      id: "zabbix",
-      label: "Zabbix",
-      icon: <Shield className="h-5 w-5" />,
-      component: ZabbixAdminConfig
-    },
-    {
-      id: "wazuh",
-      label: "Wazuh",
-      icon: <Shield className="h-5 w-5 text-orange-500" />,
-      component: WazuhAdminConfig
-    },
-    {
-      id: "ftp",
-      label: "FTP",
-      icon: <HardDrive className="h-5 w-5" />,
-      component: FtpAdminConfig
-    },
-    {
-      id: "glpi",
-      label: "GLPI",
-      icon: <Database className="h-5 w-5" />,
-      component: GLPIConfig
-    },
-    {
-      id: "guacamole",
-      label: "Guacamole",
-      icon: <Server className="h-5 w-5" />,
-      component: GuacamoleAdminConfig
-    },
-    {
-      id: "bacula",
-      label: "Bacula",
-      icon: <Archive className="h-5 w-5" />,
-      component: BaculaAdminConfig
-    },
-    {
-      id: "hostinger",
-      label: "Hostinger",
-      icon: <Server className="h-5 w-5 text-orange-500" />,
-      component: HostingerAdminConfig
-    },
-    {
-      id: "bomcontrole",
-      label: "BomControle",
-      icon: <Activity className="h-5 w-5" />,
-      component: BomControleAdminConfig
-    },
-    {
-      id: "unifi",
-      label: "UniFi",
-      icon: <Wifi className="h-5 w-5 text-blue-400" />,
-      component: UniFiAdminConfig
-    },
-    {
-      id: "mikrotik",
-      label: "Winbox",
-      icon: <Router className="h-5 w-5 text-cyan-400" />,
-      component: MikrotikAdminConfig
-    },
-    {
-      id: "rustdesk",
-      label: "RustDesk",
-      icon: <Monitor className="h-5 w-5 text-orange-400" />,
-      component: RustDeskAdminConfig
-    }
-  ];
-
-  const systemButtons = [
-    {
-      id: "users",
-      label: "Usuários",
-      icon: <Users className="h-5 w-5" />,
-      component: AdminUsersPanel
-    },
-    {
-      id: "companies",
-      label: "Empresas",
-      icon: <Building className="h-5 w-5" />,
-      component: AdminCompaniesPanel
-    },
-    {
-      id: "settings",
-      label: "Configurações",
-      icon: <Settings className="h-5 w-5" />,
-      component: SystemSettingsPanel
-    },
-    {
-      id: "branding",
-      label: "Visual",
-      icon: <Palette className="h-5 w-5" />,
-      component: BrandingSettingsPanel
-    }
-  ];
 
   const getActiveComponent = () => {
     const allButtons = [...integrationButtons, ...systemButtons];
     const activeButton = allButtons.find(button => button.id === activePanel);
     if (!activeButton) return null;
-    
     const Component = activeButton.component as React.ComponentType;
     return <Component />;
   };
 
+  const activeLabel = [...integrationButtons, ...systemButtons].find(b => b.id === activePanel)?.label;
+
   return (
-    <div className="min-h-screen bg-slate-900 p-4">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Administração</h1>
-            <p className="text-slate-400">Configure integrações e parâmetros do sistema</p>
-          </div>
-          <Badge variant="outline" className="text-slate-300 border-slate-600">
-            Admin Panel
-          </Badge>
-        </div>
-
-        {!activePanel ? (
-          <div className="space-y-8">
-            {/* Integrações */}
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">Integrações</CardTitle>
-                <CardDescription className="text-slate-400">
-                  Configure as integrações com serviços externos
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {integrationButtons.map((button) => (
-                    <Button
-                      key={button.id}
-                      onClick={() => setActivePanel(button.id)}
-                      className="h-24 flex flex-col items-center justify-center gap-2 bg-blue-800 hover:bg-blue-700 text-white border-0 transition-colors"
-                    >
-                      {button.icon}
-                      <span className="text-sm font-medium">{button.label}</span>
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Sistema */}
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">Sistema</CardTitle>
-                <CardDescription className="text-slate-400">
-                  Configure parâmetros e configurações do sistema
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {systemButtons.map((button) => (
-                    <Button
-                      key={button.id}
-                      onClick={() => setActivePanel(button.id)}
-                      className="h-24 flex flex-col items-center justify-center gap-2 bg-blue-800 hover:bg-blue-700 text-white border-0 transition-colors"
-                    >
-                      {button.icon}
-                      <span className="text-sm font-medium">{button.label}</span>
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          <div className="space-y-4">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          {activePanel ? (
             <Button
               onClick={() => setActivePanel("")}
-              variant="outline"
-              className="text-slate-300 border-slate-600 hover:bg-slate-800"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-muted-foreground hover:text-foreground"
             >
-              ← Voltar ao Painel Principal
+              <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+              Voltar
             </Button>
-            {getActiveComponent()}
+          ) : (
+            <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center">
+              <Cog className="h-4 w-4 text-primary" />
+            </div>
+          )}
+          <div>
+            <h1 className="text-lg font-semibold text-foreground leading-tight">
+              {activePanel ? activeLabel : 'Administração'}
+            </h1>
           </div>
-        )}
+          {!activePanel && (
+            <div className="flex items-center gap-1.5 ml-2">
+              <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-primary/10 text-primary border-0">
+                <Plug className="h-2.5 w-2.5 mr-0.5" />
+                {integrationButtons.length} integrações
+              </Badge>
+              <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-muted text-muted-foreground border-0">
+                <Cog className="h-2.5 w-2.5 mr-0.5" />
+                {systemButtons.length} sistema
+              </Badge>
+            </div>
+          )}
+        </div>
       </div>
+
+      {!activePanel ? (
+        <div className="space-y-4">
+          {/* Integrações */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Plug className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-medium text-foreground uppercase tracking-wider">Integrações</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+              {integrationButtons.map((button) => (
+                <button
+                  key={button.id}
+                  onClick={() => setActivePanel(button.id)}
+                  className="group bg-card border border-border rounded-lg p-3 text-left hover:border-primary/50 hover:bg-primary/5 transition-all duration-150"
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary/20 transition-colors">
+                      {button.icon}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">{button.label}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{button.description}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Sistema */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Cog className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-medium text-foreground uppercase tracking-wider">Sistema</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+              {systemButtons.map((button) => (
+                <button
+                  key={button.id}
+                  onClick={() => setActivePanel(button.id)}
+                  className="group bg-card border border-border rounded-lg p-3 text-left hover:border-primary/50 hover:bg-primary/5 transition-all duration-150"
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className="h-7 w-7 rounded-md bg-muted flex items-center justify-center text-muted-foreground shrink-0 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                      {button.icon}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">{button.label}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{button.description}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div>{getActiveComponent()}</div>
+      )}
     </div>
   );
 };
