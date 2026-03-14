@@ -554,46 +554,35 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
 
       {/* View Ticket Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-2xl bg-gray-800 border-gray-700">
+        <DialogContent className="max-w-2xl border-border bg-card">
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               Detalhes do Chamado #{selectedTicket?.id}
             </DialogTitle>
           </DialogHeader>
           {selectedTicket && (
-            <div className="space-y-4 text-gray-300">
+            <div className="space-y-4 text-muted-foreground">
               <div>
-                <label className="text-sm font-medium text-gray-400">Título:</label>
-                <p className="text-white">{selectedTicket.name || 'Sem título'}</p>
+                <label className="text-xs font-medium text-muted-foreground">Título:</label>
+                <p className="text-foreground">{selectedTicket.name || 'Sem título'}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-400">Conteúdo:</label>
-                <p className="text-white whitespace-pre-wrap">
-                  {selectedTicket.content || 'Sem conteúdo'}
-                </p>
+                <label className="text-xs font-medium text-muted-foreground">Conteúdo:</label>
+                <p className="text-foreground whitespace-pre-wrap">{selectedTicket.content || 'Sem conteúdo'}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-400">Status:</label>
-                  <Badge className={getStatusColor(selectedTicket.status)}>
-                    {getStatusText(selectedTicket.status)}
-                  </Badge>
+                  <label className="text-xs font-medium text-muted-foreground">Status:</label>
+                  <Badge className={getStatusColor(selectedTicket.status)}>{getStatusText(selectedTicket.status)}</Badge>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-400">Prioridade:</label>
-                  <Badge className={getPriorityColor(selectedTicket.priority)}>
-                    {getPriorityText(selectedTicket.priority)}
-                  </Badge>
+                  <label className="text-xs font-medium text-muted-foreground">Prioridade:</label>
+                  <Badge className={getPriorityColor(selectedTicket.priority)}>{getPriorityText(selectedTicket.priority)}</Badge>
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-400">Data de Criação:</label>
-                <p className="text-white">
-                  {(() => {
-                    const createdAt = parseGLPIDate(selectedTicket.date_creation || selectedTicket.date);
-                    return createdAt ? createdAt.toLocaleString('pt-BR') : 'N/A';
-                  })()}
-                </p>
+                <label className="text-xs font-medium text-muted-foreground">Data de Criação:</label>
+                <p className="text-foreground">{(() => { const d = parseGLPIDate(selectedTicket.date_creation || selectedTicket.date); return d ? d.toLocaleString('pt-BR') : 'N/A'; })()}</p>
               </div>
             </div>
           )}
