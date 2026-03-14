@@ -520,7 +520,7 @@ export const RustDeskPanel = () => {
                           </TableCell>
                         </TableRow>
                       ))}
-                    </>
+                    </React.Fragment>
                   ))}
                 </TableBody>
               </Table>
