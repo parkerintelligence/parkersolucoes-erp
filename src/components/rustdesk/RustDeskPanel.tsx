@@ -111,6 +111,9 @@ export const RustDeskPanel = () => {
       notes: conn.notes || '',
       glpi_asset_id: conn.glpi_asset_id || null,
       glpi_asset_name: conn.glpi_asset_name || '',
+      glpi_asset_serial: (conn as any).glpi_asset_serial || '',
+      glpi_asset_entity: (conn as any).glpi_asset_entity || '',
+      glpi_asset_comment: (conn as any).glpi_asset_comment || '',
     });
     setEditingId(conn.id);
     setShowForm(true);
