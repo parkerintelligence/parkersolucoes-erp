@@ -464,55 +464,55 @@ const Annotations = () => {
                   Adicionar Anotação
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] bg-slate-800 border-slate-700">
+              <DialogContent className="sm:max-w-[425px] border-border bg-card">
                 <DialogHeader>
-                  <DialogTitle className="text-white">Adicionar Nova Anotação</DialogTitle>
-                  <DialogDescription className="text-slate-400">Preencha os dados para adicionar uma nova anotação.</DialogDescription>
+                  <DialogTitle className="text-foreground">Adicionar Nova Anotação</DialogTitle>
+                  <DialogDescription className="text-muted-foreground">Preencha os dados para adicionar uma nova anotação.</DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name" className="text-white">Nome da Anotação *</Label>
+                <div className="grid gap-3 py-3">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="name" className="text-foreground text-xs">Nome da Anotação *</Label>
                     <Input 
                       id="name" 
                       placeholder="Nome da anotação"
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-background border-border h-8 text-xs"
                     />
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="company" className="text-white">Empresa Cliente</Label>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="company" className="text-foreground text-xs">Empresa Cliente</Label>
                     <Select value={formData.company_id} onValueChange={(value) => setFormData({...formData, company_id: value})}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectTrigger className="bg-background border-border h-8 text-xs">
                         <SelectValue placeholder="Selecione a empresa" />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-700 border-slate-600">
-                        <SelectItem value="none" className="text-slate-400">Nenhuma (sem empresa)</SelectItem>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhuma (sem empresa)</SelectItem>
                         {companies.map((company) => (
-                          <SelectItem key={company.id} value={company.id} className="text-white">{company.name}</SelectItem>
+                          <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="annotation" className="text-white">Anotação *</Label>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="annotation" className="text-foreground text-xs">Anotação *</Label>
                     <Textarea 
                       id="annotation" 
                       placeholder="Sua anotação aqui..."
                       value={formData.annotation}
                       onChange={(e) => setFormData({...formData, annotation: e.target.value})}
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-background border-border text-xs"
                     />
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="service" className="text-white">Serviço</Label>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="service" className="text-foreground text-xs">Serviço</Label>
                     <Select value={formData.service} onValueChange={(value) => setFormData({...formData, service: value})}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectTrigger className="bg-background border-border h-8 text-xs">
                         <SelectValue placeholder="Selecione o serviço" />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-700 border-slate-600">
+                      <SelectContent>
                         {availableServices.map((service) => (
-                          <SelectItem key={service.name} value={service.name} className="text-white">
+                          <SelectItem key={service.name} value={service.name}>
                             <div className="flex items-center gap-2">
                               {getServiceIcon(service.name)}
                               {service.name}
@@ -522,24 +522,20 @@ const Annotations = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="notes" className="text-white">Observações</Label>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="notes" className="text-foreground text-xs">Observações</Label>
                     <Textarea 
                       id="notes" 
                       placeholder="Observações adicionais"
                       value={formData.notes}
                       onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-background border-border text-xs"
                     />
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSaveAnnotation}>
-                    Salvar
-                  </Button>
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-slate-600 text-white hover:bg-slate-700">
-                    Cancelar
-                  </Button>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" size="sm" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                  <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleSaveAnnotation}>Salvar</Button>
                 </div>
               </DialogContent>
             </Dialog>
