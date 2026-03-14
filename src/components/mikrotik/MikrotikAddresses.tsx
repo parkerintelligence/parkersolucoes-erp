@@ -2,38 +2,28 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMikrotikAPI } from "@/hooks/useMikrotikAPI";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Power, PowerOff, ArrowUpDown, RefreshCw, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Pencil, Trash2, Power, PowerOff, ArrowUpDown, RefreshCw } from "lucide-react";
 import { MikrotikAddressDialog } from "./MikrotikAddressDialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { MikrotikTableFilter } from './MikrotikTableFilter';
 import { MikrotikExportActions } from './MikrotikExportActions';
 import { generateAddressesSummary } from '@/utils/mikrotikExportFormatters';
 import { MikrotikPagination } from './MikrotikPagination';
 
 interface IPAddress {
-  ".id": string;
-  address: string;
-  interface?: string;
-  network?: string;
-  disabled?: string;
-  dynamic?: string;
-  invalid?: string;
-  comment?: string;
+  ".id": string; address: string; interface?: string; network?: string; disabled?: string; dynamic?: string; invalid?: string; comment?: string;
 }
 
 export const MikrotikAddresses = () => {
   const { callAPI, loading } = useMikrotikAPI();
   const { toast } = useToast();
+  const { confirm } = useConfirmDialog();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<IPAddress | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [addressToDelete, setAddressToDelete] = useState<IPAddress | null>(null);
   const [filter, setFilter] = useState('');
   const [sortField, setSortField] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -42,298 +32,163 @@ export const MikrotikAddresses = () => {
 
   const { data: addresses = [], isLoading, refetch } = useQuery({
     queryKey: ["mikrotik-ip-addresses"],
-    queryFn: async () => {
-      const result = await callAPI("/ip/address", "GET");
-      return Array.isArray(result) ? result : [];
-    },
+    queryFn: async () => { const r = await callAPI("/ip/address", "GET"); return Array.isArray(r) ? r : []; },
     refetchInterval: 5000,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await callAPI(`/ip/address/${id}`, "DELETE");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["mikrotik-ip-addresses"] });
-      toast({
-        title: "Sucesso",
-        description: "Endereço IP excluído com sucesso",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Erro",
-        description: error.message || "Erro ao excluir endereço IP",
-        variant: "destructive",
-      });
-    },
+    mutationFn: async (id: string) => { await callAPI(`/ip/address/${id}`, "DELETE"); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["mikrotik-ip-addresses"] }); toast({ title: "Sucesso", description: "Endereço IP excluído" }); },
+    onError: (error: any) => { toast({ title: "Erro", description: error.message, variant: "destructive" }); },
   });
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, disabled }: { id: string; disabled: boolean }) => {
       await callAPI(`/ip/address/${id}`, "PATCH", { disabled: disabled ? "false" : "true" });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["mikrotik-ip-addresses"] });
-      toast({
-        title: "Sucesso",
-        description: "Status atualizado com sucesso",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Erro",
-        description: error.message || "Erro ao atualizar status",
-        variant: "destructive",
-      });
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["mikrotik-ip-addresses"] }); toast({ title: "Sucesso", description: "Status atualizado" }); },
+    onError: (error: any) => { toast({ title: "Erro", description: error.message, variant: "destructive" }); },
   });
 
   const handleEdit = (address: IPAddress) => {
-    if (address.dynamic === "true") {
-      toast({
-        title: "Aviso",
-        description: "Endereços dinâmicos não podem ser editados",
-        variant: "destructive",
-      });
-      return;
-    }
-    setEditingAddress(address);
-    setDialogOpen(true);
+    if (address.dynamic === "true") { toast({ title: "Aviso", description: "Endereços dinâmicos não podem ser editados", variant: "destructive" }); return; }
+    setEditingAddress(address); setDialogOpen(true);
   };
 
-  const handleDelete = (address: IPAddress) => {
-    if (address.dynamic === "true") {
-      toast({
-        title: "Aviso",
-        description: "Endereços dinâmicos não podem ser excluídos",
-        variant: "destructive",
-      });
-      return;
-    }
-    setAddressToDelete(address);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (addressToDelete) {
-      deleteMutation.mutate(addressToDelete[".id"]);
-      setDeleteDialogOpen(false);
-      setAddressToDelete(null);
-    }
+  const handleDelete = async (address: IPAddress) => {
+    if (address.dynamic === "true") { toast({ title: "Aviso", description: "Endereços dinâmicos não podem ser excluídos", variant: "destructive" }); return; }
+    const ok = await confirm({ title: 'Excluir endereço IP', description: `Excluir "${address.address}"?`, variant: 'destructive', icon: 'trash' });
+    if (ok) deleteMutation.mutate(address[".id"]);
   };
 
   const handleToggle = (address: IPAddress) => {
-    if (address.dynamic === "true") {
-      toast({
-        title: "Aviso",
-        description: "Endereços dinâmicos não podem ser desabilitados",
-        variant: "destructive",
-      });
-      return;
-    }
-    toggleMutation.mutate({
-      id: address[".id"],
-      disabled: address.disabled === "true",
-    });
+    if (address.dynamic === "true") { toast({ title: "Aviso", description: "Endereços dinâmicos não podem ser desabilitados", variant: "destructive" }); return; }
+    toggleMutation.mutate({ id: address[".id"], disabled: address.disabled === "true" });
   };
 
   const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
+    if (sortField === field) setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDirection('asc'); }
   };
 
   const filteredAndSortedAddresses = useMemo(() => {
-    let filtered = addresses.filter((addr: IPAddress) => {
-      const searchTerm = filter.toLowerCase();
-      return (
-        addr.address?.toLowerCase().includes(searchTerm) ||
-        addr.interface?.toLowerCase().includes(searchTerm) ||
-        addr.network?.toLowerCase().includes(searchTerm) ||
-        addr.comment?.toLowerCase().includes(searchTerm)
-      );
+    let filtered = addresses.filter((a: IPAddress) => {
+      const t = filter.toLowerCase();
+      return a.address?.toLowerCase().includes(t) || a.interface?.toLowerCase().includes(t) || a.network?.toLowerCase().includes(t) || a.comment?.toLowerCase().includes(t);
     });
-
     if (sortField) {
       filtered.sort((a: any, b: any) => {
-        const aVal = a[sortField] || '';
-        const bVal = b[sortField] || '';
-        const comparison = aVal.toString().localeCompare(bVal.toString());
-        return sortDirection === 'asc' ? comparison : -comparison;
+        const c = (a[sortField] || '').toString().localeCompare((b[sortField] || '').toString());
+        return sortDirection === 'asc' ? c : -c;
       });
     }
-
     return filtered;
   }, [addresses, filter, sortField, sortDirection]);
 
-  // Calcular paginação
   const totalItems = filteredAndSortedAddresses.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedAddresses = filteredAndSortedAddresses.slice(startIndex, endIndex);
 
-  // Reset para primeira página quando filtros mudarem
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filter, sortField, sortDirection, itemsPerPage]);
+  useEffect(() => { setCurrentPage(1); }, [filter, sortField, sortDirection, itemsPerPage]);
 
   const getStatusBadge = (address: IPAddress) => {
-    if (address.invalid === "true") {
-      return <Badge className="bg-yellow-600/80 text-white">Inválido</Badge>;
-    }
-    if (address.dynamic === "true") {
-      return <Badge className="bg-blue-600/80 text-white">Dinâmico</Badge>;
-    }
-    if (address.disabled === "true") {
-      return <Badge className="bg-red-600/80 text-white">Desabilitado</Badge>;
-    }
-    return <Badge className="bg-green-600/80 text-white">Ativo</Badge>;
+    if (address.invalid === "true") return { label: 'Inválido', cls: 'border-amber-500/30 text-amber-400 bg-amber-500/10' };
+    if (address.dynamic === "true") return { label: 'Dinâmico', cls: 'border-primary/30 text-primary bg-primary/10' };
+    if (address.disabled === "true") return { label: 'Desabilitado', cls: 'border-destructive/30 text-destructive bg-destructive/10' };
+    return { label: 'Ativo', cls: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' };
   };
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <div className="flex flex-row items-center justify-between mb-4">
-            <CardTitle>Endereços IP</CardTitle>
-            <div className="flex gap-2">
-              <MikrotikExportActions
-                data={addresses || []}
-                filteredData={filteredAndSortedAddresses}
-                columns={[
-                  { key: 'address', label: 'Endereço' },
-                  { key: 'interface', label: 'Interface' },
-                  { key: 'network', label: 'Rede' },
-                  { key: 'comment', label: 'Comentário' },
-                  { key: 'disabled', label: 'Status', formatter: (val) => val === 'true' ? '❌ Desabilitado' : '✅ Ativo' }
-                ]}
-                gridTitle="Endereços IP"
-                getSummary={() => generateAddressesSummary(filteredAndSortedAddresses)}
-              />
-              <Button onClick={() => { setEditingAddress(null); setDialogOpen(true); }}>
-                <Plus className="mr-2 h-4 w-4" />
-                Novo IP
-              </Button>
-              <Button onClick={() => refetch()} disabled={isLoading} variant="outline">
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-          </div>
-          <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar endereços IP..." />
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <p className="text-center py-8 text-muted-foreground">Carregando...</p>
-          ) : filteredAndSortedAddresses.length === 0 && addresses.length > 0 ? (
-            <p className="text-center py-8 text-muted-foreground">Nenhum endereço encontrado com o filtro aplicado</p>
-          ) : addresses.length === 0 ? (
-            <p className="text-center py-8 text-muted-foreground">Nenhum endereço IP cadastrado</p>
-              ) : (
-                <>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="hover:bg-slate-700/30">
-                      <TableHead className="text-slate-300">
-                    <Button variant="ghost" size="sm" onClick={() => handleSort('address')} className="h-8 px-2">
-                      Endereço
-                      <ArrowUpDown className="ml-2 h-3 w-3" />
-                    </Button>
-                  </TableHead>
-                  <TableHead className="text-slate-300">Interface</TableHead>
-                  <TableHead className="text-slate-300">Rede</TableHead>
-                  <TableHead className="text-slate-300">Status</TableHead>
-                  <TableHead className="text-slate-300">Comentário</TableHead>
-                  <TableHead className="text-slate-300 text-right">Ações</TableHead>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-foreground">Endereços IP</h3>
+          <p className="text-[10px] text-muted-foreground">{totalItems} endereços</p>
+        </div>
+        <div className="flex gap-1.5">
+          <MikrotikExportActions data={addresses || []} filteredData={filteredAndSortedAddresses}
+            columns={[
+              { key: 'address', label: 'Endereço' }, { key: 'interface', label: 'Interface' },
+              { key: 'network', label: 'Rede' }, { key: 'comment', label: 'Comentário' },
+              { key: 'disabled', label: 'Status', formatter: (val) => val === 'true' ? 'Desabilitado' : 'Ativo' },
+            ]}
+            gridTitle="Endereços IP" getSummary={() => generateAddressesSummary(filteredAndSortedAddresses)}
+          />
+          <Button onClick={() => { setEditingAddress(null); setDialogOpen(true); }} size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Plus className="h-3.5 w-3.5 mr-1.5" /> Novo IP
+          </Button>
+          <Button onClick={() => refetch()} disabled={isLoading} size="sm" variant="outline" className="h-8 text-xs">
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+      </div>
+
+      <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar endereços IP..." />
+
+      <div className="rounded-lg border border-border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-border hover:bg-transparent">
+              <TableHead className="text-muted-foreground text-xs h-8 px-3">
+                <Button variant="ghost" size="sm" onClick={() => handleSort('address')} className="h-6 px-1 text-[10px] text-muted-foreground">
+                  Endereço <ArrowUpDown className="ml-1 h-2.5 w-2.5" />
+                </Button>
+              </TableHead>
+              <TableHead className="text-muted-foreground text-xs h-8 px-3">Interface</TableHead>
+              <TableHead className="text-muted-foreground text-xs h-8 px-3">Rede</TableHead>
+              <TableHead className="text-muted-foreground text-xs h-8 px-3">Status</TableHead>
+              <TableHead className="text-muted-foreground text-xs h-8 px-3">Comentário</TableHead>
+              <TableHead className="text-muted-foreground text-xs h-8 px-3 w-24">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedAddresses.map((address) => {
+              const status = getStatusBadge(address);
+              return (
+                <TableRow key={address[".id"]} className="border-border hover:bg-muted/30 group">
+                  <TableCell className="py-1.5 px-3 text-xs font-medium text-foreground">{address.address}</TableCell>
+                  <TableCell className="py-1.5 px-3 text-xs text-muted-foreground">{address.interface || "-"}</TableCell>
+                  <TableCell className="py-1.5 px-3 text-xs text-muted-foreground">{address.network || "-"}</TableCell>
+                  <TableCell className="py-1.5 px-3">
+                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${status.cls}`}>{status.label}</Badge>
+                  </TableCell>
+                  <TableCell className="py-1.5 px-3 text-[10px] text-muted-foreground">{address.comment || "-"}</TableCell>
+                  <TableCell className="py-1.5 px-3">
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="sm" onClick={() => handleToggle(address)} disabled={address.dynamic === "true"}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-primary">
+                        {address.disabled === "true" ? <Power className="h-3 w-3" /> : <PowerOff className="h-3 w-3" />}
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(address)} disabled={address.dynamic === "true"}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-primary">
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(address)} disabled={address.dynamic === "true"}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive">
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedAddresses.map((address) => (
-                  <TableRow key={address[".id"]} className="hover:bg-slate-700/50">
-                    <TableCell className="font-medium text-slate-200">{address.address}</TableCell>
-                    <TableCell className="text-slate-200">{address.interface || "-"}</TableCell>
-                    <TableCell className="text-slate-200">{address.network || "-"}</TableCell>
-                    <TableCell>{getStatusBadge(address)}</TableCell>
-                    <TableCell className="text-slate-400 text-sm">{address.comment || "-"}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="outline"
-                          size="xs"
-                          onClick={() => handleToggle(address)}
-                          disabled={loading || address.dynamic === "true"}
-                          className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                        >
-                          {address.disabled === "true" ? (
-                            <Power className="h-3 w-3" />
-                          ) : (
-                            <PowerOff className="h-3 w-3" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="xs"
-                          onClick={() => handleEdit(address)}
-                          disabled={address.dynamic === "true"}
-                          className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="xs"
-                          onClick={() => handleDelete(address)}
-                          disabled={address.dynamic === "true"}
-                          className="border-red-600/50 text-red-400 hover:bg-red-600/20"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
 
-            <MikrotikPagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              itemsPerPage={itemsPerPage}
-              totalItems={totalItems}
-              startIndex={startIndex}
-              endIndex={endIndex}
-              onPageChange={setCurrentPage}
-              onItemsPerPageChange={setItemsPerPage}
-            />
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <MikrotikPagination currentPage={currentPage} totalPages={totalPages} itemsPerPage={itemsPerPage}
+        totalItems={totalItems} startIndex={startIndex} endIndex={endIndex}
+        onPageChange={setCurrentPage} onItemsPerPageChange={setItemsPerPage} />
 
-      <MikrotikAddressDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        address={editingAddress}
-      />
+      {isLoading && addresses.length === 0 && (
+        <div className="flex items-center justify-center h-96">
+          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        </div>
+      )}
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o endereço IP "{addressToDelete?.address}"? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+      <MikrotikAddressDialog open={dialogOpen} onOpenChange={setDialogOpen} address={editingAddress} />
+    </div>
   );
 };
