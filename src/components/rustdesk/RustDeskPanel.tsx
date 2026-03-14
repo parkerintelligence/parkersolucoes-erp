@@ -100,9 +100,7 @@ export const RustDeskPanel = () => {
       alias: conn.alias || '',
       company_id: conn.company_id || '',
       hostname: conn.hostname || '',
-      os_type: conn.os_type || '',
       notes: conn.notes || '',
-      tags: conn.tags || [],
       glpi_asset_id: conn.glpi_asset_id || null,
       glpi_asset_name: conn.glpi_asset_name || '',
     });
