@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Clock, Calendar, Edit, Trash2, Power, PowerOff, Building, MapPin } from 'lucide-react';
 import { useRecurringSchedules, useDeleteRecurringSchedule, useUpdateRecurringSchedule } from '@/hooks/useRecurringSchedules';
 import { useCompanies } from '@/hooks/useCompanies';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
 type RecurringSchedule = Tables<'recurring_schedules'>;
