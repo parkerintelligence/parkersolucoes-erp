@@ -487,9 +487,24 @@ export const RustDeskPanel = () => {
                           </TableCell>
                           <TableCell>
                             {conn.glpi_asset_name ? (
-                              <div className="flex items-center gap-1">
-                                <Package className="h-3 w-3 text-blue-400" />
-                                <span className="text-xs text-foreground">{conn.glpi_asset_name}</span>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1">
+                                  <Package className="h-3 w-3 text-blue-400 flex-shrink-0" />
+                                  <span className="text-xs font-medium text-foreground">{conn.glpi_asset_name}</span>
+                                </div>
+                                {((conn as any).glpi_asset_serial || (conn as any).glpi_asset_entity || (conn as any).glpi_asset_comment) && (
+                                  <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
+                                    {(conn as any).glpi_asset_serial && (
+                                      <div>S/N: {(conn as any).glpi_asset_serial}</div>
+                                    )}
+                                    {(conn as any).glpi_asset_entity && (
+                                      <div className="text-blue-400/70">{(conn as any).glpi_asset_entity}</div>
+                                    )}
+                                    {(conn as any).glpi_asset_comment && (
+                                      <div className="italic">{(conn as any).glpi_asset_comment.substring(0, 60)}{(conn as any).glpi_asset_comment.length > 60 ? '...' : ''}</div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             ) : (
                               <span className="text-muted-foreground/50 text-xs">-</span>
