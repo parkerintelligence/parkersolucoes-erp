@@ -1,19 +1,22 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Link, ExternalLink, Search, Eye, EyeOff, Download } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Link, ExternalLink, Search, Eye, EyeOff, LayoutGrid, TreePine, Building, Globe } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { LinksTreeView } from '@/components/LinksTreeView';
 
 const Links = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCompany, setSelectedCompany] = useState('');
+  const [selectedCompany, setSelectedCompany] = useState('all');
   const [visibleCards, setVisibleCards] = useState<Record<string, boolean>>({});
+  const [viewMode, setViewMode] = useState<'grid' | 'tree'>('grid');
 
-  // Buscar senhas que geram links
   const { data: passwords = [], isLoading: passwordsLoading } = useQuery({
     queryKey: ['passwords-links'],
     queryFn: async () => {
@@ -22,13 +25,11 @@ const Links = () => {
         .select('*')
         .eq('gera_link', true)
         .order('created_at', { ascending: false });
-
       if (error) throw error;
       return data || [];
     },
   });
 
-  // Buscar empresas
   const { data: companies = [], isLoading: companiesLoading } = useQuery({
     queryKey: ['companies-links'],
     queryFn: async () => {
@@ -36,7 +37,6 @@ const Links = () => {
         .from('companies')
         .select('*')
         .order('name');
-
       if (error) throw error;
       return data || [];
     },
@@ -44,166 +44,208 @@ const Links = () => {
 
   const isLoading = passwordsLoading || companiesLoading;
 
-  // Filtrar links
   const filteredLinks = passwords.filter(link => {
     const company = companies.find(c => c.id === link.company_id);
     const matchesSearch = link.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          company?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          link.username?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCompany = selectedCompany === '' || selectedCompany === 'all' || link.company_id === selectedCompany;
+    const matchesCompany = selectedCompany === 'all' || link.company_id === selectedCompany;
     return matchesSearch && matchesCompany;
   });
 
   const toggleCardVisibility = (linkId: string) => {
-    setVisibleCards(prev => ({
-      ...prev,
-      [linkId]: !prev[linkId]
-    }));
+    setVisibleCards(prev => ({ ...prev, [linkId]: !prev[linkId] }));
   };
 
   const handleOpenLink = (url: string) => {
     if (url) {
       window.open(url, '_blank', 'noopener,noreferrer');
     } else {
-      toast({
-        title: "URL não encontrada",
-        description: "Este link não possui uma URL válida.",
-        variant: "destructive"
-      });
+      toast({ title: "URL não encontrada", description: "Este link não possui uma URL válida.", variant: "destructive" });
     }
   };
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <div className="text-muted-foreground">Carregando links...</div>
+        <div className="text-muted-foreground text-sm">Carregando links...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 p-4 bg-slate-900 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-white">Links de Acesso</h1>
-          <p className="text-slate-400 text-sm">Gerencie seus links de sistemas</p>
-        </div>
-      </div>
-
-      {/* Filtros */}
-      <div className="bg-slate-800 rounded-lg p-3 border border-slate-700">
-        <div className="flex items-center gap-3 text-xs">
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-2 top-1.5 h-3 w-3 text-slate-400" />
-            <Input 
-              placeholder="Buscar..." 
-              value={searchTerm} 
-              onChange={e => setSearchTerm(e.target.value)} 
-              className="pl-7 h-7 text-xs bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" 
-            />
+    <TooltipProvider>
+      <div className="space-y-3 p-3">
+        {/* Header compacto */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Link className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-base font-semibold text-foreground">Links de Acesso</h1>
+              <p className="text-xs text-muted-foreground">Gerencie seus links de sistemas</p>
+            </div>
           </div>
-          
-          <select 
-            value={selectedCompany} 
-            onChange={(e) => setSelectedCompany(e.target.value)}
-            className="h-7 w-32 text-xs bg-slate-700 border-slate-600 text-white rounded px-2"
-          >
-            <option value="all">Todas</option>
-            {companies.map(company => (
-              <option key={company.id} value={company.id}>{company.name}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+              {filteredLinks.length} links
+            </Badge>
+            <div className="flex border border-border rounded-md overflow-hidden">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className="h-7 w-7 p-0 rounded-none"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant={viewMode === 'tree' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('tree')}
+                className="h-7 w-7 p-0 rounded-none"
+              >
+                <TreePine className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Lista de Links */}
-      <div className="mt-4">
-        {filteredLinks.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredLinks.map(link => {
-              const company = companies.find(c => c.id === link.company_id);
-              const isVisible = visibleCards[link.id];
-              
-              return (
-                <Card key={link.id} className="bg-slate-800 border-slate-700 hover:bg-slate-750 transition-colors">
-                  <CardContent className="p-4">
-                    {/* Header do card */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="text-blue-400">
-                        <Link className="h-4 w-4" />
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => toggleCardVisibility(link.id)} 
-                        className="h-6 w-6 p-0 border-slate-600 hover:bg-slate-700"
-                      >
-                        {isVisible ? <EyeOff className="h-3 w-3 text-slate-400" /> : <Eye className="h-3 w-3 text-slate-400" />}
-                      </Button>
-                    </div>
+        {/* Filtros compactos */}
+        <div className="bg-card rounded-lg p-2 border border-border">
+          <div className="flex items-center gap-2 text-xs">
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-2 top-1.5 h-3 w-3 text-muted-foreground" />
+              <Input
+                placeholder="Buscar link, empresa ou usuário..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="pl-7 h-7 text-xs bg-background border-border"
+              />
+            </div>
+            <select
+              value={selectedCompany}
+              onChange={(e) => setSelectedCompany(e.target.value)}
+              className="h-7 text-xs bg-background border border-border text-foreground rounded-md px-2"
+            >
+              <option value="all">Todas empresas</option>
+              {companies.map(company => (
+                <option key={company.id} value={company.id}>{company.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-                    {/* Título e empresa */}
-                    <div className="space-y-2 mb-3">
-                      <h3 className="font-medium text-white text-sm">{link.name}</h3>
-                      <p className="text-slate-400 text-xs">{company?.name || 'Sem empresa'}</p>
-                      {link.url && (
-                        <p className="text-blue-400 text-xs truncate" title={link.url}>
-                          {link.url}
-                        </p>
-                      )}
-                    </div>
+        {/* Conteúdo */}
+        {viewMode === 'tree' ? (
+          <LinksTreeView />
+        ) : filteredLinks.length > 0 ? (
+          <div className="bg-card rounded-lg border border-border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="text-xs h-8 text-muted-foreground font-medium">Nome</TableHead>
+                  <TableHead className="text-xs h-8 text-muted-foreground font-medium">Empresa</TableHead>
+                  <TableHead className="text-xs h-8 text-muted-foreground font-medium">URL</TableHead>
+                  <TableHead className="text-xs h-8 text-muted-foreground font-medium">Serviço</TableHead>
+                  <TableHead className="text-xs h-8 text-muted-foreground font-medium text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredLinks.map(link => {
+                  const company = companies.find(c => c.id === link.company_id);
+                  const isVisible = visibleCards[link.id];
 
-                    {/* Credenciais (se visível) */}
-                    {isVisible && (
-                      <div className="space-y-1 mb-3 text-xs">
-                        {link.username && (
-                          <p className="text-slate-400">
-                            <span className="text-slate-500">User:</span> {link.username}
-                          </p>
-                        )}
-                        {link.password && (
-                          <p className="text-slate-400">
-                            <span className="text-slate-500">Pass:</span> {link.password}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    
-                    {/* Botão para abrir link */}
-                    <div className="flex justify-center">
-                      <Button 
-                        className="flex-1 h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white" 
-                        onClick={() => handleOpenLink(link.url)}
-                      >
-                        <ExternalLink className="mr-1 h-3 w-3" />
-                        Abrir
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  return (
+                    <Tooltip key={link.id}>
+                      <TooltipTrigger asChild>
+                        <TableRow className="border-border hover:bg-muted/30 cursor-pointer">
+                          <TableCell className="text-xs py-1.5 font-medium text-foreground">
+                            <div className="flex items-center gap-2">
+                              <Globe className="h-3.5 w-3.5 text-primary shrink-0" />
+                              {link.name}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs py-1.5 text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <Building className="h-3 w-3 shrink-0" />
+                              {company?.name || 'Sem empresa'}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs py-1.5">
+                            {link.url ? (
+                              <button
+                                onClick={() => handleOpenLink(link.url)}
+                                className="text-primary hover:underline truncate max-w-[200px] block text-left"
+                                title={link.url}
+                              >
+                                {link.url}
+                              </button>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs py-1.5">
+                            {link.service ? (
+                              <Badge variant="outline" className="text-[10px] bg-muted/50 border-border">
+                                {link.service}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs py-1.5 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); toggleCardVisibility(link.id); }}
+                                className="h-6 w-6 p-0 hover:bg-muted"
+                              >
+                                {isVisible ? <EyeOff className="h-3 w-3 text-muted-foreground" /> : <Eye className="h-3 w-3 text-muted-foreground" />}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); handleOpenLink(link.url); }}
+                                className="h-6 w-6 p-0 hover:bg-muted text-primary"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" align="start" className="text-xs max-w-sm">
+                        <div className="space-y-1">
+                          {link.username && <p><span className="text-muted-foreground">Usuário:</span> {isVisible ? link.username : '••••••'}</p>}
+                          {link.password && <p><span className="text-muted-foreground">Senha:</span> {isVisible ? link.password : '••••••'}</p>}
+                          {link.notes && <p><span className="text-muted-foreground">Notas:</span> {link.notes}</p>}
+                          {!link.username && !link.password && !link.notes && <p className="text-muted-foreground">Sem credenciais cadastradas</p>}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </div>
         ) : (
-          <Card className="border-dashed border-slate-600 bg-slate-800">
-            <CardContent className="p-8">
-              <div className="text-center text-slate-400">
-                <div className="bg-slate-700 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Link className="h-8 w-8 opacity-50" />
-                </div>
-                <h3 className="text-lg font-medium mb-2 text-white">
-                  Nenhum link encontrado
-                </h3>
-                <p className="text-slate-400 text-sm max-w-md mx-auto">
-                  Configure senhas com "Gerar Link" ativado para visualizar os sistemas de acesso aqui.
-                </p>
+          <div className="bg-card rounded-lg border border-dashed border-border p-8">
+            <div className="text-center text-muted-foreground">
+              <div className="bg-muted w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Link className="h-6 w-6 opacity-50" />
               </div>
-            </CardContent>
-          </Card>
+              <h3 className="text-sm font-medium mb-1 text-foreground">Nenhum link encontrado</h3>
+              <p className="text-xs max-w-md mx-auto">
+                Configure senhas com "Gerar Link" ativado para visualizar os sistemas de acesso aqui.
+              </p>
+            </div>
+          </div>
         )}
       </div>
-    </div>
+    </TooltipProvider>
   );
 };
 
