@@ -130,6 +130,9 @@ export const RustDeskPanel = () => {
       company_id: form.company_id || null,
       glpi_asset_id: form.glpi_asset_id || null,
       glpi_asset_name: form.glpi_asset_name || null,
+      glpi_asset_serial: form.glpi_asset_serial || null,
+      glpi_asset_entity: form.glpi_asset_entity || null,
+      glpi_asset_comment: form.glpi_asset_comment || null,
     } as any;
 
     if (editingId) {
