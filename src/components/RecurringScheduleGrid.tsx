@@ -29,6 +29,7 @@ export const RecurringScheduleGrid = ({ onEdit }: RecurringScheduleGridProps) =>
   const { data: companies = [] } = useCompanies();
   const deleteSchedule = useDeleteRecurringSchedule();
   const updateSchedule = useUpdateRecurringSchedule();
+  const { confirm } = useConfirmDialog();
 
   const getCompanyName = (clientId: string | null) => {
     if (!clientId) return null;
