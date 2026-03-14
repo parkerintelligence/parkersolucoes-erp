@@ -492,16 +492,16 @@ export const RustDeskPanel = () => {
                                   <Package className="h-3 w-3 text-blue-400 flex-shrink-0" />
                                   <span className="text-xs font-medium text-foreground">{conn.glpi_asset_name}</span>
                                 </div>
-                                {((conn as any).glpi_asset_serial || (conn as any).glpi_asset_entity || (conn as any).glpi_asset_comment) && (
+                                {(conn.glpi_asset_serial || conn.glpi_asset_entity || conn.glpi_asset_comment) && (
                                   <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
-                                    {(conn as any).glpi_asset_serial && (
-                                      <div>S/N: {(conn as any).glpi_asset_serial}</div>
+                                    {conn.glpi_asset_serial && (
+                                      <div>S/N: {conn.glpi_asset_serial}</div>
                                     )}
-                                    {(conn as any).glpi_asset_entity && (
-                                      <div className="text-blue-400/70">{(conn as any).glpi_asset_entity}</div>
+                                    {conn.glpi_asset_entity && (
+                                      <div className="text-blue-400/70">{conn.glpi_asset_entity}</div>
                                     )}
-                                    {(conn as any).glpi_asset_comment && (
-                                      <div className="italic">{(conn as any).glpi_asset_comment.substring(0, 60)}{(conn as any).glpi_asset_comment.length > 60 ? '...' : ''}</div>
+                                    {conn.glpi_asset_comment && (
+                                      <div className="italic">{conn.glpi_asset_comment.substring(0, 60)}{conn.glpi_asset_comment.length > 60 ? '...' : ''}</div>
                                     )}
                                   </div>
                                 )}
