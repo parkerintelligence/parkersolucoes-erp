@@ -18,7 +18,7 @@ import {
   RustDeskConnection,
 } from '@/hooks/useRustDesk';
 import { useCompanies } from '@/hooks/useCompanies';
-import { useGLPIExpanded } from '@/hooks/useGLPIExpanded';
+import { useGLPI } from '@/hooks/useGLPI';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { toast } from '@/hooks/use-toast';
 
