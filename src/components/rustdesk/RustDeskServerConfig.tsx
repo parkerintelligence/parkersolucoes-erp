@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 
 interface Props {
   onClose: () => void;
+  embedded?: boolean;
 }
 
 export const RustDeskServerConfig = ({ onClose }: Props) => {
