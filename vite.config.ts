@@ -18,11 +18,11 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ['react', 'react-dom', 'react/jsx-runtime']
+    dedupe: ['react', 'react-dom', 'react/jsx-runtime', '@tanstack/react-query']
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'],
-    force: true // Force re-optimization on every start
+    include: ['react', 'react-dom', '@tanstack/react-query'],
+    force: true
   },
   build: {
     // Clear output dir to prevent stale chunks
