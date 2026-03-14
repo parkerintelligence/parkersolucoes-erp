@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useMikrotikAPI } from "@/hooks/useMikrotikAPI";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, FileText, AlertCircle, Info, AlertTriangle, Search, X } from "lucide-react";
@@ -20,194 +19,124 @@ export const MikrotikLogs = () => {
 
   const { data: logs = [], refetch } = useQuery({
     queryKey: ["mikrotik-logs"],
-    queryFn: async () => {
-      const data = await callAPI("/log");
-      return data || [];
-    },
+    queryFn: async () => { const data = await callAPI("/log"); return data || []; },
     refetchInterval: autoRefresh ? 5000 : false,
   });
 
   const getTopicIcon = (topics: string) => {
-    if (!topics) return <FileText className="h-4 w-4 text-muted-foreground" />;
-    
-    if (topics.includes("error") || topics.includes("critical")) {
-      return <AlertCircle className="h-4 w-4 text-red-500" />;
-    }
-    if (topics.includes("warning")) {
-      return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
-    }
-    return <Info className="h-4 w-4 text-blue-500" />;
+    if (!topics) return <FileText className="h-3 w-3 text-muted-foreground" />;
+    if (topics.includes("error") || topics.includes("critical")) return <AlertCircle className="h-3 w-3 text-destructive" />;
+    if (topics.includes("warning")) return <AlertTriangle className="h-3 w-3 text-amber-500" />;
+    return <Info className="h-3 w-3 text-primary" />;
   };
 
   const getTopicBadge = (topics: string) => {
-    if (!topics) return <Badge className="bg-slate-600 text-white">Sistema</Badge>;
-    
-    if (topics.includes("error") || topics.includes("critical")) {
-      return <Badge className="bg-red-600 text-white">Erro</Badge>;
-    }
-    if (topics.includes("warning")) {
-      return <Badge className="bg-yellow-600 text-white">Aviso</Badge>;
-    }
-    if (topics.includes("info")) {
-      return <Badge className="bg-blue-600 text-white">Info</Badge>;
-    }
-    return <Badge className="bg-slate-600 text-white">{topics}</Badge>;
+    if (!topics) return { label: 'Sistema', cls: 'border-border text-muted-foreground' };
+    if (topics.includes("error") || topics.includes("critical")) return { label: 'Erro', cls: 'border-destructive/30 text-destructive bg-destructive/10' };
+    if (topics.includes("warning")) return { label: 'Aviso', cls: 'border-amber-500/30 text-amber-400 bg-amber-500/10' };
+    if (topics.includes("info")) return { label: 'Info', cls: 'border-primary/30 text-primary bg-primary/10' };
+    return { label: topics, cls: 'border-border text-muted-foreground' };
   };
 
   const filteredLogs = logs.filter((log: any) => {
-    if (searchTerm && !log.message?.toLowerCase().includes(searchTerm.toLowerCase())) {
-      return false;
-    }
-    
+    if (searchTerm && !log.message?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     if (selectedTopic !== "all") {
-      if (selectedTopic === "error" && !log.topics?.includes("error") && !log.topics?.includes("critical")) {
-        return false;
-      }
-      if (selectedTopic === "warning" && !log.topics?.includes("warning")) {
-        return false;
-      }
-      if (selectedTopic === "info" && !log.topics?.includes("info")) {
-        return false;
-      }
-      if (selectedTopic === "system" && log.topics) {
-        return false;
-      }
+      if (selectedTopic === "error" && !log.topics?.includes("error") && !log.topics?.includes("critical")) return false;
+      if (selectedTopic === "warning" && !log.topics?.includes("warning")) return false;
+      if (selectedTopic === "info" && !log.topics?.includes("info")) return false;
+      if (selectedTopic === "system" && log.topics) return false;
     }
-    
     return true;
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Logs do Sistema</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Visualize os logs do MikroTik em tempo real
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <MikrotikExportActions
-              data={logs.slice(0, 1000)}
-              filteredData={filteredLogs.slice(0, 1000)}
-              columns={[
-                { key: 'time', label: 'Hora' },
-                { key: 'topics', label: 'Tópico' },
-                { key: 'message', label: 'Mensagem' }
-              ]}
-              gridTitle="Logs do Sistema"
-              getSummary={() => generateLogsSummary(filteredLogs.slice(0, 1000))}
-            />
-            <Button
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              size="sm"
-              variant={autoRefresh ? "default" : "outline"}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
-              {autoRefresh ? "Auto-Refresh: ON" : "Auto-Refresh: OFF"}
-            </Button>
-            <Button onClick={() => refetch()} disabled={loading} size="sm" variant="outline">
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Atualizar
-            </Button>
-          </div>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-foreground">Logs do Sistema</h3>
+          <p className="text-[10px] text-muted-foreground">{filteredLogs.length} de {logs.length} logs</p>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-4 mb-4">
-          <div className="flex flex-wrap gap-2">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar nas mensagens..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-            
-            <Select value={selectedTopic} onValueChange={setSelectedTopic}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filtrar por tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os tipos</SelectItem>
-                <SelectItem value="error">Erros</SelectItem>
-                <SelectItem value="warning">Avisos</SelectItem>
-                <SelectItem value="info">Informações</SelectItem>
-                <SelectItem value="system">Sistema</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            {(searchTerm || selectedTopic !== "all") && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setSearchTerm("");
-                  setSelectedTopic("all");
-                }}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Limpar Filtros
-              </Button>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <FileText className="h-4 w-4" />
-            Mostrando {filteredLogs.length} de {logs.length} logs
-          </div>
+        <div className="flex gap-1.5">
+          <MikrotikExportActions data={logs.slice(0, 1000)} filteredData={filteredLogs.slice(0, 1000)}
+            columns={[
+              { key: 'time', label: 'Hora' }, { key: 'topics', label: 'Tópico' }, { key: 'message', label: 'Mensagem' },
+            ]}
+            gridTitle="Logs do Sistema" getSummary={() => generateLogsSummary(filteredLogs.slice(0, 1000))}
+          />
+          <Button onClick={() => setAutoRefresh(!autoRefresh)} size="sm"
+            variant={autoRefresh ? "default" : "outline"} className="h-8 text-xs">
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${autoRefresh ? 'animate-spin' : ''}`} />
+            {autoRefresh ? "Auto: ON" : "Auto: OFF"}
+          </Button>
+          <Button onClick={() => refetch()} disabled={loading} size="sm" variant="outline" className="h-8 text-xs">
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
-        
-        <ScrollArea className="h-[600px] w-full">
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input placeholder="Buscar nas mensagens..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-8 bg-card border-border h-8 text-xs" />
+        </div>
+        <Select value={selectedTopic} onValueChange={setSelectedTopic}>
+          <SelectTrigger className="w-32 h-8 bg-card border-border text-xs">
+            <SelectValue placeholder="Tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="error">Erros</SelectItem>
+            <SelectItem value="warning">Avisos</SelectItem>
+            <SelectItem value="info">Info</SelectItem>
+            <SelectItem value="system">Sistema</SelectItem>
+          </SelectContent>
+        </Select>
+        {(searchTerm || selectedTopic !== "all") && (
+          <Button variant="outline" size="sm" onClick={() => { setSearchTerm(""); setSelectedTopic("all"); }} className="h-8 text-xs">
+            <X className="h-3.5 w-3.5 mr-1" /> Limpar
+          </Button>
+        )}
+      </div>
+
+      {/* Table */}
+      <ScrollArea className="h-[600px] w-full">
+        <div className="rounded-lg border border-border overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-slate-700/30">
-                <TableHead className="text-slate-300 w-[50px]">Tipo</TableHead>
-                <TableHead className="text-slate-300 w-[150px]">Data/Hora</TableHead>
-                <TableHead className="text-slate-300 w-[120px]">Tópico</TableHead>
-                <TableHead className="text-slate-300">Mensagem</TableHead>
+              <TableRow className="border-border hover:bg-transparent">
+                <TableHead className="text-muted-foreground text-xs h-8 px-3 w-10">Tipo</TableHead>
+                <TableHead className="text-muted-foreground text-xs h-8 px-3 w-[130px]">Data/Hora</TableHead>
+                <TableHead className="text-muted-foreground text-xs h-8 px-3 w-[100px]">Tópico</TableHead>
+                <TableHead className="text-muted-foreground text-xs h-8 px-3">Mensagem</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredLogs.map((log: any) => (
-                <TableRow key={log[".id"]} className="hover:bg-slate-700/50">
-                  <TableCell>
-                    {getTopicIcon(log.topics)}
-                  </TableCell>
-                  <TableCell className="text-xs text-slate-200">
-                    {log.time || "N/A"}
-                  </TableCell>
-                  <TableCell>
-                    {getTopicBadge(log.topics)}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-200">
-                    {log.message || "Sem mensagem"}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {filteredLogs.map((log: any) => {
+                const badge = getTopicBadge(log.topics);
+                return (
+                  <TableRow key={log[".id"]} className="border-border hover:bg-muted/30">
+                    <TableCell className="py-1 px-3">{getTopicIcon(log.topics)}</TableCell>
+                    <TableCell className="py-1 px-3 text-[10px] text-muted-foreground">{log.time || "N/A"}</TableCell>
+                    <TableCell className="py-1 px-3">
+                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${badge.cls}`}>{badge.label}</Badge>
+                    </TableCell>
+                    <TableCell className="py-1 px-3 font-mono text-[10px] text-foreground">{log.message || "Sem mensagem"}</TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
+        </div>
 
-          {filteredLogs.length === 0 && logs.length > 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum log encontrado com os filtros aplicados</p>
-            </div>
-          )}
-
-          {logs.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum log disponível</p>
-            </div>
-          )}
-        </ScrollArea>
-      </CardContent>
-    </Card>
+        {filteredLogs.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
+            <p className="text-xs">{logs.length > 0 ? 'Nenhum log encontrado com os filtros aplicados' : 'Nenhum log disponível'}</p>
+          </div>
+        )}
+      </ScrollArea>
+    </div>
   );
 };

@@ -1,23 +1,17 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useMikrotikAPI } from '@/hooks/useMikrotikAPI';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Wifi, RefreshCw, Power, PowerOff, ArrowUpDown, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Wifi, RefreshCw, Power, PowerOff, ArrowUpDown } from 'lucide-react';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { MikrotikTableFilter } from './MikrotikTableFilter';
 import { MikrotikExportActions } from './MikrotikExportActions';
 import { generateInterfacesSummary, formatBytes } from '@/utils/mikrotikExportFormatters';
 import { MikrotikPagination } from './MikrotikPagination';
+import { cn } from '@/lib/utils';
 
 export const MikrotikInterfaces = () => {
   const { callAPI, loading } = useMikrotikAPI();
@@ -29,35 +23,22 @@ export const MikrotikInterfaces = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
-  useEffect(() => {
-    loadInterfaces();
-  }, []);
+  useEffect(() => { loadInterfaces(); }, []);
 
   const loadInterfaces = async () => {
-    try {
-      const data = await callAPI('/interface');
-      if (data) {
-        setInterfaces(data);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar interfaces:', error);
-    }
+    try { const data = await callAPI('/interface'); if (data) setInterfaces(data); }
+    catch (error) { console.error('Erro ao carregar interfaces:', error); }
   };
 
   const toggleInterface = async (id: string, disabled: boolean) => {
     try {
       await callAPI(`/interface/${id}`, 'PATCH', { disabled: !disabled });
-      toast({
-        title: 'Sucesso',
-        description: `Interface ${disabled ? 'ativada' : 'desativada'} com sucesso`,
-      });
+      toast({ title: 'Sucesso', description: `Interface ${disabled ? 'ativada' : 'desativada'}` });
       loadInterfaces();
-    } catch (error) {
-      console.error('Erro ao alterar interface:', error);
-    }
+    } catch (error) { console.error('Erro ao alterar interface:', error); }
   };
 
-  const formatBytes = (bytes: number) => {
+  const fmtBytes = (bytes: number) => {
     if (!bytes) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -66,176 +47,126 @@ export const MikrotikInterfaces = () => {
   };
 
   const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
+    if (sortField === field) setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDirection('asc'); }
   };
 
   const filteredAndSortedInterfaces = useMemo(() => {
     let filtered = interfaces.filter((iface) => {
-      const searchTerm = filter.toLowerCase();
-      return (
-        iface.name?.toLowerCase().includes(searchTerm) ||
-        iface.type?.toLowerCase().includes(searchTerm)
-      );
+      const s = filter.toLowerCase();
+      return iface.name?.toLowerCase().includes(s) || iface.type?.toLowerCase().includes(s);
     });
-
     if (sortField) {
       filtered.sort((a, b) => {
-        const aVal = a[sortField] || '';
-        const bVal = b[sortField] || '';
-        const comparison = aVal.toString().localeCompare(bVal.toString());
-        return sortDirection === 'asc' ? comparison : -comparison;
+        const c = (a[sortField] || '').toString().localeCompare((b[sortField] || '').toString());
+        return sortDirection === 'asc' ? c : -c;
       });
     }
-
     return filtered;
   }, [interfaces, filter, sortField, sortDirection]);
 
-  // Calcular paginação
   const totalItems = filteredAndSortedInterfaces.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedInterfaces = filteredAndSortedInterfaces.slice(startIndex, endIndex);
 
-  // Reset para primeira página quando filtros mudarem
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filter, sortField, sortDirection, itemsPerPage]);
+  useEffect(() => { setCurrentPage(1); }, [filter, sortField, sortDirection, itemsPerPage]);
 
   if (loading && interfaces.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center p-12">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center h-96">
+        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
     );
   }
 
-  const getStatusBadge = (iface: any) => {
-    if (iface.disabled === "true" || iface.disabled === true) {
-      return <Badge className="bg-red-600/80 text-white">Desativada</Badge>;
-    }
-    if (iface.running) {
-      return <Badge className="bg-green-600/80 text-white">Conectada</Badge>;
-    }
-    return <Badge className="bg-yellow-600/80 text-white">Desconectada</Badge>;
-  };
-
   return (
-    <Card className="bg-slate-800 border-slate-700">
-      <CardHeader>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <CardTitle className="text-white">Interfaces de Rede</CardTitle>
-            <CardDescription className="text-slate-400">Gerenciar interfaces do MikroTik</CardDescription>
-          </div>
-          <div className="flex gap-2">
-            <MikrotikExportActions
-              data={interfaces}
-              filteredData={filteredAndSortedInterfaces}
-              columns={[
-                { key: 'name', label: 'Nome' },
-                { key: 'type', label: 'Tipo' },
-                { key: 'running', label: 'Status', formatter: (val) => val === 'true' ? '✅ Conectado' : '❌ Desconectado' },
-                { key: 'rx-byte', label: 'RX', formatter: (val) => formatBytes(parseInt(val || '0')) },
-                { key: 'tx-byte', label: 'TX', formatter: (val) => formatBytes(parseInt(val || '0')) },
-                { key: 'comment', label: 'Comentário' }
-              ]}
-              gridTitle="Interfaces de Rede"
-              getSummary={() => generateInterfacesSummary(filteredAndSortedInterfaces)}
-            />
-            <Button onClick={loadInterfaces} disabled={loading} variant="outline">
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-foreground">Interfaces de Rede</h3>
+          <p className="text-[10px] text-muted-foreground">{totalItems} interfaces</p>
         </div>
-        <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar interfaces..." />
-      </CardHeader>
-      <CardContent>
+        <div className="flex gap-1.5">
+          <MikrotikExportActions data={interfaces} filteredData={filteredAndSortedInterfaces}
+            columns={[
+              { key: 'name', label: 'Nome' }, { key: 'type', label: 'Tipo' },
+              { key: 'running', label: 'Status', formatter: (val) => val === 'true' ? 'Conectado' : 'Desconectado' },
+              { key: 'rx-byte', label: 'RX', formatter: (val) => fmtBytes(parseInt(val || '0')) },
+              { key: 'tx-byte', label: 'TX', formatter: (val) => fmtBytes(parseInt(val || '0')) },
+            ]}
+            gridTitle="Interfaces" getSummary={() => generateInterfacesSummary(filteredAndSortedInterfaces)}
+          />
+          <Button onClick={loadInterfaces} disabled={loading} size="sm" variant="outline" className="h-8 text-xs">
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+      </div>
+
+      <MikrotikTableFilter value={filter} onChange={setFilter} placeholder="Filtrar interfaces..." />
+
+      <div className="rounded-lg border border-border overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-slate-700/30">
-              <TableHead className="text-slate-300">
-                <Button variant="ghost" size="sm" onClick={() => handleSort('name')} className="h-8 px-2">
-                  Nome
-                  <ArrowUpDown className="ml-2 h-3 w-3" />
-                </Button>
-              </TableHead>
-              <TableHead className="text-slate-300">
-                <Button variant="ghost" size="sm" onClick={() => handleSort('type')} className="h-8 px-2">
-                  Tipo
-                  <ArrowUpDown className="ml-2 h-3 w-3" />
-                </Button>
-              </TableHead>
-              <TableHead className="text-slate-300">Status</TableHead>
-              <TableHead className="text-slate-300">RX</TableHead>
-              <TableHead className="text-slate-300">TX</TableHead>
-              <TableHead className="text-slate-300 text-right">Ações</TableHead>
+            <TableRow className="border-border hover:bg-transparent">
+              {[{ key: 'name', label: 'Nome' }, { key: 'type', label: 'Tipo' }].map(col => (
+                <TableHead key={col.key} className="text-muted-foreground text-xs h-8 px-3">
+                  <Button variant="ghost" size="sm" onClick={() => handleSort(col.key)} className="h-6 px-1 text-[10px] text-muted-foreground">
+                    {col.label} <ArrowUpDown className="ml-1 h-2.5 w-2.5" />
+                  </Button>
+                </TableHead>
+              ))}
+              <TableHead className="text-muted-foreground text-xs h-8 px-3">Status</TableHead>
+              <TableHead className="text-muted-foreground text-xs h-8 px-3">RX</TableHead>
+              <TableHead className="text-muted-foreground text-xs h-8 px-3">TX</TableHead>
+              <TableHead className="text-muted-foreground text-xs h-8 px-3 w-16">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedInterfaces.map((iface) => (
-              <TableRow key={iface['.id']} className="hover:bg-slate-700/50">
-                <TableCell className="font-medium text-slate-200">
-                  <div className="flex items-center gap-2">
-                    <Wifi className={`h-4 w-4 ${iface.running ? 'text-green-500' : 'text-slate-400'}`} />
+              <TableRow key={iface['.id']} className="border-border hover:bg-muted/30 group">
+                <TableCell className="py-1.5 px-3 text-xs font-medium text-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <Wifi className={cn("h-3 w-3", iface.running ? 'text-emerald-500' : 'text-muted-foreground')} />
                     {iface.name}
                   </div>
                 </TableCell>
-                <TableCell className="text-slate-200">{iface.type}</TableCell>
-                <TableCell className="text-slate-200">
-                  {getStatusBadge(iface)}
+                <TableCell className="py-1.5 px-3 text-xs text-muted-foreground">{iface.type}</TableCell>
+                <TableCell className="py-1.5 px-3">
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${
+                    iface.disabled === "true" ? 'border-destructive/30 text-destructive bg-destructive/10'
+                    : iface.running ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
+                    : 'border-amber-500/30 text-amber-400 bg-amber-500/10'
+                  }`}>
+                    {iface.disabled === "true" ? 'Desativada' : iface.running ? 'UP' : 'DOWN'}
+                  </Badge>
                 </TableCell>
-                <TableCell className="text-slate-200">{formatBytes(iface['rx-byte'])}</TableCell>
-                <TableCell className="text-slate-200">{formatBytes(iface['tx-byte'])}</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    size="xs"
-                    variant="outline"
-                    onClick={() => toggleInterface(iface['.id'], iface.disabled)}
-                    className={iface.disabled ? "border-green-600/50 text-green-400 hover:bg-green-600/20" : "border-slate-600 text-slate-300 hover:bg-slate-700"}
-                  >
-                    {iface.disabled ? (
-                      <Power className="h-3 w-3" />
-                    ) : (
-                      <PowerOff className="h-3 w-3" />
-                    )}
-                  </Button>
+                <TableCell className="py-1.5 px-3 text-[10px] text-muted-foreground">{fmtBytes(iface['rx-byte'])}</TableCell>
+                <TableCell className="py-1.5 px-3 text-[10px] text-muted-foreground">{fmtBytes(iface['tx-byte'])}</TableCell>
+                <TableCell className="py-1.5 px-3">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="sm" onClick={() => toggleInterface(iface['.id'], iface.disabled === "true")}
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-primary">
+                      {iface.disabled === "true" ? <Power className="h-3 w-3" /> : <PowerOff className="h-3 w-3" />}
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+      </div>
 
-        <MikrotikPagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          itemsPerPage={itemsPerPage}
-          totalItems={totalItems}
-          startIndex={startIndex}
-          endIndex={endIndex}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={setItemsPerPage}
-        />
+      <MikrotikPagination currentPage={currentPage} totalPages={totalPages} itemsPerPage={itemsPerPage}
+        totalItems={totalItems} startIndex={startIndex} endIndex={endIndex}
+        onPageChange={setCurrentPage} onItemsPerPageChange={setItemsPerPage} />
 
-        {filteredAndSortedInterfaces.length === 0 && interfaces.length > 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            Nenhuma interface encontrada com o filtro aplicado
-          </div>
-        )}
-
-        {interfaces.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            Nenhuma interface encontrada
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      {filteredAndSortedInterfaces.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground text-xs">
+          {interfaces.length > 0 ? 'Nenhuma interface encontrada com o filtro aplicado' : 'Nenhuma interface encontrada'}
+        </div>
+      )}
+    </div>
   );
 };
