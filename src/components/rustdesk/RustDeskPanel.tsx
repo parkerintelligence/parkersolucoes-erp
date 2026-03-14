@@ -104,8 +104,8 @@ export const RustDeskPanel = () => {
       os_type: conn.os_type || '',
       notes: conn.notes || '',
       tags: conn.tags || [],
-      glpi_asset_id: (conn as any).glpi_asset_id || null,
-      glpi_asset_name: (conn as any).glpi_asset_name || '',
+      glpi_asset_id: conn.glpi_asset_id || null,
+      glpi_asset_name: conn.glpi_asset_name || '',
     });
     setEditingId(conn.id);
     setShowForm(true);
