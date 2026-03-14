@@ -45,8 +45,8 @@ export const RustDeskPanel = () => {
   const { confirm } = useConfirmDialog();
 
   // GLPI inventory
-  const { useComputers } = useGLPIExpanded();
-  const { data: glpiComputers = [] } = useComputers();
+  const glpi = useGLPI();
+  const glpiComputers = glpi.computers?.data || [];
 
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
