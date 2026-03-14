@@ -351,39 +351,24 @@ export const RustDeskPanel = () => {
                   <Package className="h-3 w-3" />
                   Inventário GLPI (opcional)
                 </label>
-                {form.glpi_asset_id ? (
-                  <div className="flex items-center gap-2 h-8 px-2 rounded border border-border bg-muted/30 text-sm">
-                    <Package className="h-3.5 w-3.5 text-blue-400" />
-                    <span className="truncate flex-1 text-foreground">{form.glpi_asset_name}</span>
-                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0" 
-                      onClick={() => setForm(p => ({ ...p, glpi_asset_id: null, glpi_asset_name: '' }))}>
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <Input
-                      value={glpiSearch}
-                      onChange={e => setGlpiSearch(e.target.value)}
-                      placeholder="Buscar ativo no GLPI..."
-                      className="h-8 text-sm"
-                    />
-                    {glpiSearch && filteredGlpiComputers.length > 0 && (
-                      <div className="absolute z-50 mt-1 w-full border border-border rounded-md bg-popover shadow-lg max-h-40 overflow-auto">
-                        {filteredGlpiComputers.map((comp: any) => (
-                          <button
-                            key={comp.id}
-                            className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent text-foreground flex items-center gap-2"
-                            onClick={() => selectGlpiAsset(comp)}
-                          >
-                            <Package className="h-3 w-3 text-muted-foreground" />
-                            <span>{comp.name}</span>
-                            {comp.serial && <span className="text-xs text-muted-foreground">({comp.serial})</span>}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                <Select 
+                  value={form.glpi_asset_id ? String(form.glpi_asset_id) : "none"} 
+                  onValueChange={v => selectGlpiAsset(v)}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Vincular a um ativo GLPI" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {glpiComputers.map((comp: any) => (
+                      <SelectItem key={comp.id} value={String(comp.id)}>
+                        {comp.name}{comp.serial ? ` (${comp.serial})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {glpiComputers.length === 0 && (
+                  <p className="text-[10px] text-muted-foreground mt-1">Nenhum ativo encontrado. Verifique a conexão com o GLPI.</p>
                 )}
               </div>
               <div>
