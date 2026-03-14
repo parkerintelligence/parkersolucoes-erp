@@ -337,19 +337,19 @@ export default function Alertas() {
   };
 
   return (
-    <div className="container mx-auto p-4 space-y-3">
-      {/* Header compacto */}
+    <div className="container mx-auto p-6 space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold text-foreground">Alertas Zabbix</h1>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-green-500 inline-block" />
-              {onlineCount}
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-foreground">Alertas Zabbix</h1>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-green-500 inline-block" />
+              {onlineCount} online
             </span>
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-red-500 inline-block" />
-              {offlineCount}
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-red-500 inline-block" />
+              {offlineCount} offline
             </span>
             <span className="text-muted-foreground/60">/ {devices.length} total</span>
           </div>
@@ -358,22 +358,22 @@ export default function Alertas() {
           onClick={handleRefresh}
           disabled={hostsLoading || problemsLoading || itemsLoading}
           size="sm"
-          variant="ghost"
-          className="h-7 px-2 text-xs"
+          variant="outline"
         >
-          <RefreshCw className={cn("h-3.5 w-3.5", (hostsLoading || problemsLoading || itemsLoading) && "animate-spin")} />
+          <RefreshCw className={cn("h-4 w-4 mr-2", (hostsLoading || problemsLoading || itemsLoading) && "animate-spin")} />
+          Atualizar
         </Button>
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="status" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-8">
-          <TabsTrigger value="status" className="text-xs h-7">Status</TabsTrigger>
-          <TabsTrigger value="performance" className="text-xs h-7">Performance</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="status">Status</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="status" className="mt-3">
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1.5">
+        <TabsContent value="status">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-2.5">
             {devices.map((device) => {
               const perf = device.status === 'online' ? getPerformanceData(device.id) : null;
               const isOnline = device.status === 'online';
@@ -381,23 +381,32 @@ export default function Alertas() {
                 <div 
                   key={device.id} 
                   className={cn(
-                    "rounded-md px-2 py-2 border transition-all text-center",
+                    "rounded-lg px-3 py-3 border transition-all text-center",
                     isOnline 
-                      ? "bg-green-500/10 border-green-500/25 hover:bg-green-500/20" 
-                      : "bg-red-500/10 border-red-500/25 hover:bg-red-500/20"
+                      ? "bg-green-950 border-green-500/30 hover:border-green-500/50" 
+                      : "bg-red-950 border-red-500/30 hover:border-red-500/50"
                   )}
                 >
-                  <div className="flex items-center justify-center gap-1 mb-1">
+                  <div className="flex items-center justify-center gap-1.5 mb-1.5">
                     {isOnline 
-                      ? <Wifi className="h-3 w-3 text-green-400" /> 
-                      : <WifiOff className="h-3 w-3 text-red-400" />
+                      ? <Wifi className="h-4 w-4 text-green-400" /> 
+                      : <WifiOff className="h-4 w-4 text-red-400" />
                     }
                   </div>
-                  <p className="text-[10px] font-medium text-foreground truncate leading-tight" title={device.name}>
+                  <p className="text-xs font-medium text-foreground truncate leading-tight" title={device.name}>
                     {device.name}
                   </p>
+                  <Badge className={cn(
+                    "mt-1.5 text-[10px] px-1.5 py-0",
+                    isOnline 
+                      ? "bg-green-900/50 text-green-400 border-green-500/30 hover:bg-green-900/50" 
+                      : "bg-red-900/50 text-red-400 border-red-500/30 hover:bg-red-900/50"
+                  )}>
+                    {isOnline ? 'ONLINE' : 'OFFLINE'}
+                  </Badge>
                   {isOnline && perf?.itemsFound?.uptime && (
-                    <p className="text-[9px] text-muted-foreground mt-0.5">
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      <Clock className="h-3 w-3 inline mr-0.5" />
                       {formatUptime(perf.uptime)}
                     </p>
                   )}
@@ -407,15 +416,23 @@ export default function Alertas() {
           </div>
         </TabsContent>
         
-        <TabsContent value="performance" className="mt-3">
-          <Card className="border-border/40">
+        <TabsContent value="performance">
+          <Card className="border-border/50 bg-card">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-border/40">
-                  <TableHead className="text-xs h-8 text-muted-foreground">Device</TableHead>
-                  <TableHead className="text-xs h-8 text-muted-foreground">CPU</TableHead>
-                  <TableHead className="text-xs h-8 text-muted-foreground">Memória</TableHead>
-                  <TableHead className="text-xs h-8 text-muted-foreground">Uptime</TableHead>
+                  <TableHead className="text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2"><Server className="h-4 w-4" />Device</div>
+                  </TableHead>
+                  <TableHead className="text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2"><Cpu className="h-4 w-4" />CPU</div>
+                  </TableHead>
+                  <TableHead className="text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2"><HardDrive className="h-4 w-4" />Memória</div>
+                  </TableHead>
+                  <TableHead className="text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2"><Clock className="h-4 w-4" />Uptime</div>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -428,44 +445,44 @@ export default function Alertas() {
                   .sort((a, b) => b.perf.uptime - a.perf.uptime)
                   .map(({ device, perf }) => (
                     <TableRow key={device.id} className="border-border/30 hover:bg-muted/30">
-                      <TableCell className="py-1.5 text-xs font-medium text-foreground">
+                      <TableCell className="py-2.5 text-sm font-medium text-foreground">
                         {device.name}
                       </TableCell>
-                      <TableCell className="py-1.5">
+                      <TableCell className="py-2.5">
                         {perf.itemsFound?.cpu ? (
                           <div className="flex items-center gap-2">
                             <Progress 
                               value={perf.cpu} 
-                              className="h-1.5 w-16"
+                              className="h-2 w-20"
                               style={{
                                 '--progress-foreground': perf.cpu > 80 ? 'hsl(0 70% 50%)' : perf.cpu > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
                               } as React.CSSProperties}
                             />
-                            <span className="text-[10px] text-muted-foreground w-8">{perf.cpu.toFixed(0)}%</span>
+                            <span className="text-xs text-muted-foreground w-10">{perf.cpu.toFixed(1)}%</span>
                           </div>
                         ) : (
-                          <span className="text-[10px] text-muted-foreground/50">—</span>
+                          <span className="text-xs text-muted-foreground/50">N/A</span>
                         )}
                       </TableCell>
-                      <TableCell className="py-1.5">
+                      <TableCell className="py-2.5">
                         {perf.itemsFound?.memory ? (
                           <div className="flex items-center gap-2">
                             <Progress 
                               value={perf.memory} 
-                              className="h-1.5 w-16"
+                              className="h-2 w-20"
                               style={{
                                 '--progress-foreground': perf.memory > 80 ? 'hsl(0 70% 50%)' : perf.memory > 60 ? 'hsl(45 100% 50%)' : 'hsl(142 70% 45%)'
                               } as React.CSSProperties}
                             />
-                            <span className="text-[10px] text-muted-foreground w-8">{perf.memory.toFixed(0)}%</span>
+                            <span className="text-xs text-muted-foreground w-10">{perf.memory.toFixed(1)}%</span>
                           </div>
                         ) : (
-                          <span className="text-[10px] text-muted-foreground/50">—</span>
+                          <span className="text-xs text-muted-foreground/50">N/A</span>
                         )}
                       </TableCell>
-                      <TableCell className="py-1.5">
-                        <span className="text-[10px] text-muted-foreground">
-                          {perf.itemsFound?.uptime ? formatUptime(perf.uptime) : '—'}
+                      <TableCell className="py-2.5">
+                        <span className="text-xs text-muted-foreground">
+                          {perf.itemsFound?.uptime ? formatUptime(perf.uptime) : 'N/A'}
                         </span>
                       </TableCell>
                     </TableRow>
@@ -475,9 +492,9 @@ export default function Alertas() {
           </Card>
 
           {devices.filter(d => d.status === 'online').length === 0 && (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-center space-y-2">
-                <Server className="h-8 w-8 mx-auto text-muted-foreground" />
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center space-y-3">
+                <Server className="h-10 w-10 mx-auto text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">Nenhum dispositivo online</p>
               </div>
             </div>
@@ -486,15 +503,15 @@ export default function Alertas() {
       </Tabs>
 
       {(hostsLoading || problemsLoading) && devices.length === 0 && (
-        <div className="flex items-center justify-center py-8">
-          <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+        <div className="flex items-center justify-center py-12">
+          <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       )}
 
       {!hostsLoading && !problemsLoading && devices.length === 0 && (
-        <div className="flex items-center justify-center py-8">
-          <div className="text-center space-y-2">
-            <Server className="h-8 w-8 mx-auto text-muted-foreground" />
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center space-y-3">
+            <Server className="h-10 w-10 mx-auto text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Nenhum dispositivo encontrado. Verifique a configuração do Zabbix.</p>
           </div>
         </div>
