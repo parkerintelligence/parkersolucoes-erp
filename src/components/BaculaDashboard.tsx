@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { RefreshCw } from 'lucide-react';
 import { useBaculaJobsAll } from '@/hooks/useBaculaAPI';
 import { useBaculaJobsData, formatBytes, formatDateTime, getJobStatusBadge } from '@/hooks/useBaculaJobsData';
@@ -8,47 +7,27 @@ import { BaculaStatusCards } from '@/components/bacula/BaculaStatusCards';
 import { BaculaJobsTable } from '@/components/bacula/BaculaJobsTable';
 
 export const BaculaDashboard = () => {
-  // Filtros para o dashboard
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('7days');
-  const [groupByDate, setGroupByDate] = useState(true); // Default agrupado por data
+  const [groupByDate, setGroupByDate] = useState(true);
 
-  const {
-    data: jobsData,
-    isLoading: jobsLoading
-  } = useBaculaJobsAll();
+  const { data: jobsData, isLoading: jobsLoading } = useBaculaJobsAll();
+  const { allJobs, filteredJobs: jobs, jobStats, pieData, clientStats, recentJobs } = useBaculaJobsData(jobsData, searchTerm, statusFilter, dateFilter);
 
-
-  // Usar o hook customizado para processar dados dos jobs
-  const {
-    allJobs,
-    filteredJobs: jobs,
-    jobStats,
-    pieData,
-    clientStats,
-    recentJobs
-  } = useBaculaJobsData(jobsData, searchTerm, statusFilter, dateFilter);
   if (jobsLoading) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map(i => (
-            <Card key={i} className="bg-slate-800 border-slate-700">
-              <CardContent className="p-6 text-center">
-                <RefreshCw className="h-8 w-8 mx-auto mb-4 text-slate-400 animate-spin" />
-                <p className="text-slate-400">Carregando...</p>
-              </CardContent>
-            </Card>
-          ))}
+      <div className="flex items-center justify-center h-40">
+        <div className="flex flex-col items-center gap-2">
+          <RefreshCw className="h-6 w-6 text-muted-foreground animate-spin" />
+          <p className="text-xs text-muted-foreground">Carregando jobs...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header com filtros e botão de análise */}
+    <div className="space-y-4">
       <BaculaFilters
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
@@ -62,7 +41,6 @@ export const BaculaDashboard = () => {
         allJobs={allJobs}
       />
 
-      {/* Cards de Resumo */}
       <BaculaStatusCards
         jobStats={jobStats}
         pieData={pieData}
@@ -70,7 +48,6 @@ export const BaculaDashboard = () => {
         formatBytes={formatBytes}
       />
 
-      {/* Tabela Principal de Jobs - Tela Completa */}
       <BaculaJobsTable
         jobs={jobs}
         recentJobs={recentJobs}
