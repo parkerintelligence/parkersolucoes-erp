@@ -33,6 +33,9 @@ const EMPTY_FORM = {
   notes: '',
   glpi_asset_id: null as number | null,
   glpi_asset_name: '',
+  glpi_asset_serial: '',
+  glpi_asset_entity: '',
+  glpi_asset_comment: '',
 };
 
 export const RustDeskPanel = () => {
@@ -108,6 +111,9 @@ export const RustDeskPanel = () => {
       notes: conn.notes || '',
       glpi_asset_id: conn.glpi_asset_id || null,
       glpi_asset_name: conn.glpi_asset_name || '',
+      glpi_asset_serial: (conn as any).glpi_asset_serial || '',
+      glpi_asset_entity: (conn as any).glpi_asset_entity || '',
+      glpi_asset_comment: (conn as any).glpi_asset_comment || '',
     });
     setEditingId(conn.id);
     setShowForm(true);
@@ -124,6 +130,9 @@ export const RustDeskPanel = () => {
       company_id: form.company_id || null,
       glpi_asset_id: form.glpi_asset_id || null,
       glpi_asset_name: form.glpi_asset_name || null,
+      glpi_asset_serial: form.glpi_asset_serial || null,
+      glpi_asset_entity: form.glpi_asset_entity || null,
+      glpi_asset_comment: form.glpi_asset_comment || null,
     } as any;
 
     if (editingId) {
@@ -187,15 +196,26 @@ export const RustDeskPanel = () => {
 
   const selectGlpiAsset = (assetId: string) => {
     if (assetId === 'none') {
-      setForm(prev => ({ ...prev, glpi_asset_id: null, glpi_asset_name: '' }));
+      setForm(prev => ({ 
+        ...prev, 
+        glpi_asset_id: null, 
+        glpi_asset_name: '',
+        glpi_asset_serial: '',
+        glpi_asset_entity: '',
+        glpi_asset_comment: '',
+      }));
       return;
     }
     const computer = glpiComputers.find((c: any) => String(c.id) === assetId);
     if (computer) {
+      const entityName = getGlpiEntityName(computer.entities_id);
       setForm(prev => ({
         ...prev,
         glpi_asset_id: computer.id,
         glpi_asset_name: computer.name,
+        glpi_asset_serial: computer.serial || '',
+        glpi_asset_entity: entityName || '',
+        glpi_asset_comment: computer.comment || '',
       }));
     }
   };
@@ -467,9 +487,24 @@ export const RustDeskPanel = () => {
                           </TableCell>
                           <TableCell>
                             {conn.glpi_asset_name ? (
-                              <div className="flex items-center gap-1">
-                                <Package className="h-3 w-3 text-blue-400" />
-                                <span className="text-xs text-foreground">{conn.glpi_asset_name}</span>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1">
+                                  <Package className="h-3 w-3 text-blue-400 flex-shrink-0" />
+                                  <span className="text-xs font-medium text-foreground">{conn.glpi_asset_name}</span>
+                                </div>
+                                {((conn as any).glpi_asset_serial || (conn as any).glpi_asset_entity || (conn as any).glpi_asset_comment) && (
+                                  <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
+                                    {(conn as any).glpi_asset_serial && (
+                                      <div>S/N: {(conn as any).glpi_asset_serial}</div>
+                                    )}
+                                    {(conn as any).glpi_asset_entity && (
+                                      <div className="text-blue-400/70">{(conn as any).glpi_asset_entity}</div>
+                                    )}
+                                    {(conn as any).glpi_asset_comment && (
+                                      <div className="italic">{(conn as any).glpi_asset_comment.substring(0, 60)}{(conn as any).glpi_asset_comment.length > 60 ? '...' : ''}</div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             ) : (
                               <span className="text-muted-foreground/50 text-xs">-</span>
