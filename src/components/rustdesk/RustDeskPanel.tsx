@@ -394,9 +394,7 @@ export const RustDeskPanel = () => {
                     <TableHead className="text-muted-foreground text-xs">Nome</TableHead>
                     <TableHead className="text-muted-foreground text-xs">ID RustDesk</TableHead>
                     <TableHead className="text-muted-foreground text-xs">Senha</TableHead>
-                    <TableHead className="text-muted-foreground text-xs">SO</TableHead>
                     <TableHead className="text-muted-foreground text-xs">GLPI</TableHead>
-                    <TableHead className="text-muted-foreground text-xs">Tags</TableHead>
                     <TableHead className="text-muted-foreground text-xs text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
