@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { TopHeader } from '@/components/TopHeader';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { useWebhookNotifications } from '@/hooks/useWebhookNotifications';
+import { WebhookEventDetailDialog } from '@/components/WebhookEventDetailDialog';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,7 +13,16 @@ interface LayoutProps {
 
 export const Layout = ({ children }: LayoutProps) => {
   const { isAuthenticated, isLoading } = useAuth();
-  useWebhookNotifications();
+  const [webhookLogId, setWebhookLogId] = useState<string | null>(null);
+  const [webhookDialogOpen, setWebhookDialogOpen] = useState(false);
+
+  const handleViewEvent = useCallback((logId: string) => {
+    setWebhookLogId(logId);
+    setWebhookDialogOpen(true);
+  }, []);
+
+  const notificationOptions = useMemo(() => ({ onViewEvent: handleViewEvent }), [handleViewEvent]);
+  useWebhookNotifications(notificationOptions);
 
   if (isLoading) {
     return (
@@ -44,6 +54,11 @@ export const Layout = ({ children }: LayoutProps) => {
           </main>
         </SidebarInset>
       </div>
+      <WebhookEventDetailDialog
+        open={webhookDialogOpen}
+        onOpenChange={setWebhookDialogOpen}
+        logId={webhookLogId}
+      />
     </SidebarProvider>
   );
 };
