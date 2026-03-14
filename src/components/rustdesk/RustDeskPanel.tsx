@@ -30,9 +30,7 @@ const EMPTY_FORM = {
   alias: '',
   company_id: '',
   hostname: '',
-  os_type: '',
   notes: '',
-  tags: [] as string[],
   glpi_asset_id: null as number | null,
   glpi_asset_name: '',
 };
