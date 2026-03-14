@@ -433,16 +433,21 @@ const Annotations = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <div className="text-white">Carregando anotações...</div>
+        <div className="text-muted-foreground">Carregando anotações...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
-      <div className="space-y-6 p-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-white">Anotações</h1>
+    <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <StickyNote className="h-5 w-5 text-primary" />
+              Anotações
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Gerencie suas anotações e documentações</p>
+          </div>
           <div className="flex gap-2">
             {isMaster && (
               <Button

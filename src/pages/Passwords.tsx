@@ -440,13 +440,18 @@ const Passwords = () => {
     </div>;
   if (isLoading) {
     return <div className="flex justify-center items-center h-96">
-        <div className="text-white">Carregando senhas...</div>
+        <div className="text-muted-foreground">Carregando senhas...</div>
       </div>;
   }
-  return <div className="min-h-screen bg-slate-900 text-white">
-      <div className="space-y-6 p-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-white">Cofre de Senhas</h1>
+  return <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <Lock className="h-5 w-5 text-primary" />
+              Cofre de Senhas
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Gerencie credenciais de acesso de forma segura</p>
+          </div>
           <div className="flex gap-2">
             {isMaster && <Button variant="outline" onClick={exportToPDF} className="bg-blue-600 border-blue-500 text-white hover:bg-blue-700">
                 <FileDown className="mr-2 h-4 w-4" />
