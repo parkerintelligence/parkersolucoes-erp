@@ -14,7 +14,7 @@ interface Props {
   embedded?: boolean;
 }
 
-export const RustDeskServerConfig = ({ onClose }: Props) => {
+export const RustDeskServerConfig = ({ onClose, embedded = false }: Props) => {
   const { data: integrations = [] } = useIntegrations();
   const createIntegration = useCreateIntegration();
   const updateIntegration = useUpdateIntegration();
