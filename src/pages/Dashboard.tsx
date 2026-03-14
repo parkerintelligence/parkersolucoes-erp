@@ -47,7 +47,7 @@ const useDashboardData = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from('scheduled_reports_logs')
-        .select('*')
+        .select('*, scheduled_reports(name)')
         .order('execution_date', { ascending: false })
         .limit(100);
       return data || [];
