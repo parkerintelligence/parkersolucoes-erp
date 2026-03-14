@@ -51,7 +51,6 @@ export const MikrotikDashboard = () => {
       
       const results = await callBatchAPI(ENDPOINTS);
 
-      // Helper to extract data
       const get = (ep: string) => results[ep]?.data;
       const getArr = (ep: string) => {
         const d = get(ep);
@@ -62,7 +61,6 @@ export const MikrotikDashboard = () => {
         return Array.isArray(d) ? d[0] : d;
       };
 
-      // Check if all errored (timeout)
       const allFailed = ENDPOINTS.every(ep => results[ep]?.error);
       if (allFailed) {
         const firstError = results[ENDPOINTS[0]]?.error;
@@ -133,57 +131,48 @@ export const MikrotikDashboard = () => {
     return uptime;
   };
 
-  const getUptimeBadge = (uptime: string) => {
-    if (!uptime) return 'secondary';
-    const days = parseInt(uptime.match(/(\d+)d/)?.[1] || '0');
-    if (days >= 7) return 'default';
-    return 'secondary';
-  };
-
   if (!selectedClient) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <Network className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">Nenhum cliente selecionado</p>
+          <Network className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+          <p className="text-muted-foreground text-sm">Nenhum cliente selecionado</p>
         </div>
       </div>
     );
   }
 
-  // Connection error state
   if (connectionError && !identity) {
     return (
-      <div className="space-y-4 p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-[400px] rounded-xl">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold tracking-tight text-white">Dashboard</h2>
-            <Badge variant="outline" className="text-sm border-red-500/30 text-red-400">
-              <Network className="h-3 w-3 mr-1" />
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-destructive/30 text-destructive bg-destructive/10">
+              <Network className="h-2.5 w-2.5 mr-1" />
               {selectedClient.name}
             </Badge>
           </div>
-          <Button onClick={loadData} disabled={loading} size="sm" variant="outline">
-            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+          <Button onClick={loadData} disabled={loading} size="sm" variant="outline" className="h-8 text-xs">
+            <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", loading && "animate-spin")} />
             Tentar novamente
           </Button>
         </div>
         
-        <Card className="bg-red-950/30 border-red-600/30">
+        <Card className="border-destructive/30 bg-card">
           <CardContent className="py-12 text-center">
-            <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-red-400 mb-2">Falha na conexão com o MikroTik</h3>
-            <p className="text-red-300/80 text-sm max-w-md mx-auto mb-4">
+            <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-4" />
+            <h3 className="text-base font-bold text-foreground mb-2">Falha na conexão com o MikroTik</h3>
+            <p className="text-muted-foreground text-xs max-w-md mx-auto mb-4">
               {connectionError}
             </p>
-            <div className="text-xs text-red-300/50 space-y-1 max-w-sm mx-auto">
-              <p>Verifique se:</p>
+            <div className="text-[10px] text-muted-foreground space-y-0.5 max-w-sm mx-auto">
+              <p className="font-medium mb-1">Verifique se:</p>
               <ul className="list-disc list-inside text-left space-y-0.5">
-                <li>O dispositivo MikroTik está ligado e acessível pela internet</li>
-                <li>A API REST (www-ssl ou www) está habilitada no MikroTik</li>
-                <li>O endereço <code className="bg-red-900/50 px-1 rounded">{selectedClient.base_url}</code> está correto</li>
-                <li>As credenciais (usuário/senha) estão corretas</li>
-                <li>O firewall do MikroTik permite conexões na porta da API</li>
+                <li>O dispositivo MikroTik está ligado e acessível</li>
+                <li>A API REST está habilitada</li>
+                <li>O endereço <code className="bg-muted px-1 rounded text-foreground">{selectedClient.base_url}</code> está correto</li>
+                <li>As credenciais estão corretas</li>
+                <li>O firewall permite conexões na porta da API</li>
               </ul>
             </div>
           </CardContent>
@@ -195,161 +184,94 @@ export const MikrotikDashboard = () => {
   if (loading && !identity) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Conectando com {selectedClient.name}...</p>
-          <p className="text-xs text-muted-foreground/50 mt-1">Isso pode levar alguns segundos</p>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground">Conectando com {selectedClient.name}...</p>
+          <p className="text-[10px] text-muted-foreground/50">Isso pode levar alguns segundos</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen rounded-xl">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-            <Badge variant="outline" className="text-sm">
-              <Network className="h-3 w-3 mr-1" />
-              {selectedClient.name}
-            </Badge>
-          </div>
-          <p className="text-muted-foreground">
-            Visão geral do MikroTik • Última atualização: {lastUpdate.toLocaleTimeString('pt-BR')}
-          </p>
-        </div>
-        <Button onClick={loadData} disabled={loading} size="sm">
-          <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+    <div className="space-y-4">
+      {/* Info bar */}
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] text-muted-foreground">
+          Última atualização: {lastUpdate.toLocaleTimeString('pt-BR')}
+        </p>
+        <Button onClick={loadData} disabled={loading} size="sm" variant="outline" className="h-7 text-[10px] px-2">
+          <RefreshCw className={cn("h-3 w-3 mr-1", loading && "animate-spin")} />
           Atualizar
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="bg-purple-900/20 border-purple-600/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-3 pt-3">
-            <CardTitle className="text-[10px] font-medium text-purple-300">Dispositivo</CardTitle>
-            <Activity className="h-3 w-3 text-purple-400" />
-          </CardHeader>
-          <CardContent className="p-3 pt-1">
-            <div className="text-sm font-bold text-purple-400">{identity?.name || 'MikroTik'}</div>
-            <p className="text-[10px] text-purple-300/70 mt-0.5">{routerboard?.model || 'RouterOS'}</p>
-            <div className="flex items-center gap-1 mt-1 flex-wrap">
-              <Badge variant="secondary" className="text-[9px] py-0 px-1.5 h-4 bg-purple-800/50 text-purple-200 border-purple-600/30">
-                RB: v{routerboard?.['current-firmware'] || routerboard?.version || 'N/A'}
-              </Badge>
-              <Badge variant="outline" className="text-[9px] py-0 px-1.5 h-4 border-purple-600/30 text-purple-200">
-                OS: v{resource?.version || 'N/A'}
-              </Badge>
+      {/* Stats Bar - Projects style */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+        {[
+          { label: "Dispositivo", value: identity?.name || 'MikroTik', icon: Activity, color: "text-primary", sub: routerboard?.model || 'RouterOS' },
+          { label: "Interfaces", value: `${stats.activeInterfaces}/${stats.totalInterfaces}`, icon: Wifi, color: "text-primary" },
+          { label: "DHCP", value: `${stats.activeDhcp}/${stats.totalDhcp}`, icon: Users, color: "text-emerald-500" },
+          { label: "Firewall", value: `${stats.activeFirewall}/${stats.totalFirewall}`, icon: Shield, color: "text-amber-500" },
+          { label: "NAT", value: `${stats.activeNat}/${stats.totalNat}`, icon: Network, color: "text-primary" },
+          { label: "VPN", value: `${stats.connectedVpn}/${stats.enabledVpn}`, icon: KeyRound, color: "text-amber-500" },
+          { label: "IPs", value: stats.validIps, icon: Globe, color: "text-primary" },
+          { label: "Uptime", value: formatUptime(resource?.uptime), icon: Clock, color: "text-emerald-500" },
+        ].map(s => (
+          <div key={s.label} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border border-border">
+            <s.icon className={`h-3.5 w-3.5 ${s.color} flex-shrink-0`} />
+            <div className="min-w-0">
+              <span className={`text-sm font-bold ${s.color}`}>{s.value}</span>
+              <span className="text-[10px] text-muted-foreground ml-1.5 block">{s.label}</span>
             </div>
-            <Badge className="mt-1.5 text-[9px] py-0 px-1.5 h-4 bg-purple-600/80 text-white" variant="default">Online</Badge>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-blue-900/20 border-blue-600/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-3 pt-3">
-            <CardTitle className="text-[10px] font-medium text-blue-300">Interfaces</CardTitle>
-            <Wifi className="h-3 w-3 text-blue-400" />
-          </CardHeader>
-          <CardContent className="p-3 pt-1">
-            <div className="text-sm font-bold text-blue-400">{stats.activeInterfaces}/{stats.totalInterfaces}</div>
-            <Progress value={stats.totalInterfaces > 0 ? (stats.activeInterfaces / stats.totalInterfaces) * 100 : 0} className="mt-1.5 h-1.5 bg-blue-900/30" />
-            <p className="text-[10px] text-blue-300/70 mt-1.5">Ativas</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-green-900/20 border-green-600/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-3 pt-3">
-            <CardTitle className="text-[10px] font-medium text-green-300">DHCP</CardTitle>
-            <Users className="h-3 w-3 text-green-400" />
-          </CardHeader>
-          <CardContent className="p-3 pt-1">
-            <div className="text-sm font-bold text-green-400">{stats.activeDhcp}</div>
-            <Progress value={stats.totalDhcp > 0 ? (stats.activeDhcp / stats.totalDhcp) * 100 : 0} className="mt-1.5 h-1.5 bg-green-900/30" />
-            <p className="text-[10px] text-green-300/70 mt-1.5">de {stats.totalDhcp} leases</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-yellow-900/20 border-yellow-600/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-3 pt-3">
-            <CardTitle className="text-[10px] font-medium text-yellow-300">Uptime</CardTitle>
-            <Clock className="h-3 w-3 text-yellow-400" />
-          </CardHeader>
-          <CardContent className="p-3 pt-1">
-            <div className="text-sm font-bold text-yellow-400">{formatUptime(resource?.uptime)}</div>
-            <Badge className="mt-1.5 text-[9px] py-0 px-1.5 h-4 bg-yellow-600/80 text-white" variant={getUptimeBadge(resource?.uptime)}>Estável</Badge>
-          </CardContent>
-        </Card>
+          </div>
+        ))}
       </div>
 
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-white">Recursos do Sistema</CardTitle>
+      {/* Version badges */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-border text-muted-foreground">
+          RB: v{routerboard?.['current-firmware'] || routerboard?.version || 'N/A'}
+        </Badge>
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-border text-muted-foreground">
+          OS: v{resource?.version || 'N/A'}
+        </Badge>
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
+          Online
+        </Badge>
+      </div>
+
+      {/* Resource Monitor */}
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-foreground text-sm">Recursos do Sistema</CardTitle>
         </CardHeader>
         <CardContent>
           <MikrotikResourceMonitor />
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-3 pt-3">
-            <CardTitle className="text-[10px] font-medium text-white">Firewall</CardTitle>
-            <Shield className="h-3 w-3 text-red-400" />
-          </CardHeader>
-          <CardContent className="p-3 pt-1">
-            <div className="text-sm font-bold text-white">{stats.activeFirewall}/{stats.totalFirewall}</div>
-            <Progress value={stats.totalFirewall > 0 ? (stats.activeFirewall / stats.totalFirewall) * 100 : 0} className="mt-1.5 h-1.5 bg-red-900/30" />
-          </CardContent>
-        </Card>
-
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-3 pt-3">
-            <CardTitle className="text-[10px] font-medium text-white">NAT</CardTitle>
-            <Network className="h-3 w-3 text-green-400" />
-          </CardHeader>
-          <CardContent className="p-3 pt-1">
-            <div className="text-sm font-bold text-white">{stats.activeNat}/{stats.totalNat}</div>
-            <Progress value={stats.totalNat > 0 ? (stats.activeNat / stats.totalNat) * 100 : 0} className="mt-1.5 h-1.5 bg-green-900/30" />
-          </CardContent>
-        </Card>
-
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-3 pt-3">
-            <CardTitle className="text-[10px] font-medium text-white">VPN</CardTitle>
-            <KeyRound className="h-3 w-3 text-yellow-400" />
-          </CardHeader>
-          <CardContent className="p-3 pt-1">
-            <div className="text-sm font-bold text-white">{stats.connectedVpn}/{stats.enabledVpn}</div>
-            <Progress value={stats.enabledVpn > 0 ? (stats.connectedVpn / stats.enabledVpn) * 100 : 0} className="mt-1.5 h-1.5 bg-yellow-900/30" />
-          </CardContent>
-        </Card>
-
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-3 pt-3">
-            <CardTitle className="text-[10px] font-medium text-white">IPs</CardTitle>
-            <Globe className="h-3 w-3 text-blue-400" />
-          </CardHeader>
-          <CardContent className="p-3 pt-1">
-            <div className="text-sm font-bold text-white">{stats.validIps}</div>
-            <Badge className="mt-1.5 text-[9px] py-0 px-1.5 h-4 bg-blue-600/80 text-white" variant="secondary">Configurados</Badge>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-white">Interfaces</CardTitle>
+      {/* Interfaces list */}
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-foreground text-sm">Interfaces</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
+          <div className="space-y-1">
             {interfaces.slice(0, 6).map((iface: any) => (
-              <div key={iface['.id']} className="flex items-center justify-between p-2 border border-slate-700 rounded hover:bg-slate-700/50">
+              <div key={iface['.id']} className="flex items-center justify-between px-3 py-1.5 border border-border rounded-lg hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-2">
-                  <div className={cn("w-2 h-2 rounded-full", iface.running ? "bg-green-500" : "bg-red-500")} />
-                  <span className="font-medium text-sm text-slate-200">{iface.name}</span>
+                  <div className={cn("w-2 h-2 rounded-full", iface.running ? "bg-emerald-500" : "bg-destructive")} />
+                  <span className="font-medium text-xs text-foreground">{iface.name}</span>
                 </div>
-                <Badge variant={iface.running ? "default" : "secondary"} className={cn("text-xs", iface.running ? "bg-green-600/80 text-white" : "bg-slate-700 text-slate-300")}>{iface.running ? "UP" : "DOWN"}</Badge>
+                <Badge variant="outline" className={cn(
+                  "text-[10px] px-1.5 py-0 h-5",
+                  iface.running
+                    ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
+                    : "border-destructive/30 text-destructive bg-destructive/10"
+                )}>
+                  {iface.running ? "UP" : "DOWN"}
+                </Badge>
               </div>
             ))}
           </div>
