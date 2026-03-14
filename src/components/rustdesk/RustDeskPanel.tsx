@@ -448,88 +448,73 @@ export const RustDeskPanel = () => {
                       {/* Connection rows */}
                       {group.connections.map(conn => (
                         <TableRow key={conn.id} className="border-border/50 hover:bg-muted/20">
-                          <TableCell className="text-foreground font-medium text-sm pl-8">
-                            <div>
-                              {conn.name}
-                              {conn.alias && <span className="text-muted-foreground text-xs ml-1">({conn.alias})</span>}
-                            </div>
-                            {conn.hostname && <div className="text-xs text-muted-foreground">{conn.hostname}</div>}
+                          <TableCell className="py-1 pl-8">
+                            <span className="text-xs font-medium text-foreground">{conn.name}</span>
+                            {conn.alias && <span className="text-muted-foreground text-[10px] ml-1">({conn.alias})</span>}
+                            {conn.hostname && <span className="text-[10px] text-muted-foreground ml-1">· {conn.hostname}</span>}
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <code className="text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded text-xs">
+                          <TableCell className="py-1">
+                            <div className="flex items-center gap-0.5">
+                              <code className="text-orange-400 bg-orange-500/10 px-1.5 py-0 rounded text-[11px]">
                                 {conn.rustdesk_id}
                               </code>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0"
+                              <Button variant="ghost" size="sm" className="h-5 w-5 p-0"
                                 onClick={() => copyToClipboard(conn.rustdesk_id, 'ID')}>
-                                <Copy className="h-3 w-3" />
+                                <Copy className="h-2.5 w-2.5" />
                               </Button>
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-1">
                             {conn.password ? (
-                              <div className="flex items-center gap-1">
-                                <span className="text-sm font-mono text-muted-foreground">
-                                  {showPasswords[conn.id] ? conn.password : '••••••'}
+                              <div className="flex items-center gap-0.5">
+                                <span className="text-[11px] font-mono text-muted-foreground">
+                                  {showPasswords[conn.id] ? conn.password : '••••'}
                                 </span>
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0"
+                                <Button variant="ghost" size="sm" className="h-5 w-5 p-0"
                                   onClick={() => togglePassword(conn.id)}>
-                                  {showPasswords[conn.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                  {showPasswords[conn.id] ? <EyeOff className="h-2.5 w-2.5" /> : <Eye className="h-2.5 w-2.5" />}
                                 </Button>
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0"
+                                <Button variant="ghost" size="sm" className="h-5 w-5 p-0"
                                   onClick={() => copyToClipboard(conn.password!, 'Senha')}>
-                                  <Copy className="h-3 w-3" />
+                                  <Copy className="h-2.5 w-2.5" />
                                 </Button>
                               </div>
                             ) : (
-                              <span className="text-muted-foreground/50">-</span>
+                              <span className="text-muted-foreground/50 text-[11px]">-</span>
                             )}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-1">
                             {conn.glpi_asset_name ? (
-                              <div className="space-y-0.5">
-                                <div className="flex items-center gap-1">
-                                  <Package className="h-3 w-3 text-blue-400 flex-shrink-0" />
-                                  <span className="text-xs font-medium text-foreground">{conn.glpi_asset_name}</span>
-                                </div>
-                                {(conn.glpi_asset_serial || conn.glpi_asset_entity || conn.glpi_asset_comment) && (
-                                  <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
-                                    {conn.glpi_asset_serial && (
-                                      <div>S/N: {conn.glpi_asset_serial}</div>
-                                    )}
-                                    {conn.glpi_asset_entity && (
-                                      <div className="text-blue-400/70">{conn.glpi_asset_entity}</div>
-                                    )}
-                                    {conn.glpi_asset_comment && (
-                                      <div className="italic">{conn.glpi_asset_comment.substring(0, 60)}{conn.glpi_asset_comment.length > 60 ? '...' : ''}</div>
-                                    )}
-                                  </div>
-                                )}
+                              <div className="flex items-center gap-1" title={[conn.glpi_asset_name, conn.glpi_asset_serial && `S/N: ${conn.glpi_asset_serial}`, conn.glpi_asset_entity, conn.glpi_asset_comment].filter(Boolean).join(' | ')}>
+                                <Package className="h-3 w-3 text-blue-400 flex-shrink-0" />
+                                <span className="text-[11px] text-foreground truncate max-w-[120px]">{conn.glpi_asset_name}</span>
+                                {conn.glpi_asset_entity && <span className="text-[10px] text-blue-400/70 truncate max-w-[80px]">{conn.glpi_asset_entity}</span>}
+                                {conn.glpi_asset_comment && <span className="text-[10px] text-muted-foreground italic truncate max-w-[100px]">{conn.glpi_asset_comment.substring(0, 30)}</span>}
                               </div>
                             ) : (
-                              <span className="text-muted-foreground/50 text-xs">-</span>
+                              <span className="text-muted-foreground/50 text-[10px]">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
+                          <TableCell className="py-1 text-right">
+                            <div className="flex justify-end gap-0.5">
                               <Button
                                 size="sm"
                                 onClick={() => handleConnect(conn)}
-                                className="h-7 bg-orange-600 hover:bg-orange-700 text-white text-xs"
+                                className="h-6 px-2 bg-orange-600 hover:bg-orange-700 text-white text-[11px]"
                               >
-                                <ExternalLink className="h-3 w-3 mr-1" />
+                                <ExternalLink className="h-2.5 w-2.5 mr-0.5" />
                                 Conectar
                               </Button>
                               <Button variant="outline" size="sm"
-                                className="h-7"
+                                className="h-6 w-6 p-0"
                                 onClick={() => handleEdit(conn)}>
-                                <Edit className="h-3 w-3" />
+                                <Edit className="h-2.5 w-2.5" />
                               </Button>
                               <Button variant="outline" size="sm"
-                                className="h-7 text-destructive hover:bg-destructive/10"
+                                className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
                                 onClick={() => handleDelete(conn.id)}
                                 disabled={deleteMutation.isPending}>
-                                <Trash2 className="h-3 w-3" />
+                                <Trash2 className="h-2.5 w-2.5" />
                               </Button>
                             </div>
                           </TableCell>
