@@ -577,9 +577,11 @@ const Dashboard = () => {
                           <XCircle className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
                         )}
                         <div>
-                          <p className="text-xs text-foreground">{log.phone_number}</p>
+                          <p className="text-xs text-foreground">
+                            {log.scheduled_reports?.name || log.phone_number}
+                          </p>
                           <p className="text-[9px] text-muted-foreground">
-                            {format(parseISO(log.execution_date), "dd/MM HH:mm", { locale: ptBR })}
+                            {log.phone_number} • {format(parseISO(log.execution_date), "dd/MM HH:mm", { locale: ptBR })}
                           </p>
                         </div>
                       </div>
