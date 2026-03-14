@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Monitor, Plus, Search, Edit, Trash2, ExternalLink, Eye, EyeOff, Copy,
   X, Save, Building2, Package
+
 } from 'lucide-react';
 import {
   useRustDeskConnections,
@@ -29,9 +30,7 @@ const EMPTY_FORM = {
   alias: '',
   company_id: '',
   hostname: '',
-  os_type: '',
   notes: '',
-  tags: [] as string[],
   glpi_asset_id: null as number | null,
   glpi_asset_name: '',
 };
@@ -53,7 +52,6 @@ export const RustDeskPanel = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [tagInput, setTagInput] = useState('');
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   
 
@@ -101,9 +99,7 @@ export const RustDeskPanel = () => {
       alias: conn.alias || '',
       company_id: conn.company_id || '',
       hostname: conn.hostname || '',
-      os_type: conn.os_type || '',
       notes: conn.notes || '',
-      tags: conn.tags || [],
       glpi_asset_id: conn.glpi_asset_id || null,
       glpi_asset_name: conn.glpi_asset_name || '',
     });
@@ -182,16 +178,6 @@ export const RustDeskPanel = () => {
     setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const addTag = () => {
-    if (tagInput.trim() && !form.tags.includes(tagInput.trim())) {
-      setForm(prev => ({ ...prev, tags: [...prev.tags, tagInput.trim()] }));
-      setTagInput('');
-    }
-  };
-
-  const removeTag = (tag: string) => {
-    setForm(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
-  };
 
   const selectGlpiAsset = (assetId: string) => {
     if (assetId === 'none') {
@@ -314,21 +300,6 @@ export const RustDeskPanel = () => {
                   className="h-8 text-sm"
                 />
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Sistema Operacional</label>
-                <Select value={form.os_type} onValueChange={v => setForm(p => ({ ...p, os_type: v }))}>
-                  <SelectTrigger className="h-8 text-sm">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="windows">Windows</SelectItem>
-                    <SelectItem value="linux">Linux</SelectItem>
-                    <SelectItem value="macos">macOS</SelectItem>
-                    <SelectItem value="android">Android</SelectItem>
-                    <SelectItem value="other">Outro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -369,28 +340,6 @@ export const RustDeskPanel = () => {
                 </Select>
                 {glpiComputers.length === 0 && (
                   <p className="text-[10px] text-muted-foreground mt-1">Nenhum ativo encontrado. Verifique a conexão com o GLPI.</p>
-                )}
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Tags</label>
-                <div className="flex gap-2">
-                  <Input
-                    value={tagInput}
-                    onChange={e => setTagInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                    placeholder="Digite e Enter"
-                    className="h-8 text-sm"
-                  />
-                </div>
-                {form.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1.5">
-                    {form.tags.map(tag => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        {tag}
-                        <X className="h-3 w-3 ml-1 cursor-pointer" onClick={() => removeTag(tag)} />
-                      </Badge>
-                    ))}
-                  </div>
                 )}
               </div>
             </div>
@@ -444,9 +393,7 @@ export const RustDeskPanel = () => {
                     <TableHead className="text-muted-foreground text-xs">Nome</TableHead>
                     <TableHead className="text-muted-foreground text-xs">ID RustDesk</TableHead>
                     <TableHead className="text-muted-foreground text-xs">Senha</TableHead>
-                    <TableHead className="text-muted-foreground text-xs">SO</TableHead>
                     <TableHead className="text-muted-foreground text-xs">GLPI</TableHead>
-                    <TableHead className="text-muted-foreground text-xs">Tags</TableHead>
                     <TableHead className="text-muted-foreground text-xs text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -455,7 +402,7 @@ export const RustDeskPanel = () => {
                     <>
                       {/* Company header row */}
                       <TableRow key={`group-${companyId}`} className="border-border bg-muted/30 hover:bg-muted/30">
-                        <TableCell colSpan={7} className="py-1.5">
+                        <TableCell colSpan={5} className="py-1.5">
                           <div className="flex items-center gap-2">
                             <Building2 className="h-3.5 w-3.5 text-orange-400" />
                             <span className="text-xs font-semibold text-orange-400">{group.name}</span>
@@ -506,13 +453,6 @@ export const RustDeskPanel = () => {
                             )}
                           </TableCell>
                           <TableCell>
-                            {conn.os_type && (
-                              <Badge variant="secondary" className="text-[10px]">
-                                {conn.os_type}
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
                             {conn.glpi_asset_name ? (
                               <div className="flex items-center gap-1">
                                 <Package className="h-3 w-3 text-blue-400" />
@@ -521,15 +461,6 @@ export const RustDeskPanel = () => {
                             ) : (
                               <span className="text-muted-foreground/50 text-xs">-</span>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {conn.tags?.map(tag => (
-                                <Badge key={tag} variant="outline" className="text-[10px] text-orange-400 border-orange-500/20">
-                                  {tag}
-                                </Badge>
-                              ))}
-                            </div>
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
