@@ -55,7 +55,7 @@ export const RustDeskPanel = () => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [tagInput, setTagInput] = useState('');
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
-  const [glpiSearch, setGlpiSearch] = useState('');
+  
 
   const filtered = useMemo(() => {
     if (!search) return connections;
