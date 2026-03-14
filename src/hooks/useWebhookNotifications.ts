@@ -3,7 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
-export const useWebhookNotifications = () => {
+interface WebhookNotificationOptions {
+  onViewEvent?: (logId: string) => void;
+}
+
+export const useWebhookNotifications = (options?: WebhookNotificationOptions) => {
   const { isAuthenticated } = useAuth();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -52,6 +56,7 @@ export const useWebhookNotifications = () => {
           const record = payload.new as any;
           const body = record.request_body;
           const isTest = record.is_test;
+          const logId = record.id;
 
           // Build a summary from the payload
           let summary = '';
@@ -70,7 +75,7 @@ export const useWebhookNotifications = () => {
               {
                 body: summary || 'Novo payload recebido',
                 icon: '/icon-192.png',
-                tag: `webhook-${record.id}`,
+                tag: `webhook-${logId}`,
                 requireInteraction: false,
               }
             );
@@ -78,18 +83,19 @@ export const useWebhookNotifications = () => {
             notification.onclick = () => {
               window.focus();
               notification.close();
+              options?.onViewEvent?.(logId);
             };
           }
 
           // Toast notification
           toast(isTest ? '🧪 Webhook de Teste' : '🔔 Webhook Recebido', {
             description: summary || 'Novo payload recebido',
-            duration: 6000,
+            duration: 8000,
             position: 'bottom-right',
             action: {
-              label: 'Ver',
+              label: 'Ver detalhes',
               onClick: () => {
-                window.location.href = '/webhooks';
+                options?.onViewEvent?.(logId);
               },
             },
           });
@@ -105,5 +111,5 @@ export const useWebhookNotifications = () => {
         channelRef.current = null;
       }
     };
-  }, [isAuthenticated, playNotificationSound]);
+  }, [isAuthenticated, playNotificationSound, options]);
 };
