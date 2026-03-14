@@ -17,6 +17,8 @@ interface DeviceStatus {
 }
 
 export default function Alertas() {
+  const [sortColumn, setSortColumn] = React.useState<'device' | 'cpu' | 'memory' | 'uptime'>('device');
+  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
   const { useHosts, useProblems, useItems } = useZabbixAPI();
   
   const { data: hosts = [], isLoading: hostsLoading, refetch: refetchHosts } = useHosts({}, {
