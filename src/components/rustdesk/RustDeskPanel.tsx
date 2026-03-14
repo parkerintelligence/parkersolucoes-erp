@@ -44,9 +44,9 @@ export const RustDeskPanel = () => {
   const deleteMutation = useDeleteRustDeskConnection();
   const { confirm } = useConfirmDialog();
 
-  // GLPI inventory
-  const glpi = useGLPI();
-  const glpiComputers = glpi.computers?.data || [];
+  // GLPI inventory via proxy
+  const glpiExpanded = useGLPIExpanded();
+  const glpiComputers = glpiExpanded.computers?.data || [];
 
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
