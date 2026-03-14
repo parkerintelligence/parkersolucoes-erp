@@ -159,6 +159,7 @@ export const GLPIInventory = () => {
                         <TableHead className="text-gray-300">Nome</TableHead>
                         <TableHead className="text-gray-300">Tipo</TableHead>
                         <TableHead className="text-gray-300">Serial</TableHead>
+                        <TableHead className="text-gray-300">Comentários</TableHead>
                         <TableHead className="text-gray-300">Status</TableHead>
                         <TableHead className="text-gray-300">Ações</TableHead>
                       </TableRow>
@@ -182,6 +183,9 @@ export const GLPIInventory = () => {
                           </TableCell>
                           <TableCell className="text-gray-400 text-xs font-mono">
                             {item.serial || item.otherserial || '-'}
+                          </TableCell>
+                          <TableCell className="text-gray-400 text-xs max-w-[200px] truncate" title={item.comment || ''}>
+                            {item.comment || '-'}
                           </TableCell>
                           <TableCell>{getStatusBadge(item.states_id || 1)}</TableCell>
                           <TableCell>

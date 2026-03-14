@@ -337,11 +337,18 @@ export const RustDeskPanel = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Nenhum</SelectItem>
-                    {glpiComputers.map((comp: any) => (
-                      <SelectItem key={comp.id} value={String(comp.id)}>
-                        {comp.name}{comp.serial ? ` (${comp.serial})` : ''}
-                      </SelectItem>
-                    ))}
+                    {glpiComputers.map((comp: any) => {
+                      const entityName = getGlpiEntityName(comp.entities_id);
+                      const parts = [comp.name];
+                      if (comp.serial) parts.push(`S/N: ${comp.serial}`);
+                      if (entityName) parts.push(entityName);
+                      if (comp.comment) parts.push(comp.comment.substring(0, 40));
+                      return (
+                        <SelectItem key={comp.id} value={String(comp.id)}>
+                          {parts.join(' | ')}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
                 {glpiComputers.length === 0 && (
