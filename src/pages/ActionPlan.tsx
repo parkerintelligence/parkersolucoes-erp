@@ -223,6 +223,11 @@ export default function ActionPlan() {
           })}
         </div>
       )}
+
+      {/* Edit Board Dialog */}
+      <Dialog open={!!editingBoard} onOpenChange={(open) => !open && setEditingBoard(null)}>
+        <BoardDialog board={editingBoard} onSave={handleUpdateBoard} />
+      </Dialog>
     </div>
   );
 }
