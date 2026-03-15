@@ -29,6 +29,7 @@ import Companies from '@/pages/Companies';
 import { SafeBacula } from '@/components/SafeBacula';
 import ReportsDashboard from '@/pages/ReportsDashboard';
 import { SafeActionPlan } from '@/components/SafeActionPlan';
+import { SafeProjectDetail } from '@/components/SafeProjectDetail';
 import { SafeAlertas } from '@/components/SafeAlertas';
 import { SafeAtendimentos } from '@/components/SafeAtendimentos';
 import Dashboard from '@/pages/Dashboard';
