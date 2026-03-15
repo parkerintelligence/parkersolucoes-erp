@@ -472,7 +472,7 @@ export const useUniFiAPI = () => {
 
   // Device operations
   const restartDevice = useMutation({
-    mutationFn: async ({ integrationId, hostId, deviceId, siteId }: { integrationId: string, hostId: string, deviceId: string, siteId?: string }) => {
+    mutationFn: async ({ integrationId, hostId, deviceId, siteId }: { integrationId: string, hostId?: string, deviceId: string, siteId?: string }) => {
       const endpoint = siteId ? `/api/s/${siteId}/cmd/devmgr` : '/api/cmd/devmgr';
       return makeUniFiRequest(endpoint, 'POST', integrationId, {
         cmd: 'restart',
