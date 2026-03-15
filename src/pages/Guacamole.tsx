@@ -33,7 +33,7 @@ const Guacamole = () => {
   const { data: rustDeskConnections = [] } = useRustDeskConnections();
   
   // Add RustDesk connection logs on load
-  React.useEffect(() => {
+  useEffect(() => {
     if (rustDeskConnections.length > 0) {
       addLog('info', `${rustDeskConnections.length} conexões RustDesk carregadas`, {
         source: 'rustdesk',
