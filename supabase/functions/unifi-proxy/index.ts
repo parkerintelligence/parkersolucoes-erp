@@ -18,7 +18,13 @@ const toHttpUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace(
 
 const toHttpsUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace(/^http:\/\//i, 'https://');
 
-const buildLocalControllerCandidates = (baseUrl: string, preferSsl: boolean) => {
+const DEFAULT_FETCH_TIMEOUT_MS = 9000;
+
+const buildLocalControllerCandidates = (
+  baseUrl: string,
+  preferSsl: boolean,
+  configuredPort?: number | string | null,
+) => {
   const normalized = normalizeUrlNoTrailingSlash(baseUrl);
   const parsed = new URL(normalized);
 
@@ -36,17 +42,28 @@ const buildLocalControllerCandidates = (baseUrl: string, preferSsl: boolean) => 
     if (url) candidates.add(normalizeUrlNoTrailingSlash(url));
   };
 
-  // Prefer user-selected protocol first, but always try the opposite protocol too.
+  const configuredPortValue = String(configuredPort ?? '').trim();
+  const currentPort = parsed.port || (preferSsl ? '443' : '80');
   const preferred = preferSsl ? toHttpsUrl(normalized) : toHttpUrl(normalized);
+
   push(preferred);
   push(preferSsl ? toHttpUrl(preferred) : toHttpsUrl(preferred));
 
-  // Common fallback ports for local UniFi setups when HTTPS cert breaks.
-  const currentPort = parsed.port || (preferSsl ? '443' : '80');
-  if (['443', '8443', '8445'].includes(currentPort)) {
-    push(createVariant('http:', '8080'));
-    push(createVariant('http:', '8880'));
+  if (configuredPortValue && configuredPortValue !== currentPort) {
+    push(createVariant(preferSsl ? 'https:' : 'http:', configuredPortValue));
+    push(createVariant(preferSsl ? 'http:' : 'https:', configuredPortValue));
   }
+
+  // Common UniFi controller fallback combinations.
+  ['443', '8443', '8445'].forEach((port) => {
+    push(createVariant('https:', port));
+    push(createVariant('http:', port));
+  });
+
+  // Common plain HTTP controller ports.
+  ['8080', '8880', '80'].forEach((port) => {
+    push(createVariant('http:', port));
+  });
 
   return Array.from(candidates);
 };
@@ -67,9 +84,25 @@ const fetchIgnoringCerts = async (url: string, options: RequestInit = {}) => {
   }
 };
 
-const fetchWithTlsFallback = async (url: string, options: RequestInit = {}, allowInsecureFallback: boolean = true) => {
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs: number = DEFAULT_FETCH_TIMEOUT_MS) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    return await fetch(url, options);
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+const fetchWithTlsFallback = async (
+  url: string,
+  options: RequestInit = {},
+  allowInsecureFallback: boolean = true,
+  timeoutMs: number = DEFAULT_FETCH_TIMEOUT_MS,
+) => {
+  try {
+    return await fetchWithTimeout(url, options, timeoutMs);
   } catch (error) {
     if (!allowInsecureFallback || !isTlsCertificateError(error)) {
       throw error;
@@ -168,7 +201,7 @@ serve(async (req) => {
     }
 
     // Determine connection mode based on integration data + endpoint requested
-    const { base_url, username, password, api_token, use_ssl = true } = integration;
+    const { base_url, username, password, api_token, use_ssl = true, port } = integration;
     const normalizedBaseUrl = typeof base_url === 'string' ? base_url.trim().replace(/\/+$/, '') : '';
     const normalizedUsername = typeof username === 'string' ? username.trim() : '';
     const normalizedPassword = typeof password === 'string' ? password.trim() : '';
@@ -188,6 +221,7 @@ serve(async (req) => {
       hasPassword: !!normalizedPassword,
       hasApiToken: !!normalizedApiToken,
       useSSL: use_ssl,
+      configuredPort: port,
       endpoint,
       endpointIsLocalController,
       useLocalController,
@@ -223,21 +257,29 @@ serve(async (req) => {
       let activeBaseApiUrl = baseApiUrl;
       let loginResponse: Response | null = null;
       let lastConnectionError = '';
+      let lastConnectionErrorWasTls = false;
 
-      const controllerCandidates = buildLocalControllerCandidates(baseApiUrl, use_ssl ?? true);
-      const loginEndpoints = ['/api/auth/login', '/api/login'];
+      const controllerCandidates = buildLocalControllerCandidates(baseApiUrl, use_ssl ?? true, port);
+      const loginEndpoints = [
+        '/api/auth/login',
+        '/api/login',
+        '/proxy/network/api/auth/login',
+        '/proxy/network/api/login',
+      ];
 
       console.log('=== UNIFI CONTROLLER CONNECTION DIAGNOSTICS ===');
       console.log('Controller candidates:', controllerCandidates);
       console.log('Username provided:', !!username);
       console.log('Password provided:', !!password);
       console.log('Use SSL configured:', use_ssl);
+      console.log('Configured port:', port);
       console.log('Ignore SSL configured:', requestBody.ignore_ssl);
 
       const loginBody = JSON.stringify({
         username: normalizedUsername,
         password: normalizedPassword,
         remember: true,
+        rememberMe: true,
       });
 
       const loginHeaders = {
@@ -256,11 +298,16 @@ serve(async (req) => {
             console.log('[UNIFI-LOCAL] Testing login URL:', candidateLoginUrl);
 
             const startTime = Date.now();
-            const response = await fetchWithTlsFallback(candidateLoginUrl, {
-              method: 'POST',
-              headers: loginHeaders,
-              body: loginBody,
-            }, allowTlsFallback);
+            const response = await fetchWithTlsFallback(
+              candidateLoginUrl,
+              {
+                method: 'POST',
+                headers: loginHeaders,
+                body: loginBody,
+              },
+              allowTlsFallback,
+              7000,
+            );
             const responseTime = Date.now() - startTime;
 
             console.log(`[UNIFI-LOCAL] Login response ${response.status} in ${responseTime}ms for ${candidateLoginUrl}`);
@@ -277,9 +324,11 @@ serve(async (req) => {
 
             const errorBody = await response.text();
             lastConnectionError = `${response.status} em ${candidateLoginUrl}: ${errorBody}`;
+            lastConnectionErrorWasTls = false;
           } catch (connectionError) {
             const errorMessage = connectionError instanceof Error ? connectionError.message : String(connectionError);
             lastConnectionError = `${candidateLoginUrl} => ${errorMessage}`;
+            lastConnectionErrorWasTls = isTlsCertificateError(connectionError);
             console.warn('[UNIFI-LOCAL] Login attempt failed:', lastConnectionError);
           }
         }
@@ -290,9 +339,16 @@ serve(async (req) => {
       }
 
       if (!loginResponse) {
+        if (lastConnectionErrorWasTls) {
+          throw new Error(
+            `Falha SSL/TLS na controladora (${baseApiUrl}). Último erro: ${lastConnectionError || 'certificado inválido'}. ` +
+            'O Supabase Edge não consegue ignorar certificado autoassinado. Use certificado público válido (cadeia completa) ou endpoint HTTP interno acessível.'
+          );
+        }
+
         throw new Error(
           `Falha ao conectar na controladora (${baseApiUrl}). Último erro: ${lastConnectionError || 'sem resposta'}. ` +
-          'Verifique URL, porta, protocolo (HTTP/HTTPS), firewall e certificado SSL.'
+          'Verifique URL, porta, protocolo (HTTP/HTTPS), firewall e se a API está exposta.'
         );
       }
 

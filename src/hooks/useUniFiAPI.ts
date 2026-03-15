@@ -319,7 +319,16 @@ export const useUniFiAPI = () => {
 
           const normalizedLocalSites = rawSites
             .map((site: any) => {
-              const siteName = String(site?.name || site?.site || site?._id || site?.id || '').trim();
+              const siteName = String(
+                site?.name ||
+                site?.site ||
+                site?.meta?.name ||
+                site?.site_name ||
+                site?.attr_hidden_id ||
+                site?._id ||
+                site?.id ||
+                ''
+              ).trim();
               if (!siteName) return null;
 
               return {
