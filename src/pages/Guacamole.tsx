@@ -22,11 +22,25 @@ const Guacamole = () => {
   const {
     logs,
     clearLogs,
+    addLog,
     logRequest,
     logResponse,
     logError,
     logInfo
   } = useGuacamoleLogs();
+
+  // RustDesk connections for logs
+  const { data: rustDeskConnections = [] } = useRustDeskConnections();
+  
+  // Add RustDesk connection logs on load
+  React.useEffect(() => {
+    if (rustDeskConnections.length > 0) {
+      addLog('info', `${rustDeskConnections.length} conexões RustDesk carregadas`, {
+        source: 'rustdesk',
+        details: { total: rustDeskConnections.length, online: rustDeskConnections.filter(c => c.is_online).length }
+      });
+    }
+  }, [rustDeskConnections.length]);
   
   const {
     useConnections,
