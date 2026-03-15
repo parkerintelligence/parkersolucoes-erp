@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Wifi, 
@@ -13,12 +13,15 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronUp,
-  Server,
-  Activity
+  Search,
+  Activity,
+  Globe,
+  CheckCircle2,
+  XCircle,
+  Signal
 } from 'lucide-react';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { useIntegrations } from '@/hooks/useIntegrations';
-import { UniFiSiteSelector } from '@/components/UniFiSiteSelector';
 import { UniFiDeviceManager } from '@/components/UniFiDeviceManager';
 import { UniFiClientManager } from '@/components/UniFiClientManager';
 import { useToast } from '@/hooks/use-toast';
@@ -29,7 +32,9 @@ const UniFiSimpleDashboard = () => {
   
   const [selectedIntegration, setSelectedIntegration] = useState<string>('');
   const [selectedSiteId, setSelectedSiteId] = useState<string>('');
-  const [devicesOpen, setDevicesOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeSection, setActiveSection] = useState<string>('devices');
+  const [devicesOpen, setDevicesOpen] = useState(true);
   const [clientsOpen, setClientsOpen] = useState(false);
   const [networksOpen, setNetworksOpen] = useState(false);
   const [alarmsOpen, setAlarmsOpen] = useState(false);
@@ -48,46 +53,19 @@ const UniFiSimpleDashboard = () => {
 
   const unifiIntegrations = integrations?.filter(int => int.type === 'unifi' && int.is_active) || [];
 
-  // Auto-select first integration
   useEffect(() => {
     if (unifiIntegrations.length > 0 && !selectedIntegration) {
       setSelectedIntegration(unifiIntegrations[0].id);
     }
   }, [unifiIntegrations, selectedIntegration]);
 
-  // Queries - using Site Manager API directly (no host selection needed)
-  const { 
-    data: sites, 
-    isLoading: sitesLoading,
-    error: sitesError
-  } = useUniFiSites(selectedIntegration);
-  
-  const { 
-    data: devices, 
-    isLoading: devicesLoading 
-  } = useUniFiDevices(selectedIntegration, undefined, selectedSiteId);
-  
-  const { 
-    data: clients, 
-    isLoading: clientsLoading 
-  } = useUniFiClients(selectedIntegration, undefined, selectedSiteId);
-  
-  const { 
-    data: networks, 
-    isLoading: networksLoading 
-  } = useUniFiNetworks(selectedIntegration, undefined, selectedSiteId);
-  
-  const { 
-    data: alarms, 
-    isLoading: alarmsLoading 
-  } = useUniFiAlarms(selectedIntegration, undefined, selectedSiteId);
-  
-  const { 
-    data: stats, 
-    isLoading: statsLoading 
-  } = useUniFiStats(selectedIntegration, undefined, selectedSiteId);
+  const { data: sites, isLoading: sitesLoading, error: sitesError } = useUniFiSites(selectedIntegration);
+  const { data: devices, isLoading: devicesLoading } = useUniFiDevices(selectedIntegration, undefined, selectedSiteId);
+  const { data: clients, isLoading: clientsLoading } = useUniFiClients(selectedIntegration, undefined, selectedSiteId);
+  const { data: networks, isLoading: networksLoading } = useUniFiNetworks(selectedIntegration, undefined, selectedSiteId);
+  const { data: alarms, isLoading: alarmsLoading } = useUniFiAlarms(selectedIntegration, undefined, selectedSiteId);
+  const { data: stats } = useUniFiStats(selectedIntegration, undefined, selectedSiteId);
 
-  // Auto-select first site
   useEffect(() => {
     if (sites?.data && sites.data.length > 0 && !selectedSiteId) {
       setSelectedSiteId(sites.data[0].id);
@@ -96,319 +74,339 @@ const UniFiSimpleDashboard = () => {
 
   const handleRefresh = () => {
     refreshData(selectedIntegration, undefined, selectedSiteId);
-    toast({
-      title: "Dados atualizados",
-      description: "Informações da rede UniFi foram atualizadas.",
-    });
+    toast({ title: "Dados atualizados", description: "Informações da rede UniFi foram atualizadas." });
   };
 
   if (unifiIntegrations.length === 0) {
     return (
-      <Alert>
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
-          Nenhuma integração UniFi ativa encontrada. Configure uma integração na página de Administração.
-        </AlertDescription>
-      </Alert>
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border border-border text-xs text-muted-foreground">
+        <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+        Nenhuma integração UniFi ativa encontrada. Configure na página de Administração.
+      </div>
     );
   }
 
-  // Check for API token errors
   if (sitesError && selectedIntegration) {
     const isTokenError = sitesError.message?.includes('API Token inválido') || 
                         sitesError.message?.includes('unauthorized') ||
                         sitesError.message?.includes('401');
-    
     if (isTokenError) {
       return (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <div className="space-y-2">
-              <p><strong>Token UniFi inválido ou expirado</strong></p>
-              <p>Para resolver este problema:</p>
-              <ol className="list-decimal list-inside space-y-1 text-sm">
-                <li>Acesse <a href="https://unifi.ui.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">unifi.ui.com</a></li>
-                <li>Vá em Settings → API</li>
-                <li>Gere um novo token de API</li>
-                <li>Atualize a configuração na página de Administração</li>
-              </ol>
-            </div>
-          </AlertDescription>
-        </Alert>
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/30 text-xs text-destructive">
+          <AlertTriangle className="h-3.5 w-3.5" />
+          Token UniFi inválido ou expirado. Gere um novo em{' '}
+          <a href="https://unifi.ui.com" target="_blank" rel="noopener noreferrer" className="underline">unifi.ui.com</a>
+          {' '}→ Settings → API
+        </div>
       );
     }
   }
 
-  const selectedSite = sites?.data?.find(site => site.id === selectedSiteId);
+  const selectedSite = sites?.data?.find((site: any) => site.id === selectedSiteId);
+  const devicesList = devices?.data || [];
+  const clientsList = clients?.data || [];
+  const networksList = networks?.data || [];
+  const alarmsList = alarms?.data || [];
 
-  const statsData = stats ? [
-    {
-      title: "Dispositivos",
-      value: stats.total_devices || 0,
-      subtitle: `${stats.online_devices || 0} online`,
-      icon: <Router className="h-4 w-4" />
-    },
-    {
-      title: "Clientes",
-      value: stats.total_clients || 0,
-      subtitle: `${stats.wireless_clients || 0} Wi-Fi`,
-      icon: <Users className="h-4 w-4" />
-    },
-    {
-      title: "Redes",
-      value: networks?.data?.length || 0,
-      subtitle: "Configuradas",
-      icon: <Network className="h-4 w-4" />
-    },
-    {
-      title: "Alertas",
-      value: selectedSite?.newAlarmCount || 0,
-      subtitle: "Novos",
-      icon: <AlertTriangle className="h-4 w-4" />
-    }
-  ] : [];
+  const onlineDevices = devicesList.filter((d: any) => d.status === 'online' || d.state === 1).length;
+  const offlineDevices = devicesList.length - onlineDevices;
+  const wifiClients = clientsList.filter((c: any) => !c.isWired && !c.is_wired).length;
+  const wiredClients = clientsList.filter((c: any) => c.isWired || c.is_wired).length;
 
   return (
-    <div className="space-y-6">
-      {/* Header com Site Selector */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Wifi className="h-6 w-6 text-primary" />
-              <div>
-                <CardTitle>UniFi Network Manager</CardTitle>
-                {selectedSite && (
-                  <p className="text-sm text-muted-foreground">
-                    Site: {selectedSite.description || selectedSite.name}
-                  </p>
-                )}
-              </div>
-            </div>
-            <Button onClick={handleRefresh} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Atualizar
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <UniFiSiteSelector
-            sites={sites?.data || []}
-            selectedSiteId={selectedSiteId}
-            onSiteChange={setSelectedSiteId}
-            loading={sitesLoading}
-          />
-        </CardContent>
-      </Card>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Wifi className="h-5 w-5 text-primary" />
+          <h1 className="text-xl font-bold text-foreground">UniFi Network</h1>
+          {selectedSite && (
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              — {selectedSite.description || selectedSite.name}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {unifiIntegrations.length > 1 && (
+            <Select value={selectedIntegration} onValueChange={setSelectedIntegration}>
+              <SelectTrigger className="w-40 h-8 bg-card border-border text-xs">
+                <SelectValue placeholder="Integração" />
+              </SelectTrigger>
+              <SelectContent>
+                {unifiIntegrations.map(int => (
+                  <SelectItem key={int.id} value={int.id}>{int.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button onClick={handleRefresh} variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+            <RefreshCw className="h-3.5 w-3.5" />
+            Atualizar
+          </Button>
+        </div>
+      </div>
 
-      {/* Statistics Cards */}
-      {selectedSiteId && stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {statsData.map((stat, index) => (
-            <Card key={index}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="text-primary">
-                    {stat.icon}
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      {/* Stats Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+        {[
+          { label: "Dispositivos", value: devicesList.length, icon: Router, color: "text-primary" },
+          { label: "Online", value: stats?.online_devices ?? onlineDevices, icon: CheckCircle2, color: "text-green-500" },
+          { label: "Offline", value: stats?.total_devices ? (stats.total_devices - (stats.online_devices || 0)) : offlineDevices, icon: XCircle, color: offlineDevices > 0 ? "text-destructive" : "text-muted-foreground" },
+          { label: "Clientes", value: clientsList.length, icon: Users, color: "text-primary" },
+          { label: "Wi-Fi", value: stats?.wireless_clients ?? wifiClients, icon: Signal, color: "text-primary" },
+          { label: "Redes", value: networksList.length, icon: Network, color: "text-muted-foreground" },
+          { label: "Alertas", value: selectedSite?.newAlarmCount || alarmsList.length, icon: AlertTriangle, color: (selectedSite?.newAlarmCount || alarmsList.length) > 0 ? "text-destructive" : "text-muted-foreground" },
+        ].map(s => (
+          <div key={s.label} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border border-border">
+            <s.icon className={`h-3.5 w-3.5 ${s.color} flex-shrink-0`} />
+            <div className="min-w-0">
+              <span className={`text-sm font-bold ${s.color}`}>{s.value}</span>
+              <span className="text-[10px] text-muted-foreground ml-1.5">{s.label}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Toolbar: Site selector + Search */}
+      <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+        <Select value={selectedSiteId} onValueChange={setSelectedSiteId} disabled={sitesLoading || !sites?.data?.length}>
+          <SelectTrigger className="w-56 h-8 bg-card border-border text-xs">
+            <Globe className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+            <SelectValue placeholder="Selecione um site..." />
+          </SelectTrigger>
+          <SelectContent>
+            {(sites?.data || []).map((site: any) => (
+              <SelectItem key={site.id} value={site.id} className="text-xs">
+                {site.description || site.name}
+                {site.controllerName && (
+                  <span className="text-muted-foreground ml-1">({site.controllerName})</span>
+                )}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Buscar dispositivos, clientes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 bg-card border-border h-8 text-xs"
+          />
+        </div>
+
+        <div className="flex items-center bg-card border border-border rounded-lg p-0.5 ml-auto">
+          {[
+            { value: "devices", icon: Router, label: "Dispositivos", count: devicesList.length },
+            { value: "clients", icon: Users, label: "Clientes", count: clientsList.length },
+            { value: "networks", icon: Network, label: "Redes", count: networksList.length },
+            { value: "alarms", icon: AlertTriangle, label: "Alertas", count: alarmsList.length },
+          ].map(view => (
+            <Button
+              key={view.value}
+              variant="ghost"
+              size="sm"
+              onClick={() => setActiveSection(view.value)}
+              className={`h-7 px-2.5 gap-1 rounded-md text-[11px] ${
+                activeSection === view.value
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <view.icon className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{view.label}</span>
+              <Badge variant="secondary" className="h-4 px-1 text-[9px] ml-0.5">{view.count}</Badge>
+            </Button>
           ))}
+        </div>
+      </div>
+
+      {/* Loading state */}
+      {sitesLoading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <p className="text-sm text-muted-foreground">Carregando sites...</p>
+          </div>
         </div>
       )}
 
-      {/* Expandable Sections */}
+      {/* No site selected */}
+      {!sitesLoading && !selectedSiteId && sites?.data?.length === 0 && (
+        <div className="flex items-center gap-2 px-3 py-6 rounded-lg bg-card border border-border text-xs text-muted-foreground justify-center">
+          <Globe className="h-4 w-4" />
+          Nenhum site encontrado. Verifique a configuração da integração.
+        </div>
+      )}
+
+      {/* Content Sections */}
       {selectedSiteId && (
-        <div className="space-y-4">
-          {/* Devices Section */}
-          <Collapsible open={devicesOpen} onOpenChange={setDevicesOpen}>
-            <Card>
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Router className="h-5 w-5 text-primary" />
-                      <CardTitle className="text-lg">
-                        Dispositivos ({devices?.data?.length || 0})
-                      </CardTitle>
+        <div className="space-y-3">
+          {/* Devices */}
+          {activeSection === 'devices' && (
+            <Collapsible open={devicesOpen} onOpenChange={setDevicesOpen} defaultOpen>
+              <div className="rounded-lg border border-border bg-card">
+                <CollapsibleTrigger asChild>
+                  <button className="flex items-center justify-between w-full px-4 py-2.5 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <Router className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-semibold text-foreground">Dispositivos</span>
+                      <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{devicesList.length}</Badge>
+                      {onlineDevices > 0 && (
+                        <Badge variant="outline" className="h-5 px-1.5 text-[10px] text-green-500 border-green-500/30">
+                          {onlineDevices} online
+                        </Badge>
+                      )}
                     </div>
-                    {devicesOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                    {devicesOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="px-4 pb-4 border-t border-border pt-3">
+                    <UniFiDeviceManager
+                      devices={devicesList}
+                      loading={devicesLoading}
+                      restartLoading={restartDevice.isPending}
+                      onRestartDevice={async (deviceId: string) => {
+                        try {
+                          await restartDevice.mutateAsync({
+                            integrationId: selectedIntegration,
+                            hostId: undefined,
+                            deviceId,
+                            siteId: selectedSiteId
+                          });
+                        } catch (error) {
+                          console.error('Device restart failed:', error);
+                        }
+                      }}
+                    />
                   </div>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent>
-                  <UniFiDeviceManager
-                    devices={devices?.data || []}
-                    loading={devicesLoading}
-                    restartLoading={restartDevice.isPending}
-                    onRestartDevice={async (deviceId: string) => {
-                      try {
-                        await restartDevice.mutateAsync({
-                          integrationId: selectedIntegration,
-                          hostId: undefined,
-                          deviceId,
-                          siteId: selectedSiteId
-                        });
-                      } catch (error) {
-                        console.error('Device restart failed:', error);
-                      }
-                    }}
-                  />
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
+          )}
 
-          {/* Clients Section */}
-          <Collapsible open={clientsOpen} onOpenChange={setClientsOpen}>
-            <Card>
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Users className="h-5 w-5 text-primary" />
-                      <CardTitle className="text-lg">
-                        Clientes ({clients?.data?.length || 0})
-                      </CardTitle>
+          {/* Clients */}
+          {activeSection === 'clients' && (
+            <Collapsible open={clientsOpen} onOpenChange={setClientsOpen} defaultOpen>
+              <div className="rounded-lg border border-border bg-card">
+                <CollapsibleTrigger asChild>
+                  <button className="flex items-center justify-between w-full px-4 py-2.5 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-semibold text-foreground">Clientes</span>
+                      <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{clientsList.length}</Badge>
+                      <Badge variant="outline" className="h-5 px-1.5 text-[10px] text-muted-foreground">
+                        {wifiClients} Wi-Fi · {wiredClients} cabeados
+                      </Badge>
                     </div>
-                    {clientsOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                    {clientsOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="px-4 pb-4 border-t border-border pt-3">
+                    <UniFiClientManager
+                      clients={clientsList}
+                      loading={clientsLoading}
+                      blockLoading={toggleClientBlock.isPending}
+                      onBlockClient={async (siteId: string, clientId: string, block: boolean) => {
+                        try {
+                          await toggleClientBlock.mutateAsync({
+                            integrationId: selectedIntegration,
+                            hostId: undefined,
+                            clientId,
+                            block,
+                            siteId: selectedSiteId
+                          });
+                        } catch (error) {
+                          console.error('Client block/unblock failed:', error);
+                        }
+                      }}
+                      selectedSiteId={selectedSiteId}
+                    />
                   </div>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent>
-                  <UniFiClientManager
-                    clients={clients?.data || []}
-                    loading={clientsLoading}
-                    blockLoading={toggleClientBlock.isPending}
-                    onBlockClient={async (siteId: string, clientId: string, block: boolean) => {
-                      try {
-                        await toggleClientBlock.mutateAsync({
-                          integrationId: selectedIntegration,
-                          hostId: undefined,
-                          clientId,
-                          block,
-                          siteId: selectedSiteId
-                        });
-                      } catch (error) {
-                        console.error('Client block/unblock failed:', error);
-                      }
-                    }}
-                    selectedSiteId={selectedSiteId}
-                  />
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
+          )}
 
-          {/* Networks Section */}
-          <Collapsible open={networksOpen} onOpenChange={setNetworksOpen}>
-            <Card>
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Network className="h-5 w-5 text-primary" />
-                      <CardTitle className="text-lg">
-                        Redes ({networks?.data?.length || 0})
-                      </CardTitle>
-                    </div>
-                    {networksOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          {/* Networks */}
+          {activeSection === 'networks' && (
+            <div className="rounded-lg border border-border bg-card">
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border">
+                <Network className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">Redes</span>
+                <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{networksList.length}</Badge>
+              </div>
+              <div className="p-4">
+                {networksLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
                   </div>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent>
-                  {networksLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    </div>
-                  ) : networks?.data && networks.data.length > 0 ? (
-                    <div className="space-y-2">
-                      {networks.data.map((network: any) => (
-                        <div key={network.id || network.name} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div>
-                            <p className="font-medium">{network.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {network.networkgroup || network.purpose}
-                            </p>
-                          </div>
-                          <Badge variant="outline">
-                            {network.enabled ? 'Ativa' : 'Inativa'}
-                          </Badge>
+                ) : networksList.length > 0 ? (
+                  <div className="space-y-1">
+                    {networksList.map((network: any) => (
+                      <div key={network.id || network.name} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Network className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                          <span className="text-xs text-foreground truncate" title={network.name}>{network.name}</span>
+                          <span className="text-[10px] text-muted-foreground">{network.networkgroup || network.purpose}</span>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-center text-muted-foreground py-8">
-                      Nenhuma rede encontrada
-                    </p>
-                  )}
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
-
-          {/* Alarms Section */}
-          <Collapsible open={alarmsOpen} onOpenChange={setAlarmsOpen}>
-            <Card>
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <AlertTriangle className="h-5 w-5 text-primary" />
-                      <CardTitle className="text-lg">
-                        Alertas ({alarms?.data?.length || 0})
-                        {selectedSite?.newAlarmCount && selectedSite.newAlarmCount > 0 && (
-                          <Badge variant="destructive" className="ml-2">
-                            {selectedSite.newAlarmCount} novos
-                          </Badge>
-                        )}
-                      </CardTitle>
-                    </div>
-                    {alarmsOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                        <Badge variant={network.enabled ? 'outline' : 'secondary'} className="text-[10px] h-5 px-1.5">
+                          {network.enabled ? 'Ativa' : 'Inativa'}
+                        </Badge>
+                      </div>
+                    ))}
                   </div>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent>
-                  {alarmsLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    </div>
-                  ) : alarms?.data && alarms.data.length > 0 ? (
-                    <div className="space-y-2">
-                      {alarms.data.map((alarm: any, index: number) => (
-                        <div key={alarm.id || index} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div>
-                            <p className="font-medium">{alarm.message}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {alarm.datetime && new Date(alarm.datetime * 1000).toLocaleString()}
-                            </p>
-                          </div>
-                          <Badge variant={alarm.archived ? "secondary" : "destructive"}>
+                ) : (
+                  <p className="text-center text-xs text-muted-foreground py-6">Nenhuma rede encontrada</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Alarms */}
+          {activeSection === 'alarms' && (
+            <div className="rounded-lg border border-border bg-card">
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border">
+                <AlertTriangle className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">Alertas</span>
+                <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{alarmsList.length}</Badge>
+                {selectedSite?.newAlarmCount > 0 && (
+                  <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">{selectedSite.newAlarmCount} novos</Badge>
+                )}
+              </div>
+              <div className="p-4">
+                {alarmsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                  </div>
+                ) : alarmsList.length > 0 ? (
+                  <div className="space-y-1">
+                    {alarmsList.map((alarm: any, index: number) => (
+                      <div key={alarm.id || index} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <AlertTriangle className={`h-3.5 w-3.5 flex-shrink-0 ${alarm.archived ? 'text-muted-foreground' : 'text-destructive'}`} />
+                          <span className="text-xs text-foreground truncate" title={alarm.message}>{alarm.message}</span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="text-[10px] text-muted-foreground">
+                            {alarm.datetime && new Date(alarm.datetime * 1000).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <Badge variant={alarm.archived ? 'secondary' : 'destructive'} className="text-[10px] h-5 px-1.5">
                             {alarm.archived ? 'Arquivado' : 'Ativo'}
                           </Badge>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-center text-muted-foreground py-8">
-                      Nenhum alerta encontrado
-                    </p>
-                  )}
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-xs text-muted-foreground py-6">Nenhum alerta encontrado</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
