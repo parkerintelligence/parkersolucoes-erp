@@ -107,22 +107,18 @@ const Guacamole = () => {
   const testConnectionMutation = useTestConnection();
   const handleRefreshAll = async () => {
     setRefreshing(true);
-    logInfo('Iniciando atualização manual de todos os dados');
     try {
       await Promise.all([refetchConnections(), refetchUsers(), refetchSessions(), refetchGroups(), refetchHistory()]);
-      logInfo('Atualização manual concluída com sucesso');
       toast({
         title: "Dados atualizados",
-        description: "Informações do Guacamole foram atualizadas com sucesso."
+        description: "Informações foram atualizadas com sucesso."
       });
     } catch (error) {
-      logError('Erro durante atualização manual', '', {
-        error: error.message
-      });
       toast({
         title: "Erro ao atualizar",
-        description: "Não foi possível atualizar os dados do Guacamole.",
+        description: "Não foi possível atualizar os dados.",
         variant: "destructive"
+      });
       });
     } finally {
       setRefreshing(false);
