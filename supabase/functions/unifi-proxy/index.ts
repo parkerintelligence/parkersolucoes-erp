@@ -297,14 +297,19 @@ serve(async (req) => {
 
       const loginStartedAt = Date.now();
       let attempts = 0;
+      const maxLoginAttempts = Math.min(
+        MAX_LOGIN_ATTEMPTS,
+        Math.max(controllerCandidates.length * loginEndpoints.length, 8),
+      );
 
       for (const candidateBaseUrl of controllerCandidates) {
         const allowTlsFallback = candidateBaseUrl.startsWith('https://');
 
         for (const loginEndpoint of loginEndpoints) {
-          if (attempts >= MAX_LOGIN_ATTEMPTS || Date.now() - loginStartedAt > MAX_LOGIN_DURATION_MS) {
+          if (attempts >= maxLoginAttempts || Date.now() - loginStartedAt > MAX_LOGIN_DURATION_MS) {
             console.warn('[UNIFI-LOCAL] Login attempts/time budget exceeded', {
               attempts,
+              maxLoginAttempts,
               elapsedMs: Date.now() - loginStartedAt,
             });
             break;
@@ -352,7 +357,7 @@ serve(async (req) => {
           }
         }
 
-        if (loginResponse || attempts >= MAX_LOGIN_ATTEMPTS || Date.now() - loginStartedAt > MAX_LOGIN_DURATION_MS) {
+        if (loginResponse || attempts >= maxLoginAttempts || Date.now() - loginStartedAt > MAX_LOGIN_DURATION_MS) {
           break;
         }
       }
