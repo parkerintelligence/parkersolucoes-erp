@@ -355,7 +355,7 @@ export const useUniFiAPI = () => {
       },
       enabled: !!integrationId,
       staleTime: 60000, // 1 minute
-      retry: 2,
+      retry: 1,
     });
   };
 
