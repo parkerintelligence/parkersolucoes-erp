@@ -1,214 +1,237 @@
-
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { FileText, Search, RefreshCw, CheckCircle, XCircle, Clock, MessageCircle, AlertTriangle, Download, Calendar, Trash2, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FileText, RefreshCw, CheckCircle, XCircle, Clock, MessageCircle, AlertTriangle, Calendar, Eye, Trash2, Zap } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { BaculaReportViewer } from './BaculaReportViewer';
 
 interface ReportLog {
-  id: string; report_id: string; status: 'success' | 'error' | 'pending'; execution_date: string;
-  execution_time_ms?: number; message_content?: string; error_details?: string; phone_number: string;
-  message_sent: boolean; whatsapp_response?: any;
+  id: string;
+  report_id: string;
+  status: string;
+  execution_date: string;
+  execution_time_ms?: number;
+  message_content?: string;
+  error_details?: string;
+  phone_number: string;
+  message_sent: boolean;
+  whatsapp_response?: any;
+  scheduled_reports?: { name: string; report_type: string } | null;
 }
 
-const ITEMS_PER_PAGE = 10;
+const MAX_LOGS = 10;
 
 export const ReportsLogsPanel = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<string>('7days');
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedLog, setSelectedLog] = useState<ReportLog | null>(null);
   const { toast } = useToast();
 
   const { data: logs = [], isLoading, refetch } = useQuery({
-    queryKey: ['scheduled-reports-logs', statusFilter, dateFilter],
+    queryKey: ['scheduled-reports-logs-grid'],
     queryFn: async () => {
-      let query = supabase.from('scheduled_reports_logs').select('*').order('execution_date', { ascending: false });
-      if (statusFilter !== 'all') query = query.eq('status', statusFilter);
-      if (dateFilter !== 'all') {
-        const now = new Date();
-        const ms = dateFilter === '24h' ? 86400000 : dateFilter === '7days' ? 604800000 : 2592000000;
-        query = query.gte('execution_date', new Date(now.getTime() - ms).toISOString());
-      }
-      const { data, error } = await query.limit(200);
+      const { data, error } = await supabase
+        .from('scheduled_reports_logs')
+        .select(`*, scheduled_reports(name, report_type)`)
+        .order('execution_date', { ascending: false })
+        .limit(50);
       if (error) throw error;
-      return data as ReportLog[];
+      return (data || []) as ReportLog[];
     },
   });
 
-  const filteredLogs = useMemo(() => {
-    const filtered = logs.filter(log =>
-      log.phone_number.includes(searchTerm) ||
-      log.message_content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.error_details?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    return filtered;
-  }, [logs, searchTerm]);
+  // Auto-clean: keep only last 10 logs
+  useEffect(() => {
+    const autoClean = async () => {
+      if (logs.length <= MAX_LOGS) return;
+      const idsToDelete = logs.slice(MAX_LOGS).map(l => l.id);
+      if (idsToDelete.length === 0) return;
+      try {
+        const { error } = await supabase
+          .from('scheduled_reports_logs')
+          .delete()
+          .in('id', idsToDelete);
+        if (error) throw error;
+        refetch();
+      } catch (e) {
+        console.error('Auto-clean failed:', e);
+      }
+    };
+    autoClean();
+  }, [logs]);
 
-  // Reset page when filters change
-  React.useEffect(() => { setCurrentPage(1); }, [searchTerm, statusFilter, dateFilter]);
+  const displayLogs = logs.slice(0, MAX_LOGS);
 
-  const totalPages = Math.ceil(filteredLogs.length / ITEMS_PER_PAGE);
-  const paginatedLogs = filteredLogs.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const getStatusIcon = (status: string, messageSent: boolean) => {
+    if (status === 'success' && messageSent) return <CheckCircle className="h-3 w-3 text-emerald-400" />;
+    if (status === 'success') return <Clock className="h-3 w-3 text-yellow-400" />;
+    if (status === 'error') return <XCircle className="h-3 w-3 text-destructive" />;
+    return <Clock className="h-3 w-3 text-muted-foreground" />;
+  };
 
   const getStatusBadge = (status: string, messageSent: boolean) => {
-    if (status === 'success' && messageSent) return <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-500/30 text-emerald-400 bg-emerald-500/10">Enviado</Badge>;
-    if (status === 'success' && !messageSent) return <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-yellow-500/30 text-yellow-400 bg-yellow-500/10">Processado</Badge>;
-    if (status === 'error') return <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive/30 text-destructive bg-destructive/10">Erro</Badge>;
+    if (status === 'success' && messageSent)
+      return <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-500/30 text-emerald-400 bg-emerald-500/10">Enviado</Badge>;
+    if (status === 'success')
+      return <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-yellow-500/30 text-yellow-400 bg-yellow-500/10">Processado</Badge>;
+    if (status === 'error')
+      return <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive/30 text-destructive bg-destructive/10">Erro</Badge>;
     return <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-border text-muted-foreground">Pendente</Badge>;
   };
 
-  const formatExecutionTime = (timeMs?: number) => {
-    if (!timeMs) return '-';
-    return timeMs < 1000 ? `${timeMs}ms` : `${(timeMs / 1000).toFixed(1)}s`;
+  const formatTime = (ms?: number) => {
+    if (!ms) return '-';
+    return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
   };
 
-  const handleClearLogs = async () => {
-    try {
-      const { error } = await supabase.from('scheduled_reports_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      if (error) throw error;
-      refetch();
-      toast({ title: "Logs limpos com sucesso" });
-    } catch (error: any) {
-      toast({ title: "Erro ao limpar logs", description: error.message, variant: "destructive" });
-    }
+  const getReportTypeBadge = (type?: string) => {
+    const labels: Record<string, { label: string; color: string }> = {
+      bacula: { label: 'Bacula', color: 'border-blue-500/30 text-blue-400 bg-blue-500/10' },
+      backup_alert: { label: 'Backup', color: 'border-orange-500/30 text-orange-400 bg-orange-500/10' },
+      schedule_critical: { label: 'Agenda', color: 'border-purple-500/30 text-purple-400 bg-purple-500/10' },
+      glpi_summary: { label: 'GLPI', color: 'border-cyan-500/30 text-cyan-400 bg-cyan-500/10' },
+      custom: { label: 'Custom', color: 'border-accent/30 text-accent-foreground bg-accent/10' },
+    };
+    const info = labels[type || ''] || { label: type || '-', color: 'border-border text-muted-foreground' };
+    return <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${info.color}`}>{info.label}</Badge>;
   };
 
   return (
-    <div className="space-y-3">
-      {/* Filters */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[180px]">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-          <Input placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="h-7 text-xs bg-card border-border pl-7" />
+    <div className="space-y-2">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-muted-foreground">
+            Últimos {displayLogs.length} log{displayLogs.length !== 1 ? 's' : ''} · Auto-limpeza ativa (máx {MAX_LOGS})
+          </span>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-7 w-28 text-xs bg-card border-border"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="success">Sucesso</SelectItem>
-            <SelectItem value="error">Erro</SelectItem>
-            <SelectItem value="pending">Pendente</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={dateFilter} onValueChange={setDateFilter}>
-          <SelectTrigger className="h-7 w-32 text-xs bg-card border-border"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="24h">Últimas 24h</SelectItem>
-            <SelectItem value="7days">7 dias</SelectItem>
-            <SelectItem value="30days">30 dias</SelectItem>
-            <SelectItem value="all">Tudo</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading} className="h-7 px-2">
-          <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading} className="h-6 px-2 text-[10px]">
+          <RefreshCw className={`h-3 w-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+          Atualizar
         </Button>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" size="sm" className="h-7 px-2 text-destructive hover:bg-destructive/10" disabled={logs.length === 0}>
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent className="border-border bg-card">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-foreground">Confirmar Limpeza</AlertDialogTitle>
-              <AlertDialogDescription className="text-muted-foreground">Remover todos os logs permanentemente?</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleClearLogs} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Limpar</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
 
-      {/* Grid */}
+      {/* Grid Table */}
       {isLoading ? (
         <div className="flex justify-center items-center h-32">
           <RefreshCw className="h-5 w-5 animate-spin text-primary" />
         </div>
-      ) : filteredLogs.length === 0 ? (
+      ) : displayLogs.length === 0 ? (
         <div className="text-center py-10">
           <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
           <p className="text-xs text-muted-foreground">Nenhum log encontrado</p>
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2">
-            {paginatedLogs.map((log) => (
-              <div
-                key={log.id}
-                className="group bg-card border border-border rounded-lg overflow-hidden hover:border-primary/40 transition-colors cursor-pointer"
-                onClick={() => setSelectedLog(log)}
-              >
-                <div className={`h-0.5 w-full ${log.status === 'success' && log.message_sent ? 'bg-emerald-500' : log.status === 'error' ? 'bg-destructive' : log.status === 'success' ? 'bg-yellow-500' : 'bg-muted-foreground'}`} />
-                <div className="p-2.5 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    {getStatusBadge(log.status, log.message_sent)}
-                    <span className="text-[10px] text-muted-foreground">{formatExecutionTime(log.execution_time_ms)}</span>
-                  </div>
-                  <p className="text-xs font-medium text-foreground truncate">{log.phone_number}</p>
-                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <Calendar className="h-2.5 w-2.5" />
-                    <span>{new Date(log.execution_date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-                  </div>
-                  {log.error_details && (
-                    <p className="text-[10px] text-destructive truncate">{log.error_details}</p>
-                  )}
-                  {log.message_sent && !log.error_details && (
-                    <div className="flex items-center gap-1 text-[10px] text-emerald-400">
-                      <MessageCircle className="h-2.5 w-2.5" />
-                      <span>Mensagem enviada</span>
+        <div className="border border-border rounded-md overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableHead className="h-7 px-2 text-[10px] font-semibold w-[60px]">Status</TableHead>
+                <TableHead className="h-7 px-2 text-[10px] font-semibold">Relatório</TableHead>
+                <TableHead className="h-7 px-2 text-[10px] font-semibold">Tipo</TableHead>
+                <TableHead className="h-7 px-2 text-[10px] font-semibold">Telefone</TableHead>
+                <TableHead className="h-7 px-2 text-[10px] font-semibold">Data/Hora</TableHead>
+                <TableHead className="h-7 px-2 text-[10px] font-semibold w-[60px]">Tempo</TableHead>
+                <TableHead className="h-7 px-2 text-[10px] font-semibold">WhatsApp</TableHead>
+                <TableHead className="h-7 px-2 text-[10px] font-semibold">Resultado</TableHead>
+                <TableHead className="h-7 px-2 text-[10px] font-semibold w-[40px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {displayLogs.map((log) => (
+                <TableRow
+                  key={log.id}
+                  className="cursor-pointer hover:bg-primary/5 transition-colors"
+                  onClick={() => setSelectedLog(log)}
+                >
+                  <TableCell className="py-1 px-2">
+                    <div className="flex items-center gap-1">
+                      {getStatusIcon(log.status, log.message_sent)}
+                      {getStatusBadge(log.status, log.message_sent)}
                     </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground">
-              {filteredLogs.length} registro{filteredLogs.length !== 1 ? 's' : ''} · Página {currentPage}/{totalPages}
-            </span>
-            <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm" className="h-6 w-6 p-0" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>
-                <ChevronLeft className="h-3 w-3" />
-              </Button>
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                let page: number;
-                if (totalPages <= 5) { page = i + 1; }
-                else if (currentPage <= 3) { page = i + 1; }
-                else if (currentPage >= totalPages - 2) { page = totalPages - 4 + i; }
-                else { page = currentPage - 2 + i; }
-                return (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? "default" : "outline"}
-                    size="sm"
-                    className={`h-6 w-6 p-0 text-[10px] ${currentPage === page ? 'bg-primary text-primary-foreground' : ''}`}
-                    onClick={() => setCurrentPage(page)}
-                  >
-                    {page}
-                  </Button>
-                );
-              })}
-              <Button variant="outline" size="sm" className="h-6 w-6 p-0" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>
-                <ChevronRight className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-        </>
+                  </TableCell>
+                  <TableCell className="py-1 px-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-xs text-foreground font-medium truncate block max-w-[140px]">
+                          {log.scheduled_reports?.name || log.report_id.slice(0, 8)}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>{log.scheduled_reports?.name || log.report_id}</TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell className="py-1 px-2">
+                    {getReportTypeBadge(log.scheduled_reports?.report_type)}
+                  </TableCell>
+                  <TableCell className="py-1 px-2">
+                    <span className="text-xs text-foreground">{log.phone_number}</span>
+                  </TableCell>
+                  <TableCell className="py-1 px-2">
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(log.execution_date).toLocaleString('pt-BR', {
+                        day: '2-digit', month: '2-digit', year: '2-digit',
+                        hour: '2-digit', minute: '2-digit', second: '2-digit'
+                      })}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-1 px-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                          <Zap className="h-2.5 w-2.5" />
+                          {formatTime(log.execution_time_ms)}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Tempo de execução: {formatTime(log.execution_time_ms)}</TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell className="py-1 px-2">
+                    {log.message_sent ? (
+                      <div className="flex items-center gap-1 text-[10px] text-emerald-400">
+                        <MessageCircle className="h-2.5 w-2.5" />
+                        <span>Enviado</span>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="py-1 px-2">
+                    {log.error_details ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-[10px] text-destructive truncate block max-w-[150px] flex items-center gap-0.5">
+                            <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+                            {log.error_details}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">{log.error_details}</TooltipContent>
+                      </Tooltip>
+                    ) : log.message_content ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-[10px] text-muted-foreground truncate block max-w-[150px]">
+                            {log.message_content.slice(0, 50)}...
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">{log.message_content.slice(0, 200)}</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="py-1 px-2">
+                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={(e) => { e.stopPropagation(); setSelectedLog(log); }}>
+                      <Eye className="h-3 w-3 text-muted-foreground" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       {/* Detail Dialog */}
@@ -228,6 +251,14 @@ export const ReportsLogsPanel = () => {
                   {getStatusBadge(selectedLog.status, selectedLog.message_sent)}
                 </div>
                 <div className="bg-muted/30 rounded p-2">
+                  <span className="text-[10px] text-muted-foreground block">Relatório</span>
+                  <span className="font-medium text-foreground">{selectedLog.scheduled_reports?.name || '-'}</span>
+                </div>
+                <div className="bg-muted/30 rounded p-2">
+                  <span className="text-[10px] text-muted-foreground block">Tipo</span>
+                  {getReportTypeBadge(selectedLog.scheduled_reports?.report_type)}
+                </div>
+                <div className="bg-muted/30 rounded p-2">
                   <span className="text-[10px] text-muted-foreground block">Telefone</span>
                   <span className="font-medium text-foreground">{selectedLog.phone_number}</span>
                 </div>
@@ -237,7 +268,7 @@ export const ReportsLogsPanel = () => {
                 </div>
                 <div className="bg-muted/30 rounded p-2">
                   <span className="text-[10px] text-muted-foreground block">Tempo</span>
-                  <span className="text-foreground">{formatExecutionTime(selectedLog.execution_time_ms)}</span>
+                  <span className="text-foreground">{formatTime(selectedLog.execution_time_ms)}</span>
                 </div>
               </div>
               {selectedLog.message_content && (
