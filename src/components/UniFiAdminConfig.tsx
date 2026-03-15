@@ -92,18 +92,27 @@ const UniFiAdminConfig = () => {
 
       const normalizedBaseUrl = normalizeBaseUrl(formData.base_url);
 
-      const integrationData = {
+      const integrationData: any = {
         type: 'unifi',
         name: formData.name,
-        base_url: isSiteManager ? '' : normalizedBaseUrl,
-        api_token: isSiteManager ? formData.api_token.trim() : '',
-        username: isSiteManager ? '' : formData.username.trim(),
-        password: isSiteManager ? '' : formData.password,
         port: 8443,
-        use_ssl: isSiteManager ? true : formData.use_ssl,
         is_active: formData.is_active,
         is_global: true
       };
+
+      if (isSiteManager) {
+        integrationData.api_token = formData.api_token.trim();
+        integrationData.base_url = null;
+        integrationData.username = null;
+        integrationData.password = null;
+        integrationData.use_ssl = true;
+      } else {
+        integrationData.base_url = normalizedBaseUrl;
+        integrationData.username = formData.username.trim();
+        integrationData.password = formData.password;
+        integrationData.use_ssl = formData.use_ssl;
+        integrationData.api_token = null;
+      }
 
       if (editingIntegration) {
         await updateIntegration.mutateAsync({
