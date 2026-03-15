@@ -476,12 +476,12 @@ export const useUniFiAPI = () => {
 
         return {
           total_devices: devices.length,
-          adopted_devices: devices.filter((d: UniFiDevice) => d.adopted).length,
-          online_devices: devices.filter((d: UniFiDevice) => d.status === 'online').length,
+          adopted_devices: devices.filter((d: UniFiDevice & any) => Boolean(d.adopted)).length,
+          online_devices: devices.filter((d: UniFiDevice & any) => d.status === 'online' || d.state === 1).length,
           total_clients: clients.length,
-          wireless_clients: clients.filter((c: UniFiClient) => !c.isWired).length,
-          wired_clients: clients.filter((c: UniFiClient) => c.isWired).length,
-          guest_clients: clients.filter((c: UniFiClient) => c.isGuest).length,
+          wireless_clients: clients.filter((c: UniFiClient & any) => !(c.isWired ?? c.is_wired)).length,
+          wired_clients: clients.filter((c: UniFiClient & any) => Boolean(c.isWired ?? c.is_wired)).length,
+          guest_clients: clients.filter((c: UniFiClient & any) => Boolean(c.isGuest ?? c.is_guest)).length,
           health_status: health,
           devices,
           clients
