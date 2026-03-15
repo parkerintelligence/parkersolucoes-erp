@@ -339,9 +339,16 @@ serve(async (req) => {
       }
 
       if (!loginResponse) {
+        if (lastConnectionErrorWasTls) {
+          throw new Error(
+            `Falha SSL/TLS na controladora (${baseApiUrl}). Último erro: ${lastConnectionError || 'certificado inválido'}. ` +
+            'O Supabase Edge não consegue ignorar certificado autoassinado. Use certificado público válido (cadeia completa) ou endpoint HTTP interno acessível.'
+          );
+        }
+
         throw new Error(
           `Falha ao conectar na controladora (${baseApiUrl}). Último erro: ${lastConnectionError || 'sem resposta'}. ` +
-          'Verifique URL, porta, protocolo (HTTP/HTTPS), firewall e certificado SSL.'
+          'Verifique URL, porta, protocolo (HTTP/HTTPS), firewall e se a API está exposta.'
         );
       }
 
