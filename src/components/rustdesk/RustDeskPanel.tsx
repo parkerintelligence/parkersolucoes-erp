@@ -279,7 +279,7 @@ export const RustDeskPanel = ({ onSessionLog }: RustDeskPanelProps = {}) => {
         <Card className="border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-base text-foreground">
-              {editingId ? 'Editar Conexão' : 'Nova Conexão RustDesk'}
+              {editingId ? 'Editar Conexão' : 'Nova Conexão Remoto PK'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
