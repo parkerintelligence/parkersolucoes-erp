@@ -221,6 +221,8 @@ const useDashboardData = () => {
     zabbixProblems: (zabbixProblems.data as any)?.active || [],
     zabbixDisasters: (zabbixProblems.data as any)?.disasters || [],
     scheduleItems: scheduleItems.data || [],
+    hostingerVPS: hostingerVPS.data || [],
+    hasHostinger: !!hostingerIntegration,
     hasBacula: !!baculaIntegration,
     hasZabbix: !!zabbixIntegration,
     hasFtp: !!ftpIntegration,
@@ -234,6 +236,7 @@ const useDashboardData = () => {
       baculaJobs.refetch();
       zabbixProblems.refetch();
       scheduleItems.refetch();
+      hostingerVPS.refetch();
     }
   };
 };
