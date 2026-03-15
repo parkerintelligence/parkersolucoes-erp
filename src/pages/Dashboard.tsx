@@ -4,11 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Server, Wifi, Router, ShieldCheck, Send, SendHorizonal,
   AlertTriangle, CheckCircle2, XCircle, Clock, HardDrive,
   Activity, Database, RefreshCw, BarChart3, Zap, ChevronLeft, ChevronRight,
-  Webhook, Trash2, Cpu, Camera
+  Webhook, Trash2, Cpu, Camera, Eye, Info
 } from 'lucide-react';
 import { MikrotikDashboardSummary } from '@/components/mikrotik/MikrotikDashboardSummary';
 import { Calendar } from 'lucide-react';
