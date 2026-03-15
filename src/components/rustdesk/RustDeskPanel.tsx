@@ -471,23 +471,23 @@ export const RustDeskPanel = ({ onSessionLog }: RustDeskPanelProps = {}) => {
                               </Button>
                             </div>
                           </TableCell>
-                          <TableCell className="py-1">
+                          <TableCell className="py-1.5">
                             {conn.password ? (
                               <div className="flex items-center gap-0.5">
-                                <span className="text-[11px] font-mono text-muted-foreground">
+                                <span className="text-xs font-mono text-muted-foreground">
                                   {showPasswords[conn.id] ? conn.password : '••••'}
                                 </span>
                                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0"
                                   onClick={() => togglePassword(conn.id)}>
-                                  {showPasswords[conn.id] ? <EyeOff className="h-2.5 w-2.5" /> : <Eye className="h-2.5 w-2.5" />}
+                                  {showPasswords[conn.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                                 </Button>
                                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0"
                                   onClick={() => copyToClipboard(conn.password!, 'Senha')}>
-                                  <Copy className="h-2.5 w-2.5" />
+                                  <Copy className="h-3 w-3" />
                                 </Button>
                               </div>
                             ) : (
-                              <span className="text-muted-foreground/50 text-[11px]">-</span>
+                              <span className="text-muted-foreground/50 text-xs">-</span>
                             )}
                           </TableCell>
                           <TableCell className="py-1">
