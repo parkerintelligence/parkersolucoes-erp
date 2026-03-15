@@ -92,6 +92,7 @@ function App() {
               <Route path="/bacula" element={<Layout><SafeBacula /></Layout>} />
               <Route path="/reports" element={<Layout><ReportsDashboard /></Layout>} />
               <Route path="/projetos" element={<Layout><SafeActionPlan /></Layout>} />
+              <Route path="/projetos/:id" element={<Layout><SafeProjectDetail /></Layout>} />
               
               <Route path="/unifi" element={<Layout><SafeUniFi /></Layout>} />
               <Route path="/webhooks" element={<Layout><Webhooks /></Layout>} />
