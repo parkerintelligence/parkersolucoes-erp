@@ -152,7 +152,7 @@ export const HostingerDashboard = () => {
         open={showMasterPasswordDialog}
         onOpenChange={setShowMasterPasswordDialog}
         onSuccess={handleMasterPasswordSuccess}
-        title="Autorização para Reiniciar VPS"
+        title="Autorização para Gerenciar VPS"
         description="Confirme sua senha master para continuar:"
       />
     </div>
