@@ -32,6 +32,18 @@ export default function ActionPlan() {
     if (confirmed) await deleteBoard(boardId);
   };
 
+  const handleEditBoard = (e: React.MouseEvent, board: any) => {
+    e.stopPropagation();
+    setEditingBoard(board);
+  };
+
+  const handleUpdateBoard = async (data: any) => {
+    if (editingBoard) {
+      await updateBoard(editingBoard.id, data);
+      setEditingBoard(null);
+    }
+  };
+
   // Compute stats per board
   const getBoardStats = (boardId: string) => {
     const boardCols = columns.filter(c => c.board_id === boardId);
