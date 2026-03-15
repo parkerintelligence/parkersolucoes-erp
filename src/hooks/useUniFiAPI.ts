@@ -265,7 +265,7 @@ export const useUniFiAPI = () => {
               description: "Nenhuma controladora encontrada no UniFi Cloud. Verifique se a controladora está registrada em unifi.ui.com ou configure uma controladora local.",
               variant: "destructive",
             });
-            return [];
+            return { data: [] };
           }
           
           if (hostsResponse?.data && Array.isArray(hostsResponse.data) && hostsResponse.data.length > 0) {
@@ -283,14 +283,20 @@ export const useUniFiAPI = () => {
             const normalizedSites = rawSites.map((site: any) => {
               const siteControllerId = String(site.controllerId || site.controller_id || site.hostId || site.host_id || '');
               const host = connectedHostsById.get(siteControllerId);
+              const counts = site.statistics?.counts || {};
 
               return {
                 ...site,
+                id: String(site.id || site.siteId || site.site_id || site.name || site.meta?.name || ''),
+                name: site.name || site.meta?.name || site.meta?.desc || 'Site UniFi',
+                description: site.description || site.meta?.desc || site.meta?.name || 'Site UniFi',
+                role: site.role || site.permission || 'admin',
+                newAlarmCount: Number(site.newAlarmCount ?? counts.criticalNotification ?? 0),
                 controllerName: host?.reportedState?.name || host?.reportedState?.hostname || site.controllerName || 'Controladora UniFi',
                 controllerId: siteControllerId || host?.id || null,
                 controllerState: host?.reportedState?.state || site.controllerState || 'connected'
               };
-            });
+            }).filter((site: any) => site.id);
 
             const filteredSites = hostId
               ? normalizedSites.filter((site: any) => site.controllerId === hostId)
@@ -570,14 +576,18 @@ export const useUniFiAPI = () => {
       queryKey: ['unifi-site-manager-sites', integrationId, hostId],
       queryFn: async () => {
         const response = await makeUniFiRequest('/v1/sites', 'GET', integrationId);
-        const sites = Array.isArray(response?.data) ? response.data : [];
+        const sites = (Array.isArray(response?.data) ? response.data : []).map((site: any) => ({
+          ...site,
+          id: String(site.id || site.siteId || site.site_id || site.name || site.meta?.name || ''),
+          name: site.name || site.meta?.name || site.meta?.desc || 'Site UniFi',
+          description: site.description || site.meta?.desc || site.meta?.name || 'Site UniFi',
+          role: site.role || site.permission || 'admin',
+          controllerId: String(site.controllerId || site.controller_id || site.hostId || site.host_id || ''),
+        })).filter((site: any) => site.id);
 
         if (!hostId) return { data: sites };
 
-        const filtered = sites.filter((site: any) => {
-          const controllerId = site.controllerId || site.controller_id || site.hostId || site.host_id;
-          return controllerId === hostId;
-        });
+        const filtered = sites.filter((site: any) => site.controllerId === hostId);
 
         return { data: filtered };
       },
