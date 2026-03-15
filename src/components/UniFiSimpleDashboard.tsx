@@ -22,7 +22,7 @@ import {
   Cloud,
   Server
 } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { UniFiDeviceManager } from '@/components/UniFiDeviceManager';
