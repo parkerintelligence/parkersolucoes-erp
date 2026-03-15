@@ -11,6 +11,7 @@ import {
   Webhook, Trash2
 } from 'lucide-react';
 import { MikrotikDashboardSummary } from '@/components/mikrotik/MikrotikDashboardSummary';
+import { Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -72,7 +73,26 @@ const useDashboardData = () => {
     staleTime: 60000,
   });
 
-  // FTP backup directories (root level)
+  // Schedule items (upcoming 15 days)
+  const scheduleItems = useQuery({
+    queryKey: ['dashboard-schedule-items'],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const future = new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0];
+      const { data } = await supabase
+        .from('schedule_items')
+        .select('*')
+        .gte('due_date', today)
+        .lte('due_date', future)
+        .neq('status', 'completed')
+        .order('due_date', { ascending: true })
+        .limit(10);
+      return data || [];
+    },
+    staleTime: 60000,
+  });
+
+
   const ftpIntegration = integrations.data?.find((i: any) => i.type === 'ftp' && i.is_active);
   const ftpFiles = useQuery({
     queryKey: ['dashboard-ftp-files', ftpIntegration?.id],
@@ -182,6 +202,7 @@ const useDashboardData = () => {
     baculaErrors: baculaJobs.data || [],
     zabbixProblems: (zabbixProblems.data as any)?.active || [],
     zabbixDisasters: (zabbixProblems.data as any)?.disasters || [],
+    scheduleItems: scheduleItems.data || [],
     hasBacula: !!baculaIntegration,
     hasZabbix: !!zabbixIntegration,
     hasFtp: !!ftpIntegration,
@@ -194,6 +215,7 @@ const useDashboardData = () => {
       ftpFiles.refetch();
       baculaJobs.refetch();
       zabbixProblems.refetch();
+      scheduleItems.refetch();
     }
   };
 };
@@ -203,7 +225,7 @@ const LOGS_PER_PAGE = 5;
 const WEBHOOK_LOGS_PER_PAGE = 5;
 
 const Dashboard = () => {
-  const { integrations, reports, logs, webhookLogs, ftpFiles, baculaErrors, zabbixProblems, zabbixDisasters, hasBacula, hasZabbix, hasFtp, isLoading, refetchAll } = useDashboardData();
+  const { integrations, reports, logs, webhookLogs, ftpFiles, baculaErrors, zabbixProblems, zabbixDisasters, scheduleItems, hasBacula, hasZabbix, hasFtp, isLoading, refetchAll } = useDashboardData();
   const [logsPage, setLogsPage] = useState(0);
   const [webhookPage, setWebhookPage] = useState(0);
   const [clearingWebhooks, setClearingWebhooks] = useState(false);
@@ -324,8 +346,8 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Alerts Section - FTP Backups, Bacula Errors, Zabbix Problems, MikroTik Resources */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Alerts Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* FTP Backups sem fazer há dias */}
         <Card className="bg-gradient-to-br from-amber-900/20 to-amber-950/40 border-amber-600/30">
           <CardHeader className="pb-2 pt-4 px-4">
@@ -488,6 +510,74 @@ const Dashboard = () => {
         </Card>
         {/* MikroTik Resources */}
         <MikrotikDashboardSummary integrations={integrations} />
+
+        {/* Agenda de Vencimentos */}
+        <Card className="bg-gradient-to-br from-indigo-900/20 to-indigo-950/40 border-indigo-600/30">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-xs font-semibold text-indigo-300 flex items-center gap-2">
+              <Calendar className="h-3.5 w-3.5" />
+              Agenda de Vencimentos
+              {scheduleItems.length > 0 && (
+                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-indigo-600/30 text-indigo-300/70 ml-auto">
+                  {scheduleItems.length} próximos
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 pt-0">
+            {scheduleItems.length === 0 ? (
+              <div className="flex items-center gap-2 py-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />
+                <p className="text-xs text-green-300">Nenhum vencimento nos próximos 15 dias</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5 mt-1">
+                {scheduleItems.slice(0, 8).map((item: any) => {
+                  const dueDate = new Date(item.due_date + 'T12:00:00');
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / 86400000);
+                  const isToday = diffDays === 0;
+                  const isTomorrow = diffDays === 1;
+                  const isUrgent = diffDays <= 2;
+
+                  return (
+                    <div key={item.id} className="flex items-center justify-between text-xs gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <div
+                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: item.color || '#6366f1' }}
+                        />
+                        <span className="text-indigo-200/80 truncate" title={`${item.title} - ${item.company}`}>
+                          {item.title}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <span className="text-[8px] text-indigo-300/40 max-w-[60px] truncate">
+                          {item.company}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className={`text-[8px] py-0 px-1 h-3.5 ${
+                            isToday
+                              ? 'border-red-500/40 text-red-400 bg-red-500/10'
+                              : isTomorrow
+                              ? 'border-amber-500/40 text-amber-400 bg-amber-500/10'
+                              : isUrgent
+                              ? 'border-orange-500/30 text-orange-400'
+                              : 'border-indigo-600/30 text-indigo-300/70'
+                          }`}
+                        >
+                          {isToday ? 'Hoje' : isTomorrow ? 'Amanhã' : `${diffDays}d`}
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Connections Grid */}
