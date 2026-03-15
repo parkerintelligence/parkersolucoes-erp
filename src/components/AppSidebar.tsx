@@ -22,6 +22,7 @@ const menuItems = [
   { title: 'Wasabi', url: '/wasabi', icon: Cloud, role: 'user' },
   { title: 'Automação', url: '/automation', icon: Settings, role: 'user' },
   { title: 'Zabbix', url: '/zabbix', icon: Activity, role: 'user' },
+  { title: 'UniFi', url: '/unifi', icon: Wifi, role: 'user' },
   { title: 'Winbox', url: '/winbox', icon: Router, role: 'user' },
   { title: 'Bacula', url: '/bacula', icon: Database, role: 'user' },
   { title: 'VPS', url: '/vps', icon: LayoutDashboard, role: 'user' },
