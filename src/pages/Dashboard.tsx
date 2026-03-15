@@ -292,33 +292,7 @@ const Dashboard = () => {
       </div>
 
       {/* KPI Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-emerald-900/30 to-emerald-950/50 border-emerald-600/30">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-emerald-300/70 font-medium">Integrações Ativas</p>
-                <p className="text-2xl font-bold text-emerald-400 mt-1">{activeIntegrations.length}</p>
-                <p className="text-[10px] text-emerald-300/50 mt-0.5">de {integrations.length} total</p>
-              </div>
-              <Zap className="h-8 w-8 text-emerald-500/40" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-blue-900/30 to-blue-950/50 border-blue-600/30">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-blue-300/70 font-medium">Relatórios Ativos</p>
-                <p className="text-2xl font-bold text-blue-400 mt-1">{activeReports.length}</p>
-                <p className="text-[10px] text-blue-300/50 mt-0.5">de {reports.length} total</p>
-              </div>
-              <BarChart3 className="h-8 w-8 text-blue-500/40" />
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-2 gap-4">
         <Card className="bg-gradient-to-br from-green-900/30 to-green-950/50 border-green-600/30">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
