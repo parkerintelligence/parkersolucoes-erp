@@ -230,178 +230,67 @@ serve(async (req) => {
         console.log('SSL certificate validation disabled (note: limited in serverless environment)');
       }
       
-      console.log('Attempting HTTPS connection...');
+      // Use insecureFetch to handle self-signed certificates
+      console.log('Attempting connection with SSL bypass (self-signed cert support)...');
+      
+      let loginResponse: any;
+      let usedLegacyEndpoint = false;
+      
+      const loginBody = JSON.stringify({
+        username: normalizedUsername,
+        password: normalizedPassword,
+        remember: true
+      });
+
+      const loginHeaders = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'Lovable-UniFi-Integration/1.0'
+      };
+
       try {
         const startTime = Date.now();
-        loginResponse = await fetch(loginUrl, fetchOptions);
-        const responseTime = Date.now() - startTime;
-        connectionMethod = 'HTTPS';
-        
-        console.log('HTTPS connection successful:', {
-          status: loginResponse.status,
-          statusText: loginResponse.statusText,
-          responseTime: `${responseTime}ms`,
-          headers: Object.fromEntries(loginResponse.headers.entries())
+        loginResponse = await insecureFetch(loginUrl, {
+          method: 'POST',
+          headers: loginHeaders,
+          body: loginBody
         });
-        
-      } catch (httpsError) {
-        console.error('=== HTTPS CONNECTION FAILED ===');
-        console.error('Error type:', httpsError.constructor.name);
-        console.error('Error message:', httpsError.message);
-        console.error('Full error:', httpsError);
-        
-        // Analyze specific SSL/TLS errors
-        const errorAnalysis = {
-          isSSLError: httpsError.message.includes('certificate') || 
-                     httpsError.message.includes('SSL') || 
-                     httpsError.message.includes('TLS') ||
-                     httpsError.message.includes('self-signed'),
-          isConnectionRefused: httpsError.message.includes('connection refused') ||
-                              httpsError.message.includes('ECONNREFUSED'),
-          isDNSError: httpsError.message.includes('not found') ||
-                     httpsError.message.includes('ENOTFOUND'),
-          isTimeoutError: httpsError.message.includes('timeout') ||
-                         httpsError.message.includes('ETIMEDOUT'),
-          isNetworkError: httpsError.message.includes('network') ||
-                         httpsError.message.includes('fetch')
-        };
-        
-        console.log('Error analysis:', errorAnalysis);
-        
-        // Try HTTP fallback if HTTPS failed
-        if (baseApiUrl.startsWith('https://')) {
-          const httpUrl = baseApiUrl.replace('https://', 'http://');
-          const httpLoginUrl = `${httpUrl}/api/login`;
-          console.log('=== ATTEMPTING HTTP FALLBACK ===');
-          console.log('HTTP URL:', httpLoginUrl);
-          
-          try {
-            const startTime = Date.now();
-            loginResponse = await fetch(httpLoginUrl, fetchOptions);
-            const responseTime = Date.now() - startTime;
-            usedHttpFallback = true;
-            connectionMethod = 'HTTP (fallback)';
-            
-            console.log('HTTP fallback successful:', {
-              status: loginResponse.status,
-              statusText: loginResponse.statusText,
-              responseTime: `${responseTime}ms`,
-              headers: Object.fromEntries(loginResponse.headers.entries())
-            });
-            
-            // Update URLs for subsequent requests
-            loginUrl = httpLoginUrl;
-            
-          } catch (httpError) {
-            console.error('=== HTTP FALLBACK ALSO FAILED ===');
-            console.error('HTTP Error type:', httpError.constructor.name);
-            console.error('HTTP Error message:', httpError.message);
-            console.error('HTTP Full error:', httpError);
-            
-            // Generate detailed troubleshooting information
-            let troubleshootingSteps = [];
-            
-            if (errorAnalysis.isSSLError) {
-              troubleshootingSteps.push('Problema de certificado SSL/TLS. Controladora UniFi usa certificado auto-assinado por padrão.');
-              troubleshootingSteps.push('Tente acessar https://' + connectionDetails.hostname + ':' + connectionDetails.port + ' no navegador e aceitar o certificado.');
-            }
-            
-            if (errorAnalysis.isConnectionRefused) {
-              troubleshootingSteps.push('Conexão recusada. Verifique se a controladora está rodando e acessível.');
-              troubleshootingSteps.push('Verifique se a porta ' + connectionDetails.port + ' está aberta no firewall.');
-            }
-            
-            if (errorAnalysis.isDNSError) {
-              troubleshootingSteps.push('Erro de DNS. Verifique se o hostname "' + connectionDetails.hostname + '" é resolvível.');
-              troubleshootingSteps.push('Tente usar IP ao invés do hostname.');
-            }
-            
-            if (errorAnalysis.isTimeoutError) {
-              troubleshootingSteps.push('Timeout de conexão. A controladora pode estar muito lenta ou inacessível.');
-              troubleshootingSteps.push('Verifique a conectividade de rede e latência.');
-            }
-            
-            troubleshootingSteps.push('Verifique se a controladora UniFi está online e funcionando normalmente.');
-            troubleshootingSteps.push('Teste acesso manual via navegador: ' + baseApiUrl);
-            
-            throw new Error(`Falha de conectividade total. HTTPS: ${httpsError.message}. HTTP: ${httpError.message}. Diagnóstico: ${troubleshootingSteps.join(' | ')}`);
-          }
-        } else {
-          throw httpsError;
+        const responseTime = Date.now() - startTime;
+        console.log(`Login response: status=${loginResponse.status}, time=${responseTime}ms`);
+
+        // If /api/auth/login returned 404, try legacy /api/login
+        if (loginResponse.status === 404) {
+          const legacyLoginUrl = `${baseApiUrl}/api/login`;
+          console.log('Trying legacy login endpoint:', legacyLoginUrl);
+          loginResponse = await insecureFetch(legacyLoginUrl, {
+            method: 'POST',
+            headers: loginHeaders,
+            body: loginBody
+          });
+          usedLegacyEndpoint = true;
+          console.log(`Legacy login response: status=${loginResponse.status}`);
         }
+      } catch (connError) {
+        console.error('Connection error:', connError.message);
+        throw new Error(`Falha ao conectar na controladora: ${connError.message}. Verifique se a URL ${baseApiUrl} está acessível.`);
       }
 
       if (!loginResponse.ok) {
-        let loginError = await loginResponse.text();
-
-        // Some controllers use /api/login (legacy) instead of /api/auth/login (UniFi OS)
-        if (loginResponse.status === 404 && loginUrl.endsWith('/api/auth/login')) {
-          const legacyLoginUrl = `${baseApiUrl}/api/login`;
-          console.warn('Login endpoint /api/auth/login not found, retrying legacy endpoint:', legacyLoginUrl);
-
-          const legacyResponse = await fetch(legacyLoginUrl, fetchOptions);
-          if (legacyResponse.ok) {
-            loginResponse = legacyResponse;
-            loginUrl = legacyLoginUrl;
-            console.log('Legacy login endpoint succeeded');
-          } else {
-            loginResponse = legacyResponse;
-            loginUrl = legacyLoginUrl;
-            loginError = await legacyResponse.text();
-          }
-        }
-
-        if (!loginResponse.ok) {
-          console.error('=== AUTHENTICATION FAILED ===');
-          console.error('Status:', loginResponse.status, loginResponse.statusText);
-          console.error('Response headers:', Object.fromEntries(loginResponse.headers.entries()));
-          console.error('Response body:', loginError);
-
-          // Analyze authentication failure
-          let authErrorMsg = '';
-          let authTroubleshooting = [];
-
-          if (loginResponse.status === 400) {
-            if (loginError.includes('TLS') || loginError.includes('requires TLS')) {
-              authErrorMsg = 'Controladora requer HTTPS mas a conexão falhou. Problema de certificado SSL.';
-              authTroubleshooting.push('A controladora está configurada para exigir HTTPS mas o certificado não é válido.');
-              authTroubleshooting.push('Tente ativar "Ignorar certificados SSL inválidos" na configuração.');
-              authTroubleshooting.push('Acesse https://' + new URL(baseApiUrl).hostname + ':' + (new URL(baseApiUrl).port || '8443') + ' no navegador e aceite o certificado manualmente.');
-              authTroubleshooting.push('Ou configure a controladora para permitir HTTP local.');
-            } else if (loginError.includes('username') || loginError.includes('password')) {
-              authErrorMsg = 'Credenciais de login inválidas.';
-              authTroubleshooting.push('Verifique se o usuário e senha estão corretos.');
-              authTroubleshooting.push('Verifique se o usuário tem permissões de administrador na controladora.');
-            } else {
-              authErrorMsg = 'Erro de autenticação (400 Bad Request).';
-              authTroubleshooting.push('Formato de requisição inválido ou credenciais mal formatadas.');
-            }
-          } else if (loginResponse.status === 401) {
-            authErrorMsg = 'Credenciais de acesso negadas.';
-            authTroubleshooting.push('Usuário ou senha incorretos.');
-            authTroubleshooting.push('Conta pode estar bloqueada ou desabilitada.');
-          } else if (loginResponse.status === 403) {
-            authErrorMsg = 'Acesso proibido.';
-            authTroubleshooting.push('Usuário não tem permissões de administrador.');
-            authTroubleshooting.push('API pode estar desabilitada na controladora.');
-          } else if (loginResponse.status === 500) {
-            authErrorMsg = 'Erro interno da controladora.';
-            authTroubleshooting.push('Problema na controladora UniFi. Verifique logs da controladora.');
-            authTroubleshooting.push('Tente reiniciar a controladora.');
-          } else {
-            authErrorMsg = `Erro de autenticação HTTP ${loginResponse.status}.`;
-            authTroubleshooting.push('Erro inesperado na autenticação.');
-          }
-
-          console.error('Authentication error analysis:', { authErrorMsg, authTroubleshooting });
-
-          throw new Error(`${authErrorMsg} Status: ${loginResponse.status}. Diagnóstico: ${authTroubleshooting.join(' | ')}`);
+        const loginErrorText = await loginResponse.text();
+        console.error('Login failed:', loginResponse.status, loginErrorText);
+        
+        if (loginResponse.status === 401) {
+          throw new Error('Credenciais inválidas. Verifique usuário e senha da controladora.');
+        } else if (loginResponse.status === 403) {
+          throw new Error('Acesso proibido. Verifique permissões do usuário.');
+        } else {
+          throw new Error(`Erro de autenticação (${loginResponse.status}): ${loginErrorText}`);
         }
       }
 
       // Extract cookies from login response
-      const setCookieHeaders = loginResponse.headers.get('set-cookie') || '';
-      console.log('Login successful, got cookies');
+      const setCookieHeaders = loginResponse.headers['set-cookie'] || '';
+      console.log('Login successful, cookies present:', !!setCookieHeaders);
 
       // Make API request to UniFi Controller
       // Update baseApiUrl if we used HTTP fallback
