@@ -397,11 +397,13 @@ const Annotations = () => {
                   </div>
                 </TableCell>
                 <TableCell className="py-1">
-                  {item.service && (
-                    <div className="flex items-center gap-1">
+                  {item.service ? (
+                    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border ${getServiceBg(item.service)}`}>
                       {getServiceIcon(item.service)}
-                      <span className="text-xs text-foreground">{item.service}</span>
+                      <span className={`text-xs font-medium ${getServiceColor(item.service)}`}>{item.service}</span>
                     </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">-</span>
                   )}
                 </TableCell>
                 <TableCell className="py-1 text-right">
