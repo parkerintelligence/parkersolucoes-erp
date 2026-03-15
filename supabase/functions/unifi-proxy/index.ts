@@ -209,11 +209,11 @@ serve(async (req) => {
 
       try {
         const startTime = Date.now();
-        loginResponse = await insecureFetch(loginUrl, {
+        loginResponse = await fetchWithTlsFallback(loginUrl, {
           method: 'POST',
           headers: loginHeaders,
           body: loginBody
-        });
+        }, true);
         const responseTime = Date.now() - startTime;
         console.log(`Login response: status=${loginResponse.status}, time=${responseTime}ms`);
 
@@ -221,16 +221,17 @@ serve(async (req) => {
         if (loginResponse.status === 404) {
           const legacyLoginUrl = `${baseApiUrl}/api/login`;
           console.log('Trying legacy login endpoint:', legacyLoginUrl);
-          loginResponse = await insecureFetch(legacyLoginUrl, {
+          loginResponse = await fetchWithTlsFallback(legacyLoginUrl, {
             method: 'POST',
             headers: loginHeaders,
             body: loginBody
-          });
+          }, true);
           console.log(`Legacy login response: status=${loginResponse.status}`);
         }
       } catch (connError) {
-        console.error('Connection error:', connError.message);
-        throw new Error(`Falha ao conectar na controladora: ${connError.message}. Verifique se a URL ${baseApiUrl} está acessível.`);
+        const connectionError = connError instanceof Error ? connError.message : String(connError);
+        console.error('Connection error:', connectionError);
+        throw new Error(`Falha ao conectar na controladora: ${connectionError}. Verifique se a URL ${baseApiUrl} está acessível.`);
       }
 
       if (!loginResponse.ok) {
@@ -247,28 +248,40 @@ serve(async (req) => {
       }
 
       // Extract cookies from login response
-      const setCookieHeaders = loginResponse.headers['set-cookie'] || '';
-      console.log('Login successful, cookies present:', !!setCookieHeaders);
+      const headerWithSetCookie = loginResponse.headers as Headers & { getSetCookie?: () => string[] };
+      const cookieList = headerWithSetCookie.getSetCookie?.() || [];
+      const setCookieHeaders = cookieList.length > 0
+        ? cookieList.map((cookie) => cookie.split(';')[0]).join('; ')
+        : (loginResponse.headers.get('set-cookie') || '');
+      const csrfToken = loginResponse.headers.get('x-csrf-token') || '';
+      console.log('Login successful, cookies present:', !!setCookieHeaders, 'csrf token present:', !!csrfToken);
 
-      // Make API request to UniFi Controller using insecureFetch
+      // Make API request to UniFi Controller
       let apiUrl = `${baseApiUrl}${endpoint}`;
       console.log('Making Controller API request to:', apiUrl);
 
       const apiHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Cookie': setCookieHeaders
       };
+
+      if (setCookieHeaders) {
+        apiHeaders['Cookie'] = setCookieHeaders;
+      }
+
+      if (csrfToken) {
+        apiHeaders['X-CSRF-Token'] = csrfToken;
+      }
 
       const apiBody = (postData && (method === 'POST' || method === 'PUT' || method === 'PATCH'))
         ? JSON.stringify(postData)
         : undefined;
 
-      let apiResponse = await insecureFetch(apiUrl, {
+      let apiResponse = await fetchWithTlsFallback(apiUrl, {
         method: method || 'GET',
         headers: apiHeaders,
         body: apiBody
-      });
+      }, true);
 
       // UniFi OS controllers often expose Network API under /proxy/network
       if (apiResponse.status === 404 && !endpoint.startsWith('/proxy/network')) {
@@ -276,11 +289,11 @@ serve(async (req) => {
         const prefixedUrl = `${baseApiUrl}${prefixedEndpoint}`;
         console.warn('Retrying with /proxy/network prefix:', prefixedUrl);
 
-        apiResponse = await insecureFetch(prefixedUrl, {
+        apiResponse = await fetchWithTlsFallback(prefixedUrl, {
           method: method || 'GET',
           headers: apiHeaders,
           body: apiBody
-        });
+        }, true);
         apiUrl = prefixedUrl;
       }
 
