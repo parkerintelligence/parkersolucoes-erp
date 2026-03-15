@@ -75,6 +75,38 @@ const Annotations = () => {
     notes: ''
   });
 
+  const serviceColorMap: Record<string, string> = {
+    'blue': 'text-blue-400',
+    'green': 'text-emerald-400',
+    'purple': 'text-purple-400',
+    'orange': 'text-orange-400',
+    'sky': 'text-sky-400',
+    'red': 'text-red-400',
+    'indigo': 'text-indigo-400',
+    'gray': 'text-slate-400',
+  };
+
+  const serviceBgMap: Record<string, string> = {
+    'blue': 'bg-blue-500/10 border-blue-500/20',
+    'green': 'bg-emerald-500/10 border-emerald-500/20',
+    'purple': 'bg-purple-500/10 border-purple-500/20',
+    'orange': 'bg-orange-500/10 border-orange-500/20',
+    'sky': 'bg-sky-500/10 border-sky-500/20',
+    'red': 'bg-red-500/10 border-red-500/20',
+    'indigo': 'bg-indigo-500/10 border-indigo-500/20',
+    'gray': 'bg-slate-500/10 border-slate-500/20',
+  };
+
+  const getServiceColor = (serviceName: string) => {
+    const service = availableServices.find(s => s.name === serviceName);
+    return serviceColorMap[service?.color || 'gray'] || 'text-slate-400';
+  };
+
+  const getServiceBg = (serviceName: string) => {
+    const service = availableServices.find(s => s.name === serviceName);
+    return serviceBgMap[service?.color || 'gray'] || 'bg-slate-500/10 border-slate-500/20';
+  };
+
   const getServiceIcon = (serviceName: string) => {
     const service = availableServices.find(s => s.name === serviceName);
     const iconMap = {
@@ -89,7 +121,8 @@ const Annotations = () => {
       'globe': Globe,
     };
     const IconComponent = iconMap[service?.icon as keyof typeof iconMap] || Code;
-    return <IconComponent className="h-4 w-4" />;
+    const colorClass = getServiceColor(serviceName);
+    return <IconComponent className={`h-4 w-4 ${colorClass}`} />;
   };
 
   const filteredAnnotationsBase = annotations.filter(annotation => {
@@ -364,11 +397,13 @@ const Annotations = () => {
                   </div>
                 </TableCell>
                 <TableCell className="py-1">
-                  {item.service && (
-                    <div className="flex items-center gap-1">
+                  {item.service ? (
+                    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border ${getServiceBg(item.service)}`}>
                       {getServiceIcon(item.service)}
-                      <span className="text-xs text-foreground">{item.service}</span>
+                      <span className={`text-xs font-medium ${getServiceColor(item.service)}`}>{item.service}</span>
                     </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">-</span>
                   )}
                 </TableCell>
                 <TableCell className="py-1 text-right">
