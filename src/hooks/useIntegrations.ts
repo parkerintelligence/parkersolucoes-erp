@@ -61,11 +61,11 @@ export const useCreateIntegration = () => {
 
       console.log('✅ [useCreateIntegration] Usuário autenticado:', user.id);
 
-      // Integrações globais não precisam de user_id
+      // Integrações globais usam user_id do criador para RLS funcionar
       const globalIntegration = {
         ...integration,
         is_global: true,
-        user_id: null
+        user_id: user.id
       };
 
       console.log('📝 [useCreateIntegration] Dados completos para inserção:', globalIntegration);
@@ -108,18 +108,43 @@ export const useUpdateIntegration = () => {
         .from('integrations')
         .update(updates)
         .eq('id', id)
-        .select()
-        .single();
+        .select();
 
       if (error) {
         console.error('❌ [useUpdateIntegration] Erro na atualização:', error);
-        console.error('❌ [useUpdateIntegration] Código do erro:', error.code);
-        console.error('❌ [useUpdateIntegration] Detalhes do erro:', error.details);
         throw error;
       }
 
-      console.log('✅ [useUpdateIntegration] Integração atualizada com sucesso:', data);
-      return data;
+      if (!data || data.length === 0) {
+        // Try with maybeSingle - RLS might be blocking, try upsert approach
+        console.warn('⚠️ [useUpdateIntegration] Update retornou 0 rows, tentando sem filtro de user_id...');
+        
+        // Check if it's a global integration (user_id is null)
+        const { data: existing } = await supabase
+          .from('integrations')
+          .select('id, user_id, is_global')
+          .eq('id', id)
+          .maybeSingle();
+        
+        if (existing) {
+          // Integration exists but update failed - likely RLS issue
+          // Try updating without is_global in the payload
+          const { user_id, ...cleanUpdates } = updates as any;
+          const { data: retryData, error: retryError } = await supabase
+            .from('integrations')
+            .update(cleanUpdates)
+            .eq('id', id)
+            .select();
+          
+          if (retryError) throw retryError;
+          if (retryData && retryData.length > 0) return retryData[0];
+        }
+        
+        throw new Error('Não foi possível atualizar a integração. Verifique suas permissões.');
+      }
+
+      console.log('✅ [useUpdateIntegration] Integração atualizada com sucesso:', data[0]);
+      return data[0];
     },
     onSuccess: () => {
       console.log('🎉 [useUpdateIntegration] Sucesso na atualização, invalidando cache...');
