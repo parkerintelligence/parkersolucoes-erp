@@ -14,7 +14,7 @@ export const HostingerDashboard = () => {
   const { toast } = useToast();
   const { isMaster } = useAuth();
   const { data: integrations, isLoading: integrationsLoading } = useHostingerIntegrations();
-  const { restartVPS, createSnapshot } = useHostingerActions();
+  const { restartVPS, startVPS, stopVPS, createSnapshot } = useHostingerActions();
   const [selectedIntegration, setSelectedIntegration] = useState<string>('');
   const [showMasterPasswordDialog, setShowMasterPasswordDialog] = useState(false);
   const [pendingRestartVpsId, setPendingRestartVpsId] = useState<string | null>(null);
