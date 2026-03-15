@@ -418,262 +418,245 @@ const Guacamole = () => {
             <RustDeskPanel onSessionLog={(name, details) => addSessionLog('remoto-pk', name, 'RustDesk', details)} />
           </TabsContent>
 
-          <TabsContent value="connections" className="mt-6">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2 text-white">
-                      <Monitor className="h-5 w-5" />
-                      Conexões Configuradas
-                    </CardTitle>
-                    <CardDescription className="text-slate-400">
-                      Gerencie e acesse suas conexões do Guacamole
-                    </CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="flex border border-slate-600 rounded-md">
-                      <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')} className="bg-slate-700 text-white border-slate-600">
-                        <Grid className="h-4 w-4" />
-                      </Button>
-                      <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('list')} className="bg-slate-700 text-white border-slate-600">
-                        <List className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <Button onClick={() => setConnectionDialog({
-                    open: true
-                  })} className="bg-blue-600 hover:bg-blue-700 text-white">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Nova Conexão
-                    </Button>
-                  </div>
+          <TabsContent value="connections" className="mt-4">
+            <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+              {/* Header */}
+              <div className="flex items-center justify-between bg-secondary/30 border-b border-border px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <Monitor className="h-4 w-4 text-primary" />
+                  <span className="font-bold text-sm text-foreground">Servidores RDP</span>
+                  <Badge variant="secondary" className="text-[10px] px-2 py-0.5 bg-muted">
+                    {connections?.length || 0} conexões
+                  </Badge>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {connectionsLoading ? <div className="text-center py-8">
-                    <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
-                    <p className="text-slate-300">Carregando conexões...</p>
-                  </div> : !connections || connections.length === 0 ? <div className="text-center py-8">
-                    <Monitor className="h-12 w-12 mx-auto mb-4 text-slate-600" />
-                    <p className="text-lg font-medium text-white">Nenhuma conexão encontrada</p>
-                    <p className="text-sm text-slate-400 mb-4">Configure suas primeiras conexões remotas.</p>
-                    <Button onClick={() => setConnectionDialog({
-                  open: true
-                })} className="bg-blue-600 hover:bg-blue-700 text-white">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Criar Primeira Conexão
+                <div className="flex gap-2">
+                  <div className="flex border border-border rounded-md">
+                    <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')} className="h-7 w-7 p-0">
+                      <Grid className="h-3.5 w-3.5" />
                     </Button>
-                  </div> : viewMode === 'grid' ? <GuacamoleConnectionTree connections={connections} connectionGroups={connectionGroups} onConnect={handleConnectToGuacamole} onEdit={conn => setConnectionDialog({
-                open: true,
-                connection: conn
-              })} onDelete={handleDeleteConnection} onDisconnect={handleDisconnectSession} isDeleting={deleteConnectionMutation.isPending} /> : <div className="bg-slate-800 rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-slate-700">
-                          <TableHead className="text-slate-300">Nome</TableHead>
-                          <TableHead className="text-slate-300">Protocolo</TableHead>
-                          <TableHead className="text-slate-300">Host</TableHead>
-                          <TableHead className="text-slate-300">Conexões Ativas</TableHead>
-                          <TableHead className="text-slate-300">Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {connections.map(connection => <TableRow key={connection.identifier} className="border-slate-700">
-                            <TableCell className="font-medium text-white">{connection.name}</TableCell>
-                            <TableCell>
-                              <Badge className={getProtocolColor(connection.protocol)}>
-                                {connection.protocol?.toUpperCase()}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-slate-300">
-                              {connection.parameters?.hostname || 'N/A'}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={connection.activeConnections > 0 ? 'default' : 'secondary'}>
-                                {connection.activeConnections || 0}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                <Button size="sm" onClick={() => handleConnectToGuacamole(connection)} className="bg-blue-600 hover:bg-blue-700">
-                                  <ExternalLink className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>)}
-                      </TableBody>
-                    </Table>
-                  </div>}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="sessions" className="mt-6">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <Activity className="h-5 w-5" />
-                  Sessões Ativas
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Sessões atualmente conectadas ao Guacamole
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {sessionsLoading ? <div className="text-center py-8">
-                    <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
-                    <p className="text-slate-300">Carregando sessões...</p>
-                  </div> : !activeSessions || activeSessions.length === 0 ? <div className="text-center py-8 text-slate-400">
-                    <Activity className="h-12 w-12 mx-auto mb-4" />
-                    <p className="text-lg font-medium text-white">Nenhuma sessão ativa</p>
-                    <p className="text-sm">Todas as conexões estão desconectadas.</p>
-                  </div> : <Table>
-                    <TableHeader>
-                      <TableRow className="border-slate-700">
-                        <TableHead className="text-slate-300">Usuário</TableHead>
-                        <TableHead className="text-slate-300">Conexão</TableHead>
-                        <TableHead className="text-slate-300">Protocolo</TableHead>
-                        <TableHead className="text-slate-300">Início</TableHead>
-                        <TableHead className="text-slate-300">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {activeSessions.map((session, index) => <TableRow key={index} className="border-slate-700">
-                          <TableCell className="font-medium text-white">{session.username || 'N/A'}</TableCell>
-                          <TableCell className="text-slate-300">{session.connectionName || 'N/A'}</TableCell>
-                          <TableCell>
-                            <Badge className={getProtocolColor(session.protocol)}>
-                              {session.protocol?.toUpperCase() || 'N/A'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-slate-300">
-                            {session.startTime ? new Date(session.startTime).toLocaleString('pt-BR') : 'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            <Button size="sm" variant="outline" onClick={() => handleDisconnectSession(session.id)} disabled={disconnectSessionMutation.isPending} className="border-slate-600 text-slate-300 hover:bg-slate-700">
-                              <Power className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>)}
-                    </TableBody>
-                  </Table>}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="history" className="mt-6">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-blue-400" />
-                    <CardTitle className="text-sm text-white">Histórico de Sessões</CardTitle>
-                    <Badge variant="secondary" className="bg-slate-700 text-slate-300 text-[10px]">
-                      {sessionLogs.length + (connectionHistory?.length || 0)}
-                    </Badge>
+                    <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('list')} className="h-7 w-7 p-0">
+                      <List className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs border-slate-600 text-slate-300 hover:bg-slate-700"
-                    onClick={() => setSessionLogs([])}
-                  >
-                    Limpar
+                  <Button onClick={() => setConnectionDialog({ open: true })} size="sm" className="h-7 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
+                    <Plus className="mr-1 h-3.5 w-3.5" />
+                    Nova Conexão
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-slate-700 hover:bg-transparent">
-                      <TableHead className="text-slate-400 text-xs h-8">Data/Hora</TableHead>
-                      <TableHead className="text-slate-400 text-xs h-8">Origem</TableHead>
-                      <TableHead className="text-slate-400 text-xs h-8">Conexão</TableHead>
-                      <TableHead className="text-slate-400 text-xs h-8">Protocolo</TableHead>
-                      <TableHead className="text-slate-400 text-xs h-8">Usuário</TableHead>
-                      <TableHead className="text-slate-400 text-xs h-8">Detalhes</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {/* Session logs from current session */}
-                    {sessionLogs.map((log) => (
-                      <TableRow key={log.id} className="border-slate-700/50 hover:bg-slate-750/50">
-                        <TableCell className="py-1.5 px-3">
-                          <span className="text-xs text-slate-300">{new Date(log.timestamp).toLocaleString('pt-BR')}</span>
-                        </TableCell>
-                        <TableCell className="py-1.5 px-3">
-                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${log.source === 'remoto-pk' ? 'bg-orange-500/15 text-orange-400 border-orange-500/30' : 'bg-blue-500/15 text-blue-400 border-blue-500/30'}`}>
-                            {log.source === 'remoto-pk' ? '🖥️ Remoto PK' : '🖧 Servidor RDP'}
+              </div>
+
+              <div className="p-0">
+                {connectionsLoading ? (
+                  <div className="text-center py-8">
+                    <RefreshCcw className="h-6 w-6 animate-spin mx-auto mb-3 text-primary" />
+                    <p className="text-xs text-muted-foreground">Carregando conexões...</p>
+                  </div>
+                ) : !connections || connections.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Monitor className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
+                    <p className="text-sm font-medium text-foreground">Nenhuma conexão encontrada</p>
+                    <p className="text-xs text-muted-foreground mb-3">Configure suas primeiras conexões remotas.</p>
+                    <Button onClick={() => setConnectionDialog({ open: true })} size="sm" className="h-7 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
+                      <Plus className="mr-1 h-3.5 w-3.5" />
+                      Criar Primeira Conexão
+                    </Button>
+                  </div>
+                ) : viewMode === 'grid' ? (
+                  <div className="p-3">
+                    <GuacamoleConnectionTree connections={connections} connectionGroups={connectionGroups} onConnect={handleConnectToGuacamole} onEdit={conn => setConnectionDialog({ open: true, connection: conn })} onDelete={handleDeleteConnection} onDisconnect={handleDisconnectSession} isDeleting={deleteConnectionMutation.isPending} />
+                  </div>
+                ) : (
+                  <div>
+                    {/* Column Header */}
+                    <div className="grid grid-cols-[1fr_90px_140px_100px_80px] gap-0 px-4 py-2 bg-secondary/10 border-b border-border">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Nome</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Protocolo</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Host</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Ativas</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">Ações</span>
+                    </div>
+                    {connections.map((connection, idx) => (
+                      <div
+                        key={connection.identifier}
+                        className={`grid grid-cols-[1fr_90px_140px_100px_80px] gap-0 px-4 py-2 items-center border-b border-border/50 last:border-b-0 transition-colors ${idx % 2 === 0 ? 'bg-background hover:bg-primary/5' : 'bg-card hover:bg-primary/5'}`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Monitor className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                          <span className="text-xs font-medium text-foreground truncate">{connection.name}</span>
+                        </div>
+                        <div>
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border ${getProtocolColor(connection.protocol)}`}>
+                            {connection.protocol?.toUpperCase()}
                           </Badge>
-                        </TableCell>
-                        <TableCell className="py-1.5 px-3">
-                          <span className="text-xs font-medium text-white">{log.connectionName}</span>
-                        </TableCell>
-                        <TableCell className="py-1.5 px-3">
-                          {log.protocol && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-slate-700 text-slate-300">
-                              {log.protocol}
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-1.5 px-3">
-                          <div className="flex items-center gap-1">
-                            <User className="h-3 w-3 text-slate-400" />
-                            <span className="text-xs text-slate-300" title={log.userEmail}>{log.userName}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-1.5 px-3">
-                          <span className="text-xs text-slate-400">{log.details || '-'}</span>
-                        </TableCell>
-                      </TableRow>
+                        </div>
+                        <span className="text-xs text-muted-foreground truncate" title={connection.parameters?.hostname}>
+                          {connection.parameters?.hostname || 'N/A'}
+                        </span>
+                        <div>
+                          <Badge variant={connection.activeConnections > 0 ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
+                            {connection.activeConnections || 0}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-end">
+                          <Button size="sm" onClick={() => handleConnectToGuacamole(connection)} className="h-6 px-2 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
                     ))}
-                    {/* Guacamole connection history */}
-                    {connectionHistory && connectionHistory.map((record, index) => (
-                      <TableRow key={`hist-${index}`} className="border-slate-700/50 hover:bg-slate-750/50">
-                        <TableCell className="py-1.5 px-3">
-                          <span className="text-xs text-slate-300">
-                            {record.startDate ? new Date(record.startDate).toLocaleString('pt-BR') : 'N/A'}
-                          </span>
-                        </TableCell>
-                        <TableCell className="py-1.5 px-3">
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-500/15 text-blue-400 border-blue-500/30">
-                            🖧 Servidor RDP
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="sessions" className="mt-4">
+            <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+              <div className="flex items-center gap-2.5 bg-secondary/30 border-b border-border px-4 py-3">
+                <Activity className="h-4 w-4 text-primary" />
+                <span className="font-bold text-sm text-foreground">Sessões Ativas</span>
+                <Badge variant="secondary" className="text-[10px] px-2 py-0.5 bg-muted">
+                  {activeSessions?.length || 0}
+                </Badge>
+              </div>
+
+              <div className="p-0">
+                {sessionsLoading ? (
+                  <div className="text-center py-8">
+                    <RefreshCcw className="h-6 w-6 animate-spin mx-auto mb-3 text-primary" />
+                    <p className="text-xs text-muted-foreground">Carregando sessões...</p>
+                  </div>
+                ) : !activeSessions || activeSessions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Activity className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
+                    <p className="text-sm font-medium text-foreground">Nenhuma sessão ativa</p>
+                    <p className="text-xs text-muted-foreground">Todas as conexões estão desconectadas.</p>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="grid grid-cols-[1fr_1fr_90px_140px_70px] gap-0 px-4 py-2 bg-secondary/10 border-b border-border">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Usuário</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Conexão</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Protocolo</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Início</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">Ações</span>
+                    </div>
+                    {activeSessions.map((session, index) => (
+                      <div
+                        key={index}
+                        className={`grid grid-cols-[1fr_1fr_90px_140px_70px] gap-0 px-4 py-2 items-center border-b border-border/50 last:border-b-0 transition-colors ${index % 2 === 0 ? 'bg-background hover:bg-primary/5' : 'bg-card hover:bg-primary/5'}`}
+                      >
+                        <span className="text-xs font-medium text-foreground truncate">{session.username || 'N/A'}</span>
+                        <span className="text-xs text-muted-foreground truncate">{session.connectionName || 'N/A'}</span>
+                        <div>
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border ${getProtocolColor(session.protocol)}`}>
+                            {session.protocol?.toUpperCase() || 'N/A'}
                           </Badge>
-                        </TableCell>
-                        <TableCell className="py-1.5 px-3">
-                          <span className="text-xs font-medium text-white">{record.connectionName}</span>
-                        </TableCell>
-                        <TableCell className="py-1.5 px-3">
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-slate-700 text-slate-300">
-                            RDP
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-1.5 px-3">
-                          <div className="flex items-center gap-1">
-                            <User className="h-3 w-3 text-slate-400" />
-                            <span className="text-xs text-slate-300">{record.username || 'N/A'}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-1.5 px-3">
-                          <span className="text-xs text-slate-400">
-                            {record.duration ? `Duração: ${Math.round(record.duration / 60)} min` : record.endDate ? 'Finalizado' : 'Em andamento'}
-                          </span>
-                        </TableCell>
-                      </TableRow>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {session.startTime ? new Date(session.startTime).toLocaleString('pt-BR') : 'N/A'}
+                        </span>
+                        <div className="flex justify-end">
+                          <Button size="sm" variant="outline" onClick={() => handleDisconnectSession(session.id)} disabled={disconnectSessionMutation.isPending} className="h-6 w-6 p-0 border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                            <Power className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
                     ))}
-                    {sessionLogs.length === 0 && (!connectionHistory || connectionHistory.length === 0) && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-slate-400">
-                          <Clock className="h-10 w-10 mx-auto mb-3 text-slate-600" />
-                          <p className="text-sm font-medium text-white">Nenhum registro encontrado</p>
-                          <p className="text-xs">O histórico aparecerá conforme as conexões forem utilizadas.</p>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="history" className="mt-4">
+            <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+              <div className="flex items-center justify-between bg-secondary/30 border-b border-border px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <Clock className="h-4 w-4 text-primary" />
+                  <span className="font-bold text-sm text-foreground">Histórico de Sessões</span>
+                  <Badge variant="secondary" className="text-[10px] px-2 py-0.5 bg-muted">
+                    {sessionLogs.length + (connectionHistory?.length || 0)}
+                  </Badge>
+                </div>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setSessionLogs([])}>
+                  Limpar
+                </Button>
+              </div>
+
+              <div>
+                {/* Column Header */}
+                <div className="grid grid-cols-[140px_110px_1fr_80px_120px_1fr] gap-0 px-4 py-2 bg-secondary/10 border-b border-border">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Data/Hora</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Origem</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Conexão</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Protocolo</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Usuário</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Detalhes</span>
+                </div>
+
+                {/* Session logs */}
+                {sessionLogs.map((log, idx) => (
+                  <div key={log.id} className={`grid grid-cols-[140px_110px_1fr_80px_120px_1fr] gap-0 px-4 py-2 items-center border-b border-border/50 last:border-b-0 transition-colors ${idx % 2 === 0 ? 'bg-background hover:bg-primary/5' : 'bg-card hover:bg-primary/5'}`}>
+                    <span className="text-xs text-muted-foreground">{new Date(log.timestamp).toLocaleString('pt-BR')}</span>
+                    <div>
+                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border ${log.source === 'remoto-pk' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
+                        {log.source === 'remoto-pk' ? '🖥️ Remoto PK' : '🖧 Servidor RDP'}
+                      </Badge>
+                    </div>
+                    <span className="text-xs font-medium text-foreground truncate">{log.connectionName}</span>
+                    <div>
+                      {log.protocol && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-muted">
+                          {log.protocol}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <User className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground truncate" title={log.userEmail}>{log.userName}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground truncate">{log.details || '-'}</span>
+                  </div>
+                ))}
+
+                {/* Guacamole history */}
+                {connectionHistory && connectionHistory.map((record, index) => {
+                  const rowIdx = sessionLogs.length + index;
+                  return (
+                    <div key={`hist-${index}`} className={`grid grid-cols-[140px_110px_1fr_80px_120px_1fr] gap-0 px-4 py-2 items-center border-b border-border/50 last:border-b-0 transition-colors ${rowIdx % 2 === 0 ? 'bg-background hover:bg-primary/5' : 'bg-card hover:bg-primary/5'}`}>
+                      <span className="text-xs text-muted-foreground">
+                        {record.startDate ? new Date(record.startDate).toLocaleString('pt-BR') : 'N/A'}
+                      </span>
+                      <div>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border bg-blue-500/10 text-blue-400 border-blue-500/20">
+                          🖧 Servidor RDP
+                        </Badge>
+                      </div>
+                      <span className="text-xs font-medium text-foreground truncate">{record.connectionName}</span>
+                      <div>
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-muted">RDP</Badge>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <User className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground truncate">{record.username || 'N/A'}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground truncate">
+                        {record.duration ? `Duração: ${Math.round(record.duration / 60)} min` : record.endDate ? 'Finalizado' : 'Em andamento'}
+                      </span>
+                    </div>
+                  );
+                })}
+
+                {sessionLogs.length === 0 && (!connectionHistory || connectionHistory.length === 0) && (
+                  <div className="text-center py-8">
+                    <Clock className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
+                    <p className="text-sm font-medium text-foreground">Nenhum registro encontrado</p>
+                    <p className="text-xs text-muted-foreground">O histórico aparecerá conforme as conexões forem utilizadas.</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </TabsContent>
 
 
