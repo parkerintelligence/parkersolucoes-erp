@@ -95,9 +95,10 @@ const UniFiSimpleDashboard = () => {
   }
 
   if (sitesError && selectedIntegration) {
-    const isTokenError = sitesError.message?.includes('API Token inválido') || 
-                        sitesError.message?.includes('unauthorized') ||
-                        sitesError.message?.includes('401');
+    const isTokenError = sitesError.message?.includes('API Token inválido') ||
+      sitesError.message?.includes('unauthorized') ||
+      sitesError.message?.includes('401');
+
     if (isTokenError) {
       return (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/30 text-xs text-destructive">
@@ -108,6 +109,15 @@ const UniFiSimpleDashboard = () => {
         </div>
       );
     }
+
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/30 text-xs text-destructive">
+        <AlertTriangle className="h-3.5 w-3.5" />
+        {integrationMode === 'local'
+          ? `Falha na controladora local: ${sitesError.message}`
+          : `Falha na integração UniFi Cloud: ${sitesError.message}`}
+      </div>
+    );
   }
 
   const selectedSite = sites?.data?.find((site: any) => site.id === selectedSiteId);

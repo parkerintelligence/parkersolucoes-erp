@@ -20,6 +20,9 @@ const toHttpsUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace
 
 const DEFAULT_FETCH_TIMEOUT_MS = 9000;
 
+const MAX_LOGIN_ATTEMPTS = 8;
+const MAX_LOGIN_DURATION_MS = 20000;
+
 const buildLocalControllerCandidates = (
   baseUrl: string,
   preferSsl: boolean,
@@ -46,6 +49,7 @@ const buildLocalControllerCandidates = (
   const currentPort = parsed.port || (preferSsl ? '443' : '80');
   const preferred = preferSsl ? toHttpsUrl(normalized) : toHttpUrl(normalized);
 
+  // Prioridade total para a URL configurada pelo usuário.
   push(preferred);
   push(preferSsl ? toHttpUrl(preferred) : toHttpsUrl(preferred));
 
@@ -54,18 +58,14 @@ const buildLocalControllerCandidates = (
     push(createVariant(preferSsl ? 'http:' : 'https:', configuredPortValue));
   }
 
-  // Common UniFi controller fallback combinations.
-  ['443', '8443', '8445'].forEach((port) => {
-    push(createVariant('https:', port));
-    push(createVariant('http:', port));
-  });
+  // Fallback curto e controlado para portas comuns, sem varrer muitas combinações.
+  if (!configuredPortValue || ['443', '8443', '8445'].includes(currentPort)) {
+    const fallbackPort = currentPort === '8445' ? '8443' : '8445';
+    push(createVariant('https:', fallbackPort));
+    push(createVariant('http:', fallbackPort));
+  }
 
-  // Common plain HTTP controller ports.
-  ['8080', '8880', '80'].forEach((port) => {
-    push(createVariant('http:', port));
-  });
-
-  return Array.from(candidates);
+  return Array.from(candidates).slice(0, 4);
 };
 
 const fetchIgnoringCerts = async (url: string, options: RequestInit = {}) => {
@@ -288,10 +288,22 @@ serve(async (req) => {
         'User-Agent': 'Lovable-UniFi-Integration/1.0',
       };
 
+      const loginStartedAt = Date.now();
+      let attempts = 0;
+
       for (const candidateBaseUrl of controllerCandidates) {
         const allowTlsFallback = candidateBaseUrl.startsWith('https://');
 
         for (const loginEndpoint of loginEndpoints) {
+          if (attempts >= MAX_LOGIN_ATTEMPTS || Date.now() - loginStartedAt > MAX_LOGIN_DURATION_MS) {
+            console.warn('[UNIFI-LOCAL] Login attempts/time budget exceeded', {
+              attempts,
+              elapsedMs: Date.now() - loginStartedAt,
+            });
+            break;
+          }
+
+          attempts += 1;
           const candidateLoginUrl = `${candidateBaseUrl}${loginEndpoint}`;
 
           try {
@@ -306,7 +318,7 @@ serve(async (req) => {
                 body: loginBody,
               },
               allowTlsFallback,
-              7000,
+              5000,
             );
             const responseTime = Date.now() - startTime;
 
@@ -333,7 +345,7 @@ serve(async (req) => {
           }
         }
 
-        if (loginResponse) {
+        if (loginResponse || attempts >= MAX_LOGIN_ATTEMPTS || Date.now() - loginStartedAt > MAX_LOGIN_DURATION_MS) {
           break;
         }
       }

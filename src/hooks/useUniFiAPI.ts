@@ -349,12 +349,13 @@ export const useUniFiAPI = () => {
           return { data: normalizedLocalSites };
         } catch (error) {
           console.error('❌ Controladora local sites também falhou:', error);
-          return { data: [] };
+          const message = error instanceof Error ? error.message : 'Falha ao buscar sites da controladora local';
+          throw new Error(message);
         }
       },
       enabled: !!integrationId,
       staleTime: 60000, // 1 minute
-      retry: 2,
+      retry: 1,
     });
   };
 
