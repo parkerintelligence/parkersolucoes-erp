@@ -351,7 +351,7 @@ export const useUniFiAPI = () => {
         console.log('✅ Usando controladora local devices');
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!hostId && !!siteId,
+      enabled: !!integrationId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
@@ -382,7 +382,7 @@ export const useUniFiAPI = () => {
         console.log('✅ Usando controladora local clients');
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!hostId && !!siteId,
+      enabled: !!integrationId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
@@ -396,7 +396,7 @@ export const useUniFiAPI = () => {
         const endpoint = siteId ? `/api/s/${siteId}/rest/wlanconf` : '/api/rest/wlanconf';
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!hostId,
+      enabled: !!integrationId && !!siteId,
       staleTime: 60000, // 1 minute
       retry: 2,
     });
@@ -410,7 +410,7 @@ export const useUniFiAPI = () => {
         const endpoint = siteId ? `/api/s/${siteId}/stat/alarm` : '/api/stat/alarm';
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!hostId,
+      enabled: !!integrationId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
@@ -424,7 +424,7 @@ export const useUniFiAPI = () => {
         const endpoint = siteId ? `/api/s/${siteId}/stat/health` : '/api/stat/health';
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!hostId,
+      enabled: !!integrationId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
