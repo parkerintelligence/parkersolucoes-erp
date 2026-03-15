@@ -63,7 +63,7 @@ export class RealFtpService {
           secure: this.config.secure,
           path: path,
           passive: this.config.passive,
-          calculateSizes: true
+          calculateSizes: false
         }
       });
 
