@@ -241,12 +241,12 @@ export const useUniFiAPI = () => {
   // Sites - buscar todos os sites disponíveis via Site Manager API
   const useUniFiSites = (integrationId: string, hostId?: string) => {
     return useQuery({
-      queryKey: ['unifi-sites', integrationId],
+      queryKey: ['unifi-sites', integrationId, hostId],
       queryFn: async () => {
         if (!integrationId) return { data: [] };
         
         try {
-          // Primeiro, tentar buscar hosts para obter todos os sites
+          // Primeiro, buscar hosts disponíveis para enriquecer informações dos sites
           console.log('🔍 Buscando hosts via Site Manager API v1...');
           const hostsResponse = await makeUniFiRequest('/v1/hosts', 'GET', integrationId);
           
@@ -270,38 +270,32 @@ export const useUniFiAPI = () => {
           
           if (hostsResponse?.data && Array.isArray(hostsResponse.data) && hostsResponse.data.length > 0) {
             console.log('✅ Hosts encontrados:', hostsResponse.data.length);
-            
-            // Para cada host ativo, buscar seus sites
-            const allSites = [];
-            for (const host of hostsResponse.data) {
-              // Só buscar sites de hosts conectados
-              if (host.reportedState?.state !== 'connected') {
-                console.log(`⏭️ Pulando host ${host.id} (estado: ${host.reportedState?.state})`);
-                continue;
-              }
-              
-              try {
-                console.log(`🔍 Buscando sites para host ${host.id}...`);
-                const sitesResponse = await makeUniFiRequest(`/v1/hosts/${host.id}/sites`, 'GET', integrationId);
-                
-                if (sitesResponse?.data && Array.isArray(sitesResponse.data)) {
-                  // Adicionar informação do controlador aos sites
-                  const sitesWithController = sitesResponse.data.map(site => ({
-                    ...site,
-                    controllerName: host.reportedState?.name || host.reportedState?.hostname || 'Controladora UniFi',
-                    controllerId: host.id,
-                    controllerState: host.reportedState?.state || 'unknown'
-                  }));
-                  allSites.push(...sitesWithController);
-                  console.log(`✅ ${sitesResponse.data.length} sites encontrados no host ${host.id}`);
-                }
-              } catch (error) {
-                console.log(`❌ Erro ao buscar sites do host ${host.id}:`, error.message);
-              }
-            }
-            
-            console.log('✅ Total de sites encontrados:', allSites.length);
-            return { data: allSites };
+
+            // Endpoint oficial do Site Manager para listar sites
+            const sitesResponse = await makeUniFiRequest('/v1/sites', 'GET', integrationId);
+            const rawSites = Array.isArray(sitesResponse?.data) ? sitesResponse.data : [];
+
+            const connectedHosts = hostsResponse.data.filter((host: any) => host.reportedState?.state === 'connected');
+            const connectedHostsById = new Map(connectedHosts.map((host: any) => [host.id, host]));
+
+            const normalizedSites = rawSites.map((site: any) => {
+              const siteControllerId = site.controllerId || site.controller_id || site.hostId || site.host_id || '';
+              const host = connectedHostsById.get(siteControllerId);
+
+              return {
+                ...site,
+                controllerName: host?.reportedState?.name || host?.reportedState?.hostname || site.controllerName || 'Controladora UniFi',
+                controllerId: siteControllerId || host?.id || null,
+                controllerState: host?.reportedState?.state || site.controllerState || 'connected'
+              };
+            });
+
+            const filteredSites = hostId
+              ? normalizedSites.filter((site: any) => site.controllerId === hostId)
+              : normalizedSites;
+
+            console.log('✅ Total de sites encontrados:', normalizedSites.length, 'Filtrados:', filteredSites.length);
+            return { data: filteredSites };
           }
         } catch (error) {
           console.log('❌ Site Manager API falhou, tentando controladora local...', error.message);
