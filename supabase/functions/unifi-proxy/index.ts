@@ -656,6 +656,32 @@ serve(async (req) => {
             ip: h.ipAddress
           })));
         }
+      } else if (siteManagerEndpoint === '/v1/devices') {
+        // /v1/devices returns all devices across all sites
+        const allDevices = Array.isArray(responseData) ? responseData : (responseData?.data || []);
+        console.log('Total devices from Site Manager API:', allDevices.length, 'Filtering by siteId:', siteIdForFilter);
+
+        let filteredDevices = allDevices;
+        if (siteIdForFilter) {
+          filteredDevices = allDevices.filter((d: any) => {
+            const deviceSiteId = d.siteId || d.site_id || d.meta?.siteId || '';
+            return deviceSiteId === siteIdForFilter;
+          });
+          console.log('Filtered devices for site:', filteredDevices.length);
+        }
+
+        // Check if original request was for clients (stat/sta) or networks (wlanconf)
+        if (endpoint.includes('/stat/sta')) {
+          // Site Manager API doesn't expose clients directly - return empty
+          console.log('Client listing not available in Site Manager API, returning empty');
+          finalResponse = { data: [] };
+        } else if (endpoint.includes('/rest/wlanconf')) {
+          // Networks not available via /v1/devices - return empty
+          console.log('WLAN config not available in Site Manager API, returning empty');
+          finalResponse = { data: [] };
+        } else {
+          finalResponse = { data: filteredDevices };
+        }
       } else if (responseData?.data) {
         finalResponse = responseData;
       } else {
