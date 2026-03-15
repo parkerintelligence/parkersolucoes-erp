@@ -119,7 +119,6 @@ const Guacamole = () => {
         description: "Não foi possível atualizar os dados.",
         variant: "destructive"
       });
-      });
     } finally {
       setRefreshing(false);
     }
