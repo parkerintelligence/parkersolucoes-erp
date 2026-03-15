@@ -38,7 +38,11 @@ const EMPTY_FORM = {
   glpi_asset_comment: '',
 };
 
-export const RustDeskPanel = () => {
+interface RustDeskPanelProps {
+  onSessionLog?: (connectionName: string, details?: string) => void;
+}
+
+export const RustDeskPanel = ({ onSessionLog }: RustDeskPanelProps = {}) => {
   const { data: connections = [], isLoading } = useRustDeskConnections();
   const { data: companies = [] } = useCompanies();
   const createMutation = useCreateRustDeskConnection();
