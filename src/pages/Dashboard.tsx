@@ -557,39 +557,27 @@ const Dashboard = () => {
       {/* Connections Grid */}
       <div>
         <h2 className="text-lg font-semibold text-foreground mb-3">Conexões & Integrações</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
           {connectionTypes.map(ct => {
             const active = ct.data.filter((d: any) => d.is_active).length;
             const total = ct.data.length;
             if (total === 0) return null;
             return (
-              <Card key={ct.label} className={ct.bg}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <ct.icon className={`h-5 w-5 ${ct.color}`} />
-                      <span className="text-sm font-semibold text-foreground">{ct.label}</span>
-                    </div>
-                    <Badge variant={active === total ? 'default' : 'secondary'} className="text-[10px]">
-                      {active}/{total}
-                    </Badge>
-                  </div>
-                  <Progress value={total > 0 ? (active / total) * 100 : 0} className="h-1.5" />
-                  <div className="mt-2 space-y-1">
-                    {ct.data.slice(0, 3).map((item: any) => (
-                      <div key={item.id} className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground truncate max-w-[60%]">{item.name}</span>
-                        <Badge variant={item.is_active ? 'default' : 'destructive'} className="text-[9px] py-0 px-1.5 h-4">
-                          {item.is_active ? 'Ativo' : 'Inativo'}
-                        </Badge>
-                      </div>
-                    ))}
-                    {ct.data.length > 3 && (
-                      <p className="text-[10px] text-muted-foreground">+{ct.data.length - 3} mais...</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              <div
+                key={ct.label}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors"
+              >
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <ct.icon className={`h-4 w-4 ${ct.color}`} />
+                </div>
+                <span className="text-[10px] font-medium text-foreground text-center leading-tight">{ct.label}</span>
+                <Badge
+                  variant={active === total ? 'default' : 'secondary'}
+                  className="text-[9px] py-0 px-1.5 h-4"
+                >
+                  {active}/{total}
+                </Badge>
+              </div>
             );
           })}
         </div>
