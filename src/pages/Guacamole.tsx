@@ -568,87 +568,115 @@ const Guacamole = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="users" className="mt-6">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <Users className="h-5 w-5" />
-                  Usuários do Sistema
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Lista de usuários cadastrados no Guacamole
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {usersLoading ? <div className="text-center py-8">
-                    <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-400" />
-                    <p className="text-slate-300">Carregando usuários...</p>
-                  </div> : <Table>
-                    <TableHeader>
-                      <TableRow className="border-slate-700">
-                        <TableHead className="text-slate-300">Nome de Usuário</TableHead>
-                        <TableHead className="text-slate-300">Última Atividade</TableHead>
-                        <TableHead className="text-slate-300">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {users && users.map(user => <TableRow key={user.username} className="border-slate-700">
-                          <TableCell className="font-medium text-white">{user.username}</TableCell>
-                          <TableCell className="text-slate-300">
-                            {user.lastActive ? new Date(user.lastActive).toLocaleString('pt-BR') : 'Nunca'}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="default" className="bg-emerald-600 text-white">Ativo</Badge>
-                          </TableCell>
-                        </TableRow>)}
-                    </TableBody>
-                  </Table>}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="history" className="mt-6">
             <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <FileText className="h-5 w-5" />
-                  Histórico de Conexões
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Registro de conexões realizadas no Guacamole
-                </CardDescription>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-blue-400" />
+                    <CardTitle className="text-sm text-white">Histórico de Sessões</CardTitle>
+                    <Badge variant="secondary" className="bg-slate-700 text-slate-300 text-[10px]">
+                      {sessionLogs.length + (connectionHistory?.length || 0)}
+                    </Badge>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs border-slate-600 text-slate-300 hover:bg-slate-700"
+                    onClick={() => setSessionLogs([])}
+                  >
+                    Limpar
+                  </Button>
+                </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-slate-700">
-                      <TableHead className="text-slate-300">Conexão</TableHead>
-                      <TableHead className="text-slate-300">Usuário</TableHead>
-                      <TableHead className="text-slate-300">Início</TableHead>
-                      <TableHead className="text-slate-300">Fim</TableHead>
-                      <TableHead className="text-slate-300">Duração</TableHead>
+                    <TableRow className="border-slate-700 hover:bg-transparent">
+                      <TableHead className="text-slate-400 text-xs h-8">Data/Hora</TableHead>
+                      <TableHead className="text-slate-400 text-xs h-8">Origem</TableHead>
+                      <TableHead className="text-slate-400 text-xs h-8">Conexão</TableHead>
+                      <TableHead className="text-slate-400 text-xs h-8">Protocolo</TableHead>
+                      <TableHead className="text-slate-400 text-xs h-8">Usuário</TableHead>
+                      <TableHead className="text-slate-400 text-xs h-8">Detalhes</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {connectionHistory && connectionHistory.length > 0 ? connectionHistory.map((record, index) => <TableRow key={index} className="border-slate-700">
-                          <TableCell className="font-medium text-white">{record.connectionName}</TableCell>
-                          <TableCell className="text-slate-300">{record.username}</TableCell>
-                          <TableCell className="text-slate-300">
-                            {record.startDate ? new Date(record.startDate).toLocaleString('pt-BR') : 'N/A'}
-                          </TableCell>
-                          <TableCell className="text-slate-300">
-                            {record.endDate ? new Date(record.endDate).toLocaleString('pt-BR') : 'Em andamento'}
-                          </TableCell>
-                          <TableCell className="text-slate-300">
-                            {record.duration ? `${Math.round(record.duration / 60)} min` : 'N/A'}
-                          </TableCell>
-                        </TableRow>) : <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-slate-400">
-                          <FileText className="h-12 w-12 mx-auto mb-4" />
-                          <p className="text-lg font-medium text-white">Nenhum registro encontrado</p>
-                          <p className="text-sm">O histórico aparecerá conforme as conexões forem utilizadas.</p>
+                    {/* Session logs from current session */}
+                    {sessionLogs.map((log) => (
+                      <TableRow key={log.id} className="border-slate-700/50 hover:bg-slate-750/50">
+                        <TableCell className="py-1.5 px-3">
+                          <span className="text-xs text-slate-300">{new Date(log.timestamp).toLocaleString('pt-BR')}</span>
                         </TableCell>
-                      </TableRow>}
+                        <TableCell className="py-1.5 px-3">
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${log.source === 'remoto-pk' ? 'bg-orange-500/15 text-orange-400 border-orange-500/30' : 'bg-blue-500/15 text-blue-400 border-blue-500/30'}`}>
+                            {log.source === 'remoto-pk' ? '🖥️ Remoto PK' : '🖧 Servidor RDP'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-3">
+                          <span className="text-xs font-medium text-white">{log.connectionName}</span>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-3">
+                          {log.protocol && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-slate-700 text-slate-300">
+                              {log.protocol}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-1.5 px-3">
+                          <div className="flex items-center gap-1">
+                            <User className="h-3 w-3 text-slate-400" />
+                            <span className="text-xs text-slate-300" title={log.userEmail}>{log.userName}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-3">
+                          <span className="text-xs text-slate-400">{log.details || '-'}</span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {/* Guacamole connection history */}
+                    {connectionHistory && connectionHistory.map((record, index) => (
+                      <TableRow key={`hist-${index}`} className="border-slate-700/50 hover:bg-slate-750/50">
+                        <TableCell className="py-1.5 px-3">
+                          <span className="text-xs text-slate-300">
+                            {record.startDate ? new Date(record.startDate).toLocaleString('pt-BR') : 'N/A'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-3">
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-500/15 text-blue-400 border-blue-500/30">
+                            🖧 Servidor RDP
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-3">
+                          <span className="text-xs font-medium text-white">{record.connectionName}</span>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-3">
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-slate-700 text-slate-300">
+                            RDP
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-3">
+                          <div className="flex items-center gap-1">
+                            <User className="h-3 w-3 text-slate-400" />
+                            <span className="text-xs text-slate-300">{record.username || 'N/A'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-3">
+                          <span className="text-xs text-slate-400">
+                            {record.duration ? `Duração: ${Math.round(record.duration / 60)} min` : record.endDate ? 'Finalizado' : 'Em andamento'}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {sessionLogs.length === 0 && (!connectionHistory || connectionHistory.length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-slate-400">
+                          <Clock className="h-10 w-10 mx-auto mb-3 text-slate-600" />
+                          <p className="text-sm font-medium text-white">Nenhum registro encontrado</p>
+                          <p className="text-xs">O histórico aparecerá conforme as conexões forem utilizadas.</p>
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
