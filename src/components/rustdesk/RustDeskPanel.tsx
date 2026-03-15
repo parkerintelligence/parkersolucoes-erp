@@ -38,7 +38,11 @@ const EMPTY_FORM = {
   glpi_asset_comment: '',
 };
 
-export const RustDeskPanel = () => {
+interface RustDeskPanelProps {
+  onSessionLog?: (connectionName: string, details?: string) => void;
+}
+
+export const RustDeskPanel = ({ onSessionLog }: RustDeskPanelProps = {}) => {
   const { data: connections = [], isLoading } = useRustDeskConnections();
   const { data: companies = [] } = useCompanies();
   const createMutation = useCreateRustDeskConnection();
@@ -178,8 +182,11 @@ export const RustDeskPanel = () => {
 
     window.location.href = `rustdesk://connection/new/${conn.rustdesk_id}`;
     
+    // Log session
+    onSessionLog?.(conn.name, `ID: ${conn.rustdesk_id}`);
+
     toast({
-      title: "🖥️ Abrindo RustDesk",
+      title: "🖥️ Abrindo Remoto PK",
       description: `ID${conn.password ? ' e senha' : ''} copiado(s). Conectando a "${conn.name}".`,
     });
   };
@@ -226,7 +233,7 @@ export const RustDeskPanel = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Monitor className="h-5 w-5 text-orange-400" />
-          <h2 className="text-lg font-semibold text-foreground">RustDesk - Conexões</h2>
+          <h2 className="text-lg font-semibold text-foreground">Remoto PK - Conexões</h2>
           <Badge variant="secondary" className="text-xs">{connections.length}</Badge>
         </div>
         <div className="flex items-center gap-2">
@@ -272,7 +279,7 @@ export const RustDeskPanel = () => {
         <Card className="border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-base text-foreground">
-              {editingId ? 'Editar Conexão' : 'Nova Conexão RustDesk'}
+              {editingId ? 'Editar Conexão' : 'Nova Conexão Remoto PK'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -423,11 +430,11 @@ export const RustDeskPanel = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">
-                    <TableHead className="text-muted-foreground text-xs">Nome</TableHead>
-                    <TableHead className="text-muted-foreground text-xs">ID RustDesk</TableHead>
-                    <TableHead className="text-muted-foreground text-xs">Senha</TableHead>
-                    <TableHead className="text-muted-foreground text-xs">GLPI</TableHead>
-                    <TableHead className="text-muted-foreground text-xs text-right">Ações</TableHead>
+                    <TableHead className="text-muted-foreground text-xs font-medium">Nome</TableHead>
+                    <TableHead className="text-muted-foreground text-xs font-medium">ID RustDesk</TableHead>
+                    <TableHead className="text-muted-foreground text-xs font-medium">Senha</TableHead>
+                    <TableHead className="text-muted-foreground text-xs font-medium">GLPI</TableHead>
+                    <TableHead className="text-muted-foreground text-xs font-medium text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -448,73 +455,73 @@ export const RustDeskPanel = () => {
                       {/* Connection rows */}
                       {group.connections.map(conn => (
                         <TableRow key={conn.id} className="border-border/50 hover:bg-muted/20">
-                          <TableCell className="py-1 pl-8">
+                          <TableCell className="py-1.5 pl-8">
                             <span className="text-xs font-medium text-foreground">{conn.name}</span>
-                            {conn.alias && <span className="text-muted-foreground text-[10px] ml-1">({conn.alias})</span>}
-                            {conn.hostname && <span className="text-[10px] text-muted-foreground ml-1">· {conn.hostname}</span>}
+                            {conn.alias && <span className="text-muted-foreground text-[11px] ml-1">({conn.alias})</span>}
+                            {conn.hostname && <span className="text-[11px] text-muted-foreground ml-1">· {conn.hostname}</span>}
                           </TableCell>
-                          <TableCell className="py-1">
+                          <TableCell className="py-1.5">
                             <div className="flex items-center gap-0.5">
-                              <code className="text-orange-400 bg-orange-500/10 px-1.5 py-0 rounded text-[11px]">
+                              <code className="text-orange-400 bg-orange-500/10 px-1.5 py-0 rounded text-xs">
                                 {conn.rustdesk_id}
                               </code>
                               <Button variant="ghost" size="sm" className="h-5 w-5 p-0"
                                 onClick={() => copyToClipboard(conn.rustdesk_id, 'ID')}>
-                                <Copy className="h-2.5 w-2.5" />
+                                <Copy className="h-3 w-3" />
                               </Button>
                             </div>
                           </TableCell>
-                          <TableCell className="py-1">
+                          <TableCell className="py-1.5">
                             {conn.password ? (
                               <div className="flex items-center gap-0.5">
-                                <span className="text-[11px] font-mono text-muted-foreground">
+                                <span className="text-xs font-mono text-muted-foreground">
                                   {showPasswords[conn.id] ? conn.password : '••••'}
                                 </span>
                                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0"
                                   onClick={() => togglePassword(conn.id)}>
-                                  {showPasswords[conn.id] ? <EyeOff className="h-2.5 w-2.5" /> : <Eye className="h-2.5 w-2.5" />}
+                                  {showPasswords[conn.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                                 </Button>
                                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0"
                                   onClick={() => copyToClipboard(conn.password!, 'Senha')}>
-                                  <Copy className="h-2.5 w-2.5" />
+                                  <Copy className="h-3 w-3" />
                                 </Button>
                               </div>
                             ) : (
-                              <span className="text-muted-foreground/50 text-[11px]">-</span>
+                              <span className="text-muted-foreground/50 text-xs">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="py-1">
+                          <TableCell className="py-1.5">
                             {conn.glpi_asset_name ? (
                               <div className="flex items-center gap-1" title={[conn.glpi_asset_name, conn.glpi_asset_serial && `S/N: ${conn.glpi_asset_serial}`, conn.glpi_asset_entity, conn.glpi_asset_comment].filter(Boolean).join(' | ')}>
                                 <Package className="h-3 w-3 text-blue-400 flex-shrink-0" />
-                                <span className="text-[11px] text-foreground truncate max-w-[120px]">{conn.glpi_asset_name}</span>
-                                {conn.glpi_asset_entity && <span className="text-[10px] text-blue-400/70 truncate max-w-[80px]">{conn.glpi_asset_entity}</span>}
-                                {conn.glpi_asset_comment && <span className="text-[10px] text-muted-foreground italic truncate max-w-[100px]">{conn.glpi_asset_comment.substring(0, 30)}</span>}
+                                <span className="text-xs text-foreground truncate max-w-[120px]">{conn.glpi_asset_name}</span>
+                                {conn.glpi_asset_entity && <span className="text-[11px] text-blue-400/70 truncate max-w-[80px]">{conn.glpi_asset_entity}</span>}
+                                {conn.glpi_asset_comment && <span className="text-[11px] text-muted-foreground italic truncate max-w-[100px]">{conn.glpi_asset_comment.substring(0, 30)}</span>}
                               </div>
                             ) : (
-                              <span className="text-muted-foreground/50 text-[10px]">-</span>
+                              <span className="text-muted-foreground/50 text-xs">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="py-1 text-right">
+                          <TableCell className="py-1.5 text-right">
                             <div className="flex justify-end gap-0.5">
                               <Button
                                 size="sm"
                                 onClick={() => handleConnect(conn)}
-                                className="h-6 px-2 bg-orange-600 hover:bg-orange-700 text-white text-[11px]"
+                                className="h-6 px-2 bg-orange-600 hover:bg-orange-700 text-white text-xs"
                               >
-                                <ExternalLink className="h-2.5 w-2.5 mr-0.5" />
+                                <ExternalLink className="h-3 w-3 mr-0.5" />
                                 Conectar
                               </Button>
                               <Button variant="outline" size="sm"
                                 className="h-6 w-6 p-0"
                                 onClick={() => handleEdit(conn)}>
-                                <Edit className="h-2.5 w-2.5" />
+                                <Edit className="h-3 w-3" />
                               </Button>
                               <Button variant="outline" size="sm"
                                 className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
                                 onClick={() => handleDelete(conn.id)}
                                 disabled={deleteMutation.isPending}>
-                                <Trash2 className="h-2.5 w-2.5" />
+                                <Trash2 className="h-3 w-3" />
                               </Button>
                             </div>
                           </TableCell>
