@@ -63,18 +63,7 @@ const Guacamole = () => {
     useDisconnectSession,
     isConfigured,
     integration
-  } = useGuacamoleAPI((type, message, options) => {
-    // Integrar logs do hook com o sistema de logs
-    if (type === 'request') {
-      logRequest(options?.method || 'GET', options?.url || '', options?.dataSource);
-    } else if (type === 'response') {
-      logResponse(options?.status || 200, message, options?.url, options?.details);
-    } else if (type === 'error') {
-      logError(message, options?.url, options?.details);
-    } else {
-      logInfo(message, options);
-    }
-  });
+  } = useGuacamoleAPI();
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [connectionDialog, setConnectionDialog] = useState<{
