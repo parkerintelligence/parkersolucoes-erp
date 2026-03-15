@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,11 +7,13 @@ import { Progress } from '@/components/ui/progress';
 import {
   Server, Wifi, Router, ShieldCheck, Send, SendHorizonal,
   AlertTriangle, CheckCircle2, XCircle, Clock, HardDrive,
-  Activity, Database, RefreshCw, BarChart3, Zap, ChevronLeft, ChevronRight
+  Activity, Database, RefreshCw, BarChart3, Zap, ChevronLeft, ChevronRight,
+  Webhook, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 interface DashboardData {
   integrations: any[];
